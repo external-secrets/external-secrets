@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"github.com/tidwall/gjson"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -107,7 +108,7 @@ func (p *Provider) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) er
 	return nil
 }
 
-func (p *Provider) PushSecret(_ context.Context, value []byte, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
+func (p *Provider) PushSecret(_ context.Context, value []byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
 	currentData, ok := p.config[remoteRef.GetRemoteKey()]
 	if !ok {
 		p.config[remoteRef.GetRemoteKey()] = &Data{

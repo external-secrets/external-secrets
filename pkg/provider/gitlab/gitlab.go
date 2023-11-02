@@ -113,7 +113,7 @@ func (g *gitlabBase) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) 
 	return fmt.Errorf("not implemented")
 }
 
-func (g *gitlabBase) PushSecret(_ context.Context, _ []byte, _ *apiextensionsv1.JSON, _ esv1beta1.PushRemoteRef) error {
+func (g *gitlabBase) PushSecret(_ context.Context, _ []byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

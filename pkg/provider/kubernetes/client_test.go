@@ -85,6 +85,7 @@ func (fk *fakeClient) Delete(_ context.Context, name string, _ metav1.DeleteOpti
 func (fk *fakeClient) Create(_ context.Context, secret *v1.Secret, _ metav1.CreateOptions) (*v1.Secret, error) {
 	s := &v1.Secret{
 		Data: secret.Data,
+		Type: secret.Type,
 	}
 	fk.secretMap[secret.Name] = s
 	return s, nil
@@ -731,6 +732,7 @@ func TestDeleteSecret(t *testing.T) {
 func TestPushSecret(t *testing.T) {
 	type fields struct {
 		Client    KClient
+		PushType  v1.SecretType
 		PushValue string
 	}
 	tests := []struct {
@@ -855,17 +857,52 @@ func TestPushSecret(t *testing.T) {
 					Data: map[string][]byte{
 						"secret": []byte(`bar`),
 					},
+					Type: v1.SecretTypeOpaque,
 				},
 			},
 		},
-	}
+		{
+			name: "create new dockerconfigjson secret",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"yoursec": {
+							Data: map[string][]byte{
+								"token": []byte(`foo`),
+							},
+						},
+					},
+				},
+				PushType:  v1.SecretTypeDockerConfigJson,
+				PushValue: `{"auths": {"myregistry.localhost": {"username": "{{ .username }}", "password": "{{ .password }}"}}}`,
+			},
+			ref: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "mysec",
+				Property:  "config.json",
+			},
+			wantErr: false,
+			wantSecretMap: map[string]*v1.Secret{
+				"yoursec": {
+					Data: map[string][]byte{
+						"token": []byte(`foo`),
+					},
+				},
+				"mysec": {
+					Data: map[string][]byte{
+						"config.json": []byte(`{"auths": {"myregistry.localhost": {"username": "{{ .username }}", "password": "{{ .password }}"}}}`),
+					},
+					Type: v1.SecretTypeDockerConfigJson,
+				},
+			},
+		}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &Client{
 				userSecretClient: tt.fields.Client,
 				store:            &esv1beta1.KubernetesProvider{},
 			}
-			err := p.PushSecret(context.Background(), []byte(tt.fields.PushValue), nil, tt.ref)
+			err := p.PushSecret(context.Background(), []byte(tt.fields.PushValue), tt.fields.PushType, nil, tt.ref)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ProviderKubernetes.DeleteSecret() error = %v, wantErr %v", err, tt.wantErr)
 				return

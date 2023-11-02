@@ -62,6 +62,14 @@ type Reconciler struct {
 	ControllerClass string
 }
 
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.recorder = mgr.GetEventRecorderFor("pushsecret")
+
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&esapi.PushSecret{}).
+		Complete(r)
+}
+
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("pushsecret", req.NamespacedName)
 
@@ -72,15 +80,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	defer func() { pushSecretReconcileDuration.With(resourceLabels).Set(float64(time.Since(start))) }()
 
 	var ps esapi.PushSecret
-	err := r.Get(ctx, req.NamespacedName, &ps)
 	mgr := secretstore.NewManager(r.Client, r.ControllerClass, false)
 	defer mgr.Close(ctx)
-	if apierrors.IsNotFound(err) {
-		return ctrl.Result{}, nil
-	} else if err != nil {
+
+	if err := r.Get(ctx, req.NamespacedName, &ps); err != nil {
+		if apierrors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+
 		msg := "unable to get PushSecret"
 		r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, msg)
 		log.Error(err, msg)
+
 		return ctrl.Result{}, fmt.Errorf("get resource: %w", err)
 	}
 
@@ -91,8 +102,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	p := client.MergeFrom(ps.DeepCopy())
 	defer func() {
-		err := r.Client.Status().Patch(ctx, &ps, p)
-		if err != nil {
+		if err := r.Client.Status().Patch(ctx, &ps, p); err != nil {
 			log.Error(err, errPatchStatus)
 		}
 	}()
@@ -102,10 +112,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if ps.ObjectMeta.DeletionTimestamp.IsZero() {
 			if !controllerutil.ContainsFinalizer(&ps, pushSecretFinalizer) {
 				controllerutil.AddFinalizer(&ps, pushSecretFinalizer)
-				err := r.Client.Update(ctx, &ps, &client.UpdateOptions{})
-				if err != nil {
+				if err := r.Client.Update(ctx, &ps, &client.UpdateOptions{}); err != nil {
 					return ctrl.Result{}, fmt.Errorf("could not update finalizers: %w", err)
 				}
+
 				return ctrl.Result{}, nil
 			}
 		} else {
@@ -114,17 +124,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				badState, err := r.DeleteSecretFromProviders(ctx, &ps, esapi.SyncedPushSecretsMap{}, mgr)
 				if err != nil {
 					msg := fmt.Sprintf("Failed to Delete Secrets from Provider: %v", err)
-					cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
-					ps = SetPushSecretCondition(ps, *cond)
-					r.SetSyncedSecrets(&ps, badState)
-					r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, msg)
+					r.markAsFailed(msg, &ps, badState)
+
 					return ctrl.Result{}, err
 				}
+
 				controllerutil.RemoveFinalizer(&ps, pushSecretFinalizer)
-				err = r.Client.Update(ctx, &ps, &client.UpdateOptions{})
-				if err != nil {
+				if err := r.Client.Update(ctx, &ps, &client.UpdateOptions{}); err != nil {
 					return ctrl.Result{}, fmt.Errorf("could not update finalizers: %w", err)
 				}
+
 				return ctrl.Result{}, nil
 			}
 		}
@@ -134,16 +143,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	secret, err := r.GetSecret(ctx, ps)
 	if err != nil {
-		cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, errFailedGetSecret)
-		ps = SetPushSecretCondition(ps, *cond)
-		r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, errFailedGetSecret)
+		r.markAsFailed(errFailedGetSecret, &ps, nil)
+
 		return ctrl.Result{}, err
 	}
 	secretStores, err := r.GetSecretStores(ctx, ps)
 	if err != nil {
-		cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, err.Error())
-		ps = SetPushSecretCondition(ps, *cond)
-		r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, err.Error())
+		r.markAsFailed(err.Error(), &ps, nil)
+
 		return ctrl.Result{}, err
 	}
 	syncedSecrets, err := r.PushSecretToProviders(ctx, secretStores, ps, secret, mgr)
@@ -153,12 +160,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return ctrl.Result{Requeue: true}, nil
 		}
 
-		msg := fmt.Sprintf(errFailedSetSecret, err)
-		cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
-		ps = SetPushSecretCondition(ps, *cond)
 		totalSecrets := mergeSecretState(syncedSecrets, ps.Status.SyncedPushSecrets)
-		r.SetSyncedSecrets(&ps, totalSecrets)
-		r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, msg)
+		msg := fmt.Sprintf(errFailedSetSecret, err)
+		r.markAsFailed(msg, &ps, totalSecrets)
+
 		return ctrl.Result{}, err
 	}
 	switch ps.Spec.DeletionPolicy {
@@ -166,23 +171,36 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		badSyncState, err := r.DeleteSecretFromProviders(ctx, &ps, syncedSecrets, mgr)
 		if err != nil {
 			msg := fmt.Sprintf("Failed to Delete Secrets from Provider: %v", err)
-			cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
-			ps = SetPushSecretCondition(ps, *cond)
-			r.SetSyncedSecrets(&ps, badSyncState)
-			r.recorder.Event(&ps, v1.EventTypeWarning, esapi.ReasonErrored, msg)
+			r.markAsFailed(msg, &ps, badSyncState)
 			return ctrl.Result{}, err
 		}
 	case esapi.PushSecretDeletionPolicyNone:
 	default:
 	}
-	msg := "PushSecret synced successfully"
-	cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionTrue, esapi.ReasonSynced, msg)
-	ps = SetPushSecretCondition(ps, *cond)
-	r.SetSyncedSecrets(&ps, syncedSecrets)
-	r.recorder.Event(&ps, v1.EventTypeNormal, esapi.ReasonSynced, msg)
+
+	r.markAsDone(&ps, syncedSecrets)
+
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
-func (r *Reconciler) SetSyncedSecrets(ps *esapi.PushSecret, status esapi.SyncedPushSecretsMap) {
+
+func (r *Reconciler) markAsFailed(msg string, ps *esapi.PushSecret, badSyncState esapi.SyncedPushSecretsMap) {
+	cond := newPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
+	setPushSecretCondition(ps, *cond)
+	if badSyncState != nil {
+		r.setSyncedSecrets(ps, badSyncState)
+	}
+	r.recorder.Event(ps, v1.EventTypeWarning, esapi.ReasonErrored, msg)
+}
+
+func (r *Reconciler) markAsDone(ps *esapi.PushSecret, syncedSecrets esapi.SyncedPushSecretsMap) {
+	msg := "PushSecret synced successfully"
+	cond := newPushSecretCondition(esapi.PushSecretReady, v1.ConditionTrue, esapi.ReasonSynced, msg)
+	setPushSecretCondition(ps, *cond)
+	r.setSyncedSecrets(ps, syncedSecrets)
+	r.recorder.Event(ps, v1.EventTypeNormal, esapi.ReasonSynced, msg)
+}
+
+func (r *Reconciler) setSyncedSecrets(ps *esapi.PushSecret, status esapi.SyncedPushSecretsMap) {
 	ps.Status.SyncedPushSecrets = status
 }
 
@@ -267,7 +285,7 @@ func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores map[esapi
 				return out, fmt.Errorf("secret key %v does not exist", data.Match.SecretKey)
 			}
 
-			err := client.PushSecret(ctx, secretValue, data.Metadata, data.Match.RemoteRef)
+			err := client.PushSecret(ctx, secretValue, secret.Type, data.Metadata, data.Match.RemoteRef)
 			if err != nil {
 				return out, fmt.Errorf(errSetSecretFailed, data.Match.SecretKey, store.GetName(), err)
 			}
@@ -276,6 +294,7 @@ func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores map[esapi
 	}
 	return out, nil
 }
+
 func (r *Reconciler) GetSecret(ctx context.Context, ps esapi.PushSecret) (*v1.Secret, error) {
 	secretName := types.NamespacedName{Name: ps.Spec.Selector.Secret.Name, Namespace: ps.Namespace}
 	secret := &v1.Secret{}
@@ -355,15 +374,8 @@ func (r *Reconciler) getSecretStoreFromName(ctx context.Context, refStore esapi.
 	}
 	return &store, nil
 }
-func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.recorder = mgr.GetEventRecorderFor("pushsecret")
 
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&esapi.PushSecret{}).
-		Complete(r)
-}
-
-func NewPushSecretCondition(condType esapi.PushSecretConditionType, status v1.ConditionStatus, reason, message string) *esapi.PushSecretStatusCondition {
+func newPushSecretCondition(condType esapi.PushSecretConditionType, status v1.ConditionStatus, reason, message string) *esapi.PushSecretStatusCondition {
 	return &esapi.PushSecretStatusCondition{
 		Type:               condType,
 		Status:             status,
@@ -373,12 +385,11 @@ func NewPushSecretCondition(condType esapi.PushSecretConditionType, status v1.Co
 	}
 }
 
-func SetPushSecretCondition(gs esapi.PushSecret, condition esapi.PushSecretStatusCondition) esapi.PushSecret {
-	status := gs.Status
-	currentCond := GetPushSecretCondition(status, condition.Type)
+func setPushSecretCondition(ps *esapi.PushSecret, condition esapi.PushSecretStatusCondition) {
+	currentCond := getPushSecretCondition(ps.Status, condition.Type)
 	if currentCond != nil && currentCond.Status == condition.Status &&
 		currentCond.Reason == condition.Reason && currentCond.Message == condition.Message {
-		return gs
+		return
 	}
 
 	// Do not update lastTransitionTime if the status of the condition doesn't change.
@@ -386,9 +397,7 @@ func SetPushSecretCondition(gs esapi.PushSecret, condition esapi.PushSecretStatu
 		condition.LastTransitionTime = currentCond.LastTransitionTime
 	}
 
-	status.Conditions = append(filterOutCondition(status.Conditions, condition.Type), condition)
-	gs.Status = status
-	return gs
+	ps.Status.Conditions = append(filterOutCondition(ps.Status.Conditions, condition.Type), condition)
 }
 
 // filterOutCondition returns an empty set of conditions with the provided type.
@@ -403,8 +412,8 @@ func filterOutCondition(conditions []esapi.PushSecretStatusCondition, condType e
 	return newConditions
 }
 
-// GetSecretStoreCondition returns the condition with the provided type.
-func GetPushSecretCondition(status esapi.PushSecretStatus, condType esapi.PushSecretConditionType) *esapi.PushSecretStatusCondition {
+// getPushSecretCondition returns the condition with the provided type.
+func getPushSecretCondition(status esapi.PushSecretStatus, condType esapi.PushSecretConditionType) *esapi.PushSecretStatusCondition {
 	for i := range status.Conditions {
 		c := status.Conditions[i]
 		if c.Type == condType {

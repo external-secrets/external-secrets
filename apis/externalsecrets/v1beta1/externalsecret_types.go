@@ -197,7 +197,7 @@ type ExternalSecretData struct {
 
 	// SourceRef allows you to override the source
 	// from which the value will pulled from.
-	SourceRef *SourceRef `json:"sourceRef,omitempty"`
+	SourceRef *StoreSourceRef `json:"sourceRef,omitempty"`
 }
 
 // ExternalSecretDataRemoteRef defines Provider data location.
@@ -276,7 +276,7 @@ type ExternalSecretDataFromRemoteRef struct {
 	// a specific SecretStore.
 	// When sourceRef points to a generator Extract or Find is not supported.
 	// The generator returns a static map of values
-	SourceRef *SourceRef `json:"sourceRef,omitempty"`
+	SourceRef *StoreGeneratorSourceRef `json:"sourceRef,omitempty"`
 }
 
 type ExternalSecretRewrite struct {
@@ -357,15 +357,30 @@ type ExternalSecretSpec struct {
 	DataFrom []ExternalSecretDataFromRemoteRef `json:"dataFrom,omitempty"`
 }
 
-// SourceRef allows you to override the source
+// StoreSourceRef allows you to override the SecretStore source
 // from which the secret will be pulled from.
 // You can define at maximum one property.
 // +kubebuilder:validation:MaxProperties=1
-type SourceRef struct {
+type StoreSourceRef struct {
+	// +optional
+	SecretStoreRef SecretStoreRef `json:"storeRef"`
+
+	// GeneratorRef points to a generator custom resource.
+	//
+	// Deprecated: The generatorRef is not implemented in .data[].
+	// this will be removed with v1.
+	GeneratorRef *GeneratorRef `json:"generatorRef,omitempty"`
+}
+
+// StoreGeneratorSourceRef allows you to override the source
+// from which the secret will be pulled from.
+// You can define at maximum one property.
+// +kubebuilder:validation:MaxProperties=1
+type StoreGeneratorSourceRef struct {
 	// +optional
 	SecretStoreRef *SecretStoreRef `json:"storeRef,omitempty"`
 
-	// GeneratorRef points to a generator custom resource in
+	// GeneratorRef points to a generator custom resource.
 	// +optional
 	GeneratorRef *GeneratorRef `json:"generatorRef,omitempty"`
 }
