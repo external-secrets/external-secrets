@@ -100,7 +100,7 @@ func TestManagerGet(t *testing.T) {
 	type args struct {
 		storeRef  esv1beta1.SecretStoreRef
 		namespace string
-		sourceRef *esv1beta1.SourceRef
+		sourceRef *esv1beta1.StoreGeneratorSourceRef
 	}
 	tests := []struct {
 		name              string
@@ -168,7 +168,7 @@ func TestManagerGet(t *testing.T) {
 					Kind: esv1beta1.SecretStoreKind,
 				},
 				// this should take precedence
-				sourceRef: &esv1beta1.SourceRef{
+				sourceRef: &esv1beta1.StoreGeneratorSourceRef{
 					SecretStoreRef: &esv1beta1.SecretStoreRef{
 						Name: otherStore.Name,
 						Kind: esv1beta1.SecretStoreKind,

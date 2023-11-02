@@ -507,8 +507,8 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 	}
 
 	for _, ref := range es.Spec.Data {
-		if ref.SourceRef != nil && ref.SourceRef.SecretStoreRef != nil {
-			storeList = append(storeList, *ref.SourceRef.SecretStoreRef)
+		if ref.SourceRef != nil {
+			storeList = append(storeList, ref.SourceRef.SecretStoreRef)
 		}
 	}
 
@@ -519,7 +519,7 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 
 		// verify that generator's controllerClass matches
 		if ref.SourceRef != nil && ref.SourceRef.GeneratorRef != nil {
-			genDef, err := r.getGeneratorDefinition(ctx, namespace, ref.SourceRef)
+			genDef, err := r.getGeneratorDefinition(ctx, namespace, ref.SourceRef.GeneratorRef)
 			if err != nil {
 				return false, err
 			}

@@ -88,19 +88,25 @@ func (p *secretStoreProvider) DeleteSecret(key string) {
 	gomega.Expect(key).To(gomega.HavePrefix(remoteRefPrefix))
 	secretName := key[len(remoteRefPrefix):]
 
-	secret, err := p.api.GetSecretByName(&smapi.GetSecretByNameRequest{
-		SecretName: secretName,
+	p.api.GetSecret(&smapi.GetSecretRequest{
+		Region:   "",
+		SecretID: "",
+	})
+	res, err := p.api.ListSecrets(&smapi.ListSecretsRequest{
+		Name: &secretName,
 	})
 	if _, isErrNotFound := err.(*scw.ResourceNotFoundError); isErrNotFound {
 		return
 	}
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-	err = p.api.DeleteSecret(&smapi.DeleteSecretRequest{
-		SecretID: secret.ID,
-	})
-	if _, isErrNotFound := err.(*scw.ResourceNotFoundError); isErrNotFound {
-		return
+	for _, secret := range res.Secrets {
+		err = p.api.DeleteSecret(&smapi.DeleteSecretRequest{
+			SecretID: secret.ID,
+		})
+		if _, isErrNotFound := err.(*scw.ResourceNotFoundError); isErrNotFound {
+			return
+		}
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	}
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 }

@@ -89,7 +89,7 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, externalSecret *
 }
 
 func (r *Reconciler) handleSecretData(ctx context.Context, i int, externalSecret esv1beta1.ExternalSecret, secretRef esv1beta1.ExternalSecretData, providerData map[string][]byte, cmgr *secretstore.Manager) error {
-	client, err := cmgr.Get(ctx, externalSecret.Spec.SecretStoreRef, externalSecret.Namespace, secretRef.SourceRef)
+	client, err := cmgr.Get(ctx, externalSecret.Spec.SecretStoreRef, externalSecret.Namespace, toStoreGenSourceRef(secretRef.SourceRef))
 	if err != nil {
 		return err
 	}
@@ -105,8 +105,17 @@ func (r *Reconciler) handleSecretData(ctx context.Context, i int, externalSecret
 	return nil
 }
 
+func toStoreGenSourceRef(ref *esv1beta1.StoreSourceRef) *esv1beta1.StoreGeneratorSourceRef {
+	if ref == nil {
+		return nil
+	}
+	return &esv1beta1.StoreGeneratorSourceRef{
+		SecretStoreRef: &ref.SecretStoreRef,
+	}
+}
+
 func (r *Reconciler) handleGenerateSecrets(ctx context.Context, namespace string, remoteRef esv1beta1.ExternalSecretDataFromRemoteRef, i int) (map[string][]byte, error) {
-	genDef, err := r.getGeneratorDefinition(ctx, namespace, remoteRef.SourceRef)
+	genDef, err := r.getGeneratorDefinition(ctx, namespace, remoteRef.SourceRef.GeneratorRef)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +139,7 @@ func (r *Reconciler) handleGenerateSecrets(ctx context.Context, namespace string
 
 // getGeneratorDefinition returns the generator JSON for a given sourceRef
 // when it uses a generatorRef it fetches the resource and returns the JSON.
-func (r *Reconciler) getGeneratorDefinition(ctx context.Context, namespace string, sourceRef *esv1beta1.SourceRef) (*apiextensions.JSON, error) {
+func (r *Reconciler) getGeneratorDefinition(ctx context.Context, namespace string, generatorRef *esv1beta1.GeneratorRef) (*apiextensions.JSON, error) {
 	// client-go dynamic client needs a GVR to fetch the resource
 	// But we only have the GVK in our generatorRef.
 	//
@@ -142,14 +151,14 @@ func (r *Reconciler) getGeneratorDefinition(ctx context.Context, namespace strin
 		return nil, err
 	}
 
-	gv, err := schema.ParseGroupVersion(sourceRef.GeneratorRef.APIVersion)
+	gv, err := schema.ParseGroupVersion(generatorRef.APIVersion)
 	if err != nil {
 		return nil, err
 	}
 	mapper := restmapper.NewDiscoveryRESTMapper(groupResources)
 	mapping, err := mapper.RESTMapping(schema.GroupKind{
 		Group: gv.Group,
-		Kind:  sourceRef.GeneratorRef.Kind,
+		Kind:  generatorRef.Kind,
 	})
 	if err != nil {
 		return nil, err
@@ -160,7 +169,7 @@ func (r *Reconciler) getGeneratorDefinition(ctx context.Context, namespace strin
 	}
 	res, err := d.Resource(mapping.Resource).
 		Namespace(namespace).
-		Get(ctx, sourceRef.GeneratorRef.Name, metav1.GetOptions{})
+		Get(ctx, generatorRef.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
