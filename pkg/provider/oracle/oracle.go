@@ -155,7 +155,6 @@ func (vms *VaultManagementService) DeleteSecret(ctx context.Context, remoteRef e
 	}
 }
 
-// Empty GetAllSecrets.
 func (vms *VaultManagementService) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	var page *string
 	var summaries []vault.SecretSummary
