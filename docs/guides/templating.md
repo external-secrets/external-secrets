@@ -2,13 +2,18 @@
 
 With External Secrets Operator you can transform the data from the external secret provider before it is stored as `Kind=Secret`. You can do this with the `Spec.Target.Template`. Each data value is interpreted as a [golang template](https://golang.org/pkg/text/template/).
 
+!!! note
+
+    **.'spec.data.secretkey'** cannot contain **'-'** (dashes), consider using camelcase when defining the secret keys.
+
+    Example: service-account-token -> serviceAccountToken
 
 ## Helm
 
 When installing ExternalSecrets via `helm`, the template must be escaped so that `helm` will not try to render it. The most straightforward way to accomplish this would be to use backticks ([raw string constants](https://pkg.go.dev/text/template#hdr-Examples)):
 
 ```yaml
-{% include 'helm-template-v2-escape-sequence.yaml' %}
+{ % include 'helm-template-v2-escape-sequence.yaml' % }
 ```
 
 ## Examples
@@ -16,34 +21,35 @@ When installing ExternalSecrets via `helm`, the template must be escaped so that
 You can use templates to inject your secrets into a configuration file that you mount into your pod:
 
 ```yaml
-{% include 'multiline-template-v2-external-secret.yaml' %}
+{ % include 'multiline-template-v2-external-secret.yaml' % }
 ```
 
 Another example with two keys in the same secret:
 
 ```yaml
-{% include 'multikey-template-v2-external-secret.yaml' %}
+{ % include 'multikey-template-v2-external-secret.yaml' % }
 ```
 
 ### MergePolicy
+
 By default, the templating mechanism will not use any information available from the original `data` and `dataFrom` queries to the provider, and only keep the templated information. It is possible to change this behavior through the use of the `mergePolicy` field. `mergePolicy` currently accepts two values: `Replace` (the default) and `Merge`. When using `Merge`, `data` and `dataFrom` keys will also be embedded into the templated secret, having lower priority than the template outcome. See the example for more information:
 
 ```yaml
-{% include 'merge-template-v2-external-secret.yaml' %}
-
+{ % include 'merge-template-v2-external-secret.yaml' % }
 ```
+
 ### TemplateFrom
 
 You do not have to define your templates inline in an ExternalSecret but you can pull `ConfigMaps` or other Secrets that contain a template. Consider the following example:
 
 ```yaml
-{% include 'template-v2-from-secret.yaml' %}
+{ % include 'template-v2-from-secret.yaml' % }
 ```
 
 `TemplateFrom` also gives you the ability to Target your template to the Secret's Annotations, Labels or the Data block. It also allows you to render the templated information as `Values` or as `KeysAndValues` through the `templateAs` configuration:
 
 ```yaml
-{% include 'template-v2-scope-and-target.yaml' %}
+{ % include 'template-v2-scope-and-target.yaml' % }
 ```
 
 Lastly, `TemplateFrom` also supports adding `Literal` blocks for quick templating. These `Literal` blocks differ from `Template.Data` as they are rendered as a a `key:value` pair (while the `Template.Data`, you can only template the value).
@@ -53,7 +59,7 @@ Lastly, `TemplateFrom` also supports adding `Literal` blocks for quick templatin
 You can use pre-defined functions to extract data from your secrets. Here: extract keys and certificates from a PKCS#12 archive and store it as PEM.
 
 ```yaml
-{% include 'pkcs12-template-v2-external-secret.yaml' %}
+{ % include 'pkcs12-template-v2-external-secret.yaml' % }
 ```
 
 ### Extract from JWK
@@ -76,7 +82,7 @@ A JWK looks similar to this:
 And what you want may be a PEM-encoded public or private key portion of it. Take a look at this example on how to transform it into the desired format:
 
 ```yaml
-{% include 'jwk-template-v2-external-secret.yaml' %}
+{ % include 'jwk-template-v2-external-secret.yaml' % }
 ```
 
 ### Filter PEM blocks
@@ -113,17 +119,17 @@ In addition to that you can use over 200+ [sprig functions](http://masterminds.g
 
 <br/>
 
-| Function       | Description                                                                                                                                                                                               |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| pkcs12key      | Extracts all private keys from a PKCS#12 archive and encodes them in **PKCS#8 PEM** format.                                                                                                               |
-| pkcs12keyPass  | Same as `pkcs12key`. Uses the provided password to decrypt the PKCS#12 archive.                                                                                                                           |
-| pkcs12cert     | Extracts all certificates from a PKCS#12 archive and orders them if possible. If disjunct or multiple leaf certs are provided they are returned as-is. <br/> Sort order: `leaf / intermediate(s) / root`. |
-| pkcs12certPass | Same as `pkcs12cert`. Uses the provided password to decrypt the PKCS#12 archive.                                                                                                                          |
-| filterPEM      | Filters PEM blocks with a specific type from a list of PEM blocks.                                                                                                                                        |
-| jwkPublicKeyPem | Takes an json-serialized JWK and returns an PEM block of type `PUBLIC KEY` that contains the public key. [See here](https://golang.org/pkg/crypto/x509/#MarshalPKIXPublicKey) for details. |
+| Function         | Description                                                                                                                                                                                                                  |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| pkcs12key        | Extracts all private keys from a PKCS#12 archive and encodes them in **PKCS#8 PEM** format.                                                                                                                                  |
+| pkcs12keyPass    | Same as `pkcs12key`. Uses the provided password to decrypt the PKCS#12 archive.                                                                                                                                              |
+| pkcs12cert       | Extracts all certificates from a PKCS#12 archive and orders them if possible. If disjunct or multiple leaf certs are provided they are returned as-is. <br/> Sort order: `leaf / intermediate(s) / root`.                    |
+| pkcs12certPass   | Same as `pkcs12cert`. Uses the provided password to decrypt the PKCS#12 archive.                                                                                                                                             |
+| filterPEM        | Filters PEM blocks with a specific type from a list of PEM blocks.                                                                                                                                                           |
+| jwkPublicKeyPem  | Takes an json-serialized JWK and returns an PEM block of type `PUBLIC KEY` that contains the public key. [See here](https://golang.org/pkg/crypto/x509/#MarshalPKIXPublicKey) for details.                                   |
 | jwkPrivateKeyPem | Takes an json-serialized JWK as `string` and returns an PEM block of type `PRIVATE KEY` that contains the private key in PKCS #8 format. [See here](https://golang.org/pkg/crypto/x509/#MarshalPKCS8PrivateKey) for details. |
-| toYaml | Takes an interface, marshals it to yaml. It returns a string, even on marshal error (empty string). |
-| fromYaml | Function converts a YAML document into a map[string]interface{}. |
+| toYaml           | Takes an interface, marshals it to yaml. It returns a string, even on marshal error (empty string).                                                                                                                          |
+| fromYaml         | Function converts a YAML document into a map[string]interface{}.                                                                                                                                                             |
 
 ## Migrating from v1
 
