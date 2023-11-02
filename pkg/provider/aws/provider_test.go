@@ -391,6 +391,66 @@ func TestValidateStore(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:    "invalid SecretsManager settings: conflicting settings",
+			wantErr: true,
+			args: args{
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AWS: &esv1beta1.AWSProvider{
+								Region:  validRegion,
+								Service: esv1beta1.AWSServiceSecretsManager,
+								SecretsManager: &esv1beta1.SecretsManager{
+									ForceDeleteWithoutRecovery: true,
+									RecoveryWindowInDays:       7,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:    "invalid SecretsManager settings: recovery window too small",
+			wantErr: true,
+			args: args{
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AWS: &esv1beta1.AWSProvider{
+								Region:  validRegion,
+								Service: esv1beta1.AWSServiceSecretsManager,
+								SecretsManager: &esv1beta1.SecretsManager{
+									ForceDeleteWithoutRecovery: true,
+									RecoveryWindowInDays:       6,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:    "invalid SecretsManager settings: recovery window too big",
+			wantErr: true,
+			args: args{
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AWS: &esv1beta1.AWSProvider{
+								Region:  validRegion,
+								Service: esv1beta1.AWSServiceSecretsManager,
+								SecretsManager: &esv1beta1.SecretsManager{
+									ForceDeleteWithoutRecovery: true,
+									RecoveryWindowInDays:       31,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

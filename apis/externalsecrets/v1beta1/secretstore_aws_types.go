@@ -54,13 +54,21 @@ type AWSJWTAuth struct {
 type AWSServiceType string
 
 const (
-	// AWSServiceSecretsManager is the AWS SecretsManager.
+	// AWSServiceSecretsManager is the AWS SecretsManager service.
 	// see: https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html
 	AWSServiceSecretsManager AWSServiceType = "SecretsManager"
-	// AWSServiceParameterStore is the AWS SystemsManager ParameterStore.
+	// AWSServiceParameterStore is the AWS SystemsManager ParameterStore service.
 	// see: https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html
 	AWSServiceParameterStore AWSServiceType = "ParameterStore"
 )
+
+// SecretsManager defines how the provider behaves when interacting with AWS
+// SecretsManager. Some of these settings are only applicable to controlling how
+// secrets are deleted, and hence only apply to PushSecret.
+type SecretsManager struct {
+	ForceDeleteWithoutRecovery bool  `json:"forceDeleteWithoutRecovery,omitempty"`
+	RecoveryWindowInDays       int64 `json:"recoveryWindowInDays"`
+}
 
 type Tag struct {
 	Key   string `json:"key"`
@@ -78,14 +86,14 @@ type AWSProvider struct {
 	// +optional
 	Auth AWSAuth `json:"auth"`
 
-	// Role is a Role ARN which the SecretManager provider will assume
+	// Role is a Role ARN which the provider will assume
 	// +optional
 	Role string `json:"role,omitempty"`
 
 	// AWS Region to be used for the provider
 	Region string `json:"region"`
 
-	// AdditionalRoles is a chained list of Role ARNs which the SecretManager provider will sequentially assume before assuming Role
+	// AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming Role
 	// +optional
 	AdditionalRoles []string `json:"additionalRoles,omitempty"`
 
@@ -96,7 +104,11 @@ type AWSProvider struct {
 	// +optional
 	SessionTags []*Tag `json:"sessionTags,omitempty"`
 
-	// AWS STS assume role transitive session tags. Required when multiple rules are used with SecretStore
+	// SecretsManager defines how the provider behaves when interacting with AWS SecretsManager
+	// +optional
+	SecretsManager *SecretsManager `json:"secretsManager,omitempty"`
+
+	// AWS STS assume role transitive session tags. Required when multiple rules are used with the provider
 	// +optional
 	TransitiveTagKeys []*string `json:"transitiveTagKeys,omitempty"`
 }

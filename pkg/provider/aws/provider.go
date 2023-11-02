@@ -45,6 +45,7 @@ const (
 	errUnknownProviderService = "unknown AWS Provider Service: %s"
 	errRegionNotFound         = "region not found: %s"
 	errInitAWSProvider        = "unable to initialize aws provider: %s"
+	errInvalidSecretsManager  = "invalid SecretsManager settings: %s"
 )
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
@@ -63,6 +64,10 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 		return err
 	}
 	err = validateRegion(prov)
+	if err != nil {
+		return err
+	}
+	err = validateSecretsManager(prov)
 	if err != nil {
 		return err
 	}
@@ -118,6 +123,19 @@ func validateRegion(prov *esv1beta1.AWSProvider) error {
 	return nil
 }
 
+func validateSecretsManager(prov *esv1beta1.AWSProvider) error {
+	// Validate range for RecoveryWindowInDays
+	// See: https://pkg.go.dev/github.com/aws/aws-sdk-go-v2/service/secretsmanager#DeleteSecretInput
+	if prov.SecretsManager.RecoveryWindowInDays != 0 && (prov.SecretsManager.RecoveryWindowInDays < 7 || prov.SecretsManager.RecoveryWindowInDays > 30) {
+		return fmt.Errorf(errInvalidSecretsManager, "RecoveryWindowInDays must be between 7 and 30 days")
+	}
+	// Validate that ForceDeleteWithoutRecovery is not set when RecoveryWindowInDays is set
+	if prov.SecretsManager != nil && (prov.SecretsManager.RecoveryWindowInDays != 0 && prov.SecretsManager.ForceDeleteWithoutRecovery) {
+		return fmt.Errorf(errInvalidSecretsManager, "ForceDeleteWithoutRecovery conflicts with RecoveryWindowInDays")
+	}
+	return nil
+}
+
 func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, assumeRoler awsauth.STSProvider) (esv1beta1.SecretsClient, error) {
 	prov, err := util.GetAWSProvider(store)
 	if err != nil {
@@ -137,7 +155,7 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 		sess := &session.Session{Config: cfg}
 		switch prov.Service {
 		case esv1beta1.AWSServiceSecretsManager:
-			return secretsmanager.New(sess, cfg, true)
+			return secretsmanager.New(sess, cfg, prov.SecretsManager, true)
 		case esv1beta1.AWSServiceParameterStore:
 			return parameterstore.New(sess, cfg, true)
 		}
@@ -176,7 +194,7 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 
 	switch prov.Service {
 	case esv1beta1.AWSServiceSecretsManager:
-		return secretsmanager.New(sess, cfg, false)
+		return secretsmanager.New(sess, cfg, prov.SecretsManager, false)
 	case esv1beta1.AWSServiceParameterStore:
 		return parameterstore.New(sess, cfg, false)
 	}

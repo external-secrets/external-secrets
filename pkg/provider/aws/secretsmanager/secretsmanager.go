@@ -51,6 +51,7 @@ type SecretsManager struct {
 	client       SMInterface
 	referentAuth bool
 	cache        map[string]*awssm.GetSecretValueOutput
+	config       *esv1beta1.SecretsManager
 }
 
 // SMInterface is a subset of the smiface api.
@@ -75,12 +76,13 @@ const (
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager")
 
 // New creates a new SecretsManager client.
-func New(sess *session.Session, cfg *aws.Config, referentAuth bool) (*SecretsManager, error) {
+func New(sess *session.Session, cfg *aws.Config, secretsManagerCfg *esv1beta1.SecretsManager, referentAuth bool) (*SecretsManager, error) {
 	return &SecretsManager{
 		sess:         sess,
 		client:       awssm.New(sess, cfg),
 		referentAuth: referentAuth,
 		cache:        make(map[string]*awssm.GetSecretValueOutput),
+		config:       secretsManagerCfg,
 	}, nil
 }
 
@@ -186,6 +188,11 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	}
 	deleteInput := &awssm.DeleteSecretInput{
 		SecretId: awsSecret.ARN,
+	}
+	if sm.config.ForceDeleteWithoutRecovery {
+		deleteInput.ForceDeleteWithoutRecovery = &sm.config.ForceDeleteWithoutRecovery
+	} else if sm.config.RecoveryWindowInDays > 0 {
+		deleteInput.RecoveryWindowInDays = &sm.config.RecoveryWindowInDays
 	}
 	_, err = sm.client.DeleteSecretWithContext(ctx, deleteInput)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDeleteSecret, err)
