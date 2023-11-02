@@ -759,7 +759,7 @@ func TestPushSecret(t *testing.T) {
 					ProjectID: smtc.projectID,
 				},
 			}
-			err := c.PushSecret(context.Background(), []byte("fake-value"), tc.args.Metadata, ref)
+			err := c.PushSecret(context.Background(), []byte("fake-value"), "", tc.args.Metadata, ref)
 			if err != nil {
 				if tc.want.err == nil {
 					t.Errorf("received an unexpected error: %v", err)
@@ -954,7 +954,7 @@ func TestPushSecret_Property(t *testing.T) {
 				store:    &esv1beta1.GCPSMProvider{},
 			}
 
-			err := client.PushSecret(context.Background(), []byte(tc.payload), nil, tc.ref)
+			err := client.PushSecret(context.Background(), []byte(tc.payload), "", nil, tc.ref)
 			if err != nil {
 				if tc.expectedErr == "" {
 					t.Fatalf("PushSecret returns unexpected error: %v", err)

@@ -527,7 +527,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		tc.externalSecret.Spec.Data = nil
 		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
 			{
-				SourceRef: &esv1beta1.SourceRef{
+				SourceRef: &esv1beta1.StoreGeneratorSourceRef{
 					GeneratorRef: &esv1beta1.GeneratorRef{
 						APIVersion: genv1alpha1.Group + "/" + genv1alpha1.Version,
 						Kind:       "Fake",
@@ -652,7 +652,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
 					Key: "foo",
 				},
-				SourceRef: &esv1beta1.SourceRef{
+				SourceRef: &esv1beta1.StoreGeneratorSourceRef{
 					SecretStoreRef: &esv1beta1.SecretStoreRef{
 						Name: "foo",
 						Kind: esv1beta1.SecretStoreKind,
@@ -663,7 +663,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
 					Key: "baz",
 				},
-				SourceRef: &esv1beta1.SourceRef{
+				SourceRef: &esv1beta1.StoreGeneratorSourceRef{
 					SecretStoreRef: &esv1beta1.SecretStoreRef{
 						Name: "baz",
 						Kind: esv1beta1.SecretStoreKind,

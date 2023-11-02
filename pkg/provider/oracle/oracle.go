@@ -96,7 +96,7 @@ const (
 	SecretAPIError
 )
 
-func (vms *VaultManagementService) PushSecret(ctx context.Context, value []byte, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
+func (vms *VaultManagementService) PushSecret(ctx context.Context, value []byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
 	secretName := remoteRef.GetRemoteKey()
 	encodedValue := base64.StdEncoding.EncodeToString(value)
 	sec, action, err := vms.getSecretBundleWithCode(ctx, secretName)

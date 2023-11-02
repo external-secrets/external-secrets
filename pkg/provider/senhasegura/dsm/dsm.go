@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"net/url"
 
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -97,7 +98,7 @@ func (dsm *DSM) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error
 }
 
 // Not Implemented PushSecret.
-func (dsm *DSM) PushSecret(_ context.Context, _ []byte, _ *apiextensionsv1.JSON, _ esv1beta1.PushRemoteRef) error {
+func (dsm *DSM) PushSecret(_ context.Context, _ []byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, _ esv1beta1.PushRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
