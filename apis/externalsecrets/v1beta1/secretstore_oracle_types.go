@@ -46,6 +46,11 @@ type OracleProvider struct {
 	// If empty, use the instance principal, otherwise the user credentials specified in Auth.
 	// +optional
 	Auth *OracleAuth `json:"auth,omitempty"`
+
+	// ServiceAccountRef specified the service account
+	// that should be used when authenticating with WorkloadIdentity.
+	// +optional
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }
 
 type OracleAuth struct {
