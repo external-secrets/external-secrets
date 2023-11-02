@@ -670,7 +670,7 @@ func TestOracleVaultDeleteSecret(t *testing.T) {
 				return vms.VaultClient.(*fakeoracle.OracleMockVaultClient).DeletedCount == 0
 			},
 		},
-		"do not delete if secret os alaready deleting": {
+		"do not delete if secret os already deleting": {
 			&VaultManagementService{
 				Client: &fakeoracle.OracleMockClient{
 					SecretBundles: map[string]secrets.SecretBundle{
