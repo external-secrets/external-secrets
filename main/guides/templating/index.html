@@ -2314,6 +2314,12 @@
 
 <h1 id="advanced-templating-v2">Advanced Templating v2</h1>
 <p>With External Secrets Operator you can transform the data from the external secret provider before it is stored as <code>Kind=Secret</code>. You can do this with the <code>Spec.Target.Template</code>. Each data value is interpreted as a <a href="https://golang.org/pkg/text/template/">golang template</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Consider using camelcase when defining  <strong>.'spec.data.secretkey'</strong>, example: serviceAccountToken</p>
+<p>If your secret keys contain <strong><code>-</code> (dashes)</strong>, you will need to reference them using <strong><code>index</code></strong> </br>
+Example: <strong><code>\{\{ index .data "service-account-token" \}\}</code></strong></p>
+</div>
 <h2 id="helm">Helm</h2>
 <p>When installing ExternalSecrets via <code>helm</code>, the template must be escaped so that <code>helm</code> will not try to render it. The most straightforward way to accomplish this would be to use backticks (<a href="https://pkg.go.dev/text/template#hdr-Examples">raw string constants</a>):</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
