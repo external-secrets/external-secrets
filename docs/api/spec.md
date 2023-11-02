@@ -4563,7 +4563,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>EncryptionKey is the OCID of the encrpytion key within the vault.
+<p>EncryptionKey is the OCID of the encryption key within the vault.
 Required for PushSecret</p>
 </td>
 </tr>

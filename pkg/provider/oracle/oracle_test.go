@@ -641,7 +641,7 @@ func TestOracleVaultPushSecret(t *testing.T) {
 	}
 	for name, testCase := range testCases {
 		t.Run(name, func(t *testing.T) {
-			err := testCase.vms.PushSecret(context.Background(), []byte(testCase.content), nil, testCase.remoteRef)
+			err := testCase.vms.PushSecret(context.Background(), []byte(testCase.content), "", nil, testCase.remoteRef)
 			assert.NoError(t, err)
 			assert.True(t, testCase.validator(testCase.vms))
 		})
