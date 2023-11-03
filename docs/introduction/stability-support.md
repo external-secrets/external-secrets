@@ -53,6 +53,7 @@ The following table describes the stability level of each provider and who's res
 | [Scaleway](https://external-secrets.io/latest/provider/scaleway)                                           |   alpha   |                                                                                                                                                   [@azert9](https://github.com/azert9/) |
 | [Conjur](https://external-secrets.io/latest/provider/conjur)                                               |   alpha   |                                                                                                                                 [@davidh-cyberark](https://github.com/davidh-cyberark/) |
 | [Delinea](https://external-secrets.io/latest/provider/delinea)                                             |   alpha   |                                                                                                                                     [@michaelsauter](https://github.com/michaelsauter/) |
+| [Github](https://external-secrets.io/latest/provider/github)                                             |   alpha   |                                                                                                                                     [@carvido1](https://github.com/carvido1/) |
 
 ## Provider Feature Support
 
@@ -80,6 +81,7 @@ The following table show the support for features across different providers.
 | Scaleway                  |      x       |      x       |                      |                         |        x         |      x      |              x              |
 | Conjur                    |              |              |                      |                         |        x         |             |                             |
 | Delinea                   |      x       |              |                      |                         |        x         |             |                             |
+| Github                |              |              |                      |                         |        x         |      x     |                             |
 
 ## Support Policy
 
