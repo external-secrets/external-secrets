@@ -1658,6 +1658,13 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#pushsecrets-and-retrieving-multiple-secrets" class="md-nav__link">
+    PushSecrets and retrieving multiple secrets.
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2227,6 +2234,13 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#pushsecrets-and-retrieving-multiple-secrets" class="md-nav__link">
+    PushSecrets and retrieving multiple secrets.
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2355,6 +2369,22 @@ This will automatically generate a fingerprint.
 <p>The operator will fetch the project variable and inject it as a <code>Kind=Secret</code>.
 <div class="highlight"><pre><span></span><code>kubectl get secret oracle-secret-to-create -o jsonpath=&#39;{.data.dev-secret-test}&#39; | base64 -d
 </code></pre></div></p>
+<h3 id="pushsecrets-and-retrieving-multiple-secrets">PushSecrets and retrieving multiple secrets.</h3>
+<p>When using <a href="https://external-secrets.io/latest/guides/pushsecrets/">PushSecrets</a>, the compartment OCID and encryption key OCID must be specified in the
+Oracle SecretStore. You can find your compartment and encrpytion key OCIDs in the OCI console.</p>
+<p>If <a href="https://external-secrets.io/latest/guides/getallsecrets/">retrieving multiple secrets</a> by tag or regex, only the compartment OCID must be specified.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-instance-principal</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">oracle</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">vault</span><span class="p">:</span><span class="w"> </span><span class="c1"># The vault OCID</span>
+<span class="w">      </span><span class="nt">compartment</span><span class="p">:</span><span class="w"> </span><span class="c1"># The compartment OCID where the vault is located. Required when using PushSecrets or retrieving multiple secrets.</span>
+<span class="w">      </span><span class="nt">encryptionKey</span><span class="p">:</span><span class="w"> </span><span class="c1"># The OCID of the master encryption key that will be used for PushSecret encryption. Must exist in the vault, required when using PushSecrets.</span>
+<span class="w">      </span><span class="nt">principalType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Workload</span>
+</code></pre></div>
 
 
   
