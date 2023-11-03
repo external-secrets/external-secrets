@@ -40,7 +40,6 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -113,7 +112,7 @@ func (vms *VaultManagementService) PushSecret(ctx context.Context, value []byte,
 				VaultId:    &vms.vault,
 			},
 		})
-		return err
+		return sanitizeOCISDKErr(err)
 	case SecretExists:
 		payload, err := decodeBundle(sec)
 		if err != nil {
@@ -130,9 +129,9 @@ func (vms *VaultManagementService) PushSecret(ctx context.Context, value []byte,
 				},
 			},
 		})
-		return err
+		return sanitizeOCISDKErr(err)
 	default:
-		return err
+		return sanitizeOCISDKErr(err)
 	}
 }
 
@@ -149,9 +148,9 @@ func (vms *VaultManagementService) DeleteSecret(ctx context.Context, remoteRef e
 		_, err = vms.VaultClient.ScheduleSecretDeletion(ctx, vault.ScheduleSecretDeletionRequest{
 			SecretId: resp.SecretId,
 		})
-		return err
+		return sanitizeOCISDKErr(err)
 	default:
-		return err
+		return sanitizeOCISDKErr(err)
 	}
 }
 
@@ -166,7 +165,7 @@ func (vms *VaultManagementService) GetAllSecrets(ctx context.Context, ref esv1be
 			VaultId:       &vms.vault,
 		})
 		if err != nil {
-			return nil, err
+			return nil, sanitizeOCISDKErr(err)
 		}
 		summaries = append(summaries, resp.Items...)
 		if page = resp.OpcNextPage; resp.OpcNextPage == nil {
@@ -188,7 +187,7 @@ func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1beta1.
 		Stage:      secrets.GetSecretBundleByNameStageEnum(ref.Version),
 	})
 	if err != nil {
-		return nil, util.SanitizeErr(err)
+		return nil, sanitizeOCISDKErr(err)
 	}
 
 	payload, err := decodeBundle(sec)
@@ -222,7 +221,7 @@ func decodeBundle(sec secrets.GetSecretBundleByNameResponse) ([]byte, error) {
 func (vms *VaultManagementService) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := vms.GetSecret(ctx, ref)
 	if err != nil {
-		return nil, err
+		return nil, sanitizeOCISDKErr(err)
 	}
 	kv := make(map[string]string)
 	err = json.Unmarshal(data, &kv)
@@ -462,7 +461,7 @@ func (vms *VaultManagementService) Validate() (esv1beta1.ValidationResult, error
 			code := failure.GetCode()
 			switch code {
 			case "NotAuthenticated":
-				return esv1beta1.ValidationResultError, err
+				return esv1beta1.ValidationResultError, sanitizeOCISDKErr(err)
 			case "NotAuthorizedOrNotFound":
 				// User authentication was successful, but user might not have a permission like:
 				//
@@ -473,9 +472,9 @@ func (vms *VaultManagementService) Validate() (esv1beta1.ValidationResult, error
 				// Allow group external_secrets to read secret-family in tenancy
 				//
 				// But we can't test for this permission without knowing the name of a secret
-				return esv1beta1.ValidationResultUnknown, err
+				return esv1beta1.ValidationResultUnknown, sanitizeOCISDKErr(err)
 			default:
-				return esv1beta1.ValidationResultError, err
+				return esv1beta1.ValidationResultError, sanitizeOCISDKErr(err)
 			}
 		} else {
 			return esv1beta1.ValidationResultError, err
@@ -588,6 +587,18 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(store esv1beta1.G
 	}
 	tokenProvider := NewTokenProvider(clientset, serviceAcccountRef, namespace)
 	return auth.OkeWorkloadIdentityConfigurationProviderWithServiceAccountTokenProvider(tokenProvider)
+}
+
+func sanitizeOCISDKErr(err error) error {
+	if err == nil {
+		return nil
+	}
+	// If we have a ServiceError from the OCI SDK, strip only the message from the verbose error
+	//nolint:all
+	if serviceError, ok := err.(common.ServiceErrorRichInfo); ok {
+		return fmt.Errorf("%s service failed to %s, HTTP status code %d: %s", serviceError.GetTargetService(), serviceError.GetOperationName(), serviceError.GetHTTPStatusCode(), serviceError.GetMessage())
+	}
+	return err
 }
 
 func init() {
