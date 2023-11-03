@@ -24,14 +24,19 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/secrets"
+	"github.com/oracle/oci-go-sdk/v65/vault"
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakeoracle "github.com/external-secrets/external-secrets/pkg/provider/oracle/fake"
@@ -502,5 +507,251 @@ func TestVaultManagementService_NewClient(t *testing.T) {
 				t.Fatalf("expeceted to receive an error but got nil")
 			}
 		})
+	}
+}
+
+func TestOracleVaultGetAllSecrets(t *testing.T) {
+	var testCases = map[string]struct {
+		vms    *VaultManagementService
+		ref    esv1beta1.ExternalSecretFind
+		result map[string][]byte
+	}{
+		"filters secrets that don't match the pattern": {
+			&VaultManagementService{
+				Client: &fakeoracle.OracleMockClient{
+					SecretBundles: map[string]secrets.SecretBundle{
+						s1id: s1bundle,
+						s2id: s2bundle,
+					},
+				},
+				VaultClient: &fakeoracle.OracleMockVaultClient{
+					SecretSummaries: []vault.SecretSummary{
+						s1summary,
+						s2summary,
+					},
+				},
+			},
+			esv1beta1.ExternalSecretFind{
+				Name: &esv1beta1.FindName{
+					RegExp: "^test.*",
+				},
+			},
+			map[string][]byte{
+				s1id: []byte(s1id),
+			},
+		},
+		"filters secrets that are deleting": {
+			&VaultManagementService{
+				Client: &fakeoracle.OracleMockClient{
+					SecretBundles: map[string]secrets.SecretBundle{
+						s1id: s1bundle,
+						s2id: s2bundle,
+						s3id: s3bundle,
+					},
+				},
+				VaultClient: &fakeoracle.OracleMockVaultClient{
+					SecretSummaries: []vault.SecretSummary{
+						s1summary,
+						s2summary,
+						s3summary,
+					},
+				},
+			},
+			esv1beta1.ExternalSecretFind{
+				Name: &esv1beta1.FindName{
+					RegExp: ".*",
+				},
+			},
+			map[string][]byte{
+				s1id: []byte(s1id),
+				s2id: []byte(s2id),
+			},
+		},
+	}
+	for name, testCase := range testCases {
+		t.Run(name, func(t *testing.T) {
+			result, err := testCase.vms.GetAllSecrets(context.Background(), testCase.ref)
+			assert.NoError(t, err)
+			assert.EqualValues(t, testCase.result, result)
+		})
+	}
+}
+
+func TestOracleVaultPushSecret(t *testing.T) {
+	var testCases = map[string]struct {
+		vms       *VaultManagementService
+		remoteRef esv1beta1.PushRemoteRef
+		validator func(service *VaultManagementService) bool
+		content   string
+	}{
+		"create a secret if not exists": {
+			&VaultManagementService{
+				Client: &fakeoracle.OracleMockClient{
+					SecretBundles: map[string]secrets.SecretBundle{
+						s2id: s2bundle,
+					},
+				},
+				VaultClient: &fakeoracle.OracleMockVaultClient{},
+			},
+			esv1alpha1.PushSecretRemoteRef{
+				RemoteKey: s1id,
+			},
+			func(vms *VaultManagementService) bool {
+				return vms.VaultClient.(*fakeoracle.OracleMockVaultClient).CreatedCount == 1
+			},
+			"created",
+		},
+		"update a secret if exists": {
+			&VaultManagementService{
+				Client: &fakeoracle.OracleMockClient{
+					SecretBundles: map[string]secrets.SecretBundle{
+						s1id: s1bundle,
+						s2id: s2bundle,
+					},
+				},
+				VaultClient: &fakeoracle.OracleMockVaultClient{},
+			},
+			esv1alpha1.PushSecretRemoteRef{
+				RemoteKey: s1id,
+			},
+			func(vms *VaultManagementService) bool {
+				return vms.VaultClient.(*fakeoracle.OracleMockVaultClient).UpdatedCount == 1
+			},
+			"updated",
+		},
+		"neither create nor update if secret content is unchanged": {
+			&VaultManagementService{
+				Client: &fakeoracle.OracleMockClient{
+					SecretBundles: map[string]secrets.SecretBundle{
+						s1id: s1bundle,
+						s2id: s2bundle,
+					},
+				},
+				VaultClient: &fakeoracle.OracleMockVaultClient{},
+			},
+			esv1alpha1.PushSecretRemoteRef{
+				RemoteKey: s1id,
+			},
+			func(vms *VaultManagementService) bool {
+				return vms.VaultClient.(*fakeoracle.OracleMockVaultClient).UpdatedCount == 0 &&
+					vms.VaultClient.(*fakeoracle.OracleMockVaultClient).CreatedCount == 0
+			},
+			s1id,
+		},
+	}
+	for name, testCase := range testCases {
+		t.Run(name, func(t *testing.T) {
+			err := testCase.vms.PushSecret(context.Background(), []byte(testCase.content), "", nil, testCase.remoteRef)
+			assert.NoError(t, err)
+			assert.True(t, testCase.validator(testCase.vms))
+		})
+	}
+}
+
+func TestOracleVaultDeleteSecret(t *testing.T) {
+	var testCases = map[string]struct {
+		vms       *VaultManagementService
+		remoteRef esv1beta1.PushRemoteRef
+		validator func(service *VaultManagementService) bool
+	}{
+		"do not delete if secret not found": {
+			&VaultManagementService{
+				Client: &fakeoracle.OracleMockClient{
+					SecretBundles: map[string]secrets.SecretBundle{
+						s1id: s1bundle,
+					},
+				},
+				VaultClient: &fakeoracle.OracleMockVaultClient{},
+			},
+			esv1alpha1.PushSecretRemoteRef{
+				RemoteKey: s2id,
+			},
+			func(vms *VaultManagementService) bool {
+				return vms.VaultClient.(*fakeoracle.OracleMockVaultClient).DeletedCount == 0
+			},
+		},
+		"do not delete if secret os already deleting": {
+			&VaultManagementService{
+				Client: &fakeoracle.OracleMockClient{
+					SecretBundles: map[string]secrets.SecretBundle{
+						s1id: s1bundle,
+						s3id: s3bundle,
+					},
+				},
+				VaultClient: &fakeoracle.OracleMockVaultClient{},
+			},
+			esv1alpha1.PushSecretRemoteRef{
+				RemoteKey: s3id,
+			},
+			func(vms *VaultManagementService) bool {
+				return vms.VaultClient.(*fakeoracle.OracleMockVaultClient).DeletedCount == 0
+			},
+		},
+		"delete existing secret": {
+			&VaultManagementService{
+				Client: &fakeoracle.OracleMockClient{
+					SecretBundles: map[string]secrets.SecretBundle{
+						s1id: s1bundle,
+						s3id: s3bundle,
+					},
+				},
+				VaultClient: &fakeoracle.OracleMockVaultClient{},
+			},
+			esv1alpha1.PushSecretRemoteRef{
+				RemoteKey: s1id,
+			},
+			func(vms *VaultManagementService) bool {
+				return vms.VaultClient.(*fakeoracle.OracleMockVaultClient).DeletedCount == 1
+			},
+		},
+	}
+	for name, testCase := range testCases {
+		t.Run(name, func(t *testing.T) {
+			err := testCase.vms.DeleteSecret(context.Background(), testCase.remoteRef)
+			assert.NoError(t, err)
+			assert.True(t, testCase.validator(testCase.vms))
+		})
+	}
+}
+
+var (
+	s1id      = "test1"
+	s2id      = "mysecret"
+	s3id      = "deleting"
+	s1bundle  = makeSecretBundle(s1id, false)
+	s2bundle  = makeSecretBundle(s2id, false)
+	s3bundle  = makeSecretBundle(s3id, true)
+	s1summary = makeSecretSummary(s1id, false)
+	s2summary = makeSecretSummary(s2id, false)
+	s3summary = makeSecretSummary(s3id, true)
+)
+
+func makeSecretBundle(id string, deleting bool) secrets.SecretBundle {
+	var deletionTime *common.SDKTime
+	if deleting {
+		deletionTime = &common.SDKTime{
+			Time: time.Now(),
+		}
+	}
+	return secrets.SecretBundle{
+		SecretId: &id,
+		SecretBundleContent: secrets.Base64SecretBundleContentDetails{
+			Content: ptr.To(base64.StdEncoding.EncodeToString([]byte(id))),
+		},
+		TimeOfDeletion: deletionTime,
+	}
+}
+
+func makeSecretSummary(id string, deleting bool) vault.SecretSummary {
+	var deletionTime *common.SDKTime
+	if deleting {
+		deletionTime = &common.SDKTime{
+			Time: time.Now(),
+		}
+	}
+	return vault.SecretSummary{
+		Id:             &id,
+		SecretName:     &id,
+		TimeOfDeletion: deletionTime,
 	}
 }

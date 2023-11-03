@@ -1226,6 +1226,12 @@ spec:
                             - tenancy
                             - user
                           type: object
+                        compartment:
+                          description: Compartment is the vault compartment OCID. Required for PushSecret
+                          type: string
+                        encryptionKey:
+                          description: EncryptionKey is the OCID of the encryption key within the vault. Required for PushSecret
+                          type: string
                         principalType:
                           description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
                           type: string
@@ -2764,6 +2770,12 @@ spec:
                             - tenancy
                             - user
                           type: object
+                        compartment:
+                          description: Compartment is the vault compartment OCID. Required for PushSecret
+                          type: string
+                        encryptionKey:
+                          description: EncryptionKey is the OCID of the encryption key within the vault. Required for PushSecret
+                          type: string
                         principalType:
                           description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
                           type: string
@@ -5137,6 +5149,12 @@ spec:
                             - tenancy
                             - user
                           type: object
+                        compartment:
+                          description: Compartment is the vault compartment OCID. Required for PushSecret
+                          type: string
+                        encryptionKey:
+                          description: EncryptionKey is the OCID of the encryption key within the vault. Required for PushSecret
+                          type: string
                         principalType:
                           description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
                           type: string
@@ -6675,6 +6693,12 @@ spec:
                             - tenancy
                             - user
                           type: object
+                        compartment:
+                          description: Compartment is the vault compartment OCID. Required for PushSecret
+                          type: string
+                        encryptionKey:
+                          description: EncryptionKey is the OCID of the encryption key within the vault. Required for PushSecret
+                          type: string
                         principalType:
                           description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
                           type: string
