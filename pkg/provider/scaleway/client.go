@@ -102,7 +102,7 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	return value, nil
 }
 
-func (c *client) PushSecret(ctx context.Context, value []byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *client) PushSecret(ctx context.Context, values map[string][]byte, typed corev1.SecretType, metadata *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
 	scwRef, err := decodeScwSecretRef(remoteRef.GetRemoteKey())
 	if err != nil {
 		return err
@@ -166,7 +166,7 @@ func (c *client) PushSecret(ctx context.Context, value []byte, _ corev1.SecretTy
 				return err
 			}
 
-			if bytes.Equal(data, value) {
+			if bytes.Equal(data, values) {
 				// No change to push.
 				return nil
 			}
@@ -188,7 +188,7 @@ func (c *client) PushSecret(ctx context.Context, value []byte, _ corev1.SecretTy
 
 	createSecretVersionRequest := smapi.CreateSecretVersionRequest{
 		SecretID: secretID,
-		Data:     value,
+		Data:     values,
 	}
 
 	createSecretVersionResponse, err := c.api.CreateSecretVersion(&createSecretVersionRequest, scw.WithContext(ctx))
@@ -196,7 +196,7 @@ func (c *client) PushSecret(ctx context.Context, value []byte, _ corev1.SecretTy
 		return err
 	}
 
-	c.cache.Put(secretID, createSecretVersionResponse.Revision, value)
+	c.cache.Put(secretID, createSecretVersionResponse.Revision, values)
 
 	if existingSecretVersion != -1 {
 		_, err := c.api.DisableSecretVersion(&smapi.DisableSecretVersionRequest{

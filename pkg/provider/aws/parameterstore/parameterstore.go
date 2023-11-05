@@ -132,11 +132,11 @@ func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	return nil
 }
 
-func (pm *ParameterStore) PushSecret(ctx context.Context, value []byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
+func (pm *ParameterStore) PushSecret(ctx context.Context, values map[string][]byte, typed corev1.SecretType, metadata *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
 	parameterType := "String"
 	overwrite := true
 
-	stringValue := string(value)
+	stringValue := string(values)
 	secretName := remoteRef.GetRemoteKey()
 
 	secretRequest := ssm.PutParameterInput{
@@ -172,7 +172,7 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, value []byte, _ corev1
 			return fmt.Errorf("secret not managed by external-secrets")
 		}
 
-		if existing.Parameter.Value != nil && *existing.Parameter.Value == string(value) {
+		if existing.Parameter.Value != nil && *existing.Parameter.Value == string(values) {
 			return nil
 		}
 

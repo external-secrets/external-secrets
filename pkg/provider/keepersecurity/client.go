@@ -162,14 +162,14 @@ func (c *Client) Close(_ context.Context) error {
 	return nil
 }
 
-func (c *Client) PushSecret(_ context.Context, value []byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *Client) PushSecret(ctx context.Context, values map[string][]byte, typed corev1.SecretType, metadata *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
 	parts, err := c.buildSecretNameAndKey(remoteRef)
 	if err != nil {
 		return err
 	}
 	secret, err := c.findSecretByName(parts[0])
 	if err != nil {
-		_, err = c.createSecret(parts[0], parts[1], value)
+		_, err = c.createSecret(parts[0], parts[1], values)
 		if err != nil {
 			return err
 		}
@@ -178,7 +178,7 @@ func (c *Client) PushSecret(_ context.Context, value []byte, _ corev1.SecretType
 		if secret.Type() != externalSecretType {
 			return fmt.Errorf(errInvalidSecretType, externalSecretType, secret.Title(), secret.Type())
 		}
-		err = c.updateSecret(secret, parts[1], value)
+		err = c.updateSecret(secret, parts[1], values)
 		if err != nil {
 			return err
 		}

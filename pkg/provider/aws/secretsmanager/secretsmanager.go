@@ -193,7 +193,7 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	return err
 }
 
-func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
+func (sm *SecretsManager) PushSecret(ctx context.Context, values map[string][]byte, typed corev1.SecretType, metadata *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
 	secretName := remoteRef.GetRemoteKey()
 	managedBy := managedBy
 	externalSecrets := externalSecrets
@@ -220,7 +220,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, _ corev1
 		if currentSecret != "" && !gjson.Valid(currentSecret) {
 			return errors.New("PushSecret for aws secrets manager with a remoteRef property requires a json secret")
 		}
-		value, _ = sjson.SetBytes([]byte(currentSecret), remoteRef.GetProperty(), value)
+		values, _ = sjson.SetBytes([]byte(currentSecret), remoteRef.GetProperty(), values)
 	}
 
 	var aerr awserr.Error
@@ -232,7 +232,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, _ corev1
 			secretVersion := initialVersion
 			secretRequest := awssm.CreateSecretInput{
 				Name:               &secretName,
-				SecretBinary:       value,
+				SecretBinary:       values,
 				Tags:               externalSecretsTag,
 				ClientRequestToken: &secretVersion,
 			}
@@ -250,7 +250,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, _ corev1
 	if !isManagedByESO(data) {
 		return fmt.Errorf("secret not managed by external-secrets")
 	}
-	if awsSecret != nil && bytes.Equal(awsSecret.SecretBinary, value) {
+	if awsSecret != nil && bytes.Equal(awsSecret.SecretBinary, values) {
 		return nil
 	}
 
@@ -260,7 +260,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, _ corev1
 	}
 	input := &awssm.PutSecretValueInput{
 		SecretId:           awsSecret.ARN,
-		SecretBinary:       value,
+		SecretBinary:       values,
 		ClientRequestToken: newVersionNumber,
 	}
 	_, err = sm.client.PutSecretValueWithContext(ctx, input)

@@ -483,7 +483,7 @@ func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 	return nil
 }
 
-func (v *client) PushSecret(ctx context.Context, value []byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
+func (v *client) PushSecret(ctx context.Context, values map[string][]byte, typed corev1.SecretType, metadata *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
 	label := map[string]interface{}{
 		"custom_metadata": map[string]string{
 			"managed-by": "external-secrets",
@@ -524,7 +524,7 @@ func (v *client) PushSecret(ctx context.Context, value []byte, _ corev1.SecretTy
 	if err != nil {
 		return fmt.Errorf("error marshaling vault secret: %w", err)
 	}
-	if bytes.Equal(vaultSecretValue, value) {
+	if bytes.Equal(vaultSecretValue, values) {
 		return nil
 	}
 	// If a Push of a property only, we should merge and add/update the property
@@ -535,7 +535,7 @@ func (v *client) PushSecret(ctx context.Context, value []byte, _ corev1.SecretTy
 				return fmt.Errorf("error marshaling vault secret: %w", err)
 			}
 			// If the property has the same value, don't update the secret
-			if bytes.Equal([]byte(d), value) {
+			if bytes.Equal([]byte(d), values) {
 				return nil
 			}
 		}
@@ -543,9 +543,9 @@ func (v *client) PushSecret(ctx context.Context, value []byte, _ corev1.SecretTy
 			secretVal[k] = v
 		}
 		// Secret got from vault is already on map[string]string format
-		secretVal[remoteRef.GetProperty()] = string(value)
+		secretVal[remoteRef.GetProperty()] = string(values)
 	} else {
-		err = json.Unmarshal(value, &secretVal)
+		err = json.Unmarshal(values, &secretVal)
 		if err != nil {
 			return fmt.Errorf("error unmarshalling vault secret: %w", err)
 		}

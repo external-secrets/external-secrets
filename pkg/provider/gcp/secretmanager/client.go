@@ -131,7 +131,7 @@ func parseError(err error) error {
 }
 
 // PushSecret pushes a kubernetes secret key into gcp provider Secret.
-func (c *Client) PushSecret(ctx context.Context, payload []byte, _ corev1.SecretType, metadata *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *Client) PushSecret(ctx context.Context, values map[string][]byte, typed corev1.SecretType, metadata *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
 	secretName := fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey())
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
 		Name: secretName,
@@ -163,7 +163,7 @@ func (c *Client) PushSecret(ctx context.Context, payload []byte, _ corev1.Secret
 		}
 	}
 
-	builder, err := newPushSecretBuilder(payload, metadata, remoteRef)
+	builder, err := newPushSecretBuilder(values, metadata, remoteRef)
 	if err != nil {
 		return err
 	}

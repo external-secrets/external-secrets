@@ -497,15 +497,15 @@ func (a *Azure) setKeyVaultKey(ctx context.Context, secretName string, value []b
 }
 
 // PushSecret stores secrets into a Key vault instance.
-func (a *Azure) PushSecret(ctx context.Context, value []byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
+func (a *Azure) PushSecret(ctx context.Context, values map[string][]byte, typed corev1.SecretType, metadata *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
 	objectType, secretName := getObjType(esv1beta1.ExternalSecretDataRemoteRef{Key: remoteRef.GetRemoteKey()})
 	switch objectType {
 	case defaultObjType:
-		return a.setKeyVaultSecret(ctx, secretName, value)
+		return a.setKeyVaultSecret(ctx, secretName, values)
 	case objectTypeCert:
-		return a.setKeyVaultCertificate(ctx, secretName, value)
+		return a.setKeyVaultCertificate(ctx, secretName, values)
 	case objectTypeKey:
-		return a.setKeyVaultKey(ctx, secretName, value)
+		return a.setKeyVaultKey(ctx, secretName, values)
 	default:
 		return fmt.Errorf("secret type %v not supported", objectType)
 	}

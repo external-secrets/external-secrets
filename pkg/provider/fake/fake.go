@@ -108,11 +108,11 @@ func (p *Provider) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) er
 	return nil
 }
 
-func (p *Provider) PushSecret(_ context.Context, value []byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
+func (p *Provider) PushSecret(ctx context.Context, values map[string][]byte, typed corev1.SecretType, metadata *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
 	currentData, ok := p.config[remoteRef.GetRemoteKey()]
 	if !ok {
 		p.config[remoteRef.GetRemoteKey()] = &Data{
-			Value:  string(value),
+			Value:  string(values),
 			Origin: FakeSetSecret,
 		}
 		return nil
@@ -120,7 +120,7 @@ func (p *Provider) PushSecret(_ context.Context, value []byte, _ corev1.SecretTy
 	if currentData.Origin != FakeSetSecret {
 		return fmt.Errorf("key already exists")
 	}
-	currentData.Value = string(value)
+	currentData.Value = string(values)
 	return nil
 }
 

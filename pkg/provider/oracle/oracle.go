@@ -95,9 +95,9 @@ const (
 	SecretAPIError
 )
 
-func (vms *VaultManagementService) PushSecret(ctx context.Context, value []byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
+func (vms *VaultManagementService) PushSecret(ctx context.Context, values map[string][]byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
 	secretName := remoteRef.GetRemoteKey()
-	encodedValue := base64.StdEncoding.EncodeToString(value)
+	encodedValue := base64.StdEncoding.EncodeToString(values[remoteRef.GetProperty()])
 	sec, action, err := vms.getSecretBundleWithCode(ctx, secretName)
 	switch action {
 	case SecretNotFound:
@@ -118,7 +118,7 @@ func (vms *VaultManagementService) PushSecret(ctx context.Context, value []byte,
 		if err != nil {
 			return err
 		}
-		if bytes.Equal(payload, value) {
+		if bytes.Equal(payload, values[remoteRef.GetProperty()]) {
 			return nil
 		}
 		_, err = vms.VaultClient.UpdateSecret(ctx, vault.UpdateSecretRequest{

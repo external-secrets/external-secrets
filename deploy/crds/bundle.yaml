@@ -4282,11 +4282,10 @@ spec:
                               - remoteKey
                             type: object
                           secretKey:
-                            description: Secret Key to be pushed
+                            description: Secret Key to be pushed. If not defined, the whole secret is pushed.
                             type: string
                         required:
                           - remoteRef
-                          - secretKey
                         type: object
                       metadata:
                         description: Metadata is metadata attached to the secret. The structure of metadata is provider specific, please look it up in the provider documentation.
@@ -4416,11 +4415,10 @@ spec:
                                 - remoteKey
                               type: object
                             secretKey:
-                              description: Secret Key to be pushed
+                              description: Secret Key to be pushed. If not defined, the whole secret is pushed.
                               type: string
                           required:
                             - remoteRef
-                            - secretKey
                           type: object
                         metadata:
                           description: Metadata is metadata attached to the secret. The structure of metadata is provider specific, please look it up in the provider documentation.

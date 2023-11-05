@@ -70,7 +70,7 @@ type SecretsClient interface {
 	GetSecret(ctx context.Context, ref ExternalSecretDataRemoteRef) ([]byte, error)
 
 	// PushSecret will write a single secret into the provider
-	PushSecret(ctx context.Context, value []byte, typed corev1.SecretType, metadata *apiextensionsv1.JSON, remoteRef PushRemoteRef) error
+	PushSecret(ctx context.Context, values map[string][]byte, typed corev1.SecretType, metadata *apiextensionsv1.JSON, remoteRef PushRemoteRef) error
 
 	// DeleteSecret will delete the secret from a provider
 	DeleteSecret(ctx context.Context, remoteRef PushRemoteRef) error
