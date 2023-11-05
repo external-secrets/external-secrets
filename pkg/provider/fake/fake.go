@@ -138,20 +138,20 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecret
 
 		latestDataMap := make(map[string]*Data)
 		for key, data := range p.config {
-			// Reconstruct the "true" key without the version suffix
+			// Reconstruct the original key without the version suffix
 			// See the mapKey function to know how the provider generates keys
-			key = strings.TrimSuffix(key, data.Version)
-			if !matcher.MatchName(key) {
+			originalKey := strings.TrimSuffix(key, data.Version)
+			if !matcher.MatchName(originalKey) {
 				continue
 			}
 
-			if d, ok := latestDataMap[key]; ok {
+			if d, ok := latestDataMap[originalKey]; ok {
 				// Need to get only the latest version
 				if d.Version < data.Version {
-					latestDataMap[key] = data
+					latestDataMap[originalKey] = data
 				}
 			} else {
-				latestDataMap[key] = data
+				latestDataMap[originalKey] = data
 			}
 		}
 
