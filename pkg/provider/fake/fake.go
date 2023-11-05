@@ -136,7 +136,8 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecret
 			return nil, err
 		}
 
-		latestDataMap := make(map[string]*Data)
+		latestVersionMap := make(map[string]string)
+		dataMap := make(map[string][]byte)
 		for key, data := range p.config {
 			// Reconstruct the original key without the version suffix
 			// See the mapKey function to know how the provider generates keys
@@ -145,21 +146,17 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecret
 				continue
 			}
 
-			if d, ok := latestDataMap[originalKey]; ok {
+			if version, ok := latestVersionMap[originalKey]; ok {
 				// Need to get only the latest version
-				if d.Version < data.Version {
-					latestDataMap[originalKey] = data
+				if version < data.Version {
+					latestVersionMap[originalKey] = data.Version
+					dataMap[originalKey] = []byte(data.Value)
 				}
 			} else {
-				latestDataMap[originalKey] = data
+				latestVersionMap[originalKey] = data.Version
+				dataMap[originalKey] = []byte(data.Value)
 			}
 		}
-
-		dataMap := make(map[string][]byte)
-		for key, data := range latestDataMap {
-			dataMap[key] = []byte(data.Value)
-		}
-
 		return utils.ConvertKeys(ref.ConversionStrategy, dataMap)
 	}
 	return nil, fmt.Errorf("unsupported find operator: %#v", ref)
