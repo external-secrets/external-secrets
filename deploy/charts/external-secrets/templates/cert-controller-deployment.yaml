@@ -56,6 +56,7 @@ spec:
           - --secret-namespace={{ .Release.Namespace }}
           - --metrics-addr=:{{ .Values.certController.prometheus.service.port }}
           - --healthz-addr={{ .Values.certController.readinessProbe.address }}:{{ .Values.certController.readinessProbe.port }}
+          - --enable-cert-renewal={{ .Values.certController.enableCertRenewal }}
           {{ if not .Values.crds.createClusterSecretStore -}}
           - --crd-names=externalsecrets.external-secrets.io
           - --crd-names=secretstores.external-secrets.io

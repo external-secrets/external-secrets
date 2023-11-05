@@ -58,40 +58,42 @@ const (
 
 type Reconciler struct {
 	client.Client
-	Log             logr.Logger
-	Scheme          *runtime.Scheme
-	recorder        record.EventRecorder
-	SvcName         string
-	SvcNamespace    string
-	SecretName      string
-	SecretNamespace string
-	CrdResources    []string
-	dnsName         string
-	CAName          string
-	CAOrganization  string
-	RequeueInterval time.Duration
-
+	Log               logr.Logger
+	Scheme            *runtime.Scheme
+	recorder          record.EventRecorder
+	SvcName           string
+	SvcNamespace      string
+	SecretName        string
+	SecretNamespace   string
+	CrdResources      []string
+	dnsName           string
+	CAName            string
+	CAOrganization    string
+	RequeueInterval   time.Duration
+	EnableCertRenewal bool
 	// the controller is ready when all crds are injected
 	rdyMu          *sync.Mutex
 	readyStatusMap map[string]bool
 }
 
 func New(k8sClient client.Client, scheme *runtime.Scheme, logger logr.Logger,
-	interval time.Duration, svcName, svcNamespace, secretName, secretNamespace string, resources []string) *Reconciler {
+	interval time.Duration, enableCertRenewal bool,
+	svcName, svcNamespace, secretName, secretNamespace string, resources []string) *Reconciler {
 	return &Reconciler{
-		Client:          k8sClient,
-		Log:             logger,
-		Scheme:          scheme,
-		SvcName:         svcName,
-		SvcNamespace:    svcNamespace,
-		SecretName:      secretName,
-		SecretNamespace: secretNamespace,
-		RequeueInterval: interval,
-		CrdResources:    resources,
-		CAName:          "external-secrets",
-		CAOrganization:  "external-secrets",
-		rdyMu:           &sync.Mutex{},
-		readyStatusMap:  map[string]bool{},
+		Client:            k8sClient,
+		Log:               logger,
+		Scheme:            scheme,
+		SvcName:           svcName,
+		SvcNamespace:      svcNamespace,
+		SecretName:        secretName,
+		SecretNamespace:   secretNamespace,
+		RequeueInterval:   interval,
+		EnableCertRenewal: enableCertRenewal,
+		CrdResources:      resources,
+		CAName:            "external-secrets",
+		CAOrganization:    "external-secrets",
+		rdyMu:             &sync.Mutex{},
+		readyStatusMap:    map[string]bool{},
 	}
 }
 
@@ -187,16 +189,21 @@ func (r *Reconciler) updateCRD(ctx context.Context, req ctrl.Request) error {
 		return err
 	}
 	r.dnsName = fmt.Sprintf("%v.%v.svc", r.SvcName, r.SvcNamespace)
-	need, err := r.refreshCertIfNeeded(&secret)
-	if err != nil {
-		return err
+	refreshedCert := false
+	if r.EnableCertRenewal {
+		refreshedCert, err = r.refreshCertIfNeeded(&secret)
+		if err != nil {
+			return err
+		}
 	}
-	if need {
+	// Injects the certificates if they were refreshed or changed
+	if refreshedCert || !r.EnableCertRenewal {
 		artifacts, err := buildArtifactsFromSecret(&secret)
 		if err != nil {
 			return err
 		}
-		if err := injectCert(&updatedResource, artifacts.CertPEM); err != nil {
+		// Only injects if artifacts.CertPEM changed
+		if _, err := injectCert(&updatedResource, artifacts.CertPEM); err != nil {
 			return err
 		}
 	}
@@ -215,14 +222,18 @@ func injectService(crd *apiext.CustomResourceDefinition, svc types.NamespacedNam
 	return nil
 }
 
-func injectCert(crd *apiext.CustomResourceDefinition, certPem []byte) error {
+func injectCert(crd *apiext.CustomResourceDefinition, certPem []byte) (bool, error) {
 	if crd.Spec.Conversion == nil ||
 		crd.Spec.Conversion.Webhook == nil ||
 		crd.Spec.Conversion.Webhook.ClientConfig == nil {
-		return fmt.Errorf("unexpected crd conversion webhook config")
+		return false, fmt.Errorf("unexpected crd conversion webhook config")
+	}
+	if bytes.Equal(crd.Spec.Conversion.Webhook.ClientConfig.CABundle, certPem) {
+		// CABundle unchanged
+		return false, nil
 	}
 	crd.Spec.Conversion.Webhook.ClientConfig.CABundle = certPem
-	return nil
+	return true, nil
 }
 
 type KeyPairArtifacts struct {

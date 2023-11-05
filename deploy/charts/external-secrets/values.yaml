@@ -392,6 +392,9 @@ certController:
   requeueInterval: "5m"
   replicaCount: 1
 
+  # -- Whether the certificate controller should renew certificates, or just handle their injection
+  enableCertRenewal: true
+
   # -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
   revisionHistoryLimit: 10
 

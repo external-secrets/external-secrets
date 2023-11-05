@@ -77,7 +77,8 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(k8sClient).ToNot(BeNil())
 
-	rec := New(k8sClient, k8sManager.GetScheme(), log, time.Second*1,
+	rec := New(k8sClient, k8sManager.GetScheme(), log,
+		time.Second*1, true,
 		"foo", "default", "foo", "default", []string{
 			"secretstores.test.io",
 		})
