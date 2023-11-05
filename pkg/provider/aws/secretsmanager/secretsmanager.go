@@ -189,10 +189,14 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	deleteInput := &awssm.DeleteSecretInput{
 		SecretId: awsSecret.ARN,
 	}
-	if sm.config.ForceDeleteWithoutRecovery {
+	if sm.config != nil && sm.config.ForceDeleteWithoutRecovery {
 		deleteInput.ForceDeleteWithoutRecovery = &sm.config.ForceDeleteWithoutRecovery
-	} else if sm.config.RecoveryWindowInDays > 0 {
+	} else if sm.config != nil && sm.config.RecoveryWindowInDays > 0 {
 		deleteInput.RecoveryWindowInDays = &sm.config.RecoveryWindowInDays
+	}
+	err = util.ValidateDeleteSecretInput(*deleteInput)
+	if err != nil {
+		return err
 	}
 	_, err = sm.client.DeleteSecretWithContext(ctx, deleteInput)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDeleteSecret, err)

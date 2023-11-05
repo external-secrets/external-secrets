@@ -66,8 +66,10 @@ const (
 // SecretsManager. Some of these settings are only applicable to controlling how
 // secrets are deleted, and hence only apply to PushSecret.
 type SecretsManager struct {
-	ForceDeleteWithoutRecovery bool  `json:"forceDeleteWithoutRecovery,omitempty"`
-	RecoveryWindowInDays       int64 `json:"recoveryWindowInDays"`
+	// +optional
+	ForceDeleteWithoutRecovery bool `json:"forceDeleteWithoutRecovery,omitempty"`
+	// +optional
+	RecoveryWindowInDays int64 `json:"recoveryWindowInDays,omitempty"`
 }
 
 type Tag struct {

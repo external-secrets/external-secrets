@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	awsauth "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore"
@@ -67,7 +68,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	if err != nil {
 		return err
 	}
-	err = validateSecretsManager(prov)
+	err = validateSecretsManagerConfig(prov)
 	if err != nil {
 		return err
 	}
@@ -123,17 +124,14 @@ func validateRegion(prov *esv1beta1.AWSProvider) error {
 	return nil
 }
 
-func validateSecretsManager(prov *esv1beta1.AWSProvider) error {
-	// Validate range for RecoveryWindowInDays
-	// See: https://pkg.go.dev/github.com/aws/aws-sdk-go-v2/service/secretsmanager#DeleteSecretInput
-	if prov.SecretsManager.RecoveryWindowInDays != 0 && (prov.SecretsManager.RecoveryWindowInDays < 7 || prov.SecretsManager.RecoveryWindowInDays > 30) {
-		return fmt.Errorf(errInvalidSecretsManager, "RecoveryWindowInDays must be between 7 and 30 days")
+func validateSecretsManagerConfig(prov *esv1beta1.AWSProvider) error {
+	if prov.SecretsManager == nil {
+		return nil
 	}
-	// Validate that ForceDeleteWithoutRecovery is not set when RecoveryWindowInDays is set
-	if prov.SecretsManager != nil && (prov.SecretsManager.RecoveryWindowInDays != 0 && prov.SecretsManager.ForceDeleteWithoutRecovery) {
-		return fmt.Errorf(errInvalidSecretsManager, "ForceDeleteWithoutRecovery conflicts with RecoveryWindowInDays")
-	}
-	return nil
+	return util.ValidateDeleteSecretInput(awssm.DeleteSecretInput{
+		ForceDeleteWithoutRecovery: &prov.SecretsManager.ForceDeleteWithoutRecovery,
+		RecoveryWindowInDays:       &prov.SecretsManager.RecoveryWindowInDays,
+	})
 }
 
 func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, assumeRoler awsauth.STSProvider) (esv1beta1.SecretsClient, error) {

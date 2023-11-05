@@ -2027,8 +2027,6 @@ spec:
                             recoveryWindowInDays:
                               format: int64
                               type: integer
-                          required:
-                            - recoveryWindowInDays
                           type: object
                         service:
                           description: Service defines which service should be used to fetch the secrets
@@ -5915,8 +5913,6 @@ spec:
                             recoveryWindowInDays:
                               format: int64
                               type: integer
-                          required:
-                            - recoveryWindowInDays
                           type: object
                         service:
                           description: Service defines which service should be used to fetch the secrets
