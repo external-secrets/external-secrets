@@ -52,7 +52,7 @@ type KubernetesProvider struct {
 	// Remote namespace to fetch the secrets from
 	// +kubebuilder:default= default
 	// +optional
-	RemoteNamespace string `json:"remoteNamespace"`
+	RemoteNamespace string `json:"remoteNamespace,omitempty"`
 }
 
 // +kubebuilder:validation:MinProperties=1

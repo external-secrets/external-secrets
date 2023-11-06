@@ -26,11 +26,11 @@ type ClusterExternalSecretSpec struct {
 
 	// The name of the external secrets to be created defaults to the name of the ClusterExternalSecret
 	// +optional
-	ExternalSecretName string `json:"externalSecretName"`
+	ExternalSecretName string `json:"externalSecretName,omitempty"`
 
 	// The metadata of the external secrets to be created
 	// +optional
-	ExternalSecretMetadata ExternalSecretMetadata `json:"externalSecretMetadata"`
+	ExternalSecretMetadata ExternalSecretMetadata `json:"externalSecretMetadata,omitempty"`
 
 	// The labels to select by to find the Namespaces to create the ExternalSecrets in.
 	// +optional
