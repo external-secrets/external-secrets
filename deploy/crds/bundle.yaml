@@ -1961,7 +1961,7 @@ spec:
                       description: AWS configures this store to sync secrets using AWS Secret Manager provider
                       properties:
                         additionalRoles:
-                          description: AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming Role
+                          description: AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming the Role
                           items:
                             type: string
                           type: array
@@ -5893,7 +5893,7 @@ spec:
                       description: AWS configures this store to sync secrets using AWS Secret Manager provider
                       properties:
                         additionalRoles:
-                          description: AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming Role
+                          description: AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming the Role
                           items:
                             type: string
                           type: array

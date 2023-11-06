@@ -95,7 +95,7 @@ type AWSProvider struct {
 	// AWS Region to be used for the provider
 	Region string `json:"region"`
 
-	// AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming Role
+	// AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming the Role
 	// +optional
 	AdditionalRoles []string `json:"additionalRoles,omitempty"`
 

@@ -227,7 +227,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming Role</p>
+<p>AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming the Role</p>
 </td>
 </tr>
 <tr>
