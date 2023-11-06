@@ -28,10 +28,10 @@ const (
 type PushSecretStoreRef struct {
 	// Optionally, sync to the SecretStore of the given name
 	// +optional
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 	// Optionally, sync to secret stores with label selector
 	// +optional
-	LabelSelector *metav1.LabelSelector `json:"labelSelector"`
+	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty"`
 	// Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
 	// Defaults to `SecretStore`
 	// +kubebuilder:default="SecretStore"

@@ -43,7 +43,7 @@ type AkeylessAuth struct {
 	// Reference to a Secret that contains the details
 	// to authenticate with Akeyless.
 	// +optional
-	SecretRef AkeylessAuthSecretRef `json:"secretRef"`
+	SecretRef AkeylessAuthSecretRef `json:"secretRef,omitempty"`
 
 	// Kubernetes authenticates with Akeyless by passing the ServiceAccount
 	// token stored in the named Secret resource.

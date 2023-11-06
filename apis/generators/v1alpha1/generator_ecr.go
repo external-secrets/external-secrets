@@ -26,12 +26,12 @@ type ECRAuthorizationTokenSpec struct {
 
 	// Auth defines how to authenticate with AWS
 	// +optional
-	Auth AWSAuth `json:"auth"`
+	Auth AWSAuth `json:"auth,omitempty"`
 
 	// You can assume a role before making calls to the
 	// desired AWS service.
 	// +optional
-	Role string `json:"role"`
+	Role string `json:"role,omitempty"`
 }
 
 // AWSAuth tells the controller how to do authentication with aws.
