@@ -302,18 +302,18 @@ func (kms *KeyManagementService) Validate() (esv1beta1.ValidationResult, error) 
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func (kms *KeyManagementService) ValidateStore(store esv1beta1.GenericStore) error {
-	storeSpec := store.GetSpec()
-	alibabaSpec := storeSpec.Provider.Alibaba
+// func (kms *KeyManagementService) ValidateStore(store esv1beta1.GenericStore) error {
+// 	storeSpec := store.GetSpec()
+// 	alibabaSpec := storeSpec.Provider.Alibaba
 
-	regionID := alibabaSpec.RegionID
+// 	regionID := alibabaSpec.RegionID
 
-	if regionID == "" {
-		return fmt.Errorf("missing alibaba region")
-	}
+// 	if regionID == "" {
+// 		return fmt.Errorf("missing alibaba region")
+// 	}
 
-	return kms.validateStoreAuth(store)
-}
+// 	return kms.validateStoreAuth(store)
+// }
 
 func (kms *KeyManagementService) validateStoreAuth(store esv1beta1.GenericStore) error {
 	storeSpec := store.GetSpec()
