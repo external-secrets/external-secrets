@@ -106,6 +106,7 @@ type PushSecretData struct {
 }
 
 // PushSecretConditionType indicates the condition of the PushSecret.
+// +kubebuilder:validation:Enum=Ready
 type PushSecretConditionType string
 
 const (

@@ -48,6 +48,7 @@ type VaultDynamicSecretSpec struct {
 	Path string `json:"path"`
 }
 
+// +kubebuilder:validation:Enum=Data;Auth
 type VaultDynamicSecretResultType string
 
 const (
