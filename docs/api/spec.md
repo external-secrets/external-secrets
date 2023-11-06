@@ -204,7 +204,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Role is a Role ARN which the SecretManager provider will assume</p>
+<p>Role is a Role ARN which the provider will assume</p>
 </td>
 </tr>
 <tr>
@@ -227,7 +227,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>AdditionalRoles is a chained list of Role ARNs which the SecretManager provider will sequentially assume before assuming Role</p>
+<p>AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming Role</p>
 </td>
 </tr>
 <tr>
@@ -257,6 +257,20 @@ string
 </tr>
 <tr>
 <td>
+<code>secretsManager</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretsManager">
+SecretsManager
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretsManager defines how the provider behaves when interacting with AWS SecretsManager</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>transitiveTagKeys</code></br>
 <em>
 []*string
@@ -264,7 +278,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>AWS STS assume role transitive session tags. Required when multiple rules are used with SecretStore</p>
+<p>AWS STS assume role transitive session tags. Required when multiple rules are used with the provider</p>
 </td>
 </tr>
 </tbody>
@@ -286,11 +300,11 @@ string
 </tr>
 </thead>
 <tbody><tr><td><p>&#34;ParameterStore&#34;</p></td>
-<td><p>AWSServiceParameterStore is the AWS SystemsManager ParameterStore.
+<td><p>AWSServiceParameterStore is the AWS SystemsManager ParameterStore service.
 see: <a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html">https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html</a></p>
 </td>
 </tr><tr><td><p>&#34;SecretsManager&#34;</p></td>
-<td><p>AWSServiceSecretsManager is the AWS SecretsManager.
+<td><p>AWSServiceSecretsManager is the AWS SecretsManager service.
 see: <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html">https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html</a></p>
 </td>
 </tr></tbody>
@@ -5525,6 +5539,49 @@ Kubernetes meta/v1.Time
 <p>
 <p>SecretsClient provides access to secrets.</p>
 </p>
+<h3 id="external-secrets.io/v1beta1.SecretsManager">SecretsManager
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.AWSProvider">AWSProvider</a>)
+</p>
+<p>
+<p>SecretsManager defines how the provider behaves when interacting with AWS
+SecretsManager. Some of these settings are only applicable to controlling how
+secrets are deleted, and hence only apply to PushSecret.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>forceDeleteWithoutRecovery</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>recoveryWindowInDays</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.SenhaseguraAuth">SenhaseguraAuth
 </h3>
 <p>

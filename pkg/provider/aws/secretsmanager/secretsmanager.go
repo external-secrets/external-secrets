@@ -191,7 +191,8 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	}
 	if sm.config != nil && sm.config.ForceDeleteWithoutRecovery {
 		deleteInput.ForceDeleteWithoutRecovery = &sm.config.ForceDeleteWithoutRecovery
-	} else if sm.config != nil && sm.config.RecoveryWindowInDays > 0 {
+	}
+	if sm.config != nil && sm.config.RecoveryWindowInDays > 0 {
 		deleteInput.RecoveryWindowInDays = &sm.config.RecoveryWindowInDays
 	}
 	err = util.ValidateDeleteSecretInput(*deleteInput)

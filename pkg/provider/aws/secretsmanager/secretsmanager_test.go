@@ -902,7 +902,7 @@ func TestDeleteSecret(t *testing.T) {
 				deleteSecretErr:    nil,
 			},
 			want: want{
-				err: errors.New("invalid DeleteSecretInput: RecoveryWindowInDays must be between 7 and 30 days"),
+				err: errors.New("invalid DeleteSecretInput: ForceDeleteWithoutRecovery conflicts with RecoveryWindowInDays"),
 			},
 			reason: "",
 		},

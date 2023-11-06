@@ -24,9 +24,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
+	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	awsauth "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore"
