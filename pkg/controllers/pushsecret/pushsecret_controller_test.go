@@ -73,16 +73,9 @@ type testTweaks func(*testCase)
 
 var _ = Describe("ExternalSecret controller", func() {
 	const (
-		PushSecretName             = "test-es"
-		PushSecretFQDN             = "externalsecrets.external-secrets.io/test-es"
-		PushSecretStore            = "test-store"
-		SecretName                 = "test-secret"
-		PushSecretTargetSecretName = "test-secret"
-		FakeManager                = "fake.manager"
-		expectedSecretVal          = "SOMEVALUE was templated"
-		targetPropObj              = "{{ .targetProperty | toString | upper }} was templated"
-		FooValue                   = "map-foo-value"
-		BarValue                   = "map-bar-value"
+		PushSecretName  = "test-es"
+		PushSecretStore = "test-store"
+		SecretName      = "test-secret"
 	)
 
 	var PushSecretNamespace string

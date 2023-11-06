@@ -483,7 +483,7 @@ func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 	return nil
 }
 
-func (v *client) PushSecret(ctx context.Context, value []byte, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
+func (v *client) PushSecret(ctx context.Context, value []byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
 	label := map[string]interface{}{
 		"custom_metadata": map[string]string{
 			"managed-by": "external-secrets",

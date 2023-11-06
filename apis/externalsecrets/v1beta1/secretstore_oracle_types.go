@@ -36,6 +36,16 @@ type OracleProvider struct {
 	// Vault is the vault's OCID of the specific vault where secret is located.
 	Vault string `json:"vault"`
 
+	// Compartment is the vault compartment OCID.
+	// Required for PushSecret
+	// +optional
+	Compartment string `json:"compartment,omitempty"`
+
+	// EncryptionKey is the OCID of the encryption key within the vault.
+	// Required for PushSecret
+	// +optional
+	EncryptionKey string `json:"encryptionKey,omitempty"`
+
 	// The type of principal to use for authentication. If left blank, the Auth struct will
 	// determine the principal type. This optional field must be specified if using
 	// workload identity.
@@ -46,6 +56,11 @@ type OracleProvider struct {
 	// If empty, use the instance principal, otherwise the user credentials specified in Auth.
 	// +optional
 	Auth *OracleAuth `json:"auth,omitempty"`
+
+	// ServiceAccountRef specified the service account
+	// that should be used when authenticating with WorkloadIdentity.
+	// +optional
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }
 
 type OracleAuth struct {
