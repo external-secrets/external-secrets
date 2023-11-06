@@ -36,8 +36,6 @@ jobs:
           python-version: 3.7
 
       - name: Set up chart-testing
-        # before upgrading, please see if this has been fixed:
-        # https://github.com/helm/chart-testing-action/issues/132
         uses: helm/chart-testing-action@v2.6.1
 
       - name: Run chart-testing (list-changed)
