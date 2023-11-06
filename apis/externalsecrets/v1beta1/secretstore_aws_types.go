@@ -64,10 +64,21 @@ const (
 
 // SecretsManager defines how the provider behaves when interacting with AWS
 // SecretsManager. Some of these settings are only applicable to controlling how
-// secrets are deleted, and hence only apply to PushSecret.
+// secrets are deleted, and hence only apply to PushSecret (and only when
+// deletionPolicy is set to Delete).
 type SecretsManager struct {
+	// Specifies whether to delete the secret without any recovery window. You
+	// can't use both this parameter and RecoveryWindowInDays in the same call.
+	// If you don't use either, then by default Secrets Manager uses a 30 day
+	// recovery window.
+	// see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-ForceDeleteWithoutRecovery
 	// +optional
 	ForceDeleteWithoutRecovery bool `json:"forceDeleteWithoutRecovery,omitempty"`
+	// The number of days from 7 to 30 that Secrets Manager waits before
+	// permanently deleting the secret. You can't use both this parameter and
+	// ForceDeleteWithoutRecovery in the same call. If you don't use either,
+	// then by default Secrets Manager uses a 30 day recovery window.
+	// see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays
 	// +optional
 	RecoveryWindowInDays int64 `json:"recoveryWindowInDays,omitempty"`
 }

@@ -5591,7 +5591,8 @@ Kubernetes meta/v1.Time
 <p>
 <p>SecretsManager defines how the provider behaves when interacting with AWS
 SecretsManager. Some of these settings are only applicable to controlling how
-secrets are deleted, and hence only apply to PushSecret.</p>
+secrets are deleted, and hence only apply to PushSecret (and only when
+deletionPolicy is set to Delete).</p>
 </p>
 <table>
 <thead>
@@ -5610,6 +5611,11 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
+<p>Specifies whether to delete the secret without any recovery window. You
+can&rsquo;t use both this parameter and RecoveryWindowInDays in the same call.
+If you don&rsquo;t use either, then by default Secrets Manager uses a 30 day
+recovery window.
+see: <a href="https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-ForceDeleteWithoutRecovery">https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-ForceDeleteWithoutRecovery</a></p>
 </td>
 </tr>
 <tr>
@@ -5621,6 +5627,11 @@ int64
 </td>
 <td>
 <em>(Optional)</em>
+<p>The number of days from 7 to 30 that Secrets Manager waits before
+permanently deleting the secret. You can&rsquo;t use both this parameter and
+ForceDeleteWithoutRecovery in the same call. If you don&rsquo;t use either,
+then by default Secrets Manager uses a 30 day recovery window.
+see: <a href="https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays">https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays</a></p>
 </td>
 </tr>
 </tbody>
