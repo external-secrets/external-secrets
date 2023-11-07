@@ -26,7 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	pointer "k8s.io/utils/ptr"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -151,7 +151,11 @@ func TestProvider(t *testing.T) {
 	}
 }
 
-const validRegion = "eu-central-1"
+const (
+	validRegion                  = "eu-central-1"
+	validFipsSecretManagerRegion = "us-east-1-fips"
+	validFipsSsmRegion           = "fips-us-east-1"
+)
 
 func TestValidateStore(t *testing.T) {
 	type args struct {
@@ -178,13 +182,59 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		{
-			name: "valid region",
+			name: "valid region secrets manager",
 			args: args{
 				store: &esv1beta1.SecretStore{
 					Spec: esv1beta1.SecretStoreSpec{
 						Provider: &esv1beta1.SecretStoreProvider{
 							AWS: &esv1beta1.AWSProvider{
-								Region: validRegion,
+								Region:  validRegion,
+								Service: esv1beta1.AWSServiceSecretsManager,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "valid region secrets manager",
+			args: args{
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AWS: &esv1beta1.AWSProvider{
+								Region:  validRegion,
+								Service: esv1beta1.AWSServiceSecretsManager,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "valid fips region secrets manager",
+			args: args{
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AWS: &esv1beta1.AWSProvider{
+								Region:  validFipsSecretManagerRegion,
+								Service: esv1beta1.AWSServiceSecretsManager,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "valid fips region parameter store",
+			args: args{
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AWS: &esv1beta1.AWSProvider{
+								Region:  validFipsSsmRegion,
+								Service: esv1beta1.AWSServiceParameterStore,
 							},
 						},
 					},
@@ -199,12 +249,13 @@ func TestValidateStore(t *testing.T) {
 					Spec: esv1beta1.SecretStoreSpec{
 						Provider: &esv1beta1.SecretStoreProvider{
 							AWS: &esv1beta1.AWSProvider{
-								Region: validRegion,
+								Region:  validRegion,
+								Service: esv1beta1.AWSServiceSecretsManager,
 								Auth: esv1beta1.AWSAuth{
 									SecretRef: &esv1beta1.AWSAuthSecretRef{
 										AccessKeyID: esmeta.SecretKeySelector{
 											Name:      "foobar",
-											Namespace: pointer.String("unacceptable"),
+											Namespace: pointer.To("unacceptable"),
 										},
 									},
 								},
@@ -222,12 +273,13 @@ func TestValidateStore(t *testing.T) {
 					Spec: esv1beta1.SecretStoreSpec{
 						Provider: &esv1beta1.SecretStoreProvider{
 							AWS: &esv1beta1.AWSProvider{
-								Region: validRegion,
+								Region:  validRegion,
+								Service: esv1beta1.AWSServiceSecretsManager,
 								Auth: esv1beta1.AWSAuth{
 									SecretRef: &esv1beta1.AWSAuthSecretRef{
 										SecretAccessKey: esmeta.SecretKeySelector{
 											Name:      "foobar",
-											Namespace: pointer.String("unacceptable"),
+											Namespace: pointer.To("unacceptable"),
 										},
 									},
 								},
@@ -248,7 +300,8 @@ func TestValidateStore(t *testing.T) {
 					Spec: esv1beta1.SecretStoreSpec{
 						Provider: &esv1beta1.SecretStoreProvider{
 							AWS: &esv1beta1.AWSProvider{
-								Region: validRegion,
+								Region:  validRegion,
+								Service: esv1beta1.AWSServiceSecretsManager,
 								Auth: esv1beta1.AWSAuth{
 									SecretRef: &esv1beta1.AWSAuthSecretRef{
 										SecretAccessKey: esmeta.SecretKeySelector{
@@ -273,7 +326,8 @@ func TestValidateStore(t *testing.T) {
 					Spec: esv1beta1.SecretStoreSpec{
 						Provider: &esv1beta1.SecretStoreProvider{
 							AWS: &esv1beta1.AWSProvider{
-								Region: validRegion,
+								Region:  validRegion,
+								Service: esv1beta1.AWSServiceSecretsManager,
 								Auth: esv1beta1.AWSAuth{
 									SecretRef: &esv1beta1.AWSAuthSecretRef{
 										AccessKeyID: esmeta.SecretKeySelector{
@@ -298,7 +352,8 @@ func TestValidateStore(t *testing.T) {
 					Spec: esv1beta1.SecretStoreSpec{
 						Provider: &esv1beta1.SecretStoreProvider{
 							AWS: &esv1beta1.AWSProvider{
-								Region: validRegion,
+								Region:  validRegion,
+								Service: esv1beta1.AWSServiceSecretsManager,
 								Auth: esv1beta1.AWSAuth{
 									JWTAuth: &esv1beta1.AWSJWTAuth{
 										ServiceAccountRef: &esmeta.ServiceAccountSelector{
@@ -320,12 +375,13 @@ func TestValidateStore(t *testing.T) {
 					Spec: esv1beta1.SecretStoreSpec{
 						Provider: &esv1beta1.SecretStoreProvider{
 							AWS: &esv1beta1.AWSProvider{
-								Region: validRegion,
+								Region:  validRegion,
+								Service: esv1beta1.AWSServiceSecretsManager,
 								Auth: esv1beta1.AWSAuth{
 									JWTAuth: &esv1beta1.AWSJWTAuth{
 										ServiceAccountRef: &esmeta.ServiceAccountSelector{
 											Name:      "foobar",
-											Namespace: pointer.String("unacceptable"),
+											Namespace: pointer.To("unacceptable"),
 										},
 									},
 								},

@@ -61,7 +61,7 @@ func TestValidateExternalSecret(t *testing.T) {
 					DataFrom: []ExternalSecretDataFromRemoteRef{
 						{
 							Find: &ExternalSecretFind{},
-							SourceRef: &SourceRef{
+							SourceRef: &StoreGeneratorSourceRef{
 								GeneratorRef: &GeneratorRef{},
 							},
 						},
@@ -77,7 +77,7 @@ func TestValidateExternalSecret(t *testing.T) {
 					DataFrom: []ExternalSecretDataFromRemoteRef{
 						{
 							Extract: &ExternalSecretDataRemoteRef{},
-							SourceRef: &SourceRef{
+							SourceRef: &StoreGeneratorSourceRef{
 								GeneratorRef: &GeneratorRef{},
 							},
 						},

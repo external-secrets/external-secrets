@@ -35,8 +35,6 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-KUBERNETES_VERSION := '1.24.x'
-
 # check if there are any existing `git tag` values
 ifeq ($(shell git tag),)
 # no tags found - default to initial tag `v0.0.0`
@@ -93,10 +91,9 @@ update-deps:
 # Golang
 
 .PHONY: test
-test: export KUBEBUILDER_ASSETS := $(shell setup-envtest use $(KUBERNETES_VERSION) -p path --os $(shell go env GOOS) --arch $(shell go env GOARCH))
-test: generate ## Run tests
+test: generate envtest ## Run tests
 	@$(INFO) go test unit-tests
-	go test -race -v $(shell go list ./... | grep -v e2e) -coverprofile cover.out
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(KUBERNETES_VERSION) -p path --bin-dir $(LOCALBIN))" go test -race -v $(shell go list ./... | grep -v e2e) -coverprofile cover.out
 	@$(OK) go test unit-tests
 
 .PHONY: test.e2e
@@ -121,30 +118,18 @@ build-%: generate ## Build binary for the specified arch
 		go build -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
 	@$(OK) go build $*
 
-lint.check: ## Check install of golanci-lint
-	@if ! golangci-lint --version > /dev/null 2>&1; then \
-		echo -e "\033[0;33mgolangci-lint is not installed: run \`\033[0;32mmake lint.install\033[0m\033[0;33m\` or install it from https://golangci-lint.run\033[0m"; \
-		exit 1; \
-	fi
-
-lint.install: ## Install golangci-lint to the go bin dir
-	@if ! golangci-lint --version > /dev/null 2>&1; then \
-		echo "Installing golangci-lint"; \
-		curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) v1.49.0; \
-	fi
-
-lint: lint.check ## Run golangci-lint
-	@if ! golangci-lint run; then \
+lint: golangci-lint ## Run golangci-lint
+	@if ! $(GOLANGCI_LINT) run; then \
 		echo -e "\033[0;33mgolangci-lint failed: some checks can be fixed with \`\033[0;32mmake fmt\033[0m\033[0;33m\`\033[0m"; \
 		exit 1; \
 	fi
 	@$(OK) Finished linting
 
-fmt: lint.check ## Ensure consistent code style
+fmt: golangci-lint ## Ensure consistent code style
 	@go mod tidy
 	@cd e2e/ && go mod tidy
 	@go fmt ./...
-	@golangci-lint run --fix
+	@$(GOLANGCI_LINT) run --fix
 	@$(OK) Ensured consistent code style
 
 generate: ## Generate code and crds
@@ -240,7 +225,7 @@ docker.tag:  ## Emit IMAGE_TAG
 docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
 	@$(INFO) docker build
 	echo docker build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
-	docker build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
+	DOCKER_BUILDKIT=1 docker build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
 	@$(OK) docker build
 
 .PHONY: docker.push
@@ -304,3 +289,31 @@ clean:  ## Clean bins
 	@$(INFO) clean
 	@rm -f $(OUTPUT_DIR)/external-secrets-linux-*
 	@$(OK) go build $*
+
+# ====================================================================================
+# Build Dependencies
+
+## Location to install dependencies to
+LOCALBIN ?= $(shell pwd)/bin
+$(LOCALBIN):
+	mkdir -p $(LOCALBIN)
+
+## Tool Binaries
+ENVTEST ?= $(LOCALBIN)/setup-envtest
+GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
+
+## Tool Versions
+GOLANGCI_VERSION := 1.54.2
+KUBERNETES_VERSION := 1.28.x
+
+.PHONY: envtest
+envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
+$(ENVTEST): $(LOCALBIN)
+	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+
+.PHONY: golangci-lint
+.PHONY: $(GOLANGCI_LINT)
+golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
+$(GOLANGCI_LINT): $(LOCALBIN)
+	test -s $(LOCALBIN)/golangci-lint && $(LOCALBIN)/golangci-lint version --format short | grep -q $(GOLANGCI_VERSION) || \
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(LOCALBIN) v$(GOLANGCI_VERSION)

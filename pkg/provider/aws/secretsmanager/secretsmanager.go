@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -27,8 +28,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
-	utilpointer "k8s.io/utils/pointer"
+	"github.com/tidwall/sjson"
+	corev1 "k8s.io/api/core/v1"
+	utilpointer "k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -65,6 +69,7 @@ const (
 	errUnexpectedFindOperator = "unexpected find operator"
 	managedBy                 = "managed-by"
 	externalSecrets           = "external-secrets"
+	initialVersion            = "00000000-0000-0000-0000-000000000001"
 )
 
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager")
@@ -151,7 +156,7 @@ func (sm *SecretsManager) fetch(ctx context.Context, ref esv1beta1.ExternalSecre
 	return secretOut, nil
 }
 
-func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
 	secretName := remoteRef.GetRemoteKey()
 	secretValue := awssm.GetSecretValueInput{
 		SecretId: &secretName,
@@ -187,8 +192,9 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	return err
 }
 
-func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
-	secretName := remoteRef.GetRemoteKey()
+func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret, psd esv1beta1.PushSecretData) error {
+	secretName := psd.GetRemoteKey()
+	value := secret.Data[psd.GetSecretKey()]
 	managedBy := managedBy
 	externalSecrets := externalSecrets
 	externalSecretsTag := []*awssm.Tag{
@@ -196,11 +202,6 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, remoteRe
 			Key:   &managedBy,
 			Value: &externalSecrets,
 		},
-	}
-	secretRequest := awssm.CreateSecretInput{
-		Name:         &secretName,
-		SecretBinary: value,
-		Tags:         externalSecretsTag,
 	}
 
 	secretValue := awssm.GetSecretValueInput{
@@ -213,12 +214,28 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, remoteRe
 
 	awsSecret, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
+
+	if psd.GetProperty() != "" {
+		currentSecret := sm.retrievePayload(awsSecret)
+		if currentSecret != "" && !gjson.Valid(currentSecret) {
+			return errors.New("PushSecret for aws secrets manager with a pushSecretData property requires a json secret")
+		}
+		value, _ = sjson.SetBytes([]byte(currentSecret), psd.GetProperty(), value)
+	}
+
 	var aerr awserr.Error
 	if err != nil {
 		if ok := errors.As(err, &aerr); !ok {
 			return err
 		}
 		if aerr.Code() == awssm.ErrCodeResourceNotFoundException {
+			secretVersion := initialVersion
+			secretRequest := awssm.CreateSecretInput{
+				Name:               &secretName,
+				SecretBinary:       value,
+				Tags:               externalSecretsTag,
+				ClientRequestToken: &secretVersion,
+			}
 			_, err = sm.client.CreateSecretWithContext(ctx, &secretRequest)
 			metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMCreateSecret, err)
 			return err
@@ -236,13 +253,54 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, remoteRe
 	if awsSecret != nil && bytes.Equal(awsSecret.SecretBinary, value) {
 		return nil
 	}
+
+	newVersionNumber, err := bumpVersionNumber(awsSecret.VersionId)
+	if err != nil {
+		return err
+	}
 	input := &awssm.PutSecretValueInput{
-		SecretId:     awsSecret.ARN,
-		SecretBinary: value,
+		SecretId:           awsSecret.ARN,
+		SecretBinary:       value,
+		ClientRequestToken: newVersionNumber,
 	}
 	_, err = sm.client.PutSecretValueWithContext(ctx, input)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutSecretValue, err)
 	return err
+}
+
+func padOrTrim(b []byte) []byte {
+	l := len(b)
+	size := 16
+	if l == size {
+		return b
+	}
+	if l > size {
+		return b[l-size:]
+	}
+	tmp := make([]byte, size)
+	copy(tmp[size-l:], b)
+	return tmp
+}
+
+func bumpVersionNumber(id *string) (*string, error) {
+	if id == nil {
+		output := initialVersion
+		return &output, nil
+	}
+	n := new(big.Int)
+	oldVersion, ok := n.SetString(strings.ReplaceAll(*id, "-", ""), 16)
+	if !ok {
+		return nil, fmt.Errorf("expected secret version in AWS SSM to be a UUID but got '%s'", *id)
+	}
+	newVersionRaw := oldVersion.Add(oldVersion, big.NewInt(1)).Bytes()
+
+	newVersion, err := uuid.FromBytes(padOrTrim(newVersionRaw))
+	if err != nil {
+		return nil, err
+	}
+
+	s := newVersion.String()
+	return &s, nil
 }
 
 func isManagedByESO(data *awssm.DescribeSecretOutput) bool {
@@ -276,7 +334,7 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.External
 	filters := make([]*awssm.Filter, 0)
 	if ref.Path != nil {
 		filters = append(filters, &awssm.Filter{
-			Key: utilpointer.String(awssm.FilterNameStringTypeName),
+			Key: utilpointer.To(awssm.FilterNameStringTypeName),
 			Values: []*string{
 				ref.Path,
 			},
@@ -318,21 +376,21 @@ func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.External
 	filters := make([]*awssm.Filter, 0)
 	for k, v := range ref.Tags {
 		filters = append(filters, &awssm.Filter{
-			Key: utilpointer.String(awssm.FilterNameStringTypeTagKey),
+			Key: utilpointer.To(awssm.FilterNameStringTypeTagKey),
 			Values: []*string{
-				utilpointer.String(k),
+				utilpointer.To(k),
 			},
 		}, &awssm.Filter{
-			Key: utilpointer.String(awssm.FilterNameStringTypeTagValue),
+			Key: utilpointer.To(awssm.FilterNameStringTypeTagValue),
 			Values: []*string{
-				utilpointer.String(v),
+				utilpointer.To(v),
 			},
 		})
 	}
 
 	if ref.Path != nil {
 		filters = append(filters, &awssm.Filter{
-			Key: utilpointer.String(awssm.FilterNameStringTypeName),
+			Key: utilpointer.To(awssm.FilterNameStringTypeName),
 			Values: []*string{
 				ref.Path,
 			},
@@ -400,6 +458,21 @@ func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 		}
 		return nil, fmt.Errorf("invalid secret received. no secret string nor binary for key: %s", ref.Key)
 	}
+	val := sm.mapSecretToGjson(secretOut, ref.Property)
+	if !val.Exists() {
+		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
+	}
+	return []byte(val.String()), nil
+}
+
+func (sm *SecretsManager) mapSecretToGjson(secretOut *awssm.GetSecretValueOutput, property string) gjson.Result {
+	payload := sm.retrievePayload(secretOut)
+	refProperty := sm.escapeDotsIfRequired(property, payload)
+	val := gjson.Get(payload, refProperty)
+	return val
+}
+
+func (sm *SecretsManager) retrievePayload(secretOut *awssm.GetSecretValueOutput) string {
 	var payload string
 	if secretOut.SecretString != nil {
 		payload = *secretOut.SecretString
@@ -407,20 +480,21 @@ func (sm *SecretsManager) GetSecret(ctx context.Context, ref esv1beta1.ExternalS
 	if secretOut.SecretBinary != nil {
 		payload = string(secretOut.SecretBinary)
 	}
+	return payload
+}
+
+func (sm *SecretsManager) escapeDotsIfRequired(currentRefProperty, payload string) string {
 	// We need to search if a given key with a . exists before using gjson operations.
-	idx := strings.Index(ref.Property, ".")
+	idx := strings.Index(currentRefProperty, ".")
+	refProperty := currentRefProperty
 	if idx > -1 {
-		refProperty := strings.ReplaceAll(ref.Property, ".", "\\.")
+		refProperty = strings.ReplaceAll(currentRefProperty, ".", "\\.")
 		val := gjson.Get(payload, refProperty)
-		if val.Exists() {
-			return []byte(val.String()), nil
+		if !val.Exists() {
+			refProperty = currentRefProperty
 		}
 	}
-	val := gjson.Get(payload, ref.Property)
-	if !val.Exists() {
-		return nil, fmt.Errorf("key %s does not exist in secret %s", ref.Property, ref.Key)
-	}
-	return []byte(val.String()), nil
+	return refProperty
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.

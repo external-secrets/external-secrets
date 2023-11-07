@@ -39,6 +39,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 var (
@@ -58,8 +59,9 @@ var (
 )
 
 type testCase struct {
-	secretStore    esv1beta1.GenericStore
-	externalSecret *esv1beta1.ExternalSecret
+	secretStore      esv1beta1.GenericStore
+	externalSecret   *esv1beta1.ExternalSecret
+	targetSecretName string
 
 	// checkCondition should return true if the externalSecret
 	// has the expected condition
@@ -76,6 +78,10 @@ type testCase struct {
 type testTweaks func(*testCase)
 
 var _ = Describe("Kind=secret existence logic", func() {
+	validData := map[string][]byte{
+		"foo": []byte("value1"),
+		"bar": []byte("value2"),
+	}
 	type testCase struct {
 		Name           string
 		Input          v1.Secret
@@ -125,13 +131,10 @@ var _ = Describe("Kind=secret existence logic", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					UID: "xxx",
 					Annotations: map[string]string{
-						esv1beta1.AnnotationDataHash: "caa0155759a6a9b3b6ada5a6883ee2bb",
+						esv1beta1.AnnotationDataHash: utils.ObjectHash(validData),
 					},
 				},
-				Data: map[string][]byte{
-					"foo": []byte("value1"),
-					"bar": []byte("value2"),
-				},
+				Data: validData,
 			},
 			ExpectedOutput: true,
 		},
@@ -209,14 +212,19 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		},
 	)
 
-	const secretVal = "some-value"
-	const targetProp = "targetProperty"
-	const remoteKey = "barz"
-	const remoteProperty = "bang"
+	const (
+		secretVal      = "some-value"
+		targetProp     = "targetProperty"
+		remoteKey      = "barz"
+		remoteProperty = "bang"
+		existingKey    = "pre-existing-key"
+		existingVal    = "pre-existing-value"
+	)
 
 	makeDefaultTestcase := func() *testCase {
 		return &testCase{
 			// default condition: es should be ready
+			targetSecretName: ExternalSecretTargetSecretName,
 			checkCondition: func(es *esv1beta1.ExternalSecret) bool {
 				cond := GetExternalSecretCondition(es.Status, esv1beta1.ExternalSecretReady)
 				if cond == nil || cond.Status != v1.ConditionTrue {
@@ -277,7 +285,15 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(es.Status.Binding.Name).To(Equal(secret.ObjectMeta.Name))
 		}
 	}
-
+	// if target Secret name is not specified it should use the ExternalSecret name.
+	syncBigNames := func(tc *testCase) {
+		tc.targetSecretName = "this-is-a-very-big-secret-name-that-wouldnt-be-generated-due-to-label-limits"
+		tc.externalSecret.Spec.Target.Name = "this-is-a-very-big-secret-name-that-wouldnt-be-generated-due-to-label-limits"
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// check binding secret on external secret
+			Expect(es.Status.Binding.Name).To(Equal(tc.externalSecret.Spec.Target.Name))
+		}
+	}
 	// the secret name is reflected on the external secret's status as the binding secret
 	syncBindingSecret := func(tc *testCase) {
 		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
@@ -311,7 +327,9 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
 
 			// check labels & annotations
-			Expect(secret.ObjectMeta.Labels).To(BeEquivalentTo(es.ObjectMeta.Labels))
+			for k, v := range es.ObjectMeta.Labels {
+				Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue(k, v))
+			}
 			for k, v := range es.ObjectMeta.Annotations {
 				Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue(k, v))
 			}
@@ -340,15 +358,25 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	// metadata.managedFields with the correct owner should be added to the secret
 	mergeWithSecret := func(tc *testCase) {
 		const secretVal = "someValue"
-		const existingKey = "pre-existing-key"
-		existingVal := "pre-existing-value"
 		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyMerge
+		tc.externalSecret.Labels = map[string]string{
+			"es-label-key": "es-label-value",
+		}
+		tc.externalSecret.Annotations = map[string]string{
+			"es-annotation-key": "es-annotation-value",
+		}
 
 		// create secret beforehand
 		Expect(k8sClient.Create(context.Background(), &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      ExternalSecretTargetSecretName,
 				Namespace: ExternalSecretNamespace,
+				Labels: map[string]string{
+					"existing-label-key": "existing-label-value",
+				},
+				Annotations: map[string]string{
+					"existing-annotation-key": "existing-annotation-value",
+				},
 			},
 			Data: map[string][]byte{
 				existingKey: []byte(existingVal),
@@ -361,26 +389,28 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(string(secret.Data[existingKey])).To(Equal(existingVal))
 			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
 
-			// check labels & annotations
-			Expect(secret.ObjectMeta.Labels).To(BeEquivalentTo(es.ObjectMeta.Labels))
-			for k, v := range es.ObjectMeta.Annotations {
-				Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue(k, v))
-			}
+			Expect(secret.ObjectMeta.Labels).To(HaveLen(2))
+			Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue("existing-label-key", "existing-label-value"))
+			Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue("es-label-key", "es-label-value"))
+
+			Expect(secret.ObjectMeta.Annotations).To(HaveLen(3))
+			Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue("existing-annotation-key", "existing-annotation-value"))
+			Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue("es-annotation-key", "es-annotation-value"))
+			Expect(secret.ObjectMeta.Annotations).To(HaveKey(esv1beta1.AnnotationDataHash))
+
 			Expect(ctest.HasOwnerRef(secret.ObjectMeta, "ExternalSecret", ExternalSecretFQDN)).To(BeFalse())
 			Expect(secret.ObjectMeta.ManagedFields).To(HaveLen(2))
 			Expect(ctest.HasFieldOwnership(
 				secret.ObjectMeta,
 				ExternalSecretFQDN,
-				fmt.Sprintf("{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:%s\":{}}}}", esv1beta1.AnnotationDataHash)),
-			).To(BeTrue())
-			Expect(ctest.HasFieldOwnership(secret.ObjectMeta, FakeManager, "{\"f:data\":{\".\":{},\"f:pre-existing-key\":{}},\"f:type\":{}}")).To(BeTrue())
+				fmt.Sprintf(`{"f:data":{"f:targetProperty":{}},"f:immutable":{},"f:metadata":{"f:annotations":{"f:es-annotation-key":{},"f:%s":{}},"f:labels":{"f:es-label-key":{}}}}`, esv1beta1.AnnotationDataHash)),
+			).To(BeEmpty())
+			Expect(ctest.HasFieldOwnership(secret.ObjectMeta, FakeManager, `{"f:data":{".":{},"f:pre-existing-key":{}},"f:metadata":{"f:annotations":{".":{},"f:existing-annotation-key":{}},"f:labels":{".":{},"f:existing-label-key":{}}},"f:type":{}}`)).To(BeEmpty())
 		}
 	}
 
 	// should not update if no changes
 	mergeWithSecretNoChange := func(tc *testCase) {
-		const existingKey = "pre-existing-key"
-		existingVal := "someValue"
 		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyMerge
 
 		// create secret beforehand
@@ -447,7 +477,6 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		const secretVal = "someValue"
 		// this should confict
 		const existingKey = targetProp
-		existingVal := "pre-existing-value"
 		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyMerge
 
 		// create secret beforehand
@@ -469,7 +498,11 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			// check owner/managedFields
 			Expect(ctest.HasOwnerRef(secret.ObjectMeta, "ExternalSecret", ExternalSecretFQDN)).To(BeFalse())
 			Expect(secret.ObjectMeta.ManagedFields).To(HaveLen(2))
-			Expect(ctest.HasFieldOwnership(secret.ObjectMeta, ExternalSecretFQDN, "{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:reconcile.external-secrets.io/data-hash\":{}}}}")).To(BeTrue())
+			Expect(ctest.HasFieldOwnership(
+				secret.ObjectMeta,
+				ExternalSecretFQDN,
+				fmt.Sprintf("{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:%s\":{}}}}", esv1beta1.AnnotationDataHash)),
+			).To(BeEmpty())
 		}
 	}
 
@@ -494,7 +527,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		tc.externalSecret.Spec.Data = nil
 		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
 			{
-				SourceRef: &esv1beta1.SourceRef{
+				SourceRef: &esv1beta1.StoreGeneratorSourceRef{
 					GeneratorRef: &esv1beta1.GeneratorRef{
 						APIVersion: genv1alpha1.Group + "/" + genv1alpha1.Version,
 						Kind:       "Fake",
@@ -510,6 +543,36 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		}
 	}
 
+	deleteOrphanedSecrets := func(tc *testCase) {
+
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			cleanEs := es.DeepCopy()
+			oldSecret := v1.Secret{}
+			oldSecretName := types.NamespacedName{
+				Name:      "test-secret",
+				Namespace: secret.Namespace,
+			}
+			newSecret := v1.Secret{}
+			secretName := types.NamespacedName{
+				Name:      "new-foo",
+				Namespace: secret.Namespace,
+			}
+			Eventually(func() bool {
+				err := k8sClient.Get(context.Background(), oldSecretName, &oldSecret)
+				return err == nil
+			}, time.Second*10, time.Millisecond*200).Should(BeTrue())
+			es.Spec.Target.Name = "new-foo"
+			Expect(k8sClient.Patch(context.Background(), es, client.MergeFrom(cleanEs))).To(Succeed())
+			Eventually(func() bool {
+				err := k8sClient.Get(context.Background(), secretName, &newSecret)
+				return err == nil
+			}, time.Second*10, time.Millisecond*200).Should(BeTrue())
+			Eventually(func() bool {
+				err := k8sClient.Get(context.Background(), oldSecretName, &oldSecret)
+				return apierrors.IsNotFound(err)
+			}, time.Second*10, time.Millisecond*200).Should(BeTrue())
+		}
+	}
 	ignoreMismatchControllerForGeneratorRef := func(tc *testCase) {
 		const secretKey = "somekey"
 		const secretVal = "someValue"
@@ -589,7 +652,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
 					Key: "foo",
 				},
-				SourceRef: &esv1beta1.SourceRef{
+				SourceRef: &esv1beta1.StoreGeneratorSourceRef{
 					SecretStoreRef: &esv1beta1.SecretStoreRef{
 						Name: "foo",
 						Kind: esv1beta1.SecretStoreKind,
@@ -600,7 +663,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
 					Key: "baz",
 				},
-				SourceRef: &esv1beta1.SourceRef{
+				SourceRef: &esv1beta1.StoreGeneratorSourceRef{
 					SecretStoreRef: &esv1beta1.SecretStoreRef{
 						Name: "baz",
 						Kind: esv1beta1.SecretStoreKind,
@@ -653,7 +716,10 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(string(secret.Data[tplStaticKey])).To(Equal(tplStaticVal))
 
 			// labels/annotations should be taken from the template
-			Expect(secret.ObjectMeta.Labels).To(BeEquivalentTo(es.Spec.Target.Template.Metadata.Labels))
+			for k, v := range es.Spec.Target.Template.Metadata.Labels {
+				Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue(k, v))
+
+			}
 			for k, v := range es.Spec.Target.Template.Metadata.Annotations {
 				Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue(k, v))
 			}
@@ -911,7 +977,10 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(string(secret.Data[tplStaticKey])).To(Equal(tplStaticVal))
 
 			// labels/annotations should be taken from the template
-			Expect(secret.ObjectMeta.Labels).To(BeEquivalentTo(es.Spec.Target.Template.Metadata.Labels))
+			for k, v := range es.Spec.Target.Template.Metadata.Labels {
+				Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue(k, v))
+
+			}
 
 			// a secret will always have some extra annotations (i.e. hashmap check), so we only check for specific
 			// source annotations
@@ -943,7 +1012,10 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			}, time.Second*10, time.Millisecond*200).Should(BeTrue())
 
 			// also check labels/annotations have been updated
-			Expect(secret.ObjectMeta.Labels).To(BeEquivalentTo(es.Spec.Target.Template.Metadata.Labels))
+			for k, v := range es.Spec.Target.Template.Metadata.Labels {
+				Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue(k, v))
+
+			}
 			for k, v := range es.Spec.Target.Template.Metadata.Annotations {
 				Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue(k, v))
 			}
@@ -965,7 +1037,10 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
 
 			// labels/annotations should be taken from the template
-			Expect(secret.ObjectMeta.Labels).To(BeEquivalentTo(es.Spec.Target.Template.Metadata.Labels))
+			for k, v := range es.Spec.Target.Template.Metadata.Labels {
+				Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue(k, v))
+			}
+
 			for k, v := range es.Spec.Target.Template.Metadata.Annotations {
 				Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue(k, v))
 			}
@@ -1200,8 +1275,6 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	// if provider secret gets deleted only the managed field should get deleted
 	deleteSecretPolicyMerge := func(tc *testCase) {
 		const secretVal = "someValue"
-		const existingKey = "some-existing-key"
-		existingVal := "some-existing-value"
 		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second}
 		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyMerge
 		tc.externalSecret.Spec.Target.DeletionPolicy = esv1beta1.DeletionPolicyMerge
@@ -1676,7 +1749,36 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		const secretVal = "someValue"
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
 		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
-			Expect(secret.Annotations[esv1beta1.AnnotationDataHash]).To(Equal("9d30b95ca81e156f9454b5ef3bfcc6ee"))
+			expectedHash := utils.ObjectHash(map[string][]byte{
+				targetProp: []byte(secretVal),
+			})
+			Expect(secret.Annotations[esv1beta1.AnnotationDataHash]).To(Equal(expectedHash))
+		}
+	}
+
+	// Checks that secret annotation has been written based on the all the data for merge keys
+	checkMergeSecretDataHashAnnotation := func(tc *testCase) {
+		const secretVal = "someValue"
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyMerge
+
+		// create secret beforehand
+		Expect(k8sClient.Create(context.Background(), &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ExternalSecretTargetSecretName,
+				Namespace: ExternalSecretNamespace,
+			},
+			Data: map[string][]byte{
+				existingKey: []byte(existingVal),
+			},
+		}, client.FieldOwner(FakeManager))).To(Succeed())
+
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			expectedHash := utils.ObjectHash(map[string][]byte{
+				existingKey: []byte(existingVal),
+				targetProp:  []byte(secretVal),
+			})
+			Expect(secret.Annotations[esv1beta1.AnnotationDataHash]).To(Equal(expectedHash))
 		}
 	}
 
@@ -1853,7 +1955,6 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
 		}
 	}
-
 	// Secret is created when ClusterSecretStore has a multiple string conditions, one matching
 	secretCreatedWhenNamespaceMatchesMultipleStringConditions := func(tc *testCase) {
 		tc.secretStore.GetSpec().Conditions = []esv1beta1.ClusterSecretStoreCondition{
@@ -1992,7 +2093,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			if tc.checkSecret != nil {
 				syncedSecret := &v1.Secret{}
 				secretLookupKey := types.NamespacedName{
-					Name:      ExternalSecretTargetSecretName,
+					Name:      tc.targetSecretName,
 					Namespace: ExternalSecretNamespace,
 				}
 				if createdES.Spec.Target.Name == "" {
@@ -2010,8 +2111,11 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		},
 		Entry("should recreate deleted secret", checkDeletion),
 		Entry("should create proper hash annotation for the external secret", checkSecretDataHashAnnotation),
+		Entry("should create proper hash annotation for the external secret with creationPolicy=Merge", checkMergeSecretDataHashAnnotation),
+		Entry("es deletes orphaned secrets", deleteOrphanedSecrets),
 		Entry("should refresh when the hash annotation doesn't correspond to secret data", checkSecretDataHashAnnotationChange),
 		Entry("should use external secret name if target secret name isn't defined", syncWithoutTargetName),
+		Entry("should sync to target secrets with naming bigger than 63 characters", syncBigNames),
 		Entry("should expose the secret as a provisioned service binding secret", syncBindingSecret),
 		Entry("should not expose a provisioned service when no secret is synced", skipBindingSecret),
 		Entry("should set the condition eventually", syncLabelsAnnotations),

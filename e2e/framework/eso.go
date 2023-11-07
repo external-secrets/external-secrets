@@ -104,6 +104,13 @@ func equalSecrets(exp, ts *v1.Secret) bool {
 	if exp.Type != ts.Type {
 		return false
 	}
+
+	// secret contains label owner which must be ignored
+	delete(ts.ObjectMeta.Labels, esv1beta1.LabelOwner)
+	if len(ts.ObjectMeta.Labels) == 0 {
+		ts.ObjectMeta.Labels = nil
+	}
+
 	expLabels, _ := json.Marshal(exp.ObjectMeta.Labels)
 	tsLabels, _ := json.Marshal(ts.ObjectMeta.Labels)
 	if !bytes.Equal(expLabels, tsLabels) {
@@ -115,7 +122,6 @@ func equalSecrets(exp, ts *v1.Secret) bool {
 	if len(ts.ObjectMeta.Annotations) == 0 {
 		ts.ObjectMeta.Annotations = nil
 	}
-
 	expAnnotations, _ := json.Marshal(exp.ObjectMeta.Annotations)
 	tsAnnotations, _ := json.Marshal(ts.ObjectMeta.Annotations)
 	if !bytes.Equal(expAnnotations, tsAnnotations) {

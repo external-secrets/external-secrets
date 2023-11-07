@@ -17,15 +17,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.ref }}
       - name: set branches output
         id: branches
-        # outputs the two most recent `release-x.y` branches plus `main` as JSON
+        # outputs the second to most recent `release-x.y` branches plus `main` as JSON
         run: |
-          echo "branches=$(git branch -a | grep -E "remotes/origin/(main|release-)" | sed 's/  remotes\/origin\///' | sort -V | tail -2 | jq -R -s -c 'split("\n") | map(select(length > 0)) | . + ["main"]')" >> $GITHUB_OUTPUT
+          echo "branches=$(git branch -a | grep -E "remotes/origin/(main|release-)" | sed 's/  remotes\/origin\///' | sort -V | tail -2 | head -1 | jq -R -s -c 'split("\n") | map(select(length > 0)) | . + ["main"]')" >> $GITHUB_OUTPUT
 
   update-dependencies:
     runs-on: ubuntu-latest
@@ -37,17 +37,17 @@ jobs:
     - name: Setup Go
       uses: actions/setup-go@v4
       with:
-        go-version: "1.19"
+        go-version: "1.21"
 
       # we can not use the default GHA token, as it prevents subsequent GHA
       # from running: we can create a PR but the tests won't run :/
     - name: Generate token
       id: generate_token
-      uses: tibdex/github-app-token@v1
+      uses: tibdex/github-app-token@v2
       with:
         app_id: ${{ secrets.APP_ID }}
         private_key: ${{ secrets.PRIVATE_KEY }}
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         token: ${{ steps.generate_token.outputs.token }}
         ref: ${{ matrix.branch }}

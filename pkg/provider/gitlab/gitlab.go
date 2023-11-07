@@ -108,11 +108,11 @@ func (g *gitlabBase) getAuth(ctx context.Context) ([]byte, error) {
 	return credentials, nil
 }
 
-func (g *gitlabBase) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
+func (g *gitlabBase) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (g *gitlabBase) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
+func (g *gitlabBase) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
 	return fmt.Errorf("not implemented")
 }
 

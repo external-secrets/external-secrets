@@ -27,6 +27,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -38,6 +39,7 @@ import (
 	authaws "github.com/hashicorp/vault/api/auth/aws"
 	authkubernetes "github.com/hashicorp/vault/api/auth/kubernetes"
 	authldap "github.com/hashicorp/vault/api/auth/ldap"
+	authuserpass "github.com/hashicorp/vault/api/auth/userpass"
 	"github.com/spf13/pflag"
 	"github.com/tidwall/gjson"
 	authenticationv1 "k8s.io/api/authentication/v1"
@@ -118,21 +120,22 @@ const (
 	errUnknownCAProvider = "unknown caProvider type given"
 	errCANamespace       = "cannot read secret for CAProvider due to missing namespace on kind ClusterSecretStore"
 
-	errInvalidStore      = "invalid store"
-	errInvalidStoreSpec  = "invalid store spec"
-	errInvalidStoreProv  = "invalid store provider"
-	errInvalidVaultProv  = "invalid vault provider"
-	errInvalidAppRoleID  = "invalid Auth.AppRole: neither `roleId` nor `roleRef` was supplied"
-	errInvalidAppRoleRef = "invalid Auth.AppRole.RoleRef: %w"
-	errInvalidAppRoleSec = "invalid Auth.AppRole.SecretRef: %w"
-	errInvalidClientCert = "invalid Auth.Cert.ClientCert: %w"
-	errInvalidCertSec    = "invalid Auth.Cert.SecretRef: %w"
-	errInvalidJwtSec     = "invalid Auth.Jwt.SecretRef: %w"
-	errInvalidJwtK8sSA   = "invalid Auth.Jwt.KubernetesServiceAccountToken.ServiceAccountRef: %w"
-	errInvalidKubeSA     = "invalid Auth.Kubernetes.ServiceAccountRef: %w"
-	errInvalidKubeSec    = "invalid Auth.Kubernetes.SecretRef: %w"
-	errInvalidLdapSec    = "invalid Auth.Ldap.SecretRef: %w"
-	errInvalidTokenRef   = "invalid Auth.TokenSecretRef: %w"
+	errInvalidStore       = "invalid store"
+	errInvalidStoreSpec   = "invalid store spec"
+	errInvalidStoreProv   = "invalid store provider"
+	errInvalidVaultProv   = "invalid vault provider"
+	errInvalidAppRoleID   = "invalid Auth.AppRole: neither `roleId` nor `roleRef` was supplied"
+	errInvalidAppRoleRef  = "invalid Auth.AppRole.RoleRef: %w"
+	errInvalidAppRoleSec  = "invalid Auth.AppRole.SecretRef: %w"
+	errInvalidClientCert  = "invalid Auth.Cert.ClientCert: %w"
+	errInvalidCertSec     = "invalid Auth.Cert.SecretRef: %w"
+	errInvalidJwtSec      = "invalid Auth.Jwt.SecretRef: %w"
+	errInvalidJwtK8sSA    = "invalid Auth.Jwt.KubernetesServiceAccountToken.ServiceAccountRef: %w"
+	errInvalidKubeSA      = "invalid Auth.Kubernetes.ServiceAccountRef: %w"
+	errInvalidKubeSec     = "invalid Auth.Kubernetes.SecretRef: %w"
+	errInvalidLdapSec     = "invalid Auth.Ldap.SecretRef: %w"
+	errInvalidTokenRef    = "invalid Auth.TokenSecretRef: %w"
+	errInvalidUserPassSec = "invalid Auth.UserPass.SecretRef: %w"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -231,7 +234,7 @@ func (c *Connector) newClient(ctx context.Context, store esv1beta1.GenericStore,
 	}
 	vaultSpec := storeSpec.Provider.Vault
 
-	vStore, cfg, err := c.prepareConfig(kube, corev1, vaultSpec, namespace, store.GetObjectKind().GroupVersionKind().Kind)
+	vStore, cfg, err := c.prepareConfig(kube, corev1, vaultSpec, storeSpec.RetrySettings, namespace, store.GetObjectKind().GroupVersionKind().Kind)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +248,7 @@ func (c *Connector) newClient(ctx context.Context, store esv1beta1.GenericStore,
 }
 
 func (c *Connector) NewGeneratorClient(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, namespace string) (util.Client, error) {
-	vStore, cfg, err := c.prepareConfig(kube, corev1, vaultSpec, namespace, "Generator")
+	vStore, cfg, err := c.prepareConfig(kube, corev1, vaultSpec, nil, namespace, "Generator")
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +266,7 @@ func (c *Connector) NewGeneratorClient(ctx context.Context, kube kclient.Client,
 	return client, nil
 }
 
-func (c *Connector) prepareConfig(kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, namespace, storeKind string) (*client, *vault.Config, error) {
+func (c *Connector) prepareConfig(kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, retrySettings *esv1beta1.SecretStoreRetrySettings, namespace, storeKind string) (*client, *vault.Config, error) {
 	vStore := &client{
 		kube:      kube,
 		corev1:    corev1,
@@ -277,6 +280,26 @@ func (c *Connector) prepareConfig(kube kclient.Client, corev1 typedcorev1.CoreV1
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Setup retry options if present
+	if retrySettings != nil {
+		if retrySettings.MaxRetries != nil {
+			cfg.MaxRetries = int(*retrySettings.MaxRetries)
+		} else {
+			// By default we rely only on the reconciliation process for retrying
+			cfg.MaxRetries = 0
+		}
+
+		if retrySettings.RetryInterval != nil {
+			retryWait, err := time.ParseDuration(*retrySettings.RetryInterval)
+			if err != nil {
+				return nil, nil, err
+			}
+			cfg.MinRetryWait = retryWait
+			cfg.MaxRetryWait = retryWait
+		}
+	}
+
 	return vStore, cfg, nil
 }
 
@@ -375,6 +398,11 @@ func (c *Connector) ValidateStore(store esv1beta1.GenericStore) error {
 			return fmt.Errorf(errInvalidLdapSec, err)
 		}
 	}
+	if p.Auth.UserPass != nil {
+		if err := utils.ValidateReferentSecretSelector(store, p.Auth.UserPass.SecretRef); err != nil {
+			return fmt.Errorf(errInvalidUserPassSec, err)
+		}
+	}
 	if p.Auth.TokenSecretRef != nil {
 		if err := utils.ValidateReferentSecretSelector(store, *p.Auth.TokenSecretRef); err != nil {
 			return fmt.Errorf(errInvalidTokenRef, err)
@@ -406,7 +434,7 @@ func (c *Connector) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
 	path := v.buildPath(remoteRef.GetRemoteKey())
 	metaPath, err := v.buildMetadataPath(remoteRef.GetRemoteKey())
 	if err != nil {
@@ -454,15 +482,16 @@ func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 	return nil
 }
 
-func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (v *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	value := secret.Data[data.GetSecretKey()]
 	label := map[string]interface{}{
 		"custom_metadata": map[string]string{
 			"managed-by": "external-secrets",
 		},
 	}
 	secretVal := make(map[string]interface{})
-	path := v.buildPath(remoteRef.GetRemoteKey())
-	metaPath, err := v.buildMetadataPath(remoteRef.GetRemoteKey())
+	path := v.buildPath(data.GetRemoteKey())
+	metaPath, err := v.buildMetadataPath(data.GetRemoteKey())
 	if err != nil {
 		return err
 	}
@@ -475,7 +504,7 @@ func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 	}
 	// If the secret exists (err == nil), we should check if it is managed by external-secrets
 	if err == nil {
-		metadata, err := v.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
+		metadata, err := v.readSecretMetadata(ctx, data.GetRemoteKey())
 		if err != nil {
 			return err
 		}
@@ -484,7 +513,14 @@ func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 			return fmt.Errorf("secret not managed by external-secrets")
 		}
 	}
-	vaultSecretValue, err := json.Marshal(vaultSecret)
+	buf := &bytes.Buffer{}
+	enc := json.NewEncoder(buf)
+	enc.SetEscapeHTML(false)
+	err = enc.Encode(vaultSecret)
+	if err != nil {
+		return fmt.Errorf("error encoding vault secret: %w", err)
+	}
+	vaultSecretValue := bytes.TrimSpace(buf.Bytes())
 	if err != nil {
 		return fmt.Errorf("error marshaling vault secret: %w", err)
 	}
@@ -492,9 +528,9 @@ func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 		return nil
 	}
 	// If a Push of a property only, we should merge and add/update the property
-	if remoteRef.GetProperty() != "" {
-		if _, ok := vaultSecret[remoteRef.GetProperty()]; ok {
-			d := vaultSecret[remoteRef.GetProperty()].(string)
+	if data.GetProperty() != "" {
+		if _, ok := vaultSecret[data.GetProperty()]; ok {
+			d := vaultSecret[data.GetProperty()].(string)
 			if err != nil {
 				return fmt.Errorf("error marshaling vault secret: %w", err)
 			}
@@ -507,7 +543,7 @@ func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 			secretVal[k] = v
 		}
 		// Secret got from vault is already on map[string]string format
-		secretVal[remoteRef.GetProperty()] = string(value)
+		secretVal[data.GetProperty()] = string(value)
 	} else {
 		err = json.Unmarshal(value, &secretVal)
 		if err != nil {
@@ -816,6 +852,9 @@ func isReferentSpec(prov *esv1beta1.VaultProvider) bool {
 	if prov.Auth.Ldap != nil && prov.Auth.Ldap.SecretRef.Namespace == nil {
 		return true
 	}
+	if prov.Auth.UserPass != nil && prov.Auth.UserPass.SecretRef.Namespace == nil {
+		return true
+	}
 	if prov.Auth.Jwt != nil && prov.Auth.Jwt.SecretRef != nil && prov.Auth.Jwt.SecretRef.Namespace == nil {
 		return true
 	}
@@ -981,8 +1020,6 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 func (v *client) newConfig() (*vault.Config, error) {
 	cfg := vault.DefaultConfig()
 	cfg.Address = v.store.Server
-	// In a controller-runtime context, we rely on the reconciliation process for retrying
-	cfg.MaxRetries = 0
 
 	if len(v.store.CABundle) == 0 && v.store.CAProvider == nil {
 		return cfg, nil
@@ -1116,6 +1153,11 @@ func (v *client) setAuth(ctx context.Context, cfg *vault.Config) error {
 		return err
 	}
 
+	tokenExists, err = setUserPassAuthToken(ctx, v)
+	if tokenExists {
+		v.log.V(1).Info("Retrieved new token using userPass auth")
+		return err
+	}
 	tokenExists, err = setJwtAuthToken(ctx, v)
 	if tokenExists {
 		v.log.V(1).Info("Retrieved new token using JWT auth")
@@ -1178,6 +1220,18 @@ func setLdapAuthToken(ctx context.Context, v *client) (bool, error) {
 	ldapAuth := v.store.Auth.Ldap
 	if ldapAuth != nil {
 		err := v.requestTokenWithLdapAuth(ctx, ldapAuth)
+		if err != nil {
+			return true, err
+		}
+		return true, nil
+	}
+	return false, nil
+}
+
+func setUserPassAuthToken(ctx context.Context, v *client) (bool, error) {
+	userPassAuth := v.store.Auth.UserPass
+	if userPassAuth != nil {
+		err := v.requestTokenWithUserPassAuth(ctx, userPassAuth)
 		if err != nil {
 			return true, err
 		}
@@ -1445,6 +1499,26 @@ func (v *client) requestTokenWithLdapAuth(ctx context.Context, ldapAuth *esv1bet
 	}
 	pass := authldap.Password{FromString: password}
 	l, err := authldap.NewLDAPAuth(username, &pass, authldap.WithMountPath(ldapAuth.Path))
+	if err != nil {
+		return err
+	}
+	_, err = v.auth.Login(ctx, l)
+	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (v *client) requestTokenWithUserPassAuth(ctx context.Context, userPassAuth *esv1beta1.VaultUserPassAuth) error {
+	username := strings.TrimSpace(userPassAuth.Username)
+
+	password, err := v.secretKeyRef(ctx, &userPassAuth.SecretRef)
+	if err != nil {
+		return err
+	}
+	pass := authuserpass.Password{FromString: password}
+	l, err := authuserpass.NewUserpassAuth(username, &pass, authuserpass.WithMountPath(userPassAuth.Path))
 	if err != nil {
 		return err
 	}

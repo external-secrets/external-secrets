@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
@@ -65,8 +66,10 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:             scheme.Scheme,
-		MetricsBindAddress: "0", // avoid port collision when testing
+		Scheme: scheme.Scheme,
+		Metrics: server.Options{
+			BindAddress: "0", // avoid port collision when testing
+		},
 	})
 	Expect(err).ToNot(HaveOccurred())
 
@@ -74,7 +77,9 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(k8sClient).ToNot(BeNil())
 
-	rec := New(k8sClient, k8sManager.GetScheme(), log, time.Second*1,
+	leaderChan := make(chan struct{})
+	close(leaderChan)
+	rec := New(k8sClient, k8sManager.GetScheme(), leaderChan, log, time.Second*1,
 		"foo", "default", "foo", "default", []string{
 			"secretstores.test.io",
 		})

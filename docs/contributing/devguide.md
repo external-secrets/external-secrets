@@ -10,28 +10,6 @@ cd external-secrets
 
 _Note: many of the `make` commands use [yq](https://github.com/mikefarah/yq), version 4.2X.X or higher._
 
-If you want to run controller tests you also need to install kubebuilder's `envtest`.
-
-The recommended way to do so is to install [setup-envtest](https://pkg.go.dev/sigs.k8s.io/controller-runtime/tools/setup-envtest)
-
-Here is an example on how to set it up:
-
-```
-go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
-
-# list available versions
-setup-envtest list --os $(go env GOOS) --arch $(go env GOARCH)
-
-# To use a specific version
-setup-envtest use -p path 1.20.2
-
-#To set environment variables
-source <(setup-envtest use 1.20.2 -p env --os $(go env GOOS) --arch $(go env GOARCH))
-
-```
-
-for more information, please see [setup-envtest docs](https://github.com/kubernetes-sigs/controller-runtime/tree/master/tools/setup-envtest)
-
 Our helm chart is tested using `helm-unittest`. You will need it to run tests locally if you modify the helm chart. Install it with the following command:
 
 ```
@@ -47,10 +25,10 @@ Building the operator binary and docker image:
 
 ```shell
 make build
-make docker.build IMG=external-secrets:latest
+make docker.build IMAGE_NAME=external-secrets IMAGE_TAG=latest
 ```
 
-Run tests and lint the code: *(golangci-lint@1.49.0 is needed.)*
+Run tests and lint the code:
 ```shell
 make test
 make lint # OR
@@ -99,11 +77,12 @@ export IMAGE=$(make docker.imagename)
 make docker.build
 
 # Load docker image into local kind cluster
-kind load docker-image $IMAGE:$TAG -n external-secrets
+kind load docker-image $IMAGE:$TAG --name external-secrets
 
 # (Optional) Pull the image from GitHub Repo to copy into kind
-#docker pull ghcr.io/external-secrets/external-secrets:v0.8.2
-#kind load docker-image ghcr.io/external-secrets/external-secrets:v0.8.2 -n external-secrets
+# docker pull ghcr.io/external-secrets/external-secrets:v0.8.2
+# kind load docker-image ghcr.io/external-secrets/external-secrets:v0.8.2 -n external-secrets
+# export TAG=v0.8.2
 
 # Update helm charts and install to KinD cluster
 make helm.generate

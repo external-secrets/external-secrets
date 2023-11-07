@@ -59,6 +59,9 @@ processClusterExternalSecret: true
 # -- if true, the operator will process cluster store. Else, it will ignore them.
 processClusterStore: true
 
+# -- if true, the operator will process push secret. Else, it will ignore them.
+processPushSecret: true
+
 # -- Specifies whether an external secret operator deployment be created.
 createOperator: true
 
@@ -432,6 +435,12 @@ certController:
 
       # -- Additional service annotations
       annotations: {}
+
+  readinessProbe:
+    # -- Address for readiness probe
+    address: ""
+    # -- ReadinessProbe port for kubelet
+    port: 8081
 
     ## -- Extra environment variables to add to container.
   extraEnv: []

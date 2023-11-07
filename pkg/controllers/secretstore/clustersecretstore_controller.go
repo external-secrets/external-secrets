@@ -54,6 +54,7 @@ func (r *ClusterStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	var css esapi.ClusterSecretStore
 	err := r.Get(ctx, req.NamespacedName, &css)
 	if apierrors.IsNotFound(err) {
+		cssmetrics.RemoveMetrics(req.Namespace, req.Name)
 		return ctrl.Result{}, nil
 	} else if err != nil {
 		log.Error(err, "unable to get ClusterSecretStore")

@@ -23,7 +23,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "external-secrets-cert-controller.selectorLabels" . | nindent 8 }}
+        {{- include "external-secrets-cert-controller.labels" . | nindent 8 }}
         {{- with .Values.certController.podLabels }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -54,6 +54,8 @@ spec:
           - --service-namespace={{ .Release.Namespace }}
           - --secret-name={{ include "external-secrets.fullname" . }}-webhook
           - --secret-namespace={{ .Release.Namespace }}
+          - --metrics-addr=:{{ .Values.certController.prometheus.service.port }}
+          - --healthz-addr={{ .Values.certController.readinessProbe.address }}:{{ .Values.certController.readinessProbe.port }}
           {{ if not .Values.crds.createClusterSecretStore -}}
           - --crd-names=externalsecrets.external-secrets.io
           - --crd-names=secretstores.external-secrets.io
@@ -71,7 +73,7 @@ spec:
               name: metrics
           readinessProbe:
             httpGet:
-              port: 8081
+              port: {{ .Values.certController.readinessProbe.port }}
               path: /readyz
             initialDelaySeconds: 20
             periodSeconds: 5

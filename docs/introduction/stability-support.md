@@ -19,8 +19,8 @@ We want to cover the following cases:
 
 | ESO Version | Kubernetes Version | Release Date | End of Life    |
 | ----------- | ------------------ | ------------ | -------------- |
-| 0.9.x       | 1.19 → 1.27        | Jun 22, 2023 | Release of 1.1 |
-| 0.8.x       | 1.19 → 1.26        | Mar 16, 2023 | Release of 1.0 |
+| 0.9.x       | 1.19 → 1.28        | Jun 22, 2023 | Release of 1.1 |
+| 0.8.x       | 1.19 → 1.28        | Mar 16, 2023 | Release of 1.0 |
 | 0.7.x       | 1.19 → 1.26        | Dec 11, 2022 | Jun 22, 2023   |
 | 0.6.x       | 1.19 → 1.24        | Oct 9, 2022  | Mar 16, 2023   |
 | 0.5.x       | 1.19 → 1.24        | Apr 6, 2022  | Dec 11, 2022   |
@@ -66,7 +66,7 @@ The following table show the support for features across different providers.
 | GCP Secret Manager        |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Azure Keyvault            |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Kubernetes                |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
-| IBM Cloud Secrets Manager |      x       |              |                      |                         |        x         |             |                             |
+| IBM Cloud Secrets Manager |      x       |              |          x           |                         |        x         |             |                             |
 | Yandex Lockbox            |              |              |                      |                         |        x         |             |                             |
 | GitLab Variables          |      x       |      x       |                      |                         |        x         |             |                             |
 | Alibaba Cloud KMS         |              |              |                      |                         |        x         |             |                             |

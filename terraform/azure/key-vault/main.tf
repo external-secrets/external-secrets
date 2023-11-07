@@ -16,6 +16,12 @@ resource "azurerm_key_vault" "current" {
 
     key_permissions = [
       "Get",
+      "List",
+      "Create",
+      "Delete",
+      "Purge",
+      "Decrypt",
+      "Encrypt",
     ]
 
     secret_permissions = [
@@ -27,7 +33,11 @@ resource "azurerm_key_vault" "current" {
     ]
 
     storage_permissions = [
+      "Set",
       "Get",
+      "Delete",
+      "Purge",
+      "Recover"
     ]
   }
   access_policy {
@@ -36,7 +46,42 @@ resource "azurerm_key_vault" "current" {
 
     secret_permissions = [
       "Get",
+      "Set",
+      "Delete",
+      "Purge",
+      "Recover",
     ]
 
+  }
+
+  access_policy {
+    tenant_id = var.tenant_id
+    object_id = var.eso_e2e_sp_object_id
+
+    secret_permissions = [
+      "Get",
+      "Set",
+      "Delete",
+      "Purge",
+      "Recover",
+    ]
+
+    key_permissions = [
+      "Get",
+      "List",
+      "Create",
+      "Delete",
+      "Purge",
+      "Decrypt",
+      "Encrypt",
+    ]
+
+    certificate_permissions = [
+      "Get",
+      "List",
+      "Create",
+      "Delete",
+      "Purge",
+    ]
   }
 }

@@ -1060,6 +1060,7 @@ BarbicanAuth
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1beta1.AkeylessProvider">AkeylessProvider</a>, 
+<a href="#external-secrets.io/v1beta1.ConjurProvider">ConjurProvider</a>, 
 <a href="#external-secrets.io/v1beta1.KubernetesServer">KubernetesServer</a>, 
 <a href="#external-secrets.io/v1beta1.VaultProvider">VaultProvider</a>)
 </p>
@@ -1278,7 +1279,20 @@ Kubernetes meta/v1.LabelSelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaces</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelector ends up choosing.</p>
 </td>
 </tr>
 <tr>
@@ -1291,7 +1305,7 @@ Kubernetes meta/v1.Duration
 </em>
 </td>
 <td>
-<p>The time in which the controller should reconcile it&rsquo;s objects and recheck namespaces for labels.</p>
+<p>The time in which the controller should reconcile its objects and recheck namespaces for labels.</p>
 </td>
 </tr>
 </table>
@@ -1326,11 +1340,7 @@ ClusterExternalSecretStatus
 <th>Description</th>
 </tr>
 </thead>
-<tbody><tr><td><p>&#34;NotReady&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;PartiallyReady&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;Ready&#34;</p></td>
+<tbody><tr><td><p>&#34;Ready&#34;</p></td>
 <td></td>
 </tr></tbody>
 </table>
@@ -1442,7 +1452,20 @@ Kubernetes meta/v1.LabelSelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaces</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelector ends up choosing.</p>
 </td>
 </tr>
 <tr>
@@ -1455,7 +1478,7 @@ Kubernetes meta/v1.Duration
 </em>
 </td>
 <td>
-<p>The time in which the controller should reconcile it&rsquo;s objects and recheck namespaces for labels.</p>
+<p>The time in which the controller should reconcile its objects and recheck namespaces for labels.</p>
 </td>
 </tr>
 </tbody>
@@ -1477,6 +1500,17 @@ Kubernetes meta/v1.Duration
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<code>externalSecretName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ExternalSecretName is the name of the ExternalSecrets created by the ClusterExternalSecret</p>
+</td>
+</tr>
 <tr>
 <td>
 <code>failedNamespaces</code></br>
@@ -1817,6 +1851,89 @@ ConjurApikey
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>jwt</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ConjurJWT">
+ConjurJWT
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ConjurJWT">ConjurJWT
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ConjurAuth">ConjurAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>account</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The conjur authn jwt webservice id</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional SecretRef that refers to a key in a Secret resource containing JWT token to
+authenticate with Conjur using the JWT authentication method.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional ServiceAccountRef specifies the Kubernetes service account for which to request
+a token for with the <code>TokenRequest</code> API.</p>
 </td>
 </tr>
 </tbody>
@@ -1855,6 +1972,20 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.CAProvider">
+CAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
 </td>
 </tr>
 <tr>
@@ -2141,6 +2272,36 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.ExtermalSecretRewriteTransform">ExtermalSecretRewriteTransform
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretRewrite">ExternalSecretRewrite</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>template</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Used to define the template to apply on the secret name.
+<code>.value</code> will specify the secret name in the template.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.ExternalSecret">ExternalSecret
 </h3>
 <p>
@@ -2389,8 +2550,8 @@ which secret (version/property/..) to fetch.</p>
 <td>
 <code>sourceRef</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.SourceRef">
-SourceRef
+<a href="#external-secrets.io/v1beta1.StoreSourceRef">
+StoreSourceRef
 </a>
 </em>
 </td>
@@ -2466,8 +2627,8 @@ Multiple Rewrite operations can be provided. They are applied in a layered order
 <td>
 <code>sourceRef</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.SourceRef">
-SourceRef
+<a href="#external-secrets.io/v1beta1.StoreGeneratorSourceRef">
+StoreGeneratorSourceRef
 </a>
 </em>
 </td>
@@ -2815,6 +2976,21 @@ ExternalSecretRewriteRegexp
 <em>(Optional)</em>
 <p>Used to rewrite with regular expressions.
 The resulting key will be the output of a regexp.ReplaceAll operation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>transform</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ExtermalSecretRewriteTransform">
+ExtermalSecretRewriteTransform
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to apply string transformation on the secrets.
+The resulting key will be the output of the template applied by the operation.</p>
 </td>
 </tr>
 </tbody>
@@ -3226,6 +3402,9 @@ TemplateEngineVersion
 </em>
 </td>
 <td>
+<p>EngineVersion specifies the template engine version
+that should be used to compile/execute the
+template specified in .data and .templateFrom[].</p>
 </td>
 </tr>
 <tr>
@@ -3627,7 +3806,8 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.SourceRef">SourceRef</a>)
+<a href="#external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>, 
+<a href="#external-secrets.io/v1beta1.StoreSourceRef">StoreSourceRef</a>)
 </p>
 <p>
 <p>GeneratorRef points to a generator custom resource.</p>
@@ -4391,6 +4571,32 @@ OracleSecretRef
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.OraclePrincipalType">OraclePrincipalType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.OracleProvider">OracleProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;InstancePrincipal&#34;</p></td>
+<td><p>InstancePrincipal represents a instance principal.</p>
+</td>
+</tr><tr><td><p>&#34;UserPrincipal&#34;</p></td>
+<td><p>UserPrincipal represents a user principal.</p>
+</td>
+</tr><tr><td><p>&#34;Workload&#34;</p></td>
+<td><p>WorkloadPrincipal represents a workload principal.</p>
+</td>
+</tr></tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.OracleProvider">OracleProvider
 </h3>
 <p>
@@ -4433,6 +4639,48 @@ string
 </tr>
 <tr>
 <td>
+<code>compartment</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Compartment is the vault compartment OCID.
+Required for PushSecret</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>encryptionKey</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EncryptionKey is the OCID of the encryption key within the vault.
+Required for PushSecret</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>principalType</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.OraclePrincipalType">
+OraclePrincipalType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The type of principal to use for authentication. If left blank, the Auth struct will
+determine the principal type. This optional field must be specified if using
+workload identity.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>auth</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.OracleAuth">
@@ -4444,6 +4692,21 @@ OracleAuth
 <em>(Optional)</em>
 <p>Auth configures how secret-manager authenticates with the Oracle Vault.
 If empty, use the instance principal, otherwise the user credentials specified in Auth.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountRef specified the service account
+that should be used when authenticating with WorkloadIdentity.</p>
 </td>
 </tr>
 </tbody>
@@ -4497,10 +4760,15 @@ External Secrets meta/v1.SecretKeySelector
 <p>
 <p>Provider is a common interface for interacting with secret backends.</p>
 </p>
-<h3 id="external-secrets.io/v1beta1.PushRemoteRef">PushRemoteRef
+<h3 id="external-secrets.io/v1beta1.PushSecretData">PushSecretData
 </h3>
 <p>
-<p>This interface is to allow using v1alpha1 content in Provider registered in v1beta1.</p>
+<p>PushSecretData is an interface to allow using v1alpha1.PushSecretData content in Provider registered in v1beta1.</p>
+</p>
+<h3 id="external-secrets.io/v1beta1.PushSecretRemoteRef">PushSecretRemoteRef
+</h3>
+<p>
+<p>PushSecretRemoteRef is an interface to allow using v1alpha1.PushSecretRemoteRef in Provider registered in v1beta1.</p>
 </p>
 <h3 id="external-secrets.io/v1beta1.ScalewayProvider">ScalewayProvider
 </h3>
@@ -5114,7 +5382,8 @@ DelineaProvider
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1beta1.ExternalSecretSpec">ExternalSecretSpec</a>, 
-<a href="#external-secrets.io/v1beta1.SourceRef">SourceRef</a>)
+<a href="#external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>, 
+<a href="#external-secrets.io/v1beta1.StoreSourceRef">StoreSourceRef</a>)
 </p>
 <p>
 <p>SecretStoreRef defines which SecretStore to fetch the ExternalSecret data.</p>
@@ -5536,15 +5805,14 @@ bool
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1beta1.SourceRef">SourceRef
+<h3 id="external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretData">ExternalSecretData</a>, 
 <a href="#external-secrets.io/v1beta1.ExternalSecretDataFromRemoteRef">ExternalSecretDataFromRemoteRef</a>)
 </p>
 <p>
-<p>SourceRef allows you to override the source
+<p>StoreGeneratorSourceRef allows you to override the source
 from which the secret will be pulled from.
 You can define at maximum one property.</p>
 </p>
@@ -5580,7 +5848,56 @@ GeneratorRef
 </td>
 <td>
 <em>(Optional)</em>
-<p>GeneratorRef points to a generator custom resource in</p>
+<p>GeneratorRef points to a generator custom resource.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.StoreSourceRef">StoreSourceRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretData">ExternalSecretData</a>)
+</p>
+<p>
+<p>StoreSourceRef allows you to override the SecretStore source
+from which the secret will be pulled from.
+You can define at maximum one property.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>storeRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretStoreRef">
+SecretStoreRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>generatorRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.GeneratorRef">
+GeneratorRef
+</a>
+</em>
+</td>
+<td>
+<p>GeneratorRef points to a generator custom resource.</p>
+<p>Deprecated: The generatorRef is not implemented in .data[].
+this will be removed with v1.</p>
 </td>
 </tr>
 </tbody>
@@ -5991,7 +6308,7 @@ resource is used as the app role secret.</p>
 </p>
 <p>
 <p>VaultAuth is the configuration used to authenticate with a Vault server.
-Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code>, <code>jwt</code> or <code>cert</code>
+Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code>, <code>userPass</code>, <code>jwt</code> or <code>cert</code>
 can be specified.</p>
 </p>
 <table>
@@ -6104,6 +6421,20 @@ VaultIamAuth
 <em>(Optional)</em>
 <p>Iam authenticates with vault by passing a special AWS request signed with AWS IAM credentials
 AWS IAM authentication method</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>userPass</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.VaultUserPassAuth">
+VaultUserPassAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UserPass authenticates with Vault by passing username/password pair</p>
 </td>
 </tr>
 </tbody>
@@ -6847,6 +7178,65 @@ bool
 leader instead of simply retrying within a loop. This can increase performance if
 the option is enabled serverside.
 <a href="https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header">https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.VaultUserPassAuth">VaultUserPassAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.VaultAuth">VaultAuth</a>)
+</p>
+<p>
+<p>VaultUserPassAuth authenticates with Vault using UserPass authentication method,
+with the username and password stored in a Kubernetes Secret resource.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the UserPassword authentication backend is mounted
+in Vault, e.g: &ldquo;user&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>username</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Username is a user name used to authenticate using the UserPass Vault
+authentication method</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>SecretRef to a key in a Secret resource containing password for the
+user used to authenticate with Vault using the UserPass authentication
+method</p>
 </td>
 </tr>
 </tbody>

@@ -58,11 +58,11 @@ type SMInterface interface {
 	Endpoint() string
 }
 
-func (kms *KeyManagementService) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
+func (kms *KeyManagementService) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (kms *KeyManagementService) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
+func (kms *KeyManagementService) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
