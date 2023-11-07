@@ -42,35 +42,8 @@ const (
 	errInvalidAuthSecretRef = "invalid auth secret ref: %w"
 )
 
-type config struct {
-	// OpenStack Auth Url
-	AuthUrl string `json:"auth_url"`
-
-	// The Domain of the user.
-	UserDomain string `json:"user_domain"`
-
-	// The user name. If you do not provide a user name and password, you must provide a token.
-	Username string `json:"username"`
-
-	// The password for the user.
-	Password string `json:"password"`
-
-	// The project name. Both the Project ID and Project Name are optional.
-	ProjectName string `json:"project_name"`
-
-	// ServiceName [optional] is the service name for the client (e.g., "nova") as it
-	// appears in the service catalog. Services can have the same Type but a
-	// different Name, which is why both Type and Name are sometimes needed.
-	ServiceName string `json:"service_name"`
-
-	// Region [required] is the geographic region in which the endpoint resides,
-	// generally specifying which datacenter should house your resources.
-	// Required only for services that span multiple regions.
-	Region string `json:"region"`
-}
-
 type Client struct {
-	config    *config
+	// config    *config
 	client    *gophercloud.ServiceClient
 	kube      kclient.Client
 	store     *esv1beta1.BarbicanProvider

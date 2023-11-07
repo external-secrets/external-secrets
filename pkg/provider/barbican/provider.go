@@ -15,7 +15,6 @@ package barbican
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -69,30 +68,30 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.C
 	}
 	bStore := storeSpec.Provider.Barbican
 
-	config, err := getConfigFromSecrets(ctx, storeSpec.Provider.Barbican.Auth, kube, namespace)
+	password, err := getPasswordFromSecrets(ctx, storeSpec.Provider.Barbican.Auth, kube, namespace)
 	if err != nil {
 		return nil, err
 	}
 
-	if config.ServiceName == "" {
-		config.ServiceName = "barbican"
+	if storeSpec.Provider.Barbican.ServiceName == "" {
+		storeSpec.Provider.Barbican.ServiceName = "barbican"
 	}
 
 	useMu.Lock()
 	defer useMu.Unlock()
 
 	authOpts := gophercloud.AuthOptions{
-		IdentityEndpoint: config.AuthUrl,
-		Username:         config.Username,
-		Password:         config.Password,
-		DomainID:         config.UserDomain,
-		TenantName:       config.ProjectName,
+		IdentityEndpoint: storeSpec.Provider.Barbican.AuthUrl,
+		Username:         storeSpec.Provider.Barbican.Username,
+		Password:         password,
+		DomainID:         storeSpec.Provider.Barbican.UserDomain,
+		TenantName:       storeSpec.Provider.Barbican.ProjectName,
 	}
 
 	endpointOpts := gophercloud.EndpointOpts{
 		Type:   "key-manager",
-		Name:   config.ServiceName,
-		Region: config.Region,
+		Name:   storeSpec.Provider.Barbican.ServiceName,
+		Region: storeSpec.Provider.Barbican.Region,
 	}
 
 	provider, err := openstack.AuthenticatedClient(authOpts)
@@ -106,7 +105,7 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.C
 	}
 
 	client := &Client{
-		config:    config,
+		// config:    config,
 		client:    c,
 		kube:      kube,
 		store:     bStore,
@@ -140,10 +139,10 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-func getConfigFromSecrets(ctx context.Context, auth esv1beta1.BarbicanAuth, kube kclient.Client, namespace string) (*config, error) {
+func getPasswordFromSecrets(ctx context.Context, auth esv1beta1.BarbicanAuth, kube kclient.Client, namespace string) (string, error) {
 	sr := auth.SecretRef
 	if sr == nil {
-		return nil, nil
+		return "", fmt.Errorf(errMissingSAK)
 	}
 	credentialsSecret := &v1.Secret{}
 	credentialsSecretName := sr.SecretAccessKey.Name
@@ -153,20 +152,14 @@ func getConfigFromSecrets(ctx context.Context, auth esv1beta1.BarbicanAuth, kube
 	}
 	err := kube.Get(ctx, objectKey, credentialsSecret)
 	if err != nil {
-		return nil, fmt.Errorf(errFetchSAKSecret, err)
+		return "", fmt.Errorf(errFetchSAKSecret, err)
 	}
 	credentials := credentialsSecret.Data[sr.SecretAccessKey.Key]
 	if (credentials == nil) || (len(credentials) == 0) {
-		return nil, fmt.Errorf(errMissingSAK)
+		return "", fmt.Errorf(errMissingSAK)
 	}
 
-	var conf config
-
-	if err := json.Unmarshal(credentials, &conf); err != nil {
-		return nil, fmt.Errorf("invalid barbican config, couldn't parse")
-	}
-
-	return &conf, nil
+	return string(credentials), nil
 }
 
 func isReferentSpec(prov *esv1beta1.BarbicanProvider) bool {
