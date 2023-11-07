@@ -40,6 +40,7 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakeoracle "github.com/external-secrets/external-secrets/pkg/provider/oracle/fake"
+	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
 
 const (
@@ -578,9 +579,10 @@ func TestOracleVaultGetAllSecrets(t *testing.T) {
 }
 
 func TestOracleVaultPushSecret(t *testing.T) {
+	testSecretKey := "test-secret-key"
 	var testCases = map[string]struct {
 		vms       *VaultManagementService
-		remoteRef esv1beta1.PushRemoteRef
+		data      testingfake.PushSecretData
 		validator func(service *VaultManagementService) bool
 		content   string
 	}{
@@ -593,7 +595,8 @@ func TestOracleVaultPushSecret(t *testing.T) {
 				},
 				VaultClient: &fakeoracle.OracleMockVaultClient{},
 			},
-			esv1alpha1.PushSecretRemoteRef{
+			testingfake.PushSecretData{
+				SecretKey: testSecretKey,
 				RemoteKey: s1id,
 			},
 			func(vms *VaultManagementService) bool {
@@ -611,7 +614,8 @@ func TestOracleVaultPushSecret(t *testing.T) {
 				},
 				VaultClient: &fakeoracle.OracleMockVaultClient{},
 			},
-			esv1alpha1.PushSecretRemoteRef{
+			testingfake.PushSecretData{
+				SecretKey: testSecretKey,
 				RemoteKey: s1id,
 			},
 			func(vms *VaultManagementService) bool {
@@ -629,7 +633,8 @@ func TestOracleVaultPushSecret(t *testing.T) {
 				},
 				VaultClient: &fakeoracle.OracleMockVaultClient{},
 			},
-			esv1alpha1.PushSecretRemoteRef{
+			testingfake.PushSecretData{
+				SecretKey: testSecretKey,
 				RemoteKey: s1id,
 			},
 			func(vms *VaultManagementService) bool {
@@ -641,7 +646,8 @@ func TestOracleVaultPushSecret(t *testing.T) {
 	}
 	for name, testCase := range testCases {
 		t.Run(name, func(t *testing.T) {
-			err := testCase.vms.PushSecret(context.Background(), []byte(testCase.content), "", nil, testCase.remoteRef)
+			s := &corev1.Secret{Data: map[string][]byte{testSecretKey: []byte(testCase.content)}}
+			err := testCase.vms.PushSecret(context.Background(), s, testCase.data)
 			assert.NoError(t, err)
 			assert.True(t, testCase.validator(testCase.vms))
 		})
@@ -651,7 +657,7 @@ func TestOracleVaultPushSecret(t *testing.T) {
 func TestOracleVaultDeleteSecret(t *testing.T) {
 	var testCases = map[string]struct {
 		vms       *VaultManagementService
-		remoteRef esv1beta1.PushRemoteRef
+		remoteRef esv1beta1.PushSecretRemoteRef
 		validator func(service *VaultManagementService) bool
 	}{
 		"do not delete if secret not found": {

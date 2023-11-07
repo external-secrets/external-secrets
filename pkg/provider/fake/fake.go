@@ -21,7 +21,6 @@ import (
 
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -107,14 +106,15 @@ func getProvider(store esv1beta1.GenericStore) (*esv1beta1.FakeProvider, error) 
 	return spc.Provider.Fake, nil
 }
 
-func (p *Provider) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
+func (p *Provider) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
 	return nil
 }
 
-func (p *Provider) PushSecret(_ context.Context, value []byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
-	currentData, ok := p.config[remoteRef.GetRemoteKey()]
+func (p *Provider) PushSecret(_ context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	value := secret.Data[data.GetSecretKey()]
+	currentData, ok := p.config[data.GetRemoteKey()]
 	if !ok {
-		p.config[remoteRef.GetRemoteKey()] = &Data{
+		p.config[data.GetRemoteKey()] = &Data{
 			Value:  string(value),
 			Origin: FakeSetSecret,
 		}

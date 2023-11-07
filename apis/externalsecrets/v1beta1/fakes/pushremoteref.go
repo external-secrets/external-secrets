@@ -103,4 +103,4 @@ func (fake *PushRemoteRef) recordInvocation(key string, args []interface{}) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ v1beta1.PushRemoteRef = new(PushRemoteRef)
+var _ v1beta1.PushSecretRemoteRef = new(PushRemoteRef)

@@ -22,11 +22,12 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
 
 func TestNewClient(t *testing.T) {
@@ -332,6 +333,7 @@ type setSecretTestCase struct {
 func TestSetSecret(t *testing.T) {
 	gomega.RegisterTestingT(t)
 	p := &Provider{}
+	secretKey := "secret-key"
 	tbl := []setSecretTestCase{
 		{
 			name:       "return nil if no existing secret",
@@ -367,7 +369,13 @@ func TestSetSecret(t *testing.T) {
 				},
 			}, nil, "")
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			err = cl.PushSecret(context.TODO(), []byte(row.expValue), "", nil, esv1alpha1.PushSecretRemoteRef{
+			secret := &corev1.Secret{
+				Data: map[string][]byte{
+					secretKey: []byte(row.expValue),
+				},
+			}
+			err = cl.PushSecret(context.TODO(), secret, testingfake.PushSecretData{
+				SecretKey: secretKey,
 				RemoteKey: row.requestKey,
 			})
 			if row.expErr != "" {
