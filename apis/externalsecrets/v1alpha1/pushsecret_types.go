@@ -105,6 +105,22 @@ type PushSecretData struct {
 	Metadata *apiextensionsv1.JSON `json:"metadata,omitempty"`
 }
 
+func (d PushSecretData) GetMetadata() *apiextensionsv1.JSON {
+	return d.Metadata
+}
+
+func (d PushSecretData) GetSecretKey() string {
+	return d.Match.SecretKey
+}
+
+func (d PushSecretData) GetRemoteKey() string {
+	return d.Match.RemoteRef.RemoteKey
+}
+
+func (d PushSecretData) GetProperty() string {
+	return d.Match.RemoteRef.Property
+}
+
 // PushSecretConditionType indicates the condition of the PushSecret.
 type PushSecretConditionType string
 

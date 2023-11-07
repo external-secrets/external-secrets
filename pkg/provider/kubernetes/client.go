@@ -23,7 +23,6 @@ import (
 
 	"github.com/tidwall/gjson"
 	v1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -82,7 +81,7 @@ func jsonMarshal(t interface{}) ([]byte, error) {
 	return bytes.TrimRight(buffer.Bytes(), "\n"), err
 }
 
-func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
 	if remoteRef.GetProperty() == "" {
 		return fmt.Errorf("requires property in RemoteRef to delete secret value")
 	}
@@ -107,30 +106,31 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 	return c.fullDelete(ctx, remoteRef.GetRemoteKey())
 }
 
-func (c *Client) PushSecret(ctx context.Context, value []byte, typed v1.SecretType, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
-	if remoteRef.GetProperty() == "" {
+func (c *Client) PushSecret(ctx context.Context, secret *v1.Secret, data esv1beta1.PushSecretData) error {
+	if data.GetProperty() == "" {
 		return fmt.Errorf("requires property in RemoteRef to push secret value")
 	}
-	extSecret, getErr := c.userSecretClient.Get(ctx, remoteRef.GetRemoteKey(), metav1.GetOptions{})
+	value := secret.Data[data.GetSecretKey()]
+	extSecret, getErr := c.userSecretClient.Get(ctx, data.GetRemoteKey(), metav1.GetOptions{})
 	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesGetSecret, getErr)
 	if getErr != nil {
 		// create if it not exists
 		if apierrors.IsNotFound(getErr) {
-			newType := v1.SecretTypeOpaque
-			if typed != "" {
-				newType = typed
+			typ := v1.SecretTypeOpaque
+			if secret.Type != "" {
+				typ = secret.Type
 			}
-			return c.createSecret(ctx, value, newType, remoteRef)
+			return c.createSecret(ctx, value, typ, data)
 		}
 		return getErr
 	}
 	// return gracefully if data is already in sync
-	if v, ok := extSecret.Data[remoteRef.GetProperty()]; ok && bytes.Equal(v, value) {
+	if v, ok := extSecret.Data[data.GetProperty()]; ok && bytes.Equal(v, value) {
 		return nil
 	}
 
 	// otherwise update remote property
-	return c.updateProperty(ctx, extSecret, remoteRef, value)
+	return c.updateProperty(ctx, extSecret, data, value)
 }
 
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
@@ -300,7 +300,7 @@ func convertMap(in map[string][]byte) map[string]string {
 	return out
 }
 
-func (c *Client) createSecret(ctx context.Context, value []byte, typed v1.SecretType, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *Client) createSecret(ctx context.Context, value []byte, typed v1.SecretType, remoteRef esv1beta1.PushSecretRemoteRef) error {
 	s := v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      remoteRef.GetRemoteKey(),
@@ -327,14 +327,14 @@ func (c *Client) fullDelete(ctx context.Context, secretName string) error {
 }
 
 // removeProperty removes single data property from remote secret.
-func (c *Client) removeProperty(ctx context.Context, extSecret *v1.Secret, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *Client) removeProperty(ctx context.Context, extSecret *v1.Secret, remoteRef esv1beta1.PushSecretRemoteRef) error {
 	delete(extSecret.Data, remoteRef.GetProperty())
 	_, err := c.userSecretClient.Update(ctx, extSecret, metav1.UpdateOptions{})
 	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesUpdateSecret, err)
 	return err
 }
 
-func (c *Client) updateProperty(ctx context.Context, extSecret *v1.Secret, remoteRef esv1beta1.PushRemoteRef, value []byte) error {
+func (c *Client) updateProperty(ctx context.Context, extSecret *v1.Secret, remoteRef esv1beta1.PushSecretRemoteRef, value []byte) error {
 	if extSecret.Data == nil {
 		extSecret.Data = make(map[string][]byte)
 	}
