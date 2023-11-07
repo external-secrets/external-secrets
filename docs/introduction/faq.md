@@ -87,14 +87,14 @@ If everything looks normal so far, please go ahead and ensure that the created s
 
 The Helm chart defaults to automatically creating the webhook certificates. But it's possible, with the Helm chart values, to use certificates previously stored in a Secret resource. There's two ways to do it:
 
-The first way is to use cert-controller (default built-in solution). In the following example, every 12h (as specified with `certController.requeueInterval`), it would check whether the public certificate changed.
+The first way is to use cert-controller (default built-in solution). In the following example, every 5 minutes (as specified with `certController.requeueInterval`), it would check whether the public certificate changed.
 
 ```
 helm install (...) \
     --set webhook.createWebhookSecret=false \
     --set webhook.certSecretNameOverride="which-existing-secret-resource-to-bind-to" \
     --set certController.enableCertRenewal=false \
-    --set certController.requeueInterval="12h"
+    --set certController.requeueInterval="5m"
 ```
 
 The second way is to use cert-manager (optional third-party dependency). The existing Secret resource must have an `cert-manager.io/allow-direct-injection: "true"` annotation. See <https://cert-manager.io/docs/concepts/ca-injector/>
@@ -108,6 +108,8 @@ helm install (...) \
     --set webhook.certManager.cert.create=false \
     --set webhook.certManager.addInjectorAnnotationsFromSecret=true
 ```
+
+Anyway, there's no need to recreate the webhook deployment, because the Secret resource is mounted and the webhook code watches for certificate changes.
 
 ## Upgrading from KES to ESO
 
