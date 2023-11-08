@@ -1,6 +1,16 @@
 {{- if and .Values.webhook.create .Values.webhook.certManager.enabled .Values.webhook.certManager.cert.create }}
 ---
 apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ include "external-secrets.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "external-secrets-webhook.labels" . | nindent 4 }}
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: {{ include "external-secrets.fullname" . }}-webhook
@@ -13,13 +23,15 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  commonName: {{ include "external-secrets.fullname" . }}-webhook
+  commonName: "{{ include "external-secrets.fullname" . }}-webhook.{{ .Release.Namespace }}.svc"
   dnsNames:
-    - {{ include "external-secrets.fullname" . }}-webhook
-    - {{ include "external-secrets.fullname" . }}-webhook.{{ .Release.Namespace }}
-    - {{ include "external-secrets.fullname" . }}-webhook.{{ .Release.Namespace }}.svc
+    - "{{ include "external-secrets.fullname" . }}-webhook.{{ .Release.Namespace }}.svc"
+  {{- with .Values.webhook.certManager.cert.issuerRef }}
   issuerRef:
-    {{- toYaml .Values.webhook.certManager.cert.issuerRef | nindent 4 }}
+    group: {{ .group }}
+    kind: {{ .kind }}
+    name: {{ .name | default include "external-secrets.fullname" . }}
+  {{- end }}
   {{- with .Values.webhook.certManager.cert.duration }}
   duration: {{ . | quote }}
   {{- end }}

@@ -270,8 +270,8 @@ webhook:
       # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.IssuerSpec
       issuerRef:
         group: cert-manager.io
-        kind: "Issuer"
-        name: "my-issuer"
+        kind: Issuer
+        name: ""
       # -- Set the requested duration (i.e. lifetime) of the Certificate. See
       # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
       duration: ""
