@@ -26,6 +26,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/keymanager/v1/secrets"
+	corev1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -53,7 +54,7 @@ type Client struct {
 	namespace string
 }
 
-func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
 	var (
 		name   = remoteRef.GetRemoteKey()
 		uuid   = getUUIDFromRemoteRef(name)
@@ -177,8 +178,9 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 }
 
 // PushSecret pushes a kubernetes secret key into barbican provider Secret.
-func (c *Client) PushSecret(ctx context.Context, payload []byte, remoteRef esv1beta1.PushRemoteRef) error {
-	name := remoteRef.GetRemoteKey()
+func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecretData esv1beta1.PushSecretData) error {
+	payload := secret.Data[pushSecretData.GetSecretKey()]
+	name := pushSecretData.GetRemoteKey()
 
 	_, err := c.getByName(ctx, name)
 	if err == nil {
