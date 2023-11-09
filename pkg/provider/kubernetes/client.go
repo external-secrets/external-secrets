@@ -324,7 +324,7 @@ func (c *Client) createSecret(ctx context.Context, secret *v1.Secret, typed v1.S
 				values[k] = string(v)
 			}
 			// marshal
-			value, err := json.Marshal(values)
+			value, err := jsonMarshal(values)
 			if err != nil {
 				return fmt.Errorf("failed to marshal secrets into a single property: %w", err)
 			}
