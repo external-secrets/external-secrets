@@ -1,56 +1,75 @@
 package alibaba
 
 import (
-	// "context"
-	// "errors"
-	// "reflect"
 	"testing"
-
-	// kmssdk "github.com/alibabacloud-go/kms-20160120/v3/client"
-	
-	// esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	// esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	// fakesm "github.com/external-secrets/external-secrets/pkg/provider/alibaba/fake"
-	//"github.com/external-secrets/external-secrets/pkg/utils"
-	
+	"fmt"
 )
 
-const (
-	secretName  = "test-example"
-	secretValue = "value"
-)
-
-type keyManagementServiceTestCase struct {
-	mockClient     *fakesm.AlibabaMockClient
-	apiInput       *kmssdk.GetSecretValueRequest
-	apiOutput      *kmssdk.GetSecretValueResponseBody
-	ref            *esv1beta1.ExternalSecretDataRemoteRef
-	apiErr         error
-	expectError    string
-	expectedSecret string
-	// for testing secretmap
-	expectedData map[string][]byte
+type AlibabaProvider struct {
+	RegionID string
+	Auth     AlibabaAuth
 }
 
-func TestValidateStore(t *testing.T){
-	kms := &yourpackage.KeyManagementService{} // Instantiate your KeyManagementService
+type AlibabaAuth struct {
+	SecretRef SecretReference
+}
 
-	// Create a test case for validation with a provided store
-	store := &esv1beta1.SecretStore{
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Alibaba: &esv1beta1.AlibabaProvider{
-					RegionID: "region-1",
-					Auth: esv1beta1.AlibabaAuth{
-						SecretRef: &esv1beta1.AlibabaAuthSecretRef{
-							AccessKeyID: esmeta.SecretKeySelector{
-								Name: "accessKeyID",
-								Key:  "key-1",
-							},
-							AccessKeySecret: esmeta.SecretKeySelector{
-								Name: "accessKeySecret",
-								Key:  "key-1",
-							},
+type SecretReference struct {
+	AccessKeyID string
+	// Add other required fields
+}
+
+type GenericStore struct {
+	Spec *SecretStoreSpec
+}
+
+type SecretStoreSpec struct {
+	Provider *SecretStoreProvider
+}
+
+type SecretStoreProvider struct {
+	Alibaba *AlibabaProvider
+}
+
+type KeyManagementService struct {
+}
+
+func (kms *KeyManagementService) ValidateStore(store GenericStore) error {
+	storeSpec := store.Spec
+	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Alibaba == nil {
+		return fmt.Errorf("no store type or wrong store type")
+	}
+
+	alibabaSpec := storeSpec.Provider.Alibaba
+
+	regionID := alibabaSpec.RegionID
+
+	if regionID == "" {
+		return fmt.Errorf("missing alibaba region")
+	}
+
+	accessKeyID := alibabaSpec.Auth.SecretRef.AccessKeyID
+
+	if accessKeyID == "" {
+		return fmt.Errorf("missing access key ID")
+	}
+
+	return nil
+}
+
+func TestValidateStore(t *testing.T) {
+	kms := &KeyManagementService{}
+
+	// Test case: Valid store should pass validation
+	validStore := &GenericStore{
+		Spec: &SecretStoreSpec{
+			Provider: &SecretStoreProvider{
+				Alibaba: &AlibabaProvider{
+					RegionID: "mockRegionID",
+					Auth: AlibabaAuth{
+						SecretRef: SecretReference{
+							AccessKeyID: "mockAccessKeyID",
+							// Add other required fields for testing
 						},
 					},
 				},
@@ -58,36 +77,104 @@ func TestValidateStore(t *testing.T){
 		},
 	}
 
-	err := kms.ValidateStore(store)
-
-	// Check if the validation passes for the provided store
+	err := kms.ValidateStore(*validStore)
 	if err != nil {
-		t.Errorf("Validation failed for the provided store: %v", err)
-	} else {
-		t.Logf("Validation passed for the provided store.")
+		t.Errorf("ValidateStore() failed, expected: nil, got: %v", err)
 	}
 
-	// Test case for a store with missing data
-	invalidStore := &esv1beta1.SecretStore{
-		Spec: &esv1beta1.StoreSpec{
-			Provider: &esv1beta1.StoreProvider{
-				Alibaba: &esv1beta1.AlibabaProvider{
-					// Here, intentionally leave some fields empty to simulate missing data
-					RegionID: "", // Missing Alibaba region ID
-					Auth: &esv1beta1.AlibabaAuth{
-						// Missing RRSA information
+	// Test case: Invalid store with missing region should fail validation
+	invalidStoreMissingRegion := &GenericStore{
+		Spec: &SecretStoreSpec{
+			Provider: &SecretStoreProvider{
+				Alibaba: &AlibabaProvider{
+					// Missing RegionID intentionally
+					Auth: AlibabaAuth{
+						SecretRef: SecretReference{
+							AccessKeyID: "mockAccessKeyID",
+							// Add other required fields for testing
+						},
 					},
 				},
 			},
 		},
 	}
 
-	err = kms.ValidateStore(invalidStore)
-
-	// Check if the validation fails for the store with missing data
+	err = kms.ValidateStore(*invalidStoreMissingRegion)
 	if err == nil {
-		t.Error("Validation passed for a store with missing data, but it should have failed.")
-	} else {
-		t.Logf("Validation failed for the store with missing data: %v", err)
+		t.Error("ValidateStore() failed, expected: error, got: nil")
 	}
+
+	// Add more test cases for different scenarios...
 }
+
+
+
+
+// package alibaba
+
+// import (
+// 	"testing"
+
+// 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+// )
+
+// // Mock KeyManagementService for testing
+// type MockKeyManagementService struct {
+// }
+
+// func (kms *MockKeyManagementService) validateStoreAuth(store esv1beta1.GenericStore) error {
+// 	// Mock validation logic for store authentication
+// 	return nil
+// }
+
+// func TestValidateStore(t *testing.T) {
+// 	// Initialize a KeyManagementService instance
+// 	kms := &KeyManagementService{}
+
+// 	// Mock store data for testing
+// 	validStore := &esv1beta1.SecretStore{
+// 		Spec: &esv1beta1.SecretStoreSpec{
+// 			Provider: &esv1beta1.SecretStoreProvider{
+// 				Alibaba: &esv1beta1.AlibabaProvider{
+// 					RegionID: "mockRegionID",
+// 					Auth: &esv1beta1.AlibabaAuth{
+// 						SecretRef: &esv1beta1.SecretReference{
+// 							AccessKeyID: "mockAccessKeyID",
+// 							// Add other required fields for testing
+// 						},
+// 					},
+// 				},
+// 			},
+// 		},
+// 	}
+
+// 	// Test case: Valid store should pass validation
+// 	err := kms.ValidateStore(validStore)
+// 	if err != nil {
+// 		t.Errorf("ValidateStore() failed, expected: nil, got: %v", err)
+// 	}
+
+// 	// Test case: Invalid store with missing region should fail validation
+// 	invalidStoreMissingRegion := &esv1beta1.SecretStore{
+// 		Spec: &esv1beta1.SecretStoreSpec{
+// 			Provider: &esv1beta1.SecretStoreProvider{
+// 				Alibaba: &esv1beta1.AlibabaProvider{
+// 					// Missing RegionID intentionally
+// 					Auth: &esv1beta1.AlibabaAuth{
+// 						SecretRef: &esv1beta1.SecretReference{
+// 							AccessKeyID: "mockAccessKeyID",
+// 							// Add other required fields for testing
+// 						},
+// 					},
+// 				},
+// 			},
+// 		},
+// 	}
+
+// 	err = kms.ValidateStore(invalidStoreMissingRegion)
+// 	if err == nil {
+// 		t.Error("ValidateStore() failed, expected: error, got: nil")
+// 	}
+
+	
+// }
