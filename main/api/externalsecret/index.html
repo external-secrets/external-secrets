@@ -2321,6 +2321,15 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 
 <span class="w">  </span><span class="c1"># Used to fetch all properties from the Provider key</span>
 <span class="w">  </span><span class="c1"># If multiple dataFrom are specified, secrets are merged in the specified order</span>
+<span class="w">  </span><span class="c1"># Can be defined using sourceRef.generatorRef or extract / find</span>
+<span class="w">  </span><span class="c1"># Both use cases are exemplified below</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">sourceRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">generatorRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ECRAuthorizationToken</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-ecr&quot;</span>
+<span class="w">  </span><span class="c1">#Or</span>
 <span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span>
