@@ -18,28 +18,10 @@ import (
 	//"encoding/json"
 	"fmt"
 
-	 //openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
-	 //kmssdk "github.com/alibabacloud-go/kms-20160120/v3/client"
-	// util "github.com/alibabacloud-go/tea-utils/v2/service"
-	 //credential "github.com/aliyun/credentials-go/credentials"
-	 //	"github.com/avast/retry-go/v4"
-		//"github.com/tidwall/gjson"
-	//corev1 "k8s.io/api/core/v1"
-	//apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	//"k8s.io/apimachinery/pkg/types"
-	// kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
-// type KeyManagementService struct {
-// 	Client SMInterface
-// 	Config *openapi.Config
-// }
-// type SMInterface interface {
-// 	GetSecretValue(ctx context.Context, request *kmssdk.GetSecretValueRequest) (*kmssdk.GetSecretValueResponseBody, error)
-// 	Endpoint() string
-// }
 
 func (kms *KeyManagementService) ValidateStore(store esv1beta1.GenericStore) error {
 	
