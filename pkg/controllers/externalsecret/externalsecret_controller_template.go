@@ -147,7 +147,7 @@ func (p *Parser) MergeMap(tplMap map[string]string, target esv1beta1.TemplateTar
 // * template.templateFrom
 // * secret via es.data or es.dataFrom.
 func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSecret, secret *v1.Secret, dataMap map[string][]byte) error {
-	setMetadata(secret, es)
+	mergeMetadata(secret, es)
 
 	// no template: copy data and return
 	if es.Spec.Target.Template == nil {
@@ -200,11 +200,15 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 	return nil
 }
 
-// setMetadata sets Labels and Annotations to the given secret.
-func setMetadata(secret *v1.Secret, externalSecret *esv1beta1.ExternalSecret) {
-	// It is safe to override the metadata since the Server-Side Apply merges those fields if necessary
-	secret.ObjectMeta.Labels = make(map[string]string)
-	secret.ObjectMeta.Annotations = make(map[string]string)
+// we do not want to force-override the label/annotations
+// and only copy the necessary key/value pairs.
+func mergeMetadata(secret *v1.Secret, externalSecret *esv1beta1.ExternalSecret) {
+	if secret.ObjectMeta.Labels == nil {
+		secret.ObjectMeta.Labels = make(map[string]string)
+	}
+	if secret.ObjectMeta.Annotations == nil {
+		secret.ObjectMeta.Annotations = make(map[string]string)
+	}
 	if externalSecret.Spec.Target.Template == nil {
 		utils.MergeStringMap(secret.ObjectMeta.Labels, externalSecret.ObjectMeta.Labels)
 		utils.MergeStringMap(secret.ObjectMeta.Annotations, externalSecret.ObjectMeta.Annotations)
