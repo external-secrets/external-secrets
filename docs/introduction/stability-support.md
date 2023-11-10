@@ -72,7 +72,7 @@ The following table show the support for features across different providers.
 | Alibaba Cloud KMS         |              |              |                      |                         |        x         |             |                             |
 | Oracle Vault              |              |              |                      |                         |        x         |             |                             |
 | Akeyless                  |      x       |      x       |                      |                         |        x         |             |                             |
-| 1Password                 |      x       |              |                      |                         |        x         |             |                             |
+| 1Password                 |      x       |              |                      |                         |        x         |      x      |              x              |
 | Generic Webhook           |              |              |                      |                         |                  |             |              x              |
 | senhasegura DSM           |              |              |                      |                         |        x         |             |                             |
 | Doppler                   |      x       |              |                      |                         |        x         |             |                             |
