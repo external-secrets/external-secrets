@@ -16,7 +16,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-// +kubebuilder:validation:Enum=UserPrincipal;InstancePrincipal;Workload
+// +kubebuilder:validation:Enum="";UserPrincipal;InstancePrincipal;Workload
 type OraclePrincipalType string
 
 const (

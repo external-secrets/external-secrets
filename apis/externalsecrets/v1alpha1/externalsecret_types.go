@@ -179,7 +179,6 @@ type ExternalSecretSpec struct {
 	DataFrom []ExternalSecretDataRemoteRef `json:"dataFrom,omitempty"`
 }
 
-// +kubebuilder:validation:Enum=Ready;Deleted
 type ExternalSecretConditionType string
 
 const (

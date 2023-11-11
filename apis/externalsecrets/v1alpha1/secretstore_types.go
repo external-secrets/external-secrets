@@ -96,7 +96,6 @@ type SecretStoreRetrySettings struct {
 	RetryInterval *string `json:"retryInterval,omitempty"`
 }
 
-// +kubebuilder:validation:Enum=Ready;InvalidStoreConfiguration;InvalidProviderConfig;ValidationFailed;Valid
 type SecretStoreConditionType string
 
 const (
