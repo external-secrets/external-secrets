@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -779,6 +780,7 @@ func TestDeleteSecret(t *testing.T) {
 	}
 	type args struct {
 		client               fakesm.Client
+		config               esv1beta1.SecretsManager
 		getSecretOutput      *awssm.GetSecretValueOutput
 		describeSecretOutput *awssm.DescribeSecretOutput
 		deleteSecretOutput   *awssm.DeleteSecretOutput
@@ -799,6 +801,7 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 
 				client:          fakeClient,
+				config:          esv1beta1.SecretsManager{},
 				getSecretOutput: &awssm.GetSecretValueOutput{},
 				describeSecretOutput: &awssm.DescribeSecretOutput{
 					Tags: []*awssm.Tag{&secretTag},
@@ -813,10 +816,34 @@ func TestDeleteSecret(t *testing.T) {
 			},
 			reason: "",
 		},
+		"Deletes Successfully with ForceDeleteWithoutRecovery": {
+			args: args{
+
+				client: fakeClient,
+				config: esv1beta1.SecretsManager{
+					ForceDeleteWithoutRecovery: true,
+				},
+				getSecretOutput: &awssm.GetSecretValueOutput{},
+				describeSecretOutput: &awssm.DescribeSecretOutput{
+					Tags: []*awssm.Tag{&secretTag},
+				},
+				deleteSecretOutput: &awssm.DeleteSecretOutput{
+					DeletionDate: aws.Time(time.Now()),
+				},
+				getSecretErr:      nil,
+				describeSecretErr: nil,
+				deleteSecretErr:   nil,
+			},
+			want: want{
+				err: nil,
+			},
+			reason: "",
+		},
 		"Not Managed by ESO": {
 			args: args{
 
 				client:          fakeClient,
+				config:          esv1beta1.SecretsManager{},
 				getSecretOutput: &awssm.GetSecretValueOutput{},
 				describeSecretOutput: &awssm.DescribeSecretOutput{
 					Tags: []*awssm.Tag{},
@@ -831,10 +858,54 @@ func TestDeleteSecret(t *testing.T) {
 			},
 			reason: "",
 		},
+		"Invalid Recovery Window": {
+			args: args{
+
+				client: fakesm.Client{},
+				config: esv1beta1.SecretsManager{
+					RecoveryWindowInDays: 1,
+				},
+				getSecretOutput: &awssm.GetSecretValueOutput{},
+				describeSecretOutput: &awssm.DescribeSecretOutput{
+					Tags: []*awssm.Tag{&secretTag},
+				},
+				deleteSecretOutput: &awssm.DeleteSecretOutput{},
+				getSecretErr:       nil,
+				describeSecretErr:  nil,
+				deleteSecretErr:    nil,
+			},
+			want: want{
+				err: errors.New("invalid DeleteSecretInput: RecoveryWindowInDays must be between 7 and 30 days"),
+			},
+			reason: "",
+		},
+		"RecoveryWindowInDays is supplied with ForceDeleteWithoutRecovery": {
+			args: args{
+
+				client: fakesm.Client{},
+				config: esv1beta1.SecretsManager{
+					RecoveryWindowInDays:       7,
+					ForceDeleteWithoutRecovery: true,
+				},
+				getSecretOutput: &awssm.GetSecretValueOutput{},
+				describeSecretOutput: &awssm.DescribeSecretOutput{
+					Tags: []*awssm.Tag{&secretTag},
+				},
+				deleteSecretOutput: &awssm.DeleteSecretOutput{},
+				getSecretErr:       nil,
+				describeSecretErr:  nil,
+				deleteSecretErr:    nil,
+			},
+			want: want{
+				err: errors.New("invalid DeleteSecretInput: ForceDeleteWithoutRecovery conflicts with RecoveryWindowInDays"),
+			},
+			reason: "",
+		},
 		"Failed to get Tags": {
 			args: args{
 
 				client:               fakeClient,
+				config:               esv1beta1.SecretsManager{},
 				getSecretOutput:      &awssm.GetSecretValueOutput{},
 				describeSecretOutput: nil,
 				deleteSecretOutput:   nil,
@@ -850,6 +921,7 @@ func TestDeleteSecret(t *testing.T) {
 		"Secret Not Found": {
 			args: args{
 				client:               fakeClient,
+				config:               esv1beta1.SecretsManager{},
 				getSecretOutput:      nil,
 				describeSecretOutput: nil,
 				deleteSecretOutput:   nil,
@@ -864,6 +936,7 @@ func TestDeleteSecret(t *testing.T) {
 		"Not expected AWS error": {
 			args: args{
 				client:               fakeClient,
+				config:               esv1beta1.SecretsManager{},
 				getSecretOutput:      nil,
 				describeSecretOutput: nil,
 				deleteSecretOutput:   nil,
@@ -878,6 +951,7 @@ func TestDeleteSecret(t *testing.T) {
 		"unexpected error": {
 			args: args{
 				client:               fakeClient,
+				config:               esv1beta1.SecretsManager{},
 				getSecretOutput:      nil,
 				describeSecretOutput: nil,
 				deleteSecretOutput:   nil,
@@ -895,21 +969,23 @@ func TestDeleteSecret(t *testing.T) {
 			ref := fake.PushSecretData{RemoteKey: "fake-key"}
 			sm := SecretsManager{
 				client: &tc.args.client,
+				config: &tc.args.config,
 			}
 			tc.args.client.GetSecretValueWithContextFn = fakesm.NewGetSecretValueWithContextFn(tc.args.getSecretOutput, tc.args.getSecretErr)
 			tc.args.client.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(tc.args.describeSecretOutput, tc.args.describeSecretErr)
 			tc.args.client.DeleteSecretWithContextFn = fakesm.NewDeleteSecretWithContextFn(tc.args.deleteSecretOutput, tc.args.deleteSecretErr)
 			err := sm.DeleteSecret(context.TODO(), ref)
+			t.Logf("DeleteSecret error: %v", err)
 
 			// Error nil XOR tc.want.err nil
 			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {
-				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, err)
+				t.Errorf("\nTesting DeleteSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, err)
 			}
 
 			// if errors are the same type but their contents do not match
 			if err != nil && tc.want.err != nil {
 				if !strings.Contains(err.Error(), tc.want.err.Error()) {
-					t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error got nil", name, tc.reason, tc.want.err)
+					t.Errorf("\nTesting DeleteSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error got nil", name, tc.reason, tc.want.err)
 				}
 			}
 		})
