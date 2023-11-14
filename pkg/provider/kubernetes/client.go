@@ -54,7 +54,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 			m[metaLabels] = secret.Labels
 			m[metaAnnotations] = secret.Annotations
 
-			j, err := jsonMarshal(m)
+			j, err := utils.JSONMarshal(m)
 			if err != nil {
 				return nil, err
 			}
@@ -65,7 +65,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		for key, val := range secret.Data {
 			m[key] = string(val)
 		}
-		j, err := jsonMarshal(m)
+		j, err := utils.JSONMarshal(m)
 		if err != nil {
 			return nil, err
 		}
@@ -73,14 +73,6 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	}
 
 	return getSecret(secret, ref)
-}
-
-func jsonMarshal(t interface{}) ([]byte, error) {
-	buffer := &bytes.Buffer{}
-	encoder := json.NewEncoder(buffer)
-	encoder.SetEscapeHTML(false)
-	err := encoder.Encode(t)
-	return bytes.TrimRight(buffer.Bytes(), "\n"), err
 }
 
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
@@ -176,7 +168,7 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 }
 
 func getPropertyMap(key, property string, tmpMap map[string][]byte) (map[string][]byte, error) {
-	byteArr, err := jsonMarshal(tmpMap)
+	byteArr, err := utils.JSONMarshal(tmpMap)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +210,7 @@ func getMapFromValues(property, jsonStr string) (map[string][]byte, error) {
 			return nil, err
 		}
 		for k, v := range tmpMap {
-			b, err := jsonMarshal(v)
+			b, err := utils.JSONMarshal(v)
 			if err != nil {
 				return nil, err
 			}
@@ -232,11 +224,11 @@ func getMapFromValues(property, jsonStr string) (map[string][]byte, error) {
 func getSecretMetadata(secret *v1.Secret) (map[string][]byte, error) {
 	var err error
 	tmpMap := make(map[string][]byte)
-	tmpMap[metaLabels], err = jsonMarshal(secret.ObjectMeta.Labels)
+	tmpMap[metaLabels], err = utils.JSONMarshal(secret.ObjectMeta.Labels)
 	if err != nil {
 		return nil, err
 	}
-	tmpMap[metaAnnotations], err = jsonMarshal(secret.ObjectMeta.Annotations)
+	tmpMap[metaAnnotations], err = utils.JSONMarshal(secret.ObjectMeta.Annotations)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +259,7 @@ func (c *Client) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFin
 	}
 	data := make(map[string][]byte)
 	for _, secret := range secrets.Items {
-		jsonStr, err := jsonMarshal(convertMap(secret.Data))
+		jsonStr, err := utils.JSONMarshal(convertMap(secret.Data))
 		if err != nil {
 			return nil, err
 		}
@@ -291,7 +283,7 @@ func (c *Client) findByName(ctx context.Context, ref esv1beta1.ExternalSecretFin
 		if !matcher.MatchName(secret.Name) {
 			continue
 		}
-		jsonStr, err := jsonMarshal(convertMap(secret.Data))
+		jsonStr, err := utils.JSONMarshal(convertMap(secret.Data))
 		if err != nil {
 			return nil, err
 		}
@@ -324,7 +316,7 @@ func (c *Client) createSecret(ctx context.Context, secret *v1.Secret, typed v1.S
 				values[k] = string(v)
 			}
 			// marshal
-			value, err := jsonMarshal(values)
+			value, err := utils.JSONMarshal(values)
 			if err != nil {
 				return fmt.Errorf("failed to marshal secrets into a single property: %w", err)
 			}
@@ -461,7 +453,7 @@ func getFromSecretMetadata(secret *v1.Secret, ref esv1beta1.ExternalSecretDataRe
 	}
 
 	if len(path) == 1 {
-		j, err := jsonMarshal(metadata)
+		j, err := utils.JSONMarshal(metadata)
 		if err != nil {
 			return nil, false, err
 		}

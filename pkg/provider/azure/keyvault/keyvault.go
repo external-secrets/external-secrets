@@ -497,6 +497,10 @@ func (a *Azure) setKeyVaultKey(ctx context.Context, secretName string, value []b
 
 // PushSecret stores secrets into a Key vault instance.
 func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	if data.GetSecretKey() == "" {
+		return fmt.Errorf("pushing the whole secret is not yet implemented")
+	}
+
 	objectType, secretName := getObjType(esv1beta1.ExternalSecretDataRemoteRef{Key: data.GetRemoteKey()})
 	value := secret.Data[data.GetSecretKey()]
 	switch objectType {
