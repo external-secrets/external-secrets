@@ -1450,6 +1450,13 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#additional-settings-for-pushsecret" class="md-nav__link">
+    Additional Settings for PushSecret
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2235,6 +2242,13 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#additional-settings-for-pushsecret" class="md-nav__link">
+    Additional Settings for PushSecret
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2418,6 +2432,25 @@ way users of the <code>SecretStore</code> can only access the secrets necessary.
 <span class="p">}</span>
 </code></pre></div>
 <p>In this policy, the DeleteSecret action is restricted to secrets that have the specified tag, ensuring that deletion operations are more controlled and in line with the intended management of the secrets.</p>
+<h4 id="additional-settings-for-pushsecret">Additional Settings for PushSecret</h4>
+<p>Additional settings can be set at the <code>SecretStore</code> level to control the behavior of <code>PushSecret</code> when interacting with AWS Secrets Manager.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-secretsmanager</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">aws</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretsManager</span>
+<span class="w">      </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">arn:aws:iam::123456789012:role/external-secrets</span>
+<span class="w">      </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eu-central-1</span>
+<span class="w">      </span><span class="nt">secretsManager</span><span class="p">:</span>
+<span class="w">        </span><span class="c1"># Additional parameters can be added to the AWS Secrets Manager DeleteSecret API call.</span>
+<span class="w">        </span><span class="c1"># These parameters are only relevant when the deletionPolicy is set to Delete.</span>
+<span class="w">        </span><span class="c1"># See: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#API_DeleteSecret_RequestSyntax</span>
+<span class="w">        </span><span class="nt">forceDeleteWithoutRecovery</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">        </span><span class="c1"># recoveryWindowInDays: 9 (conflicts with forceDeleteWithoutRecovery)</span>
+</code></pre></div>
 <h3 id="json-secret-values">JSON Secret Values</h3>
 <p>SecretsManager supports <em>simple</em> key/value pairs that are stored as json. If you use the API you can store more complex JSON objects. You can access nested values or arrays using <a href="https://github.com/tidwall/gjson/blob/master/SYNTAX.md">gjson syntax</a>:</p>
 <p>Consider the following JSON object that is stored in the SecretsManager key <code>friendslist</code>:
