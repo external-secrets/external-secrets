@@ -479,13 +479,11 @@ func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecre
 			return fmt.Errorf("could not delete secret metadata %v: %w", remoteRef.GetRemoteKey(), err)
 		}
 	}
-
 	_, err = v.logical.DeleteWithContext(ctx, path)
 	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
 	if err != nil {
 		return fmt.Errorf("could not delete secret %v: %w", remoteRef.GetRemoteKey(), err)
 	}
-
 	return nil
 }
 
