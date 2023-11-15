@@ -436,31 +436,34 @@ func (c *Connector) ValidateStore(store esv1beta1.GenericStore) error {
 
 func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
 	path := v.buildPath(remoteRef.GetRemoteKey())
+	// Retrieve the secret map from vault and convert the secret value in string form.
+	secretVal, err := v.readSecret(ctx, path, "")
+	// If error is not of type secret not found, we should error
+	if err != nil && errors.Is(err, esv1beta1.NoSecretError{}) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	// If Push for a Property, we need to delete the property and update the secret
+	if remoteRef.GetProperty() != "" {
+		delete(secretVal, remoteRef.GetProperty())
+		if len(secretVal) > 0 {
+			secretToPush := secretVal
+			if v.store.Version == esv1beta1.VaultKVStoreV2 {
+				secretToPush = map[string]interface{}{
+					"data": secretVal,
+				}
+			}
+			_, err = v.logical.WriteWithContext(ctx, path, secretToPush)
+			metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
+			return err
+		}
+	}
 	if v.store.Version == esv1beta1.VaultKVStoreV2 {
 		metaPath, err := v.buildMetadataPath(remoteRef.GetRemoteKey())
 		if err != nil {
 			return err
-		}
-		// Retrieve the secret map from vault and convert the secret value in string form.
-		secretVal, err := v.readSecret(ctx, path, "")
-		// If error is not of type secret not found, we should error
-		if err != nil && errors.Is(err, esv1beta1.NoSecretError{}) {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-		// If Push for a Property, we need to delete the property and update the secret
-		if remoteRef.GetProperty() != "" {
-			delete(secretVal, remoteRef.GetProperty())
-			if len(secretVal) > 0 {
-				secretToPush := map[string]interface{}{
-					"data": secretVal,
-				}
-				_, err = v.logical.WriteWithContext(ctx, path, secretToPush)
-				metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
-				return err
-			}
 		}
 		metadata, err := v.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
 		if err != nil {
@@ -477,7 +480,7 @@ func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecre
 		}
 	}
 
-	_, err := v.logical.DeleteWithContext(ctx, path)
+	_, err = v.logical.DeleteWithContext(ctx, path)
 	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
 	if err != nil {
 		return fmt.Errorf("could not delete secret %v: %w", remoteRef.GetRemoteKey(), err)
