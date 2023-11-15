@@ -1685,7 +1685,21 @@ func TestDeleteSecret(t *testing.T) {
 		want   want
 		value  []byte
 	}{
-		"DeleteSecretNoOp": {
+		"DeleteSecretNoOpKV1": {
+			reason: "No secret is because it does not exist",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
+					WriteWithContextFn:        fake.ExpectWriteWithContextNoCall(),
+					DeleteWithContextFn:       fake.ExpectDeleteWithContextNoCall(),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"DeleteSecretNoOpKV2": {
 			reason: "No secret is because it does not exist",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
@@ -1699,7 +1713,21 @@ func TestDeleteSecret(t *testing.T) {
 				err: nil,
 			},
 		},
-		"DeleteSecretFailIfError": {
+		"DeleteSecretFailIfErrorKV1": {
+			reason: "No secret is because it does not exist",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("failed to read")),
+					WriteWithContextFn:        fake.ExpectWriteWithContextNoCall(),
+					DeleteWithContextFn:       fake.ExpectDeleteWithContextNoCall(),
+				},
+			},
+			want: want{
+				err: fmt.Errorf("failed to read"),
+			},
+		},
+		"DeleteSecretFailIfErrorKV2": {
 			reason: "No secret is because it does not exist",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
@@ -1713,7 +1741,23 @@ func TestDeleteSecret(t *testing.T) {
 				err: fmt.Errorf("failed to read"),
 			},
 		},
-		"DeleteSecretNotManaged": {
+		"DeleteSecretNotManagedKV1": {
+			reason: "No secret is because it does not exist",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+						"fake-key": "fake-value",
+					}, nil),
+					WriteWithContextFn:  fake.ExpectWriteWithContextNoCall(),
+					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"DeleteSecretNotManagedKV2": {
 			reason: "No secret is because it does not exist",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
@@ -1734,7 +1778,23 @@ func TestDeleteSecret(t *testing.T) {
 				err: nil,
 			},
 		},
-		"DeleteSecretSuccess": {
+		"DeleteSecretSuccessKV1": {
+			reason: "No secret is because it does not exist",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+						"fake-key": "fake-value",
+					}, nil),
+					WriteWithContextFn:  fake.ExpectWriteWithContextNoCall(),
+					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"DeleteSecretSuccessKV2": {
 			reason: "No secret is because it does not exist",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
@@ -1755,7 +1815,23 @@ func TestDeleteSecret(t *testing.T) {
 				err: nil,
 			},
 		},
-		"DeleteSecretError": {
+		"DeleteSecretErrorKV1": {
+			reason: "No secret is because it does not exist",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+						"fake-key": "fake-value",
+					}, nil),
+					WriteWithContextFn:  fake.ExpectWriteWithContextNoCall(),
+					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, fmt.Errorf("failed to delete")),
+				},
+			},
+			want: want{
+				err: fmt.Errorf("failed to delete"),
+			},
+		},
+		"DeleteSecretErrorKV2": {
 			reason: "No secret is because it does not exist",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
@@ -1776,7 +1852,25 @@ func TestDeleteSecret(t *testing.T) {
 				err: fmt.Errorf("failed to delete"),
 			},
 		},
-		"DeleteSecretUpdateProperty": {
+		"DeleteSecretUpdatePropertyKV1": {
+			reason: "Secret should only be updated if Property is set",
+			ref:    &testingfake.PushSecretData{RemoteKey: "secret", Property: "fake-key"},
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+						"fake-key": "fake-value",
+						"foo":      "bar",
+					}, nil),
+					WriteWithContextFn:  fake.ExpectWriteWithContextValue(map[string]interface{}{"foo": "bar"}),
+					DeleteWithContextFn: fake.ExpectDeleteWithContextNoCall(),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"DeleteSecretUpdatePropertyKV2": {
 			reason: "Secret should only be updated if Property is set",
 			ref:    &testingfake.PushSecretData{RemoteKey: "secret", Property: "fake-key"},
 			args: args{
@@ -1799,7 +1893,24 @@ func TestDeleteSecret(t *testing.T) {
 				err: nil,
 			},
 		},
-		"DeleteSecretIfNoOtherProperties": {
+		"DeleteSecretIfNoOtherPropertiesKV1": {
+			reason: "Secret should only be deleted if no other properties are set",
+			ref:    &testingfake.PushSecretData{RemoteKey: "secret", Property: "foo"},
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+						"foo": "bar",
+					}, nil),
+					WriteWithContextFn:  fake.ExpectWriteWithContextNoCall(),
+					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"DeleteSecretIfNoOtherPropertiesKV2": {
 			reason: "Secret should only be deleted if no other properties are set",
 			ref:    &testingfake.PushSecretData{RemoteKey: "secret", Property: "foo"},
 			args: args{
