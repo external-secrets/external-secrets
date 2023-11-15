@@ -1867,7 +1867,20 @@ func TestPushSecret(t *testing.T) {
 		data   *testingfake.PushSecretData
 		value  []byte
 	}{
-		"SetSecret": {
+		"SetSecretKV1": {
+			reason: "secret is successfully set, with no existing vault secret",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
+					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretKV2": {
 			reason: "secret is successfully set, with no existing vault secret",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
@@ -1880,8 +1893,20 @@ func TestPushSecret(t *testing.T) {
 				err: nil,
 			},
 		},
-
-		"SetSecretWithWriteError": {
+		"SetSecretWithWriteErrorKV1": {
+			reason: "secret cannot be pushed if write fails",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
+					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, noPermission),
+				},
+			},
+			want: want{
+				err: noPermission,
+			},
+		},
+		"SetSecretWithWriteErrorKV2": {
 			reason: "secret cannot be pushed if write fails",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
@@ -1894,8 +1919,21 @@ func TestPushSecret(t *testing.T) {
 				err: noPermission,
 			},
 		},
-
-		"SetSecretEqualsPushSecret": {
+		"SetSecretEqualsPushSecretKV1": {
+			reason: "vault secret kv equals secret to push kv",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+						"fake-key": "fake-value",
+					}, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretEqualsPushSecretV2": {
 			reason: "vault secret kv equals secret to push kv",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
@@ -1914,7 +1952,24 @@ func TestPushSecret(t *testing.T) {
 				err: nil,
 			},
 		},
-		"PushSecretProperty": {
+		"PushSecretPropertyKV1": {
+			reason: "push secret with property adds the property",
+			value:  []byte("fake-value"),
+			data:   &testingfake.PushSecretData{SecretKey: secretKey, RemoteKey: "secret", Property: "foo"},
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+						"fake-key": "fake-value",
+					}, nil),
+					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]interface{}{"fake-key": "fake-value", "foo": "fake-value"}),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"PushSecretPropertyKV2": {
 			reason: "push secret with property adds the property",
 			value:  []byte("fake-value"),
 			data:   &testingfake.PushSecretData{SecretKey: secretKey, RemoteKey: "secret", Property: "foo"},
@@ -1936,7 +1991,24 @@ func TestPushSecret(t *testing.T) {
 				err: nil,
 			},
 		},
-		"PushSecretUpdateProperty": {
+		"PushSecretUpdatePropertyKV1": {
+			reason: "push secret with property only updates the property",
+			value:  []byte("new-value"),
+			data:   &testingfake.PushSecretData{SecretKey: secretKey, RemoteKey: "secret", Property: "foo"},
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+						"foo": "fake-value",
+					}, nil),
+					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]interface{}{"foo": "new-value"}),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"PushSecretUpdatePropertyKV2": {
 			reason: "push secret with property only updates the property",
 			value:  []byte("new-value"),
 			data:   &testingfake.PushSecretData{SecretKey: secretKey, RemoteKey: "secret", Property: "foo"},
@@ -1958,7 +2030,24 @@ func TestPushSecret(t *testing.T) {
 				err: nil,
 			},
 		},
-		"PushSecretPropertyNoUpdate": {
+		"PushSecretPropertyNoUpdateKV1": {
+			reason: "push secret with property only updates the property",
+			value:  []byte("fake-value"),
+			data:   &testingfake.PushSecretData{SecretKey: secretKey, RemoteKey: "secret", Property: "foo"},
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+						"foo": "fake-value",
+					}, nil),
+					WriteWithContextFn: fake.ExpectWriteWithContextNoCall(),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"PushSecretPropertyNoUpdateKV2": {
 			reason: "push secret with property only updates the property",
 			value:  []byte("fake-value"),
 			data:   &testingfake.PushSecretData{SecretKey: secretKey, RemoteKey: "secret", Property: "foo"},
@@ -1980,8 +2069,19 @@ func TestPushSecret(t *testing.T) {
 				err: nil,
 			},
 		},
-
-		"SetSecretErrorReadingSecret": {
+		"SetSecretErrorReadingSecretKV1": {
+			reason: "error occurs if secret cannot be read",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, noPermission),
+				},
+			},
+			want: want{
+				err: fmt.Errorf(errReadSecret, noPermission),
+			},
+		},
+		"SetSecretErrorReadingSecretKV2": {
 			reason: "error occurs if secret cannot be read",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,

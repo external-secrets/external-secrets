@@ -436,65 +436,60 @@ func (c *Connector) ValidateStore(store esv1beta1.GenericStore) error {
 
 func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
 	path := v.buildPath(remoteRef.GetRemoteKey())
-	metaPath, err := v.buildMetadataPath(remoteRef.GetRemoteKey())
-	if err != nil {
-		return err
-	}
-	// Retrieve the secret map from vault and convert the secret value in string form.
-	secretVal, err := v.readSecret(ctx, path, "")
-	// If error is not of type secret not found, we should error
-	if err != nil && errors.Is(err, esv1beta1.NoSecretError{}) {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	// If Push for a Property, we need to delete the property and update the secret
-	if remoteRef.GetProperty() != "" {
-		delete(secretVal, remoteRef.GetProperty())
-		if len(secretVal) > 0 {
-			secretToPush := map[string]interface{}{
-				"data": secretVal,
-			}
-			_, err = v.logical.WriteWithContext(ctx, path, secretToPush)
-			metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
+	if v.store.Version == esv1beta1.VaultKVStoreV2 {
+		metaPath, err := v.buildMetadataPath(remoteRef.GetRemoteKey())
+		if err != nil {
 			return err
 		}
+		// Retrieve the secret map from vault and convert the secret value in string form.
+		secretVal, err := v.readSecret(ctx, path, "")
+		// If error is not of type secret not found, we should error
+		if err != nil && errors.Is(err, esv1beta1.NoSecretError{}) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		// If Push for a Property, we need to delete the property and update the secret
+		if remoteRef.GetProperty() != "" {
+			delete(secretVal, remoteRef.GetProperty())
+			if len(secretVal) > 0 {
+				secretToPush := map[string]interface{}{
+					"data": secretVal,
+				}
+				_, err = v.logical.WriteWithContext(ctx, path, secretToPush)
+				metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
+				return err
+			}
+		}
+		metadata, err := v.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
+		if err != nil {
+			return err
+		}
+		manager, ok := metadata["managed-by"]
+		if !ok || manager != "external-secrets" {
+			return nil
+		}
+		_, err = v.logical.DeleteWithContext(ctx, metaPath)
+		metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
+		if err != nil {
+			return fmt.Errorf("could not delete secret metadata %v: %w", remoteRef.GetRemoteKey(), err)
+		}
 	}
-	metadata, err := v.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
-	if err != nil {
-		return err
-	}
-	manager, ok := metadata["managed-by"]
-	if !ok || manager != "external-secrets" {
-		return nil
-	}
-	_, err = v.logical.DeleteWithContext(ctx, path)
+
+	_, err := v.logical.DeleteWithContext(ctx, path)
 	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
 	if err != nil {
 		return fmt.Errorf("could not delete secret %v: %w", remoteRef.GetRemoteKey(), err)
 	}
-	_, err = v.logical.DeleteWithContext(ctx, metaPath)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
-	if err != nil {
-		return fmt.Errorf("could not delete secret metadata %v: %w", remoteRef.GetRemoteKey(), err)
-	}
+
 	return nil
 }
 
 func (v *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
 	value := secret.Data[data.GetSecretKey()]
-	label := map[string]interface{}{
-		"custom_metadata": map[string]string{
-			"managed-by": "external-secrets",
-		},
-	}
 	secretVal := make(map[string]interface{})
 	path := v.buildPath(data.GetRemoteKey())
-	metaPath, err := v.buildMetadataPath(data.GetRemoteKey())
-	if err != nil {
-		return err
-	}
 
 	// Retrieve the secret map from vault and convert the secret value in string form.
 	vaultSecret, err := v.readSecret(ctx, path, "")
@@ -503,7 +498,7 @@ func (v *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		return err
 	}
 	// If the secret exists (err == nil), we should check if it is managed by external-secrets
-	if err == nil {
+	if err == nil && v.store.Version == esv1beta1.VaultKVStoreV2 {
 		metadata, err := v.readSecretMetadata(ctx, data.GetRemoteKey())
 		if err != nil {
 			return err
@@ -550,16 +545,28 @@ func (v *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 			return fmt.Errorf("error unmarshalling vault secret: %w", err)
 		}
 	}
-	secretToPush := map[string]interface{}{
-		"data": secretVal,
-	}
 	if err != nil {
 		return fmt.Errorf("failed to convert value to a valid JSON: %w", err)
 	}
-	_, err = v.logical.WriteWithContext(ctx, metaPath, label)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
-	if err != nil {
-		return err
+	secretToPush := secretVal
+	if v.store.Version == esv1beta1.VaultKVStoreV2 {
+		secretToPush = map[string]interface{}{
+			"data": secretVal,
+		}
+		label := map[string]interface{}{
+			"custom_metadata": map[string]string{
+				"managed-by": "external-secrets",
+			},
+		}
+		metaPath, err := v.buildMetadataPath(data.GetRemoteKey())
+		if err != nil {
+			return err
+		}
+		_, err = v.logical.WriteWithContext(ctx, metaPath, label)
+		metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
+		if err != nil {
+			return err
+		}
 	}
 	// Otherwise, create or update the version.
 	_, err = v.logical.WriteWithContext(ctx, path, secretToPush)
@@ -892,15 +899,20 @@ func (v *client) Validate() (esv1beta1.ValidationResult, error) {
 
 func (v *client) buildMetadataPath(path string) (string, error) {
 	var url string
-	if v.store.Path == nil && !strings.Contains(path, "data") {
-		return "", fmt.Errorf(errPathInvalid)
-	}
-	if v.store.Path == nil {
-		path = strings.Replace(path, "data", "metadata", 1)
-		url = path
+	if v.store.Version == esv1beta1.VaultKVStoreV1 {
+		url = fmt.Sprintf("%s/%s", *v.store.Path, path)
 	} else {
-		url = fmt.Sprintf("%s/metadata/%s", *v.store.Path, path)
+		if v.store.Path == nil && !strings.Contains(path, "data") {
+			return "", fmt.Errorf(errPathInvalid)
+		}
+		if v.store.Path == nil {
+			path = strings.Replace(path, "data", "metadata", 1)
+			url = path
+		} else {
+			url = fmt.Sprintf("%s/metadata/%s", *v.store.Path, path)
+		}
 	}
+
 	return url, nil
 }
 
