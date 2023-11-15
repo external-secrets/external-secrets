@@ -77,7 +77,9 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(k8sClient).ToNot(BeNil())
 
-	rec := New(k8sClient, k8sManager.GetScheme(), log,
+	leaderChan := make(chan struct{})
+	close(leaderChan)
+	rec := New(k8sClient, k8sManager.GetScheme(), leaderChan, log,
 		time.Second*1, true,
 		"foo", "default", "foo", "default", []string{
 			"secretstores.test.io",

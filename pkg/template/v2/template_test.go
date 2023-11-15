@@ -246,6 +246,18 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
+			name: "use upper function",
+			tpl: map[string][]byte{
+				"foo": []byte(`{{ .value | upper }}`),
+			},
+			data: map[string][]byte{
+				"value": []byte(`username`),
+			},
+			expectedData: map[string][]byte{
+				"foo": []byte(`USERNAME`),
+			},
+		},
+		{
 			name: "multiline template",
 			tpl: map[string][]byte{
 				"cfg": []byte(`

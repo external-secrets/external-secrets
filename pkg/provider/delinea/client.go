@@ -24,7 +24,7 @@ import (
 
 	"github.com/DelineaXPM/dsv-sdk-go/v2/vault"
 	"github.com/tidwall/gjson"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	corev1 "k8s.io/api/core/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
@@ -71,11 +71,11 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	return []byte(val.String()), nil
 }
 
-func (c *client) PushSecret(_ context.Context, _ []byte, _ *apiextensionsv1.JSON, _ esv1beta1.PushRemoteRef) error {
+func (c *client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
 	return errors.New("pushing secrets is not supported by Delinea DevOps Secrets Vault")
 }
 
-func (c *client) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
+func (c *client) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
 	return errors.New("deleting secrets is not supported by Delinea DevOps Secrets Vault")
 }
 
