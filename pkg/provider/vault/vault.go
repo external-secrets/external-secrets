@@ -913,7 +913,6 @@ func (v *client) buildMetadataPath(path string) (string, error) {
 			url = fmt.Sprintf("%s/metadata/%s", *v.store.Path, path)
 		}
 	}
-
 	return url, nil
 }
 
