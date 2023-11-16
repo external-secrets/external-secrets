@@ -804,6 +804,65 @@ func TestPushSecret(t *testing.T) {
 			},
 		},
 		{
+			name: "push the whole secret while secret exists into a single property",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"token": []byte(`foo`),
+							},
+						},
+					},
+				},
+			},
+			data: testingfake.PushSecretData{
+				RemoteKey: "mysec",
+				Property:  "token",
+			},
+			secret: &v1.Secret{
+				Data: map[string][]byte{"foo": []byte("bar")},
+			},
+			wantSecretMap: map[string]*v1.Secret{
+				"mysec": {
+					Data: map[string][]byte{
+						"token": []byte(`{"foo":"bar"}`),
+					},
+				},
+			},
+		},
+		{
+			name: "push the whole secret while secret exists but new property is defined should update the secret and keep existing key",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"token": []byte(`foo`),
+							},
+						},
+					},
+				},
+			},
+			data: testingfake.PushSecretData{
+				RemoteKey: "mysec",
+				Property:  "token2",
+			},
+			secret: &v1.Secret{
+				Data: map[string][]byte{"foo": []byte("bar")},
+			},
+			wantSecretMap: map[string]*v1.Secret{
+				"mysec": {
+					Data: map[string][]byte{
+						"token":  []byte(`foo`),
+						"token2": []byte(`{"foo":"bar"}`),
+					},
+				},
+			},
+		},
+		{
 			name: "push the whole secret as json if remote property is defined but secret key is not given",
 			fields: fields{
 				Client: &fakeClient{

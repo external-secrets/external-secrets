@@ -122,6 +122,19 @@ func (c *Client) PushSecret(ctx context.Context, secret *v1.Secret, data esv1bet
 
 	// the whole secret was pushed to the provider
 	if data.GetSecretKey() == "" {
+		if data.GetProperty() != "" {
+			value, err := c.marshalData(secret)
+			if err != nil {
+				return err
+			}
+
+			if v, ok := extSecret.Data[data.GetProperty()]; ok && bytes.Equal(v, value) {
+				return nil
+			}
+
+			return c.updateProperty(ctx, extSecret, data, value)
+		}
+
 		if reflect.DeepEqual(extSecret.Data, secret.Data) {
 			return nil
 		}
@@ -135,6 +148,21 @@ func (c *Client) PushSecret(ctx context.Context, secret *v1.Secret, data esv1bet
 	}
 
 	return c.updateProperty(ctx, extSecret, data, secret.Data[data.GetSecretKey()])
+}
+
+func (c *Client) marshalData(secret *v1.Secret) ([]byte, error) {
+	values := make(map[string]string)
+	for k, v := range secret.Data {
+		values[k] = string(v)
+	}
+
+	// marshal
+	value, err := utils.JSONMarshal(values)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal secrets into a single property: %w", err)
+	}
+
+	return value, nil
 }
 
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
@@ -310,15 +338,9 @@ func (c *Client) createSecret(ctx context.Context, secret *v1.Secret, typed v1.S
 	if remoteRef.GetProperty() != "" {
 		// set a specific remote key
 		if remoteRef.GetSecretKey() == "" {
-			// we push the whole secret if secret key was not set
-			values := make(map[string]string)
-			for k, v := range secret.Data {
-				values[k] = string(v)
-			}
-			// marshal
-			value, err := utils.JSONMarshal(values)
+			value, err := c.marshalData(secret)
 			if err != nil {
-				return fmt.Errorf("failed to marshal secrets into a single property: %w", err)
+				return err
 			}
 
 			data[remoteRef.GetProperty()] = value
