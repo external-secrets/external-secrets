@@ -900,18 +900,14 @@ func (v *client) Validate() (esv1beta1.ValidationResult, error) {
 
 func (v *client) buildMetadataPath(path string) (string, error) {
 	var url string
-	if v.store.Version == esv1beta1.VaultKVStoreV1 {
-		url = fmt.Sprintf("%s/%s", *v.store.Path, path)
+	if v.store.Path == nil && !strings.Contains(path, "data") {
+		return "", fmt.Errorf(errPathInvalid)
+	}
+	if v.store.Path == nil {
+		path = strings.Replace(path, "data", "metadata", 1)
+		url = path
 	} else {
-		if v.store.Path == nil && !strings.Contains(path, "data") {
-			return "", fmt.Errorf(errPathInvalid)
-		}
-		if v.store.Path == nil {
-			path = strings.Replace(path, "data", "metadata", 1)
-			url = path
-		} else {
-			url = fmt.Sprintf("%s/metadata/%s", *v.store.Path, path)
-		}
+		url = fmt.Sprintf("%s/metadata/%s", *v.store.Path, path)
 	}
 	return url, nil
 }
