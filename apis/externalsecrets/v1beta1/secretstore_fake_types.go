@@ -20,8 +20,9 @@ type FakeProvider struct {
 }
 
 type FakeProviderData struct {
-	Key      string            `json:"key"`
-	Value    string            `json:"value,omitempty"`
+	Key   string `json:"key"`
+	Value string `json:"value,omitempty"`
+	// Deprecated: ValueMap is deprecated and is intended to be removed in the future, use the `value` field instead.
 	ValueMap map[string]string `json:"valueMap,omitempty"`
 	Version  string            `json:"version,omitempty"`
 }
