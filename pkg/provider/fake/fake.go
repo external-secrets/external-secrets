@@ -17,13 +17,15 @@ package fake
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/find"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 var (
@@ -77,14 +79,14 @@ func (p *Provider) NewClient(_ context.Context, store esv1beta1.GenericStore, _ 
 		}
 	}
 	for _, data := range c.Data {
-		mapKey := fmt.Sprintf("%v%v", data.Key, data.Version)
-		cfg[mapKey] = &Data{
+		key := mapKey(data.Key, data.Version)
+		cfg[key] = &Data{
 			Value:   data.Value,
 			Version: data.Version,
 			Origin:  FakeSecretStore,
 		}
 		if data.ValueMap != nil {
-			cfg[mapKey].ValueMap = data.ValueMap
+			cfg[key].ValueMap = data.ValueMap
 		}
 	}
 	p.database[store.GetName()] = cfg
@@ -104,14 +106,15 @@ func getProvider(store esv1beta1.GenericStore) (*esv1beta1.FakeProvider, error) 
 	return spc.Provider.Fake, nil
 }
 
-func (p *Provider) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
+func (p *Provider) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
 	return nil
 }
 
-func (p *Provider) PushSecret(_ context.Context, value []byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
-	currentData, ok := p.config[remoteRef.GetRemoteKey()]
+func (p *Provider) PushSecret(_ context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	value := secret.Data[data.GetSecretKey()]
+	currentData, ok := p.config[data.GetRemoteKey()]
 	if !ok {
-		p.config[remoteRef.GetRemoteKey()] = &Data{
+		p.config[data.GetRemoteKey()] = &Data{
 			Value:  string(value),
 			Origin: FakeSetSecret,
 		}
@@ -124,16 +127,44 @@ func (p *Provider) PushSecret(_ context.Context, value []byte, _ corev1.SecretTy
 	return nil
 }
 
-// Empty GetAllSecrets.
-func (p *Provider) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+// GetAllSecrets returns multiple secrets from the given ExternalSecretFind
+// Currently, only the Name operator is supported.
+func (p *Provider) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	if ref.Name != nil {
+		matcher, err := find.New(*ref.Name)
+		if err != nil {
+			return nil, err
+		}
+
+		latestVersionMap := make(map[string]string)
+		dataMap := make(map[string][]byte)
+		for key, data := range p.config {
+			// Reconstruct the original key without the version suffix
+			// See the mapKey function to know how the provider generates keys
+			originalKey := strings.TrimSuffix(key, data.Version)
+			if !matcher.MatchName(originalKey) {
+				continue
+			}
+
+			if version, ok := latestVersionMap[originalKey]; ok {
+				// Need to get only the latest version
+				if version < data.Version {
+					latestVersionMap[originalKey] = data.Version
+					dataMap[originalKey] = []byte(data.Value)
+				}
+			} else {
+				latestVersionMap[originalKey] = data.Version
+				dataMap[originalKey] = []byte(data.Value)
+			}
+		}
+		return utils.ConvertKeys(ref.ConversionStrategy, dataMap)
+	}
+	return nil, fmt.Errorf("unsupported find operator: %#v", ref)
 }
 
 // GetSecret returns a single secret from the provider.
 func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	mapKey := fmt.Sprintf("%v%v", ref.Key, ref.Version)
-	data, ok := p.config[mapKey]
+	data, ok := p.config[mapKey(ref.Key, ref.Version)]
 	if !ok || data.Version != ref.Version {
 		return nil, esv1beta1.NoSecretErr
 	}
@@ -152,8 +183,7 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretData
 
 // GetSecretMap returns multiple k/v pairs from the provider.
 func (p *Provider) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	mapKey := fmt.Sprintf("%v%v", ref.Key, ref.Version)
-	data, ok := p.config[mapKey]
+	data, ok := p.config[mapKey(ref.Key, ref.Version)]
 	if !ok || data.Version != ref.Version || data.ValueMap == nil {
 		return nil, esv1beta1.NoSecretErr
 	}
@@ -190,6 +220,11 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 		}
 	}
 	return nil
+}
+
+func mapKey(key, version string) string {
+	// Add the version suffix to preserve entries with the old versions as well.
+	return fmt.Sprintf("%v%v", key, version)
 }
 
 func init() {

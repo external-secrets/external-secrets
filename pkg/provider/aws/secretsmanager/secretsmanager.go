@@ -32,7 +32,6 @@ import (
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	utilpointer "k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -52,6 +51,7 @@ type SecretsManager struct {
 	client       SMInterface
 	referentAuth bool
 	cache        map[string]*awssm.GetSecretValueOutput
+	config       *esv1beta1.SecretsManager
 }
 
 // SMInterface is a subset of the smiface api.
@@ -76,12 +76,13 @@ const (
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager")
 
 // New creates a new SecretsManager client.
-func New(sess *session.Session, cfg *aws.Config, referentAuth bool) (*SecretsManager, error) {
+func New(sess *session.Session, cfg *aws.Config, secretsManagerCfg *esv1beta1.SecretsManager, referentAuth bool) (*SecretsManager, error) {
 	return &SecretsManager{
 		sess:         sess,
 		client:       awssm.New(sess, cfg),
 		referentAuth: referentAuth,
 		cache:        make(map[string]*awssm.GetSecretValueOutput),
+		config:       secretsManagerCfg,
 	}, nil
 }
 
@@ -157,7 +158,7 @@ func (sm *SecretsManager) fetch(ctx context.Context, ref esv1beta1.ExternalSecre
 	return secretOut, nil
 }
 
-func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
 	secretName := remoteRef.GetRemoteKey()
 	secretValue := awssm.GetSecretValueInput{
 		SecretId: &secretName,
@@ -188,13 +189,24 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	deleteInput := &awssm.DeleteSecretInput{
 		SecretId: awsSecret.ARN,
 	}
+	if sm.config != nil && sm.config.ForceDeleteWithoutRecovery {
+		deleteInput.ForceDeleteWithoutRecovery = &sm.config.ForceDeleteWithoutRecovery
+	}
+	if sm.config != nil && sm.config.RecoveryWindowInDays > 0 {
+		deleteInput.RecoveryWindowInDays = &sm.config.RecoveryWindowInDays
+	}
+	err = util.ValidateDeleteSecretInput(*deleteInput)
+	if err != nil {
+		return err
+	}
 	_, err = sm.client.DeleteSecretWithContext(ctx, deleteInput)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDeleteSecret, err)
 	return err
 }
 
-func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
-	secretName := remoteRef.GetRemoteKey()
+func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret, psd esv1beta1.PushSecretData) error {
+	secretName := psd.GetRemoteKey()
+	value := secret.Data[psd.GetSecretKey()]
 	managedBy := managedBy
 	externalSecrets := externalSecrets
 	externalSecretsTag := []*awssm.Tag{
@@ -215,12 +227,12 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, value []byte, _ corev1
 	awsSecret, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
 
-	if remoteRef.GetProperty() != "" {
+	if psd.GetProperty() != "" {
 		currentSecret := sm.retrievePayload(awsSecret)
 		if currentSecret != "" && !gjson.Valid(currentSecret) {
-			return errors.New("PushSecret for aws secrets manager with a remoteRef property requires a json secret")
+			return errors.New("PushSecret for aws secrets manager with a pushSecretData property requires a json secret")
 		}
-		value, _ = sjson.SetBytes([]byte(currentSecret), remoteRef.GetProperty(), value)
+		value, _ = sjson.SetBytes([]byte(currentSecret), psd.GetProperty(), value)
 	}
 
 	var aerr awserr.Error

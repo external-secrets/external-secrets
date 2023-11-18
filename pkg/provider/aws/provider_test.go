@@ -197,21 +197,6 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		{
-			name: "valid region secrets manager",
-			args: args{
-				store: &esv1beta1.SecretStore{
-					Spec: esv1beta1.SecretStoreSpec{
-						Provider: &esv1beta1.SecretStoreProvider{
-							AWS: &esv1beta1.AWSProvider{
-								Region:  validRegion,
-								Service: esv1beta1.AWSServiceSecretsManager,
-							},
-						},
-					},
-				},
-			},
-		},
-		{
 			name: "valid fips region secrets manager",
 			args: args{
 				store: &esv1beta1.SecretStore{
@@ -235,6 +220,42 @@ func TestValidateStore(t *testing.T) {
 							AWS: &esv1beta1.AWSProvider{
 								Region:  validFipsSsmRegion,
 								Service: esv1beta1.AWSServiceParameterStore,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "valid secretsmanager config: force delete without recovery",
+			args: args{
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AWS: &esv1beta1.AWSProvider{
+								Region:  validRegion,
+								Service: esv1beta1.AWSServiceSecretsManager,
+								SecretsManager: &esv1beta1.SecretsManager{
+									ForceDeleteWithoutRecovery: true,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "valid secretsmanager config: recovery window",
+			args: args{
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AWS: &esv1beta1.AWSProvider{
+								Region:  validRegion,
+								Service: esv1beta1.AWSServiceSecretsManager,
+								SecretsManager: &esv1beta1.SecretsManager{
+									RecoveryWindowInDays: 30,
+								},
 							},
 						},
 					},
@@ -384,6 +405,64 @@ func TestValidateStore(t *testing.T) {
 											Namespace: pointer.To("unacceptable"),
 										},
 									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:    "invalid SecretsManager config: conflicting settings",
+			wantErr: true,
+			args: args{
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AWS: &esv1beta1.AWSProvider{
+								Region:  validRegion,
+								Service: esv1beta1.AWSServiceSecretsManager,
+								SecretsManager: &esv1beta1.SecretsManager{
+									ForceDeleteWithoutRecovery: true,
+									RecoveryWindowInDays:       7,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:    "invalid SecretsManager config: recovery window too small",
+			wantErr: true,
+			args: args{
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AWS: &esv1beta1.AWSProvider{
+								Region:  validRegion,
+								Service: esv1beta1.AWSServiceSecretsManager,
+								SecretsManager: &esv1beta1.SecretsManager{
+									RecoveryWindowInDays: 6,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:    "invalid SecretsManager config: recovery window too big",
+			wantErr: true,
+			args: args{
+				store: &esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							AWS: &esv1beta1.AWSProvider{
+								Region:  validRegion,
+								Service: esv1beta1.AWSServiceSecretsManager,
+								SecretsManager: &esv1beta1.SecretsManager{
+									RecoveryWindowInDays: 31,
 								},
 							},
 						},

@@ -26,7 +26,6 @@ import (
 	"github.com/avast/retry-go/v4"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -59,11 +58,11 @@ type SMInterface interface {
 	Endpoint() string
 }
 
-func (kms *KeyManagementService) PushSecret(_ context.Context, _ []byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, _ esv1beta1.PushRemoteRef) error {
+func (kms *KeyManagementService) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (kms *KeyManagementService) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
+func (kms *KeyManagementService) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 

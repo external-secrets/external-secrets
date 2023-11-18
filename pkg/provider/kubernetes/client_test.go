@@ -29,6 +29,7 @@ import (
 
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
 
 const (
@@ -560,7 +561,7 @@ func TestDeleteSecret(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		ref    esv1beta1.PushRemoteRef
+		ref    esv1beta1.PushSecretRemoteRef
 
 		wantSecretMap map[string]*v1.Secret
 		wantErr       bool
@@ -730,6 +731,7 @@ func TestDeleteSecret(t *testing.T) {
 }
 
 func TestPushSecret(t *testing.T) {
+	secretKey := "secret-key"
 	type fields struct {
 		Client    KClient
 		PushType  v1.SecretType
@@ -738,7 +740,7 @@ func TestPushSecret(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		ref    esv1beta1.PushRemoteRef
+		data   testingfake.PushSecretData
 
 		wantSecretMap map[string]*v1.Secret
 		wantErr       bool
@@ -758,7 +760,8 @@ func TestPushSecret(t *testing.T) {
 				},
 				PushValue: "bar",
 			},
-			ref: v1alpha1.PushSecretRemoteRef{
+			data: testingfake.PushSecretData{
+				SecretKey: secretKey,
 				RemoteKey: "mysec",
 			},
 			wantErr: true,
@@ -785,7 +788,8 @@ func TestPushSecret(t *testing.T) {
 				},
 				PushValue: "bar",
 			},
-			ref: v1alpha1.PushSecretRemoteRef{
+			data: testingfake.PushSecretData{
+				SecretKey: secretKey,
 				RemoteKey: "mysec",
 				Property:  "secret",
 			},
@@ -814,7 +818,8 @@ func TestPushSecret(t *testing.T) {
 				},
 				PushValue: "bar",
 			},
-			ref: v1alpha1.PushSecretRemoteRef{
+			data: testingfake.PushSecretData{
+				SecretKey: secretKey,
 				RemoteKey: "mysec",
 				Property:  "token",
 			},
@@ -842,7 +847,8 @@ func TestPushSecret(t *testing.T) {
 				},
 				PushValue: "bar",
 			},
-			ref: v1alpha1.PushSecretRemoteRef{
+			data: testingfake.PushSecretData{
+				SecretKey: secretKey,
 				RemoteKey: "mysec",
 				Property:  "secret",
 			},
@@ -877,7 +883,8 @@ func TestPushSecret(t *testing.T) {
 				PushType:  v1.SecretTypeDockerConfigJson,
 				PushValue: `{"auths": {"myregistry.localhost": {"username": "{{ .username }}", "password": "{{ .password }}"}}}`,
 			},
-			ref: v1alpha1.PushSecretRemoteRef{
+			data: testingfake.PushSecretData{
+				SecretKey: secretKey,
 				RemoteKey: "mysec",
 				Property:  "config.json",
 			},
@@ -902,7 +909,11 @@ func TestPushSecret(t *testing.T) {
 				userSecretClient: tt.fields.Client,
 				store:            &esv1beta1.KubernetesProvider{},
 			}
-			err := p.PushSecret(context.Background(), []byte(tt.fields.PushValue), tt.fields.PushType, nil, tt.ref)
+			s := &v1.Secret{
+				Type: tt.fields.PushType,
+				Data: map[string][]byte{secretKey: []byte(tt.fields.PushValue)},
+			}
+			err := p.PushSecret(context.Background(), s, tt.data)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ProviderKubernetes.DeleteSecret() error = %v, wantErr %v", err, tt.wantErr)
 				return

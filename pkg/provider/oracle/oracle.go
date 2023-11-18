@@ -32,7 +32,6 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/vault"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -95,8 +94,9 @@ const (
 	SecretAPIError
 )
 
-func (vms *VaultManagementService) PushSecret(ctx context.Context, value []byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
-	secretName := remoteRef.GetRemoteKey()
+func (vms *VaultManagementService) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	value := secret.Data[data.GetSecretKey()]
+	secretName := data.GetRemoteKey()
 	encodedValue := base64.StdEncoding.EncodeToString(value)
 	sec, action, err := vms.getSecretBundleWithCode(ctx, secretName)
 	switch action {
@@ -135,7 +135,7 @@ func (vms *VaultManagementService) PushSecret(ctx context.Context, value []byte,
 	}
 }
 
-func (vms *VaultManagementService) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (vms *VaultManagementService) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
 	secretName := remoteRef.GetRemoteKey()
 	resp, action, err := vms.getSecretBundleWithCode(ctx, secretName)
 	switch action {
