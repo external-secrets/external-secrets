@@ -1748,6 +1748,9 @@ func TestDeleteSecret(t *testing.T) {
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
 						"fake-key": "fake-value",
+						"custom_metadata": map[string]interface{}{
+							"managed-by": "another-secret-tool",
+						},
 					}, nil),
 					WriteWithContextFn:  fake.ExpectWriteWithContextNoCall(),
 					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, nil),
@@ -1785,6 +1788,9 @@ func TestDeleteSecret(t *testing.T) {
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
 						"fake-key": "fake-value",
+						"custom_metadata": map[string]interface{}{
+							"managed-by": "external-secrets",
+						},
 					}, nil),
 					WriteWithContextFn:  fake.ExpectWriteWithContextNoCall(),
 					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, nil),
@@ -1822,6 +1828,9 @@ func TestDeleteSecret(t *testing.T) {
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
 						"fake-key": "fake-value",
+						"custom_metadata": map[string]interface{}{
+							"managed-by": "external-secrets",
+						},
 					}, nil),
 					WriteWithContextFn:  fake.ExpectWriteWithContextNoCall(),
 					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, fmt.Errorf("failed to delete")),
@@ -1861,8 +1870,15 @@ func TestDeleteSecret(t *testing.T) {
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
 						"fake-key": "fake-value",
 						"foo":      "bar",
+						"custom_metadata": map[string]interface{}{
+							"managed-by": "external-secrets",
+						},
 					}, nil),
-					WriteWithContextFn:  fake.ExpectWriteWithContextValue(map[string]interface{}{"foo": "bar"}),
+					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]interface{}{
+						"foo": "bar",
+						"custom_metadata": map[string]interface{}{
+							"managed-by": "external-secrets",
+						}}),
 					DeleteWithContextFn: fake.ExpectDeleteWithContextNoCall(),
 				},
 			},
@@ -1901,6 +1917,9 @@ func TestDeleteSecret(t *testing.T) {
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
 						"foo": "bar",
+						"custom_metadata": map[string]interface{}{
+							"managed-by": "external-secrets",
+						},
 					}, nil),
 					WriteWithContextFn:  fake.ExpectWriteWithContextNoCall(),
 					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, nil),
@@ -1962,7 +1981,6 @@ func TestDeleteSecret(t *testing.T) {
 func TestPushSecret(t *testing.T) {
 	secretKey := "secret-key"
 	noPermission := errors.New("no permission")
-
 	type args struct {
 		store    *esv1beta1.VaultProvider
 		vLogical util.Logical
@@ -2030,13 +2048,16 @@ func TestPushSecret(t *testing.T) {
 				err: noPermission,
 			},
 		},
-		"SetSecretEqualsPushSecretKV1": {
+		"SetSecretEqualsPushSecretV1": {
 			reason: "vault secret kv equals secret to push kv",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
 						"fake-key": "fake-value",
+						"custom_metadata": map[string]interface{}{
+							"managed-by": "external-secrets",
+						},
 					}, nil),
 				},
 			},
@@ -2072,8 +2093,17 @@ func TestPushSecret(t *testing.T) {
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
 						"fake-key": "fake-value",
+						"custom_metadata": map[string]interface{}{
+							"managed-by": "external-secrets",
+						},
 					}, nil),
-					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]interface{}{"fake-key": "fake-value", "foo": "fake-value"}),
+					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]interface{}{
+						"fake-key": "fake-value",
+						"custom_metadata": map[string]string{
+							"managed-by": "external-secrets",
+						},
+						"foo": "fake-value",
+					}),
 				},
 			},
 			want: want{
@@ -2111,8 +2141,16 @@ func TestPushSecret(t *testing.T) {
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
 						"foo": "fake-value",
+						"custom_metadata": map[string]interface{}{
+							"managed-by": "external-secrets",
+						},
 					}, nil),
-					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]interface{}{"foo": "new-value"}),
+					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]interface{}{
+						"foo": "new-value",
+						"custom_metadata": map[string]string{
+							"managed-by": "external-secrets",
+						},
+					}),
 				},
 			},
 			want: want{
@@ -2150,6 +2188,9 @@ func TestPushSecret(t *testing.T) {
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
 						"foo": "fake-value",
+						"custom_metadata": map[string]interface{}{
+							"managed-by": "external-secrets",
+						},
 					}, nil),
 					WriteWithContextFn: fake.ExpectWriteWithContextNoCall(),
 				},
@@ -2204,8 +2245,24 @@ func TestPushSecret(t *testing.T) {
 				err: fmt.Errorf(errReadSecret, noPermission),
 			},
 		},
-
-		"SetSecretNotManagedByESO": {
+		"SetSecretNotManagedByESOV1": {
+			reason: "a secret not managed by ESO cannot be updated",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+						"fake-key": "fake-value2",
+						"custom_metadata": map[string]interface{}{
+							"managed-by": "not-external-secrets",
+						},
+					}, nil),
+				},
+			},
+			want: want{
+				err: errors.New("secret not managed by external-secrets"),
+			},
+		},
+		"SetSecretNotManagedByESOV2": {
 			reason: "a secret not managed by ESO cannot be updated",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
