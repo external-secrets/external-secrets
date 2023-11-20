@@ -26,7 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/tidwall/gjson"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	corev1 "k8s.io/api/core/v1"
 	utilpointer "k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -94,7 +94,7 @@ func (pm *ParameterStore) getTagsByName(ctx aws.Context, ref *ssm.GetParameterOu
 	return data.TagList, nil
 }
 
-func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
 	secretName := remoteRef.GetRemoteKey()
 	secretValue := ssm.GetParameterInput{
 		Name: &secretName,
@@ -131,12 +131,13 @@ func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	return nil
 }
 
-func (pm *ParameterStore) PushSecret(ctx context.Context, value []byte, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
+func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
 	parameterType := "String"
 	overwrite := true
 
+	value := secret.Data[data.GetSecretKey()]
 	stringValue := string(value)
-	secretName := remoteRef.GetRemoteKey()
+	secretName := data.GetRemoteKey()
 
 	secretRequest := ssm.PutParameterInput{
 		Name:      &secretName,

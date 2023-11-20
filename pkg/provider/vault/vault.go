@@ -44,7 +44,6 @@ import (
 	"github.com/tidwall/gjson"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -435,7 +434,7 @@ func (c *Connector) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
 	path := v.buildPath(remoteRef.GetRemoteKey())
 	metaPath, err := v.buildMetadataPath(remoteRef.GetRemoteKey())
 	if err != nil {
@@ -483,15 +482,16 @@ func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 	return nil
 }
 
-func (v *client) PushSecret(ctx context.Context, value []byte, _ *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) error {
+func (v *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	value := secret.Data[data.GetSecretKey()]
 	label := map[string]interface{}{
 		"custom_metadata": map[string]string{
 			"managed-by": "external-secrets",
 		},
 	}
 	secretVal := make(map[string]interface{})
-	path := v.buildPath(remoteRef.GetRemoteKey())
-	metaPath, err := v.buildMetadataPath(remoteRef.GetRemoteKey())
+	path := v.buildPath(data.GetRemoteKey())
+	metaPath, err := v.buildMetadataPath(data.GetRemoteKey())
 	if err != nil {
 		return err
 	}
@@ -504,7 +504,7 @@ func (v *client) PushSecret(ctx context.Context, value []byte, _ *apiextensionsv
 	}
 	// If the secret exists (err == nil), we should check if it is managed by external-secrets
 	if err == nil {
-		metadata, err := v.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
+		metadata, err := v.readSecretMetadata(ctx, data.GetRemoteKey())
 		if err != nil {
 			return err
 		}
@@ -528,9 +528,9 @@ func (v *client) PushSecret(ctx context.Context, value []byte, _ *apiextensionsv
 		return nil
 	}
 	// If a Push of a property only, we should merge and add/update the property
-	if remoteRef.GetProperty() != "" {
-		if _, ok := vaultSecret[remoteRef.GetProperty()]; ok {
-			d := vaultSecret[remoteRef.GetProperty()].(string)
+	if data.GetProperty() != "" {
+		if _, ok := vaultSecret[data.GetProperty()]; ok {
+			d := vaultSecret[data.GetProperty()].(string)
 			if err != nil {
 				return fmt.Errorf("error marshaling vault secret: %w", err)
 			}
@@ -543,7 +543,7 @@ func (v *client) PushSecret(ctx context.Context, value []byte, _ *apiextensionsv
 			secretVal[k] = v
 		}
 		// Secret got from vault is already on map[string]string format
-		secretVal[remoteRef.GetProperty()] = string(value)
+		secretVal[data.GetProperty()] = string(value)
 	} else {
 		err = json.Unmarshal(value, &secretVal)
 		if err != nil {

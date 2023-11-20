@@ -87,7 +87,8 @@ var certcontrollerCmd = &cobra.Command{
 			setupLog.Error(err, "unable to start manager")
 			os.Exit(1)
 		}
-		crdctrl := crds.New(mgr.GetClient(), mgr.GetScheme(),
+
+		crdctrl := crds.New(mgr.GetClient(), mgr.GetScheme(), mgr.Elected(),
 			ctrl.Log.WithName("controllers").WithName("webhook-certs-updater"),
 			crdRequeueInterval, serviceName, serviceNamespace, secretName, secretNamespace, crdNames)
 		if err := crdctrl.SetupWithManager(mgr, controller.Options{
@@ -97,7 +98,7 @@ var certcontrollerCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		whc := webhookconfig.New(mgr.GetClient(), mgr.GetScheme(),
+		whc := webhookconfig.New(mgr.GetClient(), mgr.GetScheme(), mgr.Elected(),
 			ctrl.Log.WithName("controllers").WithName("webhook-certs-updater"),
 			serviceName, serviceNamespace,
 			secretName, secretNamespace, crdRequeueInterval)

@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	"github.com/tidwall/sjson"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
@@ -30,22 +29,21 @@ type Metadata struct {
 	Labels      map[string]string `json:"labels"`
 }
 
-func newPushSecretBuilder(payload []byte, metadata *apiextensionsv1.JSON, remoteRef esv1beta1.PushRemoteRef) (pushSecretBuilder, error) {
-	if remoteRef.GetProperty() == "" {
+func newPushSecretBuilder(payload []byte, data esv1beta1.PushSecretData) (pushSecretBuilder, error) {
+	if data.GetProperty() == "" {
 		return &psBuilder{
-			payload:   payload,
-			metadata:  metadata,
-			remoteRef: remoteRef,
+			payload:        payload,
+			pushSecretData: data,
 		}, nil
 	}
 
-	if metadata != nil {
+	if data.GetMetadata() != nil {
 		return nil, errors.New("cannot specify metadata and property at the same time")
 	}
 
 	return &propertyPSBuilder{
-		payload:   payload,
-		remoteRef: remoteRef,
+		payload:        payload,
+		pushSecretData: data,
 	}, nil
 }
 
@@ -56,19 +54,18 @@ type pushSecretBuilder interface {
 }
 
 type psBuilder struct {
-	payload   []byte
-	metadata  *apiextensionsv1.JSON
-	remoteRef esv1beta1.PushRemoteRef
+	payload        []byte
+	pushSecretData esv1beta1.PushSecretData
 }
 
 func (b *psBuilder) buildMetadata(_, labels map[string]string) (map[string]string, map[string]string, error) {
 	if manager, ok := labels[managedByKey]; !ok || manager != managedByValue {
-		return nil, nil, fmt.Errorf("secret %v is not managed by external secrets", b.remoteRef.GetRemoteKey())
+		return nil, nil, fmt.Errorf("secret %v is not managed by external secrets", b.pushSecretData.GetRemoteKey())
 	}
 
 	var metadata Metadata
-	if b.metadata != nil {
-		decoder := json.NewDecoder(bytes.NewReader(b.metadata.Raw))
+	if b.pushSecretData.GetMetadata() != nil {
+		decoder := json.NewDecoder(bytes.NewReader(b.pushSecretData.GetMetadata().Raw))
 		// Want to return an error if unknown fields exist
 		decoder.DisallowUnknownFields()
 
@@ -99,8 +96,8 @@ func (b *psBuilder) buildData(_ []byte) ([]byte, error) {
 }
 
 type propertyPSBuilder struct {
-	payload   []byte
-	remoteRef esv1beta1.PushRemoteRef
+	payload        []byte
+	pushSecretData esv1beta1.PushSecretData
 }
 
 func (b *propertyPSBuilder) buildMetadata(annotations, labels map[string]string) (map[string]string, map[string]string, error) {
@@ -122,7 +119,7 @@ func (b *propertyPSBuilder) needUpdate(original []byte) bool {
 		return true
 	}
 
-	val := getDataByProperty(original, b.remoteRef.GetProperty())
+	val := getDataByProperty(original, b.pushSecretData.GetProperty())
 	return !val.Exists() || val.String() != string(b.payload)
 }
 
@@ -131,5 +128,5 @@ func (b *propertyPSBuilder) buildData(original []byte) ([]byte, error) {
 	if original != nil {
 		base = original
 	}
-	return sjson.SetBytes(base, b.remoteRef.GetProperty(), b.payload)
+	return sjson.SetBytes(base, b.pushSecretData.GetProperty(), b.payload)
 }

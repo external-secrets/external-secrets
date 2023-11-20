@@ -24,17 +24,21 @@ import (
 )
 
 type IBMMockClient struct {
-	getSecretWithContext   func(ctx context.Context, getSecretOptions *sm.GetSecretOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)
-	listSecretsWithContext func(ctx context.Context, listSecretsOptions *sm.ListSecretsOptions) (result *sm.SecretMetadataPaginatedCollection, response *core.DetailedResponse, err error)
+	getSecretWithContext           func(ctx context.Context, getSecretOptions *sm.GetSecretOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)
+	listSecretsWithContext         func(ctx context.Context, listSecretsOptions *sm.ListSecretsOptions) (result *sm.SecretMetadataPaginatedCollection, response *core.DetailedResponse, err error)
+	getSecretByNameTypeWithContext func(ctx context.Context, getSecretByNameTypeOptions *sm.GetSecretByNameTypeOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)
 }
 
 type IBMMockClientParams struct {
-	GetSecretOptions   *sm.GetSecretOptions
-	GetSecretOutput    sm.SecretIntf
-	GetSecretErr       error
-	ListSecretsOptions *sm.ListSecretsOptions
-	ListSecretsOutput  *sm.SecretMetadataPaginatedCollection
-	ListSecretsErr     error
+	GetSecretOptions       *sm.GetSecretOptions
+	GetSecretOutput        sm.SecretIntf
+	GetSecretErr           error
+	ListSecretsOptions     *sm.ListSecretsOptions
+	ListSecretsOutput      *sm.SecretMetadataPaginatedCollection
+	ListSecretsErr         error
+	GetSecretByNameOptions *sm.GetSecretByNameTypeOptions
+	GetSecretByNameOutput  sm.SecretIntf
+	GetSecretByNameErr     error
 }
 
 func (mc *IBMMockClient) GetSecretWithContext(ctx context.Context, getSecretOptions *sm.GetSecretOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error) {
@@ -43,6 +47,10 @@ func (mc *IBMMockClient) GetSecretWithContext(ctx context.Context, getSecretOpti
 
 func (mc *IBMMockClient) ListSecretsWithContext(ctx context.Context, listSecretsOptions *sm.ListSecretsOptions) (result *sm.SecretMetadataPaginatedCollection, response *core.DetailedResponse, err error) {
 	return mc.listSecretsWithContext(ctx, listSecretsOptions)
+}
+
+func (mc *IBMMockClient) GetSecretByNameTypeWithContext(ctx context.Context, getSecretByNameTypeOptions *sm.GetSecretByNameTypeOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error) {
+	return mc.getSecretByNameTypeWithContext(ctx, getSecretByNameTypeOptions)
 }
 
 func (mc *IBMMockClient) WithValue(params IBMMockClientParams) {
@@ -62,6 +70,14 @@ func (mc *IBMMockClient) WithValue(params IBMMockClientParams) {
 				return nil, nil, fmt.Errorf("unexpected test argument for ListSecrets: %s, %s", *paramReq.Search, *params.ListSecretsOptions.Search)
 			}
 			return params.ListSecretsOutput, nil, params.ListSecretsErr
+		}
+		mc.getSecretByNameTypeWithContext = func(ctx context.Context, paramReq *sm.GetSecretByNameTypeOptions) (sm.SecretIntf, *core.DetailedResponse, error) {
+			// type secretmanagerpb.AccessSecretVersionRequest contains unexported fields
+			// use cmpopts.IgnoreUnexported to ignore all the unexported fields in the cmp.
+			if !cmp.Equal(paramReq, params.GetSecretByNameOptions, cmpopts.IgnoreUnexported(sm.Secret{})) {
+				return nil, nil, fmt.Errorf("unexpected test argument for GetSecretByNameType: %s, %s", *paramReq.Name, *params.GetSecretByNameOptions.Name)
+			}
+			return params.GetSecretByNameOutput, nil, params.GetSecretByNameErr
 		}
 	}
 }

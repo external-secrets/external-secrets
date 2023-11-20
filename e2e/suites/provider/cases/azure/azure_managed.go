@@ -34,15 +34,15 @@ const (
 // to test workload-identity authentication.
 var _ = Describe("[azuremanaged] with pod identity", Label("azure", "keyvault", "managed", "workload-identity"), func() {
 	f := framework.New("eso-azuremanaged")
-	prov := newFromEnv(f)
+	prov := newFromWorkloadIdentity(f)
 
 	// each test case gets its own ESO instance
 	BeforeEach(func() {
 		f.Install(addon.NewESO(
 			addon.WithControllerClass(f.BaseName),
-			addon.WithServiceAccount(prov.clientID),
 			addon.WithReleaseName(f.Namespace.Name),
-			addon.WithNamespace("default"),
+			addon.WithNamespace("external-secrets-operator"),
+			addon.WithServiceAccount("external-secrets-operator"),
 			addon.WithoutWebhook(),
 			addon.WithoutCertController(),
 		))

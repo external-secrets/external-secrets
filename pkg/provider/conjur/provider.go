@@ -23,7 +23,6 @@ import (
 	"github.com/cyberark/conjur-api-go/conjurapi"
 	"github.com/cyberark/conjur-api-go/conjurapi/authn"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/client-go/kubernetes"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -172,12 +171,12 @@ func (p *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 }
 
 // PushSecret will write a single secret into the provider.
-func (p *Client) PushSecret(_ context.Context, _ []byte, _ *apiextensionsv1.JSON, _ esv1beta1.PushRemoteRef) error {
+func (p *Client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
 	// NOT IMPLEMENTED
 	return nil
 }
 
-func (p *Client) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
+func (p *Client) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
 	// NOT IMPLEMENTED
 	return nil
 }

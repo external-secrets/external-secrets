@@ -58,7 +58,7 @@ var _ = Describe("fake generator", Label("fake"), func() {
 	customResourceGenerator := func(tc *testCase) {
 		tc.ExternalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
 			{
-				SourceRef: &esv1beta1.SourceRef{
+				SourceRef: &esv1beta1.StoreGeneratorSourceRef{
 					GeneratorRef: &esv1beta1.GeneratorRef{
 						// we don't need to specify the apiVersion,
 						// this should be inferred by the controller.
