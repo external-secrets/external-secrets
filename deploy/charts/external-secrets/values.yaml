@@ -170,6 +170,10 @@ serviceMonitor:
   #   action: replace
 
 metrics:
+
+  listen:
+    port: 8080
+
   service:
     # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
     enabled: false
@@ -294,6 +298,10 @@ webhook:
     # maxUnavailable: 1
 
   metrics:
+    
+    listen:
+      port: 8080
+
     service:
       # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
       enabled: false
@@ -406,6 +414,10 @@ certController:
     # maxUnavailable: 1
 
   metrics:
+
+    listen:
+      port: 8080
+
     service:
       # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
       enabled: false

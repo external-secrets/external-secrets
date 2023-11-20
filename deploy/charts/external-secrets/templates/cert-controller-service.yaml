@@ -12,7 +12,7 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: {{ .Values.certController.metrics.service.port }}
+  - port: {{ .Values.certController.metrics.listen.port }}
     protocol: TCP
     name: metrics
   selector:

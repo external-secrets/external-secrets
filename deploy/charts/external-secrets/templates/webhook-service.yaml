@@ -21,7 +21,7 @@ spec:
     protocol: TCP
     name: webhook
   {{- if .Values.webhook.metrics.service.enabled }}
-  - port: {{ .Values.webhook.metrics.service.port }}
+  - port: {{ .Values.webhook.metrics.listen.port }}
     targetPort: {{ .Values.webhook.metrics.service.port }}
     protocol: TCP
     name: metrics

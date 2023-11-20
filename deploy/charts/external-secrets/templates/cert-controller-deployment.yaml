@@ -68,7 +68,7 @@ spec:
             {{- end }}
           {{- end }}
           ports:
-            - containerPort: {{ .Values.certController.metrics.service.port }}
+            - containerPort: {{ .Values.certController.metrics.listen.port }}
               protocol: TCP
               name: metrics
           readinessProbe:
