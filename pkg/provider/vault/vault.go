@@ -522,7 +522,7 @@ func (v *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 			return fmt.Errorf("secret not managed by external-secrets")
 		}
 	}
-	// Remove the metadata map to check the reconcile differance
+	// Remove the metadata map to check the reconcile difference
 	if v.store.Version == esv1beta1.VaultKVStoreV1 {
 		delete(vaultSecret, "custom_metadata")
 	}
