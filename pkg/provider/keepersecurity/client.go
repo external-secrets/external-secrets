@@ -162,6 +162,10 @@ func (c *Client) Close(_ context.Context) error {
 }
 
 func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	if data.GetSecretKey() == "" {
+		return fmt.Errorf("pushing the whole secret is not yet implemented")
+	}
+
 	value := secret.Data[data.GetSecretKey()]
 	parts, err := c.buildSecretNameAndKey(data)
 	if err != nil {

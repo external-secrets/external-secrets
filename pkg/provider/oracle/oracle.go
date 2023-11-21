@@ -95,6 +95,10 @@ const (
 )
 
 func (vms *VaultManagementService) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	if data.GetSecretKey() == "" {
+		return fmt.Errorf("pushing the whole secret is not yet implemented")
+	}
+
 	value := secret.Data[data.GetSecretKey()]
 	secretName := data.GetRemoteKey()
 	encodedValue := base64.StdEncoding.EncodeToString(value)

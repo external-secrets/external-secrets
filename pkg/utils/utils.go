@@ -32,13 +32,22 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	template "github.com/external-secrets/external-secrets/pkg/template/v2"
+	"github.com/external-secrets/external-secrets/pkg/template/v2"
 )
 
 const (
 	errParse   = "unable to parse transform template: %s"
 	errExecute = "unable to execute transform template: %s"
 )
+
+// JSONMarshal takes an interface and returns a new escaped and encoded byte slice.
+func JSONMarshal(t interface{}) ([]byte, error) {
+	buffer := &bytes.Buffer{}
+	encoder := json.NewEncoder(buffer)
+	encoder.SetEscapeHTML(false)
+	err := encoder.Encode(t)
+	return bytes.TrimRight(buffer.Bytes(), "\n"), err
+}
 
 // MergeByteMap merges map of byte slices.
 func MergeByteMap(dst, src map[string][]byte) map[string][]byte {
