@@ -2095,6 +2095,13 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#pushing-the-whole-secret" class="md-nav__link">
+    Pushing the whole secret
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2142,6 +2149,56 @@
 <p>An interesting use case for <code>kind=PushSecret</code> is backing up your current secret from one provider to another one.</p>
 <p>Imagine you have your secrets in GCP and you want to back them up in Azure Key Vault. You would then create a <code>SecretStore</code> for each provider, and an <code>ExternalSecret</code> to pull the secrets from GCP. This will generetae <code>kind=Secret</code> in your cluster that you can use as the source of a <code>PushSecret</code> configured with the Azure <code>SecretStore</code>. </p>
 <p><img alt="PushSecretBackup" src="../../pictures/diagrams-pushsecret-backup.png" /></p>
+<h2 id="pushing-the-whole-secret">Pushing the whole secret</h2>
+<p>There are two ways to push an entire secret without defining all keys individually.</p>
+<p>By leaving off the secret key and remote property options.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pushsecret-example</span><span class="w"> </span><span class="c1"># Customisable</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span><span class="w"> </span><span class="c1"># Same of the SecretStores</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">deletionPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Delete</span><span class="w"> </span><span class="c1"># the provider&#39; secret will be deleted if the PushSecret is deleted</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10s</span><span class="w"> </span><span class="c1"># Refresh interval for which push secret will reconcile</span>
+<span class="w">  </span><span class="nt">secretStoreRefs</span><span class="p">:</span><span class="w"> </span><span class="c1"># A list of secret stores to push secrets to</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-parameterstore</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">secret</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pokedex-credentials</span><span class="w"> </span><span class="c1"># Source Kubernetes secret to be pushed</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-first-parameter</span><span class="w"> </span><span class="c1"># Remote reference (where the secret is going to be pushed)</span>
+</code></pre></div>
+<p>This will result in all keys being pushed as they are into the remote location.</p>
+<p>By leaving off the secret key but setting the remote property option.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pushsecret-example</span><span class="w"> </span><span class="c1"># Customisable</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span><span class="w"> </span><span class="c1"># Same of the SecretStores</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">deletionPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Delete</span><span class="w"> </span><span class="c1"># the provider&#39; secret will be deleted if the PushSecret is deleted</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10s</span><span class="w"> </span><span class="c1"># Refresh interval for which push secret will reconcile</span>
+<span class="w">  </span><span class="nt">secretStoreRefs</span><span class="p">:</span><span class="w"> </span><span class="c1"># A list of secret stores to push secrets to</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-parameterstore</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">secret</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pokedex-credentials</span><span class="w"> </span><span class="c1"># Source Kubernetes secret to be pushed</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">best-pokemon</span><span class="w"> </span><span class="c1"># Source Kubernetes secret key to be pushed</span>
+<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-first-parameter</span><span class="w"> </span><span class="c1"># Remote reference (where the secret is going to be pushed)</span>
+<span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">single-value-secret</span><span class="w"> </span><span class="c1"># the property to use to push into</span>
+</code></pre></div>
+<p>This will <em>marshal</em> the entire secret data and push it into this single property as a JSON object.</p>
+<div class="admonition warning inline end">
+<p class="admonition-title">Warning</p>
+<p>This should <em>ONLY</em> be done if the secret data is marshal-able. Values like, binary data cannot be marshaled and will result in error or invalid secret data.</p>
+</div>
 
 
   
