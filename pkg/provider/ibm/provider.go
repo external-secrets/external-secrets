@@ -18,7 +18,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -565,35 +564,12 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 func byteArrayMap(secretData map[string]interface{}, secretMap map[string][]byte) map[string][]byte {
 	var err error
 	for k, v := range secretData {
-		secretMap[k], err = getTypedKey(v)
+		secretMap[k], err = utils.GetByteValue(v)
 		if err != nil {
 			return nil
 		}
 	}
 	return secretMap
-}
-
-// kudos Vault Provider - convert from various types.
-func getTypedKey(v interface{}) ([]byte, error) {
-	switch t := v.(type) {
-	case string:
-		return []byte(t), nil
-	case map[string]interface{}:
-		return json.Marshal(t)
-	case map[string]string:
-		return json.Marshal(t)
-	case []byte:
-		return t, nil
-		// also covers int and float32 due to json.Marshal
-	case float64:
-		return []byte(strconv.FormatFloat(t, 'f', -1, 64)), nil
-	case bool:
-		return []byte(strconv.FormatBool(t)), nil
-	case nil:
-		return []byte(nil), nil
-	default:
-		return nil, fmt.Errorf("secret not in expected format")
-	}
 }
 
 func (ibm *providerIBM) Close(_ context.Context) error {
