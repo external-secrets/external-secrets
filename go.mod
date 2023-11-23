@@ -72,9 +72,11 @@ require (
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.4
 	github.com/aliyun/credentials-go v1.3.2
 	github.com/avast/retry-go/v4 v4.5.1
+	github.com/bradleyfalzon/ghinstallation/v2 v2.8.0
 	github.com/cyberark/conjur-api-go v0.11.1
 	github.com/go-openapi/strfmt v0.21.7
 	github.com/golang-jwt/jwt/v5 v5.1.0
+	github.com/google/go-github/v56 v56.0.0
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/hashicorp/vault/api/auth/aws v0.5.0
 	github.com/hashicorp/vault/api/auth/userpass v0.5.0
