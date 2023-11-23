@@ -92,6 +92,14 @@ Here's a more restrictive version of the IAM policy:
 
 In this policy, the DeleteSecret action is restricted to secrets that have the specified tag, ensuring that deletion operations are more controlled and in line with the intended management of the secrets.
 
+#### Additional Settings for PushSecret
+
+Additional settings can be set at the `SecretStore` level to control the behavior of `PushSecret` when interacting with AWS Secrets Manager.
+
+```yaml
+{% include 'aws-sm-store-secretsmanager-config.yaml' %}
+```
+
 ### JSON Secret Values
 
 SecretsManager supports *simple* key/value pairs that are stored as json. If you use the API you can store more complex JSON objects. You can access nested values or arrays using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md):

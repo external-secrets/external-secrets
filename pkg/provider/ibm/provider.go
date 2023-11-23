@@ -27,7 +27,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -124,12 +123,12 @@ func (c *client) setAuth(ctx context.Context) error {
 	return nil
 }
 
-func (ibm *providerIBM) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
+func (ibm *providerIBM) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
 // Not Implemented PushSecret.
-func (ibm *providerIBM) PushSecret(_ context.Context, _ []byte, _ corev1.SecretType, _ *apiextensionsv1.JSON, _ esv1beta1.PushRemoteRef) error {
+func (ibm *providerIBM) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
 	return fmt.Errorf("not implemented")
 }
 

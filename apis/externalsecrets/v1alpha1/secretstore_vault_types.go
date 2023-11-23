@@ -64,7 +64,7 @@ type VaultProvider struct {
 	// for fetching secrets from Vault is optional and will be appended
 	// if not present in specified path.
 	// +optional
-	Path *string `json:"path"`
+	Path *string `json:"path,omitempty"`
 
 	// Version is the Vault KV secret engine version. This can be either "v1" or
 	// "v2". Version defaults to "v2".
@@ -235,7 +235,7 @@ type VaultJwtAuth struct {
 	// Role is a JWT role to authenticate using the JWT/OIDC Vault
 	// authentication method
 	// +optional
-	Role string `json:"role"`
+	Role string `json:"role,omitempty"`
 
 	// Optional SecretRef that refers to a key in a Secret resource containing JWT token to
 	// authenticate with Vault using the JWT/OIDC authentication method.

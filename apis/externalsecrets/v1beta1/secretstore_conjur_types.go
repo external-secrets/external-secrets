@@ -27,9 +27,9 @@ type ConjurProvider struct {
 
 type ConjurAuth struct {
 	// +optional
-	Apikey *ConjurApikey `json:"apikey"`
+	Apikey *ConjurApikey `json:"apikey,omitempty"`
 	// +optional
-	Jwt *ConjurJWT `json:"jwt"`
+	Jwt *ConjurJWT `json:"jwt,omitempty"`
 }
 
 type ConjurApikey struct {
@@ -52,5 +52,5 @@ type ConjurJWT struct {
 	// Optional ServiceAccountRef specifies the Kubernetes service account for which to request
 	// a token for with the `TokenRequest` API.
 	// +optional
-	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef"`
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }

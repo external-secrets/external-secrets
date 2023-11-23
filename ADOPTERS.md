@@ -3,6 +3,7 @@
 <!-- Add yourself here if you are using ESO in your company or your project! -->
 
 - [Amadeus](https://amadeus.com/)
+- [Codefresh](https://codefresh.io/)
 - [Container Solutions](http://container-solutions.com/)
 - [DaangnPay](https://www.daangnpay.com/)
 - [Epidemic Sound](https://www.epidemicsound.com/)

@@ -29,6 +29,7 @@ import (
 
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
 
 const (
@@ -560,7 +561,7 @@ func TestDeleteSecret(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		ref    esv1beta1.PushRemoteRef
+		ref    esv1beta1.PushSecretRemoteRef
 
 		wantSecretMap map[string]*v1.Secret
 		wantErr       bool
@@ -730,21 +731,21 @@ func TestDeleteSecret(t *testing.T) {
 }
 
 func TestPushSecret(t *testing.T) {
+	secretKey := "secret-key"
 	type fields struct {
-		Client    KClient
-		PushType  v1.SecretType
-		PushValue string
+		Client KClient
 	}
 	tests := []struct {
 		name   string
 		fields fields
-		ref    esv1beta1.PushRemoteRef
+		data   testingfake.PushSecretData
+		secret *v1.Secret
 
 		wantSecretMap map[string]*v1.Secret
 		wantErr       bool
 	}{
 		{
-			name: "refuse to work without property",
+			name: "refuse to work without property if secret key is provided",
 			fields: fields{
 				Client: &fakeClient{
 					t: t,
@@ -756,10 +757,13 @@ func TestPushSecret(t *testing.T) {
 						},
 					},
 				},
-				PushValue: "bar",
 			},
-			ref: v1alpha1.PushSecretRemoteRef{
+			data: testingfake.PushSecretData{
+				SecretKey: secretKey,
 				RemoteKey: "mysec",
+			},
+			secret: &v1.Secret{
+				Data: map[string][]byte{secretKey: []byte("bar")},
 			},
 			wantErr: true,
 			wantSecretMap: map[string]*v1.Secret{
@@ -767,6 +771,121 @@ func TestPushSecret(t *testing.T) {
 					Data: map[string][]byte{
 						"token": []byte(`foo`),
 					},
+				},
+			},
+		},
+		{
+			name: "push the whole secret if neither remote property or secretKey is defined but keep existing keys",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"token": []byte(`foo`),
+							},
+						},
+					},
+				},
+			},
+			data: testingfake.PushSecretData{
+				RemoteKey: "mysec",
+			},
+			secret: &v1.Secret{
+				Data: map[string][]byte{"token2": []byte("foo")},
+			},
+			wantSecretMap: map[string]*v1.Secret{
+				"mysec": {
+					Data: map[string][]byte{
+						"token":  []byte(`foo`),
+						"token2": []byte(`foo`),
+					},
+				},
+			},
+		},
+		{
+			name: "push the whole secret while secret exists into a single property",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"token": []byte(`foo`),
+							},
+						},
+					},
+				},
+			},
+			data: testingfake.PushSecretData{
+				RemoteKey: "mysec",
+				Property:  "token",
+			},
+			secret: &v1.Secret{
+				Data: map[string][]byte{"foo": []byte("bar")},
+			},
+			wantSecretMap: map[string]*v1.Secret{
+				"mysec": {
+					Data: map[string][]byte{
+						"token": []byte(`{"foo":"bar"}`),
+					},
+				},
+			},
+		},
+		{
+			name: "push the whole secret while secret exists but new property is defined should update the secret and keep existing key",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"token": []byte(`foo`),
+							},
+						},
+					},
+				},
+			},
+			data: testingfake.PushSecretData{
+				RemoteKey: "mysec",
+				Property:  "token2",
+			},
+			secret: &v1.Secret{
+				Data: map[string][]byte{"foo": []byte("bar")},
+			},
+			wantSecretMap: map[string]*v1.Secret{
+				"mysec": {
+					Data: map[string][]byte{
+						"token":  []byte(`foo`),
+						"token2": []byte(`{"foo":"bar"}`),
+					},
+				},
+			},
+		},
+		{
+			name: "push the whole secret as json if remote property is defined but secret key is not given",
+			fields: fields{
+				Client: &fakeClient{
+					t:         t,
+					secretMap: map[string]*v1.Secret{},
+				},
+			},
+			data: testingfake.PushSecretData{
+				RemoteKey: "mysec",
+				Property:  "marshaled",
+			},
+			secret: &v1.Secret{
+				Data: map[string][]byte{
+					"token":  []byte("foo"),
+					"token2": []byte("2"),
+				},
+			},
+			wantSecretMap: map[string]*v1.Secret{
+				"mysec": {
+					Data: map[string][]byte{
+						"marshaled": []byte(`{"token":"foo","token2":"2"}`),
+					},
+					Type: "Opaque",
 				},
 			},
 		},
@@ -783,9 +902,12 @@ func TestPushSecret(t *testing.T) {
 						},
 					},
 				},
-				PushValue: "bar",
 			},
-			ref: v1alpha1.PushSecretRemoteRef{
+			secret: &v1.Secret{
+				Data: map[string][]byte{secretKey: []byte("bar")},
+			},
+			data: testingfake.PushSecretData{
+				SecretKey: secretKey,
 				RemoteKey: "mysec",
 				Property:  "secret",
 			},
@@ -812,9 +934,12 @@ func TestPushSecret(t *testing.T) {
 						},
 					},
 				},
-				PushValue: "bar",
 			},
-			ref: v1alpha1.PushSecretRemoteRef{
+			secret: &v1.Secret{
+				Data: map[string][]byte{secretKey: []byte("bar")},
+			},
+			data: testingfake.PushSecretData{
+				SecretKey: secretKey,
 				RemoteKey: "mysec",
 				Property:  "token",
 			},
@@ -840,9 +965,12 @@ func TestPushSecret(t *testing.T) {
 						},
 					},
 				},
-				PushValue: "bar",
 			},
-			ref: v1alpha1.PushSecretRemoteRef{
+			secret: &v1.Secret{
+				Data: map[string][]byte{secretKey: []byte("bar")},
+			},
+			data: testingfake.PushSecretData{
+				SecretKey: secretKey,
 				RemoteKey: "mysec",
 				Property:  "secret",
 			},
@@ -874,10 +1002,13 @@ func TestPushSecret(t *testing.T) {
 						},
 					},
 				},
-				PushType:  v1.SecretTypeDockerConfigJson,
-				PushValue: `{"auths": {"myregistry.localhost": {"username": "{{ .username }}", "password": "{{ .password }}"}}}`,
 			},
-			ref: v1alpha1.PushSecretRemoteRef{
+			secret: &v1.Secret{
+				Type: v1.SecretTypeDockerConfigJson,
+				Data: map[string][]byte{secretKey: []byte(`{"auths": {"myregistry.localhost": {"username": "{{ .username }}", "password": "{{ .password }}"}}}`)},
+			},
+			data: testingfake.PushSecretData{
+				SecretKey: secretKey,
 				RemoteKey: "mysec",
 				Property:  "config.json",
 			},
@@ -902,9 +1033,9 @@ func TestPushSecret(t *testing.T) {
 				userSecretClient: tt.fields.Client,
 				store:            &esv1beta1.KubernetesProvider{},
 			}
-			err := p.PushSecret(context.Background(), []byte(tt.fields.PushValue), tt.fields.PushType, nil, tt.ref)
+			err := p.PushSecret(context.Background(), tt.secret, tt.data)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("ProviderKubernetes.DeleteSecret() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("ProviderKubernetes error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 

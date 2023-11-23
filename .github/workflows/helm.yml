@@ -36,9 +36,7 @@ jobs:
           python-version: 3.7
 
       - name: Set up chart-testing
-        # before upgrading, please see if this has been fixed:
-        # https://github.com/helm/chart-testing-action/issues/132
-        uses: helm/chart-testing-action@v2.3.1
+        uses: helm/chart-testing-action@v2.6.1
 
       - name: Run chart-testing (list-changed)
         id: list-changed
@@ -87,7 +85,7 @@ jobs:
         run: |
           make helm.generate
       - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.5.0
+        uses: helm/chart-releaser-action@v1.6.0
         if: |
           github.ref == 'refs/heads/main' ||
           startsWith(github.ref, 'refs/heads/release-')
