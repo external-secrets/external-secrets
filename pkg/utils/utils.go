@@ -238,15 +238,15 @@ func MergeStringMap(dest, src map[string]string) {
 	}
 }
 
-const (
-	errUnexpectedKey = "unexpected key in data: %s"
-	errSecretType    = "can not handle secret value with type %T"
+var (
+	ErrUnexpectedKey = errors.New("unexpected key in data")
+	ErrSecretType    = errors.New("can not handle secret value with type")
 )
 
 func GetByteValueFromMap(data map[string]interface{}, key string) ([]byte, error) {
 	v, ok := data[key]
 	if !ok {
-		return nil, fmt.Errorf(errUnexpectedKey, key)
+		return nil, fmt.Errorf("%w: %s", ErrUnexpectedKey, key)
 	}
 	return GetByteValue(v)
 }
@@ -272,7 +272,7 @@ func GetByteValue(v interface{}) ([]byte, error) {
 	case nil:
 		return []byte(nil), nil
 	default:
-		return nil, fmt.Errorf(errSecretType, t)
+		return nil, fmt.Errorf("%w: %T", ErrSecretType, t)
 	}
 }
 
