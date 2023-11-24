@@ -402,7 +402,9 @@ This approach assumes that appropriate IRSA setup is done controller's pod (i.e.
 Vault supports PushSecret features which allow you to sync a given Kubernetes secret key into a Hashicorp vault secret. To do so, it is expected that the secret key is a valid JSON object or that the `property` attribute has been specified under the `remoteRef`.
 To use PushSecret, you need to give `create`, `read` and `update` permissions to the path where you want to push secrets for both `data` and `metadata` of the secret. Use it with care!
 
-Important note: Since Vault KV v1 API is not supported with storing secrets metadata, PushSecret will add a custom metadata map to each secret in Vault that he will manage.
+!!! note
+     Since Vault KV v1 API is not supported with storing secrets metadata, PushSecret will add a `custom_metadata` map to each secret in Vault that he will manage. It means pushing secret keys named `custom_metadata` is not supported with Vault KV v1.
+
 
 Here is an example of how to set up `PushSecret`:
 
