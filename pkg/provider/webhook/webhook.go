@@ -168,7 +168,7 @@ func (w *WebHook) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDat
 
 // tries to extract data from an interface{}
 // it is supposed to return a single value.
-func extractSecretData(jsondata interface{}) ([]byte, error) {
+func extractSecretData(jsondata any) ([]byte, error) {
 	switch val := jsondata.(type) {
 	case bool:
 		return []byte(strconv.FormatBool(val)), nil
