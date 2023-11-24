@@ -15,10 +15,13 @@ package azure
 import (
 	"context"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault"
+	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/azure"
 	kvauth "github.com/Azure/go-autorest/autorest/azure/auth"
 
 	// nolint
@@ -32,6 +35,7 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	esoazkv "github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault"
 )
 
 type azureProvider struct {
@@ -43,30 +47,38 @@ type azureProvider struct {
 	framework    *framework.Framework
 }
 
-func newazureProvider(f *framework.Framework, clientID, clientSecret, tenantID, vaultURL string) *azureProvider {
-	clientCredentialsConfig := kvauth.NewClientCredentialsConfig(clientID, clientSecret, tenantID)
-	clientCredentialsConfig.Resource = "https://vault.azure.net"
+// newFromEnv creates a new Azure KeyVault e2e test provider
+// which uses client credentials flow to authenticate with azure.
+func newFromEnv(f *framework.Framework) *azureProvider {
+	vaultURL := os.Getenv("TFC_VAULT_URL")
+	tenantID := os.Getenv("TFC_AZURE_TENANT_ID")
+	clientID := os.Getenv("TFC_AZURE_CLIENT_ID")
+	clientSecret := os.Getenv("TFC_AZURE_CLIENT_SECRET")
+
 	basicClient := keyvault.New()
 	prov := &azureProvider{
 		framework:    f,
-		client:       &basicClient,
 		clientID:     clientID,
-		clientSecret: clientSecret,
 		tenantID:     tenantID,
 		vaultURL:     vaultURL,
+		client:       &basicClient,
+		clientSecret: clientSecret,
 	}
 
 	o := &sync.Once{}
 	BeforeEach(func() {
 		// run authorizor only if this spec is called
+		// this allows us to run OTHER providers using GINKGO_LABELS without bailing out
 		o.Do(func() {
+			defer GinkgoRecover()
+			clientCredentialsConfig := kvauth.NewClientCredentialsConfig(clientID, clientSecret, tenantID)
+			clientCredentialsConfig.Resource = "https://vault.azure.net"
 			authorizer, err := clientCredentialsConfig.Authorizer()
 			if err != nil {
 				Fail(err.Error())
 			}
 			prov.client.Authorizer = authorizer
 		})
-		prov.CreateSecretStoreWithWI()
 		prov.CreateSecretStore()
 		prov.CreateReferentSecretStore()
 	})
@@ -74,12 +86,51 @@ func newazureProvider(f *framework.Framework, clientID, clientSecret, tenantID, 
 	return prov
 }
 
-func newFromEnv(f *framework.Framework) *azureProvider {
-	vaultURL := os.Getenv("VAULT_URL")
-	tenantID := os.Getenv("TENANT_ID")
+// create a new provider from workload identity
+// the azwi webhook injects `AZURE_*` env vars into the container.
+// we use these credentials to authenticate with azure using the federated token flow.
+// please see here for details: https://azure.github.io/azure-workload-identity/docs/quick-start.html
+func newFromWorkloadIdentity(f *framework.Framework) *azureProvider {
+	// from azwi webhook
+	tenantID := os.Getenv("AZURE_TENANT_ID")
 	clientID := os.Getenv("AZURE_CLIENT_ID")
-	clientSecret := os.Getenv("AZURE_CLIENT_SECRET")
-	return newazureProvider(f, clientID, clientSecret, tenantID, vaultURL)
+	tokenFilePath := os.Getenv("AZURE_FEDERATED_TOKEN_FILE")
+
+	// from run.sh
+	vaultURL := "https://eso-testing.vault.azure.net/"
+
+	basicClient := keyvault.New()
+	prov := &azureProvider{
+		framework: f,
+		client:    &basicClient,
+		clientID:  clientID,
+		tenantID:  tenantID,
+		vaultURL:  vaultURL,
+	}
+
+	o := &sync.Once{}
+	BeforeEach(func() {
+		prov.CreateSecretStoreWithWI()
+		// run authorizor only if this spec is called
+		o.Do(func() {
+			defer GinkgoRecover()
+			token, err := os.ReadFile(tokenFilePath)
+			if err != nil {
+				Fail(err.Error())
+			}
+
+			// exchange the federated token for an access token
+			aadEndpoint := esoazkv.AadEndpointForType(esv1beta1.AzureEnvironmentPublicCloud)
+			kvResource := strings.TrimSuffix(azure.PublicCloud.KeyVaultEndpoint, "/")
+			tokenProvider, err := esoazkv.NewTokenProvider(context.Background(), string(token), clientID, tenantID, aadEndpoint, kvResource)
+			if err != nil {
+				Fail(err.Error())
+			}
+			basicClient.Authorizer = autorest.NewBearerAuthorizer(tokenProvider)
+		})
+	})
+
+	return prov
 }
 
 func (s *azureProvider) CreateSecret(key string, val framework.SecretEntry) {
