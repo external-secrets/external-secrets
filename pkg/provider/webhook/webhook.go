@@ -185,7 +185,7 @@ func extractSecretData(jsondata any) ([]byte, error) {
 
 	// due to backwards compatibility we must keep this!
 	// in case we see a []something we pick the first element and return it
-	case []interface{}:
+	case []any:
 		if len(val) == 0 {
 			return nil, fmt.Errorf("filter worked but didn't get any result")
 		}
