@@ -30,7 +30,6 @@ import (
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
-	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -154,7 +153,7 @@ func (w *WebHook) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDat
 	}
 	if resultJSONPath != "" {
 		jsondata := interface{}(nil)
-		if err := yaml.Unmarshal(result, &jsondata); err != nil {
+		if err := json.Unmarshal(result, &jsondata); err != nil {
 			return nil, fmt.Errorf("failed to parse response json: %w", err)
 		}
 		jsondata, err = jsonpath.Get(resultJSONPath, jsondata)
@@ -214,7 +213,7 @@ func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecret
 
 	// We always want json here, so just parse it out
 	jsondata := interface{}(nil)
-	if err := yaml.Unmarshal(result, &jsondata); err != nil {
+	if err := json.Unmarshal(result, &jsondata); err != nil {
 		return nil, fmt.Errorf("failed to parse response json: %w", err)
 	}
 	// Get subdata via jsonpath, if given
@@ -229,7 +228,7 @@ func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecret
 	if ok {
 		// This could also happen if the response was a single json-encoded string
 		// but that is an extremely unlikely scenario
-		if err := yaml.Unmarshal([]byte(jsonstring), &jsondata); err != nil {
+		if err := json.Unmarshal([]byte(jsonstring), &jsondata); err != nil {
 			return nil, fmt.Errorf("failed to parse response json from jsonpath: %w", err)
 		}
 	}

@@ -200,10 +200,8 @@ args:
   response: 'some simple string'
 want:
   path: /api/getsecret?id=testkey&version=1
-  err: failed to get response (wrong type
-  resultmap:
-    thesecret: secret-value
-    alsosecret: another-value
+  err: "failed to parse response json: invalid character"
+  resultmap: {}
 ---
 case: error json map
 args:
@@ -214,10 +212,8 @@ args:
   response: '{"result":{"thesecret":"secret-value","alsosecret":"another-value"}}'
 want:
   path: /api/getsecret?id=testkey&version=1
-  err: failed to get response (wrong type
-  resultmap:
-    thesecret: secret-value
-    alsosecret: another-value
+  err: "failed to parse response json from jsonpath"
+  resultmap: {}
 ---
 case: good json with good templated jsonpath
 args:
@@ -290,6 +286,18 @@ want:
   path: /api/getsecret?id=testkey&version=1
   err: ''
   result: 123
+---
+case: support backslash
+args:
+  url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}
+  key: testkey
+  version: 1
+  jsonpath: $.refresh_token
+  response: '{"access_token":"REDACTED","refresh_token":"RE\/DACTED=="}'
+want:
+  path: /api/getsecret?id=testkey&version=1
+  err: ''
+  result: "RE/DACTED=="
 `
 
 func TestWebhookGetSecret(t *testing.T) {
