@@ -119,7 +119,7 @@ want:
   path: /api/getsecret?id=testkey&version=1
   err: failed to get response path
 ---
-case: error bad json data
+case: pull data out of map
 args:
   url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}
   key: testkey
@@ -128,7 +128,8 @@ args:
   response: '{"result":{"thesecret":{"one":"secret-value"}}}'
 want:
   path: /api/getsecret?id=testkey&version=1
-  err: failed to get response (wrong type
+  err: ''
+  result: '{"one":"secret-value"}'
 ---
 case: error timeout
 args:
@@ -199,10 +200,8 @@ args:
   response: 'some simple string'
 want:
   path: /api/getsecret?id=testkey&version=1
-  err: failed to get response (wrong type
-  resultmap:
-    thesecret: secret-value
-    alsosecret: another-value
+  err: "failed to parse response json: invalid character"
+  resultmap: {}
 ---
 case: error json map
 args:
@@ -213,10 +212,8 @@ args:
   response: '{"result":{"thesecret":"secret-value","alsosecret":"another-value"}}'
 want:
   path: /api/getsecret?id=testkey&version=1
-  err: failed to get response (wrong type
-  resultmap:
-    thesecret: secret-value
-    alsosecret: another-value
+  err: "failed to parse response json from jsonpath"
+  resultmap: {}
 ---
 case: good json with good templated jsonpath
 args:
@@ -265,6 +262,42 @@ args:
 want:
   path: /api/getsecret?id=testkey&version=1
   err: "filter worked but didn't get any result"
+---
+case: success with jsonpath filter and result array
+args:
+  url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}
+  key: testkey
+  version: 1
+  jsonpath: $..name
+  response: '{"secrets": [{"name": "thesecret", "value": "secret-value"}, {"name": "alsosecret", "value": "another-value"}]}'
+want:
+  path: /api/getsecret?id=testkey&version=1
+  err: ''
+  result: 'thesecret'
+---
+case: success with jsonpath filter and result array of ints
+args:
+  url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}
+  key: testkey
+  version: 1
+  jsonpath: $..name
+  response: '{"secrets": [{"name": 123, "value": "secret-value"}, {"name": 456, "value": "another-value"}]}'
+want:
+  path: /api/getsecret?id=testkey&version=1
+  err: ''
+  result: 123
+---
+case: support backslash
+args:
+  url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}
+  key: testkey
+  version: 1
+  jsonpath: $.refresh_token
+  response: '{"access_token":"REDACTED","refresh_token":"RE\/DACTED=="}'
+want:
+  path: /api/getsecret?id=testkey&version=1
+  err: ''
+  result: "RE/DACTED=="
 `
 
 func TestWebhookGetSecret(t *testing.T) {

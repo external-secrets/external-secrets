@@ -24,8 +24,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"reflect"
-	"strconv"
 	"strings"
 	"time"
 
@@ -89,7 +87,6 @@ const (
 	errDataField                    = "failed to find data field"
 	errJSONUnmarshall               = "failed to unmarshall JSON"
 	errPathInvalid                  = "provided Path isn't a valid kv v2 path"
-	errSecretFormat                 = "secret data for property %s not in expected format: %s"
 	errUnexpectedKey                = "unexpected key in data: %s"
 	errVaultToken                   = "cannot parse Vault authentication token: %w"
 	errVaultRequest                 = "error from Vault request: %w"
@@ -758,7 +755,7 @@ func (v *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	// actual keys to take precedence over gjson syntax
 	// (2): extract key from secret with property
 	if _, ok := data[ref.Property]; ok {
-		return GetTypedKey(data, ref.Property)
+		return utils.GetByteValueFromMap(data, ref.Property)
 	}
 
 	// (3): extract key from secret using gjson
@@ -785,43 +782,13 @@ func (v *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 	}
 	byteMap := make(map[string][]byte, len(secretData))
 	for k := range secretData {
-		byteMap[k], err = GetTypedKey(secretData, k)
+		byteMap[k], err = utils.GetByteValueFromMap(secretData, k)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	return byteMap, nil
-}
-
-func GetTypedKey(data map[string]interface{}, key string) ([]byte, error) {
-	v, ok := data[key]
-	if !ok {
-		return nil, fmt.Errorf(errUnexpectedKey, key)
-	}
-	switch t := v.(type) {
-	case string:
-		return []byte(t), nil
-	case map[string]interface{}:
-		return json.Marshal(t)
-	case []string:
-		return []byte(strings.Join(t, "\n")), nil
-	case []byte:
-		return t, nil
-	// also covers int and float32 due to json.Marshal
-	case float64:
-		return []byte(strconv.FormatFloat(t, 'f', -1, 64)), nil
-	case json.Number:
-		return []byte(t.String()), nil
-	case []interface{}:
-		return json.Marshal(t)
-	case bool:
-		return []byte(strconv.FormatBool(t)), nil
-	case nil:
-		return []byte(nil), nil
-	default:
-		return nil, fmt.Errorf(errSecretFormat, key, reflect.TypeOf(t))
-	}
 }
 
 func (v *client) Close(ctx context.Context) error {

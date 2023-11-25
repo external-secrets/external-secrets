@@ -25,6 +25,7 @@ import (
 	"net/url"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	tpl "text/template"
 	"time"
@@ -234,6 +235,44 @@ func convert(strategy esv1beta1.ExternalSecretConversionStrategy, str string) st
 func MergeStringMap(dest, src map[string]string) {
 	for k, v := range src {
 		dest[k] = v
+	}
+}
+
+var (
+	ErrUnexpectedKey = errors.New("unexpected key in data")
+	ErrSecretType    = errors.New("can not handle secret value with type")
+)
+
+func GetByteValueFromMap(data map[string]interface{}, key string) ([]byte, error) {
+	v, ok := data[key]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrUnexpectedKey, key)
+	}
+	return GetByteValue(v)
+}
+func GetByteValue(v interface{}) ([]byte, error) {
+	switch t := v.(type) {
+	case string:
+		return []byte(t), nil
+	case map[string]interface{}:
+		return json.Marshal(t)
+	case []string:
+		return []byte(strings.Join(t, "\n")), nil
+	case []byte:
+		return t, nil
+	// also covers int and float32 due to json.Marshal
+	case float64:
+		return []byte(strconv.FormatFloat(t, 'f', -1, 64)), nil
+	case json.Number:
+		return []byte(t.String()), nil
+	case []interface{}:
+		return json.Marshal(t)
+	case bool:
+		return []byte(strconv.FormatBool(t)), nil
+	case nil:
+		return []byte(nil), nil
+	default:
+		return nil, fmt.Errorf("%w: %T", ErrSecretType, t)
 	}
 }
 
