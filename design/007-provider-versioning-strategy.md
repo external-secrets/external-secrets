@@ -52,7 +52,7 @@ sequenceDiagram
 An example of how this implementation would look like is available on [here](https://github.com/external-secrets/external-secrets/tree/feature/new-provider-structure)
 ### Example Implementations
 Fake Provider Basic Convert function (very similar to other ):
-```
+```go
 func (p *Provider) Convert(in esv1beta1.GenericStore) (client.Object, error) {
 	out := &prov.Fake{}
 	tmp := map[string]interface{}{
@@ -156,6 +156,7 @@ func (g *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 Client Manager reconciler changes:
 
 ```go
+func (m *Manager) GetFromStore(ctx context.Context, store esv1beta1.GenericStore, namespace string) (esv1beta1.SecretsClient, error) {
 	var storeProvider esv1beta1.Provider
 	var err error
 	var spec client.Object
@@ -218,7 +219,7 @@ Client Manager reconciler changes:
 		store:  store,
 	}
 	return secretClient, nil
-
+}
 ```
 
 ### Benefits
