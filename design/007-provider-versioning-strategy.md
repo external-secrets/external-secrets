@@ -26,18 +26,27 @@ The Following diagram shows how the new sequence would work:
 ```mermaid
 sequenceDiagram
   Reconciler ->> ClientManager: GetClient
+  ClientManager ->> Store: GetProviderRef
+  Store ->> ClientManager: Ref
   alt ProviderRef defined:
-  ClientManager ->> Schema: GetProviderFromRef
-  Schema ->> ClientManager: Provider
-  ClientManager ->> Provider: NewClientFromRef
+  ClientManager ->> ClientManager: GetProviderSpecFromK8s
+  ClientManager ->> Provider: ApplyReferent(spec)
+  Provider ->> ClientManager: spec
+  ClientManager ->> Provider: NewClientFromObj(spec)
   Provider ->> ClientManager: Client
   else ProviderRef not defined:
-  ClientManager ->> Schema: GetProviderFromStore
-  Schema ->> ClientManager: Provider
-  ClientManager ->> Provider: NewClient
+  ClientManager ->> Provider: Convert(store)
+  alt Convert succeeded:
+  Provider ->> ClientManager: Spec
+  ClientManager ->> Provider: ApplyReferent(spec)
+  Provider ->> ClientManager: spec
+  ClientManager ->> Provider: NewClientFromObj(spec)
+  Provider ->> ClientManager: Client
+  else Convert Failed:
+  ClientManager ->> Provider: NewClientFromStore(spec)
   Provider ->> ClientManager: Client
   end
-  ClientManager ->> Reconciler: Client
+  end
 ```
 An example of how this implementation would look like is available on [here](https://github.com/external-secrets/external-secrets/tree/feature/new-provider-structure)
 ### Benefits
@@ -45,10 +54,9 @@ An example of how this implementation would look like is available on [here](htt
 * We can add conversion to provider versions gradually as well
 * We can have multiple providers on different support versions (e.g. for community-maintained to be always on `v1alpha1`)
 * Users can opt out of providers  they don't use, making the runtime footprint smaller.
-
+* Referent Authentication setting is now ran by the Client Manager (easier to handle)
+* We can manage separately provider versions via the `Convert` method
 ### Drawbacks
 * Complexity
-* We would need to duplicate validation across providers
-* Referent Authentication would still need a ClusterSecretStore (if possible)
 * Secrets Management is still done on the provider code.
 
