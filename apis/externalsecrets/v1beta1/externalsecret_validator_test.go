@@ -21,14 +21,14 @@ import (
 
 func TestValidateExternalSecret(t *testing.T) {
 	tests := []struct {
-		name    string
-		obj     runtime.Object
-		wantErr bool
+		name        string
+		obj         runtime.Object
+		expectedErr string
 	}{
 		{
-			name:    "nil",
-			obj:     nil,
-			wantErr: true,
+			name:        "nil",
+			obj:         nil,
+			expectedErr: "unexpected type",
 		},
 		{
 			name: "deletion policy delete",
@@ -38,9 +38,12 @@ func TestValidateExternalSecret(t *testing.T) {
 						DeletionPolicy: DeletionPolicyDelete,
 						CreationPolicy: CreatePolicyMerge,
 					},
+					Data: []ExternalSecretData{
+						{},
+					},
 				},
 			},
-			wantErr: true,
+			expectedErr: "deletionPolicy=Delete must not be used when the controller doesn't own the secret. Please set creationPolicy=Owner",
 		},
 		{
 			name: "deletion policy merge",
@@ -50,9 +53,19 @@ func TestValidateExternalSecret(t *testing.T) {
 						DeletionPolicy: DeletionPolicyMerge,
 						CreationPolicy: CreatePolicyNone,
 					},
+					Data: []ExternalSecretData{
+						{},
+					},
 				},
 			},
-			wantErr: true,
+			expectedErr: "deletionPolicy=Merge must not be used with creationPolicy=None. There is no Secret to merge with",
+		},
+		{
+			name: "both data and data_from are empty",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{},
+			},
+			expectedErr: "either data or dataFrom should be specified",
 		},
 		{
 			name: "generator with find",
@@ -61,14 +74,14 @@ func TestValidateExternalSecret(t *testing.T) {
 					DataFrom: []ExternalSecretDataFromRemoteRef{
 						{
 							Find: &ExternalSecretFind{},
-							SourceRef: &SourceRef{
+							SourceRef: &StoreGeneratorSourceRef{
 								GeneratorRef: &GeneratorRef{},
 							},
 						},
 					},
 				},
 			},
-			wantErr: true,
+			expectedErr: "generator can not be used with find or extract",
 		},
 		{
 			name: "generator with extract",
@@ -77,28 +90,54 @@ func TestValidateExternalSecret(t *testing.T) {
 					DataFrom: []ExternalSecretDataFromRemoteRef{
 						{
 							Extract: &ExternalSecretDataRemoteRef{},
-							SourceRef: &SourceRef{
+							SourceRef: &StoreGeneratorSourceRef{
 								GeneratorRef: &GeneratorRef{},
 							},
 						},
 					},
 				},
 			},
-			wantErr: true,
+			expectedErr: "generator can not be used with find or extract",
+		},
+		{
+			name: "multiple errors",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					Target: ExternalSecretTarget{
+						DeletionPolicy: DeletionPolicyMerge,
+						CreationPolicy: CreatePolicyNone,
+					},
+				},
+			},
+			expectedErr: `deletionPolicy=Merge must not be used with creationPolicy=None. There is no Secret to merge with
+either data or dataFrom should be specified`,
 		},
 		{
 			name: "valid",
 			obj: &ExternalSecret{
 				Spec: ExternalSecretSpec{
-					DataFrom: []ExternalSecretDataFromRemoteRef{},
+					DataFrom: []ExternalSecretDataFromRemoteRef{
+						{},
+					},
 				},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if _, err := validateExternalSecret(tt.obj); (err != nil) != tt.wantErr {
-				t.Errorf("validateExternalSecret() error = %v, wantErr %v", err, tt.wantErr)
+			_, err := validateExternalSecret(tt.obj)
+			if err != nil {
+				if tt.expectedErr == "" {
+					t.Fatalf("validateExternalSecret() returned an unexpected error: %v", err)
+				}
+
+				if err.Error() != tt.expectedErr {
+					t.Fatalf("validateExternalSecret() returned an unexpected error: got: %v, expected: %v", err, tt.expectedErr)
+				}
+				return
+			}
+			if tt.expectedErr != "" {
+				t.Errorf("validateExternalSecret() should have returned an error but got nil")
 			}
 		})
 	}

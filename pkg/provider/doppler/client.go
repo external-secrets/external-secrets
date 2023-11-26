@@ -115,11 +115,11 @@ func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func (c *Client) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
+func (c *Client) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (c *Client) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
+func (c *Client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
 	return fmt.Errorf("not implemented")
 }
 

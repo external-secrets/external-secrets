@@ -17,6 +17,7 @@ package v1beta1
 import (
 	"context"
 
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -68,10 +69,10 @@ type SecretsClient interface {
 	GetSecret(ctx context.Context, ref ExternalSecretDataRemoteRef) ([]byte, error)
 
 	// PushSecret will write a single secret into the provider
-	PushSecret(ctx context.Context, value []byte, remoteRef PushRemoteRef) error
+	PushSecret(ctx context.Context, secret *corev1.Secret, data PushSecretData) error
 
 	// DeleteSecret will delete the secret from a provider
-	DeleteSecret(ctx context.Context, remoteRef PushRemoteRef) error
+	DeleteSecret(ctx context.Context, remoteRef PushSecretRemoteRef) error
 
 	// Validate checks if the client is configured correctly
 	// and is able to retrieve secrets from the provider.

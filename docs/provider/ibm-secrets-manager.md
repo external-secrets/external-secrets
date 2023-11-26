@@ -197,10 +197,16 @@ Below example creates a kubernetes secret based on ID of the secret in Secrets M
 {% include 'ibm-external-secret.yaml' %}
 ```
 
-Alternatively, secret name can be specified instead of secret ID. However, note that ESO makes an additional call to fetch the relevant secret ID for the specified secret name.
+Alternatively, the secret name along with its secret group name can be specified instead of secret ID to fetch the secret.
 
 ```yaml
 {% include 'ibm-external-secret-by-name.yaml' %}
+```
+
+Please note that the below mechanism to get the secret by name is deprecated and not supported.
+
+```yaml
+{% include 'ibm-external-secret-by-name-deprecated.yaml' %}
 ```
 
 ### Getting the Kubernetes secret

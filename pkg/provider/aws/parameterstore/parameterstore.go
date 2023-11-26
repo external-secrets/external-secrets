@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/tidwall/gjson"
+	corev1 "k8s.io/api/core/v1"
 	utilpointer "k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -34,6 +35,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -93,7 +95,7 @@ func (pm *ParameterStore) getTagsByName(ctx aws.Context, ref *ssm.GetParameterOu
 	return data.TagList, nil
 }
 
-func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
 	secretName := remoteRef.GetRemoteKey()
 	secretValue := ssm.GetParameterInput{
 		Name: &secretName,
@@ -130,12 +132,27 @@ func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	return nil
 }
 
-func (pm *ParameterStore) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
 	parameterType := "String"
 	overwrite := true
 
+	var (
+		value []byte
+		err   error
+	)
+	key := data.GetSecretKey()
+
+	if key == "" {
+		value, err = utils.JSONMarshal(secret.Data)
+		if err != nil {
+			return fmt.Errorf("failed to serialize secret content as JSON: %w", err)
+		}
+	} else {
+		value = secret.Data[key]
+	}
+
 	stringValue := string(value)
-	secretName := remoteRef.GetRemoteKey()
+	secretName := data.GetRemoteKey()
 
 	secretRequest := ssm.PutParameterInput{
 		Name:      &secretName,

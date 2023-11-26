@@ -152,12 +152,12 @@ func validateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-func (provider *ProviderOnePassword) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
+func (provider *ProviderOnePassword) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
 // Not Implemented PushSecret.
-func (provider *ProviderOnePassword) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
+func (provider *ProviderOnePassword) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
 	return fmt.Errorf("not implemented")
 }
 

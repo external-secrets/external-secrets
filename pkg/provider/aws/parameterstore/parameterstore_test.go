@@ -24,11 +24,13 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/google/go-cmp/cmp"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	fakeps "github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
+	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
 
 const (
@@ -45,18 +47,6 @@ type parameterstoreTestCase struct {
 	expectError    string
 	expectedSecret string
 	expectedData   map[string][]byte
-}
-
-type fakeRef struct {
-	key string
-}
-
-func (f fakeRef) GetRemoteKey() string {
-	return f.key
-}
-
-func (f fakeRef) GetProperty() string {
-	return ""
 }
 
 func makeValidParameterStoreTestCase() *parameterstoreTestCase {
@@ -247,7 +237,7 @@ func TestDeleteSecret(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			ref := fakeRef{key: "fake-key"}
+			ref := fake.PushSecretData{RemoteKey: "fake-key"}
 			ps := ParameterStore{
 				client: &tc.args.client,
 			}
@@ -273,7 +263,13 @@ func TestDeleteSecret(t *testing.T) {
 func TestPushSecret(t *testing.T) {
 	invalidParameters := errors.New(ssm.ErrCodeInvalidParameters)
 	alreadyExistsError := errors.New(ssm.ErrCodeAlreadyExistsException)
+	fakeSecretKey := "fakeSecretKey"
 	fakeValue := "fakeValue"
+	fakeSecret := &corev1.Secret{
+		Data: map[string][]byte{
+			fakeSecretKey: []byte(fakeValue),
+		},
+	}
 
 	managedByESO := ssm.Tag{
 		Key:   &managedBy,
@@ -431,11 +427,11 @@ func TestPushSecret(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			ref := fakeRef{key: "fake-key"}
+			psd := fake.PushSecretData{SecretKey: fakeSecretKey, RemoteKey: "fake-key"}
 			ps := ParameterStore{
 				client: &tc.args.client,
 			}
-			err := ps.PushSecret(context.TODO(), []byte(fakeValue), ref)
+			err := ps.PushSecret(context.TODO(), fakeSecret, psd)
 
 			// Error nil XOR tc.want.err nil
 			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {

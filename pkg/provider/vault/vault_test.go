@@ -34,6 +34,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 	utilfake "github.com/external-secrets/external-secrets/pkg/provider/util/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
@@ -248,6 +249,38 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			},
 			want: want{
 				err: errors.New(errVaultStore),
+			},
+		},
+		"InvalidRetrySettings": {
+			reason: "Should return error if given an invalid Retry Interval.",
+			args: args{
+				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
+					s.Spec.RetrySettings = &esv1beta1.SecretStoreRetrySettings{
+						MaxRetries:    pointer.To(int32(3)),
+						RetryInterval: pointer.To("not-an-interval"),
+					}
+				}),
+			},
+			want: want{
+				err: errors.New("time: invalid duration \"not-an-interval\""),
+			},
+		},
+		"ValidRetrySettings": {
+			reason: "Should return a Vault provider with custom retry settings",
+			args: args{
+				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
+					s.Spec.RetrySettings = &esv1beta1.SecretStoreRetrySettings{
+						MaxRetries:    pointer.To(int32(3)),
+						RetryInterval: pointer.To("10m"),
+					}
+				}),
+				ns:            "default",
+				kube:          clientfake.NewClientBuilder().Build(),
+				corev1:        utilfake.NewCreateTokenMock().WithToken("ok"),
+				newClientFunc: fake.ClientWithLoginMock,
+			},
+			want: want{
+				err: nil,
 			},
 		},
 		"AddVaultStoreCertsError": {
@@ -1636,19 +1669,6 @@ func TestValidateStore(t *testing.T) {
 	}
 }
 
-type fakeRef struct {
-	key      string
-	property string
-}
-
-func (f fakeRef) GetRemoteKey() string {
-	return f.key
-}
-
-func (f fakeRef) GetProperty() string {
-	return f.property
-}
-
 func TestDeleteSecret(t *testing.T) {
 	type args struct {
 		store    *esv1beta1.VaultProvider
@@ -1661,7 +1681,7 @@ func TestDeleteSecret(t *testing.T) {
 	tests := map[string]struct {
 		reason string
 		args   args
-		ref    *fakeRef
+		ref    *testingfake.PushSecretData
 		want   want
 		value  []byte
 	}{
@@ -1758,7 +1778,7 @@ func TestDeleteSecret(t *testing.T) {
 		},
 		"DeleteSecretUpdateProperty": {
 			reason: "Secret should only be updated if Property is set",
-			ref:    &fakeRef{key: "secret", property: "fake-key"},
+			ref:    &testingfake.PushSecretData{RemoteKey: "secret", Property: "fake-key"},
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
@@ -1781,7 +1801,7 @@ func TestDeleteSecret(t *testing.T) {
 		},
 		"DeleteSecretIfNoOtherProperties": {
 			reason: "Secret should only be deleted if no other properties are set",
-			ref:    &fakeRef{key: "secret", property: "foo"},
+			ref:    &testingfake.PushSecretData{RemoteKey: "secret", Property: "foo"},
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
@@ -1804,7 +1824,7 @@ func TestDeleteSecret(t *testing.T) {
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			ref := fakeRef{key: "secret", property: ""}
+			ref := testingfake.PushSecretData{RemoteKey: "secret", Property: ""}
 			if tc.ref != nil {
 				ref = *tc.ref
 			}
@@ -1828,7 +1848,8 @@ func TestDeleteSecret(t *testing.T) {
 		})
 	}
 }
-func TestSetSecret(t *testing.T) {
+func TestPushSecret(t *testing.T) {
+	secretKey := "secret-key"
 	noPermission := errors.New("no permission")
 
 	type args struct {
@@ -1843,7 +1864,7 @@ func TestSetSecret(t *testing.T) {
 		reason string
 		args   args
 		want   want
-		ref    *fakeRef
+		data   *testingfake.PushSecretData
 		value  []byte
 	}{
 		"SetSecret": {
@@ -1896,7 +1917,7 @@ func TestSetSecret(t *testing.T) {
 		"PushSecretProperty": {
 			reason: "push secret with property adds the property",
 			value:  []byte("fake-value"),
-			ref:    &fakeRef{key: "secret", property: "foo"},
+			data:   &testingfake.PushSecretData{SecretKey: secretKey, RemoteKey: "secret", Property: "foo"},
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
@@ -1918,7 +1939,7 @@ func TestSetSecret(t *testing.T) {
 		"PushSecretUpdateProperty": {
 			reason: "push secret with property only updates the property",
 			value:  []byte("new-value"),
-			ref:    &fakeRef{key: "secret", property: "foo"},
+			data:   &testingfake.PushSecretData{SecretKey: secretKey, RemoteKey: "secret", Property: "foo"},
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
@@ -1940,7 +1961,7 @@ func TestSetSecret(t *testing.T) {
 		"PushSecretPropertyNoUpdate": {
 			reason: "push secret with property only updates the property",
 			value:  []byte("fake-value"),
-			ref:    &fakeRef{key: "secret", property: "foo"},
+			data:   &testingfake.PushSecretData{SecretKey: secretKey, RemoteKey: "secret", Property: "foo"},
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
@@ -1996,9 +2017,9 @@ func TestSetSecret(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			ref := fakeRef{key: "secret", property: ""}
-			if tc.ref != nil {
-				ref = *tc.ref
+			data := testingfake.PushSecretData{SecretKey: secretKey, RemoteKey: "secret", Property: ""}
+			if tc.data != nil {
+				data = *tc.data
 			}
 			client := &client{
 				logical: tc.args.vLogical,
@@ -2008,7 +2029,8 @@ func TestSetSecret(t *testing.T) {
 			if val == nil {
 				val = []byte(`{"fake-key":"fake-value"}`)
 			}
-			err := client.PushSecret(context.Background(), val, ref)
+			s := &corev1.Secret{Data: map[string][]byte{secretKey: val}}
+			err := client.PushSecret(context.Background(), s, data)
 
 			// Error nil XOR tc.want.err nil
 			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {

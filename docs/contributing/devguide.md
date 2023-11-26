@@ -25,7 +25,7 @@ Building the operator binary and docker image:
 
 ```shell
 make build
-make docker.build IMG=external-secrets:latest
+make docker.build IMAGE_NAME=external-secrets IMAGE_TAG=latest
 ```
 
 Run tests and lint the code:
@@ -77,7 +77,7 @@ export IMAGE=$(make docker.imagename)
 make docker.build
 
 # Load docker image into local kind cluster
-kind load docker-image $IMAGE:$TAG -n external-secrets
+kind load docker-image $IMAGE:$TAG --name external-secrets
 
 # (Optional) Pull the image from GitHub Repo to copy into kind
 # docker pull ghcr.io/external-secrets/external-secrets:v0.8.2

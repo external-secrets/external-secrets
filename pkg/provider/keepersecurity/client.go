@@ -23,6 +23,7 @@ import (
 
 	ksm "github.com/keeper-security/secrets-manager-go/core"
 	"golang.org/x/exp/maps"
+	corev1 "k8s.io/api/core/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
@@ -160,23 +161,28 @@ func (c *Client) Close(_ context.Context) error {
 	return nil
 }
 
-func (c *Client) PushSecret(_ context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
-	parts, err := c.buildSecretNameAndKey(remoteRef)
+func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	if data.GetSecretKey() == "" {
+		return fmt.Errorf("pushing the whole secret is not yet implemented")
+	}
+
+	value := secret.Data[data.GetSecretKey()]
+	parts, err := c.buildSecretNameAndKey(data)
 	if err != nil {
 		return err
 	}
-	secret, err := c.findSecretByName(parts[0])
+	record, err := c.findSecretByName(parts[0])
 	if err != nil {
 		_, err = c.createSecret(parts[0], parts[1], value)
 		if err != nil {
 			return err
 		}
 	}
-	if secret != nil {
-		if secret.Type() != externalSecretType {
-			return fmt.Errorf(errInvalidSecretType, externalSecretType, secret.Title(), secret.Type())
+	if record != nil {
+		if record.Type() != externalSecretType {
+			return fmt.Errorf(errInvalidSecretType, externalSecretType, record.Title(), record.Type())
 		}
-		err = c.updateSecret(secret, parts[1], value)
+		err = c.updateSecret(record, parts[1], value)
 		if err != nil {
 			return err
 		}
@@ -185,7 +191,7 @@ func (c *Client) PushSecret(_ context.Context, value []byte, remoteRef esv1beta1
 	return nil
 }
 
-func (c *Client) DeleteSecret(_ context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *Client) DeleteSecret(_ context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
 	parts, err := c.buildSecretNameAndKey(remoteRef)
 	if err != nil {
 		return err
@@ -205,7 +211,7 @@ func (c *Client) DeleteSecret(_ context.Context, remoteRef esv1beta1.PushRemoteR
 	return nil
 }
 
-func (c *Client) buildSecretNameAndKey(remoteRef esv1beta1.PushRemoteRef) ([]string, error) {
+func (c *Client) buildSecretNameAndKey(remoteRef esv1beta1.PushSecretRemoteRef) ([]string, error) {
 	parts := strings.Split(remoteRef.GetRemoteKey(), "/")
 	if len(parts) != 2 {
 		return nil, fmt.Errorf(errInvalidRemoteRefKey, remoteRef.GetRemoteKey())

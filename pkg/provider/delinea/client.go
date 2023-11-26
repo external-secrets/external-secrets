@@ -17,21 +17,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"reflect"
-	"strconv"
-	"strings"
 
 	"github.com/DelineaXPM/dsv-sdk-go/v2/vault"
 	"github.com/tidwall/gjson"
+	corev1 "k8s.io/api/core/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-)
-
-const (
-	errSecretKeyFmt  = "cannot find secret data for key: %q"
-	errUnexpectedKey = "unexpected key in data: %s"
-	errSecretFormat  = "secret data for property %s not in expected format: %s"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 type client struct {
@@ -70,11 +62,11 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	return []byte(val.String()), nil
 }
 
-func (c *client) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
+func (c *client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
 	return errors.New("pushing secrets is not supported by Delinea DevOps Secrets Vault")
 }
 
-func (c *client) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
+func (c *client) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
 	return errors.New("deleting secrets is not supported by Delinea DevOps Secrets Vault")
 }
 
@@ -90,7 +82,7 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 	}
 	byteMap := make(map[string][]byte, len(secret.Data))
 	for k := range secret.Data {
-		byteMap[k], err = getTypedKey(secret.Data, k)
+		byteMap[k], err = utils.GetByteValueFromMap(secret.Data, k)
 		if err != nil {
 			return nil, err
 		}
@@ -114,35 +106,4 @@ func (c *client) getSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRe
 		return nil, errors.New("specifying a version is not yet supported")
 	}
 	return c.api.Secret(ref.Key)
-}
-
-// getTypedKey is copied from pkg/provider/vault/vault.go.
-func getTypedKey(data map[string]interface{}, key string) ([]byte, error) {
-	v, ok := data[key]
-	if !ok {
-		return nil, fmt.Errorf(errUnexpectedKey, key)
-	}
-	switch t := v.(type) {
-	case string:
-		return []byte(t), nil
-	case map[string]interface{}:
-		return json.Marshal(t)
-	case []string:
-		return []byte(strings.Join(t, "\n")), nil
-	case []byte:
-		return t, nil
-	// also covers int and float32 due to json.Marshal
-	case float64:
-		return []byte(strconv.FormatFloat(t, 'f', -1, 64)), nil
-	case json.Number:
-		return []byte(t.String()), nil
-	case []interface{}:
-		return json.Marshal(t)
-	case bool:
-		return []byte(strconv.FormatBool(t)), nil
-	case nil:
-		return []byte(nil), nil
-	default:
-		return nil, fmt.Errorf(errSecretFormat, key, reflect.TypeOf(t))
-	}
 }

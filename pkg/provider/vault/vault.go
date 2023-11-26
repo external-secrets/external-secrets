@@ -24,9 +24,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"reflect"
-	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -88,7 +87,6 @@ const (
 	errDataField                    = "failed to find data field"
 	errJSONUnmarshall               = "failed to unmarshall JSON"
 	errPathInvalid                  = "provided Path isn't a valid kv v2 path"
-	errSecretFormat                 = "secret data for property %s not in expected format: %s"
 	errUnexpectedKey                = "unexpected key in data: %s"
 	errVaultToken                   = "cannot parse Vault authentication token: %w"
 	errVaultRequest                 = "error from Vault request: %w"
@@ -233,7 +231,7 @@ func (c *Connector) newClient(ctx context.Context, store esv1beta1.GenericStore,
 	}
 	vaultSpec := storeSpec.Provider.Vault
 
-	vStore, cfg, err := c.prepareConfig(kube, corev1, vaultSpec, namespace, store.GetObjectKind().GroupVersionKind().Kind)
+	vStore, cfg, err := c.prepareConfig(kube, corev1, vaultSpec, storeSpec.RetrySettings, namespace, store.GetObjectKind().GroupVersionKind().Kind)
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +245,7 @@ func (c *Connector) newClient(ctx context.Context, store esv1beta1.GenericStore,
 }
 
 func (c *Connector) NewGeneratorClient(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, namespace string) (util.Client, error) {
-	vStore, cfg, err := c.prepareConfig(kube, corev1, vaultSpec, namespace, "Generator")
+	vStore, cfg, err := c.prepareConfig(kube, corev1, vaultSpec, nil, namespace, "Generator")
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +263,7 @@ func (c *Connector) NewGeneratorClient(ctx context.Context, kube kclient.Client,
 	return client, nil
 }
 
-func (c *Connector) prepareConfig(kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, namespace, storeKind string) (*client, *vault.Config, error) {
+func (c *Connector) prepareConfig(kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, retrySettings *esv1beta1.SecretStoreRetrySettings, namespace, storeKind string) (*client, *vault.Config, error) {
 	vStore := &client{
 		kube:      kube,
 		corev1:    corev1,
@@ -279,6 +277,26 @@ func (c *Connector) prepareConfig(kube kclient.Client, corev1 typedcorev1.CoreV1
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Setup retry options if present
+	if retrySettings != nil {
+		if retrySettings.MaxRetries != nil {
+			cfg.MaxRetries = int(*retrySettings.MaxRetries)
+		} else {
+			// By default we rely only on the reconciliation process for retrying
+			cfg.MaxRetries = 0
+		}
+
+		if retrySettings.RetryInterval != nil {
+			retryWait, err := time.ParseDuration(*retrySettings.RetryInterval)
+			if err != nil {
+				return nil, nil, err
+			}
+			cfg.MinRetryWait = retryWait
+			cfg.MaxRetryWait = retryWait
+		}
+	}
+
 	return vStore, cfg, nil
 }
 
@@ -413,7 +431,7 @@ func (c *Connector) ValidateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
 	path := v.buildPath(remoteRef.GetRemoteKey())
 	metaPath, err := v.buildMetadataPath(remoteRef.GetRemoteKey())
 	if err != nil {
@@ -461,15 +479,16 @@ func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemot
 	return nil
 }
 
-func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (v *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	value := secret.Data[data.GetSecretKey()]
 	label := map[string]interface{}{
 		"custom_metadata": map[string]string{
 			"managed-by": "external-secrets",
 		},
 	}
 	secretVal := make(map[string]interface{})
-	path := v.buildPath(remoteRef.GetRemoteKey())
-	metaPath, err := v.buildMetadataPath(remoteRef.GetRemoteKey())
+	path := v.buildPath(data.GetRemoteKey())
+	metaPath, err := v.buildMetadataPath(data.GetRemoteKey())
 	if err != nil {
 		return err
 	}
@@ -482,7 +501,7 @@ func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 	}
 	// If the secret exists (err == nil), we should check if it is managed by external-secrets
 	if err == nil {
-		metadata, err := v.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
+		metadata, err := v.readSecretMetadata(ctx, data.GetRemoteKey())
 		if err != nil {
 			return err
 		}
@@ -506,9 +525,9 @@ func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 		return nil
 	}
 	// If a Push of a property only, we should merge and add/update the property
-	if remoteRef.GetProperty() != "" {
-		if _, ok := vaultSecret[remoteRef.GetProperty()]; ok {
-			d := vaultSecret[remoteRef.GetProperty()].(string)
+	if data.GetProperty() != "" {
+		if _, ok := vaultSecret[data.GetProperty()]; ok {
+			d := vaultSecret[data.GetProperty()].(string)
 			if err != nil {
 				return fmt.Errorf("error marshaling vault secret: %w", err)
 			}
@@ -521,7 +540,7 @@ func (v *client) PushSecret(ctx context.Context, value []byte, remoteRef esv1bet
 			secretVal[k] = v
 		}
 		// Secret got from vault is already on map[string]string format
-		secretVal[remoteRef.GetProperty()] = string(value)
+		secretVal[data.GetProperty()] = string(value)
 	} else {
 		err = json.Unmarshal(value, &secretVal)
 		if err != nil {
@@ -736,7 +755,7 @@ func (v *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	// actual keys to take precedence over gjson syntax
 	// (2): extract key from secret with property
 	if _, ok := data[ref.Property]; ok {
-		return GetTypedKey(data, ref.Property)
+		return utils.GetByteValueFromMap(data, ref.Property)
 	}
 
 	// (3): extract key from secret using gjson
@@ -763,43 +782,13 @@ func (v *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 	}
 	byteMap := make(map[string][]byte, len(secretData))
 	for k := range secretData {
-		byteMap[k], err = GetTypedKey(secretData, k)
+		byteMap[k], err = utils.GetByteValueFromMap(secretData, k)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	return byteMap, nil
-}
-
-func GetTypedKey(data map[string]interface{}, key string) ([]byte, error) {
-	v, ok := data[key]
-	if !ok {
-		return nil, fmt.Errorf(errUnexpectedKey, key)
-	}
-	switch t := v.(type) {
-	case string:
-		return []byte(t), nil
-	case map[string]interface{}:
-		return json.Marshal(t)
-	case []string:
-		return []byte(strings.Join(t, "\n")), nil
-	case []byte:
-		return t, nil
-	// also covers int and float32 due to json.Marshal
-	case float64:
-		return []byte(strconv.FormatFloat(t, 'f', -1, 64)), nil
-	case json.Number:
-		return []byte(t.String()), nil
-	case []interface{}:
-		return json.Marshal(t)
-	case bool:
-		return []byte(strconv.FormatBool(t)), nil
-	case nil:
-		return []byte(nil), nil
-	default:
-		return nil, fmt.Errorf(errSecretFormat, key, reflect.TypeOf(t))
-	}
 }
 
 func (v *client) Close(ctx context.Context) error {
@@ -998,8 +987,6 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 func (v *client) newConfig() (*vault.Config, error) {
 	cfg := vault.DefaultConfig()
 	cfg.Address = v.store.Server
-	// In a controller-runtime context, we rely on the reconciliation process for retrying
-	cfg.MaxRetries = 0
 
 	if len(v.store.CABundle) == 0 && v.store.CAProvider == nil {
 		return cfg, nil

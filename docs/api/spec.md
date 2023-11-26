@@ -204,7 +204,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Role is a Role ARN which the SecretManager provider will assume</p>
+<p>Role is a Role ARN which the provider will assume</p>
 </td>
 </tr>
 <tr>
@@ -227,7 +227,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>AdditionalRoles is a chained list of Role ARNs which the SecretManager provider will sequentially assume before assuming Role</p>
+<p>AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming the Role</p>
 </td>
 </tr>
 <tr>
@@ -257,6 +257,20 @@ string
 </tr>
 <tr>
 <td>
+<code>secretsManager</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretsManager">
+SecretsManager
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretsManager defines how the provider behaves when interacting with AWS SecretsManager</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>transitiveTagKeys</code></br>
 <em>
 []*string
@@ -264,7 +278,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>AWS STS assume role transitive session tags. Required when multiple rules are used with SecretStore</p>
+<p>AWS STS assume role transitive session tags. Required when multiple rules are used with the provider</p>
 </td>
 </tr>
 </tbody>
@@ -286,11 +300,11 @@ string
 </tr>
 </thead>
 <tbody><tr><td><p>&#34;ParameterStore&#34;</p></td>
-<td><p>AWSServiceParameterStore is the AWS SystemsManager ParameterStore.
+<td><p>AWSServiceParameterStore is the AWS SystemsManager ParameterStore service.
 see: <a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html">https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html</a></p>
 </td>
 </tr><tr><td><p>&#34;SecretsManager&#34;</p></td>
-<td><p>AWSServiceSecretsManager is the AWS SecretsManager.
+<td><p>AWSServiceSecretsManager is the AWS SecretsManager service.
 see: <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html">https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html</a></p>
 </td>
 </tr></tbody>
@@ -964,6 +978,7 @@ string
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1beta1.AkeylessProvider">AkeylessProvider</a>, 
+<a href="#external-secrets.io/v1beta1.ConjurProvider">ConjurProvider</a>, 
 <a href="#external-secrets.io/v1beta1.KubernetesServer">KubernetesServer</a>, 
 <a href="#external-secrets.io/v1beta1.VaultProvider">VaultProvider</a>)
 </p>
@@ -1182,7 +1197,20 @@ Kubernetes meta/v1.LabelSelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaces</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelector ends up choosing.</p>
 </td>
 </tr>
 <tr>
@@ -1195,7 +1223,7 @@ Kubernetes meta/v1.Duration
 </em>
 </td>
 <td>
-<p>The time in which the controller should reconcile it&rsquo;s objects and recheck namespaces for labels.</p>
+<p>The time in which the controller should reconcile its objects and recheck namespaces for labels.</p>
 </td>
 </tr>
 </table>
@@ -1230,11 +1258,7 @@ ClusterExternalSecretStatus
 <th>Description</th>
 </tr>
 </thead>
-<tbody><tr><td><p>&#34;NotReady&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;PartiallyReady&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;Ready&#34;</p></td>
+<tbody><tr><td><p>&#34;Ready&#34;</p></td>
 <td></td>
 </tr></tbody>
 </table>
@@ -1346,7 +1370,20 @@ Kubernetes meta/v1.LabelSelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaces</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelector ends up choosing.</p>
 </td>
 </tr>
 <tr>
@@ -1359,7 +1396,7 @@ Kubernetes meta/v1.Duration
 </em>
 </td>
 <td>
-<p>The time in which the controller should reconcile it&rsquo;s objects and recheck namespaces for labels.</p>
+<p>The time in which the controller should reconcile its objects and recheck namespaces for labels.</p>
 </td>
 </tr>
 </tbody>
@@ -1381,6 +1418,17 @@ Kubernetes meta/v1.Duration
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<code>externalSecretName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ExternalSecretName is the name of the ExternalSecrets created by the ClusterExternalSecret</p>
+</td>
+</tr>
 <tr>
 <td>
 <code>failedNamespaces</code></br>
@@ -1721,6 +1769,89 @@ ConjurApikey
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>jwt</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ConjurJWT">
+ConjurJWT
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ConjurJWT">ConjurJWT
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ConjurAuth">ConjurAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>account</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The conjur authn jwt webservice id</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional SecretRef that refers to a key in a Secret resource containing JWT token to
+authenticate with Conjur using the JWT authentication method.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional ServiceAccountRef specifies the Kubernetes service account for which to request
+a token for with the <code>TokenRequest</code> API.</p>
 </td>
 </tr>
 </tbody>
@@ -1759,6 +1890,20 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.CAProvider">
+CAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
 </td>
 </tr>
 <tr>
@@ -2045,6 +2190,36 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.ExtermalSecretRewriteTransform">ExtermalSecretRewriteTransform
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretRewrite">ExternalSecretRewrite</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>template</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Used to define the template to apply on the secret name.
+<code>.value</code> will specify the secret name in the template.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.ExternalSecret">ExternalSecret
 </h3>
 <p>
@@ -2293,8 +2468,8 @@ which secret (version/property/..) to fetch.</p>
 <td>
 <code>sourceRef</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.SourceRef">
-SourceRef
+<a href="#external-secrets.io/v1beta1.StoreSourceRef">
+StoreSourceRef
 </a>
 </em>
 </td>
@@ -2370,8 +2545,8 @@ Multiple Rewrite operations can be provided. They are applied in a layered order
 <td>
 <code>sourceRef</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.SourceRef">
-SourceRef
+<a href="#external-secrets.io/v1beta1.StoreGeneratorSourceRef">
+StoreGeneratorSourceRef
 </a>
 </em>
 </td>
@@ -2719,6 +2894,21 @@ ExternalSecretRewriteRegexp
 <em>(Optional)</em>
 <p>Used to rewrite with regular expressions.
 The resulting key will be the output of a regexp.ReplaceAll operation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>transform</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ExtermalSecretRewriteTransform">
+ExtermalSecretRewriteTransform
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to apply string transformation on the secrets.
+The resulting key will be the output of the template applied by the operation.</p>
 </td>
 </tr>
 </tbody>
@@ -3130,6 +3320,9 @@ TemplateEngineVersion
 </em>
 </td>
 <td>
+<p>EngineVersion specifies the template engine version
+that should be used to compile/execute the
+template specified in .data and .templateFrom[].</p>
 </td>
 </tr>
 <tr>
@@ -3531,7 +3724,8 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.SourceRef">SourceRef</a>)
+<a href="#external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>, 
+<a href="#external-secrets.io/v1beta1.StoreSourceRef">StoreSourceRef</a>)
 </p>
 <p>
 <p>GeneratorRef points to a generator custom resource.</p>
@@ -4295,6 +4489,32 @@ OracleSecretRef
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.OraclePrincipalType">OraclePrincipalType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.OracleProvider">OracleProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;InstancePrincipal&#34;</p></td>
+<td><p>InstancePrincipal represents a instance principal.</p>
+</td>
+</tr><tr><td><p>&#34;UserPrincipal&#34;</p></td>
+<td><p>UserPrincipal represents a user principal.</p>
+</td>
+</tr><tr><td><p>&#34;Workload&#34;</p></td>
+<td><p>WorkloadPrincipal represents a workload principal.</p>
+</td>
+</tr></tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.OracleProvider">OracleProvider
 </h3>
 <p>
@@ -4337,6 +4557,48 @@ string
 </tr>
 <tr>
 <td>
+<code>compartment</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Compartment is the vault compartment OCID.
+Required for PushSecret</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>encryptionKey</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EncryptionKey is the OCID of the encryption key within the vault.
+Required for PushSecret</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>principalType</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.OraclePrincipalType">
+OraclePrincipalType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The type of principal to use for authentication. If left blank, the Auth struct will
+determine the principal type. This optional field must be specified if using
+workload identity.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>auth</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.OracleAuth">
@@ -4348,6 +4610,21 @@ OracleAuth
 <em>(Optional)</em>
 <p>Auth configures how secret-manager authenticates with the Oracle Vault.
 If empty, use the instance principal, otherwise the user credentials specified in Auth.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountRef specified the service account
+that should be used when authenticating with WorkloadIdentity.</p>
 </td>
 </tr>
 </tbody>
@@ -4401,10 +4678,15 @@ External Secrets meta/v1.SecretKeySelector
 <p>
 <p>Provider is a common interface for interacting with secret backends.</p>
 </p>
-<h3 id="external-secrets.io/v1beta1.PushRemoteRef">PushRemoteRef
+<h3 id="external-secrets.io/v1beta1.PushSecretData">PushSecretData
 </h3>
 <p>
-<p>This interface is to allow using v1alpha1 content in Provider registered in v1beta1.</p>
+<p>PushSecretData is an interface to allow using v1alpha1.PushSecretData content in Provider registered in v1beta1.</p>
+</p>
+<h3 id="external-secrets.io/v1beta1.PushSecretRemoteRef">PushSecretRemoteRef
+</h3>
+<p>
+<p>PushSecretRemoteRef is an interface to allow using v1alpha1.PushSecretRemoteRef in Provider registered in v1beta1.</p>
 </p>
 <h3 id="external-secrets.io/v1beta1.ScalewayProvider">ScalewayProvider
 </h3>
@@ -5013,7 +5295,8 @@ DelineaProvider
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1beta1.ExternalSecretSpec">ExternalSecretSpec</a>, 
-<a href="#external-secrets.io/v1beta1.SourceRef">SourceRef</a>)
+<a href="#external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>, 
+<a href="#external-secrets.io/v1beta1.StoreSourceRef">StoreSourceRef</a>)
 </p>
 <p>
 <p>SecretStoreRef defines which SecretStore to fetch the ExternalSecret data.</p>
@@ -5304,6 +5587,60 @@ Kubernetes meta/v1.Time
 <p>
 <p>SecretsClient provides access to secrets.</p>
 </p>
+<h3 id="external-secrets.io/v1beta1.SecretsManager">SecretsManager
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.AWSProvider">AWSProvider</a>)
+</p>
+<p>
+<p>SecretsManager defines how the provider behaves when interacting with AWS
+SecretsManager. Some of these settings are only applicable to controlling how
+secrets are deleted, and hence only apply to PushSecret (and only when
+deletionPolicy is set to Delete).</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>forceDeleteWithoutRecovery</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specifies whether to delete the secret without any recovery window. You
+can&rsquo;t use both this parameter and RecoveryWindowInDays in the same call.
+If you don&rsquo;t use either, then by default Secrets Manager uses a 30 day
+recovery window.
+see: <a href="https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-ForceDeleteWithoutRecovery">https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-ForceDeleteWithoutRecovery</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>recoveryWindowInDays</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The number of days from 7 to 30 that Secrets Manager waits before
+permanently deleting the secret. You can&rsquo;t use both this parameter and
+ForceDeleteWithoutRecovery in the same call. If you don&rsquo;t use either,
+then by default Secrets Manager uses a 30 day recovery window.
+see: <a href="https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays">https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays</a></p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.SenhaseguraAuth">SenhaseguraAuth
 </h3>
 <p>
@@ -5435,15 +5772,14 @@ bool
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1beta1.SourceRef">SourceRef
+<h3 id="external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretData">ExternalSecretData</a>, 
 <a href="#external-secrets.io/v1beta1.ExternalSecretDataFromRemoteRef">ExternalSecretDataFromRemoteRef</a>)
 </p>
 <p>
-<p>SourceRef allows you to override the source
+<p>StoreGeneratorSourceRef allows you to override the source
 from which the secret will be pulled from.
 You can define at maximum one property.</p>
 </p>
@@ -5479,7 +5815,56 @@ GeneratorRef
 </td>
 <td>
 <em>(Optional)</em>
-<p>GeneratorRef points to a generator custom resource in</p>
+<p>GeneratorRef points to a generator custom resource.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.StoreSourceRef">StoreSourceRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretData">ExternalSecretData</a>)
+</p>
+<p>
+<p>StoreSourceRef allows you to override the SecretStore source
+from which the secret will be pulled from.
+You can define at maximum one property.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>storeRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretStoreRef">
+SecretStoreRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>generatorRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.GeneratorRef">
+GeneratorRef
+</a>
+</em>
+</td>
+<td>
+<p>GeneratorRef points to a generator custom resource.</p>
+<p>Deprecated: The generatorRef is not implemented in .data[].
+this will be removed with v1.</p>
 </td>
 </tr>
 </tbody>

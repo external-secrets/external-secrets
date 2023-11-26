@@ -225,7 +225,7 @@ docker.tag:  ## Emit IMAGE_TAG
 docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
 	@$(INFO) docker build
 	echo docker build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
-	docker build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
+	DOCKER_BUILDKIT=1 docker build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
 	@$(OK) docker build
 
 .PHONY: docker.push
@@ -303,8 +303,8 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
 
 ## Tool Versions
-GOLANGCI_VERSION := 1.52.2
-KUBERNETES_VERSION := 1.24.x
+GOLANGCI_VERSION := 1.54.2
+KUBERNETES_VERSION := 1.28.x
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
