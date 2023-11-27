@@ -17,7 +17,7 @@ require (
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
-	github.com/aws/aws-sdk-go v1.48.3
+	github.com/aws/aws-sdk-go v1.48.4
 	github.com/go-logr/logr v1.3.0
 	github.com/go-test/deep v1.0.4 // indirect
 	github.com/google/go-cmp v0.6.0
@@ -38,7 +38,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/tidwall/gjson v1.17.0
 	github.com/xanzy/go-gitlab v0.94.0
-	github.com/yandex-cloud/go-genproto v0.0.0-20231120081503-a21e9fe75162
+	github.com/yandex-cloud/go-genproto v0.0.0-20231127094019-88b7907145d1
 	github.com/yandex-cloud/go-sdk v0.0.0-20231120081841-c665af4155e0
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a
 	go.uber.org/zap v1.26.0
@@ -63,7 +63,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.9.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.4.0
 	github.com/akeylesslabs/akeyless-go/v3 v3.5.0
-	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.4
+	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.5
 	github.com/alibabacloud-go/kms-20160120/v3 v3.1.0
 	github.com/alibabacloud-go/openapi-util v0.1.0
 	github.com/alibabacloud-go/tea v1.2.1
