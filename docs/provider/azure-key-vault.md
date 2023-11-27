@@ -9,7 +9,7 @@ External Secrets Operator integrates with [Azure Key vault](https://azure.micros
 
 We support authentication with Microsoft Entra identities that can be used as Workload Identity or [AAD Pod Identity](https://azure.github.io/aad-pod-identity/docs/) as well as with Service Principal credentials.
 
-Since the [AAD Pod Identity](https://azure.github.io/aad-pod-identity/docs/) is deprecated, t is recommended to use the [Workload Identity](https://azure.github.io/azure-workload-identity) authentication.
+Since the [AAD Pod Identity](https://azure.github.io/aad-pod-identity/docs/) is deprecated, it is recommended to use the [Workload Identity](https://azure.github.io/azure-workload-identity) authentication.
 
 We support connecting to different cloud flavours azure supports: `PublicCloud`, `USGovernmentCloud`, `ChinaCloud` and `GermanCloud`. You have to specify the `environmentType` and point to the correct cloud flavour. This defaults to `PublicCloud`.
 
@@ -84,7 +84,7 @@ You run the controller and mount that particular service account into the pod by
 ```
 
 ##### Referenced Service Account
-You run the controller without service account (effectively without azure permissions). Now you have to configure the SecretStore and set the `serviceAccountRef` and point to the service account you have just created. **This is usually the recommended approach**. It makes sense for everyone who wants to run the controller withour Azure permissions and delegate authentication via service accounts in particular namespaces. Also see our [Multi-Tenancy Guide](../guides/multi-tenancy.md) for design considerations.
+You run the controller without service account (effectively without azure permissions). Now you have to configure the SecretStore and set the `serviceAccountRef` and point to the service account you have just created. **This is usually the recommended approach**. It makes sense for everyone who wants to run the controller without Azure permissions and delegate authentication via service accounts in particular namespaces. Also see our [Multi-Tenancy Guide](../guides/multi-tenancy.md) for design considerations.
 
 ```yaml
 {% include 'azkv-workload-identity.yaml' %}
@@ -106,17 +106,17 @@ Or in case of Managed Identity authentication:
 
 ### Object Types
 
-Azure KeyVault manages different [object types](https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates#object-types), we support `keys`, `secrets` and `certificates`. Simply prefix the key with `key`, `secret` or `cert` to retrieve the desired type (defaults to secret).
+Azure Key Vault manages different [object types](https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates#object-types), we support `keys`, `secrets` and `certificates`. Simply prefix the key with `key`, `secret` or `cert` to retrieve the desired type (defaults to secret).
 
 | Object Type   | Return Value                                                                                                                                                                                                                      |
 | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `secret`      | the raw secret value.                                                                                                                                                                                                             |
-| `key`         | A JWK which contains the public key. Azure KeyVault does **not** export the private key. You may want to use [template functions](../guides/templating.md) to transform this JWK into PEM encoded PKIX ASN.1 DER format. |
+| `key`         | A JWK which contains the public key. Azure Key Vault does **not** export the private key. You may want to use [template functions](../guides/templating.md) to transform this JWK into PEM encoded PKIX ASN.1 DER format. |
 | `certificate` | The raw CER contents of the x509 certificate. You may want to use [template functions](../guides/templating.md) to transform this into your desired encoding                                                             |
 
 ### Creating external secret
 
-To create a kubernetes secret from the Azure Key vault secret a `Kind=ExternalSecret` is needed.
+To create a Kubernetes secret from the Azure Key vault secret a `Kind=ExternalSecret` is needed.
 
 You can manage keys/secrets/certificates saved inside the keyvault , by setting a "/" prefixed type in the secret name, the default type is a `secret`. Other supported values are `cert` and `key`.
 
@@ -143,10 +143,10 @@ To get a PKCS#12 certificate from Azure Key Vault and inject it as a `Kind=Secre
 ```
 
 ### Creating a PushSecret
-You can push secrets to Keyvault into the different `secret`, `key` and `certificate` APIs.
+You can push secrets to Azure Key Vault into the different `secret`, `key` and `certificate` APIs.
 
 #### Pushing to a Secret
-Pushing to a Secret requires no previous setup. with the secret available in kubernetes, you can simply refer it to a PushSecret object to have it created on Azure Keyvault:
+Pushing to a Secret requires no previous setup. with the secret available in Kubernetes, you can simply refer it to a PushSecret object to have it created on Azure Key Vault:
 ```yaml
 {% include 'azkv-pushsecret-secret.yaml' %}
 ```
@@ -163,7 +163,7 @@ The first step is to generate a valid Private Key. Supported Formats include `PR
 !!! note
       In order to create a PushSecret targeting keys, `ImportKey` and `DeleteKey` actions must be granted to the Service Principal/Identity configured on the SecretStore.
 #### Pushing to a Certificate
-The first step is to generate a valid P12 certificate. Currently, only PKCS1/PKCS8 types are supported. Currently only passwordless P12 certificates are supported.
+The first step is to generate a valid P12 certificate. Currently, only PKCS1/PKCS8 types are supported. Currently only password-less P12 certificates are supported.
 
 After uploading your P12 certificate to a Kubernetes Secret, the next step is to create a PushSecret manifest with the following configuration
 ```yaml
