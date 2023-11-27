@@ -86,6 +86,7 @@ spec:
             {{- end }}
           {{- end }}
           {{- end }}
+          - --metrics-addr=:{{ .Values.metrics.listen.port }}
           ports:
             - containerPort: {{ .Values.metrics.listen.port }}
               protocol: TCP
