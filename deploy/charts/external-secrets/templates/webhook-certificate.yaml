@@ -26,5 +26,5 @@ spec:
   {{- with .Values.webhook.certManager.cert.renewBefore }}
   renewBefore: {{ . | quote }}
   {{- end }}
-  secretName: {{ include "external-secrets.fullname" . }}-webhook
+  secretName: {{ template "external-secrets-webhook.certSecretName" . }}
 {{- end }}

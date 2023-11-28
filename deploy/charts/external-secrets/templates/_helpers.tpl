@@ -133,3 +133,13 @@ Create the name of the service account to use
 {{- end }}
 {{- end }}
 
+{{/*
+Create the name of the secret where the webhook certificates are stored.
+*/}}
+{{- define "external-secrets-webhook.certSecretName" -}}
+{{- if (eq .Values.webhook.certSecretNameOverride "") -}}
+{{ include "external-secrets.fullname" . }}-webhook
+{{- else -}}
+{{ .Values.webhook.certSecretNameOverride }}
+{{- end -}}
+{{- end -}}

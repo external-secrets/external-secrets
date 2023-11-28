@@ -81,6 +81,7 @@ var (
 	crdRequeueInterval                    time.Duration
 	certCheckInterval                     time.Duration
 	certLookaheadInterval                 time.Duration
+	enableCertRenewal                     bool
 	tlsCiphers                            string
 	tlsMinVersion                         string
 )
