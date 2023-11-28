@@ -259,7 +259,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			secret.Data = make(map[string][]byte)
 		}
 		// diff existing keys
-		keys, err := getManagedKeys(&existingSecret, externalSecret.Name)
+		keys, err := getManagedDataKeys(&existingSecret, externalSecret.Name)
 		if err != nil {
 			return err
 		}
@@ -447,7 +447,29 @@ func patchSecret(ctx context.Context, c client.Client, scheme *runtime.Scheme, s
 	return nil
 }
 
-func getManagedKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
+func getManagedDataKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
+	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]interface{}) []string {
+		dataFields := fields["f:data"]
+		if dataFields == nil {
+			return nil
+		}
+		df, ok := dataFields.(map[string]interface{})
+		if !ok {
+			return nil
+		}
+		var keys []string
+		for k := range df {
+			keys = append(keys, k)
+		}
+		return keys
+	})
+}
+
+func getManagedFieldKeys(
+	secret *v1.Secret,
+	fieldOwner string,
+	process func(fields map[string]interface{}) []string,
+) ([]string, error) {
 	fqdn := fmt.Sprintf(fieldOwnerTemplate, fieldOwner)
 	var keys []string
 	for _, v := range secret.ObjectMeta.ManagedFields {
@@ -459,19 +481,11 @@ func getManagedKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error unmarshaling managed fields: %w", err)
 		}
-		dataFields := fields["f:data"]
-		if dataFields == nil {
-			continue
-		}
-		df, ok := dataFields.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		for k := range df {
-			if k == "." {
+		for _, key := range process(fields) {
+			if key == "." {
 				continue
 			}
-			keys = append(keys, strings.TrimPrefix(k, "f:"))
+			keys = append(keys, strings.TrimPrefix(key, "f:"))
 		}
 	}
 	return keys, nil

@@ -147,7 +147,9 @@ func (p *Parser) MergeMap(tplMap map[string]string, target esv1beta1.TemplateTar
 // * template.templateFrom
 // * secret via es.data or es.dataFrom.
 func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSecret, secret *v1.Secret, dataMap map[string][]byte) error {
-	setMetadata(secret, es)
+	if err := setMetadata(secret, es); err != nil {
+		return err
+	}
 
 	// no template: copy data and return
 	if es.Spec.Target.Template == nil {
@@ -201,17 +203,91 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 }
 
 // setMetadata sets Labels and Annotations to the given secret.
-func setMetadata(secret *v1.Secret, externalSecret *esv1beta1.ExternalSecret) {
-	// It is safe to override the metadata since the Server-Side Apply merges those fields if necessary
-	secret.ObjectMeta.Labels = make(map[string]string)
-	secret.ObjectMeta.Annotations = make(map[string]string)
-	if externalSecret.Spec.Target.Template == nil {
-		utils.MergeStringMap(secret.ObjectMeta.Labels, externalSecret.ObjectMeta.Labels)
-		utils.MergeStringMap(secret.ObjectMeta.Annotations, externalSecret.ObjectMeta.Annotations)
-		return
+func setMetadata(secret *v1.Secret, es *esv1beta1.ExternalSecret) error {
+	if secret.Labels == nil {
+		secret.Labels = make(map[string]string)
 	}
-	// if template is defined: use those labels/annotations
-	secret.Type = externalSecret.Spec.Target.Template.Type
-	utils.MergeStringMap(secret.ObjectMeta.Labels, externalSecret.Spec.Target.Template.Metadata.Labels)
-	utils.MergeStringMap(secret.ObjectMeta.Annotations, externalSecret.Spec.Target.Template.Metadata.Annotations)
+	if secret.Annotations == nil {
+		secret.Annotations = make(map[string]string)
+	}
+	// Clean up Labels and Annotations added by the operator
+	// so that it won't leave outdated ones
+	labelKeys, err := getManagedLabelKeys(secret, es.Name)
+	if err != nil {
+		return err
+	}
+	for _, key := range labelKeys {
+		delete(secret.ObjectMeta.Labels, key)
+	}
+
+	annotationKeys, err := getManagedAnnotationKeys(secret, es.Name)
+	if err != nil {
+		return err
+	}
+	for _, key := range annotationKeys {
+		delete(secret.ObjectMeta.Annotations, key)
+	}
+
+	if es.Spec.Target.Template == nil {
+		utils.MergeStringMap(secret.ObjectMeta.Labels, es.ObjectMeta.Labels)
+		utils.MergeStringMap(secret.ObjectMeta.Annotations, es.ObjectMeta.Annotations)
+		return nil
+	}
+
+	secret.Type = es.Spec.Target.Template.Type
+	utils.MergeStringMap(secret.ObjectMeta.Labels, es.Spec.Target.Template.Metadata.Labels)
+	utils.MergeStringMap(secret.ObjectMeta.Annotations, es.Spec.Target.Template.Metadata.Annotations)
+	return nil
+}
+
+func getManagedAnnotationKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
+	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]interface{}) []string {
+		metadataFields, exists := fields["f:metadata"]
+		if !exists {
+			return nil
+		}
+		mf, ok := metadataFields.(map[string]interface{})
+		if !ok {
+			return nil
+		}
+		annotationFields, exists := mf["f:annotations"]
+		if !exists {
+			return nil
+		}
+		af, ok := annotationFields.(map[string]interface{})
+		if !ok {
+			return nil
+		}
+		var keys []string
+		for k := range af {
+			keys = append(keys, k)
+		}
+		return keys
+	})
+}
+
+func getManagedLabelKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
+	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]interface{}) []string {
+		metadataFields, exists := fields["f:metadata"]
+		if !exists {
+			return nil
+		}
+		mf, ok := metadataFields.(map[string]interface{})
+		if !ok {
+			return nil
+		}
+		labelFields, exists := mf["f:labels"]
+		if !exists {
+			return nil
+		}
+		lf, ok := labelFields.(map[string]interface{})
+		if !ok {
+			return nil
+		}
+		var keys []string
+		for k := range lf {
+			keys = append(keys, k)
+		}
+		return keys
+	})
 }
