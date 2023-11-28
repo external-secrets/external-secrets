@@ -106,7 +106,7 @@ NtFUGA95RGN9s+pl6XY0YARPHf5O76ErC1OZtDTR5RdyQfcM+94gYZsexsXl0aQO
 
 ```
 
-You can achieve that by using the `filterPEM` function to extract a specific type of PEM block from that secret. If multiple blocks of that type (here: `CERTIFICATE`) exist then all of them are returned in the order they are specified. To extract a specific type of PEM block pass the type as a string argument to the filterPEM function. Take a look at this example on how to transform a secret which contains a private key and a certificate into the desired format:
+You can achieve that by using the `filterPEM` function to extract a specific type of PEM block from that secret. If multiple blocks of that type (here: `CERTIFICATE`) exist, all of them are returned in the order specified. To extract a specific type of PEM block, pass the type as a string argument to the filterPEM function. Take a look at this example of how to transform a secret which contains a private key and a certificate into the desired format:
 
 ```yaml
 {% include 'filterpem-template-v2-external-secret.yaml' %}
