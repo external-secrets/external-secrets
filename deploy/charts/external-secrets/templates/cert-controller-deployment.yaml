@@ -54,7 +54,7 @@ spec:
           - --service-namespace={{ .Release.Namespace }}
           - --secret-name={{ include "external-secrets.fullname" . }}-webhook
           - --secret-namespace={{ .Release.Namespace }}
-          - --metrics-addr=:{{ .Values.certController.prometheus.service.port }}
+          - --metrics-addr=:{{ .Values.certController.metrics.listen.port }}
           - --healthz-addr={{ .Values.certController.readinessProbe.address }}:{{ .Values.certController.readinessProbe.port }}
           {{ if not .Values.crds.createClusterSecretStore -}}
           - --crd-names=externalsecrets.external-secrets.io
@@ -68,7 +68,7 @@ spec:
             {{- end }}
           {{- end }}
           ports:
-            - containerPort: {{ .Values.certController.prometheus.service.port }}
+            - containerPort: {{ .Values.certController.metrics.listen.port }}
               protocol: TCP
               name: metrics
           readinessProbe:
