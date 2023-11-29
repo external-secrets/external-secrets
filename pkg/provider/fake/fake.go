@@ -189,7 +189,7 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 		return nil, esv1beta1.NoSecretErr
 	}
 
-	// Due to backward compability valueMap will still be returned for now
+	// Due to backward compatibility valueMap will still be returned for now
 	if ddata.ValueMap != nil {
 		return convertMap(ddata.ValueMap), nil
 	}
