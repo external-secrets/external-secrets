@@ -298,7 +298,7 @@ webhook:
     # maxUnavailable: 1
 
   metrics:
-    
+
     listen:
       port: 8080
 
