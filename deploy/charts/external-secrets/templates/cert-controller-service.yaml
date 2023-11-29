@@ -12,8 +12,9 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - port: {{ .Values.certController.metrics.listen.port }}
+  - port: {{ .Values.certController.metrics.service.port }}
     protocol: TCP
+    targetPort: metrics
     name: metrics
   selector:
     {{- include "external-secrets-cert-controller.selectorLabels" . | nindent 4 }}

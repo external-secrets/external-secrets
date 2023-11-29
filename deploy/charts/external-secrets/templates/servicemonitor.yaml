@@ -57,7 +57,7 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - port: {{ .Values.webhook.metrics.listen.port }}
+    - port: {{ .Values.webhook.metrics.service.port }}
       protocol: TCP
       name: metrics
   selector:

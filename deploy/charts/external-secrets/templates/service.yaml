@@ -15,6 +15,7 @@ spec:
   ports:
     - port: {{ .Values.metrics.service.port }}
       protocol: TCP
+      targetPort: metrics
       name: metrics
   selector:
     {{- include "external-secrets.selectorLabels" . | nindent 4 }}

@@ -48,6 +48,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
 | certController.image.tag | string | `""` |  |
 | certController.imagePullSecrets | list | `[]` |  |
+| certController.metrics.listen.port | int | `8080` |  |
 | certController.metrics.service.annotations | object | `{}` | Additional service annotations |
 | certController.metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
 | certController.metrics.service.port | int | `8080` | Metrics service port to scrape |
@@ -103,6 +104,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | imagePullSecrets | list | `[]` |  |
 | installCRDs | bool | `true` | If set, install and upgrade CRDs through helm chart. |
 | leaderElect | bool | `false` | If true, external-secrets will perform leader election between instances to ensure no more than one instance of external-secrets operates at a time. |
+| metrics.listen.port | int | `8080` |  |
 | metrics.service.annotations | object | `{}` | Additional service annotations |
 | metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
 | metrics.service.port | int | `8080` | Metrics service port to scrape |
@@ -168,6 +170,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
 | webhook.imagePullSecrets | list | `[]` |  |
 | webhook.lookaheadInterval | string | `""` | Specifices the lookaheadInterval for certificate validity |
+| webhook.metrics.listen.port | int | `8080` |  |
 | webhook.metrics.service.annotations | object | `{}` | Additional service annotations |
 | webhook.metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
 | webhook.metrics.service.port | int | `8080` | Metrics service port to scrape |

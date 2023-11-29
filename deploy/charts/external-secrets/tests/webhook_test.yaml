@@ -161,3 +161,12 @@ tests:
     templates:
       - validatingwebhook.yaml
       - crds/externalsecret.yaml
+  - it: should override metrics port
+    set:
+      webhook.metrics.listen.port: 8888
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].args[5]
+          value: "--metrics-addr=:8888"
