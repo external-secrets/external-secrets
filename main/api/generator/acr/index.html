@@ -2228,7 +2228,8 @@ The token is generated for a particular ACR registry defined in <code>spec.regis
 <li>managed identity</li>
 <li>workload identity</li>
 </ul>
-<p>The generated token will inherit the permissions from the assigned policy. I.e. when you assign a read-only policy all generated tokens will be read-only.</p>
+<p>The generated token will inherit the permissions from the assigned policy. I.e. when you assign a read-only policy all generated tokens will be read-only. 
+You <strong>must</strong> <a href="https://learn.microsoft.com/en-us/azure/role-based-access-control/role-assignments-steps">assign a Azure RBAC role</a>, such as <code>AcrPush</code> or <code>AcrPull</code> to the service principal in order to be able to authenticate with the Azure container registry API. </p>
 <p>You can scope tokens to a particular repository using <code>spec.scope</code>.</p>
 <h2 id="scope">Scope</h2>
 <p>First, an Azure Active Directory access token is obtained with the desired authentication method.
