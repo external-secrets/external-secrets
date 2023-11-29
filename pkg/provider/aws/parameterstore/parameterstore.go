@@ -35,6 +35,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -135,7 +136,21 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 	parameterType := "String"
 	overwrite := true
 
-	value := secret.Data[data.GetSecretKey()]
+	var (
+		value []byte
+		err   error
+	)
+	key := data.GetSecretKey()
+
+	if key == "" {
+		value, err = utils.JSONMarshal(secret.Data)
+		if err != nil {
+			return fmt.Errorf("failed to serialize secret content as JSON: %w", err)
+		}
+	} else {
+		value = secret.Data[key]
+	}
+
 	stringValue := string(value)
 	secretName := data.GetRemoteKey()
 
