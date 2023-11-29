@@ -34,7 +34,6 @@ var (
 	errMissingFakeProvider = fmt.Errorf("missing store provider fake")
 	errMissingKeyField     = "key must be set in data %v"
 	errMissingValueField   = "at least one of value or valueMap must be set in data %v"
-	errJSONSecretUnmarshal = "unable to unmarshal secret"
 )
 
 type SourceOrigin string
@@ -203,7 +202,7 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 	kv := make(map[string]json.RawMessage)
 	err = json.Unmarshal(data, &kv)
 	if err != nil {
-		return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
+		return nil, fmt.Errorf("unable to unmarshal secret %w", err)
 	}
 
 	for k, v := range kv {
