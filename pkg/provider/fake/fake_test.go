@@ -398,6 +398,8 @@ type testMapCase struct {
 	request  esv1beta1.ExternalSecretDataRemoteRef
 	expValue map[string][]byte
 	expErr   string
+	// add support to substring validation for wrapped errors
+	isErrSub bool
 }
 
 func TestGetSecretMap(t *testing.T) {
@@ -461,7 +463,8 @@ func TestGetSecretMap(t *testing.T) {
 				Key:     "/bar",
 				Version: "v3",
 			},
-			expErr: "unable to unmarshal secret%!(EXTRA *json.SyntaxError=invalid character '-' in numeric literal)",
+			expErr:   "unable to unmarshal secret invalid character '-' in numeric literal",
+			isErrSub: true,
 		},
 		{
 			name: "get correct value from ValueMap due to retrocompatibility",
@@ -543,7 +546,11 @@ func TestGetSecretMap(t *testing.T) {
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			out, err := cl.GetSecretMap(context.Background(), row.request)
 			if row.expErr != "" {
-				gomega.Expect(err).To(gomega.MatchError(row.expErr))
+				if row.isErrSub {
+					gomega.Expect(err).To(gomega.MatchError(gomega.ContainSubstring(row.expErr)))
+				} else {
+					gomega.Expect(err).To(gomega.MatchError(row.expErr))
+				}
 			} else {
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			}
