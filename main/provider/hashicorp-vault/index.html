@@ -2577,13 +2577,13 @@ one supported by this provider. For other secrets engines, please refer to the
 <span class="w">  </span><span class="c1"># metadataPolicy to fetch all the labels in JSON format</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tags</span>
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">metadataPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Fetch</span><span class="w"> </span>
+<span class="w">      </span><span class="nt">metadataPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Fetch</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">foo</span>
 
 <span class="w">  </span><span class="c1"># metadataPolicy to fetch a specific label (dev) from the source secret</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">developer</span>
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">metadataPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Fetch</span><span class="w"> </span>
+<span class="w">      </span><span class="nt">metadataPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Fetch</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">foo</span>
 <span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span>
 
@@ -3073,6 +3073,10 @@ You must have <a href="https://kubernetes.io/docs/tasks/configure-pod-container/
 <h3 id="pushsecret">PushSecret</h3>
 <p>Vault supports PushSecret features which allow you to sync a given Kubernetes secret key into a Hashicorp vault secret. To do so, it is expected that the secret key is a valid JSON object or that the <code>property</code> attribute has been specified under the <code>remoteRef</code>.
 To use PushSecret, you need to give <code>create</code>, <code>read</code> and <code>update</code> permissions to the path where you want to push secrets for both <code>data</code> and <code>metadata</code> of the secret. Use it with care!</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Since Vault KV v1 API is not supported with storing secrets metadata, PushSecret will add a <code>custom_metadata</code> map to each secret in Vault that he will manage. It means pushing secret keys named <code>custom_metadata</code> is not supported with Vault KV v1.</p>
+</div>
 <p>Here is an example of how to set up <code>PushSecret</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
