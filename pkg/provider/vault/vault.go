@@ -446,18 +446,6 @@ func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecre
 	if err != nil {
 		return err
 	}
-	// If Push for a Property, we need to delete the property and update the secret
-	if remoteRef.GetProperty() != "" {
-		delete(secretVal, remoteRef.GetProperty())
-		if len(secretVal) > 0 {
-			secretToPush := map[string]interface{}{
-				"data": secretVal,
-			}
-			_, err = v.logical.WriteWithContext(ctx, path, secretToPush)
-			metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
-			return err
-		}
-	}
 	metadata, err := v.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
 	if err != nil {
 		return err
@@ -466,15 +454,36 @@ func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecre
 	if !ok || manager != "external-secrets" {
 		return nil
 	}
+	// If Push for a Property, we need to delete the property and update the secret
+	if remoteRef.GetProperty() != "" {
+		delete(secretVal, remoteRef.GetProperty())
+		// If the only key left in the remote secret is the reference of the metadata.
+		if v.store.Version == esv1beta1.VaultKVStoreV1 && len(secretVal) == 1 {
+			delete(secretVal, "custom_metadata")
+		}
+		if len(secretVal) > 0 {
+			secretToPush := secretVal
+			if v.store.Version == esv1beta1.VaultKVStoreV2 {
+				secretToPush = map[string]interface{}{
+					"data": secretVal,
+				}
+			}
+			_, err = v.logical.WriteWithContext(ctx, path, secretToPush)
+			metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
+			return err
+		}
+	}
 	_, err = v.logical.DeleteWithContext(ctx, path)
 	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
 	if err != nil {
 		return fmt.Errorf("could not delete secret %v: %w", remoteRef.GetRemoteKey(), err)
 	}
-	_, err = v.logical.DeleteWithContext(ctx, metaPath)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
-	if err != nil {
-		return fmt.Errorf("could not delete secret metadata %v: %w", remoteRef.GetRemoteKey(), err)
+	if v.store.Version == esv1beta1.VaultKVStoreV2 {
+		_, err = v.logical.DeleteWithContext(ctx, metaPath)
+		metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
+		if err != nil {
+			return fmt.Errorf("could not delete secret metadata %v: %w", remoteRef.GetRemoteKey(), err)
+		}
 	}
 	return nil
 }
@@ -509,6 +518,10 @@ func (v *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		if !ok || manager != "external-secrets" {
 			return fmt.Errorf("secret not managed by external-secrets")
 		}
+	}
+	// Remove the metadata map to check the reconcile difference
+	if v.store.Version == esv1beta1.VaultKVStoreV1 {
+		delete(vaultSecret, "custom_metadata")
 	}
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)
@@ -547,16 +560,26 @@ func (v *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 			return fmt.Errorf("error unmarshalling vault secret: %w", err)
 		}
 	}
-	secretToPush := map[string]interface{}{
-		"data": secretVal,
+	secretToPush := secretVal
+	// Adding custom_metadata to the secret for KV v1
+	if v.store.Version == esv1beta1.VaultKVStoreV1 {
+		secretToPush["custom_metadata"] = label["custom_metadata"]
+	}
+	if v.store.Version == esv1beta1.VaultKVStoreV2 {
+		secretToPush = map[string]interface{}{
+			"data": secretVal,
+		}
 	}
 	if err != nil {
 		return fmt.Errorf("failed to convert value to a valid JSON: %w", err)
 	}
-	_, err = v.logical.WriteWithContext(ctx, metaPath, label)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
-	if err != nil {
-		return err
+	// Secret metadata should be pushed separately only for KV2
+	if v.store.Version == esv1beta1.VaultKVStoreV2 {
+		_, err = v.logical.WriteWithContext(ctx, metaPath, label)
+		metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
+		if err != nil {
+			return err
+		}
 	}
 	// Otherwise, create or update the version.
 	_, err = v.logical.WriteWithContext(ctx, path, secretToPush)
@@ -859,14 +882,18 @@ func (v *client) Validate() (esv1beta1.ValidationResult, error) {
 
 func (v *client) buildMetadataPath(path string) (string, error) {
 	var url string
-	if v.store.Path == nil && !strings.Contains(path, "data") {
-		return "", fmt.Errorf(errPathInvalid)
-	}
-	if v.store.Path == nil {
-		path = strings.Replace(path, "data", "metadata", 1)
-		url = path
-	} else {
-		url = fmt.Sprintf("%s/metadata/%s", *v.store.Path, path)
+	if v.store.Version == esv1beta1.VaultKVStoreV1 {
+		url = fmt.Sprintf("%s/%s", *v.store.Path, path)
+	} else { // KV v2 is used
+		if v.store.Path == nil && !strings.Contains(path, "data") {
+			return "", fmt.Errorf(errPathInvalid)
+		}
+		if v.store.Path == nil {
+			path = strings.Replace(path, "data", "metadata", 1)
+			url = path
+		} else {
+			url = fmt.Sprintf("%s/metadata/%s", *v.store.Path, path)
+		}
 	}
 	return url, nil
 }
