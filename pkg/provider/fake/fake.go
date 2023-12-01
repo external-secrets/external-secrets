@@ -16,6 +16,7 @@ package fake
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -182,12 +183,40 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretData
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (p *Provider) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	data, ok := p.config[mapKey(ref.Key, ref.Version)]
-	if !ok || data.Version != ref.Version || data.ValueMap == nil {
+func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	ddata, ok := p.config[mapKey(ref.Key, ref.Version)]
+	if !ok || ddata.Version != ref.Version {
 		return nil, esv1beta1.NoSecretErr
 	}
-	return convertMap(data.ValueMap), nil
+
+	// Due to backward compatibility valueMap will still be returned for now
+	if ddata.ValueMap != nil {
+		return convertMap(ddata.ValueMap), nil
+	}
+
+	data, err := p.GetSecret(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+
+	secretData := make(map[string][]byte)
+	kv := make(map[string]json.RawMessage)
+	err = json.Unmarshal(data, &kv)
+	if err != nil {
+		return nil, fmt.Errorf("unable to unmarshal secret: %w", err)
+	}
+
+	for k, v := range kv {
+		var strVal string
+		err = json.Unmarshal(v, &strVal)
+		if err == nil {
+			secretData[k] = []byte(strVal)
+		} else {
+			secretData[k] = v
+		}
+	}
+
+	return secretData, nil
 }
 
 func convertMap(in map[string]string) map[string][]byte {
