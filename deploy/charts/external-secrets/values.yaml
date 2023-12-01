@@ -132,13 +132,6 @@ resources: {}
   #   cpu: 10m
   #   memory: 32Mi
 
-prometheus:
-  # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead.
-  enabled: false
-  service:
-    # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead.
-    port: 8080
-
 serviceMonitor:
   # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
   enabled: false
@@ -177,6 +170,10 @@ serviceMonitor:
   #   action: replace
 
 metrics:
+
+  listen:
+    port: 8080
+
   service:
     # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
     enabled: false
@@ -299,14 +296,12 @@ webhook:
     enabled: false
     minAvailable: 1
     # maxUnavailable: 1
-  prometheus:
-    # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead
-    enabled: false
-    service:
-      # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead
-      port: 8080
 
   metrics:
+
+    listen:
+      port: 8080
+
     service:
       # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
       enabled: false
@@ -418,14 +413,11 @@ certController:
     minAvailable: 1
     # maxUnavailable: 1
 
-  prometheus:
-    # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead
-    enabled: false
-    service:
-      # -- deprecated. will be removed with 0.7.0, use serviceMonitor instead
+  metrics:
+
+    listen:
       port: 8080
 
-  metrics:
     service:
       # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
       enabled: false
