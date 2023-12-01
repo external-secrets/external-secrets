@@ -2113,7 +2113,7 @@
 To use the <code>fake</code> provider simply create a <code>SecretStore</code> or <code>ClusterSecretStore</code> and configure it like in the following example:</p>
 <div class="admonition note inline end">
 <p class="admonition-title">Note</p>
-<p>The provider returns static data configured in <code>value</code> or <code>valueMap</code>. You can define a <code>version</code>, too. If set the <code>remoteRef</code> from an ExternalSecret must match otherwise no value is returned.</p>
+<p>The provider returns static data configured in <code>value</code>. You can define a <code>version</code>, too. If set the <code>remoteRef</code> from an ExternalSecret must match otherwise no value is returned.</p>
 </div>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
@@ -2130,12 +2130,11 @@ To use the <code>fake</code> provider simply create a <code>SecretStore</code> o
 <span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;HELLO2&quot;</span>
 <span class="w">        </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;v2&quot;</span>
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/foo/baz&quot;</span>
-<span class="w">        </span><span class="nt">valueMap</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">foo</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span>
-<span class="w">          </span><span class="nt">other</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">thing</span>
+<span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;{&quot;john&quot;:</span><span class="nv"> </span><span class="s">&quot;doe&quot;}&#39;</span>
+<span class="w">        </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;v1&quot;</span>
 </code></pre></div>
-<p>Please note that <code>value</code> is intended for exclusive use with <code>data</code> and <code>valueMap</code> for <code>dataFrom</code>.
-Here is an example <code>ExternalSecret</code> that displays this behavior:</p>
+<p>Please note that <code>value</code> is intended for exclusive use with <code>data</code> for <code>dataFrom</code>. You can use the <code>data</code> to set a <code>JSON</code> compliant value to be used as <code>dataFrom</code>.</p>
+<p>Here is an example <code>ExternalSecret</code> that displays this behavior:</p>
 <div class="admonition warning inline end">
 <p class="admonition-title">Warning</p>
 <p>This provider supports specifying different <code>data[].version</code> configurations. However, <code>data[].property</code> is ignored.</p>
@@ -2159,6 +2158,7 @@ Here is an example <code>ExternalSecret</code> that displays this behavior:</p>
 <span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/foo/baz</span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
 </code></pre></div>
 <p>This results in the following secret:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
@@ -2168,8 +2168,7 @@ Here is an example <code>ExternalSecret</code> that displays this behavior:</p>
 <span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
 <span class="nt">data</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">foo_bar</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SEVMTE8x</span><span class="w"> </span><span class="c1"># HELLO1  (via data)</span>
-<span class="w">  </span><span class="nt">foo</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ZXhhbXBsZQ==</span><span class="w"> </span><span class="c1"># example (via dataFrom)</span>
-<span class="w">  </span><span class="nt">other</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dGhpbmc=</span><span class="w">   </span><span class="c1"># thing   (via dataFrom)</span>
+<span class="w">  </span><span class="nt">john</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ZG9l</span><span class="w"> </span><span class="c1">#doe (via dataFrom)</span>
 </code></pre></div>
 
 
