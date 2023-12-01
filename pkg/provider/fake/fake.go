@@ -203,7 +203,7 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 	kv := make(map[string]json.RawMessage)
 	err = json.Unmarshal(data, &kv)
 	if err != nil {
-		return nil, fmt.Errorf("unable to unmarshal secret %w", err)
+		return nil, fmt.Errorf("unable to unmarshal secret: %w", err)
 	}
 
 	for k, v := range kv {
