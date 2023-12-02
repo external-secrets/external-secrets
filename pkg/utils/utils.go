@@ -93,7 +93,7 @@ func RewriteRegexp(operation esv1beta1.ExternalSecretRewriteRegexp, in map[strin
 }
 
 // RewriteTransform applies string transformation on each secret key name to rewrite.
-func RewriteTransform(operation esv1beta1.ExtermalSecretRewriteTransform, in map[string][]byte) (map[string][]byte, error) {
+func RewriteTransform(operation esv1beta1.ExternalSecretRewriteTransform, in map[string][]byte) (map[string][]byte, error) {
 	out := make(map[string][]byte)
 	for key, value := range in {
 		data := map[string][]byte{
