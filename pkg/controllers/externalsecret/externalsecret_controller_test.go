@@ -2104,6 +2104,45 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		}
 	}
 
+	// Secret is created when ClusterSecretStore has a single matching "all" glob condition
+	secretCreatedWhenNamespaceMatchesSingleGlobAllCondition := func(tc *testCase) {
+		tc.secretStore.GetSpec().Conditions = []esv1beta1.ClusterSecretStoreCondition{
+			{
+				NamespacesGlobs: []string{"*"},
+			},
+		}
+
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
+		}
+	}
+
+	// Secret is created when ClusterSecretStore has a single matching glob condition
+	secretCreatedWhenNamespaceMatchesSingleGlobCondition := func(tc *testCase) {
+		tc.secretStore.GetSpec().Conditions = []esv1beta1.ClusterSecretStoreCondition{
+			{
+				NamespacesGlobs: []string{"ctrl-test*"},
+			},
+		}
+
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
+		}
+	}
+
+	// Secret is created when ClusterSecretStore has a multiple glob conditions, one matching
+	secretCreatedWhenNamespaceMatchesMultipleGlobsConditions := func(tc *testCase) {
+		tc.secretStore.GetSpec().Conditions = []esv1beta1.ClusterSecretStoreCondition{
+			{
+				NamespacesGlobs: []string{"ctrl-test*", "some-other-*"},
+			},
+		}
+
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
+		}
+	}
+
 	// Secret is not created when ClusterSecretStore has a single non-matching label condition
 	noSecretCreatedWhenNamespaceDoesntMatchLabelCondition := func(tc *testCase) {
 		tc.secretStore.GetSpec().Conditions = []esv1beta1.ClusterSecretStoreCondition{
@@ -2302,6 +2341,9 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		Entry("secret is not created when the condition for the cluster secret store states a different namespace multiple string conditions", useClusterSecretStore, noSecretCreatedWhenNamespaceDoesntMatchMultipleStringCondition),
 		Entry("secret is created when the condition for the cluster secret store has only one matching namespace by string condition", useClusterSecretStore, secretCreatedWhenNamespaceMatchesSingleStringCondition),
 		Entry("secret is created when the condition for the cluster secret store has one matching namespace of multiple namespaces by string condition", useClusterSecretStore, secretCreatedWhenNamespaceMatchesMultipleStringConditions),
+		Entry("secret is created when the condition for the cluster secret store has only one matching namespace by glob \"all\" condition", useClusterSecretStore, secretCreatedWhenNamespaceMatchesSingleGlobAllCondition),
+		Entry("secret is created when the condition for the cluster secret store has only one matching namespace by glob condition", useClusterSecretStore, secretCreatedWhenNamespaceMatchesSingleGlobCondition),
+		Entry("secret is created when the condition for the cluster secret store has one matching namespace of multiple namespaces by glob condition", useClusterSecretStore, secretCreatedWhenNamespaceMatchesMultipleGlobsConditions),
 		Entry("secret is not created when the condition for the cluster secret store states a non-matching label condition", useClusterSecretStore, noSecretCreatedWhenNamespaceDoesntMatchLabelCondition),
 		Entry("secret is created when the condition for the cluster secret store states a single matching label condition", useClusterSecretStore, secretCreatedWhenNamespaceMatchOnlyLabelCondition),
 		Entry("secret is not created when the condition for the cluster secret store states a partially-matching label condition", useClusterSecretStore, noSecretCreatedWhenNamespacePartiallyMatchLabelCondition),
