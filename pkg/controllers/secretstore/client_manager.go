@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/glob"
 )
 
 const (
@@ -233,6 +234,12 @@ func (m *Manager) shouldProcessSecret(store esv1beta1.GenericStore, ns string) (
 				if namespace.GetName() == ns {
 					return true, nil // namespace matches the labelselector
 				}
+			}
+		}
+
+		if condition.NamespacesGlobs != nil {
+			if glob.MatchStringInList(m.log, condition.NamespacesGlobs, ns) {
+				return true, nil // namespace in the namespaces list
 			}
 		}
 

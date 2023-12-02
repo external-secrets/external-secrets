@@ -1762,6 +1762,11 @@ spec:
                         items:
                           type: string
                         type: array
+                      namespacesGlobs:
+                        description: Choose namespaces by name using glob matching
+                        items:
+                          type: string
+                        type: array
                     type: object
                   type: array
                 controller:
@@ -5702,6 +5707,11 @@ spec:
                         x-kubernetes-map-type: atomic
                       namespaces:
                         description: Choose namespaces by name
+                        items:
+                          type: string
+                        type: array
+                      namespacesGlobs:
+                        description: Choose namespaces by name using glob matching
                         items:
                           type: string
                         type: array
