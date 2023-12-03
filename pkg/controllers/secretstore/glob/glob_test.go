@@ -21,7 +21,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func Test_Match(t *testing.T) {
+func TestMatch(t *testing.T) {
 	log := ctrl.Log.WithName("controllers").WithName("ClusterSecretStore")
 	tests := []struct {
 		name    string
@@ -45,7 +45,7 @@ func Test_Match(t *testing.T) {
 	}
 }
 
-func Test_MatchList(t *testing.T) {
+func TestMatchList(t *testing.T) {
 	log := ctrl.Log.WithName("controllers").WithName("ClusterSecretStore")
 	tests := []struct {
 		name   string
