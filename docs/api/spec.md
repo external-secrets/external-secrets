@@ -1864,6 +1864,17 @@ Kubernetes meta/v1.LabelSelector
 <p>Choose namespaces by name</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>namespacesGlobs</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Choose namespaces by name using glob matching</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.ConjurAPIKey">ConjurAPIKey
