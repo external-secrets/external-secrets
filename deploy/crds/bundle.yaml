@@ -4384,6 +4384,76 @@ spec:
                   required:
                     - secret
                   type: object
+                template:
+                  description: Template defines a blueprint for the pushed secret.
+                  properties:
+                    data:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    engineVersion:
+                      default: v1
+                      description: EngineVersion specifies the template engine version that should be used to compile/execute the template specified in .data and .templateFrom[].
+                      enum:
+                        - v1
+                        - v2
+                      type: string
+                    metadata:
+                      description: ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
+                      properties:
+                        annotations:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        labels:
+                          additionalProperties:
+                            type: string
+                          type: object
+                      type: object
+                    templateFrom:
+                      items:
+                        maxProperties: 1
+                        minProperties: 1
+                        properties:
+                          configMap:
+                            properties:
+                              items:
+                                items:
+                                  properties:
+                                    key:
+                                      type: string
+                                  required:
+                                    - key
+                                  type: object
+                                type: array
+                              name:
+                                type: string
+                            required:
+                              - items
+                              - name
+                            type: object
+                          secret:
+                            properties:
+                              items:
+                                items:
+                                  properties:
+                                    key:
+                                      type: string
+                                  required:
+                                    - key
+                                  type: object
+                                type: array
+                              name:
+                                type: string
+                            required:
+                              - items
+                              - name
+                            type: object
+                        type: object
+                      type: array
+                    type:
+                      type: string
+                  type: object
               required:
                 - secretStoreRefs
                 - selector

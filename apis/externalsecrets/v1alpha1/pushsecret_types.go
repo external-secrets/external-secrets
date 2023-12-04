@@ -60,6 +60,9 @@ type PushSecretSpec struct {
 	Selector PushSecretSelector `json:"selector"`
 	// Secret Data that should be pushed to providers
 	Data []PushSecretData `json:"data,omitempty"`
+	// Template defines a blueprint for the pushed secret.
+	// +optional
+	Template *SecretTemplate `json:"template,omitempty"`
 }
 
 type PushSecretSecret struct {

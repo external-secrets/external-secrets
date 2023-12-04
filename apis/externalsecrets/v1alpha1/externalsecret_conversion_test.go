@@ -57,7 +57,7 @@ func newExternalSecretV1Alpha1() *ExternalSecret {
 				Name:           "test-target",
 				CreationPolicy: Owner,
 				Immutable:      false,
-				Template: &ExternalSecretTemplate{
+				Template: &SecretTemplate{
 					Type: corev1.SecretTypeOpaque,
 					Metadata: ExternalSecretTemplateMetadata{
 						Annotations: map[string]string{
