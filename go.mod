@@ -17,7 +17,7 @@ require (
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.4
-	github.com/aws/aws-sdk-go v1.48.8
+	github.com/aws/aws-sdk-go v1.48.11
 	github.com/go-logr/logr v1.3.0
 	github.com/go-test/deep v1.0.4 // indirect
 	github.com/google/go-cmp v0.6.0
@@ -28,7 +28,7 @@ require (
 	github.com/hashicorp/vault/api/auth/kubernetes v0.5.0
 	github.com/hashicorp/vault/api/auth/ldap v0.5.0
 	github.com/huandu/xstrings v1.4.0 // indirect
-	github.com/lestrrat-go/jwx v1.2.26
+	github.com/lestrrat-go/jwx v1.2.27
 	github.com/onsi/ginkgo/v2 v2.13.2
 	github.com/onsi/gomega v1.29.0
 	github.com/oracle/oci-go-sdk/v65 v65.53.0
@@ -64,7 +64,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.9.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.4.0
 	github.com/DelineaXPM/dsv-sdk-go/v2 v2.1.0
-	github.com/akeylesslabs/akeyless-go/v3 v3.5.0
+	github.com/akeylesslabs/akeyless-go/v3 v3.5.1
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.5
 	github.com/alibabacloud-go/kms-20160120/v3 v3.1.0
 	github.com/alibabacloud-go/openapi-util v0.1.0
@@ -73,8 +73,8 @@ require (
 	github.com/aliyun/credentials-go v1.3.2
 	github.com/avast/retry-go/v4 v4.5.1
 	github.com/cyberark/conjur-api-go v0.11.1
-	github.com/go-openapi/strfmt v0.21.7
-	github.com/golang-jwt/jwt/v5 v5.1.0
+	github.com/go-openapi/strfmt v0.21.8
+	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/hashicorp/vault/api/auth/aws v0.5.0
 	github.com/hashicorp/vault/api/auth/userpass v0.5.0
@@ -114,7 +114,7 @@ require (
 	golang.org/x/sync v0.5.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20231127180814-3a041ad873d4 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231127180814-3a041ad873d4 // indirect
-	k8s.io/kube-openapi v0.0.0-20231113174909-778a5567bc1e // indirect
+	k8s.io/kube-openapi v0.0.0-20231129212854-f0671cc7e66a // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 )
 
@@ -159,7 +159,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/pprof v0.0.0-20231127191134-f3a68a39ae15 // indirect
+	github.com/google/pprof v0.0.0-20231203200248-ad67f76aa53d // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
