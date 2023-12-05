@@ -476,3 +476,6 @@ certController:
 
 # -- Specifies `dnsOptions` to deployment
 dnsConfig: {}
+
+# -- Any extra pod spec on the deployment
+podSpecExtra: {}
