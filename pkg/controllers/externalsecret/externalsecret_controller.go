@@ -230,21 +230,20 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				return ctrl.Result{}, err
 			}
 
-			err = r.Delete(ctx, secret)
-			if err != nil && !apierrors.IsNotFound(err) {
+			if err := r.Delete(ctx, secret); err != nil && !apierrors.IsNotFound(err) {
 				r.markAsFailed(log, errDeleteSecret, err, &externalSecret, syncCallsError.With(resourceLabels))
+				return ctrl.Result{}, err
 			}
 
 			conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionTrue, esv1beta1.ConditionReasonSecretDeleted, "secret deleted due to DeletionPolicy")
 			SetExternalSecretCondition(&externalSecret, *conditionSynced)
-			return ctrl.Result{RequeueAfter: refreshInt}, err
-
-		case esv1beta1.DeletionPolicyMerge:
-			// noop, handled below
-
+			return ctrl.Result{RequeueAfter: refreshInt}, nil
 		// In case provider secrets don't exist the kubernetes secret will be kept as-is.
 		case esv1beta1.DeletionPolicyRetain:
+			r.markAsDone(&externalSecret, start, log)
 			return ctrl.Result{RequeueAfter: refreshInt}, nil
+		// noop, handled below
+		case esv1beta1.DeletionPolicyMerge:
 		}
 	}
 
