@@ -63,5 +63,15 @@ func validateExternalSecret(obj runtime.Object) (admission.Warnings, error) {
 		}
 	}
 
+	seenKeys := make(map[string]struct{})
+	for _, data := range es.Spec.Data {
+		secretKey := data.SecretKey
+		if _, exists := seenKeys[secretKey]; exists {
+			errs = errors.Join(errs, fmt.Errorf("duplicate secretKey found: %s", secretKey))
+		}
+
+		seenKeys[secretKey] = struct{}{}
+	}
+
 	return nil, errs
 }
