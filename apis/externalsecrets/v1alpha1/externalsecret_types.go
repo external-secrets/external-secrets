@@ -45,8 +45,8 @@ const (
 	None ExternalSecretCreationPolicy = "None"
 )
 
-// ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
-type ExternalSecretTemplateMetadata struct {
+// TemplateMetadata defines metadata fields for the Secret blueprint.
+type TemplateMetadata struct {
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
 
@@ -67,7 +67,7 @@ type SecretTemplate struct {
 	EngineVersion TemplateEngineVersion `json:"engineVersion,omitempty"`
 
 	// +optional
-	Metadata ExternalSecretTemplateMetadata `json:"metadata,omitempty"`
+	Metadata TemplateMetadata `json:"metadata,omitempty"`
 
 	// +optional
 	Data map[string]string `json:"data,omitempty"`

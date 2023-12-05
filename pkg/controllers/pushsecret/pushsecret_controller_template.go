@@ -155,26 +155,15 @@ func (r *Reconciler) applyTemplate(ctx context.Context, ps *v1alpha1.PushSecret,
 		return nil
 	}
 
-	// Merge Policy should merge secrets
-	// We aren't merging with anything. We just apply the template and DONE.
-	// if ps.Spec.Template.MergePolicy == esv1beta1.MergePolicyMerge {
-	//	 for k, v := range dataMap {
-	//		 secret.Data[k] = v
-	//	 }
-	// }
-	execute, err := template.EngineForVersion("v1")
+	execute, err := template.EngineForVersion(esv1beta1.TemplateEngineV2)
 	if err != nil {
 		return err
 	}
 
-	templateData := make(map[string][]byte, len(ps.Spec.Template.Data))
-	for k, v := range ps.Spec.Template.Data {
-		templateData[k] = []byte(v)
-	}
 	p := Parser{
 		client:       r.Client,
 		targetSecret: secret,
-		dataMap:      templateData,
+		dataMap:      secret.Data,
 		exec:         execute,
 	}
 

@@ -3691,7 +3691,7 @@ spec:
                             - v2
                           type: string
                         metadata:
-                          description: ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
+                          description: TemplateMetadata defines metadata fields for the Secret blueprint.
                           properties:
                             annotations:
                               additionalProperties:
@@ -4399,7 +4399,7 @@ spec:
                         - v2
                       type: string
                     metadata:
-                      description: ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
+                      description: TemplateMetadata defines metadata fields for the Secret blueprint.
                       properties:
                         annotations:
                           additionalProperties:

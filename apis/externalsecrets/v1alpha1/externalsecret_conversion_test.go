@@ -59,7 +59,7 @@ func newExternalSecretV1Alpha1() *ExternalSecret {
 				Immutable:      false,
 				Template: &SecretTemplate{
 					Type: corev1.SecretTypeOpaque,
-					Metadata: ExternalSecretTemplateMetadata{
+					Metadata: TemplateMetadata{
 						Annotations: map[string]string{
 							"foo": "bar",
 						},

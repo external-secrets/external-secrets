@@ -153,11 +153,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	// TODO: apply templating to the secret?
-	// I have no secret, and no datamap.
-	// The data in the Secret IS the data map
-	// The result needs to be a thing that is then pushed. The result is a set of secret keys.
-	// We could say the Target Secret is the Secret that we are going to push.
 	if err := r.applyTemplate(ctx, &ps, secret); err != nil {
 		return ctrl.Result{}, err
 	}
