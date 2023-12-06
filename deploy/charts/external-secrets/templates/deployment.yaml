@@ -86,8 +86,9 @@ spec:
             {{- end }}
           {{- end }}
           {{- end }}
+          - --metrics-addr=:{{ .Values.metrics.listen.port }}
           ports:
-            - containerPort: {{ .Values.prometheus.service.port }}
+            - containerPort: {{ .Values.metrics.listen.port }}
               protocol: TCP
               name: metrics
           {{- with .Values.extraEnv }}

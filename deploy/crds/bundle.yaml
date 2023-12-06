@@ -2402,6 +2402,7 @@ spec:
                               valueMap:
                                 additionalProperties:
                                   type: string
+                                description: 'Deprecated: ValueMap is deprecated and is intended to be removed in the future, use the `value` field instead.'
                                 type: object
                               version:
                                 type: string
@@ -4307,7 +4308,6 @@ spec:
                             type: string
                         required:
                           - remoteRef
-                          - secretKey
                         type: object
                       metadata:
                         description: Metadata is metadata attached to the secret. The structure of metadata is provider specific, please look it up in the provider documentation.
@@ -4441,7 +4441,6 @@ spec:
                               type: string
                           required:
                             - remoteRef
-                            - secretKey
                           type: object
                         metadata:
                           description: Metadata is metadata attached to the secret. The structure of metadata is provider specific, please look it up in the provider documentation.
@@ -6346,6 +6345,7 @@ spec:
                               valueMap:
                                 additionalProperties:
                                   type: string
+                                description: 'Deprecated: ValueMap is deprecated and is intended to be removed in the future, use the `value` field instead.'
                                 type: object
                               version:
                                 type: string

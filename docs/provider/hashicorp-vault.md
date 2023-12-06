@@ -78,13 +78,13 @@ spec:
   # metadataPolicy to fetch all the labels in JSON format
   - secretKey: tags
     remoteRef:
-      metadataPolicy: Fetch 
+      metadataPolicy: Fetch
       key: foo
 
   # metadataPolicy to fetch a specific label (dev) from the source secret
   - secretKey: developer
     remoteRef:
-      metadataPolicy: Fetch 
+      metadataPolicy: Fetch
       key: foo
       property: dev
 
@@ -401,6 +401,10 @@ This approach assumes that appropriate IRSA setup is done controller's pod (i.e.
 
 Vault supports PushSecret features which allow you to sync a given Kubernetes secret key into a Hashicorp vault secret. To do so, it is expected that the secret key is a valid JSON object or that the `property` attribute has been specified under the `remoteRef`.
 To use PushSecret, you need to give `create`, `read` and `update` permissions to the path where you want to push secrets for both `data` and `metadata` of the secret. Use it with care!
+
+!!! note
+     Since Vault KV v1 API is not supported with storing secrets metadata, PushSecret will add a `custom_metadata` map to each secret in Vault that he will manage. It means pushing secret keys named `custom_metadata` is not supported with Vault KV v1.
+
 
 Here is an example of how to set up `PushSecret`:
 

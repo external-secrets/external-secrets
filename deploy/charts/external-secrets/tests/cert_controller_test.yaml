@@ -56,7 +56,7 @@ tests:
           value: "--healthz-addr=:8082"
   - it: should override metrics port
     set:
-      certController.prometheus.service.port: 8888
+      certController.metrics.listen.port: 8888
     asserts:
       - equal:
           path: spec.template.spec.containers[0].args[6]

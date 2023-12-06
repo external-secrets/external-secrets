@@ -53,7 +53,7 @@ spec:
           - --dns-name={{ include "external-secrets.fullname" . }}-webhook.{{ .Release.Namespace }}.svc
           - --cert-dir={{ .Values.webhook.certDir }}
           - --check-interval={{ .Values.webhook.certCheckInterval }}
-          - --metrics-addr=:{{ .Values.webhook.prometheus.service.port }}
+          - --metrics-addr=:{{ .Values.webhook.metrics.listen.port }}
           - --healthz-addr={{ .Values.webhook.readinessProbe.address }}:{{ .Values.webhook.readinessProbe.port }}
           {{- if .Values.webhook.lookaheadInterval }}
           - --lookahead-interval={{ .Values.webhook.lookaheadInterval }}
@@ -66,7 +66,7 @@ spec:
             {{- end }}
           {{- end }}
           ports:
-            - containerPort: {{ .Values.webhook.prometheus.service.port }}
+            - containerPort: {{ .Values.webhook.metrics.listen.port }}
               protocol: TCP
               name: metrics
             - containerPort: {{ .Values.webhook.port }}

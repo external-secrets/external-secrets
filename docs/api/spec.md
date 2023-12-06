@@ -2190,36 +2190,6 @@ string
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1beta1.ExtermalSecretRewriteTransform">ExtermalSecretRewriteTransform
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretRewrite">ExternalSecretRewrite</a>)
-</p>
-<p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>template</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Used to define the template to apply on the secret name.
-<code>.value</code> will specify the secret name in the template.</p>
-</td>
-</tr>
-</tbody>
-</table>
 <h3 id="external-secrets.io/v1beta1.ExternalSecret">ExternalSecret
 </h3>
 <p>
@@ -2900,8 +2870,8 @@ The resulting key will be the output of a regexp.ReplaceAll operation.</p>
 <td>
 <code>transform</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.ExtermalSecretRewriteTransform">
-ExtermalSecretRewriteTransform
+<a href="#external-secrets.io/v1beta1.ExternalSecretRewriteTransform">
+ExternalSecretRewriteTransform
 </a>
 </em>
 </td>
@@ -2949,6 +2919,36 @@ string
 </td>
 <td>
 <p>Used to define the target pattern of a ReplaceAll operation.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ExternalSecretRewriteTransform">ExternalSecretRewriteTransform
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretRewrite">ExternalSecretRewrite</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>template</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Used to define the template to apply on the secret name.
+<code>.value</code> will specify the secret name in the template.</p>
 </td>
 </tr>
 </tbody>
@@ -3496,6 +3496,7 @@ map[string]string
 </em>
 </td>
 <td>
+<p>Deprecated: ValueMap is deprecated and is intended to be removed in the future, use the <code>value</code> field instead.</p>
 </td>
 </tr>
 <tr>

@@ -47,3 +47,10 @@ tests:
       - equal:
           path: spec.template.spec.hostNetwork
           value: true
+  - it: should override metrics port
+    set:
+      metrics.listen.port: 8888
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].args[1]
+          value: "--metrics-addr=:8888"
