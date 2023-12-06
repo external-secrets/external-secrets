@@ -12,7 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package glob
+package secretstore
 
 import (
 	"testing"
@@ -28,18 +28,24 @@ func TestMatch(t *testing.T) {
 		input   string
 		pattern string
 		result  bool
+		err     bool
 	}{
-		{"Exact match", "hello", "hello", true},
-		{"Non-match exact", "hello", "hell", false},
-		{"Long glob match", "hello", "hell*", true},
-		{"Short glob match", "hello", "h*", true},
-		{"Glob non-match", "hello", "e*", false},
-		{"Invalid pattern", "e[[a*", "e[[a*", false},
+		{"Exact match", "hello", "hello", true, false},
+		{"Non-match exact", "hello", "hell", false, false},
+		{"Long glob match", "hello", "hell*", true, false},
+		{"Short glob match", "hello", "h*", true, false},
+		{"Glob non-match", "hello", "e*", false, false},
+		{"Invalid pattern", "e[[a*", "e[[a*", false, true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res := Match(log, tt.pattern, tt.input)
+			res, err := match(log, tt.pattern, tt.input)
+			if tt.err {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
 			assert.Equal(t, tt.result, res)
 		})
 	}
@@ -63,7 +69,8 @@ func TestMatchList(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			res := MatchStringInList(log, tt.list, tt.input)
+			res, err := matchStringInList(log, tt.list, tt.input)
+			assert.NoError(t, err)
 			assert.Equal(t, tt.result, res)
 		})
 	}
