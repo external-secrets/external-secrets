@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/glob"
+	"github.com/gobwas/glob"
 )
 
 const (
@@ -248,8 +248,9 @@ func (m *Manager) shouldProcessSecret(store esv1beta1.GenericStore, ns string) (
 		}
 
 		if condition.NamespacesGlobs != nil {
-			if glob.MatchStringInList(m.log, condition.NamespacesGlobs, ns) {
-				return true, nil // namespace in the namespaces list
+			match, err := matchStringInList(m.log, condition.NamespacesGlobs, ns)
+			if match || err != nil {
+				return true, err
 			}
 		}
 	}
@@ -267,4 +268,25 @@ func assertStoreIsUsable(store esv1beta1.GenericStore) error {
 		return fmt.Errorf(errSecretStoreNotReady, store.GetName())
 	}
 	return nil
+}
+
+func match(log logr.Logger, pattern, text string) (bool, error) {
+	compiledGlob, err := glob.Compile(pattern)
+	if err != nil {
+		return false, err
+	}
+	return compiledGlob.Match(text), nil
+}
+
+func matchStringInList(log logr.Logger, list []string, item string) (bool, error) {
+	for _, ll := range list {
+		if item == ll {
+			return true, nil
+		}
+		match, err := match(log, ll, item)
+		if match || err != nil {
+			return match, err
+		}
+	}
+	return false, nil
 }
