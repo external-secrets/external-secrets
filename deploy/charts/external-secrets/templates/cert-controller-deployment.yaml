@@ -45,7 +45,7 @@ spec:
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          image: "{{ include "external-secrets.image" (dict "chartAppVersion" .Chart.AppVersion "image" .Values.certController.image) }}"
+          image: {{ include "external-secrets.image" (dict "chartAppVersion" .Chart.AppVersion "image" .Values.certController.image) | trim }}
           imagePullPolicy: {{ .Values.certController.image.pullPolicy }}
           args:
           - certcontroller

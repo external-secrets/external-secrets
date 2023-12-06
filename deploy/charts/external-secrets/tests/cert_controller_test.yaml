@@ -61,3 +61,20 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].args[6]
           value: "--metrics-addr=:8888"
+  - it: should override image flavour
+    set:
+      certController.image.repository: ghcr.io/external-secrets/external-secrets
+      certController.image.tag: v0.9.8
+      certController.image.flavour: ubi-boringssl
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: ghcr.io/external-secrets/external-secrets:v0.9.8-ubi-boringssl
+  - it: should override image flavour
+    set:
+      certController.image.repository: example.com/external-secrets/external-secrets
+      certController.image.tag: v0.9.9-ubi
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: example.com/external-secrets/external-secrets:v0.9.9-ubi

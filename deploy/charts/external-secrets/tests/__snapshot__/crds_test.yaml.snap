@@ -1884,6 +1884,7 @@ should match snapshot of default values:
                                   valueMap:
                                     additionalProperties:
                                       type: string
+                                    description: 'Deprecated: ValueMap is deprecated and is intended to be removed in the future, use the `value` field instead.'
                                     type: object
                                   version:
                                     type: string

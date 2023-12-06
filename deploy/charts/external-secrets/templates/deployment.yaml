@@ -45,7 +45,7 @@ spec:
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          image: "{{ include "external-secrets.image" (dict "chartAppVersion" .Chart.AppVersion "image" .Values.image) }}"
+          image: {{ include "external-secrets.image" (dict "chartAppVersion" .Chart.AppVersion "image" .Values.image) | trim }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- if or (.Values.leaderElect) (.Values.scopedNamespace) (.Values.processClusterStore) (.Values.processClusterExternalSecret) (.Values.concurrent) (.Values.extraArgs) }}
           args:
