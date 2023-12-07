@@ -44,10 +44,10 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.extraVolumes | list | `[]` |  |
 | certController.fullnameOverride | string | `""` |  |
 | certController.hostNetwork | bool | `false` | Run the certController on the host network |
+| certController.image.flavour | string | `""` |  |
 | certController.image.pullPolicy | string | `"IfNotPresent"` |  |
 | certController.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
 | certController.image.tag | string | `""` |  |
-| certController.image.falvour | string | `""` | The falvour of the image tag to use. The default is distroless. |
 | certController.imagePullSecrets | list | `[]` |  |
 | certController.metrics.listen.port | int | `8080` |  |
 | certController.metrics.service.annotations | object | `{}` | Additional service annotations |
@@ -99,10 +99,10 @@ The command removes all the Kubernetes components associated with the chart and 
 | extraVolumes | list | `[]` |  |
 | fullnameOverride | string | `""` |  |
 | hostNetwork | bool | `false` | Run the controller on the host network |
+| image.flavour | string | `""` | The flavour of tag you want to use There are different image flavours available, like distroless and ubi. Please see GitHub release notes for image tags for these flavors. By default the distroless image is used. |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
 | image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
-| certController.image.falvour | string | `""` | There are different image flavours available, like distroless and ubi. Please see GitHub release notes for image tags for these flavors. By default the distroless image is used. |
 | imagePullSecrets | list | `[]` |  |
 | installCRDs | bool | `true` | If set, install and upgrade CRDs through helm chart. |
 | leaderElect | bool | `false` | If true, external-secrets will perform leader election between instances to ensure no more than one instance of external-secrets operates at a time. |
@@ -167,10 +167,10 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.failurePolicy | string | `"Fail"` | Specifies whether validating webhooks should be created with failurePolicy: Fail or Ignore |
 | webhook.fullnameOverride | string | `""` |  |
 | webhook.hostNetwork | bool | `false` | Specifies if webhook pod should use hostNetwork or not. |
+| webhook.image.flavour | string | `""` | The flavour of tag you want to use |
 | webhook.image.pullPolicy | string | `"IfNotPresent"` |  |
 | webhook.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
 | webhook.image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
-| webhook.image.falvour | string | `""` | The falvour of the image tag to use. The default is distroless. |
 | webhook.imagePullSecrets | list | `[]` |  |
 | webhook.lookaheadInterval | string | `""` | Specifices the lookaheadInterval for certificate validity |
 | webhook.metrics.listen.port | int | `8080` |  |
