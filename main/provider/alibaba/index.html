@@ -1598,6 +1598,13 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#access-key-authentication" class="md-nav__link">
+    Access Key authentication
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#rrsa-authentication" class="md-nav__link">
     RRSA authentication
   </a>
@@ -2181,6 +2188,13 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#access-key-authentication" class="md-nav__link">
+    Access Key authentication
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#rrsa-authentication" class="md-nav__link">
     RRSA authentication
   </a>
@@ -2229,6 +2243,33 @@
 <h3 id="authentication">Authentication</h3>
 <p>We support Access key and RRSA authentication.</p>
 <p>To use RRSA authentication, you should follow <a href="https://www.alibabacloud.com/help/en/container-service-for-kubernetes/latest/use-rrsa-to-enforce-access-control/">Use RRSA to authorize pods to access different cloud services</a> to assign the RAM role to external-secrets operator.</p>
+<h4 id="access-key-authentication">Access Key authentication</h4>
+<p>To use <code>accessKeyID</code> and <code>accessKeySecrets</code>, simply create them as a regular <code>Kind: Secret</code> beforehand and associate it with the <code>SecretStore</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-sample</span>
+<span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">accessKeyID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bXlhd2Vzb21lYWNjZXNza2V5aWQ=</span>
+<span class="w">  </span><span class="nt">accessKeySecret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bXlhd2Vzb21lYWNjZXNza2V5c2VjcmV0</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretstore-sample</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">alibaba</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">regionID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ap-southeast-1</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">accessKeyIDSecretRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-sample</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">accessKeyID</span>
+<span class="w">          </span><span class="nt">accessKeySecretSecretRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-sample</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">accessKeySecret</span>
+</code></pre></div>
 <h4 id="rrsa-authentication">RRSA authentication</h4>
 <p>When using RRSA authentication we manually project the OIDC token file to pod as volume</p>
 <div class="highlight"><pre><span></span><code><span class="nt">extraVolumes</span><span class="p">:</span>
