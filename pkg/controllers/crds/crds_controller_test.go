@@ -40,11 +40,12 @@ const (
 
 func newReconciler() Reconciler {
 	return Reconciler{
-		CrdResources:    []string{"one", "two", "three"},
-		SvcName:         "foo",
-		SvcNamespace:    "default",
-		SecretName:      "foo",
-		SecretNamespace: "default",
+		CrdResources:      []string{"one", "two", "three"},
+		SvcName:           "foo",
+		SvcNamespace:      "default",
+		SecretName:        "foo",
+		SecretNamespace:   "default",
+		EnableCertRenewal: true,
 	}
 }
 
@@ -105,7 +106,12 @@ func TestUpdateCRD(t *testing.T) {
 	}
 	err := rec.updateCRD(ctx, req)
 	if err != nil {
-		t.Errorf("Failed updating CRD: %v", err)
+		t.Errorf("Failed updating CRD '%v'.", err)
+	}
+	rec.EnableCertRenewal = false
+	err = rec.updateCRD(ctx, req)
+	if err != nil {
+		t.Errorf("Failed to update CRD '%v' while reinjecting the cert.", err)
 	}
 }
 
@@ -133,12 +139,25 @@ func TestInjectSvcToConversionWebhook(t *testing.T) {
 func TestInjectCertToConversionWebhook(t *testing.T) {
 	certPEM := []byte("foobar")
 	crd := newCRD()
-	err := injectCert(&crd, certPEM)
+	injected, err := injectCert(&crd, certPEM)
 	if err != nil {
 		t.Errorf("Failed: error when injecting: %v", err)
 	}
 	if string(crd.Spec.Conversion.Webhook.ClientConfig.CABundle) != "foobar" {
 		t.Errorf("Wrong certificate name injected: %v", string(crd.Spec.Conversion.Webhook.ClientConfig.CABundle))
+	}
+	if injected != true {
+		t.Errorf("Certificate not injected")
+	}
+	injected, err = injectCert(&crd, certPEM)
+	if err != nil {
+		t.Errorf("Failed: error when reinjecting: %v", err)
+	}
+	if string(crd.Spec.Conversion.Webhook.ClientConfig.CABundle) != "foobar" {
+		t.Errorf("Wrong certificate name reinjected: %v", string(crd.Spec.Conversion.Webhook.ClientConfig.CABundle))
+	}
+	if injected == true {
+		t.Errorf("Certificate was unnecessarily injected")
 	}
 }
 func TestPopulateSecret(t *testing.T) {
