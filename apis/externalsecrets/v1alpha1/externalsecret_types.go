@@ -45,8 +45,8 @@ const (
 	None ExternalSecretCreationPolicy = "None"
 )
 
-// TemplateMetadata defines metadata fields for the Secret blueprint.
-type TemplateMetadata struct {
+// ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
+type ExternalSecretTemplateMetadata struct {
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
 
@@ -54,9 +54,9 @@ type TemplateMetadata struct {
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
-// SecretTemplate defines a blueprint for the created Secret resource.
+// ExternalSecretTemplate defines a blueprint for the created Secret resource.
 // we can not use native corev1.Secret, it will have empty ObjectMeta values: https://github.com/kubernetes-sigs/controller-tools/issues/448
-type SecretTemplate struct {
+type ExternalSecretTemplate struct {
 	// +optional
 	Type corev1.SecretType `json:"type,omitempty"`
 
@@ -67,7 +67,7 @@ type SecretTemplate struct {
 	EngineVersion TemplateEngineVersion `json:"engineVersion,omitempty"`
 
 	// +optional
-	Metadata TemplateMetadata `json:"metadata,omitempty"`
+	Metadata ExternalSecretTemplateMetadata `json:"metadata,omitempty"`
 
 	// +optional
 	Data map[string]string `json:"data,omitempty"`
@@ -117,7 +117,7 @@ type ExternalSecretTarget struct {
 
 	// Template defines a blueprint for the created Secret resource.
 	// +optional
-	Template *SecretTemplate `json:"template,omitempty"`
+	Template *ExternalSecretTemplate `json:"template,omitempty"`
 
 	// Immutable defines if the final secret will be immutable
 	// +optional

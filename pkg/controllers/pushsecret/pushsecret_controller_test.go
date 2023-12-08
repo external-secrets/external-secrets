@@ -239,8 +239,8 @@ var _ = Describe("ExternalSecret controller", func() {
 						},
 					},
 				},
-				Template: &v1alpha1.SecretTemplate{
-					Metadata: v1alpha1.TemplateMetadata{
+				Template: &v1beta1.ExternalSecretTemplate{
+					Metadata: v1beta1.ExternalSecretTemplateMetadata{
 						Labels: map[string]string{
 							"foos": "ball",
 						},
@@ -249,7 +249,7 @@ var _ = Describe("ExternalSecret controller", func() {
 						},
 					},
 					Type:          v1.SecretTypeOpaque,
-					EngineVersion: v1alpha1.TemplateEngineV2,
+					EngineVersion: v1beta1.TemplateEngineV2,
 					Data: map[string]string{
 						"key": "{{ .key | toString | upper }} was templated",
 					},

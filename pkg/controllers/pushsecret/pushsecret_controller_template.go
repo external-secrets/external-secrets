@@ -19,126 +19,19 @@ import (
 	"fmt"
 
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register" // Loading registered providers.
 	"github.com/external-secrets/external-secrets/pkg/template"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
-	errFetchTplFrom     = "error fetching templateFrom data: %w"
-	errExecTpl          = "could not execute template: %w"
-	errTplCMMissingKey  = "error in configmap %s: missing key %s"
-	errTplSecMissingKey = "error in secret %s: missing key %s"
+	errFetchTplFrom = "error fetching templateFrom data: %w"
+	errExecTpl      = "could not execute template: %w"
 )
-
-type Parser struct {
-	exec         template.ExecFunc
-	dataMap      map[string][]byte
-	client       client.Client
-	targetSecret *v1.Secret
-}
-
-func (p *Parser) MergeConfigMap(ctx context.Context, namespace string, tpl v1alpha1.TemplateFrom) error {
-	if tpl.ConfigMap == nil {
-		return nil
-	}
-	var cm v1.ConfigMap
-	err := p.client.Get(ctx, types.NamespacedName{
-		Name:      tpl.ConfigMap.Name,
-		Namespace: namespace,
-	}, &cm)
-	if err != nil {
-		return err
-	}
-	for _, k := range tpl.ConfigMap.Items {
-		val, ok := cm.Data[k.Key]
-		out := make(map[string][]byte)
-		if !ok {
-			return fmt.Errorf(errTplCMMissingKey, tpl.ConfigMap.Name, k.Key)
-		}
-
-		out[k.Key] = []byte(val)
-
-		if err := p.exec(out, p.dataMap, esv1beta1.TemplateScopeValues, esv1beta1.TemplateTargetData, p.targetSecret); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (p *Parser) MergeSecret(ctx context.Context, namespace string, tpl v1alpha1.TemplateFrom) error {
-	if tpl.Secret == nil {
-		return nil
-	}
-
-	var sec v1.Secret
-	err := p.client.Get(ctx, types.NamespacedName{
-		Name:      tpl.Secret.Name,
-		Namespace: namespace,
-	}, &sec)
-	if err != nil {
-		return err
-	}
-
-	for _, k := range tpl.Secret.Items {
-		val, ok := sec.Data[k.Key]
-		if !ok {
-			return fmt.Errorf(errTplSecMissingKey, tpl.Secret.Name, k.Key)
-		}
-		out := make(map[string][]byte)
-		out[k.Key] = val
-
-		err = p.exec(out, p.dataMap, esv1beta1.TemplateScopeValues, esv1beta1.TemplateTargetData, p.targetSecret)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// This wasn't yet supported
-// func (p *Parser) MergeLiteral(_ context.Context, tpl v1alpha1.TemplateFrom) error {
-//	 if tpl.Literal == nil {
-//		 return nil
-//	 }
-//	 out := make(map[string][]byte)
-//	 out[*tpl.Literal] = []byte(*tpl.Literal)
-//	 return p.exec(out, p.dataMap, esv1beta1.TemplateScopeKeysAndValues, tpl.Target, p.targetSecret)
-// }
-
-func (p *Parser) MergeTemplateFrom(ctx context.Context, es *v1alpha1.PushSecret) error {
-	if es.Spec.Template == nil {
-		return nil
-	}
-	for _, tpl := range es.Spec.Template.TemplateFrom {
-		err := p.MergeConfigMap(ctx, es.Namespace, tpl)
-		if err != nil {
-			return err
-		}
-		err = p.MergeSecret(ctx, es.Namespace, tpl)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (p *Parser) MergeMap(tplMap map[string]string, target esv1beta1.TemplateTarget) error {
-	byteMap := make(map[string][]byte)
-	for k, v := range tplMap {
-		byteMap[k] = []byte(v)
-	}
-	err := p.exec(byteMap, p.dataMap, esv1beta1.TemplateScopeValues, target, p.targetSecret)
-	if err != nil {
-		return fmt.Errorf(errExecTpl, err)
-	}
-	return nil
-}
 
 // merge template in the following order:
 // * template.Data (highest precedence)
@@ -160,15 +53,15 @@ func (r *Reconciler) applyTemplate(ctx context.Context, ps *v1alpha1.PushSecret,
 		return err
 	}
 
-	p := Parser{
-		client:       r.Client,
-		targetSecret: secret,
-		dataMap:      secret.Data,
-		exec:         execute,
+	p := templating.Parser{
+		Client:       r.Client,
+		TargetSecret: secret,
+		DataMap:      secret.Data,
+		Exec:         execute,
 	}
 
 	// apply templates defined in template.templateFrom
-	err = p.MergeTemplateFrom(ctx, ps)
+	err = p.MergeTemplateFrom(ctx, ps.Namespace, ps.Spec.Template)
 	if err != nil {
 		return fmt.Errorf(errFetchTplFrom, err)
 	}
