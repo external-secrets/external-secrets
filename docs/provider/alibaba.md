@@ -9,6 +9,40 @@ We support Access key and RRSA authentication.
 
 To use RRSA authentication, you should follow [Use RRSA to authorize pods to access different cloud services](https://www.alibabacloud.com/help/en/container-service-for-kubernetes/latest/use-rrsa-to-enforce-access-control/) to assign the RAM role to external-secrets operator.
 
+#### Access Key authentication
+
+To use `accessKeyID` and `accessKeySecrets`, simply create them as a regular `Kind: Secret` beforehand and associate it with the `SecretStore`:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: secret-sample
+data:
+  accessKeyID: bXlhd2Vzb21lYWNjZXNza2V5aWQ=
+  accessKeySecret: bXlhd2Vzb21lYWNjZXNza2V5c2VjcmV0
+```
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: secretstore-sample
+spec:
+  provider:
+    alibaba:
+      regionID: ap-southeast-1
+      auth:
+        secretRef:
+          accessKeyIDSecretRef:
+            name: secret-sample
+            key: accessKeyID
+          accessKeySecretSecretRef:
+            name: secret-sample
+            key: accessKeySecret
+```
+
+
 #### RRSA authentication
 
 When using RRSA authentication we manually project the OIDC token file to pod as volume
