@@ -11,7 +11,7 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.12
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.2.0
 	github.com/IBM/go-sdk-core/v5 v5.15.0
-	github.com/IBM/secrets-manager-go-sdk/v2 v2.0.1
+	github.com/IBM/secrets-manager-go-sdk/v2 v2.0.2
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/PaesslerAG/jsonpath v0.1.1
@@ -234,3 +234,5 @@ require (
 	k8s.io/klog/v2 v2.110.1 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 )
+
+//replace github.com/IBM/secrets-manager-go-sdk/v2 => /Users/nitzann/projects/SM/secrets-manager-go-sdk
