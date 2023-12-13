@@ -234,5 +234,3 @@ require (
 	k8s.io/klog/v2 v2.110.1 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 )
-
-//replace github.com/IBM/secrets-manager-go-sdk/v2 => /Users/nitzann/projects/SM/secrets-manager-go-sdk

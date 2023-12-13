@@ -14,7 +14,6 @@ limitations under the License.
 package ibm
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -1216,9 +1215,7 @@ func TestGetSecretMap(t *testing.T) {
 				t.Errorf("unexpected error: %s, expected: '%s'", err.Error(), v.expectError)
 			}
 			if err == nil && !reflect.DeepEqual(out, v.expectedData) {
-				exp := bytes.NewBuffer(v.expectedData["credentials"]).String()
-				actual := bytes.NewBuffer(out["credentials"]).String()
-				t.Errorf("unexpected secret data: expected:\n%+v\nexp:%s\ngot:\n%+v\nactual:%s", v.expectedData, exp, out, actual)
+				t.Errorf("unexpected secret data: expected:\n%+v\ngot:\n%+v", v.expectedData, out)
 			}
 		})
 	}
