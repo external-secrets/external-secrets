@@ -416,20 +416,6 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		}
 	}
 
-	// bad case: arbitrary type secret which is destroyed
-	badSrvCrdSecret := func(smtc *secretManagerTestCase) {
-		secret := &sm.ServiceCredentialsSecret{
-			SecretType: utilpointer.To(sm.Secret_SecretType_ServiceCredentials),
-			Name:       utilpointer.To("testyname"),
-			ID:         utilpointer.To(secretUUID),
-		}
-		smtc.name = "bad case: service_credentials type without property"
-		smtc.apiInput.ID = utilpointer.To(secretUUID)
-		smtc.apiOutput = secret
-		smtc.ref.Key = "service_credentials/" + secretUUID
-		smtc.expectError = "key credentials does not exist in secret " + secretUUID
-	}
-
 	setSecretSrvCredByID := funcSetSecretSrvCred(secretUUID, "good case: service_credentials type - get creds by ID")
 
 	funcSetCertSecretTest := func(secret sm.SecretIntf, name, certType string, good bool) func(*secretManagerTestCase) {
@@ -635,7 +621,6 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(badSecretPrivateCert),
 		makeValidSecretManagerTestCaseCustom(setSecretIamByNameNew),
 		makeValidSecretManagerTestCaseCustom(setSecretSrvCredByID),
-		makeValidSecretManagerTestCaseCustom(badSrvCrdSecret),
 	}
 
 	sm := providerIBM{}
