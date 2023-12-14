@@ -9,7 +9,7 @@
 ## Reporting security problems
 
 **DO NOT CREATE AN ISSUE** to report a security problem. Instead, please
-send an email to contact@external-secrets.io
+send an email to cncf-ExternalSecretsOp-maintainers@lists.cncf.io
 
 <a name="vulnerability-management"></a>
 ## Vulnerability Management Plans
