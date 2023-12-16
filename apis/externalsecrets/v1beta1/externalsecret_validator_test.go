@@ -126,6 +126,9 @@ either data or dataFrom should be specified`,
 			name: "duplicate secretKey",
 			obj: &ExternalSecret{
 				Spec: ExternalSecretSpec{
+					Target: ExternalSecretTarget{
+						DeletionPolicy: DeletionPolicyRetain,
+					},
 					Data: []ExternalSecretData{
 						{SecretKey: "SERVICE_NAME"},
 						{SecretKey: "SERVICE_NAME"},
