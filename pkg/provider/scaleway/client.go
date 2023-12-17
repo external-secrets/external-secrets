@@ -102,6 +102,10 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 }
 
 func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	if data.GetSecretKey() == "" {
+		return fmt.Errorf("pushing the whole secret is not yet implemented")
+	}
+
 	value := secret.Data[data.GetSecretKey()]
 	scwRef, err := decodeScwSecretRef(data.GetRemoteKey())
 	if err != nil {

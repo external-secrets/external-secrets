@@ -1234,6 +1234,11 @@ spec:
                           type: string
                         principalType:
                           description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+                          enum:
+                            - ""
+                            - UserPrincipal
+                            - InstancePrincipal
+                            - Workload
                           type: string
                         region:
                           description: Region is the region where vault is located.
@@ -2397,6 +2402,7 @@ spec:
                               valueMap:
                                 additionalProperties:
                                   type: string
+                                description: 'Deprecated: ValueMap is deprecated and is intended to be removed in the future, use the `value` field instead.'
                                 type: object
                               version:
                                 type: string
@@ -2789,6 +2795,11 @@ spec:
                           type: string
                         principalType:
                           description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+                          enum:
+                            - ""
+                            - UserPrincipal
+                            - InstancePrincipal
+                            - Workload
                           type: string
                         region:
                           description: Region is the region where vault is located.
@@ -4297,7 +4308,6 @@ spec:
                             type: string
                         required:
                           - remoteRef
-                          - secretKey
                         type: object
                       metadata:
                         description: Metadata is metadata attached to the secret. The structure of metadata is provider specific, please look it up in the provider documentation.
@@ -4431,7 +4441,6 @@ spec:
                               type: string
                           required:
                             - remoteRef
-                            - secretKey
                           type: object
                         metadata:
                           description: Metadata is metadata attached to the secret. The structure of metadata is provider specific, please look it up in the provider documentation.
@@ -5168,6 +5177,11 @@ spec:
                           type: string
                         principalType:
                           description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+                          enum:
+                            - ""
+                            - UserPrincipal
+                            - InstancePrincipal
+                            - Workload
                           type: string
                         region:
                           description: Region is the region where vault is located.
@@ -6331,6 +6345,7 @@ spec:
                               valueMap:
                                 additionalProperties:
                                   type: string
+                                description: 'Deprecated: ValueMap is deprecated and is intended to be removed in the future, use the `value` field instead.'
                                 type: object
                               version:
                                 type: string
@@ -6723,6 +6738,11 @@ spec:
                           type: string
                         principalType:
                           description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+                          enum:
+                            - ""
+                            - UserPrincipal
+                            - InstancePrincipal
+                            - Workload
                           type: string
                         region:
                           description: Region is the region where vault is located.
@@ -8406,6 +8426,9 @@ spec:
                 resultType:
                   default: Data
                   description: Result type defines which data is returned from the generator. By default it is the "data" section of the Vault API response. When using e.g. /auth/token/create the "data" section is empty but the "auth" section contains the generated token. Please refer to the vault docs regarding the result data structure.
+                  enum:
+                    - Data
+                    - Auth
                   type: string
               required:
                 - path

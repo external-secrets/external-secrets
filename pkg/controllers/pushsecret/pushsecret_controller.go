@@ -280,14 +280,16 @@ func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores map[esapi
 			return out, fmt.Errorf("could not get secrets client for store %v: %w", store.GetName(), err)
 		}
 		for _, data := range ps.Spec.Data {
-			if _, ok := secret.Data[data.Match.SecretKey]; !ok {
-				return out, fmt.Errorf("secret key %v does not exist", data.Match.SecretKey)
+			if data.Match.SecretKey != "" {
+				if _, ok := secret.Data[data.Match.SecretKey]; !ok {
+					return out, fmt.Errorf("secret key %v does not exist", data.Match.SecretKey)
+				}
 			}
 
-			err := secretClient.PushSecret(ctx, secret, data)
-			if err != nil {
+			if err := secretClient.PushSecret(ctx, secret, data); err != nil {
 				return out, fmt.Errorf(errSetSecretFailed, data.Match.SecretKey, store.GetName(), err)
 			}
+
 			out[storeKey][statusRef(data)] = data
 		}
 	}
