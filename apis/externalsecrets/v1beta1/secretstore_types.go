@@ -158,6 +158,7 @@ type SecretStoreProvider struct {
 	// +optional
 	Fortanix *FortanixProvider `json:"fortanix,omitempty"`
 
+	// +optional
 	PasswordDepot *PasswordDepotProvider `json:"passworddepot,omitempty"`
 }
 
