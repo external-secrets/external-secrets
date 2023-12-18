@@ -100,6 +100,30 @@ func TestValidateExternalSecret(t *testing.T) {
 			expectedErr: "generator can not be used with find or extract",
 		},
 		{
+			name: "source without generator",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					DataFrom: []ExternalSecretDataFromRemoteRef{
+						{
+							SourceRef: &StoreGeneratorSourceRef{}
+						},
+					},
+				},
+			},
+			expectedErr: "generator must be set if SourceRef is used",
+		},
+		{
+			name: "source without generator",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					DataFrom: []ExternalSecretDataFromRemoteRef{
+						{}
+					},
+				},
+			},
+			expectedErr: "either find, extract or source and generator must be set",
+		},
+		{
 			name: "multiple errors",
 			obj: &ExternalSecret{
 				Spec: ExternalSecretSpec{
@@ -117,7 +141,11 @@ either data or dataFrom should be specified`,
 			obj: &ExternalSecret{
 				Spec: ExternalSecretSpec{
 					DataFrom: []ExternalSecretDataFromRemoteRef{
-						{},
+						{
+							SourceRef: &StoreGeneratorSourceRef{
+								GeneratorRef: &GeneratorRef{},
+							},
+						},
 					},
 				},
 			},
