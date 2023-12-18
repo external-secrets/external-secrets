@@ -36,5 +36,6 @@ type PasswordDepotAuth struct {
 
 type PasswordDepotSecretRef struct {
 	// Username / Password is used for authentication.
+	// +optional
 	Credentials esmeta.SecretKeySelector `json:"credentials,omitempty"`
 }
