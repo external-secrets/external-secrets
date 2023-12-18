@@ -414,8 +414,84 @@ func TestGetSecretMap(t *testing.T) {
 			expErr: esv1beta1.NoSecretErr.Error(),
 		},
 		{
+			name: "get correct map from multiple versions by using Value only",
+			input: []esv1beta1.FakeProviderData{
+				{
+					Key:     "/bar",
+					Version: "v1",
+					Value:   `{"john":"doe"}`,
+				},
+			},
+			request: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:     "/bar",
+				Version: "v1",
+			},
+			expValue: map[string][]byte{
+				"john": []byte("doe"),
+			},
+		},
+		{
+			name: "get correct maps from multiple versions by using Value only",
+			input: []esv1beta1.FakeProviderData{
+				{
+					Key:     "/bar",
+					Version: "v3",
+					Value:   `{"john":"doe", "foo": "bar"}`,
+				},
+			},
+			request: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:     "/bar",
+				Version: "v3",
+			},
+			expValue: map[string][]byte{
+				"john": []byte("doe"),
+				"foo":  []byte("bar"),
+			},
+		},
+		{
+			name: "invalid marshal",
+			input: []esv1beta1.FakeProviderData{
+				{
+					Key:     "/bar",
+					Version: "v3",
+					Value:   `---------`,
+				},
+			},
+			request: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:     "/bar",
+				Version: "v3",
+			},
+			expErr: "unable to unmarshal secret: invalid character '-' in numeric literal",
+		},
+		{
+			name: "get correct value from ValueMap due to retrocompatibility",
+			input: []esv1beta1.FakeProviderData{
+				{
+					Key:     "/foo/bar",
+					Version: "v3",
+					ValueMap: map[string]string{
+						"john": "doe",
+						"baz":  "bang",
+					},
+				},
+			},
+			request: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:     "/foo/bar",
+				Version: "v3",
+			},
+			expValue: map[string][]byte{
+				"john": []byte("doe"),
+				"baz":  []byte("bang"),
+			},
+		},
+		{
 			name: "get correct value from multiple versions",
 			input: []esv1beta1.FakeProviderData{
+				{
+					Key:     "john",
+					Value:   "doe",
+					Version: "v2",
+				},
 				{
 					Key: "junk",
 					ValueMap: map[string]string{
@@ -467,7 +543,7 @@ func TestGetSecretMap(t *testing.T) {
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			out, err := cl.GetSecretMap(context.Background(), row.request)
 			if row.expErr != "" {
-				gomega.Expect(err).To(gomega.MatchError(row.expErr))
+				gomega.Expect(err).To(gomega.MatchError(gomega.ContainSubstring(row.expErr)))
 			} else {
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			}

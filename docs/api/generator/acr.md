@@ -18,7 +18,8 @@ You must choose one out of three authentication mechanisms:
 - managed identity
 - workload identity
 
-The generated token will inherit the permissions from the assigned policy. I.e. when you assign a read-only policy all generated tokens will be read-only.
+The generated token will inherit the permissions from the assigned policy. I.e. when you assign a read-only policy all generated tokens will be read-only. 
+You **must** [assign a Azure RBAC role](https://learn.microsoft.com/en-us/azure/role-based-access-control/role-assignments-steps), such as `AcrPush` or `AcrPull` to the service principal in order to be able to authenticate with the Azure container registry API. 
 
 You can scope tokens to a particular repository using `spec.scope`.
 
