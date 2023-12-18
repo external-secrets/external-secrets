@@ -61,6 +61,14 @@ func validateExternalSecret(obj runtime.Object) (admission.Warnings, error) {
 		if findOrExtract && ref.SourceRef != nil && ref.SourceRef.GeneratorRef != nil {
 			errs = errors.Join(errs, fmt.Errorf("generator can not be used with find or extract"))
 		}
+
+		if ref.SourceRef != nil &&  ref.SourceRef.GeneratorRef == nil {
+			errs = errors.Join(errs, fmt.Errorf("generator must be set if SourceRef is used"))
+		}
+
+		if !findOrExtract && (ref.SourceRef != nil ||  ref.SourceRef.GeneratorRef != nil) {
+			errs = errors.Join(errs, fmt.Errorf("either find, extract or source and generator must be set"))
+		}
 	}
 
 	return nil, errs
