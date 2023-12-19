@@ -16,7 +16,9 @@ package templating
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -25,6 +27,8 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/template"
 )
+
+const fieldOwnerTemplate = "externalsecrets.external-secrets.io/%v"
 
 var (
 	errTplCMMissingKey  = "error in configmap %s: missing key %s"
@@ -144,4 +148,82 @@ func (p *Parser) MergeMap(tplMap map[string]string, target esv1beta1.TemplateTar
 		return fmt.Errorf(errExecTpl, err)
 	}
 	return nil
+}
+
+func GetManagedAnnotationKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
+	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]interface{}) []string {
+		metadataFields, exists := fields["f:metadata"]
+		if !exists {
+			return nil
+		}
+		mf, ok := metadataFields.(map[string]interface{})
+		if !ok {
+			return nil
+		}
+		annotationFields, exists := mf["f:annotations"]
+		if !exists {
+			return nil
+		}
+		af, ok := annotationFields.(map[string]interface{})
+		if !ok {
+			return nil
+		}
+		var keys []string
+		for k := range af {
+			keys = append(keys, k)
+		}
+		return keys
+	})
+}
+
+func GetManagedLabelKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
+	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]interface{}) []string {
+		metadataFields, exists := fields["f:metadata"]
+		if !exists {
+			return nil
+		}
+		mf, ok := metadataFields.(map[string]interface{})
+		if !ok {
+			return nil
+		}
+		labelFields, exists := mf["f:labels"]
+		if !exists {
+			return nil
+		}
+		lf, ok := labelFields.(map[string]interface{})
+		if !ok {
+			return nil
+		}
+		var keys []string
+		for k := range lf {
+			keys = append(keys, k)
+		}
+		return keys
+	})
+}
+
+func getManagedFieldKeys(
+	secret *v1.Secret,
+	fieldOwner string,
+	process func(fields map[string]interface{}) []string,
+) ([]string, error) {
+	fqdn := fmt.Sprintf(fieldOwnerTemplate, fieldOwner)
+	var keys []string
+	for _, v := range secret.ObjectMeta.ManagedFields {
+		if v.Manager != fqdn {
+			continue
+		}
+		fields := make(map[string]interface{})
+		err := json.Unmarshal(v.FieldsV1.Raw, &fields)
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshaling managed fields: %w", err)
+		}
+		for _, key := range process(fields) {
+			if key == "." {
+				continue
+			}
+			keys = append(keys, strings.TrimPrefix(key, "f:"))
+		}
+	}
+	return keys, nil
 }

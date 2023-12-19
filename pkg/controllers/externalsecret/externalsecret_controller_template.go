@@ -97,7 +97,7 @@ func setMetadata(secret *v1.Secret, es *esv1beta1.ExternalSecret) error {
 	}
 	// Clean up Labels and Annotations added by the operator
 	// so that it won't leave outdated ones
-	labelKeys, err := getManagedLabelKeys(secret, es.Name)
+	labelKeys, err := templating.GetManagedLabelKeys(secret, es.Name)
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func setMetadata(secret *v1.Secret, es *esv1beta1.ExternalSecret) error {
 		delete(secret.ObjectMeta.Labels, key)
 	}
 
-	annotationKeys, err := getManagedAnnotationKeys(secret, es.Name)
+	annotationKeys, err := templating.GetManagedAnnotationKeys(secret, es.Name)
 	if err != nil {
 		return err
 	}
@@ -123,56 +123,4 @@ func setMetadata(secret *v1.Secret, es *esv1beta1.ExternalSecret) error {
 	utils.MergeStringMap(secret.ObjectMeta.Labels, es.Spec.Target.Template.Metadata.Labels)
 	utils.MergeStringMap(secret.ObjectMeta.Annotations, es.Spec.Target.Template.Metadata.Annotations)
 	return nil
-}
-
-func getManagedAnnotationKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
-	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]interface{}) []string {
-		metadataFields, exists := fields["f:metadata"]
-		if !exists {
-			return nil
-		}
-		mf, ok := metadataFields.(map[string]interface{})
-		if !ok {
-			return nil
-		}
-		annotationFields, exists := mf["f:annotations"]
-		if !exists {
-			return nil
-		}
-		af, ok := annotationFields.(map[string]interface{})
-		if !ok {
-			return nil
-		}
-		var keys []string
-		for k := range af {
-			keys = append(keys, k)
-		}
-		return keys
-	})
-}
-
-func getManagedLabelKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
-	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]interface{}) []string {
-		metadataFields, exists := fields["f:metadata"]
-		if !exists {
-			return nil
-		}
-		mf, ok := metadataFields.(map[string]interface{})
-		if !ok {
-			return nil
-		}
-		labelFields, exists := mf["f:labels"]
-		if !exists {
-			return nil
-		}
-		lf, ok := labelFields.(map[string]interface{})
-		if !ok {
-			return nil
-		}
-		var keys []string
-		for k := range lf {
-			keys = append(keys, k)
-		}
-		return keys
-	})
 }

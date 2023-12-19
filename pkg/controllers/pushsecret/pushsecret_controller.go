@@ -16,7 +16,6 @@ package pushsecret
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -42,7 +41,6 @@ import (
 )
 
 const (
-	fieldOwnerTemplate       = "externalsecrets.external-secrets.io/%v"
 	errFailedGetSecret       = "could not get source secret"
 	errPatchStatus           = "error merging"
 	errGetSecretStore        = "could not get SecretStore %q, %w"
@@ -433,30 +431,4 @@ func statusRef(ref v1beta1.PushSecretData) string {
 		return ref.GetRemoteKey() + "/" + ref.GetProperty()
 	}
 	return ref.GetRemoteKey()
-}
-
-func getManagedFieldKeys(
-	secret *v1.Secret,
-	fieldOwner string,
-	process func(fields map[string]interface{}) []string,
-) ([]string, error) {
-	fqdn := fmt.Sprintf(fieldOwnerTemplate, fieldOwner)
-	var keys []string
-	for _, v := range secret.ObjectMeta.ManagedFields {
-		if v.Manager != fqdn {
-			continue
-		}
-		fields := make(map[string]interface{})
-		err := json.Unmarshal(v.FieldsV1.Raw, &fields)
-		if err != nil {
-			return nil, fmt.Errorf("error unmarshaling managed fields: %w", err)
-		}
-		for _, key := range process(fields) {
-			if key == "." {
-				continue
-			}
-			keys = append(keys, strings.TrimPrefix(key, "f:"))
-		}
-	}
-	return keys, nil
 }
