@@ -133,4 +133,7 @@ spec:
       {{- if .Values.priorityClassName }}
       priorityClassName: {{ .Values.priorityClassName }}
       {{- end }}
+      {{- if .Values.podSpecExtra }}
+      {{- toYaml .Values.podSpecExtra | nindent 6 }}
+      {{- end }}
 {{- end }}
