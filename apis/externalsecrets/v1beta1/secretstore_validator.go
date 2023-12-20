@@ -57,19 +57,24 @@ func (r *GenericStoreValidator) ValidateDelete(_ context.Context, _ runtime.Obje
 func validateStore(store GenericStore) (admission.Warnings, error) {
 
 	if len(store.GetSpec().Conditions) != 0 {
-		for _, condition := range store.GetSpec().Conditions {
-			if len(condition.NamespacesRegex) != 0 {
-				for _, r := range condition.NamespacesRegex {
-					if _, err := regexp.Compile(r); err != nil {
-						return nil, err
-					}
-				}
-			}
-		}
+		validateConditions(store)
 	}
 	provider, err := GetProvider(store)
 	if err != nil {
 		return nil, err
 	}
 	return provider.ValidateStore(store)
+}
+
+func validateConditions(store GenericStore) error {
+	for _, condition := range store.GetSpec().Conditions {
+		if len(condition.NamespacesRegex) != 0 {
+			for _, r := range condition.NamespacesRegex {
+				if _, err := regexp.Compile(r); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
