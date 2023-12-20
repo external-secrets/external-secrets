@@ -2027,7 +2027,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	secretCreatedWhenNamespaceMatchesSingleGlobAllCondition := func(tc *testCase) {
 		tc.secretStore.GetSpec().Conditions = []esv1beta1.ClusterSecretStoreCondition{
 			{
-				NamespacesGlobs: []string{"*"},
+				NamespacesRegex: []string{".*"},
 			},
 		}
 
@@ -2040,7 +2040,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	secretCreatedWhenNamespaceMatchesSingleGlobCondition := func(tc *testCase) {
 		tc.secretStore.GetSpec().Conditions = []esv1beta1.ClusterSecretStoreCondition{
 			{
-				NamespacesGlobs: []string{"ctrl-test*"},
+				NamespacesRegex: []string{"ctrl-test.*"},
 			},
 		}
 
@@ -2053,7 +2053,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	secretCreatedWhenNamespaceMatchesMultipleGlobsConditions := func(tc *testCase) {
 		tc.secretStore.GetSpec().Conditions = []esv1beta1.ClusterSecretStoreCondition{
 			{
-				NamespacesGlobs: []string{"ctrl-test*", "some-other-*"},
+				NamespacesRegex: []string{"ctrl-test.*", "some-other-.*"},
 			},
 		}
 

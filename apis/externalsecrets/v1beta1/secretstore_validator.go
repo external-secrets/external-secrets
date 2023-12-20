@@ -17,6 +17,7 @@ package v1beta1
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -54,6 +55,18 @@ func (r *GenericStoreValidator) ValidateDelete(_ context.Context, _ runtime.Obje
 }
 
 func validateStore(store GenericStore) (admission.Warnings, error) {
+
+	if len(store.GetSpec().Conditions) != 0 {
+		for _, condition := range store.GetSpec().Conditions {
+			if len(condition.NamespacesRegex) != 0 {
+				for _, r := range condition.NamespacesRegex {
+					if _, err := regexp.Compile(r); err != nil {
+						return nil, err
+					}
+				}
+			}
+		}
+	}
 	provider, err := GetProvider(store)
 	if err != nil {
 		return nil, err
