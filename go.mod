@@ -74,7 +74,6 @@ require (
 	github.com/avast/retry-go/v4 v4.5.1
 	github.com/cyberark/conjur-api-go v0.11.1
 	github.com/go-openapi/strfmt v0.21.10
-	github.com/gobwas/glob v0.2.3
 	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/hashicorp/vault/api/auth/aws v0.5.0
