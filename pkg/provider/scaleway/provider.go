@@ -67,6 +67,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		scw.WithDefaultRegion(scw.Region(cfg.Region)),
 		scw.WithDefaultProjectID(cfg.ProjectID),
 		scw.WithAuth(accessKey, secretKey),
+		scw.WithUserAgent("external-secrets"),
 	)
 	if err != nil {
 		return nil, err
