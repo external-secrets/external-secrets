@@ -81,12 +81,6 @@ func (r *Reconciler) applyTemplate(ctx context.Context, ps *v1alpha1.PushSecret,
 	if err != nil {
 		return fmt.Errorf(errExecTpl, err)
 	}
-	// if no data was provided by template fallback
-	// to value from the provider
-	// no provider, we already have the secret...
-	// if len(ps.Spec.Template.Data) == 0 && len(ps.Spec.Template.TemplateFrom) == 0 {
-	//	 secret.Data = dataMap
-	// }
 
 	return nil
 }
