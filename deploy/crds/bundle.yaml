@@ -2248,7 +2248,7 @@ spec:
                         items:
                           type: string
                         type: array
-                      namespacesGlobs:
+                      namespacesRegex:
                         description: Choose namespaces by name using glob matching
                         items:
                           type: string
@@ -7628,7 +7628,7 @@ spec:
                         items:
                           type: string
                         type: array
-                      namespacesGlobs:
+                      namespacesRegex:
                         description: Choose namespaces by name using glob matching
                         items:
                           type: string
