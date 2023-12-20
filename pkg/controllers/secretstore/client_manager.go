@@ -17,6 +17,7 @@ package secretstore
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -28,7 +29,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/gobwas/glob"
 )
 
 const (
@@ -247,8 +247,8 @@ func (m *Manager) shouldProcessSecret(store esv1beta1.GenericStore, ns string) (
 			}
 		}
 
-		if condition.NamespacesGlobs != nil {
-			match, err := matchStringInList(m.log, condition.NamespacesGlobs, ns)
+		if condition.NamespacesRegex != nil {
+			match, err := matchStringInList(condition.NamespacesRegex, ns)
 			if match || err != nil {
 				return true, err
 			}
@@ -270,20 +270,12 @@ func assertStoreIsUsable(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-func match(log logr.Logger, pattern, text string) (bool, error) {
-	compiledGlob, err := glob.Compile(pattern)
-	if err != nil {
-		return false, err
-	}
-	return compiledGlob.Match(text), nil
-}
-
-func matchStringInList(log logr.Logger, list []string, item string) (bool, error) {
+func matchStringInList(list []string, item string) (bool, error) {
 	for _, ll := range list {
 		if item == ll {
 			return true, nil
 		}
-		match, err := match(log, ll, item)
+		match, err := regexp.MatchString(ll, item)
 		if match || err != nil {
 			return match, err
 		}

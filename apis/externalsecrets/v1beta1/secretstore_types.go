@@ -53,7 +53,7 @@ type ClusterSecretStoreCondition struct {
 	Namespaces []string `json:"namespaces,omitempty"`
 
 	// Choose namespaces by name using glob matching
-	NamespacesGlobs []string `json:"namespacesGlobs,omitempty"`
+	NamespacesRegex []string `json:"namespacesRegex,omitempty"`
 }
 
 // SecretStoreProvider contains the provider-specific configuration.
