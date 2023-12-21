@@ -756,7 +756,7 @@ func TestGetSecretMap(t *testing.T) {
 		}
 	}
 
-	//good case: service_credentials
+	// good case: service_credentials
 	setSecretSrvCreds := func(smtc *secretManagerTestCase) {
 		secret := &sm.ServiceCredentialsSecret{
 			Name:        utilpointer.To("testyname"),

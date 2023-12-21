@@ -309,10 +309,9 @@ func getServiceCredentialsSecret(ibm *providerIBM, secretName *string, secretGro
 		return nil, err
 	}
 	if val, ok := secMap[credentialsConst]; ok {
-		var mval []byte
-		mval, err = json.Marshal(val)
+		mval, err := json.Marshal(val)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to marshal secret map for service credentials secret: %w", err)
 		}
 		return mval, nil
 	}
