@@ -1951,6 +1951,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#using-tilt" class="md-nav__link">
+    Using Tilt
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#installing" class="md-nav__link">
     Installing
   </a>
@@ -2167,6 +2174,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#using-tilt" class="md-nav__link">
+    Using Tilt
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#installing" class="md-nav__link">
     Installing
   </a>
@@ -2225,6 +2239,14 @@ docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </
 <p>Build the documentation:
 <div class="highlight"><pre><span></span><code>make<span class="w"> </span>docs
 </code></pre></div></p>
+<h2 id="using-tilt">Using Tilt</h2>
+<p><a href="https://tilt.dev">Tilt</a> can be used to develop external-secrets. Tilt will hot-reload changes to the code and replace
+the running binary in the container using a process manager of its own.</p>
+<p>To run tilt, download the utility for your operating system and run <code>make tilt-up</code>. This will do two things:
+- downloads tilt for the current OS and ARCH under <code>bin/tilt</code>
+- make manifest files of your current changes and place them under <code>./bin/deploy/manifests/external-secrets.yaml</code>
+- run tilt with <code>tilt run</code></p>
+<p>Hit <code>space</code> and you can observe all the pods starting up and track their output in the tilt UI.</p>
 <h2 id="installing">Installing</h2>
 <p>To install the External Secret Operator into a Kubernetes Cluster run:</p>
 <div class="highlight"><pre><span></span><code>helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>external-secrets<span class="w"> </span>https://charts.external-secrets.io
