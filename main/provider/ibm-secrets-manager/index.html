@@ -1597,6 +1597,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#service_credentials" class="md-nav__link">
+    service_credentials
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#imported_cert-public_cert-and-private_cert" class="md-nav__link">
     imported_cert, public_cert, and private_cert
   </a>
@@ -2312,6 +2319,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#service_credentials" class="md-nav__link">
+    service_credentials
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#imported_cert-public_cert-and-private_cert" class="md-nav__link">
     imported_cert, public_cert, and private_cert
   </a>
@@ -2472,6 +2486,7 @@
 <li><code>arbitrary</code></li>
 <li><code>username_password</code></li>
 <li><code>iam_credentials</code></li>
+<li><code>service_credentials</code></li>
 <li><code>imported_cert</code></li>
 <li><code>public_cert</code></li>
 <li><code>private_cert</code></li>
@@ -2496,6 +2511,9 @@
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">iam_cred</span>
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">iam_credentials/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">srv_cred</span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">service_credentials/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">imp_cert</span>
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">imported_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span>
@@ -2535,6 +2553,11 @@
 <ul>
 <li><code>remoteRef</code> retrieves an apikey from secrets manager and sets it for specified <code>secretKey</code></li>
 <li><code>dataFrom</code> retrieves an apikey from secrets manager and sets it for the <code>apikey</code> Kubernetes secret key</li>
+</ul>
+<h4 id="service_credentials">service_credentials</h4>
+<ul>
+<li><code>remoteRef</code> retrieves the credentials object from secrets manager and sets it for specified <code>secretKey</code></li>
+<li><code>dataFrom</code> retrieves the credential object as a map from secrets manager and sets appropriate key:value pairs in the resulting Kubernetes secret</li>
 </ul>
 <h4 id="imported_cert-public_cert-and-private_cert">imported_cert, public_cert, and private_cert</h4>
 <ul>
