@@ -145,5 +145,5 @@ func init() {
 	certcontrollerCmd.Flags().StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
 	certcontrollerCmd.Flags().StringVar(&zapTimeEncoding, "zap-time-encoding", "epoch", "Zap time encoding (one of 'epoch', 'millis', 'nano', 'iso8601', 'rfc3339' or 'rfc3339nano')")
 	certcontrollerCmd.Flags().DurationVar(&crdRequeueInterval, "crd-requeue-interval", time.Minute*5, "Time duration between reconciling CRDs for new certs")
-	certcontrollerCmd.Flags().BoolVar(&enableCertRenewal, "enable-cert-renewal", true, "Enable renewal of the webhook certificate by the cert controller.")
+	certcontrollerCmd.Flags().BoolVar(&enableCertRenewal, "enable-cert-renewal", true, "Enable renewal of the webhook certificate by the cert controller. This can be disabled to allow you to manage the certificates on your own and just use the cert-controller to inject the caBundle into CRDs and validating webhook.")
 }
