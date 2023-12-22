@@ -1156,6 +1156,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#templating-with-pushsecret" class="md-nav__link">
+    Templating with PushSecret
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#helper-functions" class="md-nav__link">
     Helper functions
   </a>
@@ -2268,6 +2275,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#templating-with-pushsecret" class="md-nav__link">
+    Templating with PushSecret
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#helper-functions" class="md-nav__link">
     Helper functions
   </a>
@@ -2596,6 +2610,27 @@ NtFUGA95RGN9s+pl6XY0YARPHf5O76ErC1OZtDTR5RdyQfcM+94gYZsexsXl0aQO
 <span class="w">      </span><span class="nt">data</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">tls.crt</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">filterPEM</span><span class="nv"> </span><span class="s">&quot;</span><span class="l l-Scalar l-Scalar-Plain">CERTIFICATE&quot; }}&quot;</span>
 <span class="w">        </span><span class="nt">tls.key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">filterPEM</span><span class="nv"> </span><span class="s">&quot;</span><span class="l l-Scalar l-Scalar-Plain">PRIVATE KEY&quot; }}&quot;</span>
+</code></pre></div>
+<h2 id="templating-with-pushsecret">Templating with PushSecret</h2>
+<p><code>PushSecret</code> templating is much like <code>ExternalSecrets</code> templating. In-fact under the hood, it's using the same data structure.
+Which means, anything described in the above should be possible with push secret as well resulting in a templated secret
+created at the provider.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">template</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="c1"># ...</span>
+<span class="w">  </span><span class="nt">template</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">engineVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v2</span>
+<span class="w">    </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">token</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.token</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">toString</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">upper</span><span class="nv"> </span><span class="s">}}</span><span class="nv"> </span><span class="s">was</span><span class="nv"> </span><span class="s">templated&quot;</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span>
+<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">create-secret-name</span>
+<span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span>
 </code></pre></div>
 <h2 id="helper-functions">Helper functions</h2>
 <div class="admonition info inline end">
