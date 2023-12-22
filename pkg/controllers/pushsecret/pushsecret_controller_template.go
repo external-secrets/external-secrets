@@ -33,19 +33,20 @@ const (
 	errExecTpl      = "could not execute template: %w"
 )
 
-// merge template in the following order:
+// applyTemplate merges template in the following order:
 // * template.Data (highest precedence)
 // * template.templateFrom
-// * secret via es.data or es.dataFrom.
-// Whatever is in the Secret THAT'S the Data.
+// * secret via ps.data or ps.dataFrom.
+// Apply template modifications for the source secret. These modifications will only live in memory as we will
+// never modify it.
 func (r *Reconciler) applyTemplate(ctx context.Context, ps *v1alpha1.PushSecret, secret *v1.Secret) error {
-	if err := setMetadata(secret, ps); err != nil {
-		return err
-	}
-
-	// no template: copy data and return
+	// no template: nothing to do
 	if ps.Spec.Template == nil {
 		return nil
+	}
+
+	if err := setMetadata(secret, ps); err != nil {
+		return err
 	}
 
 	execute, err := template.EngineForVersion(esv1beta1.TemplateEngineV2)
@@ -85,42 +86,19 @@ func (r *Reconciler) applyTemplate(ctx context.Context, ps *v1alpha1.PushSecret,
 	return nil
 }
 
-// setMetadata sets Labels and Annotations to the given secret.
-func setMetadata(secret *v1.Secret, es *v1alpha1.PushSecret) error {
+// setMetadata sets Labels and Annotations in the source secret, but we will never write them back.
+// It is only set to satisfy templated changes.
+func setMetadata(secret *v1.Secret, ps *v1alpha1.PushSecret) error {
 	if secret.Labels == nil {
 		secret.Labels = make(map[string]string)
 	}
 	if secret.Annotations == nil {
 		secret.Annotations = make(map[string]string)
 	}
-	// Clean up Labels and Annotations added by the operator
-	// so that it won't leave outdated ones
-	labelKeys, err := templating.GetManagedLabelKeys(secret, es.Name)
-	if err != nil {
-		return err
-	}
-	for _, key := range labelKeys {
-		delete(secret.ObjectMeta.Labels, key)
-	}
 
-	annotationKeys, err := templating.GetManagedAnnotationKeys(secret, es.Name)
-	if err != nil {
-		return err
-	}
-	for _, key := range annotationKeys {
-		delete(secret.ObjectMeta.Annotations, key)
-	}
-
-	if es.Spec.Template == nil {
-		utils.MergeStringMap(secret.ObjectMeta.Labels, es.ObjectMeta.Labels)
-		utils.MergeStringMap(secret.ObjectMeta.Annotations, es.ObjectMeta.Annotations)
-
-		return nil
-	}
-
-	secret.Type = es.Spec.Template.Type
-	utils.MergeStringMap(secret.ObjectMeta.Labels, es.Spec.Template.Metadata.Labels)
-	utils.MergeStringMap(secret.ObjectMeta.Annotations, es.Spec.Template.Metadata.Annotations)
+	secret.Type = ps.Spec.Template.Type
+	utils.MergeStringMap(secret.ObjectMeta.Labels, ps.Spec.Template.Metadata.Labels)
+	utils.MergeStringMap(secret.ObjectMeta.Annotations, ps.Spec.Template.Metadata.Annotations)
 
 	return nil
 }
