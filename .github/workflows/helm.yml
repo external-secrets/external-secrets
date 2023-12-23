@@ -94,4 +94,5 @@ jobs:
           CR_RELEASE_NAME_TEMPLATE: "helm-chart-{{ .Version }}"
         with:
           charts_dir: deploy/charts
+          skip_existing: true
           charts_repo_url: https://charts.external-secrets.io
