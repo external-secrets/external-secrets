@@ -1,4 +1,4 @@
-FROM golang:1.20.1
+FROM golang:1.21.5
 WORKDIR /
 COPY ./bin/external-secrets /external-secrets
 
