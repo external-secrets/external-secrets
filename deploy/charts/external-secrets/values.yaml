@@ -271,7 +271,8 @@ webhook:
         name: "my-issuer"
       # -- Set the requested duration (i.e. lifetime) of the Certificate. See
       # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
-      duration: ""
+      # One year by default.
+      duration: "8760h"
       # -- How long before the currently issued certificate’s expiry
       # cert-manager should renew the certificate. See
       # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
