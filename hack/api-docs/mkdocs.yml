@@ -108,6 +108,7 @@ nav:
     - Cloak End 2 End Encrypted Secrets: provider/cloak.md
     - Scaleway: provider/scaleway.md
     - Delinea: provider/delinea.md
+    - Cerberus: provider/cerberus.md
   - Examples:
     - FluxCD: examples/gitops-using-fluxcd.md
     - Anchore Engine: examples/anchore-engine-credentials.md
