@@ -116,6 +116,12 @@ jobs:
         run: |
           make test
 
+      - name: Publish Unit Test Coverage
+        uses: codecov/codecov-action@v3
+        with:
+          flags: unittests
+          file: ./cover.out
+
   publish-artifacts:
     needs: detect-noop
     if: needs.detect-noop.outputs.noop != 'true'
