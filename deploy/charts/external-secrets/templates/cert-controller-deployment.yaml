@@ -1,4 +1,4 @@
-{{- if and .Values.certController.create (not .Values.webhook.certManager.enable) }}
+{{- if and .Values.certController.create (not .Values.webhook.certManager.enabled) }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
