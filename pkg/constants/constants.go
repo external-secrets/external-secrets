@@ -85,6 +85,8 @@ const (
 	CallGitLabGroupGetVariable     = "GroupVariableGet"
 	CallGitLabGroupListVariables   = "GroupVariablesList"
 
+	ProviderGitHub = "GitHub"
+
 	StatusError   = "error"
 	StatusSuccess = "success"
 )
