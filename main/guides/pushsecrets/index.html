@@ -2161,7 +2161,7 @@
 </code></pre></div>
 <h2 id="backup-use-case">Backup use case</h2>
 <p>An interesting use case for <code>kind=PushSecret</code> is backing up your current secret from one provider to another one.</p>
-<p>Imagine you have your secrets in GCP and you want to back them up in Azure Key Vault. You would then create a <code>SecretStore</code> for each provider, and an <code>ExternalSecret</code> to pull the secrets from GCP. This will generetae <code>kind=Secret</code> in your cluster that you can use as the source of a <code>PushSecret</code> configured with the Azure <code>SecretStore</code>. </p>
+<p>Imagine you have your secrets in GCP and you want to back them up in Azure Key Vault. You would then create a <code>SecretStore</code> for each provider, and an <code>ExternalSecret</code> to pull the secrets from GCP. This will generate a <code>kind=Secret</code> in your cluster that you can use as the source of a <code>PushSecret</code> configured with the Azure <code>SecretStore</code>. </p>
 <p><img alt="PushSecretBackup" src="../../pictures/diagrams-pushsecret-backup.png" /></p>
 <h2 id="pushing-the-whole-secret">Pushing the whole secret</h2>
 <p>There are two ways to push an entire secret without defining all keys individually.</p>
