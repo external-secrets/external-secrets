@@ -61,8 +61,7 @@ const (
 	errExpectedOneItemMsg  = "expected one 1Password Item matching"
 	errExpectedOneFieldMsg = "expected one 1Password ItemField matching"
 
-	documentCategory     = "DOCUMENT"
-	incorrectCountFormat = "'%s', got %d"
+	documentCategory = "DOCUMENT"
 )
 
 // Custom Errors //.
@@ -75,8 +74,6 @@ var (
 	ErrExpectedOneField = errors.New(errExpectedOneFieldMsg)
 	// ErrExpectedOneItem is returned when more than 1 item is found in the 1Password Vaults.
 	ErrExpectedOneItem = errors.New(errExpectedOneItemMsg)
-	// ErrNoChanges is returned when no changes are made to the 1Password Item.
-	ErrNoChanges = errors.New(errNoChangesMsg)
 )
 
 // ProviderOnePassword is a provider for 1Password.
@@ -173,11 +170,14 @@ func validateStore(store esv1beta1.GenericStore) error {
 	return nil
 }
 
-func deleteField(fields []*onepassword.ItemField, label string) (fieldsF []*onepassword.ItemField, err error) {
+func deleteField(fields []*onepassword.ItemField, label string) ([]*onepassword.ItemField, error) {
 	// This will always iterate over all items
 	// but its done to ensure that two fields with the same label
 	// exist resulting in undefined behavior
-	var found bool
+	var (
+		found   bool
+		fieldsF = make([]*onepassword.ItemField, 0, len(fields))
+	)
 	for _, item := range fields {
 		if item.Label == label {
 			if found {
@@ -187,9 +187,6 @@ func deleteField(fields []*onepassword.ItemField, label string) (fieldsF []*onep
 			continue
 		}
 		fieldsF = append(fieldsF, item)
-	}
-	if !found {
-		return fieldsF, ErrNoChanges
 	}
 	return fieldsF, nil
 }
@@ -201,9 +198,7 @@ func (provider *ProviderOnePassword) DeleteSecret(_ context.Context, ref esv1bet
 	}
 
 	providerItem.Fields, err = deleteField(providerItem.Fields, ref.GetProperty())
-	if errors.Is(err, ErrNoChanges) {
-		return nil
-	} else if err != nil {
+	if err != nil {
 		return fmt.Errorf(errUpdateItem, err)
 	}
 
@@ -255,11 +250,11 @@ func (provider *ProviderOnePassword) createItem(val []byte, ref esv1beta1.PushSe
 	return err
 }
 
-// updateFields updates the fields of an item with the given label and value.
+// updateFieldValue updates the fields value of an item with the given label.
 // If the label does not exist, a new field is created. If the label exists but
 // the value is different, the value is updated. If the label exists and the
 // value is the same, nothing is done.
-func updateFields(fields []*onepassword.ItemField, label, newVal string) ([]*onepassword.ItemField, error) {
+func updateFieldValue(fields []*onepassword.ItemField, label, newVal string) ([]*onepassword.ItemField, error) {
 	// This will always iterate over all items
 	// but its done to ensure that two fields with the same label
 	// exist resulting in undefined behavior
@@ -282,9 +277,9 @@ func updateFields(fields []*onepassword.ItemField, label, newVal string) ([]*one
 	if field := fields[index]; newVal != field.Value {
 		field.Value = newVal
 		fields[index] = field
-		return fields, nil
 	}
-	return fields, ErrNoChanges
+
+	return fields, nil
 }
 
 // generateNewItemField generates a new item field with the given label and value.
@@ -320,10 +315,8 @@ func (provider *ProviderOnePassword) PushSecret(_ context.Context, secret *corev
 		label = passwordLabel
 	}
 
-	providerItem.Fields, err = updateFields(providerItem.Fields, label, string(val))
-	if errors.Is(err, ErrNoChanges) {
-		return nil
-	} else if err != nil {
+	providerItem.Fields, err = updateFieldValue(providerItem.Fields, label, string(val))
+	if err != nil {
 		return fmt.Errorf(errUpdateItem, err)
 	}
 

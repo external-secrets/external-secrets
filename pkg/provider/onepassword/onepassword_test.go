@@ -1624,7 +1624,7 @@ func TestProviderOnePassword_deleteItem(t *testing.T) {
 					Type:  onepassword.FieldTypeConcealed,
 				},
 			},
-			expectedErr: ErrNoChanges,
+			expectedErr: nil,
 			fieldName:   field4,
 			expectedFields: []*onepassword.ItemField{
 				{
@@ -1813,7 +1813,7 @@ func TestUpdateFields(t *testing.T) {
 			},
 			fieldName:   field1,
 			newVal:      value1,
-			expectedErr: ErrNoChanges,
+			expectedErr: nil,
 			expectedFields: []*onepassword.ItemField{
 				{
 					ID:    field1,
@@ -1871,7 +1871,7 @@ func TestUpdateFields(t *testing.T) {
 
 	// run the tests
 	for _, tc := range testCases {
-		actualOutput, err := updateFields(tc.inputFields, tc.fieldName, tc.newVal)
+		actualOutput, err := updateFieldValue(tc.inputFields, tc.fieldName, tc.newVal)
 		if len(actualOutput) != len(tc.expectedFields) {
 			t.Errorf("%s: length fields did not match: -expected, +got:\n-%#v\n+%#v\n", tc.setupNote, tc.expectedFields, actualOutput)
 			return
