@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	ghAPIUrl = "https://api.github.com/app/installations/%s/access_tokens"
+	ghAPIEndpoint = "/app/installations/%s/access_tokens"
 )
 
 // Get github installation token
@@ -72,7 +72,7 @@ func (g *Github) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		return nil, fmt.Errorf("Can't get InstallationToken: %w", err)
 	}
 
-	ghAPI := fmt.Sprintf(ghAPIUrl, provider.InstallID)
+	ghAPI := fmt.Sprintf(g.url, provider.InstallID)
 
 	// Github api expects POST request
 	req, err := http.NewRequestWithContext(ctx, "POST", ghAPI, nil)
@@ -82,8 +82,7 @@ func (g *Github) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	req.Header.Add("Authorization", "Bearer "+itoken)
 	req.Header.Add("Accept", "application/vnd.github.v3+json")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := g.http.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error performing request: %w", err)
 	}

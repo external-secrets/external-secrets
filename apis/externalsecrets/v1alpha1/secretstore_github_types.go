@@ -19,7 +19,7 @@ import (
 )
 
 type GithubProvider struct {
-	// URL configures the Github instance URL. Defaults to https://github.com/.
+	// URL configures the Github instance URL. Defaults to https://api.github.com/.
 	URL       string `json:"url,omitempty"`
 	AppID     string `json:"appID"`
 	InstallID string `json:"installID"`

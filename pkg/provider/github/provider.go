@@ -17,12 +17,18 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
+)
+
+const (
+	ghAPIPath = "/app/installations/%s/access_tokens"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -32,11 +38,12 @@ var _ esv1beta1.Provider = &Provider{}
 type Provider struct{}
 
 type Github struct {
-	kube      client.Client
-	store     esv1beta1.GenericStore
-	namespace string
-	storeKind string
 	http      *http.Client
+	kube      client.Client
+	namespace string
+	store     esv1beta1.GenericStore
+	storeKind string
+	url       string
 }
 
 func init() {
@@ -51,14 +58,18 @@ func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	ghClient := &Github{
+		http:      &http.Client{},
 		kube:      kube,
 		store:     store,
 		namespace: namespace,
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
 	}
-	_, err := getProvider(store)
+	provider, err := getProvider(store)
 	if err != nil {
 		return nil, err
+	}
+	if ghClient.url = "https://api.github.com" + ghAPIPath; provider.URL == "" {
+		ghClient.url = provider.URL + ghAPIPath
 	}
 
 	return ghClient, nil
@@ -79,23 +90,48 @@ func (g *Github) getStoreSecret(ctx context.Context, ref esmeta.SecretKeySelecto
 	}
 	if g.storeKind == esv1beta1.ClusterSecretStoreKind {
 		if ref.Namespace == nil {
-			return nil, fmt.Errorf("no namespace on ClusterSecretStore webhook secret %s", ref.Name)
+			return nil, fmt.Errorf("no namespace on ClusterSecretStore GH secret %s", ref.Name)
 		}
 		k.Namespace = *ref.Namespace
 	}
 	secret := &corev1.Secret{}
 	if err := g.kube.Get(ctx, k, secret); err != nil {
-		return nil, fmt.Errorf("failed to get clustersecretstore webhook secret %s: %w", ref.Name, err)
+		return nil, fmt.Errorf("failed to get clustersecretstore GH secret %s: %w", ref.Name, err)
 	}
 	return secret, nil
 }
 
-func (p *Provider) ValidateStore(_ esv1beta1.GenericStore) error {
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+	pSpec := store.GetSpec().Provider.Github
+	privatKey := pSpec.Auth.SecretRef.PrivatKey
+	err := utils.ValidateSecretSelector(store, privatKey)
+	if err != nil {
+		return err
+	}
+
+	if pSpec.AppID == "" || pSpec.InstallID == "" {
+		return fmt.Errorf("appID and instllIDs must not be empty")
+	}
+
+	if privatKey.Key == "" {
+		return fmt.Errorf("privatKey.key cannot be empty")
+	}
+
+	if privatKey.Name == "" {
+		return fmt.Errorf("privatKey.name cannot be empty")
+	}
+
 	return nil
 }
 
 func (g *Github) Validate() (esv1beta1.ValidationResult, error) {
-	return 1, nil
+	timeout := 15 * time.Second
+	url := g.url
+
+	if err := utils.NetworkValidate(url, timeout); err != nil {
+		return esv1beta1.ValidationResultError, err
+	}
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func (g *Github) Close(_ context.Context) error {
