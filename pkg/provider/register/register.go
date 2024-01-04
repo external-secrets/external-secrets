@@ -34,6 +34,7 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/kubernetes"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/onepassword"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/oracle"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/pulumi"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/scaleway"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/senhasegura"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/vault"

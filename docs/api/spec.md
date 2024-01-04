@@ -4796,6 +4796,105 @@ External Secrets meta/v1.SecretKeySelector
 <p>
 <p>Provider is a common interface for interacting with secret backends.</p>
 </p>
+<h3 id="external-secrets.io/v1beta1.PulumiProvider">PulumiProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiUrl</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>APIURL is the URL of the Pulumi API.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>accessToken</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.PulumiProviderSecretRef">
+PulumiProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>AccessToken is the access tokens to sign in to the Pulumi Cloud Console.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>organization</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Organization are a space to collaborate on shared projects and stacks.
+To create a new organization, visit <a href="https://app.pulumi.com/">https://app.pulumi.com/</a> and click &ldquo;New Organization&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>environment</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Environment are YAML documents composed of static key-value pairs, programmatic expressions,
+dynamically retrieved values from supported providers including all major clouds,
+and other Pulumi ESC environments.
+To create a new environment, visit <a href="https://www.pulumi.com/docs/esc/environments/">https://www.pulumi.com/docs/esc/environments/</a> for more information.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.PulumiProviderSecretRef">PulumiProviderSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.PulumiProvider">PulumiProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>SecretRef is a reference to a secret containing the Pulumi API token.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.PushSecretData">PushSecretData
 </h3>
 <p>
@@ -5418,6 +5517,20 @@ ChefProvider
 <td>
 <em>(Optional)</em>
 <p>Chef configures this store to sync secrets with chef server</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pulumi</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.PulumiProvider">
+PulumiProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Pulumi configures this store to sync secrets using the Pulumi provider</p>
 </td>
 </tr>
 </tbody>

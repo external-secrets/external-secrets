@@ -145,6 +145,10 @@ type SecretStoreProvider struct {
 	// Chef configures this store to sync secrets with chef server
 	// +optional
 	Chef *ChefProvider `json:"chef,omitempty"`
+
+	// Pulumi configures this store to sync secrets using the Pulumi provider
+	// +optional
+	Pulumi *PulumiProvider `json:"pulumi,omitempty"`
 }
 
 type CAProviderType string
