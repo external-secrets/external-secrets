@@ -136,6 +136,8 @@ const (
 	errInvalidLdapSec     = "invalid Auth.Ldap.SecretRef: %w"
 	errInvalidTokenRef    = "invalid Auth.TokenSecretRef: %w"
 	errInvalidUserPassSec = "invalid Auth.UserPass.SecretRef: %w"
+
+	warnCANamespaceDepreciation = "cannot set namespace on namespaced scoped kind SecretStore, will throw an error on future releases"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -1038,6 +1040,10 @@ func (v *client) newConfig() (*vault.Config, error) {
 		return nil, errors.New(errCANamespace)
 	}
 
+	if v.store.CAProvider != nil && v.storeKind == esv1beta1.SecretStoreKind && v.store.CAProvider.Namespace != nil {
+		fmt.Printf("warn: %s", warnCANamespaceDepreciation)
+	}
+
 	if v.store.CAProvider != nil {
 		var cert []byte
 		var err error
@@ -1073,8 +1079,9 @@ func (v *client) newConfig() (*vault.Config, error) {
 
 func getCertFromSecret(v *client) ([]byte, error) {
 	secretRef := esmeta.SecretKeySelector{
-		Name: v.store.CAProvider.Name,
-		Key:  v.store.CAProvider.Key,
+		Name:      v.store.CAProvider.Name,
+		Namespace: &v.namespace,
+		Key:       v.store.CAProvider.Key,
 	}
 
 	if v.store.CAProvider.Namespace != nil {
@@ -1092,7 +1099,8 @@ func getCertFromSecret(v *client) ([]byte, error) {
 
 func getCertFromConfigMap(v *client) ([]byte, error) {
 	objKey := types.NamespacedName{
-		Name: v.store.CAProvider.Name,
+		Name:      v.store.CAProvider.Name,
+		Namespace: v.namespace,
 	}
 
 	if v.store.CAProvider.Namespace != nil {
