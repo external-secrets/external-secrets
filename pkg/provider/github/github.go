@@ -25,10 +25,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const (
-	ghAPIEndpoint = "/app/installations/%s/access_tokens"
-)
-
 // Get github installation token
 func (g *Github) getInstallationToken(ctx context.Context) (string, error) {
 	provider, err := getProvider(g.store)
@@ -61,7 +57,7 @@ func (g *Github) getInstallationToken(ctx context.Context) (string, error) {
 	return signedToken, nil
 }
 
-func (g *Github) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (g *Github) GetSecret(ctx context.Context, _ esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	provider, err := getProvider(g.store)
 	if err != nil {
 		return nil, fmt.Errorf("Can't get provider: %w", err)
@@ -88,8 +84,9 @@ func (g *Github) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	}
 	defer resp.Body.Close()
 
+	// git access token
 	var gat map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&gat); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&gat); err != nil && resp.StatusCode < 300 {
 		return nil, fmt.Errorf("error decoding response: %w", err)
 	}
 

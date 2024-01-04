@@ -153,6 +153,9 @@ func (g *Github) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind
 }
 
 func (g *Github) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	tkn, _ := g.GetSecret(ctx, ref)
+	tkn, err := g.GetSecret(ctx, ref)
+	if err != nil {
+		return nil, fmt.Errorf("error getting secret %s: %w", ref.Key, err)
+	}
 	return map[string][]byte{"token": tkn}, nil
 }
