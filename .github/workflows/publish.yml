@@ -66,7 +66,7 @@ jobs:
           install: true
 
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         id: setup-go
         with:
           go-version-file: "go.mod"
@@ -103,7 +103,7 @@ jobs:
           else
             TAG=$(make docker.tag)
           fi
-          echo "::set-output name=image-tag::${TAG}"
+          echo "image-tag=${TAG}" >> $GITHUB_OUTPUT
 
       - name: Build & Publish Artifacts
         if: env.IS_FORK == 'false'

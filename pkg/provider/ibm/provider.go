@@ -18,7 +18,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -47,6 +46,7 @@ const (
 	usernameConst     = "username"
 	passwordConst     = "password"
 	apikeyConst       = "apikey"
+	credentialsConst  = "credentials"
 	arbitraryConst    = "arbitrary"
 	payloadConst      = "payload"
 	smAPIKeyConst     = "api_key"
@@ -173,6 +173,10 @@ func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1beta1.ExternalSecre
 
 		return getIamCredentialsSecret(ibm, &secretName, secretGroupName)
 
+	case sm.Secret_SecretType_ServiceCredentials:
+
+		return getServiceCredentialsSecret(ibm, &secretName, secretGroupName)
+
 	case sm.Secret_SecretType_ImportedCert:
 
 		if ref.Property == "" {
@@ -293,6 +297,25 @@ func getIamCredentialsSecret(ibm *providerIBM, secretName *string, secretGroupNa
 		return []byte(val.(string)), nil
 	}
 	return nil, fmt.Errorf("key %s does not exist in secret %s", smAPIKeyConst, *secretName)
+}
+
+func getServiceCredentialsSecret(ibm *providerIBM, secretName *string, secretGroupName string) ([]byte, error) {
+	response, err := getSecretData(ibm, secretName, sm.Secret_SecretType_ServiceCredentials, secretGroupName)
+	if err != nil {
+		return nil, err
+	}
+	secMap, err := formSecretMap(response)
+	if err != nil {
+		return nil, err
+	}
+	if val, ok := secMap[credentialsConst]; ok {
+		mval, err := json.Marshal(val)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal secret map for service credentials secret: %w", err)
+		}
+		return mval, nil
+	}
+	return nil, fmt.Errorf("key %s does not exist in secret %s", credentialsConst, *secretName)
 }
 
 func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef, secretGroupName string) ([]byte, error) {
@@ -509,6 +532,13 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 		secretMap[apikeyConst] = secMapBytes[smAPIKeyConst]
 		return secretMap, nil
 
+	case sm.Secret_SecretType_ServiceCredentials:
+		if err := checkNilFn([]string{credentialsConst}); err != nil {
+			return nil, err
+		}
+		secretMap[credentialsConst] = secMapBytes[credentialsConst]
+		return secretMap, nil
+
 	case sm.Secret_SecretType_ImportedCert:
 		if err := checkNilFn([]string{certificateConst, intermediateConst}); err != nil {
 			return nil, err
@@ -565,35 +595,12 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 func byteArrayMap(secretData map[string]interface{}, secretMap map[string][]byte) map[string][]byte {
 	var err error
 	for k, v := range secretData {
-		secretMap[k], err = getTypedKey(v)
+		secretMap[k], err = utils.GetByteValue(v)
 		if err != nil {
 			return nil
 		}
 	}
 	return secretMap
-}
-
-// kudos Vault Provider - convert from various types.
-func getTypedKey(v interface{}) ([]byte, error) {
-	switch t := v.(type) {
-	case string:
-		return []byte(t), nil
-	case map[string]interface{}:
-		return json.Marshal(t)
-	case map[string]string:
-		return json.Marshal(t)
-	case []byte:
-		return t, nil
-		// also covers int and float32 due to json.Marshal
-	case float64:
-		return []byte(strconv.FormatFloat(t, 'f', -1, 64)), nil
-	case bool:
-		return []byte(strconv.FormatBool(t)), nil
-	case nil:
-		return []byte(nil), nil
-	default:
-		return nil, fmt.Errorf("secret not in expected format")
-	}
 }
 
 func (ibm *providerIBM) Close(_ context.Context) error {

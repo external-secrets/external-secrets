@@ -490,7 +490,7 @@ func TestRewrite(t *testing.T) {
 						},
 					},
 					{
-						Transform: &esv1beta1.ExtermalSecretRewriteTransform{
+						Transform: &esv1beta1.ExternalSecretRewriteTransform{
 							Template: `{{ .value | upper | replace "-" "_" }}`,
 						},
 					},
@@ -510,7 +510,7 @@ func TestRewrite(t *testing.T) {
 			args: args{
 				operations: []esv1beta1.ExternalSecretRewrite{
 					{
-						Transform: &esv1beta1.ExtermalSecretRewriteTransform{
+						Transform: &esv1beta1.ExternalSecretRewriteTransform{
 							Template: `{{ .value | lower }}`,
 						},
 					},

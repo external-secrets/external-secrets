@@ -708,12 +708,40 @@ should match snapshot of default values:
                                 - tenancy
                                 - user
                               type: object
+                            compartment:
+                              description: Compartment is the vault compartment OCID. Required for PushSecret
+                              type: string
+                            encryptionKey:
+                              description: EncryptionKey is the OCID of the encryption key within the vault. Required for PushSecret
+                              type: string
                             principalType:
                               description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+                              enum:
+                                - ""
+                                - UserPrincipal
+                                - InstancePrincipal
+                                - Workload
                               type: string
                             region:
                               description: Region is the region where vault is located.
                               type: string
+                            serviceAccountRef:
+                              description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+                              properties:
+                                audiences:
+                                  description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                  items:
+                                    type: string
+                                  type: array
+                                name:
+                                  description: The name of the ServiceAccount resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              required:
+                                - name
+                              type: object
                             vault:
                               description: Vault is the vault's OCID of the specific vault where secret is located.
                               type: string
@@ -1420,7 +1448,7 @@ should match snapshot of default values:
                           description: AWS configures this store to sync secrets using AWS Secret Manager provider
                           properties:
                             additionalRoles:
-                              description: AdditionalRoles is a chained list of Role ARNs which the SecretManager provider will sequentially assume before assuming Role
+                              description: AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming the Role
                               items:
                                 type: string
                               type: array
@@ -1499,8 +1527,19 @@ should match snapshot of default values:
                               description: AWS Region to be used for the provider
                               type: string
                             role:
-                              description: Role is a Role ARN which the SecretManager provider will assume
+                              description: Role is a Role ARN which the provider will assume
                               type: string
+                            secretsManager:
+                              description: SecretsManager defines how the provider behaves when interacting with AWS SecretsManager
+                              properties:
+                                forceDeleteWithoutRecovery:
+                                  description: 'Specifies whether to delete the secret without any recovery window. You can''t use both this parameter and RecoveryWindowInDays in the same call. If you don''t use either, then by default Secrets Manager uses a 30 day recovery window. see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-ForceDeleteWithoutRecovery'
+                                  type: boolean
+                                recoveryWindowInDays:
+                                  description: 'The number of days from 7 to 30 that Secrets Manager waits before permanently deleting the secret. You can''t use both this parameter and ForceDeleteWithoutRecovery in the same call. If you don''t use either, then by default Secrets Manager uses a 30 day recovery window. see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays'
+                                  format: int64
+                                  type: integer
+                              type: object
                             service:
                               description: Service defines which service should be used to fetch the secrets
                               enum:
@@ -1521,7 +1560,7 @@ should match snapshot of default values:
                                 type: object
                               type: array
                             transitiveTagKeys:
-                              description: AWS STS assume role transitive session tags. Required when multiple rules are used with SecretStore
+                              description: AWS STS assume role transitive session tags. Required when multiple rules are used with the provider
                               items:
                                 type: string
                               type: array
@@ -1845,6 +1884,7 @@ should match snapshot of default values:
                                   valueMap:
                                     additionalProperties:
                                       type: string
+                                    description: 'Deprecated: ValueMap is deprecated and is intended to be removed in the future, use the `value` field instead.'
                                     type: object
                                   version:
                                     type: string
@@ -2229,12 +2269,40 @@ should match snapshot of default values:
                                 - tenancy
                                 - user
                               type: object
+                            compartment:
+                              description: Compartment is the vault compartment OCID. Required for PushSecret
+                              type: string
+                            encryptionKey:
+                              description: EncryptionKey is the OCID of the encryption key within the vault. Required for PushSecret
+                              type: string
                             principalType:
                               description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+                              enum:
+                                - ""
+                                - UserPrincipal
+                                - InstancePrincipal
+                                - Workload
                               type: string
                             region:
                               description: Region is the region where vault is located.
                               type: string
+                            serviceAccountRef:
+                              description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+                              properties:
+                                audiences:
+                                  description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                  items:
+                                    type: string
+                                  type: array
+                                name:
+                                  description: The name of the ServiceAccount resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              required:
+                                - name
+                              type: object
                             vault:
                               description: Vault is the vault's OCID of the specific vault where secret is located.
                               type: string

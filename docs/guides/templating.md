@@ -106,7 +106,21 @@ NtFUGA95RGN9s+pl6XY0YARPHf5O76ErC1OZtDTR5RdyQfcM+94gYZsexsXl0aQO
 
 ```
 
-You can achieve that by using the `filterPEM` function to extract a specific type of PEM block from that secret. If multiple blocks of that type (here: `CERTIFICATE`) exist then all of them are returned in the order they are specified.
+You can achieve that by using the `filterPEM` function to extract a specific type of PEM block from that secret. If multiple blocks of that type (here: `CERTIFICATE`) exist, all of them are returned in the order specified. To extract a specific type of PEM block, pass the type as a string argument to the filterPEM function. Take a look at this example of how to transform a secret which contains a private key and a certificate into the desired format:
+
+```yaml
+{% include 'filterpem-template-v2-external-secret.yaml' %}
+```
+
+## Templating with PushSecret
+
+`PushSecret` templating is much like `ExternalSecrets` templating. In-fact under the hood, it's using the same data structure.
+Which means, anything described in the above should be possible with push secret as well resulting in a templated secret
+created at the provider.
+
+```yaml
+{% include 'template-v2-push-secret.yaml' %}
+```
 
 ## Helper functions
 

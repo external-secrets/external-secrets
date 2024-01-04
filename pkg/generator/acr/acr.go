@@ -131,7 +131,6 @@ func (g *Generator) generate(
 			ctx,
 			crClient,
 			kubeClient.CoreV1(),
-			res.Spec.ACRRegistry,
 			res.Spec.EnvironmentType,
 			res.Spec.Auth.WorkloadIdentity.ServiceAccountRef,
 			namespace,
@@ -228,12 +227,9 @@ func fetchACRRefreshToken(aadAccessToken, tenantID, registryURL string) (string,
 	return refreshToken, nil
 }
 
-func accessTokenForWorkloadIdentity(ctx context.Context, crClient client.Client, kubeClient kcorev1.CoreV1Interface, acrRegistry string, envType v1beta1.AzureEnvironmentType, serviceAccountRef *smmeta.ServiceAccountSelector, namespace string) (string, error) {
+func accessTokenForWorkloadIdentity(ctx context.Context, crClient client.Client, kubeClient kcorev1.CoreV1Interface, envType v1beta1.AzureEnvironmentType, serviceAccountRef *smmeta.ServiceAccountSelector, namespace string) (string, error) {
 	aadEndpoint := keyvault.AadEndpointForType(envType)
-	if !strings.HasSuffix(acrRegistry, "/") {
-		acrRegistry += "/"
-	}
-	acrResource := fmt.Sprintf("https://%s/.default", acrRegistry)
+	scope := keyvault.ServiceManagementEndpointForType(envType)
 	// if no serviceAccountRef was provided
 	// we expect certain env vars to be present.
 	// They are set by the azure workload identity webhook.
@@ -248,7 +244,7 @@ func accessTokenForWorkloadIdentity(ctx context.Context, crClient client.Client,
 		if err != nil {
 			return "", fmt.Errorf("unable to read token file %s: %w", tokenFilePath, err)
 		}
-		tp, err := keyvault.NewTokenProvider(ctx, string(token), clientID, tenantID, aadEndpoint, acrResource)
+		tp, err := keyvault.NewTokenProvider(ctx, string(token), clientID, tenantID, aadEndpoint, scope)
 		if err != nil {
 			return "", err
 		}
@@ -278,7 +274,7 @@ func accessTokenForWorkloadIdentity(ctx context.Context, crClient client.Client,
 	if err != nil {
 		return "", err
 	}
-	tp, err := keyvault.NewTokenProvider(ctx, token, clientID, tenantID, aadEndpoint, acrResource)
+	tp, err := keyvault.NewTokenProvider(ctx, token, clientID, tenantID, aadEndpoint, scope)
 	if err != nil {
 		return "", err
 	}

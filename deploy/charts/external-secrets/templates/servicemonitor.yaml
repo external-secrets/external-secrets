@@ -9,7 +9,7 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - port: 8080
+    - port: {{ .Values.metrics.service.port }}
       protocol: TCP
       name: metrics
   selector:
@@ -57,7 +57,7 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - port: 8080
+    - port: {{ .Values.webhook.metrics.service.port }}
       protocol: TCP
       name: metrics
   selector:
@@ -106,7 +106,7 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - port: 8080
+    - port: {{ .Values.certController.metrics.listen.port }}
       protocol: TCP
       name: metrics
   selector:

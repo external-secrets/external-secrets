@@ -206,6 +206,69 @@ var _ = Describe("ExternalSecret controller", func() {
 			return true
 		}
 	}
+
+	// if target Secret name is not specified it should use the ExternalSecret name.
+	syncSuccessfullyWithTemplate := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		tc.pushsecret = &v1alpha1.PushSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      PushSecretName,
+				Namespace: PushSecretNamespace,
+			},
+			Spec: v1alpha1.PushSecretSpec{
+				SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
+					{
+						Name: PushSecretStore,
+						Kind: "SecretStore",
+					},
+				},
+				Selector: v1alpha1.PushSecretSelector{
+					Secret: v1alpha1.PushSecretSecret{
+						Name: SecretName,
+					},
+				},
+				Data: []v1alpha1.PushSecretData{
+					{
+						Match: v1alpha1.PushSecretMatch{
+							SecretKey: "key",
+							RemoteRef: v1alpha1.PushSecretRemoteRef{
+								RemoteKey: "path/to/key",
+							},
+						},
+					},
+				},
+				Template: &v1beta1.ExternalSecretTemplate{
+					Metadata: v1beta1.ExternalSecretTemplateMetadata{
+						Labels: map[string]string{
+							"foos": "ball",
+						},
+						Annotations: map[string]string{
+							"hihi": "ga",
+						},
+					},
+					Type:          v1.SecretTypeOpaque,
+					EngineVersion: v1beta1.TemplateEngineV2,
+					Data: map[string]string{
+						"key": "{{ .key | toString | upper }} was templated",
+					},
+				},
+			},
+		}
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			Eventually(func() bool {
+				By("checking if Provider value got updated")
+				providerValue, ok := fakeProvider.SetSecretArgs[ps.Spec.Data[0].Match.RemoteRef.RemoteKey]
+				if !ok {
+					return false
+				}
+				got := providerValue.Value
+				return bytes.Equal(got, []byte("VALUE was templated"))
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	syncAndDeleteSuccessfully := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
@@ -705,6 +768,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			// this must be optional so we can test faulty es configuration
 		},
 		Entry("should sync", syncSuccessfully),
+		Entry("should sync with template", syncSuccessfullyWithTemplate),
 		Entry("should delete if DeletionPolicy=Delete", syncAndDeleteSuccessfully),
 		Entry("should track deletion tasks if Delete fails", failDelete),
 		Entry("should track deleted stores if Delete fails", failDeleteStore),

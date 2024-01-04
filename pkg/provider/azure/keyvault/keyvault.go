@@ -497,6 +497,10 @@ func (a *Azure) setKeyVaultKey(ctx context.Context, secretName string, value []b
 
 // PushSecret stores secrets into a Key vault instance.
 func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	if data.GetSecretKey() == "" {
+		return fmt.Errorf("pushing the whole secret is not yet implemented")
+	}
+
 	objectType, secretName := getObjType(esv1beta1.ExternalSecretDataRemoteRef{Key: data.GetRemoteKey()})
 	value := secret.Data[data.GetSecretKey()]
 	switch objectType {
@@ -960,6 +964,21 @@ func AadEndpointForType(t esv1beta1.AzureEnvironmentType) string {
 		return azure.GermanCloud.ActiveDirectoryEndpoint
 	default:
 		return azure.PublicCloud.ActiveDirectoryEndpoint
+	}
+}
+
+func ServiceManagementEndpointForType(t esv1beta1.AzureEnvironmentType) string {
+	switch t {
+	case esv1beta1.AzureEnvironmentPublicCloud:
+		return azure.PublicCloud.ServiceManagementEndpoint
+	case esv1beta1.AzureEnvironmentChinaCloud:
+		return azure.ChinaCloud.ServiceManagementEndpoint
+	case esv1beta1.AzureEnvironmentUSGovernmentCloud:
+		return azure.USGovernmentCloud.ServiceManagementEndpoint
+	case esv1beta1.AzureEnvironmentGermanCloud:
+		return azure.GermanCloud.ServiceManagementEndpoint
+	default:
+		return azure.PublicCloud.ServiceManagementEndpoint
 	}
 }
 

@@ -19,16 +19,17 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	tpl "text/template"
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
-	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -152,28 +153,52 @@ func (w *WebHook) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDat
 	}
 	if resultJSONPath != "" {
 		jsondata := interface{}(nil)
-		if err := yaml.Unmarshal(result, &jsondata); err != nil {
+		if err := json.Unmarshal(result, &jsondata); err != nil {
 			return nil, fmt.Errorf("failed to parse response json: %w", err)
 		}
 		jsondata, err = jsonpath.Get(resultJSONPath, jsondata)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get response path %s: %w", resultJSONPath, err)
 		}
-		jsonvalue, ok := jsondata.(string)
-		if !ok {
-			jsonvalues, ok := jsondata.([]interface{})
-			if !ok {
-				return nil, fmt.Errorf("failed to get response (wrong type: %T)", jsondata)
-			}
-			if len(jsonvalues) == 0 {
-				return nil, fmt.Errorf("filter worked but didn't get any result")
-			}
-			jsonvalue = jsonvalues[0].(string)
-		}
-		return []byte(jsonvalue), nil
+		return extractSecretData(jsondata)
 	}
 
 	return result, nil
+}
+
+// tries to extract data from an interface{}
+// it is supposed to return a single value.
+func extractSecretData(jsondata any) ([]byte, error) {
+	switch val := jsondata.(type) {
+	case bool:
+		return []byte(strconv.FormatBool(val)), nil
+	case nil:
+		return []byte{}, nil
+	case int:
+		return []byte(strconv.Itoa(val)), nil
+	case float64:
+		return []byte(strconv.FormatFloat(val, 'f', 0, 64)), nil
+	case []byte:
+		return val, nil
+	case string:
+		return []byte(val), nil
+
+	// due to backwards compatibility we must keep this!
+	// in case we see a []something we pick the first element and return it
+	case []any:
+		if len(val) == 0 {
+			return nil, fmt.Errorf("filter worked but didn't get any result")
+		}
+		return extractSecretData(val[0])
+
+	// in case we encounter a map we serialize it instead of erroring out
+	// The user should use that data from within a template and figure
+	// out how to deal with it.
+	case map[string]any:
+		return json.Marshal(val)
+	default:
+		return nil, fmt.Errorf("failed to get response (wrong type: %T)", jsondata)
+	}
 }
 
 func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
@@ -188,7 +213,7 @@ func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecret
 
 	// We always want json here, so just parse it out
 	jsondata := interface{}(nil)
-	if err := yaml.Unmarshal(result, &jsondata); err != nil {
+	if err := json.Unmarshal(result, &jsondata); err != nil {
 		return nil, fmt.Errorf("failed to parse response json: %w", err)
 	}
 	// Get subdata via jsonpath, if given
@@ -203,7 +228,7 @@ func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecret
 	if ok {
 		// This could also happen if the response was a single json-encoded string
 		// but that is an extremely unlikely scenario
-		if err := yaml.Unmarshal([]byte(jsonstring), &jsondata); err != nil {
+		if err := json.Unmarshal([]byte(jsonstring), &jsondata); err != nil {
 			return nil, fmt.Errorf("failed to parse response json from jsonpath: %w", err)
 		}
 	}
