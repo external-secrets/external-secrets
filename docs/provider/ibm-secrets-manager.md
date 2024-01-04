@@ -108,6 +108,7 @@ We support the following secret types of [IBM Secrets Manager](https://cloud.ibm
 * `arbitrary`
 * `username_password`
 * `iam_credentials`
+* `service_credentials`
 * `imported_cert`
 * `public_cert`
 * `private_cert`
@@ -134,6 +135,10 @@ The behavior for the different secret types is as following:
 #### iam_credentials
 * `remoteRef` retrieves an apikey from secrets manager and sets it for specified `secretKey`
 * `dataFrom` retrieves an apikey from secrets manager and sets it for the `apikey` Kubernetes secret key
+
+#### service_credentials
+* `remoteRef` retrieves the credentials object from secrets manager and sets it for specified `secretKey`
+* `dataFrom` retrieves the credential object as a map from secrets manager and sets appropriate key:value pairs in the resulting Kubernetes secret
 
 #### imported_cert, public_cert, and private_cert
 * `remoteRef` requires a `property` to be set for either `certificate`, `private_key` or `intermediate` to retrieve respective fields from the secrets manager secret and set in specified `secretKey`

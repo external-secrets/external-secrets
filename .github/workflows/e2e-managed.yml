@@ -72,7 +72,7 @@ jobs:
     - uses: ./.github/actions/e2e-managed
 
     # set status=completed
-    - uses: actions/github-script@v6
+    - uses: actions/github-script@v7
       if: ${{ always() }}
       env:
         number: ${{ env.GITHUB_PR_NUMBER }}

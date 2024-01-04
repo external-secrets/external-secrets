@@ -52,7 +52,7 @@ spec:
     template:
       type: kubernetes.io/dockerconfigjson
       data:
-        .dockerconfigjson: '{"auths":{"{{ .registryName | lower }}.{{ .registryHost }}":{"username":"{{ .registryName }}","password":"{{ .password }}", "auth":"{{ printf "%s:%s" .registryName .password | b64enc }}"}}}'
+        .dockerconfigjson: '{"auths":{"{{ .registryName | lower }}.{{ .registryHost }}":{"username":"{{ .registryName }}","password":"{{ .password }}","auth":"{{ printf "%s:%s" .registryName .password | b64enc }}"}}}'
   data:
   - secretKey: registryName
     remoteRef:

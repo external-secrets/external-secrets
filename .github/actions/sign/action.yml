@@ -57,7 +57,7 @@ runs:
     - name: Get docker image tag
       id: container_info
       shell: bash
-      run: echo "::set-output name=digest::$(crane digest ${{ inputs.image-name }}:${{ inputs.image-tag }})"
+      run: echo "digest=$(crane digest ${{ inputs.image-name }}:${{ inputs.image-tag }})" >> $GITHUB_OUTPUT
 
     - name: Sign image
       shell: bash
