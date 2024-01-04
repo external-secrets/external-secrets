@@ -55,11 +55,12 @@ const (
 	errCreateItem            = "error creating 1Password Item: %w"
 	errDeleteItem            = "error deleting 1Password Item: %w"
 	// custom error messages.
-	errKeyNotFoundMsg      = "key not found in 1Password Vaults"
-	errNoVaultsMsg         = "no vaults found"
-	errNoChangesMsg        = "no changes made to 1Password Item"
-	errExpectedOneItemMsg  = "expected one 1Password Item matching"
-	errExpectedOneFieldMsg = "expected one 1Password ItemField matching"
+	errKeyNotFoundMsg       = "key not found in 1Password Vaults"
+	errNoVaultsMsg          = "no vaults found"
+	errNoChangesMsg         = "no changes made to 1Password Item"
+	errExpectedOneItemMsg   = "expected one 1Password Item matching"
+	errExpectedOneFieldMsg  = "expected one 1Password ItemField matching"
+	errExpectedOneFieldMsgF = "%w: '%s' in '%s', got %d"
 
 	documentCategory = "DOCUMENT"
 )
@@ -462,7 +463,7 @@ func (provider *ProviderOnePassword) getFields(item *onepassword.Item, property 
 			continue
 		}
 		if length := countFieldsWithLabel(field.Label, item.Fields); length != 1 {
-			return nil, fmt.Errorf("%w: '%s' in '%s', got %d", ErrExpectedOneField, field.Label, item.Title, length)
+			return nil, fmt.Errorf(errExpectedOneFieldMsgF, ErrExpectedOneField, field.Label, item.Title, length)
 		}
 
 		// caution: do not use client.GetValue here because it has undesirable behavior on keys with a dot in them
@@ -480,7 +481,7 @@ func (provider *ProviderOnePassword) getAllFields(item onepassword.Item, ref esv
 	item = *i
 	for _, field := range item.Fields {
 		if length := countFieldsWithLabel(field.Label, item.Fields); length != 1 {
-			return fmt.Errorf("%w: '%s' in '%s', got %d", ErrExpectedOneField, field.Label, item.Title, length)
+			return fmt.Errorf(errExpectedOneFieldMsgF, ErrExpectedOneField, field.Label, item.Title, length)
 		}
 		if ref.Name != nil {
 			matcher, err := find.New(*ref.Name)

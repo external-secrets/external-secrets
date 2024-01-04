@@ -68,6 +68,8 @@ const (
 	getAllSecretsErrFormat    = "%s: onepassword.GetAllSecrets(...): -expected, +got:\n-%#v\n+%#v\n"
 	validateStoreErrFormat    = "%s: onepassword.validateStore(...): -expected, +got:\n-%#v\n+%#v\n"
 	findItemErrFormat         = "%s: onepassword.findItem(...): -expected, +got:\n-%#v\n+%#v\n"
+	errFromErrMsgF            = "%w: %s"
+	errDoesNotMatchMsgF       = "%s: error did not match: -expected, +got:\\n-%#v\\n+%#v\\n"
 )
 
 func TestFindItem(t *testing.T) {
@@ -211,7 +213,7 @@ func TestFindItem(t *testing.T) {
 				{
 					checkNote:    "multiple match",
 					findItemName: myItem,
-					expectedErr:  fmt.Errorf("%w: %s", ErrExpectedOneItem, "'my-item', got 2"),
+					expectedErr:  fmt.Errorf(errFromErrMsgF, ErrExpectedOneItem, "'my-item', got 2"),
 				},
 			},
 		},
@@ -784,7 +786,7 @@ func TestGetSecret(t *testing.T) {
 						Key:      myItem,
 						Property: key1,
 					},
-					expectedErr: fmt.Errorf("%w: %s", ErrExpectedOneField, "'key1' in 'my-item', got 2"),
+					expectedErr: fmt.Errorf(errFromErrMsgF, ErrExpectedOneField, "'key1' in 'my-item', got 2"),
 				},
 			},
 		},
@@ -951,7 +953,7 @@ func TestGetSecretMap(t *testing.T) {
 						Key: myItem,
 					},
 					expectedMap: nil,
-					expectedErr: fmt.Errorf("%w: %s", ErrExpectedOneField, "'key1' in 'my-item', got 2"),
+					expectedErr: fmt.Errorf(errFromErrMsgF, ErrExpectedOneField, "'key1' in 'my-item', got 2"),
 				},
 			},
 		},
@@ -1440,7 +1442,7 @@ func validateItem(t *testing.T, expectedItem, actualItem *onepassword.Item) {
 	}
 }
 
-func TestProviderOnePassword_createItem(t *testing.T) {
+func TestProviderOnePasswordCreateItem(t *testing.T) {
 	type testCase struct {
 		vaults             map[string]int
 		expectedErr        error
@@ -1556,12 +1558,12 @@ func TestProviderOnePassword_createItem(t *testing.T) {
 
 		err := provider.createItem(tc.val, tc.ref)
 		if !errors.Is(err, tc.expectedErr) {
-			t.Errorf("%s: error did not match: -expected, +got:\n-%#v\n+%#v\n", tc.setupNote, tc.expectedErr, err)
+			t.Errorf(errDoesNotMatchMsgF, tc.setupNote, tc.expectedErr, err)
 		}
 	}
 }
 
-func TestProviderOnePassword_deleteItem(t *testing.T) {
+func TestProviderOnePasswordDeleteItem(t *testing.T) {
 	type testCase struct {
 		inputFields    []*onepassword.ItemField
 		fieldName      string
@@ -1687,7 +1689,7 @@ func TestProviderOnePassword_deleteItem(t *testing.T) {
 			return
 		}
 		if !errors.Is(err, tc.expectedErr) {
-			t.Errorf("%s: error did not match: -expected, +got:\n-%#v\n+%#v\n", tc.setupNote, tc.expectedErr, err)
+			t.Errorf(errDoesNotMatchMsgF, tc.setupNote, tc.expectedErr, err)
 		}
 		for i, check := range tc.expectedFields {
 			if len(actualOutput) <= i {
@@ -1877,7 +1879,7 @@ func TestUpdateFields(t *testing.T) {
 			return
 		}
 		if !errors.Is(err, tc.expectedErr) {
-			t.Errorf("%s: error did not match: -expected, +got:\n-%#v\n+%#v\n", tc.setupNote, tc.expectedErr, err)
+			t.Errorf(errDoesNotMatchMsgF, tc.setupNote, tc.expectedErr, err)
 		}
 		for i, check := range tc.expectedFields {
 			if len(actualOutput) <= i {
@@ -1905,7 +1907,7 @@ func TestGenerateNewItemField(t *testing.T) {
 	}
 }
 
-func TestProviderOnePassword_PushSecret(t *testing.T) {
+func TestProviderOnePasswordPushSecret(t *testing.T) {
 	// Most logic is tested in the createItem and updateField functions
 	// This test is just to make sure the correct functions are called.
 	// the correct values are passed to them, and errors are propagated
@@ -2099,7 +2101,7 @@ func TestProviderOnePassword_PushSecret(t *testing.T) {
 
 			err := provider.PushSecret(context.Background(), tc.val, tc.ref)
 			if !errors.Is(err, tc.expectedErr) {
-				t.Errorf("%s: error did not match: -expected, +got:\n-%#v\n+%#v\n", tc.setupNote, tc.expectedErr, err)
+				t.Errorf(errDoesNotMatchMsgF, tc.setupNote, tc.expectedErr, err)
 			}
 		})
 	}
