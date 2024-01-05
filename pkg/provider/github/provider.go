@@ -27,10 +27,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-const (
-	ghAPIPath = "/app/installations/%s/access_tokens"
-)
-
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1beta1.SecretsClient = &Github{}
 var _ esv1beta1.Provider = &Provider{}
@@ -69,9 +65,11 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return nil, err
 	}
 
-	ghClient.url = "https://api.github.com" + ghAPIPath
+	ghAPI := fmt.Sprintf("/app/installations/%s/access_tokens", provider.InstallID)
+
+	ghClient.url = "https://api.github.com" + ghAPI
 	if provider.URL != "" {
-		ghClient.url = provider.URL + ghAPIPath
+		ghClient.url = provider.URL + ghAPI
 	}
 
 	return ghClient, nil

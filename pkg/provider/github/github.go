@@ -58,20 +58,13 @@ func (g *Github) getInstallationToken(ctx context.Context) (string, error) {
 }
 
 func (g *Github) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	provider, err := getProvider(g.store)
-	if err != nil {
-		return nil, fmt.Errorf("Can't get provider: %w", err)
-	}
-
 	itoken, err := g.getInstallationToken(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Can't get InstallationToken: %w", err)
 	}
 
-	ghAPI := fmt.Sprintf(g.url, provider.InstallID)
-
 	// Github api expects POST request
-	req, err := http.NewRequestWithContext(ctx, "POST", ghAPI, nil)
+	req, err := http.NewRequestWithContext(ctx, "POST", g.url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
