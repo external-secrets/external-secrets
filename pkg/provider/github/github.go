@@ -57,7 +57,7 @@ func (g *Github) getInstallationToken(ctx context.Context) (string, error) {
 	return signedToken, nil
 }
 
-func (g *Github) GetSecret(ctx context.Context, _ esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (g *Github) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	provider, err := getProvider(g.store)
 	if err != nil {
 		return nil, fmt.Errorf("Can't get provider: %w", err)
@@ -90,7 +90,7 @@ func (g *Github) GetSecret(ctx context.Context, _ esv1beta1.ExternalSecretDataRe
 		return nil, fmt.Errorf("error decoding response: %w", err)
 	}
 
-	accessToken, ok := gat["token"].(string)
+	accessToken, ok := gat[ref.Key].(string)
 	if !ok {
 		return nil, fmt.Errorf("token is not a string")
 	}
