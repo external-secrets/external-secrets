@@ -15,11 +15,13 @@ package chef
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
 
 	"github.com/go-chef/chef"
+	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -27,6 +29,7 @@ import (
 
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -75,7 +78,6 @@ type Providerchef struct {
 	userService    UserInterface
 }
 
-// https://github.com/external-secrets/external-secrets/issues/644
 var _ v1beta1.SecretsClient = &Providerchef{}
 var _ v1beta1.Provider = &Providerchef{}
 
@@ -131,6 +133,130 @@ func (providerchef *Providerchef) NewClient(ctx context.Context, store v1beta1.G
 	return providerchef, nil
 }
 
+// Close closes the client connection.
+func (providerchef *Providerchef) Close(ctx context.Context) error {
+	return nil
+}
+
+// Validate checks if the client is configured correctly
+// to be able to retrieve secrets from the provider.
+func (providerchef *Providerchef) Validate() (v1beta1.ValidationResult, error) {
+	_, err := providerchef.userService.Get(providerchef.clientName)
+	metrics.ObserveAPICall(ProviderChef, CallChefGetUser, err)
+	if err != nil {
+		return v1beta1.ValidationResultError, fmt.Errorf(errStoreValidateFailed)
+	}
+	return v1beta1.ValidationResultReady, nil
+}
+
+// GetAllSecrets Retrieves a map[string][]byte with the Databag names as key and the Databag's Items as secrets.
+// Retrives all DatabagItems of a Databag.
+func (providerchef *Providerchef) GetAllSecrets(ctx context.Context, ref v1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	return nil, fmt.Errorf("dataFrom.find not suppported")
+}
+
+// GetSecret returns a databagItem present in the databag. format example: databagName/databagItemName.
+func (providerchef *Providerchef) GetSecret(ctx context.Context, ref v1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	if utils.IsNil(providerchef.databagService) {
+		return nil, fmt.Errorf(errUninitalizedChefProvider)
+	}
+
+	key := ref.Key
+	databagName := ""
+	databagItem := ""
+	nameSplitted := strings.Split(key, "/")
+	if len(nameSplitted) > 1 {
+		databagName = nameSplitted[0]
+		databagItem = nameSplitted[1]
+	}
+	log.Info("fetching secret value", "databag Name:", databagName, "databag Item:", databagItem)
+	if databagName != "" && databagItem != "" {
+		return getSingleDatabagItem(providerchef, databagName, databagItem, ref.Property)
+	}
+
+	return nil, fmt.Errorf(errInvalidFormat)
+}
+
+func getSingleDatabagItem(providerchef *Providerchef, dataBagName, databagItemName, propertyName string) ([]byte, error) {
+	ditem, err := providerchef.databagService.GetItem(dataBagName, databagItemName)
+	metrics.ObserveAPICall(ProviderChef, CallChefGetDataBagItem, err)
+	if err != nil {
+		return nil, fmt.Errorf(errNoDatabagItemFound, databagItemName, dataBagName)
+	}
+
+	jsonByte, err := json.Marshal(ditem)
+	if err != nil {
+		return nil, fmt.Errorf(errUnableToConvertToJSON)
+	}
+
+	if propertyName != "" {
+		return getPropertyFromDatabagItem(jsonByte, propertyName)
+	}
+
+	return jsonByte, nil
+}
+
+/*
+A path is a series of keys separated by a dot.
+A key may contain special wildcard characters '*' and '?'.
+To access an array value use the index as the key.
+To get the number of elements in an array or to access a child path, use the '#' character.
+The dot and wildcard characters can be escaped with '\'.
+
+refer https://github.com/tidwall/gjson#:~:text=JSON%20byte%20slices.-,Path%20Syntax,-Below%20is%20a
+*/
+func getPropertyFromDatabagItem(jsonByte []byte, propertyName string) ([]byte, error) {
+	result := gjson.GetBytes(jsonByte, propertyName)
+
+	if !result.Exists() {
+		return nil, fmt.Errorf(errNoDatabagItemPropertyFound, propertyName)
+	}
+	return []byte(result.Str), nil
+}
+
+// GetSecretMap returns multiple k/v pairs from the provider, for dataFrom.extract.key
+// dataFrom.extract.key only accepts dataBagName, example : dataFrom.extract.key: myDatabag
+// databagItemName or Property not expected in key.
+func (providerchef *Providerchef) GetSecretMap(ctx context.Context, ref v1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	if utils.IsNil(providerchef.databagService) {
+		return nil, fmt.Errorf(errUninitalizedChefProvider)
+	}
+	databagName := ref.Key
+
+	if strings.Contains(databagName, "/") {
+		return nil, fmt.Errorf(errInvalidDataform)
+	}
+	getAllSecrets := make(map[string][]byte)
+	log.Info("fetching all items from databag:", databagName)
+	dataItems, err := providerchef.databagService.ListItems(databagName)
+	metrics.ObserveAPICall(ProviderChef, CallChefListDataBagItems, err)
+	if err != nil {
+		return nil, fmt.Errorf(errCannotListDataBagItems, databagName)
+	}
+
+	for dataItem := range *dataItems {
+		dItem, err := getSingleDatabagItem(providerchef, databagName, dataItem, "")
+		if err != nil {
+			return nil, fmt.Errorf(errNoDatabagItemFound, dataItem, databagName)
+		}
+		getAllSecrets[dataItem] = dItem
+	}
+	return getAllSecrets, nil
+}
+
+// ValidateStore checks if the provided store is valid.
+func (providerchef *Providerchef) ValidateStore(store v1beta1.GenericStore) error {
+	chefProvider, err := getChefProvider(store)
+	if err != nil {
+		return fmt.Errorf(errChefStore, err)
+	}
+	// check namespace compared to kind
+	if err := utils.ValidateSecretSelector(store, chefProvider.Auth.SecretRef.SecretKey); err != nil {
+		return fmt.Errorf(errChefStore, err)
+	}
+	return nil
+}
+
 // getChefProvider validates the incoming store and return the chef provider.
 func getChefProvider(store v1beta1.GenericStore) (*v1beta1.ChefProvider, error) {
 	if store == nil {
@@ -169,43 +295,6 @@ func getChefProvider(store v1beta1.GenericStore) (*v1beta1.ChefProvider, error) 
 	}
 
 	return chefProvider, nil
-}
-
-// Close closes the client connection.
-func (providerchef *Providerchef) Close(ctx context.Context) error {
-	return nil
-}
-
-// Validate checks if the client is configured correctly
-// to be able to retrieve secrets from the provider.
-func (providerchef *Providerchef) Validate() (v1beta1.ValidationResult, error) {
-	_, err := providerchef.userService.Get(providerchef.clientName)
-	metrics.ObserveAPICall(ProviderChef, CallChefGetUser, err)
-	if err != nil {
-		return v1beta1.ValidationResultError, fmt.Errorf(errStoreValidateFailed)
-	}
-	return v1beta1.ValidationResultReady, nil
-}
-
-// GetAllSecrets Retrieves a map[string][]byte with the Databag names as key and the Databag's Items as secrets.
-// Retrives all DatabagItems of a Databag.
-func (providerchef *Providerchef) GetAllSecrets(ctx context.Context, ref v1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	return nil, fmt.Errorf("dataFrom.find not suppported")
-}
-
-// Not Implemented GetSecret
-func (providerchef *Providerchef) GetSecret(ctx context.Context, ref v1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	return nil, fmt.Errorf(errInvalidFormat)
-}
-
-// Not Implemented GetSecretMap.
-func (providerchef *Providerchef) GetSecretMap(ctx context.Context, ref v1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
-// Not Implemented ValidateStore.
-func (providerchef *Providerchef) ValidateStore(store v1beta1.GenericStore) error {
-	return fmt.Errorf("not implemented")
 }
 
 // Not Implemented DeleteSecret.
