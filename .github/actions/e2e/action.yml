@@ -20,8 +20,8 @@ runs:
       id: go
       shell: bash
       run: |
-        echo "::set-output name=build-cache::$(go env GOCACHE)"
-        echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
+        echo "build-cache=$(go env GOCACHE)" >> $GITHUB_OUTPUT
+        echo "mod-cache=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
 
     - name: Cache the Go Build Cache
       uses: actions/cache@v3

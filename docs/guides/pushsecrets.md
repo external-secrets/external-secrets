@@ -13,7 +13,7 @@ By default, the secret created in the secret provided will not be deleted even a
 
 An interesting use case for `kind=PushSecret` is backing up your current secret from one provider to another one.
 
-Imagine you have your secrets in GCP and you want to back them up in Azure Key Vault. You would then create a `SecretStore` for each provider, and an `ExternalSecret` to pull the secrets from GCP. This will generetae `kind=Secret` in your cluster that you can use as the source of a `PushSecret` configured with the Azure `SecretStore`. 
+Imagine you have your secrets in GCP and you want to back them up in Azure Key Vault. You would then create a `SecretStore` for each provider, and an `ExternalSecret` to pull the secrets from GCP. This will generate a `kind=Secret` in your cluster that you can use as the source of a `PushSecret` configured with the Azure `SecretStore`. 
 
 ![PushSecretBackup](../pictures/diagrams-pushsecret-backup.png)
 

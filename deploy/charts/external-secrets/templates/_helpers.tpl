@@ -133,3 +133,13 @@ Create the name of the service account to use
 {{- end }}
 {{- end }}
 
+{{/*
+Determine the image to use, including if using a flavour.
+*/}}
+{{- define "external-secrets.image" -}}
+{{- if .image.flavour -}}
+{{ printf "%s:%s-%s" .image.repository (.image.tag | default .chartAppVersion) .image.flavour }}
+{{- else }}
+{{ printf "%s:%s" .image.repository (.image.tag | default .chartAppVersion) }}
+{{- end }}
+{{- end }}

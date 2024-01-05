@@ -7,10 +7,12 @@ image:
   repository: ghcr.io/external-secrets/external-secrets
   pullPolicy: IfNotPresent
   # -- The image tag to use. The default is the chart appVersion.
+  tag: ""
+  # -- The flavour of tag you want to use
   # There are different image flavours available, like distroless and ubi.
   # Please see GitHub release notes for image tags for these flavors.
   # By default the distroless image is used.
-  tag: ""
+  flavour: ""
 
 # -- If set, install and upgrade CRDs through helm chart.
 installCRDs: true
@@ -224,8 +226,10 @@ webhook:
   image:
     repository: ghcr.io/external-secrets/external-secrets
     pullPolicy: IfNotPresent
-  # -- The image tag to use. The default is the chart appVersion.
+    # -- The image tag to use. The default is the chart appVersion.
     tag: ""
+    # -- The flavour of tag you want to use
+    flavour: ""
   imagePullSecrets: []
   nameOverride: ""
   fullnameOverride: ""
@@ -271,7 +275,8 @@ webhook:
         name: "my-issuer"
       # -- Set the requested duration (i.e. lifetime) of the Certificate. See
       # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
-      duration: ""
+      # One year by default.
+      duration: "8760h"
       # -- How long before the currently issued certificate’s expiry
       # cert-manager should renew the certificate. See
       # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
@@ -375,6 +380,7 @@ certController:
     repository: ghcr.io/external-secrets/external-secrets
     pullPolicy: IfNotPresent
     tag: ""
+    flavour: ""
   imagePullSecrets: []
   nameOverride: ""
   fullnameOverride: ""

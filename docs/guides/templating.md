@@ -112,6 +112,16 @@ You can achieve that by using the `filterPEM` function to extract a specific typ
 {% include 'filterpem-template-v2-external-secret.yaml' %}
 ```
 
+## Templating with PushSecret
+
+`PushSecret` templating is much like `ExternalSecrets` templating. In-fact under the hood, it's using the same data structure.
+Which means, anything described in the above should be possible with push secret as well resulting in a templated secret
+created at the provider.
+
+```yaml
+{% include 'template-v2-push-secret.yaml' %}
+```
+
 ## Helper functions
 
 !!! info inline end

@@ -41,16 +41,13 @@ import (
 )
 
 const (
-	errFailedGetSecret        = "could not get source secret"
-	errPatchStatus            = "error merging"
-	errGetSecretStore         = "could not get SecretStore %q, %w"
-	errGetClusterSecretStore  = "could not get ClusterSecretStore %q, %w"
-	errGetProviderFailed      = "could not start provider"
-	errGetSecretsClientFailed = "could not start secrets client"
-	errCloseStoreClient       = "error when calling provider close method"
-	errSetSecretFailed        = "could not write remote ref %v to target secretstore %v: %v"
-	errFailedSetSecret        = "set secret failed: %v"
-	pushSecretFinalizer       = "pushsecret.externalsecrets.io/finalizer"
+	errFailedGetSecret       = "could not get source secret"
+	errPatchStatus           = "error merging"
+	errGetSecretStore        = "could not get SecretStore %q, %w"
+	errGetClusterSecretStore = "could not get ClusterSecretStore %q, %w"
+	errSetSecretFailed       = "could not write remote ref %v to target secretstore %v: %v"
+	errFailedSetSecret       = "set secret failed: %v"
+	pushSecretFinalizer      = "pushsecret.externalsecrets.io/finalizer"
 )
 
 type Reconciler struct {
@@ -153,6 +150,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		return ctrl.Result{}, err
 	}
+
+	if err := r.applyTemplate(ctx, &ps, secret); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	syncedSecrets, err := r.PushSecretToProviders(ctx, secretStores, ps, secret, mgr)
 	if err != nil {
 		if errors.Is(err, locks.ErrConflict) {

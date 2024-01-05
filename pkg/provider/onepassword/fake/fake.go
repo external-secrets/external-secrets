@@ -22,10 +22,13 @@ import (
 
 // OnePasswordMockClient is a fake connect.Client.
 type OnePasswordMockClient struct {
-	MockVaults       map[string][]onepassword.Vault
-	MockItems        map[string][]onepassword.Item // ID and Title only
-	MockItemFields   map[string]map[string][]*onepassword.ItemField
-	MockFileContents map[string][]byte
+	MockVaults             map[string][]onepassword.Vault
+	MockItems              map[string][]onepassword.Item // ID and Title only
+	MockItemFields         map[string]map[string][]*onepassword.ItemField
+	MockFileContents       map[string][]byte
+	UpdateItemValidateFunc func(*onepassword.Item, string) (*onepassword.Item, error)
+	CreateItemValidateFunc func(*onepassword.Item, string) (*onepassword.Item, error)
+	DeleteItemValidateFunc func(*onepassword.Item, string) error
 }
 
 // NewMockClient returns an instantiated mock client.
@@ -116,18 +119,27 @@ func (mockClient *OnePasswordMockClient) GetItemsByTitle(itemUUID, vaultUUID str
 	return items, nil
 }
 
-// CreateItem unused fake.
-func (mockClient *OnePasswordMockClient) CreateItem(_ *onepassword.Item, _ string) (*onepassword.Item, error) {
+// CreateItem will call a validation function if set.
+func (mockClient *OnePasswordMockClient) CreateItem(i *onepassword.Item, s string) (*onepassword.Item, error) {
+	if mockClient.CreateItemValidateFunc != nil {
+		return mockClient.CreateItemValidateFunc(i, s)
+	}
 	return &onepassword.Item{}, nil
 }
 
-// UpdateItem unused fake.
-func (mockClient *OnePasswordMockClient) UpdateItem(_ *onepassword.Item, _ string) (*onepassword.Item, error) {
+// UpdateItem will call a validation function if set.
+func (mockClient *OnePasswordMockClient) UpdateItem(i *onepassword.Item, s string) (*onepassword.Item, error) {
+	if mockClient.UpdateItemValidateFunc != nil {
+		return mockClient.UpdateItemValidateFunc(i, s)
+	}
 	return &onepassword.Item{}, nil
 }
 
-// DeleteItem unused fake.
-func (mockClient *OnePasswordMockClient) DeleteItem(_ *onepassword.Item, _ string) error {
+// DeleteItem will call a validation function if set.
+func (mockClient *OnePasswordMockClient) DeleteItem(i *onepassword.Item, s string) error {
+	if mockClient.DeleteItemValidateFunc != nil {
+		return mockClient.DeleteItemValidateFunc(i, s)
+	}
 	return nil
 }
 

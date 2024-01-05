@@ -40,6 +40,18 @@ Build the documentation:
 make docs
 ```
 
+## Using Tilt
+
+[Tilt](https://tilt.dev) can be used to develop external-secrets. Tilt will hot-reload changes to the code and replace
+the running binary in the container using a process manager of its own.
+
+To run tilt, download the utility for your operating system and run `make tilt-up`. This will do two things:
+- downloads tilt for the current OS and ARCH under `bin/tilt`
+- make manifest files of your current changes and place them under `./bin/deploy/manifests/external-secrets.yaml`
+- run tilt with `tilt run`
+
+Hit `space` and you can observe all the pods starting up and track their output in the tilt UI.
+
 ## Installing
 
 To install the External Secret Operator into a Kubernetes Cluster run:
