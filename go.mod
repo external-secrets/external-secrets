@@ -84,6 +84,7 @@ require (
 	github.com/sethvargo/go-password v0.2.0
 	github.com/spf13/pflag v1.0.5
 	github.com/tidwall/sjson v1.2.5
+	go.uber.org/mock v0.4.0
 	sigs.k8s.io/yaml v1.4.0
 )
 

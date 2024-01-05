@@ -25,6 +25,11 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+type Store interface {
+	getInstallationToken(ctx context.Context) (string, error)
+	GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef)
+}
+
 // Get github installation token
 func (g *Github) getInstallationToken(ctx context.Context) (string, error) {
 	provider, err := getProvider(g.store)

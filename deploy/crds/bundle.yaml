@@ -1025,7 +1025,7 @@ spec:
                         installID:
                           type: string
                         url:
-                          description: URL configures the Github instance URL. Defaults to https://github.com/.
+                          description: URL configures the Github instance URL. Defaults to https://api.github.com/.
                           type: string
                       required:
                         - appID
@@ -5141,7 +5141,7 @@ spec:
                         installID:
                           type: string
                         url:
-                          description: URL configures the Github instance URL. Defaults to https://github.com/.
+                          description: URL configures the Github instance URL. Defaults to https://api.github.com/.
                           type: string
                       required:
                         - appID
