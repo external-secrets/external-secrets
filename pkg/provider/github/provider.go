@@ -68,7 +68,9 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	if err != nil {
 		return nil, err
 	}
-	if ghClient.url = "https://api.github.com" + ghAPIPath; provider.URL == "" {
+
+	ghClient.url = "https://api.github.com" + ghAPIPath
+	if provider.URL != "" {
 		ghClient.url = provider.URL + ghAPIPath
 	}
 
