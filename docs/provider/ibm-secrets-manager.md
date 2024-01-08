@@ -108,6 +108,7 @@ We support the following secret types of [IBM Secrets Manager](https://cloud.ibm
 * `arbitrary`
 * `username_password`
 * `iam_credentials`
+* `service_credentials`
 * `imported_cert`
 * `public_cert`
 * `private_cert`
@@ -134,6 +135,10 @@ The behavior for the different secret types is as following:
 #### iam_credentials
 * `remoteRef` retrieves an apikey from secrets manager and sets it for specified `secretKey`
 * `dataFrom` retrieves an apikey from secrets manager and sets it for the `apikey` Kubernetes secret key
+
+#### service_credentials
+* `remoteRef` retrieves the credentials object from secrets manager and sets it for specified `secretKey`
+* `dataFrom` retrieves the credential object as a map from secrets manager and sets appropriate key:value pairs in the resulting Kubernetes secret
 
 #### imported_cert, public_cert, and private_cert
 * `remoteRef` requires a `property` to be set for either `certificate`, `private_key` or `intermediate` to retrieve respective fields from the secrets manager secret and set in specified `secretKey`
@@ -197,10 +202,16 @@ Below example creates a kubernetes secret based on ID of the secret in Secrets M
 {% include 'ibm-external-secret.yaml' %}
 ```
 
-Alternatively, secret name can be specified instead of secret ID. However, note that ESO makes an additional call to fetch the relevant secret ID for the specified secret name.
+Alternatively, the secret name along with its secret group name can be specified instead of secret ID to fetch the secret.
 
 ```yaml
 {% include 'ibm-external-secret-by-name.yaml' %}
+```
+
+Please note that the below mechanism to get the secret by name is deprecated and not supported.
+
+```yaml
+{% include 'ibm-external-secret-by-name-deprecated.yaml' %}
 ```
 
 ### Getting the Kubernetes secret

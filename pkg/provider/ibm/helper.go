@@ -41,6 +41,13 @@ func extractSecretMetadata(response sm.SecretMetadataIntf, givenName *string, se
 		}
 		return metadata.ID, metadata.Name, nil
 
+	case sm.Secret_SecretType_ServiceCredentials:
+		metadata, ok := response.(*sm.ServiceCredentialsSecretMetadata)
+		if !ok {
+			return nil, nil, fmt.Errorf(errExtractingSecret, *givenName, sm.Secret_SecretType_ServiceCredentials, "extractSecretMetadata")
+		}
+		return metadata.ID, metadata.Name, nil
+
 	case sm.Secret_SecretType_ImportedCert:
 		metadata, ok := response.(*sm.ImportedCertificateMetadata)
 		if !ok {

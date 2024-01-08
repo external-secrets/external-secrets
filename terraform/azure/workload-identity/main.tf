@@ -13,7 +13,7 @@ resource "helm_release" "azure-workload-identity-system" {
   namespace  = "azure-workload-identity-system"
   chart      = "workload-identity-webhook"
   repository = "https://azure.github.io/azure-workload-identity/charts"
-  wait       = false
+  wait       = true
   depends_on = [kubernetes_namespace.azure-workload-identity-system]
 
   set {

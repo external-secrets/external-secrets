@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"slices"
 	"sort"
 	"time"
 
@@ -82,6 +83,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
+	// skip reconciliation if deletion timestamp is set on cluster external secret
+	if clusterExternalSecret.DeletionTimestamp != nil {
+		log.Info("skipping as it is in deletion")
+		return ctrl.Result{}, nil
+	}
+
 	p := client.MergeFrom(clusterExternalSecret.DeepCopy())
 	defer r.deferPatch(ctx, log, &clusterExternalSecret, p)
 
@@ -90,17 +97,40 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		refreshInt = clusterExternalSecret.Spec.RefreshInterval.Duration
 	}
 
-	labelSelector, err := metav1.LabelSelectorAsSelector(&clusterExternalSecret.Spec.NamespaceSelector)
-	if err != nil {
-		log.Error(err, errConvertLabelSelector)
-		return ctrl.Result{}, err
+	namespaceList := v1.NamespaceList{}
+
+	if clusterExternalSecret.Spec.NamespaceSelector != nil {
+		labelSelector, err := metav1.LabelSelectorAsSelector(clusterExternalSecret.Spec.NamespaceSelector)
+		if err != nil {
+			log.Error(err, errConvertLabelSelector)
+			return ctrl.Result{}, err
+		}
+
+		err = r.List(ctx, &namespaceList, &client.ListOptions{LabelSelector: labelSelector})
+		if err != nil {
+			log.Error(err, errNamespaces)
+			return ctrl.Result{}, err
+		}
 	}
 
-	namespaceList := v1.NamespaceList{}
-	err = r.List(ctx, &namespaceList, &client.ListOptions{LabelSelector: labelSelector})
-	if err != nil {
-		log.Error(err, errNamespaces)
-		return ctrl.Result{}, err
+	if len(clusterExternalSecret.Spec.Namespaces) > 0 {
+		var additionalNamespace []v1.Namespace
+
+		for _, ns := range clusterExternalSecret.Spec.Namespaces {
+			namespace := &v1.Namespace{}
+			if err = r.Get(ctx, types.NamespacedName{Name: ns}, namespace); err != nil {
+				if apierrors.IsNotFound(err) {
+					continue
+				}
+
+				log.Error(err, errNamespaces)
+				return ctrl.Result{}, err
+			}
+
+			additionalNamespace = append(additionalNamespace, *namespace)
+		}
+
+		namespaceList.Items = append(namespaceList.Items, additionalNamespace...)
 	}
 
 	esName := clusterExternalSecret.Spec.ExternalSecretName
@@ -292,19 +322,36 @@ func (r *Reconciler) findObjectsForNamespace(ctx context.Context, namespace clie
 	var requests []reconcile.Request
 	for i := range clusterExternalSecrets.Items {
 		clusterExternalSecret := &clusterExternalSecrets.Items[i]
-		labelSelector, err := metav1.LabelSelectorAsSelector(&clusterExternalSecret.Spec.NamespaceSelector)
-		if err != nil {
-			r.Log.Error(err, errConvertLabelSelector)
-			return []reconcile.Request{}
+		if clusterExternalSecret.Spec.NamespaceSelector != nil {
+			labelSelector, err := metav1.LabelSelectorAsSelector(clusterExternalSecret.Spec.NamespaceSelector)
+			if err != nil {
+				r.Log.Error(err, errConvertLabelSelector)
+				return []reconcile.Request{}
+			}
+
+			if labelSelector.Matches(labels.Set(namespace.GetLabels())) {
+				requests = append(requests, reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      clusterExternalSecret.GetName(),
+						Namespace: clusterExternalSecret.GetNamespace(),
+					},
+				})
+
+				// Prevent the object from being added twice if it happens to be listed
+				// by Namespaces selector as well.
+				continue
+			}
 		}
 
-		if labelSelector.Matches(labels.Set(namespace.GetLabels())) {
-			requests = append(requests, reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      clusterExternalSecret.GetName(),
-					Namespace: clusterExternalSecret.GetNamespace(),
-				},
-			})
+		if len(clusterExternalSecret.Spec.Namespaces) > 0 {
+			if slices.Contains(clusterExternalSecret.Spec.Namespaces, namespace.GetName()) {
+				requests = append(requests, reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      clusterExternalSecret.GetName(),
+						Namespace: clusterExternalSecret.GetNamespace(),
+					},
+				})
+			}
 		}
 	}
 

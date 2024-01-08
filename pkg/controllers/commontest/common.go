@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -61,11 +62,14 @@ func HasOwnerRef(meta metav1.ObjectMeta, kind, name string) bool {
 	return false
 }
 
-func HasFieldOwnership(meta metav1.ObjectMeta, mgr, rawFields string) bool {
+func HasFieldOwnership(meta metav1.ObjectMeta, mgr, expected string) string {
 	for _, ref := range meta.ManagedFields {
-		if ref.Manager == mgr && string(ref.FieldsV1.Raw) == rawFields {
-			return true
+		if ref.Manager == mgr {
+			if diff := cmp.Diff(string(ref.FieldsV1.Raw), expected); diff != "" {
+				return fmt.Sprintf("(-got, +want)\n%s", diff)
+			}
+			return ""
 		}
 	}
-	return false
+	return fmt.Sprintf("No managed fields managed by %s", mgr)
 }

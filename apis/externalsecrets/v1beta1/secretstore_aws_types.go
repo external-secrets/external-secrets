@@ -54,13 +54,34 @@ type AWSJWTAuth struct {
 type AWSServiceType string
 
 const (
-	// AWSServiceSecretsManager is the AWS SecretsManager.
+	// AWSServiceSecretsManager is the AWS SecretsManager service.
 	// see: https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html
 	AWSServiceSecretsManager AWSServiceType = "SecretsManager"
-	// AWSServiceParameterStore is the AWS SystemsManager ParameterStore.
+	// AWSServiceParameterStore is the AWS SystemsManager ParameterStore service.
 	// see: https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html
 	AWSServiceParameterStore AWSServiceType = "ParameterStore"
 )
+
+// SecretsManager defines how the provider behaves when interacting with AWS
+// SecretsManager. Some of these settings are only applicable to controlling how
+// secrets are deleted, and hence only apply to PushSecret (and only when
+// deletionPolicy is set to Delete).
+type SecretsManager struct {
+	// Specifies whether to delete the secret without any recovery window. You
+	// can't use both this parameter and RecoveryWindowInDays in the same call.
+	// If you don't use either, then by default Secrets Manager uses a 30 day
+	// recovery window.
+	// see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-ForceDeleteWithoutRecovery
+	// +optional
+	ForceDeleteWithoutRecovery bool `json:"forceDeleteWithoutRecovery,omitempty"`
+	// The number of days from 7 to 30 that Secrets Manager waits before
+	// permanently deleting the secret. You can't use both this parameter and
+	// ForceDeleteWithoutRecovery in the same call. If you don't use either,
+	// then by default Secrets Manager uses a 30 day recovery window.
+	// see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays
+	// +optional
+	RecoveryWindowInDays int64 `json:"recoveryWindowInDays,omitempty"`
+}
 
 type Tag struct {
 	Key   string `json:"key"`
@@ -76,16 +97,16 @@ type AWSProvider struct {
 	// if not set aws sdk will infer credentials from your environment
 	// see: https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
 	// +optional
-	Auth AWSAuth `json:"auth"`
+	Auth AWSAuth `json:"auth,omitempty"`
 
-	// Role is a Role ARN which the SecretManager provider will assume
+	// Role is a Role ARN which the provider will assume
 	// +optional
 	Role string `json:"role,omitempty"`
 
 	// AWS Region to be used for the provider
 	Region string `json:"region"`
 
-	// AdditionalRoles is a chained list of Role ARNs which the SecretManager provider will sequentially assume before assuming Role
+	// AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming the Role
 	// +optional
 	AdditionalRoles []string `json:"additionalRoles,omitempty"`
 
@@ -96,7 +117,11 @@ type AWSProvider struct {
 	// +optional
 	SessionTags []*Tag `json:"sessionTags,omitempty"`
 
-	// AWS STS assume role transitive session tags. Required when multiple rules are used with SecretStore
+	// SecretsManager defines how the provider behaves when interacting with AWS SecretsManager
+	// +optional
+	SecretsManager *SecretsManager `json:"secretsManager,omitempty"`
+
+	// AWS STS assume role transitive session tags. Required when multiple rules are used with the provider
 	// +optional
 	TransitiveTagKeys []*string `json:"transitiveTagKeys,omitempty"`
 }

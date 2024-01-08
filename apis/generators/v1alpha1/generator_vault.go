@@ -25,7 +25,7 @@ type VaultDynamicSecretSpec struct {
 	// Used to select the correct ESO controller (think: ingress.ingressClassName)
 	// The ESO controller is instantiated with a specific controller name and filters VDS based on this property
 	// +optional
-	Controller string `json:"controller"`
+	Controller string `json:"controller,omitempty"`
 
 	// Vault API method to use (GET/POST/other)
 	Method string `json:"method,omitempty"`
@@ -48,6 +48,7 @@ type VaultDynamicSecretSpec struct {
 	Path string `json:"path"`
 }
 
+// +kubebuilder:validation:Enum=Data;Auth
 type VaultDynamicSecretResultType string
 
 const (
