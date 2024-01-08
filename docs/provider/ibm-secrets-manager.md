@@ -246,8 +246,7 @@ kind: Secret
 metadata:
   annotations:
     reconcile.external-secrets.io/data-hash: 02217008d13ed228e75cf6d26fe74324
-  creationTimestamp: "2023-05-04T08:41:24Z"
-  annotations:
+    creationTimestamp: "2023-05-04T08:41:24Z"
     secret_id: 1234
     updated_at: 2023-05-04T08:57:19Z
   name: database-credentials
