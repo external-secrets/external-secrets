@@ -37,33 +37,28 @@ type Github struct {
 	url       string
 }
 
-func (g *Github) getPrivateKey(ctx context.Context) (*rsa.PrivateKey, error) {
+func (g *Github) GetPrivateKeyAppID(ctx context.Context) (*rsa.PrivateKey, string, error) {
 	provider, err := getProvider(g.store)
 	if err != nil {
-		return nil, fmt.Errorf("can't get provider: %w", err)
+		return nil, "", fmt.Errorf("can't get provider: %w", err)
 	}
 
 	key, err := g.getStoreSecret(ctx, provider.Auth.SecretRef.PrivatKey)
 	if err != nil {
-		return nil, fmt.Errorf("can't get provider auth secret: %w", err)
+		return nil, "", fmt.Errorf("can't get provider auth secret: %w", err)
 	}
 
 	pk, err := jwt.ParseRSAPrivateKeyFromPEM(key.Data[provider.Auth.SecretRef.PrivatKey.Key])
 	if err != nil {
-		return nil, fmt.Errorf("error parsing RSA private key: %w", err)
+		return nil, "", fmt.Errorf("error parsing RSA private key: %w", err)
 	}
-	return pk, nil
+	return pk, provider.AppID, nil
 }
 
 // Get github installation token.
-func (g *Github) getInstallationToken(key *rsa.PrivateKey) (string, error) {
-	provider, err := getProvider(g.store)
-	if err != nil {
-		return "", fmt.Errorf("can't get provider: %w", err)
-	}
-
+func GetInstallationToken(key *rsa.PrivateKey, aid string) (string, error) {
 	claims := jwt.RegisteredClaims{
-		Issuer:    provider.AppID,
+		Issuer:    aid,
 		IssuedAt:  jwt.NewNumericDate(time.Now().Add(-time.Second * 10)),
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Second * 300)),
 	}
@@ -78,12 +73,12 @@ func (g *Github) getInstallationToken(key *rsa.PrivateKey) (string, error) {
 }
 
 func (g *Github) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	key, err := g.getPrivateKey(ctx)
+	key, appID, err := g.GetPrivateKeyAppID(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing RSA private key: %w", err)
 	}
 
-	itoken, err := g.getInstallationToken(key)
+	itoken, err := GetInstallationToken(key, appID)
 	if err != nil {
 		return nil, fmt.Errorf("can't get InstallationToken: %w", err)
 	}
