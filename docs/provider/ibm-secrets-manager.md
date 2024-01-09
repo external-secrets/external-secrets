@@ -146,7 +146,9 @@ The behavior for the different secret types is as following:
 
 #### kv
 * An optional `property` field can be set to `remoteRef` to select requested key from the KV secret. If not set, the entire secret will be returned
-* `dataFrom` retrieves a string from secrets manager and tries to parse it as JSON object setting the key:values pairs in resulting Kubernetes secret if successful
+* `dataFrom` retrieves a string from secrets manager and tries to parse it as JSON object setting the key:values pairs in resulting Kubernetes secret if successful. It could be either used with the methods
+  * `Extract` to extract multiple key/value pairs from one secret (with optional `property` field being supported as well)
+  * `Find` to find secrets based on tags or regular expressions and allows finding multiple external secrets and map them into a single Kubernetes secret
 
 ```json
 {
@@ -173,10 +175,25 @@ data:
 - secretKey: key_all
   remoteRef:
     key: 'kv/aaaaa-bbbb-cccc-dddd-eeeeee'
+```
 
+```yaml
 dataFrom:
-  - key: 'kv/aaaaa-bbbb-cccc-dddd-eeeeee'
-    property: 'key3'
+  - extract:
+    key: 'kv/fffff-gggg-iiii-dddd-eeeeee' #mandatory
+    decodingStrategy: Base64 #optional
+
+```
+
+```yaml
+dataFrom:
+  - find:
+      name:  #matches any secret name ending in foo-bar
+        regexp: "key" #assumption that secrets are stored like /comp/key1, key2/trigger, and comp/trigger/keygen within the secret manager
+  - find:
+      tags: #matches any secrets with the following metadata labels
+        environment: "dev"
+        application: "BFF"
 ```
 
 results in
@@ -188,9 +205,22 @@ data:
   special_key: ... #special-content
   key_all: ... #{"key1":"val1","key2":"val2", ..."special.key":"special-content"}
 
-  # secrets from dataFrom
-  keyA: ... #valA
-  keyB: ... #valB
+  # secrets from dataFrom with extract method
+  keyA: ... #1st key-value pair from JSON object
+  keyB: ... #2nd key-value pair from JSON object
+  keyC: ... #3rd key-value pair from JSON object
+
+  # secrets from dataFrom with find regex method
+  _comp_key1: ... #secret value for /comp/key1
+  key2_trigger: ... #secret value for key2/trigger
+  _comp_trigger_keygen: ... #secret value for comp/trigger/keygen
+
+  # secrets from dataFrom with find tags method
+  bffA: ...
+  bffB: ...
+  bffC: ...
+
+
 ```
 
 ### Creating external secret
