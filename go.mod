@@ -75,6 +75,7 @@ require (
 	github.com/cyberark/conjur-api-go v0.11.1
 	github.com/go-openapi/strfmt v0.21.10
 	github.com/golang-jwt/jwt/v5 v5.2.0
+	github.com/golang/mock v1.5.0
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/hashicorp/vault/api/auth/aws v0.5.0
 	github.com/hashicorp/vault/api/auth/userpass v0.5.0

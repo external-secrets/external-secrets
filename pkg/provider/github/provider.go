@@ -19,12 +19,12 @@ import (
 	"net/http"
 	"time"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	corev1 "k8s.io/api/core/v1"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -32,15 +32,6 @@ var _ esv1beta1.SecretsClient = &Github{}
 var _ esv1beta1.Provider = &Provider{}
 
 type Provider struct{}
-
-type Github struct {
-	http      *http.Client
-	kube      client.Client
-	namespace string
-	store     esv1beta1.GenericStore
-	storeKind string
-	url       string
-}
 
 func init() {
 	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
@@ -52,7 +43,7 @@ func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
 }
 
-func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(_ context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	ghClient := &Github{
 		http:      &http.Client{},
 		kube:      kube,
@@ -149,7 +140,7 @@ func (g *Github) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.Pus
 
 // Empty GetAllSecrets.
 func (g *Github) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	return nil, fmt.Errorf("not implemented")
 }
 
 func (g *Github) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {

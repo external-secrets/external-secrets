@@ -16,35 +16,50 @@ package github
 
 import (
 	"context"
+	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/golang-jwt/jwt/v5"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
-type Store interface {
-	getInstallationToken(ctx context.Context) (string, error)
-	GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef)
+type Github struct {
+	http      *http.Client
+	kube      client.Client
+	namespace string
+	store     esv1beta1.GenericStore
+	storeKind string
+	url       string
 }
 
-// Get github installation token
-func (g *Github) getInstallationToken(ctx context.Context) (string, error) {
+func (g *Github) getPrivateKey(ctx context.Context) (*rsa.PrivateKey, error) {
 	provider, err := getProvider(g.store)
 	if err != nil {
-		return "", fmt.Errorf("Can't get provider: %w", err)
+		return nil, fmt.Errorf("can't get provider: %w", err)
 	}
 
 	key, err := g.getStoreSecret(ctx, provider.Auth.SecretRef.PrivatKey)
 	if err != nil {
-		return "", fmt.Errorf("Can't get provider auth secret: %w", err)
+		return nil, fmt.Errorf("can't get provider auth secret: %w", err)
 	}
 
 	pk, err := jwt.ParseRSAPrivateKeyFromPEM(key.Data[provider.Auth.SecretRef.PrivatKey.Key])
 	if err != nil {
-		return "", fmt.Errorf("error parsing RSA private key: %w", err)
+		return nil, fmt.Errorf("error parsing RSA private key: %w", err)
+	}
+	return pk, nil
+}
+
+// Get github installation token.
+func (g *Github) getInstallationToken(key *rsa.PrivateKey) (string, error) {
+	provider, err := getProvider(g.store)
+	if err != nil {
+		return "", fmt.Errorf("can't get provider: %w", err)
 	}
 
 	claims := jwt.RegisteredClaims{
@@ -54,7 +69,7 @@ func (g *Github) getInstallationToken(ctx context.Context) (string, error) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-	signedToken, err := token.SignedString(pk)
+	signedToken, err := token.SignedString(key)
 	if err != nil {
 		return "", fmt.Errorf("error signing token: %w", err)
 	}
@@ -63,13 +78,18 @@ func (g *Github) getInstallationToken(ctx context.Context) (string, error) {
 }
 
 func (g *Github) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	itoken, err := g.getInstallationToken(ctx)
+	key, err := g.getPrivateKey(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("Can't get InstallationToken: %w", err)
+		return nil, fmt.Errorf("error parsing RSA private key: %w", err)
+	}
+
+	itoken, err := g.getInstallationToken(key)
+	if err != nil {
+		return nil, fmt.Errorf("can't get InstallationToken: %w", err)
 	}
 
 	// Github api expects POST request
-	req, err := http.NewRequestWithContext(ctx, "POST", g.url, nil)
+	req, err := http.NewRequestWithContext(ctx, "POST", g.url, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
