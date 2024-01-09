@@ -253,7 +253,7 @@ kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath='{.data.tes
 ### Populating the Kubernetes secret with metadata from IBM Secrets Manager Provider
 ESO can add metadata while creating or updating a Kubernetes secret to be reflected in its labels or annotations. The metadata could be any of the fields that are supported and returned in the response by IBM Secrets Manager.
 
-In order for the user to opt-in to adding metadata to secret, an existing optional field `spec.dataFrom.extract.metadataPolicy` can be be set to `Fetch`, its default value being `None`. In addition to this, templating provided be ESO can be leveraged to specify the key-value pairs of the resultant secrets' labels and annotation.
+In order for the user to opt in to adding metadata to secret, an existing optional field `spec.dataFrom.extract.metadataPolicy` can be set to `Fetch`, its default value being `None`. In addition to this, templating provided be ESO can be leveraged to specify the key-value pairs of the resultant secrets' labels and annotation.
 
 In order for the required metadata to be populated in the Kubernetes secret, combination of below should be provided in the External Secrets resource:
 1. The required metadata should be specified under `template.metadata.labels` or `template.metadata.annotations`.
@@ -277,7 +277,7 @@ metadata:
   annotations:
     reconcile.external-secrets.io/data-hash: 02217008d13ed228e75cf6d26fe74324
     creationTimestamp: "2023-05-04T08:41:24Z"
-    secret_id: 1234
+    secret_id: "1234"
     updated_at: 2023-05-04T08:57:19Z
   name: database-credentials
   namespace: external-secrets
@@ -288,7 +288,7 @@ metadata:
     kind: ExternalSecret
     name: database-credentials
     uid: c2a018e7-1ac3-421b-bd3b-d9497204f843
-  resourceVersion: "1803567"
-  uid: f5dff604-611b-4d41-9d65-b860c61a0b8d
+  #resourceVersion: "1803567" #immutable for a user
+  #uid: f5dff604-611b-4d41-9d65-b860c61a0b8d #immutable for a user
 type: Opaque
 ```
