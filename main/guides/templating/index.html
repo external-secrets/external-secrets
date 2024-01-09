@@ -2527,6 +2527,36 @@ Example: <strong><code>\{\{ index .data "service-account-token" \}\}</code></str
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/grafana/password</span>
 </code></pre></div>
 <p>Lastly, <code>TemplateFrom</code> also supports adding <code>Literal</code> blocks for quick templating. These <code>Literal</code> blocks differ from <code>Template.Data</code> as they are rendered as a a <code>key:value</code> pair (while the <code>Template.Data</code>, you can only template the value).</p>
+<p>See an example, how to produce a <code>htpasswd</code> file that can be used by an ingress-controller (for example: https://kubernetes.github.io/ingress-nginx/examples/auth/basic/) where the contents of the <code>htpasswd</code> file needs to be presented via the <code>auth</code> key. We use the <code>htpasswd</code> function to create a <code>bcrytped</code> hash of the password.</p>
+<p>Suppose you have multiple key-value pairs within your provider secret like</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;user1&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;password1&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;user2&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;password2&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="err">...</span>
+<span class="p">}</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-template-example</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="c1"># ...</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">engineVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v2</span>
+<span class="w">      </span><span class="nt">templateFrom</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Data</span>
+<span class="w">        </span><span class="nt">literal</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|-</span>
+<span class="w">          </span><span class="no">{{- $creds := list }}</span>
+<span class="w">          </span><span class="no">{{- range $user, $pw := . }}</span>
+<span class="w">            </span><span class="no">{{- $creds = append $creds (printf &quot;%s&quot; (htpasswd $user $pw)) }}</span>
+<span class="w">          </span><span class="no">{{- end }}</span>
+<span class="w">          </span><span class="no">auth: {{ $creds | join &quot;\n&quot; | quote }}</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/ingress-controller/valid-users</span>
+</code></pre></div>
 <h3 id="extract-keys-and-certificates-from-pkcs12-archive">Extract Keys and Certificates from PKCS#12 Archive</h3>
 <p>You can use pre-defined functions to extract data from your secrets. Here: extract keys and certificates from a PKCS#12 archive and store it as PEM.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
