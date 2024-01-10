@@ -47,7 +47,6 @@ func (g *Github) GetPrivateKeyAppID(ctx context.Context) (*rsa.PrivateKey, strin
 	if err != nil {
 		return nil, "", fmt.Errorf("can't get provider auth secret: %w", err)
 	}
-
 	pk, err := jwt.ParseRSAPrivateKeyFromPEM(key.Data[provider.Auth.SecretRef.PrivatKey.Key])
 	if err != nil {
 		return nil, "", fmt.Errorf("error parsing RSA private key: %w", err)
@@ -75,7 +74,7 @@ func GetInstallationToken(key *rsa.PrivateKey, aid string) (string, error) {
 func (g *Github) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	key, appID, err := g.GetPrivateKeyAppID(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing RSA private key: %w", err)
+		return nil, fmt.Errorf("error getting private key: %w", err)
 	}
 
 	itoken, err := GetInstallationToken(key, appID)
@@ -96,7 +95,6 @@ func (g *Github) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		return nil, fmt.Errorf("error performing request: %w", err)
 	}
 	defer resp.Body.Close()
-
 	// git access token
 	var gat map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&gat); err != nil && resp.StatusCode < 300 {
