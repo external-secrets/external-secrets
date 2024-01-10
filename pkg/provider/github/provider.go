@@ -27,6 +27,10 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
+const (
+	notImplemented = "not implemented"
+)
+
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1beta1.SecretsClient = &Github{}
 var _ esv1beta1.Provider = &Provider{}
@@ -130,17 +134,17 @@ func (g *Github) Close(_ context.Context) error {
 }
 
 func (g *Github) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf(notImplemented)
 }
 
 // Not Implemented PushSecret.
 func (g *Github) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf(notImplemented)
 }
 
 // Empty GetAllSecrets.
 func (g *Github) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	return nil, fmt.Errorf("not implemented")
+	return nil, fmt.Errorf(notImplemented)
 }
 
 func (g *Github) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
