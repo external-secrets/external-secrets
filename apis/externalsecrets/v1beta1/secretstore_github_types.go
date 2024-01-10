@@ -28,7 +28,7 @@ type GithubProvider struct {
 }
 
 type GithubAuth struct {
-	SecretRef GithubSecretRef `json:"SecretRef"`
+	SecretRef GithubSecretRef `json:"secretRef"`
 }
 
 type GithubSecretRef struct {
