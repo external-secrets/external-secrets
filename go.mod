@@ -72,11 +72,9 @@ require (
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.4
 	github.com/aliyun/credentials-go v1.3.2
 	github.com/avast/retry-go/v4 v4.5.1
-	github.com/bradleyfalzon/ghinstallation v1.1.1
 	github.com/cyberark/conjur-api-go v0.11.1
 	github.com/go-openapi/strfmt v0.21.10
 	github.com/golang-jwt/jwt/v5 v5.2.0
-	github.com/google/go-github/v57 v57.0.0
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/hashicorp/vault/api/auth/aws v0.5.0
 	github.com/hashicorp/vault/api/auth/userpass v0.5.0
@@ -100,7 +98,6 @@ require (
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/clbanning/mxj/v2 v2.7.0 // indirect
 	github.com/danieljoos/wincred v1.2.1 // indirect
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.1 // indirect
@@ -109,7 +106,6 @@ require (
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
-	github.com/google/go-github/v29 v29.0.2 // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/hashicorp/go-secure-stdlib/awsutil v0.2.3 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect

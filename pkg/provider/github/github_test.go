@@ -19,20 +19,20 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 var (
@@ -134,10 +134,7 @@ func TestGetSecret(t *testing.T) {
 		assert.Equal(t, "POST", req.Method, "Expected POST request")
 		assert.Equal(t, req.URL.String(), fmt.Sprintf("/app/installations/%s/access_tokens", githubProvider.InstallID))
 
-		// Read and test request body
-		body, err := io.ReadAll(req.Body)
-		assert.NoError(t, err, "Error reading request body")
-		assert.Equal(t, []uint8([]byte{}), body)
+		assert.Empty(t, req.Body)
 		assert.NotEmpty(t, req.Header.Get("Authorization"))
 		assert.Equal(t, "application/vnd.github.v3+json", req.Header.Get("Accept"))
 
