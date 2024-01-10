@@ -93,6 +93,8 @@ func (a *akeylessBase) GetSecretByType(ctx context.Context, secretName, token st
 		return a.GetDynamicSecrets(ctx, secretName, token)
 	case "ROTATED_SECRET":
 		return a.GetRotatedSecrets(ctx, secretName, token, version)
+	case "CERTIFICATE":
+		return a.GetCertificate(ctx, secretName, token, version)
 	default:
 		return "", fmt.Errorf("invalid item type: %v", secretType)
 	}
@@ -110,13 +112,46 @@ func (a *akeylessBase) DescribeItem(ctx context.Context, itemName, token string)
 	gsvOut, res, err := a.RestAPI.DescribeItem(ctx).Body(body).Execute()
 	if err != nil {
 		if errors.As(err, &apiErr) {
-			return nil, fmt.Errorf("can't describe item: %v", string(apiErr.Body()))
+			var item *Item
+			err = json.Unmarshal(apiErr.Body(), &item)
+			if err != nil {
+				return nil, fmt.Errorf("can't describe item: %v, error: %v", itemName, string(apiErr.Body()))
+			}
+		} else {
+			return nil, fmt.Errorf("can't describe item: %w", err)
 		}
-		return nil, fmt.Errorf("can't describe item: %w", err)
 	}
 	defer res.Body.Close()
 
 	return &gsvOut, nil
+}
+
+func (a *akeylessBase) GetCertificate(ctx context.Context, certificateName, token string, version int32) (string, error) {
+	body := akeyless.GetCertificateValue{
+		Name:    certificateName,
+		Version: &version,
+	}
+	if strings.HasPrefix(token, "u-") {
+		body.UidToken = &token
+	} else {
+		body.Token = &token
+	}
+
+	gcvOut, res, err := a.RestAPI.GetCertificateValue(ctx).Body(body).Execute()
+	if err != nil {
+		if errors.As(err, &apiErr) {
+			return "", fmt.Errorf("can't get certificate value: %v", string(apiErr.Body()))
+		}
+		return "", fmt.Errorf("can't get certificate value: %w", err)
+	}
+	defer res.Body.Close()
+
+	out, err := json.Marshal(gcvOut)
+	if err != nil {
+		return "", fmt.Errorf("can't marshal certificate value: %w", err)
+	}
+
+	return string(out), nil
 }
 
 func (a *akeylessBase) GetRotatedSecrets(ctx context.Context, secretName, token string, version int32) (string, error) {
