@@ -123,6 +123,22 @@ either data or dataFrom should be specified`,
 			},
 		},
 		{
+			name: "duplicate secretKeys",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					Target: ExternalSecretTarget{
+						DeletionPolicy: DeletionPolicyRetain,
+					},
+					Data: []ExternalSecretData{
+						{SecretKey: "SERVICE_NAME"},
+						{SecretKey: "SERVICE_NAME"},
+						{SecretKey: "ANOTHER_KEY"},
+					},
+				},
+			},
+			expectedErr: "duplicate secretKeys found: SERVICE_NAME",
+		},
+		{
 			name: "duplicate secretKey",
 			obj: &ExternalSecret{
 				Spec: ExternalSecretSpec{
