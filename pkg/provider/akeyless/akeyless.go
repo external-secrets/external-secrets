@@ -69,6 +69,12 @@ type Akeyless struct {
 	url    string
 }
 
+type Item struct {
+	ItemName    string `json:"item_name"`
+	ItemType    string `json:"item_type"`
+	LastVersion int32  `json:"last_version"`
+}
+
 type akeylessVaultInterface interface {
 	GetSecretByType(ctx context.Context, secretName, token string, version int32) (string, error)
 	TokenFromSecretRef(ctx context.Context) (string, error)
