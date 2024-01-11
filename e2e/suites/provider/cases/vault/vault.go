@@ -37,7 +37,7 @@ const (
 
 var _ = Describe("[vault]", Label("vault"), func() {
 	f := framework.New("eso-vault")
-	prov := newVaultProvider(f)
+	prov := newVaultProvider(f, false)
 
 	DescribeTable("sync secrets",
 		framework.TableFunc(f, prov),

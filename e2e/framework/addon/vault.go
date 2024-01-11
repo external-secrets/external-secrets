@@ -17,6 +17,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/json"
@@ -65,12 +66,17 @@ type Vault struct {
 	AppRoleSecret string
 	AppRoleID     string
 	AppRolePath   string
+	EnforceMTLS   bool
 }
 
 const privatePemType = "RSA PRIVATE KEY"
 
-func NewVault(namespace string) *Vault {
+func NewVault(namespace string, enforceMTLS bool) *Vault {
 	repo := "hashicorp-" + namespace
+	values := []string{"/k8s/vault.values.yaml"}
+	if enforceMTLS {
+		values = []string{"/k8s/vault-mtls.values.yaml"}
+	}
 	return &Vault{
 		chart: &HelmChart{
 			Namespace:    namespace,
@@ -81,9 +87,10 @@ func NewVault(namespace string) *Vault {
 				Name: repo,
 				URL:  "https://helm.releases.hashicorp.com",
 			},
-			Values: []string{"/k8s/vault.values.yaml"},
+			Values: values,
 		},
-		Namespace: namespace,
+		Namespace:   namespace,
+		EnforceMTLS: enforceMTLS,
 	}
 }
 
@@ -228,6 +235,15 @@ func (l *Vault) initVault() error {
 	l.VaultURL = fmt.Sprintf("https://vault-%s.%s.svc.cluster.local:8200", l.Namespace, l.Namespace)
 	cfg.Address = l.VaultURL
 	cfg.HttpClient.Transport.(*http.Transport).TLSClientConfig.RootCAs = caCertPool
+	if l.EnforceMTLS {
+		cert, err := tls.X509KeyPair(clientPem, clientKeyPem)
+		if err != nil {
+			return fmt.Errorf("error parsing the client certificates for the transport layer: %w", err)
+		}
+		if transport, ok := cfg.HttpClient.Transport.(*http.Transport); ok {
+			transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
+		}
+	}
 	l.VaultClient, err = vault.NewClient(cfg)
 	if err != nil {
 		return fmt.Errorf("unable to create vault client: %w", err)

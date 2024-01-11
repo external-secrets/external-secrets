@@ -35,12 +35,14 @@ import (
 )
 
 type vaultProvider struct {
-	url       string
-	client    *vault.Client
-	framework *framework.Framework
+	url         string
+	client      *vault.Client
+	framework   *framework.Framework
+	enforceMTLS bool
 }
 
 const (
+	clientTlsCertName       = "vault-client-tls"
 	certAuthProviderName    = "cert-auth-provider"
 	appRoleAuthProviderName = "app-role-provider"
 	kvv1ProviderName        = "kv-v1-provider"
@@ -56,9 +58,10 @@ var (
 	secretStorePath = "secret"
 )
 
-func newVaultProvider(f *framework.Framework) *vaultProvider {
+func newVaultProvider(f *framework.Framework, enforceMTLS bool) *vaultProvider {
 	prov := &vaultProvider{
-		framework: f,
+		framework:   f,
+		enforceMTLS: enforceMTLS,
 	}
 	BeforeEach(prov.BeforeEach)
 	return prov
@@ -89,11 +92,14 @@ func (s *vaultProvider) DeleteSecret(key string) {
 
 func (s *vaultProvider) BeforeEach() {
 	ns := s.framework.Namespace.Name
-	v := addon.NewVault(ns)
+	v := addon.NewVault(ns, s.enforceMTLS)
 	s.framework.Install(v)
 	s.client = v.VaultClient
 	s.url = v.VaultURL
 
+	if s.enforceMTLS {
+		s.CreateClientTlsCert(v, ns)
+	}
 	s.CreateCertStore(v, ns)
 	s.CreateTokenStore(v, ns)
 	s.CreateAppRoleStore(v, ns)
@@ -105,7 +111,7 @@ func (s *vaultProvider) BeforeEach() {
 }
 
 func makeStore(name, ns string, v *addon.Vault) *esv1beta1.SecretStore {
-	return &esv1beta1.SecretStore{
+	store := &esv1beta1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: ns,
@@ -121,14 +127,48 @@ func makeStore(name, ns string, v *addon.Vault) *esv1beta1.SecretStore {
 			},
 		},
 	}
+	if v.EnforceMTLS {
+		store.Spec.Provider.Vault.ClientTLS = esv1beta1.VaultClientTLS{
+			CertSecretRef: &esmeta.SecretKeySelector{
+				Name: clientTlsCertName,
+			},
+			KeySecretRef: &esmeta.SecretKeySelector{
+				Name: clientTlsCertName,
+			},
+		}
+	}
+	return store
 }
 
 func makeClusterStore(name, ns string, v *addon.Vault) *esv1beta1.ClusterSecretStore {
 	store := makeStore(name, ns, v)
-	return &esv1beta1.ClusterSecretStore{
+	clusterStore := &esv1beta1.ClusterSecretStore{
 		ObjectMeta: store.ObjectMeta,
 		Spec:       store.Spec,
 	}
+	if v.EnforceMTLS {
+		clusterStore.Spec.Provider.Vault.ClientTLS.CertSecretRef.Namespace = &ns
+		clusterStore.Spec.Provider.Vault.ClientTLS.KeySecretRef.Namespace = &ns
+	}
+	return clusterStore
+}
+
+func (s *vaultProvider) CreateClientTlsCert(v *addon.Vault, ns string) {
+	By("creating a secret containing the Vault TLS client certificate")
+	clientCert := v.ClientCert
+	clientKey := v.ClientKey
+	vaultClientCert := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      clientTlsCertName,
+			Namespace: ns,
+		},
+		Data: map[string][]byte{
+			"tls.crt": clientCert,
+			"tls.key": clientKey,
+		},
+	}
+	err := s.framework.CRClient.Create(context.Background(), vaultClientCert)
+	Expect(err).ToNot(HaveOccurred())
 }
 
 func (s *vaultProvider) CreateCertStore(v *addon.Vault, ns string) {

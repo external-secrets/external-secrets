@@ -106,7 +106,7 @@ const (
 	errGetKubeSANoToken      = "cannot find token in secrets bound to service account: %q"
 	errGetKubeSATokenRequest = "cannot request Kubernetes service account token for service account %q: %w"
 
-	errGetKubeSecret = "cannot get Kubernetes secret %q: %w"
+	errGetKubeSecret = "cannot get Kubernetes secret %q in namespace %q: %w"
 	errSecretKeyFmt  = "cannot find secret data for key: %q"
 	errConfigMapFmt  = "cannot find config map data for key: %q"
 
@@ -1366,7 +1366,7 @@ func (v *client) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySe
 	}
 	err := v.kube.Get(ctx, ref, secret)
 	if err != nil {
-		return "", fmt.Errorf(errGetKubeSecret, ref.Name, err)
+		return "", fmt.Errorf(errGetKubeSecret, ref.Name, ref.Namespace, err)
 	}
 
 	keyBytes, ok := secret.Data[secretRef.Key]
