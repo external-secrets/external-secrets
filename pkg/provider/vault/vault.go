@@ -133,6 +133,10 @@ const (
 	errInvalidLdapSec     = "invalid Auth.Ldap.SecretRef: %w"
 	errInvalidTokenRef    = "invalid Auth.TokenSecretRef: %w"
 	errInvalidUserPassSec = "invalid Auth.UserPass.SecretRef: %w"
+
+	errInvalidClientTLSCert   = "invalid ClientTLS.ClientCert: %w"
+	errInvalidClientTLSSecret = "invalid ClientTLS.SecretRef: %w"
+	errInvalidClientTLS       = "when provided, both ClientTLS.ClientCert and ClientTLS.SecretRef should be provided"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -231,7 +235,7 @@ func (c *Connector) newClient(ctx context.Context, store esv1beta1.GenericStore,
 	}
 	vaultSpec := storeSpec.Provider.Vault
 
-	vStore, cfg, err := c.prepareConfig(kube, corev1, vaultSpec, storeSpec.RetrySettings, namespace, store.GetObjectKind().GroupVersionKind().Kind)
+	vStore, cfg, err := c.prepareConfig(ctx, kube, corev1, vaultSpec, storeSpec.RetrySettings, namespace, store.GetObjectKind().GroupVersionKind().Kind)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +249,7 @@ func (c *Connector) newClient(ctx context.Context, store esv1beta1.GenericStore,
 }
 
 func (c *Connector) NewGeneratorClient(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, namespace string) (util.Client, error) {
-	vStore, cfg, err := c.prepareConfig(kube, corev1, vaultSpec, nil, namespace, "Generator")
+	vStore, cfg, err := c.prepareConfig(ctx, kube, corev1, vaultSpec, nil, namespace, "Generator")
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +267,7 @@ func (c *Connector) NewGeneratorClient(ctx context.Context, kube kclient.Client,
 	return client, nil
 }
 
-func (c *Connector) prepareConfig(kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, retrySettings *esv1beta1.SecretStoreRetrySettings, namespace, storeKind string) (*client, *vault.Config, error) {
+func (c *Connector) prepareConfig(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, retrySettings *esv1beta1.SecretStoreRetrySettings, namespace, storeKind string) (*client, *vault.Config, error) {
 	vStore := &client{
 		kube:      kube,
 		corev1:    corev1,
@@ -273,7 +277,7 @@ func (c *Connector) prepareConfig(kube kclient.Client, corev1 typedcorev1.CoreV1
 		storeKind: storeKind,
 	}
 
-	cfg, err := vStore.newConfig()
+	cfg, err := vStore.newConfig(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -427,6 +431,16 @@ func (c *Connector) ValidateStore(store esv1beta1.GenericStore) error {
 				}
 			}
 		}
+	}
+	if p.ClientTLS.CertSecretRef != nil && p.ClientTLS.KeySecretRef != nil {
+		if err := utils.ValidateReferentSecretSelector(store, *p.ClientTLS.CertSecretRef); err != nil {
+			return fmt.Errorf(errInvalidClientTLSCert, err)
+		}
+		if err := utils.ValidateReferentSecretSelector(store, *p.ClientTLS.KeySecretRef); err != nil {
+			return fmt.Errorf(errInvalidClientTLSSecret, err)
+		}
+	} else if p.ClientTLS.CertSecretRef != nil || p.ClientTLS.KeySecretRef != nil {
+		return errors.New(errInvalidClientTLS)
 	}
 	return nil
 }
@@ -1011,58 +1025,92 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 	return secretData, nil
 }
 
-func (v *client) newConfig() (*vault.Config, error) {
+func (v *client) newConfig(ctx context.Context) (*vault.Config, error) {
 	cfg := vault.DefaultConfig()
 	cfg.Address = v.store.Server
 
-	if len(v.store.CABundle) == 0 && v.store.CAProvider == nil {
-		return cfg, nil
-	}
+	if len(v.store.CABundle) != 0 || v.store.CAProvider != nil {
+		caCertPool := x509.NewCertPool()
 
-	caCertPool := x509.NewCertPool()
+		if len(v.store.CABundle) > 0 {
+			ok := caCertPool.AppendCertsFromPEM(v.store.CABundle)
+			if !ok {
+				return nil, fmt.Errorf(errVaultCert, errors.New("failed to parse certificates from CertPool"))
+			}
+		}
 
-	if len(v.store.CABundle) > 0 {
-		ok := caCertPool.AppendCertsFromPEM(v.store.CABundle)
-		if !ok {
-			return nil, fmt.Errorf(errVaultCert, errors.New("failed to parse certificates from CertPool"))
+		if v.store.CAProvider != nil && v.storeKind == esv1beta1.ClusterSecretStoreKind && v.store.CAProvider.Namespace == nil {
+			return nil, errors.New(errCANamespace)
+		}
+
+		if v.store.CAProvider != nil {
+			var cert []byte
+			var err error
+
+			switch v.store.CAProvider.Type {
+			case esv1beta1.CAProviderTypeSecret:
+				cert, err = getCertFromSecret(v)
+			case esv1beta1.CAProviderTypeConfigMap:
+				cert, err = getCertFromConfigMap(v)
+			default:
+				return nil, errors.New(errUnknownCAProvider)
+			}
+
+			if err != nil {
+				return nil, err
+			}
+
+			ok := caCertPool.AppendCertsFromPEM(cert)
+			if !ok {
+				return nil, fmt.Errorf(errVaultCert, errors.New("failed to parse certificates from CertPool"))
+			}
+		}
+
+		if transport, ok := cfg.HttpClient.Transport.(*http.Transport); ok {
+			transport.TLSClientConfig.RootCAs = caCertPool
 		}
 	}
 
-	if v.store.CAProvider != nil && v.storeKind == esv1beta1.ClusterSecretStoreKind && v.store.CAProvider.Namespace == nil {
-		return nil, errors.New(errCANamespace)
-	}
-
-	if v.store.CAProvider != nil {
-		var cert []byte
-		var err error
-
-		switch v.store.CAProvider.Type {
-		case esv1beta1.CAProviderTypeSecret:
-			cert, err = getCertFromSecret(v)
-		case esv1beta1.CAProviderTypeConfigMap:
-			cert, err = getCertFromConfigMap(v)
-		default:
-			return nil, errors.New(errUnknownCAProvider)
-		}
-
-		if err != nil {
-			return nil, err
-		}
-
-		ok := caCertPool.AppendCertsFromPEM(cert)
-		if !ok {
-			return nil, fmt.Errorf(errVaultCert, errors.New("failed to parse certificates from CertPool"))
-		}
-	}
-
-	if transport, ok := cfg.HttpClient.Transport.(*http.Transport); ok {
-		transport.TLSClientConfig.RootCAs = caCertPool
+	err := v.configureClientTLS(ctx, cfg)
+	if err != nil {
+		return nil, err
 	}
 
 	// If either read-after-write consistency feature is enabled, enable ReadYourWrites
 	cfg.ReadYourWrites = v.store.ReadYourWrites || v.store.ForwardInconsistent
 
 	return cfg, nil
+}
+
+func (v *client) configureClientTLS(ctx context.Context, cfg *vault.Config) error {
+	clientTLS := v.store.ClientTLS
+	if clientTLS.CertSecretRef != nil && clientTLS.KeySecretRef != nil {
+		if clientTLS.KeySecretRef.Key == "" {
+			clientTLS.KeySecretRef.Key = corev1.TLSPrivateKeyKey
+		}
+		clientKey, err := v.secretKeyRef(ctx, clientTLS.KeySecretRef)
+		if err != nil {
+			return err
+		}
+
+		if clientTLS.CertSecretRef.Key == "" {
+			clientTLS.CertSecretRef.Key = corev1.TLSCertKey
+		}
+		clientCert, err := v.secretKeyRef(ctx, clientTLS.CertSecretRef)
+		if err != nil {
+			return err
+		}
+
+		cert, err := tls.X509KeyPair([]byte(clientCert), []byte(clientKey))
+		if err != nil {
+			return fmt.Errorf(errClientTLSAuth, err)
+		}
+
+		if transport, ok := cfg.HttpClient.Transport.(*http.Transport); ok {
+			transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
+		}
+	}
+	return nil
 }
 
 func getCertFromSecret(v *client) ([]byte, error) {
