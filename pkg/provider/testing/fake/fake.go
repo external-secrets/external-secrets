@@ -16,6 +16,7 @@ package fake
 
 import (
 	"context"
+	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -80,8 +81,8 @@ func (v *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 	return v.GetAllSecretsFn(ctx, ref)
 }
 
-// Not Implemented PushSecret.
 func (v *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	fmt.Println("CALLING PUSH SECRET: ", secret.Data, data)
 	v.SetSecretArgs[data.GetRemoteKey()] = SetSecretCallArgs{
 		Value:     secret.Data[data.GetSecretKey()],
 		RemoteRef: data,
