@@ -31,7 +31,7 @@ jobs:
         with:
           version: v3.4.2
 
-      - uses: actions/setup-python@v4.7.1
+      - uses: actions/setup-python@v5.0.0
         with:
           python-version: 3.7
 
@@ -43,7 +43,7 @@ jobs:
         run: |
           changed=$(ct list-changed --config=.github/ci/ct.yaml)
           if [[ -n "$changed" ]]; then
-            echo "::set-output name=changed::true"
+            echo "changed=true" >> $GITHUB_OUTPUT
           fi
       - name: Install chart unittest
         run: |
@@ -94,4 +94,5 @@ jobs:
           CR_RELEASE_NAME_TEMPLATE: "helm-chart-{{ .Version }}"
         with:
           charts_dir: deploy/charts
+          skip_existing: true
           charts_repo_url: https://charts.external-secrets.io

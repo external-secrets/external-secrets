@@ -55,6 +55,22 @@ You do not have to define your templates inline in an ExternalSecret but you can
 
 Lastly, `TemplateFrom` also supports adding `Literal` blocks for quick templating. These `Literal` blocks differ from `Template.Data` as they are rendered as a a `key:value` pair (while the `Template.Data`, you can only template the value).
 
+See an example, how to produce a `htpasswd` file that can be used by an ingress-controller (for example: https://kubernetes.github.io/ingress-nginx/examples/auth/basic/) where the contents of the `htpasswd` file needs to be presented via the `auth` key. We use the `htpasswd` function to create a `bcrytped` hash of the password.
+
+Suppose you have multiple key-value pairs within your provider secret like
+
+```json
+{
+  "user1": "password1",
+  "user2": "password2",
+  ...
+}
+```
+
+```yaml
+{% include 'template-v2-literal-example.yaml' %}
+```
+
 ### Extract Keys and Certificates from PKCS#12 Archive
 
 You can use pre-defined functions to extract data from your secrets. Here: extract keys and certificates from a PKCS#12 archive and store it as PEM.
@@ -110,6 +126,16 @@ You can achieve that by using the `filterPEM` function to extract a specific typ
 
 ```yaml
 {% include 'filterpem-template-v2-external-secret.yaml' %}
+```
+
+## Templating with PushSecret
+
+`PushSecret` templating is much like `ExternalSecrets` templating. In-fact under the hood, it's using the same data structure.
+Which means, anything described in the above should be possible with push secret as well resulting in a templated secret
+created at the provider.
+
+```yaml
+{% include 'template-v2-push-secret.yaml' %}
 ```
 
 ## Helper functions

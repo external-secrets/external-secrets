@@ -18,6 +18,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 const (
@@ -60,6 +62,9 @@ type PushSecretSpec struct {
 	Selector PushSecretSelector `json:"selector"`
 	// Secret Data that should be pushed to providers
 	Data []PushSecretData `json:"data,omitempty"`
+	// Template defines a blueprint for the created Secret resource.
+	// +optional
+	Template *esv1beta1.ExternalSecretTemplate `json:"template,omitempty"`
 }
 
 type PushSecretSecret struct {
