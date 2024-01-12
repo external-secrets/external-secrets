@@ -20,13 +20,13 @@ which is synced with the BitWarden server.
 * Bitwarden account (it works also with VaultWarden)
 * A Kubernetes secret which contains your BitWarden Credentials
 * You need a Docker image with BitWarden CLI installed.
-  You could use `registry.gitlab.com/ttblt-oss/docker-bw:2023.1.0` or build your own.
+  You could use `ghcr.io/charlesthomas/bitwarden-cli:2023.12.1` or build your own.
 
 Here an example of Dockerfile use to build this image:
 ```dockerfile
 FROM debian:sid
 
-ENV BW_CLI_VERSION=2023.1.0
+ENV BW_CLI_VERSION=2023.12.1
 
 RUN apt update && \
     apt install -y wget unzip && \
