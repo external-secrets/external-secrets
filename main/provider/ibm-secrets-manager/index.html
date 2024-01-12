@@ -2567,7 +2567,9 @@
 <h4 id="kv">kv</h4>
 <ul>
 <li>An optional <code>property</code> field can be set to <code>remoteRef</code> to select requested key from the KV secret. If not set, the entire secret will be returned</li>
-<li><code>dataFrom</code> retrieves a string from secrets manager and tries to parse it as JSON object setting the key:values pairs in resulting Kubernetes secret if successful</li>
+<li><code>dataFrom</code> retrieves a string from secrets manager and tries to parse it as JSON object setting the key:values pairs in resulting Kubernetes secret if successful. It could be either used with the methods</li>
+<li><code>Extract</code> to extract multiple key/value pairs from one secret (with optional <code>property</code> field being supported as well)</li>
+<li><code>Find</code> to find secrets based on tags or regular expressions and allows finding multiple external secrets and map them into a single Kubernetes secret</li>
 </ul>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;key1&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;val1&quot;</span><span class="p">,</span>
@@ -2591,10 +2593,20 @@
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">key_all</span>
 <span class="w">  </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;kv/aaaaa-bbbb-cccc-dddd-eeeeee&#39;</span>
-
-<span class="nt">dataFrom</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;kv/aaaaa-bbbb-cccc-dddd-eeeeee&#39;</span>
-<span class="w">    </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;key3&#39;</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;kv/fffff-gggg-iiii-dddd-eeeeee&#39;</span><span class="w"> </span><span class="c1">#mandatory</span>
+<span class="w">    </span><span class="nt">decodingStrategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Base64</span><span class="w"> </span><span class="c1">#optional</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w">  </span><span class="c1">#matches any secret name ending in foo-bar</span>
+<span class="w">        </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;key&quot;</span><span class="w"> </span><span class="c1">#assumption that secrets are stored like /comp/key1, key2/trigger, and comp/trigger/keygen within the secret manager</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="c1">#matches any secrets with the following metadata labels</span>
+<span class="w">        </span><span class="nt">environment</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;dev&quot;</span>
+<span class="w">        </span><span class="nt">application</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;BFF&quot;</span>
 </code></pre></div>
 <p>results in</p>
 <div class="highlight"><pre><span></span><code><span class="nt">data</span><span class="p">:</span>
@@ -2603,9 +2615,20 @@
 <span class="w">  </span><span class="nt">special_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#special-content</span>
 <span class="w">  </span><span class="nt">key_all</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#{&quot;key1&quot;:&quot;val1&quot;,&quot;key2&quot;:&quot;val2&quot;, ...&quot;special.key&quot;:&quot;special-content&quot;}</span>
 
-<span class="w">  </span><span class="c1"># secrets from dataFrom</span>
-<span class="w">  </span><span class="nt">keyA</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#valA</span>
-<span class="w">  </span><span class="nt">keyB</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#valB</span>
+<span class="w">  </span><span class="c1"># secrets from dataFrom with extract method</span>
+<span class="w">  </span><span class="nt">keyA</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#1st key-value pair from JSON object</span>
+<span class="w">  </span><span class="nt">keyB</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#2nd key-value pair from JSON object</span>
+<span class="w">  </span><span class="nt">keyC</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#3rd key-value pair from JSON object</span>
+
+<span class="w">  </span><span class="c1"># secrets from dataFrom with find regex method</span>
+<span class="w">  </span><span class="nt">_comp_key1</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#secret value for /comp/key1</span>
+<span class="w">  </span><span class="nt">key2_trigger</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#secret value for key2/trigger</span>
+<span class="w">  </span><span class="nt">_comp_trigger_keygen</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#secret value for comp/trigger/keygen</span>
+
+<span class="w">  </span><span class="c1"># secrets from dataFrom with find tags method</span>
+<span class="w">  </span><span class="nt">bffA</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span>
+<span class="w">  </span><span class="nt">bffB</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span>
+<span class="w">  </span><span class="nt">bffC</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span>
 </code></pre></div>
 <h3 id="creating-external-secret">Creating external secret</h3>
 <p>To create a kubernetes secret from the IBM Secrets Manager, a <code>Kind=ExternalSecret</code> is needed.
@@ -2685,7 +2708,7 @@ Below example creates a kubernetes secret based on ID of the secret in Secrets M
 </code></pre></div></p>
 <h3 id="populating-the-kubernetes-secret-with-metadata-from-ibm-secrets-manager-provider">Populating the Kubernetes secret with metadata from IBM Secrets Manager Provider</h3>
 <p>ESO can add metadata while creating or updating a Kubernetes secret to be reflected in its labels or annotations. The metadata could be any of the fields that are supported and returned in the response by IBM Secrets Manager.</p>
-<p>In order for the user to opt-in to adding metadata to secret, an existing optional field <code>spec.dataFrom.extract.metadataPolicy</code> can be be set to <code>Fetch</code>, its default value being <code>None</code>. In addition to this, templating provided be ESO can be leveraged to specify the key-value pairs of the resultant secrets' labels and annotation.</p>
+<p>In order for the user to opt in to adding metadata to secret, an existing optional field <code>spec.dataFrom.extract.metadataPolicy</code> can be set to <code>Fetch</code>, its default value being <code>None</code>. In addition to this, templating provided be ESO can be leveraged to specify the key-value pairs of the resultant secrets' labels and annotation.</p>
 <p>In order for the required metadata to be populated in the Kubernetes secret, combination of below should be provided in the External Secrets resource:
 1. The required metadata should be specified under <code>template.metadata.labels</code> or <code>template.metadata.annotations</code>.
 2. The required secret data should be specified under <code>template.data</code>.
@@ -2725,9 +2748,8 @@ Below is an example, where <code>secret_id</code> and <code>updated_at</code> ar
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">annotations</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">reconcile.external-secrets.io/data-hash</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">02217008d13ed228e75cf6d26fe74324</span>
-<span class="w">  </span><span class="nt">creationTimestamp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2023-05-04T08:41:24Z&quot;</span>
-<span class="w">  </span><span class="nt">annotations</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">secret_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1234</span>
+<span class="w">    </span><span class="nt">creationTimestamp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2023-05-04T08:41:24Z&quot;</span>
+<span class="w">    </span><span class="nt">secret_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1234&quot;</span>
 <span class="w">    </span><span class="nt">updated_at</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2023-05-04T08:57:19Z</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span>
 <span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
@@ -2738,8 +2760,8 @@ Below is an example, where <code>secret_id</code> and <code>updated_at</code> ar
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span>
 <span class="w">    </span><span class="nt">uid</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">c2a018e7-1ac3-421b-bd3b-d9497204f843</span>
-<span class="w">  </span><span class="nt">resourceVersion</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1803567&quot;</span>
-<span class="w">  </span><span class="nt">uid</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">f5dff604-611b-4d41-9d65-b860c61a0b8d</span>
+<span class="w">  </span><span class="c1">#resourceVersion: &quot;1803567&quot; #immutable for a user</span>
+<span class="w">  </span><span class="c1">#uid: f5dff604-611b-4d41-9d65-b860c61a0b8d #immutable for a user</span>
 <span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
 </code></pre></div>
 
