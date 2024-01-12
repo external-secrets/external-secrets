@@ -2250,12 +2250,12 @@ which is synced with the BitWarden server.</p>
 <li>Bitwarden account (it works also with VaultWarden)</li>
 <li>A Kubernetes secret which contains your BitWarden Credentials</li>
 <li>You need a Docker image with BitWarden CLI installed.
-  You could use <code>registry.gitlab.com/ttblt-oss/docker-bw:2023.1.0</code> or build your own.</li>
+  You could use <code>ghcr.io/charlesthomas/bitwarden-cli:2023.12.1</code> or build your own.</li>
 </ul>
 <p>Here an example of Dockerfile use to build this image:
 <div class="highlight"><pre><span></span><code><span class="k">FROM</span><span class="w"> </span><span class="s">debian:sid</span>
 
-<span class="k">ENV</span><span class="w"> </span><span class="nv">BW_CLI_VERSION</span><span class="o">=</span><span class="m">2023</span>.1.0
+<span class="k">ENV</span><span class="w"> </span><span class="nv">BW_CLI_VERSION</span><span class="o">=</span><span class="m">2023</span>.12.1
 
 <span class="k">RUN</span><span class="w"> </span>apt<span class="w"> </span>update<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>apt<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>wget<span class="w"> </span>unzip<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
