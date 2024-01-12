@@ -3,7 +3,7 @@
 In some use cases, it might be impractical to bundle all sensitive information into a single secret, or even it is not possible to fully know a given secret name. In such cases, it is possible that a user might need to sync multiple secrets from an external provider into a single Kubernetes Secret. This is possible to be done in external-secrets with the `dataFrom.find` option.
 
 !!! note
-    The secret's contents as defined in the provider are going to be stored in the kubernetes secret as a single key. Currently, it possible to apply a decoding Strategy during a find operation, but only at the secret level (e.g. if a secret is a JSON with some B64 encoded data within, `decodingStrategy: Auto` would not decode it)
+    The secret's contents as defined in the provider are going to be stored in the kubernetes secret as a single key. Currently, it's possible to apply a decoding Strategy during a find operation, but only at the secret level (e.g. if a secret is a JSON with some B64 encoded data within, `decodingStrategy: Auto` would not decode it)
 
 
 ### Fetching secrets matching a given name pattern
