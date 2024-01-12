@@ -101,6 +101,6 @@ The controller should be able to reconcile resources without errors. When errors
 
 ```
 sum(increase(
-  controller_runtime_reconcile_total{service=~"external-secrets.*",controller=~"$controller"}[1m])
+  controller_runtime_reconcile_total{service=~"external-secrets.*",controller=~"$controller",result="error"}[1m])
 ) by (result)
 ```
