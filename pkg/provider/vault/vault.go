@@ -133,8 +133,6 @@ const (
 	errInvalidLdapSec     = "invalid Auth.Ldap.SecretRef: %w"
 	errInvalidTokenRef    = "invalid Auth.TokenSecretRef: %w"
 	errInvalidUserPassSec = "invalid Auth.UserPass.SecretRef: %w"
-
-	warnCANamespaceDepreciation = "cannot set namespace on namespaced scoped kind SecretStore, will throw an error on future releases"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -1032,10 +1030,6 @@ func (v *client) newConfig() (*vault.Config, error) {
 
 	if v.store.CAProvider != nil && v.storeKind == esv1beta1.ClusterSecretStoreKind && v.store.CAProvider.Namespace == nil {
 		return nil, errors.New(errCANamespace)
-	}
-
-	if v.store.CAProvider != nil && v.storeKind == esv1beta1.SecretStoreKind && v.store.CAProvider.Namespace != nil {
-		fmt.Printf("warn: %s", warnCANamespaceDepreciation)
 	}
 
 	if v.store.CAProvider != nil {
