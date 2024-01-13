@@ -138,7 +138,7 @@ either data or dataFrom should be specified`,
 					},
 				},
 			},
-			expectedErr: "duplicate secretKey found: SERVICE_NAME, duplicate secretKey found: SERVICE_NAME-2",
+			expectedErr: "duplicate secretKey found: SERVICE_NAME\nduplicate secretKey found: SERVICE_NAME-2",
 		},
 		{
 			name: "duplicate secretKey",

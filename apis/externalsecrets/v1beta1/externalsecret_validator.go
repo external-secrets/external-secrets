@@ -63,6 +63,11 @@ func validateExternalSecret(obj runtime.Object) (admission.Warnings, error) {
 		}
 	}
 
+	errs = validateDuplicateKeys(es, errs)
+	return nil, errs
+}
+
+func validateDuplicateKeys(es *ExternalSecret, errs error) error {
 	if es.Spec.Target.DeletionPolicy == DeletionPolicyRetain {
 		seenKeys := make(map[string]struct{})
 		for _, data := range es.Spec.Data {
@@ -73,5 +78,5 @@ func validateExternalSecret(obj runtime.Object) (admission.Warnings, error) {
 			seenKeys[secretKey] = struct{}{}
 		}
 	}
-	return nil, errs
+	return errs
 }
