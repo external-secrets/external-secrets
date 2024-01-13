@@ -34,6 +34,7 @@ import (
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -109,7 +110,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return newClient(ctx, store, kube, clientset.CoreV1(), namespace)
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	akeylessSpec := storeSpec.Provider.Akeyless
 
@@ -118,63 +119,63 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	if akeylessGWApiURL != nil && *akeylessGWApiURL != "" {
 		url, err := url.Parse(*akeylessGWApiURL)
 		if err != nil {
-			return fmt.Errorf(errInvalidAkeylessURL)
+			return nil, fmt.Errorf(errInvalidAkeylessURL)
 		}
 
 		if url.Host == "" {
-			return fmt.Errorf(errInvalidAkeylessURL)
+			return nil, fmt.Errorf(errInvalidAkeylessURL)
 		}
 	}
 	if akeylessSpec.Auth.KubernetesAuth != nil {
 		if akeylessSpec.Auth.KubernetesAuth.ServiceAccountRef != nil {
 			if err := utils.ValidateReferentServiceAccountSelector(store, *akeylessSpec.Auth.KubernetesAuth.ServiceAccountRef); err != nil {
-				return fmt.Errorf(errInvalidKubeSA, err)
+				return nil, fmt.Errorf(errInvalidKubeSA, err)
 			}
 		}
 		if akeylessSpec.Auth.KubernetesAuth.SecretRef != nil {
 			err := utils.ValidateSecretSelector(store, *akeylessSpec.Auth.KubernetesAuth.SecretRef)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 
 		if akeylessSpec.Auth.KubernetesAuth.AccessID == "" {
-			return fmt.Errorf("missing kubernetes auth-method access-id")
+			return nil, fmt.Errorf("missing kubernetes auth-method access-id")
 		}
 
 		if akeylessSpec.Auth.KubernetesAuth.K8sConfName == "" {
-			return fmt.Errorf("missing kubernetes config name")
+			return nil, fmt.Errorf("missing kubernetes config name")
 		}
-		return nil
+		return nil, nil
 	}
 
 	accessID := akeylessSpec.Auth.SecretRef.AccessID
 	err := utils.ValidateSecretSelector(store, accessID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if accessID.Name == "" {
-		return fmt.Errorf(errInvalidAkeylessAccessIDName)
+		return nil, fmt.Errorf(errInvalidAkeylessAccessIDName)
 	}
 
 	if accessID.Key == "" {
-		return fmt.Errorf(errInvalidAkeylessAccessIDKey)
+		return nil, fmt.Errorf(errInvalidAkeylessAccessIDKey)
 	}
 
 	accessType := akeylessSpec.Auth.SecretRef.AccessType
 	err = utils.ValidateSecretSelector(store, accessType)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	accessTypeParam := akeylessSpec.Auth.SecretRef.AccessTypeParam
 	err = utils.ValidateSecretSelector(store, accessTypeParam)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return nil, nil
 }
 
 func newClient(_ context.Context, store esv1beta1.GenericStore, kube client.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (esv1beta1.SecretsClient, error) {

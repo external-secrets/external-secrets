@@ -20,6 +20,7 @@ import (
 
 	"github.com/DelineaXPM/dsv-sdk-go/v2/vault"
 	kubeClient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -177,9 +178,9 @@ func getConfig(store esv1beta1.GenericStore) (*esv1beta1.DelineaProvider, error)
 	return cfg, nil
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	_, err := getConfig(store)
-	return err
+	return nil, err
 }
 
 func init() {

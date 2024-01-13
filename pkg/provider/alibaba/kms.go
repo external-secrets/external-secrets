@@ -27,6 +27,7 @@ import (
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -264,17 +265,17 @@ func (kms *KeyManagementService) Validate() (esv1beta1.ValidationResult, error) 
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func (kms *KeyManagementService) ValidateStore(store esv1beta1.GenericStore) error {
+func (kms *KeyManagementService) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	alibabaSpec := storeSpec.Provider.Alibaba
 
 	regionID := alibabaSpec.RegionID
 
 	if regionID == "" {
-		return fmt.Errorf("missing alibaba region")
+		return nil, fmt.Errorf("missing alibaba region")
 	}
 
-	return kms.validateStoreAuth(store)
+	return nil, kms.validateStoreAuth(store)
 }
 
 func (kms *KeyManagementService) validateStoreAuth(store esv1beta1.GenericStore) error {

@@ -23,6 +23,7 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/validation"
 	ctrl "sigs.k8s.io/controller-runtime"
 	kubeClient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -158,9 +159,9 @@ func getConfig(store esv1beta1.GenericStore) (*esv1beta1.ScalewayProvider, error
 	return cfg, nil
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	_, err := getConfig(store)
-	return err
+	return nil, err
 }
 
 func init() {

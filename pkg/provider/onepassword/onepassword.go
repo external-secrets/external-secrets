@@ -24,6 +24,7 @@ import (
 	"github.com/1Password/connect-sdk-go/onepassword"
 	corev1 "k8s.io/api/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
@@ -110,8 +111,8 @@ func (provider *ProviderOnePassword) NewClient(ctx context.Context, store esv1be
 }
 
 // ValidateStore checks if the provided store is valid.
-func (provider *ProviderOnePassword) ValidateStore(store esv1beta1.GenericStore) error {
-	return validateStore(store)
+func (provider *ProviderOnePassword) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+	return nil, validateStore(store)
 }
 
 func validateStore(store esv1beta1.GenericStore) error {

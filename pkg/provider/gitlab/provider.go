@@ -19,6 +19,7 @@ import (
 
 	"github.com/xanzy/go-gitlab"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -94,32 +95,32 @@ func (g *gitlabBase) getClient(ctx context.Context, provider *esv1beta1.GitlabPr
 	return client, nil
 }
 
-func (g *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+func (g *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	gitlabSpec := storeSpec.Provider.Gitlab
 	accessToken := gitlabSpec.Auth.SecretRef.AccessToken
 	err := utils.ValidateSecretSelector(store, accessToken)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if gitlabSpec.ProjectID == "" && len(gitlabSpec.GroupIDs) == 0 {
-		return fmt.Errorf("projectID and groupIDs must not both be empty")
+		return nil, fmt.Errorf("projectID and groupIDs must not both be empty")
 	}
 
 	if gitlabSpec.InheritFromGroups && len(gitlabSpec.GroupIDs) > 0 {
-		return fmt.Errorf("defining groupIDs and inheritFromGroups = true is not allowed")
+		return nil, fmt.Errorf("defining groupIDs and inheritFromGroups = true is not allowed")
 	}
 
 	if accessToken.Key == "" {
-		return fmt.Errorf("accessToken.key cannot be empty")
+		return nil, fmt.Errorf("accessToken.key cannot be empty")
 	}
 
 	if accessToken.Name == "" {
-		return fmt.Errorf("accessToken.name cannot be empty")
+		return nil, fmt.Errorf("accessToken.name cannot be empty")
 	}
 
-	return nil
+	return nil, nil
 }
 
 func init() {

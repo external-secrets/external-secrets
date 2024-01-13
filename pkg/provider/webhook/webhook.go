@@ -31,6 +31,7 @@ import (
 	"github.com/PaesslerAG/jsonpath"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -87,8 +88,8 @@ func (p *Provider) NewClient(_ context.Context, store esv1beta1.GenericStore, ku
 	return whClient, nil
 }
 
-func (p *Provider) ValidateStore(_ esv1beta1.GenericStore) error {
-	return nil
+func (p *Provider) ValidateStore(_ esv1beta1.GenericStore) (admission.Warnings, error) {
+	return nil, nil
 }
 
 func getProvider(store esv1beta1.GenericStore) (*esv1beta1.WebhookProvider, error) {

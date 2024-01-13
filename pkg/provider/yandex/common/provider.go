@@ -25,6 +25,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/yandex-cloud/go-sdk/iamkey"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -230,10 +231,10 @@ func (p *YandexCloudProvider) CleanUpIamTokenMap() {
 	}
 }
 
-func (p *YandexCloudProvider) ValidateStore(store esv1beta1.GenericStore) error {
+func (p *YandexCloudProvider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	_, err := p.adaptInputFunc(store) // adaptInputFunc validates the input store
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return nil, nil
 }
