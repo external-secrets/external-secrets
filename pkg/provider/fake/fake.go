@@ -23,6 +23,7 @@ import (
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
@@ -235,20 +236,20 @@ func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	prov := store.GetSpec().Provider.Fake
 	if prov == nil {
-		return nil
+		return nil, nil
 	}
 	for pos, data := range prov.Data {
 		if data.Key == "" {
-			return fmt.Errorf(errMissingKeyField, pos)
+			return nil, fmt.Errorf(errMissingKeyField, pos)
 		}
 		if data.Value == "" && data.ValueMap == nil {
-			return fmt.Errorf(errMissingValueField, pos)
+			return nil, fmt.Errorf(errMissingValueField, pos)
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func mapKey(key, version string) string {

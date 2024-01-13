@@ -27,6 +27,7 @@ import (
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
@@ -587,11 +588,11 @@ func (ibm *providerIBM) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
+func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	ibmSpec := storeSpec.Provider.IBM
 	if ibmSpec.ServiceURL == nil {
-		return fmt.Errorf("serviceURL is required")
+		return nil, fmt.Errorf("serviceURL is required")
 	}
 
 	containerRef := ibmSpec.Auth.ContainerAuth
@@ -603,15 +604,15 @@ func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
 	if missingContainerRef == missingSecretRef {
 		// since both are equal, if one is missing assume both are missing
 		if missingContainerRef {
-			return fmt.Errorf("missing auth method")
+			return nil, fmt.Errorf("missing auth method")
 		}
-		return fmt.Errorf("too many auth methods defined")
+		return nil, fmt.Errorf("too many auth methods defined")
 	}
 
 	if !missingContainerRef {
 		// catch undefined container auth profile
 		if containerRef.Profile == "" {
-			return fmt.Errorf("container auth profile cannot be empty")
+			return nil, fmt.Errorf("container auth profile cannot be empty")
 		}
 
 		// proceed with container auth
@@ -619,25 +620,25 @@ func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) error {
 			containerRef.TokenLocation = "/var/run/secrets/tokens/vault-token"
 		}
 		if _, err := os.Open(containerRef.TokenLocation); err != nil {
-			return fmt.Errorf("cannot read container auth token %s. %w", containerRef.TokenLocation, err)
+			return nil, fmt.Errorf("cannot read container auth token %s. %w", containerRef.TokenLocation, err)
 		}
-		return nil
+		return nil, nil
 	}
 
 	// proceed with API Key Auth validation
 	secretKeyRef := secretRef.SecretAPIKey
 	err := utils.ValidateSecretSelector(store, secretKeyRef)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if secretKeyRef.Name == "" {
-		return fmt.Errorf("secretAPIKey.name cannot be empty")
+		return nil, fmt.Errorf("secretAPIKey.name cannot be empty")
 	}
 	if secretKeyRef.Key == "" {
-		return fmt.Errorf("secretAPIKey.key cannot be empty")
+		return nil, fmt.Errorf("secretAPIKey.key cannot be empty")
 	}
 
-	return nil
+	return nil, nil
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
