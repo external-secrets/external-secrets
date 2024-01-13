@@ -426,12 +426,14 @@ func (a *akeylessBase) getCACertPool(provider *esv1beta1.AkeylessProvider) (*x50
 		}
 		ok := caCertPool.AppendCertsFromPEM(pem)
 		if !ok {
-			return nil, fmt.Errorf("failed to append cabundle")
+			return nil, fmt.Errorf("failed to append caBundle")
 		}
 	}
 
-	if provider.CAProvider != nil && a.storeKind == esv1beta1.ClusterSecretStoreKind && provider.CAProvider.Namespace == nil {
-		return nil, fmt.Errorf("missing namespace on CAProvider secret")
+	if provider.CAProvider != nil &&
+		a.storeKind == esv1beta1.ClusterSecretStoreKind &&
+		provider.CAProvider.Namespace == nil {
+		return nil, fmt.Errorf("missing namespace on caProvider secret")
 	}
 
 	if provider.CAProvider != nil {
@@ -444,7 +446,7 @@ func (a *akeylessBase) getCACertPool(provider *esv1beta1.AkeylessProvider) (*x50
 		case esv1beta1.CAProviderTypeConfigMap:
 			cert, err = a.getCertFromConfigMap(provider)
 		default:
-			err = fmt.Errorf("unknown caprovider type: %s", provider.CAProvider.Type)
+			err = fmt.Errorf("unknown CAProvider type: %s", provider.CAProvider.Type)
 		}
 
 		if err != nil {
@@ -456,7 +458,7 @@ func (a *akeylessBase) getCACertPool(provider *esv1beta1.AkeylessProvider) (*x50
 		}
 		ok := caCertPool.AppendCertsFromPEM(pem)
 		if !ok {
-			return nil, fmt.Errorf("failed to append cabundle")
+			return nil, fmt.Errorf("failed to append caBundle")
 		}
 	}
 	return caCertPool, nil
@@ -473,12 +475,12 @@ func (a *akeylessBase) getCertFromSecret(provider *esv1beta1.AkeylessProvider) (
 	}
 
 	ctx := context.Background()
-	res, err := a.secretKeyRef(ctx, &secretRef)
+	cert, err := utils.ResolveSecretKeyRef(ctx, a.kube, a.storeKind, a.namespace, &secretRef)
 	if err != nil {
 		return nil, err
 	}
 
-	return []byte(res), nil
+	return []byte(cert), nil
 }
 
 func (a *akeylessBase) getCertFromConfigMap(provider *esv1beta1.AkeylessProvider) ([]byte, error) {
@@ -494,12 +496,12 @@ func (a *akeylessBase) getCertFromConfigMap(provider *esv1beta1.AkeylessProvider
 	ctx := context.Background()
 	err := a.kube.Get(ctx, objKey, configMapRef)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get caprovider secret %s: %w", objKey.Name, err)
+		return nil, fmt.Errorf("failed to get caProvider secret %s: %w", objKey.Name, err)
 	}
 
 	val, ok := configMapRef.Data[provider.CAProvider.Key]
 	if !ok {
-		return nil, fmt.Errorf("failed to get caprovider configmap %s -> %s", objKey.Name, provider.CAProvider.Key)
+		return nil, fmt.Errorf("failed to get caProvider configMap %s -> %s", objKey.Name, provider.CAProvider.Key)
 	}
 
 	return []byte(val), nil

@@ -48,7 +48,6 @@ import (
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -886,44 +885,26 @@ func (a *Azure) authorizerForServicePrincipal(ctx context.Context) (autorest.Aut
 	if a.provider.AuthSecretRef.ClientID == nil || a.provider.AuthSecretRef.ClientSecret == nil {
 		return nil, fmt.Errorf(errMissingClientIDSecret)
 	}
-	clusterScoped := false
-	if a.store.GetKind() == esv1beta1.ClusterSecretStoreKind {
-		clusterScoped = true
-	}
-	cid, err := a.secretKeyRef(ctx, a.namespace, *a.provider.AuthSecretRef.ClientID, clusterScoped)
+	clientID, err := utils.ResolveSecretKeyRef(
+		ctx,
+		a.crClient,
+		a.store.GetKind(),
+		a.namespace, a.provider.AuthSecretRef.ClientID)
 	if err != nil {
 		return nil, err
 	}
-	csec, err := a.secretKeyRef(ctx, a.namespace, *a.provider.AuthSecretRef.ClientSecret, clusterScoped)
+	clientSecret, err := utils.ResolveSecretKeyRef(
+		ctx,
+		a.crClient,
+		a.store.GetKind(),
+		a.namespace, a.provider.AuthSecretRef.ClientSecret)
 	if err != nil {
 		return nil, err
 	}
-	clientCredentialsConfig := kvauth.NewClientCredentialsConfig(cid, csec, *a.provider.TenantID)
+	clientCredentialsConfig := kvauth.NewClientCredentialsConfig(clientID, clientSecret, *a.provider.TenantID)
 	clientCredentialsConfig.Resource = kvResourceForProviderConfig(a.provider.EnvironmentType)
 	clientCredentialsConfig.AADEndpoint = AadEndpointForType(a.provider.EnvironmentType)
 	return clientCredentialsConfig.Authorizer()
-}
-
-// secretKeyRef fetch a secret key.
-func (a *Azure) secretKeyRef(ctx context.Context, namespace string, secretRef smmeta.SecretKeySelector, clusterScoped bool) (string, error) {
-	var secret corev1.Secret
-	ref := types.NamespacedName{
-		Name:      secretRef.Name,
-		Namespace: namespace,
-	}
-	if clusterScoped && secretRef.Namespace != nil {
-		ref.Namespace = *secretRef.Namespace
-	}
-	err := a.crClient.Get(ctx, ref, &secret)
-	if err != nil {
-		return "", fmt.Errorf(errFindSecret, ref.Namespace, ref.Name, err)
-	}
-	keyBytes, ok := secret.Data[secretRef.Key]
-	if !ok {
-		return "", fmt.Errorf(errFindDataKey, secretRef.Key, secretRef.Name, namespace)
-	}
-	value := strings.TrimSpace(string(keyBytes))
-	return value, nil
 }
 
 func (a *Azure) Close(_ context.Context) error {

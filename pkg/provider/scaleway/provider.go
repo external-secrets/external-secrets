@@ -21,7 +21,6 @@ import (
 	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1alpha1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"github.com/scaleway/scaleway-sdk-go/validation"
-	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	kubeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -52,12 +51,12 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return nil, fmt.Errorf("when using a ClusterSecretStore, namespaces must be explicitly set")
 	}
 
-	accessKey, err := loadConfigSecret(ctx, cfg.AccessKey, kube, namespace)
+	accessKey, err := loadConfigSecret(ctx, cfg.AccessKey, kube, namespace, store.GetKind())
 	if err != nil {
 		return nil, err
 	}
 
-	secretKey, err := loadConfigSecret(ctx, cfg.SecretKey, kube, namespace)
+	secretKey, err := loadConfigSecret(ctx, cfg.SecretKey, kube, namespace, store.GetKind())
 	if err != nil {
 		return nil, err
 	}
@@ -80,42 +79,17 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	}, nil
 }
 
-func loadConfigSecret(ctx context.Context, ref *esv1beta1.ScalewayProviderSecretRef, kube kubeClient.Client, defaultNamespace string) (string, error) {
+func loadConfigSecret(ctx context.Context, ref *esv1beta1.ScalewayProviderSecretRef, kube kubeClient.Client, defaultNamespace, storeKind string) (string, error) {
 	if ref.SecretRef == nil {
 		return ref.Value, nil
 	}
-
-	namespace := defaultNamespace
-	if ref.SecretRef.Namespace != nil {
-		namespace = *ref.SecretRef.Namespace
-	}
-
-	if ref.SecretRef.Name == "" {
-		return "", fmt.Errorf("must specify a value or a reference to a secret")
-	}
-
-	if ref.SecretRef.Key == "" {
-		return "", fmt.Errorf("must specify a secret key")
-	}
-
-	objKey := kubeClient.ObjectKey{
-		Namespace: namespace,
-		Name:      ref.SecretRef.Name,
-	}
-
-	secret := corev1.Secret{}
-
-	err := kube.Get(ctx, objKey, &secret)
-	if err != nil {
-		return "", err
-	}
-
-	value, ok := secret.Data[ref.SecretRef.Key]
-	if !ok {
-		return "", fmt.Errorf("no such key in secret: %v", ref.SecretRef.Key)
-	}
-
-	return string(value), nil
+	return utils.ResolveSecretKeyRef(
+		ctx,
+		kube,
+		storeKind,
+		defaultNamespace,
+		ref.SecretRef,
+	)
 }
 
 func validateSecretRef(store esv1beta1.GenericStore, ref *esv1beta1.ScalewayProviderSecretRef) error {

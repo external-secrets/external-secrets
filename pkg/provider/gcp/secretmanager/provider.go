@@ -90,7 +90,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return client, nil
 	}
 
-	ts, err := NewTokenSource(ctx, gcpStore.Auth, clusterProjectID, isClusterKind, kube, namespace)
+	ts, err := NewTokenSource(ctx, gcpStore.Auth, clusterProjectID, store.GetKind(), kube, namespace)
 	if err != nil {
 		return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
 	}

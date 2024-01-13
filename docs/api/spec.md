@@ -1691,7 +1691,7 @@ Kubernetes meta/v1.LabelSelector
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1beta1.ConjurApikey">ConjurApikey
+<h3 id="external-secrets.io/v1beta1.ConjurAPIKey">ConjurAPIKey
 </h3>
 <p>
 (<em>Appears on:</em>
@@ -1763,8 +1763,8 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <code>apikey</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.ConjurApikey">
-ConjurApikey
+<a href="#external-secrets.io/v1beta1.ConjurAPIKey">
+ConjurAPIKey
 </a>
 </em>
 </td>

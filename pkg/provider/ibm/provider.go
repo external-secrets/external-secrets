@@ -26,7 +26,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -93,33 +92,11 @@ type client struct {
 }
 
 func (c *client) setAuth(ctx context.Context) error {
-	credentialsSecret := &corev1.Secret{}
-	credentialsSecretName := c.store.Auth.SecretRef.SecretAPIKey.Name
-	if credentialsSecretName == "" {
-		return fmt.Errorf(errIBMCredSecretName)
-	}
-	objectKey := types.NamespacedName{
-		Name:      credentialsSecretName,
-		Namespace: c.namespace,
-	}
-
-	// only ClusterStore is allowed to set namespace (and then it's required)
-	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
-		if c.store.Auth.SecretRef.SecretAPIKey.Namespace == nil {
-			return fmt.Errorf(errInvalidClusterStoreMissingSKNamespace)
-		}
-		objectKey.Namespace = *c.store.Auth.SecretRef.SecretAPIKey.Namespace
-	}
-
-	err := c.kube.Get(ctx, objectKey, credentialsSecret)
+	apiKey, err := utils.ResolveSecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, &c.store.Auth.SecretRef.SecretAPIKey)
 	if err != nil {
-		return fmt.Errorf(errFetchSAKSecret, err)
+		return err
 	}
-
-	c.credentials = credentialsSecret.Data[c.store.Auth.SecretRef.SecretAPIKey.Key]
-	if (c.credentials == nil) || (len(c.credentials) == 0) {
-		return fmt.Errorf(errMissingSAK)
-	}
+	c.credentials = []byte(apiKey)
 	return nil
 }
 

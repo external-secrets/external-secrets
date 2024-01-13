@@ -23,7 +23,6 @@ import (
 	"github.com/1Password/connect-sdk-go/connect"
 	"github.com/1Password/connect-sdk-go/onepassword"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -95,29 +94,18 @@ func (provider *ProviderOnePassword) Capabilities() esv1beta1.SecretStoreCapabil
 // NewClient constructs a 1Password Provider.
 func (provider *ProviderOnePassword) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	config := store.GetSpec().Provider.OnePassword
-
-	credentialsSecret := &corev1.Secret{}
-	objectKey := types.NamespacedName{
-		Name:      config.Auth.SecretRef.ConnectToken.Name,
-		Namespace: namespace,
-	}
-
-	// only ClusterSecretStore is allowed to set namespace (and then it's required)
-	if store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
-		objectKey.Namespace = *config.Auth.SecretRef.ConnectToken.Namespace
-	}
-
-	err := kube.Get(ctx, objectKey, credentialsSecret)
+	token, err := utils.ResolveSecretKeyRef(
+		ctx,
+		kube,
+		store.GetKind(),
+		namespace,
+		&config.Auth.SecretRef.ConnectToken,
+	)
 	if err != nil {
-		return nil, fmt.Errorf(errFetchK8sSecret, err)
+		return nil, err
 	}
-	token := credentialsSecret.Data[config.Auth.SecretRef.ConnectToken.Key]
-	if (token == nil) || (len(token) == 0) {
-		return nil, fmt.Errorf(errMissingToken)
-	}
-	provider.client = connect.NewClientWithUserAgent(config.ConnectHost, string(token), userAgent)
+	provider.client = connect.NewClientWithUserAgent(config.ConnectHost, token, userAgent)
 	provider.vaults = config.Vaults
-
 	return provider, nil
 }
 

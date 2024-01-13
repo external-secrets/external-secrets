@@ -32,7 +32,6 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/vault"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -398,27 +397,17 @@ func getSecretData(ctx context.Context, kube kclient.Client, namespace, storeKin
 	if secretRef.Name == "" {
 		return "", fmt.Errorf(errORACLECredSecretName)
 	}
-
-	objectKey := types.NamespacedName{
-		Name:      secretRef.Name,
-		Namespace: namespace,
-	}
-
-	// only ClusterStore is allowed to set namespace (and then it's required)
-	if storeKind == esv1beta1.ClusterSecretStoreKind {
-		if secretRef.Namespace == nil {
-			return "", fmt.Errorf(errInvalidClusterStoreMissingSKNamespace)
-		}
-		objectKey.Namespace = *secretRef.Namespace
-	}
-
-	secret := corev1.Secret{}
-	err := kube.Get(ctx, objectKey, &secret)
+	secret, err := utils.ResolveSecretKeyRef(
+		ctx,
+		kube,
+		storeKind,
+		namespace,
+		&secretRef,
+	)
 	if err != nil {
 		return "", fmt.Errorf(errFetchSAKSecret, err)
 	}
-
-	return string(secret.Data[secretRef.Key]), nil
+	return secret, nil
 }
 
 func getUserAuthConfigurationProvider(ctx context.Context, kube kclient.Client, store *esv1beta1.OracleProvider, namespace, storeKind, region string) (common.ConfigurationProvider, error) {

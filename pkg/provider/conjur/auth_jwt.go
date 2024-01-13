@@ -27,6 +27,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const JwtLifespan = 600 // 10 minutes
@@ -46,7 +47,12 @@ func (p *Client) getJWTToken(ctx context.Context, conjurJWTConfig *esv1beta1.Con
 			tokenRef = conjurJWTConfig.SecretRef.DeepCopy()
 			tokenRef.Key = "token"
 		}
-		jwtToken, err := p.secretKeyRef(ctx, tokenRef)
+		jwtToken, err := utils.ResolveSecretKeyRef(
+			ctx,
+			p.kube,
+			p.StoreKind,
+			p.namespace,
+			tokenRef)
 		if err != nil {
 			return "", err
 		}

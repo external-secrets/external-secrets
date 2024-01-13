@@ -65,7 +65,7 @@ func (g *Generator) generate(
 	ts, err := tokenSource(ctx, esv1beta1.GCPSMAuth{
 		SecretRef:        (*esv1beta1.GCPSMAuthSecretRef)(res.Spec.Auth.SecretRef),
 		WorkloadIdentity: (*esv1beta1.GCPWorkloadIdentity)(res.Spec.Auth.WorkloadIdentity),
-	}, res.Spec.ProjectID, false, kube, namespace)
+	}, res.Spec.ProjectID, "", kube, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (g *Generator) generate(
 	}, nil
 }
 
-type tokenSourceFunc func(ctx context.Context, auth esv1beta1.GCPSMAuth, projectID string, isClusterKind bool, kube client.Client, namespace string) (oauth2.TokenSource, error)
+type tokenSourceFunc func(ctx context.Context, auth esv1beta1.GCPSMAuth, projectID string, storeKind string, kube client.Client, namespace string) (oauth2.TokenSource, error)
 
 func parseSpec(data []byte) (*genv1alpha1.GCRAccessToken, error) {
 	var spec genv1alpha1.GCRAccessToken

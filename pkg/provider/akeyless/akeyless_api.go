@@ -35,6 +35,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 var apiErr akeyless.GenericOpenAPIError
@@ -335,7 +336,7 @@ func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAu
 				tokenRef = kubernetesAuth.SecretRef.DeepCopy()
 				tokenRef.Key = "token"
 			}
-			jwt, err := a.secretKeyRef(ctx, tokenRef)
+			jwt, err := utils.ResolveSecretKeyRef(ctx, a.kube, a.storeKind, a.namespace, tokenRef)
 			if err != nil {
 				return "", err
 			}
@@ -363,7 +364,7 @@ func (a *akeylessBase) getJWTFromServiceAccount(ctx context.Context, serviceAcco
 		return "", fmt.Errorf(errGetKubeSASecrets, ref.Name)
 	}
 	for _, tokenRef := range serviceAccount.Secrets {
-		retval, err := a.secretKeyRef(ctx, &esmeta.SecretKeySelector{
+		token, err := utils.ResolveSecretKeyRef(ctx, a.kube, a.storeKind, a.namespace, &esmeta.SecretKeySelector{
 			Name:      tokenRef.Name,
 			Namespace: &ref.Namespace,
 			Key:       "token",
@@ -372,34 +373,9 @@ func (a *akeylessBase) getJWTFromServiceAccount(ctx context.Context, serviceAcco
 			continue
 		}
 
-		return retval, nil
+		return token, nil
 	}
 	return "", fmt.Errorf(errGetKubeSANoToken, ref.Name)
-}
-
-func (a *akeylessBase) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySelector) (string, error) {
-	secret := &corev1.Secret{}
-	ref := types.NamespacedName{
-		Namespace: a.namespace,
-		Name:      secretRef.Name,
-	}
-	if (a.storeKind == esv1beta1.ClusterSecretStoreKind) &&
-		(secretRef.Namespace != nil) {
-		ref.Namespace = *secretRef.Namespace
-	}
-	err := a.kube.Get(ctx, ref, secret)
-	if err != nil {
-		return "", fmt.Errorf(errGetKubeSecret, ref.Name, err)
-	}
-
-	keyBytes, ok := secret.Data[secretRef.Key]
-	if !ok {
-		return "", fmt.Errorf(errSecretKeyFmt, secretRef.Key)
-	}
-
-	value := string(keyBytes)
-	valueStr := strings.TrimSpace(value)
-	return valueStr, nil
 }
 
 func (a *akeylessBase) getJWTfromServiceAccountToken(ctx context.Context, serviceAccountRef esmeta.ServiceAccountSelector, additionalAud []string, expirationSeconds int64) (string, error) {

@@ -17,10 +17,8 @@ package delinea
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/DelineaXPM/dsv-sdk-go/v2/vault"
-	corev1 "k8s.io/api/core/v1"
 	kubeClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -38,8 +36,6 @@ var (
 	errMissingSecretName             = errors.New("must specify a secret name")
 	errMissingSecretKey              = errors.New("must specify a secret key")
 	errClusterStoreRequiresNamespace = errors.New("when using a ClusterSecretStore, namespaces must be explicitly set")
-
-	errNoSuchKeyFmt = "no such key in secret: %q"
 )
 
 type Provider struct{}
@@ -62,12 +58,12 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return nil, errClusterStoreRequiresNamespace
 	}
 
-	clientID, err := loadConfigSecret(ctx, cfg.ClientID, kube, namespace)
+	clientID, err := loadConfigSecret(ctx, store.GetKind(), cfg.ClientID, kube, namespace)
 	if err != nil {
 		return nil, err
 	}
 
-	clientSecret, err := loadConfigSecret(ctx, cfg.ClientSecret, kube, namespace)
+	clientSecret, err := loadConfigSecret(ctx, store.GetKind(), cfg.ClientSecret, kube, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -90,33 +86,19 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	}, nil
 }
 
-func loadConfigSecret(ctx context.Context, ref *esv1beta1.DelineaProviderSecretRef, kube kubeClient.Client, defaultNamespace string) (string, error) {
+func loadConfigSecret(
+	ctx context.Context,
+	storeKind string,
+	ref *esv1beta1.DelineaProviderSecretRef,
+	kube kubeClient.Client,
+	namespace string) (string, error) {
 	if ref.SecretRef == nil {
 		return ref.Value, nil
 	}
-
 	if err := validateSecretRef(ref); err != nil {
 		return "", err
 	}
-
-	namespace := defaultNamespace
-	if ref.SecretRef.Namespace != nil {
-		namespace = *ref.SecretRef.Namespace
-	}
-
-	objKey := kubeClient.ObjectKey{Namespace: namespace, Name: ref.SecretRef.Name}
-	secret := corev1.Secret{}
-	err := kube.Get(ctx, objKey, &secret)
-	if err != nil {
-		return "", err
-	}
-
-	value, ok := secret.Data[ref.SecretRef.Key]
-	if !ok {
-		return "", fmt.Errorf(errNoSuchKeyFmt, ref.SecretRef.Key)
-	}
-
-	return string(value), nil
+	return utils.ResolveSecretKeyRef(ctx, kube, storeKind, namespace, ref.SecretRef)
 }
 
 func validateStoreSecretRef(store esv1beta1.GenericStore, ref *esv1beta1.DelineaProviderSecretRef) error {

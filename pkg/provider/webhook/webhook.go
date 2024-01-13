@@ -25,7 +25,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	tpl "text/template"
 	"time"
 
@@ -383,8 +382,9 @@ func (w *WebHook) getCACertPool(provider *esv1beta1.WebhookProvider) (*x509.Cert
 
 func (w *WebHook) getCertFromSecret(provider *esv1beta1.WebhookProvider) ([]byte, error) {
 	secretRef := esmeta.SecretKeySelector{
-		Name: provider.CAProvider.Name,
-		Key:  provider.CAProvider.Key,
+		Name:      provider.CAProvider.Name,
+		Namespace: &w.namespace,
+		Key:       provider.CAProvider.Key,
 	}
 
 	if provider.CAProvider.Namespace != nil {
@@ -392,37 +392,18 @@ func (w *WebHook) getCertFromSecret(provider *esv1beta1.WebhookProvider) ([]byte
 	}
 
 	ctx := context.Background()
-	res, err := w.secretKeyRef(ctx, &secretRef)
+	cert, err := utils.ResolveSecretKeyRef(
+		ctx,
+		w.kube,
+		w.storeKind,
+		w.namespace,
+		&secretRef,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	return []byte(res), nil
-}
-
-func (w *WebHook) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySelector) (string, error) {
-	secret := &corev1.Secret{}
-	ref := client.ObjectKey{
-		Namespace: w.namespace,
-		Name:      secretRef.Name,
-	}
-	if (w.storeKind == esv1beta1.ClusterSecretStoreKind) &&
-		(secretRef.Namespace != nil) {
-		ref.Namespace = *secretRef.Namespace
-	}
-	err := w.kube.Get(ctx, ref, secret)
-	if err != nil {
-		return "", err
-	}
-
-	keyBytes, ok := secret.Data[secretRef.Key]
-	if !ok {
-		return "", err
-	}
-
-	value := string(keyBytes)
-	valueStr := strings.TrimSpace(value)
-	return valueStr, nil
+	return []byte(cert), nil
 }
 
 func (w *WebHook) getCertFromConfigMap(provider *esv1beta1.WebhookProvider) ([]byte, error) {
