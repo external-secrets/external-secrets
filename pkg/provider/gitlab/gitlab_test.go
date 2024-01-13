@@ -46,7 +46,7 @@ const (
 	groupvalue            = "groupvalue"
 	groupid               = "groupId"
 	defaultErrorMessage   = "[%d] unexpected error: [%s], expected: [%s]"
-	errMissingCredentials = "credentials are empty"
+	errMissingCredentials = "cannot get Kubernetes secret \"\": secrets \"\" not found"
 	testKey               = "testKey"
 	findTestPrefix        = "test.*"
 )
@@ -351,7 +351,7 @@ func TestNewClient(t *testing.T) {
 	store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken.Name = authorizedKeySecretName
 	store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken.Key = authorizedKeySecretKey
 	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
-	tassert.EqualError(t, err, "couldn't find secret on cluster: secrets \"authorizedKeySecretName\" not found")
+	tassert.EqualError(t, err, "cannot get Kubernetes secret \"authorizedKeySecretName\": secrets \"authorizedKeySecretName\" not found")
 	tassert.Nil(t, secretClient)
 
 	err = createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, newFakeAuthorizedKey()))

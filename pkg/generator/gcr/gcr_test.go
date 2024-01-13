@@ -65,7 +65,7 @@ func TestGenerate(t *testing.T) {
 						"foo": []byte("bar"),
 					},
 				}).Build(),
-				fakeTokenSource: func(ctx context.Context, auth v1beta1.GCPSMAuth, projectID string, isClusterKind bool, kube client.Client, namespace string) (oauth2.TokenSource, error) {
+				fakeTokenSource: func(ctx context.Context, auth v1beta1.GCPSMAuth, projectID string, storeKind string, kube client.Client, namespace string) (oauth2.TokenSource, error) {
 					return oauth2.StaticTokenSource(&oauth2.Token{
 						AccessToken: "1234",
 						Expiry:      time.Unix(5555, 0),

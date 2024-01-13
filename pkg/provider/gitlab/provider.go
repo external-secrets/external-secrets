@@ -86,7 +86,7 @@ func (g *gitlabBase) getClient(ctx context.Context, provider *esv1beta1.GitlabPr
 	// in a similar way to extend functionality of the provider
 
 	// Create a new GitLab Client using credentials and options
-	client, err := gitlab.NewClient(string(credentials), opts...)
+	client, err := gitlab.NewClient(credentials, opts...)
 	if err != nil {
 		return nil, err
 	}
