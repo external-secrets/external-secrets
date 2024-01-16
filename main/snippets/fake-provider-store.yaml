@@ -13,5 +13,8 @@ spec:
         value: "HELLO2"
         version: "v2"
       - key: "/foo/baz"
-        value: '{"john": "doe"}'
-        version: "v1"
+        valueMap:
+          foo: example
+          other: thing
+
+
