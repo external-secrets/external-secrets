@@ -238,9 +238,6 @@ see: <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.
 </td>
 </tr></tbody>
 </table>
-<<<<<<< HEAD
-<h3 id="external-secrets.io/v1beta1.AkeylessAuth">AkeylessAuth
-=======
 <h3 id="external-secrets.io/v1alpha1.AlibabaAuth">AlibabaAuth
 </h3>
 <p>
@@ -367,7 +364,6 @@ string
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1alpha1.AzureKVAuth">AzureKVAuth
->>>>>>> f633a9aa... Add password depot provider
 </h3>
 <p>
 (<em>Appears on:</em>
@@ -466,9 +462,6 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
-<<<<<<< HEAD
-<h3 id="external-secrets.io/v1beta1.AkeylessKubernetesAuth">AkeylessKubernetesAuth
-=======
 <h3 id="external-secrets.io/v1alpha1.CAProvider">CAProvider
 </h3>
 <p>
@@ -556,7 +549,6 @@ string
 </tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1alpha1.ClusterSecretStore">ClusterSecretStore
->>>>>>> f633a9aa... Add password depot provider
 </h3>
 <p>
 (<em>Appears on:</em>
@@ -1816,9 +1808,6 @@ string
 </tr>
 </tbody>
 </table>
-<<<<<<< HEAD
-<h3 id="external-secrets.io/v1beta1.ExternalSecret">ExternalSecret
-=======
 <h3 id="external-secrets.io/v1alpha1.OracleAuth">OracleAuth
 </h3>
 <p>
@@ -2070,7 +2059,6 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1alpha1.SecretStore">SecretStore
->>>>>>> f633a9aa... Add password depot provider
 </h3>
 <p>
 <p>ExternalSecret is the Schema for the external-secrets API.</p>
@@ -5844,9 +5832,6 @@ Kubernetes service account token retrieved by the <code>TokenRequest</code> API.
 <tbody>
 <tr>
 <td>
-<<<<<<< HEAD
-<code>serviceAccountRef</code></br>
-=======
 <code>oracle</code></br>
 <em>
 <a href="#external-secrets.io/v1alpha1.OracleProvider">
@@ -5862,7 +5847,6 @@ OracleProvider
 <tr>
 <td>
 <code>ibm</code></br>
->>>>>>> f633a9aa... Add password depot provider
 <em>
 github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
 </em>

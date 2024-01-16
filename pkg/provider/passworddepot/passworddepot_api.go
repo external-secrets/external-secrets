@@ -12,6 +12,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+const errorReadBody = "error: read body"
+const errorDoRequest = "error: do request"
+
 type HTTPClient interface {
 	Do(*http.Request) (*http.Response, error)
 }
@@ -98,16 +101,17 @@ type SecretEntry struct {
 var errDBNotFound = errors.New("Database not found")
 var errSecretNotFound = errors.New("Secret not found")
 
-func NewPasswortDepotApi(baseUrl, username, password, hostPort string, skipVerify bool) (*PasswortDepotApi, error) {
+// load tls certificates
+
+func NewPasswortDepotApi(baseUrl, username, password, hostPort string) (*PasswortDepotApi, error) {
 	api := &PasswortDepotApi{
 		baseUrl:  baseUrl,
 		hostPort: hostPort,
 		username: username,
 		password: password,
 	}
-
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: skipVerify},
+		TLSClientConfig: &tls.Config{},
 	}
 
 	api.client = &http.Client{Transport: tr}
@@ -176,7 +180,7 @@ func (api *PasswortDepotApi) login() error {
 
 	resp, err := api.client.Do(loginRequest)
 	if err != nil {
-		return errors.Wrap(err, "error: do request")
+		return errors.Wrap(err, errorDoRequest)
 	}
 	defer func() {
 		if resp.Body != nil {
@@ -187,10 +191,10 @@ func (api *PasswortDepotApi) login() error {
 	var buf bytes.Buffer
 	_, err = buf.ReadFrom(resp.Body)
 	if err != nil {
-		return errors.Wrap(err, "error: read body")
+		return errors.Wrap(err, errorReadBody)
 	}
 
-	if resp.StatusCode > 399 {
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		return errors.New(fmt.Sprintf("failed to authenticate with the given credentials: %d %s", resp.StatusCode, buf.String()))
 	}
 
@@ -217,7 +221,7 @@ func (api *PasswortDepotApi) ListSecrets(dbFingerprint string, folder string) (D
 
 	respSecretsList, err := api.doAuthenticatedRequest(listSecrets)
 	if err != nil {
-		return DatabaseEntries{}, errors.Wrap(err, "error: do request")
+		return DatabaseEntries{}, errors.Wrap(err, errorDoRequest)
 	}
 	defer func() {
 		if respSecretsList.Body != nil {
@@ -227,7 +231,6 @@ func (api *PasswortDepotApi) ListSecrets(dbFingerprint string, folder string) (D
 	var buf bytes.Buffer
 	_, err = buf.ReadFrom(respSecretsList.Body)
 	if err != nil {
-		fmt.Println("error: read body", err)
 		return DatabaseEntries{}, err
 	}
 	var dbEntries DatabaseEntries
@@ -243,7 +246,7 @@ func (api *PasswortDepotApi) ListDatabases() (Databases, error) {
 
 	respDBList, err := api.doAuthenticatedRequest(listDBRequest)
 	if err != nil {
-		return Databases{}, errors.Wrap(err, "error: do request")
+		return Databases{}, errors.Wrap(err, errorDoRequest)
 	}
 	defer func() {
 		if respDBList.Body != nil {
@@ -253,7 +256,7 @@ func (api *PasswortDepotApi) ListDatabases() (Databases, error) {
 	var dbBuf bytes.Buffer
 	_, err = dbBuf.ReadFrom(respDBList.Body)
 	if err != nil {
-		return Databases{}, errors.Wrap(err, "error: read body")
+		return Databases{}, errors.Wrap(err, errorReadBody)
 	}
 	var databases Databases
 	err = json.Unmarshal(dbBuf.Bytes(), &databases)
@@ -281,7 +284,7 @@ func (api *PasswortDepotApi) GetSecret(database, secretName string) (SecretEntry
 
 	respSecretRead, err := api.doAuthenticatedRequest(readSecretRequest)
 	if err != nil {
-		return SecretEntry{}, errors.Wrap(err, "error: do request")
+		return SecretEntry{}, errors.Wrap(err, errorDoRequest)
 	}
 	defer func() {
 		if respSecretRead.Body != nil {
@@ -291,7 +294,7 @@ func (api *PasswortDepotApi) GetSecret(database, secretName string) (SecretEntry
 	var buf bytes.Buffer
 	_, err = buf.ReadFrom(respSecretRead.Body)
 	if err != nil {
-		fmt.Println("error: read body", err)
+		fmt.Println(errorReadBody, err)
 		return SecretEntry{}, err
 	}
 	var secretEntry SecretEntry

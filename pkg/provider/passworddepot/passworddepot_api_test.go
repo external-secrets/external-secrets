@@ -12,6 +12,10 @@ import (
 	fakepassworddepot "github.com/external-secrets/external-secrets/pkg/provider/passworddepot/fake"
 )
 
+const fingerprint1 = "53fe39bd-0d5c-4b46-83b3-122fef14364e"
+const mySecret = "my-secret"
+const someDB = "some-db"
+
 var (
 	mockDatabaseList = Databases{
 		Databases: []struct {
@@ -22,7 +26,7 @@ var (
 			Reasondelete string    "json:\"reasondelete\""
 		}{
 			{
-				Name:        "some-db",
+				Name:        someDB,
 				Fingerprint: "434da246-c165-499b-8996-6ee2a9673429",
 			},
 		},
@@ -31,8 +35,8 @@ var (
 	mockDatabaseEntries = DatabaseEntries{
 		Entries: []Entry{
 			{
-				Name:        "my-secret",
-				Fingerprint: "53fe39bd-0d5c-4b46-83b3-122fef14364e",
+				Name:        mySecret,
+				Fingerprint: fingerprint1,
 			},
 		},
 	}
@@ -64,7 +68,7 @@ func TestPasswortDepotApi_ListDatabases(t *testing.T) {
 					Reasondelete string    "json:\"reasondelete\""
 				}{
 					{
-						Name:        "some-db",
+						Name:        someDB,
 						Fingerprint: "434da246-c165-499b-8996-6ee2a9673429",
 					},
 				},
@@ -131,19 +135,19 @@ func TestPasswortDepotApi_GetSecret(t *testing.T) {
 					createResponder(mockDatabaseList, true),
 					createResponder(mockDatabaseEntries, true),
 					createResponder(SecretEntry{
-						Name:        "my-secret",
-						Fingerprint: "53fe39bd-0d5c-4b46-83b3-122fef14364e",
+						Name:        mySecret,
+						Fingerprint: fingerprint1,
 						Pass:        "yery53cr3t",
 					}, true),
 				},
 			},
 			args: args{
-				database:   "some-db",
-				secretName: "my-secret",
+				database:   someDB,
+				secretName: mySecret,
 			},
 			want: SecretEntry{
-				Name:        "my-secret",
-				Fingerprint: "53fe39bd-0d5c-4b46-83b3-122fef14364e",
+				Name:        mySecret,
+				Fingerprint: fingerprint1,
 				Pass:        "yery53cr3t",
 			},
 			wantErr: false,
@@ -163,19 +167,19 @@ func TestPasswortDepotApi_GetSecret(t *testing.T) {
 					}, true),
 					createResponder(mockDatabaseEntries, true),
 					createResponder(SecretEntry{
-						Name:        "my-secret",
-						Fingerprint: "53fe39bd-0d5c-4b46-83b3-122fef14364e",
+						Name:        mySecret,
+						Fingerprint: fingerprint1,
 						Pass:        "yery53cr3t",
 					}, true),
 				},
 			},
 			args: args{
-				database:   "some-db",
+				database:   someDB,
 				secretName: "Production.my-secret",
 			},
 			want: SecretEntry{
-				Name:        "my-secret",
-				Fingerprint: "53fe39bd-0d5c-4b46-83b3-122fef14364e",
+				Name:        mySecret,
+				Fingerprint: fingerprint1,
 				Pass:        "yery53cr3t",
 			},
 			wantErr: false,
@@ -189,8 +193,8 @@ func TestPasswortDepotApi_GetSecret(t *testing.T) {
 				},
 			},
 			args: args{
-				database:   "some-db",
-				secretName: "my-secret",
+				database:   someDB,
+				secretName: mySecret,
 			},
 			want:    SecretEntry{},
 			wantErr: true,
@@ -205,8 +209,8 @@ func TestPasswortDepotApi_GetSecret(t *testing.T) {
 				},
 			},
 			args: args{
-				database:   "some-db",
-				secretName: "my-secret",
+				database:   someDB,
+				secretName: mySecret,
 			},
 			want:    SecretEntry{},
 			wantErr: true,
@@ -220,8 +224,8 @@ func TestPasswortDepotApi_GetSecret(t *testing.T) {
 				},
 			},
 			args: args{
-				database:   "some-db",
-				secretName: "my-secret",
+				database:   someDB,
+				secretName: mySecret,
 			},
 			want:    SecretEntry{},
 			wantErr: true,

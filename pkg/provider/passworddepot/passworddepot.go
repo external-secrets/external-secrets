@@ -64,7 +64,6 @@ type passwordDepotClient struct {
 }
 type Provider struct{}
 
-// Set gClient credentials to Access Token.
 func (c *passwordDepotClient) getAuth(ctx context.Context) (string, string, error) {
 	credentialsSecret := &corev1.Secret{}
 	credentialsSecretName := c.store.Auth.SecretRef.Credentials.Name
@@ -124,7 +123,7 @@ func (g *PasswordDepot) NewClient(ctx context.Context, store esv1beta1.GenericSt
 	}
 
 	// Create a new PasswordDepot client using credentials and options
-	passworddepotClient, err := NewPasswortDepotApi(storeSpecPasswordDepot.Host, username, password, "8714", true)
+	passworddepotClient, err := NewPasswortDepotApi(storeSpecPasswordDepot.Host, username, password, "8714")
 	if err != nil {
 		return nil, err
 	}
