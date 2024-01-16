@@ -33,9 +33,14 @@ type GCPSMAuthSecretRef struct {
 
 type GCPWorkloadIdentity struct {
 	ServiceAccountRef esmeta.ServiceAccountSelector `json:"serviceAccountRef"`
-	ClusterLocation   string                        `json:"clusterLocation"`
-	ClusterName       string                        `json:"clusterName"`
+	ClusterLocation   string                        `json:"clusterLocation,omitempty"`
+	ClusterName       string                        `json:"clusterName,omitempty"`
 	ClusterProjectID  string                        `json:"clusterProjectID,omitempty"`
+
+	// ClusterMembershipName is the name of the cluster membership if authenticating
+	// using fleet identity. ClusterName and ClusterLocation must be left blank because
+	// they take precedence.
+	ClusterMembershipName string `json:"clusterMembershipName,omitempty"`
 }
 
 // GCPSMProvider Configures a store to sync secrets using the GCP Secret Manager provider.

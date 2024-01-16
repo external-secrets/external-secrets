@@ -39,6 +39,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/util/locks"
+	"github.com/external-secrets/external-secrets/pkg/provider/gcp/workloadidentity"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -79,7 +80,7 @@ type Client struct {
 
 	// namespace of the external secret
 	namespace        string
-	workloadIdentity *workloadIdentity
+	workloadIdentity *workloadidentity.Provider
 }
 
 type GoogleSecretManagerClient interface {

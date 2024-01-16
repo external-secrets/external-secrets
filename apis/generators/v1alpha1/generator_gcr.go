@@ -41,10 +41,11 @@ type GCPSMAuthSecretRef struct {
 }
 
 type GCPWorkloadIdentity struct {
-	ServiceAccountRef esmeta.ServiceAccountSelector `json:"serviceAccountRef"`
-	ClusterLocation   string                        `json:"clusterLocation"`
-	ClusterName       string                        `json:"clusterName"`
-	ClusterProjectID  string                        `json:"clusterProjectID,omitempty"`
+	ServiceAccountRef     esmeta.ServiceAccountSelector `json:"serviceAccountRef"`
+	ClusterLocation       string                        `json:"clusterLocation"`
+	ClusterName           string                        `json:"clusterName"`
+	ClusterProjectID      string                        `json:"clusterProjectID,omitempty"`
+	ClusterMembershipName string                        `json:"clusterMembershipName,omitempty"`
 }
 
 // GCRAccessToken generates an GCP access token

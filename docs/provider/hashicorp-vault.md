@@ -397,6 +397,14 @@ This approach assumes that appropriate IRSA setup is done controller's pod (i.e.
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
+### GCP Workload Identity / Application Default Credentials
+
+This feature lets you use short-lived service account tokens to authenticate with GCP. You must configure the controller to either explicitly use [Workload Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#authenticating_to), or use [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials).
+
+```yaml
+{% include 'vault-gcp-store.yaml' %}
+```
+
 ### PushSecret
 
 Vault supports PushSecret features which allow you to sync a given Kubernetes secret key into a Hashicorp vault secret. To do so, it is expected that the secret key is a valid JSON object or that the `property` attribute has been specified under the `remoteRef`.

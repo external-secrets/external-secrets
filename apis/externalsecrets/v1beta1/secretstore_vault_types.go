@@ -121,6 +121,25 @@ type VaultAuth struct {
 	// UserPass authenticates with Vault by passing username/password pair
 	// +optional
 	UserPass *VaultUserPassAuth `json:"userPass,omitempty"`
+
+	// GCP authenticates with vault by passing a GCP Service Account token.
+	Gcp *VaultGcpAuth `json:"gcp,omitempty"`
+}
+
+type VaultGcpAuth struct {
+	// WorkloadIdentity authenticates with Vault using the GCP Workload Identity.
+	// If unspecified, the pod identity of ESO will be used.
+	WorkloadIdenity *GCPWorkloadIdentity `json:"workloadIdentity,omitempty"`
+	// +optional
+	SecretRef *GCPSMAuthSecretRef `json:"secretRef,omitempty"`
+	// Role to assume when authenticating with the Vault GCP auth backend.
+	Role string `json:"role"`
+	// MountPath is the path where the GCP auth backend is mounted in Vault.
+	// Optional. Defaults to "gcp".
+	// +optional
+	MountPath string `json:"mountPath,omitempty"`
+	// Subject is the service account to impersonate.
+	Subject string `json:"subject"`
 }
 
 // VaultAppRole authenticates with Vault using the App Role auth mechanism,

@@ -15,6 +15,7 @@ package secretmanager
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -25,6 +26,10 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+)
+
+var (
+	errNoProjectID = "unable to find ProjectID in storeSpec"
 )
 
 // Provider is a secrets provider for GCP Secret Manager.
@@ -143,7 +148,7 @@ func clusterProjectID(spec *esv1beta1.SecretStoreSpec) (string, error) {
 	} else if spec.Provider.GCPSM.ProjectID != "" {
 		return spec.Provider.GCPSM.ProjectID, nil
 	} else {
-		return "", fmt.Errorf(errNoProjectID)
+		return "", errors.New(errNoProjectID)
 	}
 }
 

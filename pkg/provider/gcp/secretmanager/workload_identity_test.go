@@ -15,10 +15,6 @@ package secretmanager
 
 import (
 	"context"
-	"encoding/json"
-	"io"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"cloud.google.com/go/iam/credentials/apiv1/credentialspb"
@@ -28,12 +24,14 @@ import (
 	authv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	k8sv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/provider/gcp/workloadidentity"
 )
 
 type workloadIdentityTest struct {
@@ -42,8 +40,8 @@ type workloadIdentityTest struct {
 	expToken       *oauth2.Token
 	expErr         string
 	genAccessToken func(context.Context, *credentialspb.GenerateAccessTokenRequest, ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error)
-	genIDBindToken func(ctx context.Context, client *http.Client, k8sToken, idPool, idProvider string) (*oauth2.Token, error)
-	genSAToken     func(c context.Context, s1 []string, s2, s3 string) (*authv1.TokenRequest, error)
+	genIDBindToken func(ctx context.Context, k8sToken, idPool, idProvider string) (*oauth2.Token, error)
+	genSAToken     func(c context.Context, s2, s3 string, aud ...string) (*authv1.TokenRequest, error)
 	store          esv1beta1.GenericStore
 	kubeObjects    []client.Object
 }
@@ -51,16 +49,6 @@ type workloadIdentityTest struct {
 func TestWorkloadIdentity(t *testing.T) {
 	clusterSANamespace := "foobar"
 	tbl := []*workloadIdentityTest{
-		composeTestcase(
-			defaultTestCase("should skip when no workload identity is configured: TokenSource and error must be nil"),
-			withStore(&esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						GCPSM: &esv1beta1.GCPSMProvider{},
-					},
-				},
-			}),
-		),
 		composeTestcase(
 			defaultTestCase("return access token from GenerateAccessTokenRequest with SecretStore"),
 			withStore(defaultStore()),
@@ -92,7 +80,7 @@ func TestWorkloadIdentity(t *testing.T) {
 				&v1.ServiceAccount{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        "example",
-						Namespace:   "default",
+						Namespace:   clusterSANamespace,
 						Annotations: map[string]string{},
 					},
 				},
@@ -127,7 +115,7 @@ func TestWorkloadIdentity(t *testing.T) {
 						Name:      "example",
 						Namespace: clusterSANamespace,
 						Annotations: map[string]string{
-							gcpSAAnnotation: "example",
+							workloadidentity.ServiceAccountAnnotation: "example",
 						},
 					},
 				},
@@ -140,16 +128,30 @@ func TestWorkloadIdentity(t *testing.T) {
 			fakeIam := &fakeIAMClient{generateAccessTokenFunc: row.genAccessToken}
 			fakeIDBGen := &fakeIDBindTokenGen{generateFunc: row.genIDBindToken}
 			fakeSATG := &fakeSATokenGen{GenerateFunc: row.genSAToken}
-			w := &workloadIdentity{
-				iamClient:            fakeIam,
-				idBindTokenGenerator: fakeIDBGen,
-				saTokenGenerator:     fakeSATG,
+			w, err := workloadidentity.NewProvider(
+				context.Background(),
+				"project",
+				workloadidentity.ClusterIdentityProvider("cluster", "location"),
+				workloadidentity.WithIAMClient(fakeIam),
+				workloadidentity.WithGCPTokenGenerator(fakeIDBGen),
+				workloadidentity.WithKSATokenGenerator(fakeSATG),
+			)
+			if err != nil {
+				t.Errorf("NewProvider() error = %v", err)
 			}
 			cb := clientfake.NewClientBuilder()
 			cb.WithObjects(row.kubeObjects...)
 			client := cb.Build()
-			isCluster := row.store.GetTypeMeta().Kind == esv1beta1.ClusterSecretStoreKind
-			ts, err := w.TokenSource(context.Background(), row.store.GetSpec().Provider.GCPSM.Auth, isCluster, client, "default")
+
+			saKey := types.NamespacedName{
+				Name:      "example",
+				Namespace: "default",
+			}
+			if row.store.GetKind() == esv1beta1.ClusterSecretStoreKind {
+				saKey.Namespace = clusterSANamespace
+			}
+
+			ts, err := w.TokenSource(context.Background(), client, saKey)
 			// assert err
 			if row.expErr == "" {
 				assert.NoError(t, err)
@@ -182,38 +184,13 @@ func TestClusterProjectID(t *testing.T) {
 
 func TestSATokenGen(t *testing.T) {
 	corev1 := &fakeK8sV1{}
-	g := &k8sSATokenGenerator{
-		corev1: corev1,
+	g := &workloadidentity.K8sSATokenGenerator{
+		Corev1: corev1,
 	}
-	token, err := g.Generate(context.Background(), []string{"my-fake-audience"}, "bar", "default")
+	token, err := g.Generate(context.Background(), "bar", "default", "my-fake-audience")
 	assert.Nil(t, err)
 	assert.Equal(t, token.Status.Token, defaultSAToken)
 	assert.Equal(t, token.Spec.Audiences[0], "my-fake-audience")
-}
-
-func TestIDBTokenGen(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		payload := make(map[string]string)
-		rb, err := io.ReadAll(r.Body)
-		assert.Nil(t, err)
-		err = json.Unmarshal(rb, &payload)
-		assert.Nil(t, err)
-		assert.Equal(t, payload["audience"], "identitynamespace:some-idpool:some-id-provider")
-
-		bt, err := json.Marshal(&oauth2.Token{
-			AccessToken: "12345",
-		})
-		assert.Nil(t, err)
-		rw.WriteHeader(http.StatusOK)
-		rw.Write(bt)
-	}))
-	defer srv.Close()
-	gen := &gcpIDBindTokenGenerator{
-		targetURL: srv.URL,
-	}
-	token, err := gen.Generate(context.Background(), http.DefaultClient, "some-token", "some-idpool", "some-id-provider")
-	assert.Nil(t, err)
-	assert.Equal(t, token.AccessToken, "12345")
 }
 
 type testCaseMutator func(tc *workloadIdentityTest)
@@ -271,12 +248,12 @@ func defaultTestCase(name string) *workloadIdentityTest {
 				AccessToken: defaultGenAccessToken,
 			}, nil
 		},
-		genIDBindToken: func(ctx context.Context, client *http.Client, k8sToken, idPool, idProvider string) (*oauth2.Token, error) {
+		genIDBindToken: func(ctx context.Context, k8sToken, idPool, idProvider string) (*oauth2.Token, error) {
 			return &oauth2.Token{
 				AccessToken: defaultIDBindToken,
 			}, nil
 		},
-		genSAToken: func(c context.Context, s1 []string, s2, s3 string) (*authv1.TokenRequest, error) {
+		genSAToken: func(c context.Context, s2, s3 string, aud ...string) (*authv1.TokenRequest, error) {
 			return &authv1.TokenRequest{
 				Status: authv1.TokenRequestStatus{
 					Token: defaultSAToken,
@@ -289,7 +266,7 @@ func defaultTestCase(name string) *workloadIdentityTest {
 					Name:      "example",
 					Namespace: "default",
 					Annotations: map[string]string{
-						gcpSAAnnotation: "example",
+						workloadidentity.ServiceAccountAnnotation: "example",
 					},
 				},
 			},
@@ -386,11 +363,11 @@ func withSANamespace(namespace string) storeMutator {
 
 // fake IDBindToken Generator.
 type fakeIDBindTokenGen struct {
-	generateFunc func(ctx context.Context, client *http.Client, k8sToken, idPool, idProvider string) (*oauth2.Token, error)
+	generateFunc func(ctx context.Context, k8sToken, idPool, idProvider string) (*oauth2.Token, error)
 }
 
-func (g *fakeIDBindTokenGen) Generate(ctx context.Context, client *http.Client, k8sToken, idPool, idProvider string) (*oauth2.Token, error) {
-	return g.generateFunc(ctx, client, k8sToken, idPool, idProvider)
+func (g *fakeIDBindTokenGen) Generate(ctx context.Context, k8sToken, idPool, idProvider string) (*oauth2.Token, error) {
+	return g.generateFunc(ctx, k8sToken, idPool, idProvider)
 }
 
 // fake IAM Client.
@@ -408,11 +385,11 @@ func (f *fakeIAMClient) Close() error {
 
 // fake SA Token Generator.
 type fakeSATokenGen struct {
-	GenerateFunc func(context.Context, []string, string, string) (*authv1.TokenRequest, error)
+	GenerateFunc func(context.Context, string, string, ...string) (*authv1.TokenRequest, error)
 }
 
-func (f *fakeSATokenGen) Generate(ctx context.Context, idPool []string, namespace, name string) (*authv1.TokenRequest, error) {
-	return f.GenerateFunc(ctx, idPool, namespace, name)
+func (f *fakeSATokenGen) Generate(ctx context.Context, namespace, name string, aud ...string) (*authv1.TokenRequest, error) {
+	return f.GenerateFunc(ctx, namespace, name, aud...)
 }
 
 // fake k8s client for creating tokens.

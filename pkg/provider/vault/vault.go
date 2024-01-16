@@ -40,6 +40,7 @@ import (
 	authuserpass "github.com/hashicorp/vault/api/auth/userpass"
 	"github.com/spf13/pflag"
 	"github.com/tidwall/gjson"
+	"golang.org/x/oauth2"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -57,6 +58,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/feature"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
+	"github.com/external-secrets/external-secrets/pkg/provider/vault/gcpauth"
 	vaultiamauth "github.com/external-secrets/external-secrets/pkg/provider/vault/iamauth"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -1170,6 +1172,12 @@ func (v *client) setAuth(ctx context.Context, cfg *vault.Config) error {
 		return err
 	}
 
+	tokenExists, err = setGcpAuthToken(ctx, v)
+	if tokenExists {
+		v.log.V(1).Info("Retrieved new token using GCP auth")
+		return err
+	}
+
 	return errors.New(errAuthFormat)
 }
 
@@ -1266,6 +1274,33 @@ func setIamAuthToken(ctx context.Context, v *client, jwtProvider util.JwtProvide
 		if err != nil {
 			return true, err
 		}
+		return true, nil
+	}
+	return false, nil
+}
+
+func setGcpAuthToken(ctx context.Context, v *client) (bool, error) {
+	gcpAuth := v.store.Auth.Gcp
+	var ts oauth2.TokenSource
+	var err error
+	if gcpAuth != nil {
+		switch {
+		case gcpAuth.SecretRef != nil:
+			ts, err = gcpauth.ServiceAccountCredentials(ctx, v.kube, v.namespace, gcpAuth.SecretRef.SecretAccessKey)
+		case gcpAuth.WorkloadIdenity != nil:
+			ts, err = gcpauth.WorkloadIdentityCredentials(ctx, v.kube, v.namespace, *gcpAuth.WorkloadIdenity)
+		// Default to Pod identity if no auth method is specified.
+		default:
+			ts, err = gcpauth.DefaultCredentials(ctx)
+		}
+		if err != nil {
+			return true, fmt.Errorf("failed to get GCP credentials: %w", err)
+		}
+
+		if _, err := v.auth.Login(ctx, gcpauth.Login(ctx, ts, gcpAuth.MountPath, gcpAuth.Role, gcpAuth.Subject)); err != nil {
+			return true, fmt.Errorf("failed to login with GCP credentials: %w", err)
+		}
+
 		return true, nil
 	}
 	return false, nil
