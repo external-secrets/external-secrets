@@ -17,3 +17,4 @@ spec:
   dataFrom:
   - extract:
       key: /foo/baz
+      version: v1
