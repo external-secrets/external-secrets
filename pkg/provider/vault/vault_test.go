@@ -437,7 +437,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				ns:    "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "vault-cert",
+						Name:      "vault-cert",
+						Namespace: "default",
 					},
 					Data: map[string]string{
 						"cert": string(clientCrt),
@@ -467,7 +468,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 					},
 				}, &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "vault-cert",
+						Name:      "vault-cert",
+						Namespace: "default",
 					},
 					Data: map[string]string{},
 				}).Build(),

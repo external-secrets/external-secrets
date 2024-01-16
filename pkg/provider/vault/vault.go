@@ -1067,8 +1067,9 @@ func (v *client) newConfig() (*vault.Config, error) {
 
 func getCertFromSecret(v *client) ([]byte, error) {
 	secretRef := esmeta.SecretKeySelector{
-		Name: v.store.CAProvider.Name,
-		Key:  v.store.CAProvider.Key,
+		Name:      v.store.CAProvider.Name,
+		Namespace: &v.namespace,
+		Key:       v.store.CAProvider.Key,
 	}
 
 	if v.store.CAProvider.Namespace != nil {
@@ -1086,7 +1087,8 @@ func getCertFromSecret(v *client) ([]byte, error) {
 
 func getCertFromConfigMap(v *client) ([]byte, error) {
 	objKey := types.NamespacedName{
-		Name: v.store.CAProvider.Name,
+		Name:      v.store.CAProvider.Name,
+		Namespace: v.namespace,
 	}
 
 	if v.store.CAProvider.Namespace != nil {
