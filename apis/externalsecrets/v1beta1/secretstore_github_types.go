@@ -23,7 +23,7 @@ type GithubProvider struct {
 	URL       string `json:"url,omitempty"`
 	AppID     string `json:"appID"`
 	InstallID string `json:"installID"`
-	// Auth configures how secret-manager authenticates with a Github instance.
+	// Auth configures how ESO authenticates with a Github instance.
 	Auth GithubAuth `json:"auth"`
 }
 
