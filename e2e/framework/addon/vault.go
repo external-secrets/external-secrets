@@ -17,12 +17,12 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"k8s.io/apimachinery/pkg/types"
 	"math/big"
 	"net"
 	"net/http"
@@ -41,11 +41,12 @@ import (
 )
 
 type Vault struct {
-	chart       *HelmChart
-	Namespace   string
-	PodName     string
-	VaultClient *vault.Client
-	VaultURL    string
+	chart        *HelmChart
+	Namespace    string
+	PodName      string
+	VaultClient  *vault.Client
+	VaultURL     string
+	VaultMtlsURL string
 
 	RootToken          string
 	VaultServerCA      []byte
@@ -66,17 +67,12 @@ type Vault struct {
 	AppRoleSecret string
 	AppRoleID     string
 	AppRolePath   string
-	EnforceMTLS   bool
 }
 
 const privatePemType = "RSA PRIVATE KEY"
 
-func NewVault(namespace string, enforceMTLS bool) *Vault {
+func NewVault(namespace string) *Vault {
 	repo := "hashicorp-" + namespace
-	values := []string{"/k8s/vault.values.yaml"}
-	if enforceMTLS {
-		values = []string{"/k8s/vault-mtls.values.yaml"}
-	}
 	return &Vault{
 		chart: &HelmChart{
 			Namespace:    namespace,
@@ -87,10 +83,9 @@ func NewVault(namespace string, enforceMTLS bool) *Vault {
 				Name: repo,
 				URL:  "https://helm.releases.hashicorp.com",
 			},
-			Values: values,
+			Values: []string{"/k8s/vault.values.yaml"},
 		},
-		Namespace:   namespace,
-		EnforceMTLS: enforceMTLS,
+		Namespace: namespace,
 	}
 }
 
@@ -106,6 +101,11 @@ func (l *Vault) Install() error {
 		return err
 	}
 
+	err = l.patchVaultService()
+	if err != nil {
+		return err
+	}
+
 	err = l.initVault()
 	if err != nil {
 		return err
@@ -117,6 +117,15 @@ func (l *Vault) Install() error {
 	}
 
 	return nil
+}
+
+func (l *Vault) patchVaultService() error {
+	serviceName := fmt.Sprintf("vault-%s", l.Namespace)
+	servicePatch := []byte(`[{"op": "add", "path": "/spec/ports/-", "value": { "name": "https-mtls", "port": 8210, "protocol": "TCP", "targetPort": 8210 }}]`)
+	clientSet := l.chart.config.KubeClientSet
+	_, err := clientSet.CoreV1().Services(l.Namespace).
+		Patch(context.Background(), serviceName, types.JSONPatchType, servicePatch, metav1.PatchOptions{})
+	return err
 }
 
 func (l *Vault) initVault() error {
@@ -233,17 +242,9 @@ func (l *Vault) initVault() error {
 	}
 	cfg := vault.DefaultConfig()
 	l.VaultURL = fmt.Sprintf("https://vault-%s.%s.svc.cluster.local:8200", l.Namespace, l.Namespace)
+	l.VaultMtlsURL = fmt.Sprintf("https://vault-%s.%s.svc.cluster.local:8210", l.Namespace, l.Namespace)
 	cfg.Address = l.VaultURL
 	cfg.HttpClient.Transport.(*http.Transport).TLSClientConfig.RootCAs = caCertPool
-	if l.EnforceMTLS {
-		cert, err := tls.X509KeyPair(clientPem, clientKeyPem)
-		if err != nil {
-			return fmt.Errorf("error parsing the client certificates for the transport layer: %w", err)
-		}
-		if transport, ok := cfg.HttpClient.Transport.(*http.Transport); ok {
-			transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
-		}
-	}
 	l.VaultClient, err = vault.NewClient(cfg)
 	if err != nil {
 		return fmt.Errorf("unable to create vault client: %w", err)

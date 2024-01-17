@@ -6613,7 +6613,7 @@ when the Vault server requires mutual authentication.</p>
 <tbody>
 <tr>
 <td>
-<code>clientCert</code></br>
+<code>certSecretRef</code></br>
 <em>
 <a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
 External Secrets meta/v1.SecretKeySelector
@@ -6621,13 +6621,14 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
-<p>ClientCert is a certificate added to the transport layer
-when communicating with the Vault server.</p>
+<p>CertSecretRef is a certificate added to the transport layer
+when communicating with the Vault server.
+If no key for the Secret is specified, external-secret will default to &lsquo;tls.crt&rsquo;.</p>
 </td>
 </tr>
 <tr>
 <td>
-<code>secretRef</code></br>
+<code>keySecretRef</code></br>
 <em>
 <a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
 External Secrets meta/v1.SecretKeySelector
@@ -6635,8 +6636,9 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
-<p>SecretRef to a key in a Secret resource containing client private key
-added to the transport layer when communicating with the Vault server.</p>
+<p>KeySecretRef to a key in a Secret resource containing client private key
+added to the transport layer when communicating with the Vault server.
+If no key for the Secret is specified, external-secret will default to &lsquo;tls.key&rsquo;.</p>
 </td>
 </tr>
 </tbody>
