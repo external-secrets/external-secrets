@@ -18,6 +18,13 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+type AlibabaCloudServiceType string
+
+const (
+	AlibabaCloudKeyManagementService AlibabaCloudServiceType = "KeyManagementService"
+	AlibabaCloudParameterStore       AlibabaCloudServiceType = "ParameterStore"
+)
+
 // AlibabaAuth contains a secretRef for credentials.
 type AlibabaAuth struct {
 	// +optional
@@ -44,7 +51,8 @@ type AlibabaRRSAAuth struct {
 
 // AlibabaProvider configures a store to sync secrets using the Alibaba Secret Manager provider.
 type AlibabaProvider struct {
-	Auth AlibabaAuth `json:"auth"`
+	Service AlibabaCloudServiceType `json:"service,omitempty"`
+	Auth    AlibabaAuth             `json:"auth"`
 	// Alibaba Region to be used for the provider
 	RegionID string `json:"regionID"`
 }

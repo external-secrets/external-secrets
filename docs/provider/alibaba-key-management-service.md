@@ -1,5 +1,5 @@
 
-## Alibaba Cloud Secrets Manager
+## Alibaba Key Management Service
 
 External Secrets Operator integrates with [Alibaba Cloud Key Management Service](https://www.alibabacloud.com/help/en/key-management-service/latest/kms-what-is-key-management-service/) for secrets and Keys management.
 
@@ -31,6 +31,7 @@ metadata:
 spec:
   provider:
     alibaba:
+      service: KeyManagementService
       regionID: ap-southeast-1
       auth:
         secretRef:
@@ -71,6 +72,7 @@ metadata:
 spec:
   provider:
     alibaba:
+      service: KeyManagementService
       regionID: ap-southeast-1
       auth:
         rrsa:
