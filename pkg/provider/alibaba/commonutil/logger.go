@@ -12,7 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package alibaba
+package commonutil
 
 import (
 	"github.com/go-logr/logr"
@@ -20,7 +20,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-var log = newLogger()
+var KmsLog = newLogger("kms")
+var PmLog = newLogger("parameter-store")
 
 type logLevel int
 
@@ -38,9 +39,9 @@ func (l logLevel) Level() int {
 	return int(l)
 }
 
-func newLogger() *logger {
+func newLogger(service string) *logger {
 	return &logger{
-		Logger: ctrl.Log.WithName("provider").WithName("alibaba").WithName("kms"),
+		Logger: ctrl.Log.WithName("provider").WithName("alibaba").WithName(service),
 	}
 }
 

@@ -12,11 +12,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package alibaba
+package parameterstore
 
 import (
 	"context"
 	"fmt"
+	"github.com/external-secrets/external-secrets/pkg/provider/alibaba/commonutil"
 	"net/http"
 	"net/url"
 	"runtime"
@@ -24,7 +25,7 @@ import (
 	"time"
 
 	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
-	kms "github.com/alibabacloud-go/kms-20160120/v3/client"
+	oos "github.com/alibabacloud-go/oos-20190601/v3/client"
 	openapiutil "github.com/alibabacloud-go/openapi-util/service"
 	util "github.com/alibabacloud-go/tea-utils/v2/service"
 	"github.com/alibabacloud-go/tea/tea"
@@ -34,33 +35,33 @@ import (
 )
 
 const (
-	kmsAPIVersion = "2016-01-20"
+	oosAPIVersion = "2019-06-01"
 )
 
-type SecretsManagerClient interface {
+type AliParameterStoreClient interface {
 	GetSecretValue(
 		ctx context.Context,
-		request *kms.GetSecretValueRequest,
-	) (*kms.GetSecretValueResponseBody, error)
+		request *oos.GetSecretParameterRequest,
+	) (*oos.GetSecretParameterResponseBody, error)
 	Endpoint() string
 }
 
-type secretsManagerClient struct {
+type aliParameterStoreClient struct {
 	config   *openapi.Config
 	options  *util.RuntimeOptions
 	endpoint string
 	client   *http.Client
 }
 
-var _ SecretsManagerClient = (*secretsManagerClient)(nil)
+var _ AliParameterStoreClient = (*aliParameterStoreClient)(nil)
 
-func newClient(config *openapi.Config, options *util.RuntimeOptions) (*secretsManagerClient, error) {
-	kmsClient, err := kms.NewClient(config)
+func newClient(config *openapi.Config, options *util.RuntimeOptions) (*aliParameterStoreClient, error) {
+	oosClient, err := oos.NewClient(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Alibaba KMS client: %w", err)
 	}
 
-	endpoint, err := kmsClient.GetEndpoint(tea.String("kms"), kmsClient.RegionId, kmsClient.EndpointRule, kmsClient.Network, kmsClient.Suffix, kmsClient.EndpointMap, kmsClient.Endpoint)
+	endpoint, err := oosClient.GetEndpoint(tea.String("oos"), oosClient.RegionId, oosClient.EndpointRule, oosClient.Network, oosClient.Suffix, oosClient.EndpointMap, oosClient.Endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get KMS endpoint: %w", err)
 	}
@@ -77,7 +78,7 @@ func newClient(config *openapi.Config, options *util.RuntimeOptions) (*secretsMa
 	retryClient := retryablehttp.NewClient()
 	retryClient.CheckRetry = retryablehttp.ErrorPropagatedRetryPolicy
 	retryClient.Backoff = retryablehttp.DefaultBackoff
-	retryClient.Logger = log
+	retryClient.Logger = commonutil.PmLog
 	retryClient.HTTPClient = &http.Client{
 		Timeout: time.Second * time.Duration(readWriteTimeoutSec),
 	}
@@ -91,7 +92,7 @@ func newClient(config *openapi.Config, options *util.RuntimeOptions) (*secretsMa
 		}
 	}
 
-	return &secretsManagerClient{
+	return &aliParameterStoreClient{
 		config:   config,
 		options:  options,
 		endpoint: utils.Deref(endpoint),
@@ -99,20 +100,20 @@ func newClient(config *openapi.Config, options *util.RuntimeOptions) (*secretsMa
 	}, nil
 }
 
-func (s *secretsManagerClient) Endpoint() string {
+func (s *aliParameterStoreClient) Endpoint() string {
 	return s.endpoint
 }
 
-func (s *secretsManagerClient) GetSecretValue(
+func (s *aliParameterStoreClient) GetSecretValue(
 	ctx context.Context,
-	request *kms.GetSecretValueRequest,
-) (*kms.GetSecretValueResponseBody, error) {
-	resp, err := s.doAPICall(ctx, "GetSecretValue", request)
+	request *oos.GetSecretParameterRequest,
+) (*oos.GetSecretParameterResponseBody, error) {
+	resp, err := s.doAPICall(ctx, "GetSecretParameter", request)
 	if err != nil {
-		return nil, fmt.Errorf("error getting secret [%s] latest value: %w", utils.Deref(request.SecretName), err)
+		return nil, fmt.Errorf("error getting secret [%s] latest value: %w", utils.Deref(request.Name), err)
 	}
 
-	body, err := utils.ConvertToType[kms.GetSecretValueResponseBody](resp)
+	body, err := utils.ConvertToType[oos.GetSecretParameterResponseBody](resp)
 	if err != nil {
 		return nil, fmt.Errorf("error converting body: %w", err)
 	}
@@ -120,7 +121,7 @@ func (s *secretsManagerClient) GetSecretValue(
 	return &body, nil
 }
 
-func (s *secretsManagerClient) doAPICall(ctx context.Context,
+func (s *aliParameterStoreClient) doAPICall(ctx context.Context,
 	action string,
 	request any) (any, error) {
 	accessKeyID, err := s.config.Credential.GetAccessKeyId()
@@ -161,7 +162,7 @@ func (s *secretsManagerClient) doAPICall(ctx context.Context,
 	return s.parseResponse(resp)
 }
 
-func (s *secretsManagerClient) parseResponse(resp *http.Response) (map[string]interface{}, error) {
+func (s *aliParameterStoreClient) parseResponse(resp *http.Response) (map[string]interface{}, error) {
 	statusCode := utils.Ptr(resp.StatusCode)
 	if utils.Deref(util.Is4xx(statusCode)) || utils.Deref(util.Is5xx(statusCode)) {
 		return nil, s.parseErrorResponse(resp)
@@ -180,7 +181,7 @@ func (s *secretsManagerClient) parseResponse(resp *http.Response) (map[string]in
 	return res, nil
 }
 
-func (s *secretsManagerClient) parseErrorResponse(resp *http.Response) error {
+func (s *aliParameterStoreClient) parseErrorResponse(resp *http.Response) error {
 	res, err := util.ReadAsJSON(resp.Body)
 	if err != nil {
 		return err
@@ -229,14 +230,14 @@ func newOpenAPIRequest(endpoint string,
 		method:   method,
 		headers: map[string]*string{
 			"host":          &endpoint,
-			"x-acs-version": utils.Ptr(kmsAPIVersion),
+			"x-acs-version": utils.Ptr(oosAPIVersion),
 			"x-acs-action":  &action,
 			"user-agent":    utils.Ptr(fmt.Sprintf("AlibabaCloud (%s; %s) Golang/%s Core/%s TeaDSL/1", runtime.GOOS, runtime.GOARCH, strings.Trim(runtime.Version(), "go"), "0.01")),
 		},
 		query: map[string]*string{
 			"Action":           &action,
 			"Format":           utils.Ptr("json"),
-			"Version":          utils.Ptr(kmsAPIVersion),
+			"Version":          utils.Ptr(oosAPIVersion),
 			"Timestamp":        openapiutil.GetTimestamp(),
 			"SignatureNonce":   util.GetNonce(),
 			"SignatureMethod":  utils.Ptr("HMAC-SHA1"),
