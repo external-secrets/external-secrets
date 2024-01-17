@@ -47,13 +47,20 @@ func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
 }
 
-func (p *Provider) NewClient(_ context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	ghClient := &Github{
 		http:      &http.Client{},
 		kube:      kube,
 		store:     store,
 		namespace: namespace,
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
+	}
+	key, appID, err := ghClient.GetPrivateKeyAppID(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error getting private key: %w", err)
+	}
+	if ghClient.installTkn, err = GetInstallationToken(key, appID); err != nil {
+		return nil, fmt.Errorf("can't get InstallationToken: %w", err)
 	}
 	provider, err := getProvider(store)
 	if err != nil {

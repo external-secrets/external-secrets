@@ -3802,7 +3802,7 @@ or a namespaced SecretStore.</p>
 <tbody>
 <tr>
 <td>
-<code>SecretRef</code></br>
+<code>secretRef</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.GithubSecretRef">
 GithubSecretRef
@@ -3871,7 +3871,7 @@ GithubAuth
 </em>
 </td>
 <td>
-<p>Auth configures how secret-manager authenticates with a Github instance.</p>
+<p>Auth configures how ESO authenticates with a Github instance.</p>
 </td>
 </tr>
 </tbody>

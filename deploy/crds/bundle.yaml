@@ -1001,7 +1001,7 @@ spec:
                         auth:
                           description: Auth configures how secret-manager authenticates with a Github instance.
                           properties:
-                            SecretRef:
+                            secretRef:
                               properties:
                                 privatKey:
                                   description: A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
@@ -1020,7 +1020,7 @@ spec:
                                 - privatKey
                               type: object
                           required:
-                            - SecretRef
+                            - secretRef
                           type: object
                         installID:
                           type: string
@@ -2515,9 +2515,9 @@ spec:
                         appID:
                           type: string
                         auth:
-                          description: Auth configures how secret-manager authenticates with a Github instance.
+                          description: Auth configures how ESO authenticates with a Github instance.
                           properties:
-                            SecretRef:
+                            secretRef:
                               properties:
                                 privatKey:
                                   description: A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
@@ -2536,7 +2536,7 @@ spec:
                                 - privatKey
                               type: object
                           required:
-                            - SecretRef
+                            - secretRef
                           type: object
                         installID:
                           type: string
@@ -5117,7 +5117,7 @@ spec:
                         auth:
                           description: Auth configures how secret-manager authenticates with a Github instance.
                           properties:
-                            SecretRef:
+                            secretRef:
                               properties:
                                 privatKey:
                                   description: A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
@@ -5136,7 +5136,7 @@ spec:
                                 - privatKey
                               type: object
                           required:
-                            - SecretRef
+                            - secretRef
                           type: object
                         installID:
                           type: string
@@ -6631,9 +6631,9 @@ spec:
                         appID:
                           type: string
                         auth:
-                          description: Auth configures how secret-manager authenticates with a Github instance.
+                          description: Auth configures how ESO authenticates with a Github instance.
                           properties:
-                            SecretRef:
+                            secretRef:
                               properties:
                                 privatKey:
                                   description: A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
@@ -6652,7 +6652,7 @@ spec:
                                 - privatKey
                               type: object
                           required:
-                            - SecretRef
+                            - secretRef
                           type: object
                         installID:
                           type: string

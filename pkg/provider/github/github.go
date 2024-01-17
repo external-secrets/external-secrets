@@ -29,12 +29,13 @@ import (
 )
 
 type Github struct {
-	http      *http.Client
-	kube      client.Client
-	namespace string
-	store     esv1beta1.GenericStore
-	storeKind string
-	url       string
+	http       *http.Client
+	kube       client.Client
+	namespace  string
+	store      esv1beta1.GenericStore
+	storeKind  string
+	url        string
+	installTkn string
 }
 
 func (g *Github) GetPrivateKeyAppID(ctx context.Context) (*rsa.PrivateKey, string, error) {
@@ -72,22 +73,12 @@ func GetInstallationToken(key *rsa.PrivateKey, aid string) (string, error) {
 }
 
 func (g *Github) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	key, appID, err := g.GetPrivateKeyAppID(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error getting private key: %w", err)
-	}
-
-	itoken, err := GetInstallationToken(key, appID)
-	if err != nil {
-		return nil, fmt.Errorf("can't get InstallationToken: %w", err)
-	}
-
 	// Github api expects POST request
 	req, err := http.NewRequestWithContext(ctx, "POST", g.url, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
-	req.Header.Add("Authorization", "Bearer "+itoken)
+	req.Header.Add("Authorization", "Bearer "+g.installTkn)
 	req.Header.Add("Accept", "application/vnd.github.v3+json")
 
 	resp, err := g.http.Do(req)
