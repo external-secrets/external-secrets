@@ -37,5 +37,5 @@ By leaving off the secret key but setting the remote property option.
 
 This will _marshal_ the entire secret data and push it into this single property as a JSON object.
 
-!!! warning inline end
+!!! warning inline
     This should _ONLY_ be done if the secret data is marshal-able. Values like, binary data cannot be marshaled and will result in error or invalid secret data.
