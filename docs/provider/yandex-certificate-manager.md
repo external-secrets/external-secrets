@@ -4,7 +4,7 @@ External Secrets Operator integrates with [Yandex Certificate Manager](https://c
 for secret management.
 
 ### Prerequisites
-* [External Secrets Operator installed](../guides-getting-started/#installing-with-helm)
+* [External Secrets Operator installed](../introduction/getting-started.md#installing-with-helm)
 * [Yandex.Cloud CLI installed](https://cloud.yandex.com/docs/cli/quickstart)
 
 ### Authentication
@@ -24,7 +24,7 @@ yc iam key create \
 ```bash
 kubectl create secret generic yc-auth --from-file=authorized-key=authorized-key.json
 ```
-* Create a [SecretStore](../api-secretstore/) pointing to `yc-auth` k8s secret:
+* Create a [SecretStore](../api/secretstore.md) pointing to `yc-auth` k8s secret:
 ```yaml
 apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
@@ -58,7 +58,7 @@ Run the following command to ensure that the correct access binding has been add
 ```bash
 yc cm certificate list-access-bindings --id *****
 ```
-* Create an [ExternalSecret](../api-externalsecret/) pointing to `secret-store` and the certificate in Certificate Manager:
+* Create an [ExternalSecret](../api/externalsecret.md) pointing to `secret-store` and the certificate in Certificate Manager:
 ```yaml
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
