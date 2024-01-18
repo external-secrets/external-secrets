@@ -8,6 +8,9 @@ on:
     inputs: {}
 
 
+permissions:
+  contents: read
+
 jobs:
   branches:
     name: get branch data
@@ -17,7 +20,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.ref }}
@@ -28,6 +31,8 @@ jobs:
           echo "branches=$(git branch -a | grep -E "remotes/origin/(main|release-)" | sed 's/  remotes\/origin\///' | sort -V | tail -2 | head -1 | jq -R -s -c 'split("\n") | map(select(length > 0)) | . + ["main"]')" >> $GITHUB_OUTPUT
 
   update-dependencies:
+    permissions:
+      contents: write  # for Git to git push
     runs-on: ubuntu-latest
     needs: branches
     strategy:
@@ -35,7 +40,7 @@ jobs:
         branch: ${{ fromJson(needs.branches.outputs.branches) }}
     steps:
     - name: Setup Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
       with:
         go-version: "1.21"
 
@@ -43,11 +48,11 @@ jobs:
       # from running: we can create a PR but the tests won't run :/
     - name: Generate token
       id: generate_token
-      uses: tibdex/github-app-token@v2
+      uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a # v2.1.0
       with:
         app_id: ${{ secrets.APP_ID }}
         private_key: ${{ secrets.PRIVATE_KEY }}
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       with:
         token: ${{ steps.generate_token.outputs.token }}
         ref: ${{ matrix.branch }}
