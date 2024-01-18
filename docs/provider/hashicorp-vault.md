@@ -273,8 +273,9 @@ We support five different modes for authentication:
 [kubernetes-native](https://www.vaultproject.io/docs/auth/kubernetes),
 [ldap](https://www.vaultproject.io/docs/auth/ldap),
 [userPass](https://www.vaultproject.io/docs/auth/userpass),
-[jwt/oidc](https://www.vaultproject.io/docs/auth/jwt) and
-[awsAuth](https://developer.hashicorp.com/vault/docs/auth/aws), each one comes with it's own
+[jwt/oidc](https://www.vaultproject.io/docs/auth/jwt),
+[awsAuth](https://developer.hashicorp.com/vault/docs/auth/aws) and
+[tlsCert](https://developer.hashicorp.com/vault/docs/auth/cert), each one comes with it's own
 trade-offs. Depending on the authentication method you need to adapt your environment.
 
 #### Token-based authentication
@@ -354,6 +355,18 @@ or `Kind=ClusterSecretStore` resource.
 [AWS IAM](https://developer.hashicorp.com/vault/docs/auth/aws) uses either a
 set of AWS Programmatic access credentials stored in a `Kind=Secret` and referenced by the
 `secretRef` or by getting the authentication token from an [IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) enabled service account
+
+#### TLS certificates authentication
+
+[TLS certificates auth method](https://developer.hashicorp.com/vault/docs/auth/cert)  allows authentication using SSL/TLS client certificates which are either signed by a CA or self-signed. SSL/TLS client certificates are defined as having an ExtKeyUsage extension with the usage set to either ClientAuth or Any.
+
+### Mutual authentication (mTLS)
+
+Under specific compliance requirements, the Vault server can be set up to enforce mutual authentication from clients across all APIs by configuring the server with `tls_require_and_verify_client_cert = true`. This configuration differs fundamentally from the [TLS certificates auth method](#TLS-certificates-authentication). While the TLS certificates auth method allows the issuance of a Vault token through the `/v1/auth/cert/login` API, the mTLS configuration solely focuses on TLS transport layer authentication and lacks any authorization-related capabilities. It's important to note that the Vault token must still be included in the request, following any of the supported authentication methods mentioned earlier.
+
+```yaml
+{% include 'vault-mtls-store.yaml' %}
+```
 
 ### Access Key ID & Secret Access Key
 You can store Access Key ID & Secret Access Key in a `Kind=Secret` and reference it from a SecretStore.
