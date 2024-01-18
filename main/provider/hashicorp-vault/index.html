@@ -2112,8 +2112,26 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#tls-certificates-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      TLS certificates authentication
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mutual-authentication-mtls" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mutual authentication (mTLS)
+    </span>
+  </a>
   
 </li>
         
@@ -3220,8 +3238,26 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#tls-certificates-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      TLS certificates authentication
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mutual-authentication-mtls" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mutual authentication (mTLS)
+    </span>
+  </a>
   
 </li>
         
@@ -3560,8 +3596,9 @@ Will generate a secret with:
 <a href="https://www.vaultproject.io/docs/auth/kubernetes">kubernetes-native</a>,
 <a href="https://www.vaultproject.io/docs/auth/ldap">ldap</a>,
 <a href="https://www.vaultproject.io/docs/auth/userpass">userPass</a>,
-<a href="https://www.vaultproject.io/docs/auth/jwt">jwt/oidc</a> and
-<a href="https://developer.hashicorp.com/vault/docs/auth/aws">awsAuth</a>, each one comes with it's own
+<a href="https://www.vaultproject.io/docs/auth/jwt">jwt/oidc</a>,
+<a href="https://developer.hashicorp.com/vault/docs/auth/aws">awsAuth</a> and
+<a href="https://developer.hashicorp.com/vault/docs/auth/cert">tlsCert</a>, each one comes with it's own
 trade-offs. Depending on the authentication method you need to adapt your environment.</p>
 <h4 id="token-based-authentication">Token-based authentication</h4>
 <p>A static token is stored in a <code>Kind=Secret</code> and is used to authenticate with vault.</p>
@@ -3756,6 +3793,36 @@ or <code>Kind=ClusterSecretStore</code> resource.</p>
 <p><a href="https://developer.hashicorp.com/vault/docs/auth/aws">AWS IAM</a> uses either a
 set of AWS Programmatic access credentials stored in a <code>Kind=Secret</code> and referenced by the
 <code>secretRef</code> or by getting the authentication token from an <a href="https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html">IRSA</a> enabled service account</p>
+<h4 id="tls-certificates-authentication">TLS certificates authentication</h4>
+<p><a href="https://developer.hashicorp.com/vault/docs/auth/cert">TLS certificates auth method</a>  allows authentication using SSL/TLS client certificates which are either signed by a CA or self-signed. SSL/TLS client certificates are defined as having an ExtKeyUsage extension with the usage set to either ClientAuth or Any.</p>
+<h3 id="mutual-authentication-mtls">Mutual authentication (mTLS)</h3>
+<p>Under specific compliance requirements, the Vault server can be set up to enforce mutual authentication from clients across all APIs by configuring the server with <code>tls_require_and_verify_client_cert = true</code>. This configuration differs fundamentally from the <a href="#TLS-certificates-authentication">TLS certificates auth method</a>. While the TLS certificates auth method allows the issuance of a Vault token through the <code>/v1/auth/cert/login</code> API, the mTLS configuration solely focuses on TLS transport layer authentication and lacks any authorization-related capabilities. It's important to note that the Vault token must still be included in the request, following any of the supported authentication methods mentioned earlier.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">vault</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://vault.acme.org&quot;</span>
+<span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret&quot;</span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;v2&quot;</span>
+
+<span class="w">      </span><span class="c1"># client TLS related configuration</span>
+<span class="w">      </span><span class="nt">caBundle</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;...&quot;</span>
+<span class="w">      </span><span class="nt">tls</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">clientCert</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-cert-secret&quot;</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;tls.crt&quot;</span>
+<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-cert-secret&quot;</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;tls.key&quot;</span>
+
+<span class="w">      </span><span class="c1"># the authentication methods are not really related to the client TLS configuration</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="l l-Scalar l-Scalar-Plain">...</span>
+</code></pre></div>
 <h3 id="access-key-id-secret-access-key">Access Key ID &amp; Secret Access Key</h3>
 <p>You can store Access Key ID &amp; Secret Access Key in a <code>Kind=Secret</code> and reference it from a SecretStore.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
