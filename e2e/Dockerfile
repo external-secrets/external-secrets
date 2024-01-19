@@ -1,5 +1,4 @@
-ARG GO_VERSION=1.21
-FROM golang:$GO_VERSION-bookworm as builder
+FROM golang:1.21.6-bookworm@sha256:04cf306d01a03309934b49ac4b9f487abb8a054b71141fa53df6df482ab7d7eb as builder
 
 ENV KUBECTL_VERSION="v1.28.3"
 ENV HELM_VERSION="v3.13.1"
