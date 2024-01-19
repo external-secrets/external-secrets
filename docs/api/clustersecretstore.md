@@ -6,7 +6,7 @@ The `ClusterSecretStore` is a cluster scoped SecretStore that can be referenced 
 
 ## Example
 
-For a full list of supported fields see [spec](./spec.md) or dig into our [guides](../guides).
+For a full list of supported fields see [spec](./spec.md) or dig into our [guides](../guides/introduction.md).
 
 ``` yaml
 {% include 'full-cluster-secret-store.yaml' %}

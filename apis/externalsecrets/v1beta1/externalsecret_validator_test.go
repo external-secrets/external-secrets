@@ -122,6 +122,39 @@ either data or dataFrom should be specified`,
 				},
 			},
 		},
+		{
+			name: "duplicate secretKeys",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					Target: ExternalSecretTarget{
+						DeletionPolicy: DeletionPolicyRetain,
+					},
+					Data: []ExternalSecretData{
+						{SecretKey: "SERVICE_NAME"},
+						{SecretKey: "SERVICE_NAME"},
+						{SecretKey: "SERVICE_NAME-2"},
+						{SecretKey: "SERVICE_NAME-2"},
+						{SecretKey: "NOT_DUPLICATE"},
+					},
+				},
+			},
+			expectedErr: "duplicate secretKey found: SERVICE_NAME\nduplicate secretKey found: SERVICE_NAME-2",
+		},
+		{
+			name: "duplicate secretKey",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					Target: ExternalSecretTarget{
+						DeletionPolicy: DeletionPolicyRetain,
+					},
+					Data: []ExternalSecretData{
+						{SecretKey: "SERVICE_NAME"},
+						{SecretKey: "SERVICE_NAME"},
+					},
+				},
+			},
+			expectedErr: "duplicate secretKey found: SERVICE_NAME",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

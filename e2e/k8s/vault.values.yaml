@@ -22,6 +22,14 @@ server:
         tls_key_file = "/etc/vault-config/server-cert-key.pem"
         tls_client_ca_file = "/etc/vault-config/vault-client-ca.pem"
       }
+      listener "tcp" {
+        address = "[::]:8210"
+        cluster_address = "[::]:8211"
+        tls_cert_file = "/etc/vault-config/server-cert.pem"
+        tls_key_file = "/etc/vault-config/server-cert-key.pem"
+        tls_client_ca_file = "/etc/vault-config/vault-client-ca.pem"
+        tls_require_and_verify_client_cert = true
+      }
       storage "file" {
         path = "/vault/data"
       }
