@@ -35,7 +35,7 @@ regex==2023.12.25
 requests==2.31.0
 six==1.16.0
 termcolor==2.4.0
-tornado==6.3.3
+tornado==6.4
 urllib3==2.1.0
 verspec==0.1.0
 watchdog==3.0.0
