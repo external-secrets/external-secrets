@@ -8,8 +8,8 @@ as well as patch/release.
 
 ### Identify the problem
 
-Triaging problems allows maintainers to focus resources on the most critically
-impacting problems. Potential security problems should be evaluated against the
+Triaging issues allows maintainers to focus resources on the most critically
+impacting problems. Potential security risks should be evaluated against the
 following information:
 
 * Which component(s) of the project is impacted?
@@ -30,15 +30,12 @@ following information:
 Any potential problem that has an exploit, permits privilege escalation, is
 simple, and does not require user interaction should be evaluated immediately.
 [CVSS Version 3.1](https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator) can be
-a helpful tool in evaluating the criticality of reported problems.
+a helpful tool in evaluating the criticality of reported issues.
 
 ### Acknowledge receipt of the problem
 
-Respond to the reporter and notify them you have received the problem and have
-begun reviewing it. Remind them of the [embargo policy](https://github.com/cncf/tag-security/blob/231b87f371274b2d68def2c6a35a719210836191/project-resources/templates/embargo-policy.md), and provide them
-information on who to contact/follow-up with if they have questions. Estimate a
-time frame that they can expect to receive an update on the problem. Create a
-calendar reminder to contact them again by that date to provide an update.
+Respond to the reporter and notify them that you have received and begun reviewing the problem. Remind them of the [embargo policy](https://github.com/cncf/tag-security/blob/231b87f371274b2d68def2c6a35a719210836191/project-resources/templates/embargo-policy.md), and provide them
+information on who to contact/follow-up with if they have questions. Estimate when they can expect to receive an update. Create a calendar reminder to contact them again by that date to provide an update.
 
 ### Replicate the problem
 
