@@ -29,6 +29,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/find"
 	dClient "github.com/external-secrets/external-secrets/pkg/provider/doppler/client"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -65,7 +66,7 @@ type SecretsClientInterface interface {
 }
 
 func (c *Client) setAuth(ctx context.Context) error {
-	token, err := utils.ResolveSecretKeyRef(
+	token, err := resolvers.SecretKeyRef(
 		ctx,
 		c.kube,
 		c.storeKind,

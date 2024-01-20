@@ -39,6 +39,7 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -397,7 +398,7 @@ func getSecretData(ctx context.Context, kube kclient.Client, namespace, storeKin
 	if secretRef.Name == "" {
 		return "", fmt.Errorf(errORACLECredSecretName)
 	}
-	secret, err := utils.ResolveSecretKeyRef(
+	secret, err := resolvers.SecretKeyRef(
 		ctx,
 		kube,
 		storeKind,

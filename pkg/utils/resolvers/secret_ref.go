@@ -12,26 +12,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package utils
+package resolvers
 
 import (
 	"context"
 	"fmt"
 
-	authv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
-	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 const (
+
+	// This is used to determine if a store is cluster-scoped or not.
+	// The EmptyStoreKind is not cluster-scoped, hence resources
+	// cannot be resovled across namespaces.
+	// TODO: when we implement cluster-scoped generators
+	// we can remove this and replace it with a interface.
+	EmptyStoreKind = "EmptyStoreKind"
+
 	errGetKubeSecret         = "cannot get Kubernetes secret %q: %w"
 	errSecretKeyFmt          = "cannot find secret data for key: %q"
 	errGetKubeSATokenRequest = "cannot request Kubernetes service account token for service account %q: %w"
@@ -41,7 +44,7 @@ const (
 // A user must pass the namespace of the originating ExternalSecret, as this may differ
 // from the namespace defined in the SecretKeySelector.
 // This func ensures that only a ClusterSecretStore is able to request secrets across namespaces.
-func ResolveSecretKeyRef(
+func SecretKeyRef(
 	ctx context.Context,
 	c client.Client,
 	storeKind string,
@@ -65,49 +68,4 @@ func ResolveSecretKeyRef(
 		return "", fmt.Errorf(errSecretKeyFmt, ref.Key)
 	}
 	return string(val), nil
-}
-
-func CreateServiceAccountToken(
-	ctx context.Context,
-	corev1Client typedcorev1.CoreV1Interface,
-	storeKind string,
-	namespace string,
-	serviceAccountRef esmeta.ServiceAccountSelector,
-	additionalAud []string,
-	expirationSeconds int64) (string, error) {
-	audiences := serviceAccountRef.Audiences
-	if len(additionalAud) > 0 {
-		audiences = append(audiences, additionalAud...)
-	}
-	tokenRequest := &authv1.TokenRequest{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-		},
-		Spec: authv1.TokenRequestSpec{
-			Audiences:         audiences,
-			ExpirationSeconds: &expirationSeconds,
-		},
-	}
-	if (storeKind == esv1beta1.ClusterSecretStoreKind) &&
-		(serviceAccountRef.Namespace != nil) {
-		tokenRequest.Namespace = *serviceAccountRef.Namespace
-	}
-	tokenResponse, err := corev1Client.ServiceAccounts(tokenRequest.Namespace).
-		CreateToken(ctx, serviceAccountRef.Name, tokenRequest, metav1.CreateOptions{})
-	if err != nil {
-		return "", fmt.Errorf(errGetKubeSATokenRequest, serviceAccountRef.Name, err)
-	}
-	return tokenResponse.Status.Token, nil
-}
-
-func NewKubeClient() (*kubernetes.Clientset, error) {
-	restCfg, err := ctrlcfg.GetConfig()
-	if err != nil {
-		return nil, err
-	}
-	c, err := kubernetes.NewForConfig(restCfg)
-	if err != nil {
-		return nil, err
-	}
-	return c, err
 }

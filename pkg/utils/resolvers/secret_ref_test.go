@@ -11,7 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package utils
+package resolvers
 
 import (
 	"context"
@@ -117,7 +117,7 @@ func TestResolveSecretKeyRef(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			resolvedValue, err := ResolveSecretKeyRef(ctx, c, tc.storeKind, tc.namespace, tc.selector)
+			resolvedValue, err := SecretKeyRef(ctx, c, tc.storeKind, tc.namespace, tc.selector)
 			if tc.err != nil {
 				assert.EqualError(t, err, tc.err.Error())
 			} else {

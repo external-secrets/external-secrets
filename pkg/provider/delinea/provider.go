@@ -23,6 +23,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 var (
@@ -98,7 +99,7 @@ func loadConfigSecret(
 	if err := validateSecretRef(ref); err != nil {
 		return "", err
 	}
-	return utils.ResolveSecretKeyRef(ctx, kube, storeKind, namespace, ref.SecretRef)
+	return resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, ref.SecretRef)
 }
 
 func validateStoreSecretRef(store esv1beta1.GenericStore, ref *esv1beta1.DelineaProviderSecretRef) error {

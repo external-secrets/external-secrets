@@ -32,6 +32,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -92,7 +93,7 @@ type client struct {
 }
 
 func (c *client) setAuth(ctx context.Context) error {
-	apiKey, err := utils.ResolveSecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, &c.store.Auth.SecretRef.SecretAPIKey)
+	apiKey, err := resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, &c.store.Auth.SecretRef.SecretAPIKey)
 	if err != nil {
 		return err
 	}

@@ -51,6 +51,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -885,7 +886,7 @@ func (a *Azure) authorizerForServicePrincipal(ctx context.Context) (autorest.Aut
 	if a.provider.AuthSecretRef.ClientID == nil || a.provider.AuthSecretRef.ClientSecret == nil {
 		return nil, fmt.Errorf(errMissingClientIDSecret)
 	}
-	clientID, err := utils.ResolveSecretKeyRef(
+	clientID, err := resolvers.SecretKeyRef(
 		ctx,
 		a.crClient,
 		a.store.GetKind(),
@@ -893,7 +894,7 @@ func (a *Azure) authorizerForServicePrincipal(ctx context.Context) (autorest.Aut
 	if err != nil {
 		return nil, err
 	}
-	clientSecret, err := utils.ResolveSecretKeyRef(
+	clientSecret, err := resolvers.SecretKeyRef(
 		ctx,
 		a.crClient,
 		a.store.GetKind(),

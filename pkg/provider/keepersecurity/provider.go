@@ -23,6 +23,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -110,7 +111,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 }
 
 func getKeeperSecurityAuth(ctx context.Context, store *esv1beta1.KeeperSecurityProvider, kube kclient.Client, storeKind, namespace string) (string, error) {
-	return utils.ResolveSecretKeyRef(
+	return resolvers.SecretKeyRef(
 		ctx,
 		kube,
 		storeKind,

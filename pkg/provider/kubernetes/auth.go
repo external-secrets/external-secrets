@@ -25,7 +25,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -130,7 +130,7 @@ func (c *Client) serviceAccountToken(ctx context.Context, serviceAccountRef *esm
 }
 
 func (c *Client) fetchSecretKey(ctx context.Context, ref esmeta.SecretKeySelector) ([]byte, error) {
-	secret, err := utils.ResolveSecretKeyRef(
+	secret, err := resolvers.SecretKeyRef(
 		ctx,
 		c.ctrlClient,
 		c.storeKind,

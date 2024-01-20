@@ -41,7 +41,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 var (
@@ -226,7 +226,7 @@ func CredsFromControllerServiceAccount(ctx context.Context, saname, ns, region s
 // The namespace of the external secret is used if the ClusterSecretStore does not specify a namespace (referentAuth)
 // If the ClusterSecretStore defines a namespace it will take precedence.
 func CredsFromSecretRef(ctx context.Context, auth esv1beta1.VaultIamAuth, storeKind string, kube kclient.Client, namespace string) (*credentials.Credentials, error) {
-	akid, err := utils.ResolveSecretKeyRef(
+	akid, err := resolvers.SecretKeyRef(
 		ctx,
 		kube,
 		storeKind,
@@ -236,7 +236,7 @@ func CredsFromSecretRef(ctx context.Context, auth esv1beta1.VaultIamAuth, storeK
 	if err != nil {
 		return nil, err
 	}
-	sak, err := utils.ResolveSecretKeyRef(
+	sak, err := resolvers.SecretKeyRef(
 		ctx,
 		kube,
 		storeKind,
@@ -248,7 +248,7 @@ func CredsFromSecretRef(ctx context.Context, auth esv1beta1.VaultIamAuth, storeK
 	}
 
 	// session token is optional
-	sessionToken, _ := utils.ResolveSecretKeyRef(
+	sessionToken, _ := resolvers.SecretKeyRef(
 		ctx,
 		kube,
 		storeKind,

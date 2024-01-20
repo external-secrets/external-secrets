@@ -29,7 +29,7 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	clock2 "github.com/external-secrets/external-secrets/pkg/provider/yandex/common/clock"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const maxSecretsClientLifetime = 5 * time.Minute // supposed SecretsClient lifetime is quite short
@@ -114,7 +114,7 @@ func (p *YandexCloudProvider) NewClient(ctx context.Context, store esv1beta1.Gen
 		return nil, err
 	}
 
-	key, err := utils.ResolveSecretKeyRef(
+	key, err := resolvers.SecretKeyRef(
 		ctx,
 		kube,
 		store.GetKind(),
@@ -133,7 +133,7 @@ func (p *YandexCloudProvider) NewClient(ctx context.Context, store esv1beta1.Gen
 
 	var caCertificateData []byte
 	if input.CACertificate != nil {
-		caCert, err := utils.ResolveSecretKeyRef(
+		caCert, err := resolvers.SecretKeyRef(
 			ctx,
 			kube,
 			store.GetKind(),

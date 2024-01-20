@@ -32,6 +32,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/conjur/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 var (
@@ -111,7 +112,7 @@ func (p *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 
 	if prov.Auth.APIKey != nil {
 		config.Account = prov.Auth.APIKey.Account
-		conjUser, secErr := utils.ResolveSecretKeyRef(
+		conjUser, secErr := resolvers.SecretKeyRef(
 			ctx,
 			p.kube,
 			p.StoreKind,
@@ -119,7 +120,7 @@ func (p *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 		if secErr != nil {
 			return nil, fmt.Errorf(errBadServiceUser, secErr)
 		}
-		conjAPIKey, secErr := utils.ResolveSecretKeyRef(
+		conjAPIKey, secErr := resolvers.SecretKeyRef(
 			ctx,
 			p.kube,
 			p.StoreKind,
@@ -333,7 +334,7 @@ func (p *Client) getCA(ctx context.Context, provider *esv1beta1.ConjurProvider) 
 				Namespace: provider.CAProvider.Namespace,
 				Key:       provider.CAProvider.Key,
 			}
-			ca, err = utils.ResolveSecretKeyRef(
+			ca, err = resolvers.SecretKeyRef(
 				ctx,
 				p.kube,
 				p.StoreKind,

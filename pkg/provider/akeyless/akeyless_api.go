@@ -35,7 +35,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 var apiErr akeyless.GenericOpenAPIError
@@ -336,7 +336,7 @@ func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAu
 				tokenRef = kubernetesAuth.SecretRef.DeepCopy()
 				tokenRef.Key = "token"
 			}
-			jwt, err := utils.ResolveSecretKeyRef(ctx, a.kube, a.storeKind, a.namespace, tokenRef)
+			jwt, err := resolvers.SecretKeyRef(ctx, a.kube, a.storeKind, a.namespace, tokenRef)
 			if err != nil {
 				return "", err
 			}
@@ -364,7 +364,7 @@ func (a *akeylessBase) getJWTFromServiceAccount(ctx context.Context, serviceAcco
 		return "", fmt.Errorf(errGetKubeSASecrets, ref.Name)
 	}
 	for _, tokenRef := range serviceAccount.Secrets {
-		token, err := utils.ResolveSecretKeyRef(ctx, a.kube, a.storeKind, a.namespace, &esmeta.SecretKeySelector{
+		token, err := resolvers.SecretKeyRef(ctx, a.kube, a.storeKind, a.namespace, &esmeta.SecretKeySelector{
 			Name:      tokenRef.Name,
 			Namespace: &ref.Namespace,
 			Key:       "token",

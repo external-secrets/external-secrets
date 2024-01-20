@@ -39,6 +39,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -475,7 +476,7 @@ func (a *akeylessBase) getCertFromSecret(provider *esv1beta1.AkeylessProvider) (
 	}
 
 	ctx := context.Background()
-	cert, err := utils.ResolveSecretKeyRef(ctx, a.kube, a.storeKind, a.namespace, &secretRef)
+	cert, err := resolvers.SecretKeyRef(ctx, a.kube, a.storeKind, a.namespace, &secretRef)
 	if err != nil {
 		return nil, err
 	}

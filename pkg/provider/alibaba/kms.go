@@ -30,6 +30,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -222,11 +223,11 @@ func newAccessKeyAuth(ctx context.Context, kube kclient.Client, store esv1beta1.
 	storeSpec := store.GetSpec()
 	alibabaSpec := storeSpec.Provider.Alibaba
 	storeKind := store.GetObjectKind().GroupVersionKind().Kind
-	accessKeyID, err := utils.ResolveSecretKeyRef(ctx, kube, storeKind, namespace, &alibabaSpec.Auth.SecretRef.AccessKeyID)
+	accessKeyID, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &alibabaSpec.Auth.SecretRef.AccessKeyID)
 	if err != nil {
 		return nil, fmt.Errorf(errFetchAccessKeyID, err)
 	}
-	accessKeySecret, err := utils.ResolveSecretKeyRef(ctx, kube, storeKind, namespace, &alibabaSpec.Auth.SecretRef.AccessKeySecret)
+	accessKeySecret, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &alibabaSpec.Auth.SecretRef.AccessKeySecret)
 	if err != nil {
 		return nil, fmt.Errorf(errFetchAccessKeySecret, err)
 	}

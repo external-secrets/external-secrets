@@ -22,7 +22,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 func NewTokenSource(ctx context.Context, auth esv1beta1.GCPSMAuth, projectID, storeKind string, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
@@ -48,7 +48,7 @@ func serviceAccountTokenSource(ctx context.Context, auth esv1beta1.GCPSMAuth, st
 	if sr == nil {
 		return nil, nil
 	}
-	credentials, err := utils.ResolveSecretKeyRef(
+	credentials, err := resolvers.SecretKeyRef(
 		ctx,
 		kube,
 		storeKind,

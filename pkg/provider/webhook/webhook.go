@@ -38,6 +38,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/template/v2"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -392,7 +393,7 @@ func (w *WebHook) getCertFromSecret(provider *esv1beta1.WebhookProvider) ([]byte
 	}
 
 	ctx := context.Background()
-	cert, err := utils.ResolveSecretKeyRef(
+	cert, err := resolvers.SecretKeyRef(
 		ctx,
 		w.kube,
 		w.storeKind,

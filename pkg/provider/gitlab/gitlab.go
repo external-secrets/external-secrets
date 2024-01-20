@@ -32,6 +32,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -78,7 +79,7 @@ var log = ctrl.Log.WithName("provider").WithName("gitlab")
 
 // Set gitlabBase credentials to Access Token.
 func (g *gitlabBase) getAuth(ctx context.Context) (string, error) {
-	return utils.ResolveSecretKeyRef(
+	return resolvers.SecretKeyRef(
 		ctx,
 		g.kube,
 		g.storeKind,

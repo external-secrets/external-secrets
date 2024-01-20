@@ -26,6 +26,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 var (
@@ -83,7 +84,7 @@ func loadConfigSecret(ctx context.Context, ref *esv1beta1.ScalewayProviderSecret
 	if ref.SecretRef == nil {
 		return ref.Value, nil
 	}
-	return utils.ResolveSecretKeyRef(
+	return resolvers.SecretKeyRef(
 		ctx,
 		kube,
 		storeKind,

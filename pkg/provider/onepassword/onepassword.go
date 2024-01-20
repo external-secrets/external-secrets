@@ -28,6 +28,7 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -94,7 +95,7 @@ func (provider *ProviderOnePassword) Capabilities() esv1beta1.SecretStoreCapabil
 // NewClient constructs a 1Password Provider.
 func (provider *ProviderOnePassword) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	config := store.GetSpec().Provider.OnePassword
-	token, err := utils.ResolveSecretKeyRef(
+	token, err := resolvers.SecretKeyRef(
 		ctx,
 		kube,
 		store.GetKind(),
