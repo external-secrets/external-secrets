@@ -106,7 +106,7 @@ const (
 	errGetKubeSANoToken      = "cannot find token in secrets bound to service account: %q"
 	errGetKubeSATokenRequest = "cannot request Kubernetes service account token for service account %q: %w"
 
-	errGetKubeSecret = "cannot get Kubernetes secret %q: %w"
+	errGetKubeSecret = "cannot get Kubernetes secret %q in namespace %q: %w"
 	errSecretKeyFmt  = "cannot find secret data for key: %q"
 	errConfigMapFmt  = "cannot find config map data for key: %q"
 
@@ -133,6 +133,10 @@ const (
 	errInvalidLdapSec     = "invalid Auth.Ldap.SecretRef: %w"
 	errInvalidTokenRef    = "invalid Auth.TokenSecretRef: %w"
 	errInvalidUserPassSec = "invalid Auth.UserPass.SecretRef: %w"
+
+	errInvalidClientTLSCert   = "invalid ClientTLS.ClientCert: %w"
+	errInvalidClientTLSSecret = "invalid ClientTLS.SecretRef: %w"
+	errInvalidClientTLS       = "when provided, both ClientTLS.ClientCert and ClientTLS.SecretRef should be provided"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -231,7 +235,7 @@ func (c *Connector) newClient(ctx context.Context, store esv1beta1.GenericStore,
 	}
 	vaultSpec := storeSpec.Provider.Vault
 
-	vStore, cfg, err := c.prepareConfig(kube, corev1, vaultSpec, storeSpec.RetrySettings, namespace, store.GetObjectKind().GroupVersionKind().Kind)
+	vStore, cfg, err := c.prepareConfig(ctx, kube, corev1, vaultSpec, storeSpec.RetrySettings, namespace, store.GetObjectKind().GroupVersionKind().Kind)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +249,7 @@ func (c *Connector) newClient(ctx context.Context, store esv1beta1.GenericStore,
 }
 
 func (c *Connector) NewGeneratorClient(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, namespace string) (util.Client, error) {
-	vStore, cfg, err := c.prepareConfig(kube, corev1, vaultSpec, nil, namespace, "Generator")
+	vStore, cfg, err := c.prepareConfig(ctx, kube, corev1, vaultSpec, nil, namespace, "Generator")
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +267,7 @@ func (c *Connector) NewGeneratorClient(ctx context.Context, kube kclient.Client,
 	return client, nil
 }
 
-func (c *Connector) prepareConfig(kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, retrySettings *esv1beta1.SecretStoreRetrySettings, namespace, storeKind string) (*client, *vault.Config, error) {
+func (c *Connector) prepareConfig(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, retrySettings *esv1beta1.SecretStoreRetrySettings, namespace, storeKind string) (*client, *vault.Config, error) {
 	vStore := &client{
 		kube:      kube,
 		corev1:    corev1,
@@ -273,7 +277,7 @@ func (c *Connector) prepareConfig(kube kclient.Client, corev1 typedcorev1.CoreV1
 		storeKind: storeKind,
 	}
 
-	cfg, err := vStore.newConfig()
+	cfg, err := vStore.newConfig(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -428,6 +432,16 @@ func (c *Connector) ValidateStore(store esv1beta1.GenericStore) error {
 			}
 		}
 	}
+	if p.ClientTLS.CertSecretRef != nil && p.ClientTLS.KeySecretRef != nil {
+		if err := utils.ValidateReferentSecretSelector(store, *p.ClientTLS.CertSecretRef); err != nil {
+			return fmt.Errorf(errInvalidClientTLSCert, err)
+		}
+		if err := utils.ValidateReferentSecretSelector(store, *p.ClientTLS.KeySecretRef); err != nil {
+			return fmt.Errorf(errInvalidClientTLSSecret, err)
+		}
+	} else if p.ClientTLS.CertSecretRef != nil || p.ClientTLS.KeySecretRef != nil {
+		return errors.New(errInvalidClientTLS)
+	}
 	return nil
 }
 
@@ -446,18 +460,6 @@ func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecre
 	if err != nil {
 		return err
 	}
-	// If Push for a Property, we need to delete the property and update the secret
-	if remoteRef.GetProperty() != "" {
-		delete(secretVal, remoteRef.GetProperty())
-		if len(secretVal) > 0 {
-			secretToPush := map[string]interface{}{
-				"data": secretVal,
-			}
-			_, err = v.logical.WriteWithContext(ctx, path, secretToPush)
-			metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
-			return err
-		}
-	}
 	metadata, err := v.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
 	if err != nil {
 		return err
@@ -466,15 +468,36 @@ func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecre
 	if !ok || manager != "external-secrets" {
 		return nil
 	}
+	// If Push for a Property, we need to delete the property and update the secret
+	if remoteRef.GetProperty() != "" {
+		delete(secretVal, remoteRef.GetProperty())
+		// If the only key left in the remote secret is the reference of the metadata.
+		if v.store.Version == esv1beta1.VaultKVStoreV1 && len(secretVal) == 1 {
+			delete(secretVal, "custom_metadata")
+		}
+		if len(secretVal) > 0 {
+			secretToPush := secretVal
+			if v.store.Version == esv1beta1.VaultKVStoreV2 {
+				secretToPush = map[string]interface{}{
+					"data": secretVal,
+				}
+			}
+			_, err = v.logical.WriteWithContext(ctx, path, secretToPush)
+			metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
+			return err
+		}
+	}
 	_, err = v.logical.DeleteWithContext(ctx, path)
 	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
 	if err != nil {
 		return fmt.Errorf("could not delete secret %v: %w", remoteRef.GetRemoteKey(), err)
 	}
-	_, err = v.logical.DeleteWithContext(ctx, metaPath)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
-	if err != nil {
-		return fmt.Errorf("could not delete secret metadata %v: %w", remoteRef.GetRemoteKey(), err)
+	if v.store.Version == esv1beta1.VaultKVStoreV2 {
+		_, err = v.logical.DeleteWithContext(ctx, metaPath)
+		metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
+		if err != nil {
+			return fmt.Errorf("could not delete secret metadata %v: %w", remoteRef.GetRemoteKey(), err)
+		}
 	}
 	return nil
 }
@@ -509,6 +532,10 @@ func (v *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		if !ok || manager != "external-secrets" {
 			return fmt.Errorf("secret not managed by external-secrets")
 		}
+	}
+	// Remove the metadata map to check the reconcile difference
+	if v.store.Version == esv1beta1.VaultKVStoreV1 {
+		delete(vaultSecret, "custom_metadata")
 	}
 	buf := &bytes.Buffer{}
 	enc := json.NewEncoder(buf)
@@ -547,16 +574,26 @@ func (v *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 			return fmt.Errorf("error unmarshalling vault secret: %w", err)
 		}
 	}
-	secretToPush := map[string]interface{}{
-		"data": secretVal,
+	secretToPush := secretVal
+	// Adding custom_metadata to the secret for KV v1
+	if v.store.Version == esv1beta1.VaultKVStoreV1 {
+		secretToPush["custom_metadata"] = label["custom_metadata"]
+	}
+	if v.store.Version == esv1beta1.VaultKVStoreV2 {
+		secretToPush = map[string]interface{}{
+			"data": secretVal,
+		}
 	}
 	if err != nil {
 		return fmt.Errorf("failed to convert value to a valid JSON: %w", err)
 	}
-	_, err = v.logical.WriteWithContext(ctx, metaPath, label)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
-	if err != nil {
-		return err
+	// Secret metadata should be pushed separately only for KV2
+	if v.store.Version == esv1beta1.VaultKVStoreV2 {
+		_, err = v.logical.WriteWithContext(ctx, metaPath, label)
+		metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
+		if err != nil {
+			return err
+		}
 	}
 	// Otherwise, create or update the version.
 	_, err = v.logical.WriteWithContext(ctx, path, secretToPush)
@@ -859,14 +896,18 @@ func (v *client) Validate() (esv1beta1.ValidationResult, error) {
 
 func (v *client) buildMetadataPath(path string) (string, error) {
 	var url string
-	if v.store.Path == nil && !strings.Contains(path, "data") {
-		return "", fmt.Errorf(errPathInvalid)
-	}
-	if v.store.Path == nil {
-		path = strings.Replace(path, "data", "metadata", 1)
-		url = path
-	} else {
-		url = fmt.Sprintf("%s/metadata/%s", *v.store.Path, path)
+	if v.store.Version == esv1beta1.VaultKVStoreV1 {
+		url = fmt.Sprintf("%s/%s", *v.store.Path, path)
+	} else { // KV v2 is used
+		if v.store.Path == nil && !strings.Contains(path, "data") {
+			return "", fmt.Errorf(errPathInvalid)
+		}
+		if v.store.Path == nil {
+			path = strings.Replace(path, "data", "metadata", 1)
+			url = path
+		} else {
+			url = fmt.Sprintf("%s/metadata/%s", *v.store.Path, path)
+		}
 	}
 	return url, nil
 }
@@ -984,52 +1025,55 @@ func (v *client) readSecret(ctx context.Context, path, version string) (map[stri
 	return secretData, nil
 }
 
-func (v *client) newConfig() (*vault.Config, error) {
+func (v *client) newConfig(ctx context.Context) (*vault.Config, error) {
 	cfg := vault.DefaultConfig()
 	cfg.Address = v.store.Server
 
-	if len(v.store.CABundle) == 0 && v.store.CAProvider == nil {
-		return cfg, nil
-	}
+	if len(v.store.CABundle) != 0 || v.store.CAProvider != nil {
+		caCertPool := x509.NewCertPool()
 
-	caCertPool := x509.NewCertPool()
+		if len(v.store.CABundle) > 0 {
+			ok := caCertPool.AppendCertsFromPEM(v.store.CABundle)
+			if !ok {
+				return nil, fmt.Errorf(errVaultCert, errors.New("failed to parse certificates from CertPool"))
+			}
+		}
 
-	if len(v.store.CABundle) > 0 {
-		ok := caCertPool.AppendCertsFromPEM(v.store.CABundle)
-		if !ok {
-			return nil, fmt.Errorf(errVaultCert, errors.New("failed to parse certificates from CertPool"))
+		if v.store.CAProvider != nil && v.storeKind == esv1beta1.ClusterSecretStoreKind && v.store.CAProvider.Namespace == nil {
+			return nil, errors.New(errCANamespace)
+		}
+
+		if v.store.CAProvider != nil {
+			var cert []byte
+			var err error
+
+			switch v.store.CAProvider.Type {
+			case esv1beta1.CAProviderTypeSecret:
+				cert, err = getCertFromSecret(v)
+			case esv1beta1.CAProviderTypeConfigMap:
+				cert, err = getCertFromConfigMap(v)
+			default:
+				return nil, errors.New(errUnknownCAProvider)
+			}
+
+			if err != nil {
+				return nil, err
+			}
+
+			ok := caCertPool.AppendCertsFromPEM(cert)
+			if !ok {
+				return nil, fmt.Errorf(errVaultCert, errors.New("failed to parse certificates from CertPool"))
+			}
+		}
+
+		if transport, ok := cfg.HttpClient.Transport.(*http.Transport); ok {
+			transport.TLSClientConfig.RootCAs = caCertPool
 		}
 	}
 
-	if v.store.CAProvider != nil && v.storeKind == esv1beta1.ClusterSecretStoreKind && v.store.CAProvider.Namespace == nil {
-		return nil, errors.New(errCANamespace)
-	}
-
-	if v.store.CAProvider != nil {
-		var cert []byte
-		var err error
-
-		switch v.store.CAProvider.Type {
-		case esv1beta1.CAProviderTypeSecret:
-			cert, err = getCertFromSecret(v)
-		case esv1beta1.CAProviderTypeConfigMap:
-			cert, err = getCertFromConfigMap(v)
-		default:
-			return nil, errors.New(errUnknownCAProvider)
-		}
-
-		if err != nil {
-			return nil, err
-		}
-
-		ok := caCertPool.AppendCertsFromPEM(cert)
-		if !ok {
-			return nil, fmt.Errorf(errVaultCert, errors.New("failed to parse certificates from CertPool"))
-		}
-	}
-
-	if transport, ok := cfg.HttpClient.Transport.(*http.Transport); ok {
-		transport.TLSClientConfig.RootCAs = caCertPool
+	err := v.configureClientTLS(ctx, cfg)
+	if err != nil {
+		return nil, err
 	}
 
 	// If either read-after-write consistency feature is enabled, enable ReadYourWrites
@@ -1038,10 +1082,42 @@ func (v *client) newConfig() (*vault.Config, error) {
 	return cfg, nil
 }
 
+func (v *client) configureClientTLS(ctx context.Context, cfg *vault.Config) error {
+	clientTLS := v.store.ClientTLS
+	if clientTLS.CertSecretRef != nil && clientTLS.KeySecretRef != nil {
+		if clientTLS.KeySecretRef.Key == "" {
+			clientTLS.KeySecretRef.Key = corev1.TLSPrivateKeyKey
+		}
+		clientKey, err := v.secretKeyRef(ctx, clientTLS.KeySecretRef)
+		if err != nil {
+			return err
+		}
+
+		if clientTLS.CertSecretRef.Key == "" {
+			clientTLS.CertSecretRef.Key = corev1.TLSCertKey
+		}
+		clientCert, err := v.secretKeyRef(ctx, clientTLS.CertSecretRef)
+		if err != nil {
+			return err
+		}
+
+		cert, err := tls.X509KeyPair([]byte(clientCert), []byte(clientKey))
+		if err != nil {
+			return fmt.Errorf(errClientTLSAuth, err)
+		}
+
+		if transport, ok := cfg.HttpClient.Transport.(*http.Transport); ok {
+			transport.TLSClientConfig.Certificates = []tls.Certificate{cert}
+		}
+	}
+	return nil
+}
+
 func getCertFromSecret(v *client) ([]byte, error) {
 	secretRef := esmeta.SecretKeySelector{
-		Name: v.store.CAProvider.Name,
-		Key:  v.store.CAProvider.Key,
+		Name:      v.store.CAProvider.Name,
+		Namespace: &v.namespace,
+		Key:       v.store.CAProvider.Key,
 	}
 
 	if v.store.CAProvider.Namespace != nil {
@@ -1059,7 +1135,8 @@ func getCertFromSecret(v *client) ([]byte, error) {
 
 func getCertFromConfigMap(v *client) ([]byte, error) {
 	objKey := types.NamespacedName{
-		Name: v.store.CAProvider.Name,
+		Name:      v.store.CAProvider.Name,
+		Namespace: v.namespace,
 	}
 
 	if v.store.CAProvider.Namespace != nil {
@@ -1289,7 +1366,7 @@ func (v *client) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySe
 	}
 	err := v.kube.Get(ctx, ref, secret)
 	if err != nil {
-		return "", fmt.Errorf(errGetKubeSecret, ref.Name, err)
+		return "", fmt.Errorf(errGetKubeSecret, ref.Name, ref.Namespace, err)
 	}
 
 	keyBytes, ok := secret.Data[secretRef.Key]

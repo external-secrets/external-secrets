@@ -46,6 +46,7 @@ const (
 	usernameConst     = "username"
 	passwordConst     = "password"
 	apikeyConst       = "apikey"
+	credentialsConst  = "credentials"
 	arbitraryConst    = "arbitrary"
 	payloadConst      = "payload"
 	smAPIKeyConst     = "api_key"
@@ -172,6 +173,10 @@ func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1beta1.ExternalSecre
 
 		return getIamCredentialsSecret(ibm, &secretName, secretGroupName)
 
+	case sm.Secret_SecretType_ServiceCredentials:
+
+		return getServiceCredentialsSecret(ibm, &secretName, secretGroupName)
+
 	case sm.Secret_SecretType_ImportedCert:
 
 		if ref.Property == "" {
@@ -292,6 +297,25 @@ func getIamCredentialsSecret(ibm *providerIBM, secretName *string, secretGroupNa
 		return []byte(val.(string)), nil
 	}
 	return nil, fmt.Errorf("key %s does not exist in secret %s", smAPIKeyConst, *secretName)
+}
+
+func getServiceCredentialsSecret(ibm *providerIBM, secretName *string, secretGroupName string) ([]byte, error) {
+	response, err := getSecretData(ibm, secretName, sm.Secret_SecretType_ServiceCredentials, secretGroupName)
+	if err != nil {
+		return nil, err
+	}
+	secMap, err := formSecretMap(response)
+	if err != nil {
+		return nil, err
+	}
+	if val, ok := secMap[credentialsConst]; ok {
+		mval, err := json.Marshal(val)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal secret map for service credentials secret: %w", err)
+		}
+		return mval, nil
+	}
+	return nil, fmt.Errorf("key %s does not exist in secret %s", credentialsConst, *secretName)
 }
 
 func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1beta1.ExternalSecretDataRemoteRef, secretGroupName string) ([]byte, error) {
@@ -506,6 +530,13 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 			return nil, err
 		}
 		secretMap[apikeyConst] = secMapBytes[smAPIKeyConst]
+		return secretMap, nil
+
+	case sm.Secret_SecretType_ServiceCredentials:
+		if err := checkNilFn([]string{credentialsConst}); err != nil {
+			return nil, err
+		}
+		secretMap[credentialsConst] = secMapBytes[credentialsConst]
 		return secretMap, nil
 
 	case sm.Secret_SecretType_ImportedCert:

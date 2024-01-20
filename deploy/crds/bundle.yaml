@@ -2402,6 +2402,7 @@ spec:
                               valueMap:
                                 additionalProperties:
                                   type: string
+                                description: 'Deprecated: ValueMap is deprecated and is intended to be removed in the future, use the `value` field instead.'
                                 type: object
                               version:
                                 type: string
@@ -3300,6 +3301,36 @@ spec:
                         server:
                           description: 'Server is the connection address for the Vault server, e.g: "https://vault.example.com:8200".'
                           type: string
+                        tls:
+                          description: The configuration used for client side related TLS communication, when the Vault server requires mutual authentication. Only used if the Server URL is using HTTPS protocol. This parameter is ignored for plain HTTP protocol connection. It's worth noting this configuration is different from the "TLS certificates auth method", which is available under the `auth.cert` section.
+                          properties:
+                            certSecretRef:
+                              description: CertSecretRef is a certificate added to the transport layer when communicating with the Vault server. If no key for the Secret is specified, external-secret will default to 'tls.crt'.
+                              properties:
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              type: object
+                            keySecretRef:
+                              description: KeySecretRef to a key in a Secret resource containing client private key added to the transport layer when communicating with the Vault server. If no key for the Secret is specified, external-secret will default to 'tls.key'.
+                              properties:
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              type: object
+                          type: object
                         version:
                           default: v2
                           description: Version is the Vault KV secret engine version. This can be either "v1" or "v2". Version defaults to "v2".
@@ -4382,6 +4413,101 @@ spec:
                       type: object
                   required:
                     - secret
+                  type: object
+                template:
+                  description: Template defines a blueprint for the created Secret resource.
+                  properties:
+                    data:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    engineVersion:
+                      default: v2
+                      description: EngineVersion specifies the template engine version that should be used to compile/execute the template specified in .data and .templateFrom[].
+                      enum:
+                        - v1
+                        - v2
+                      type: string
+                    mergePolicy:
+                      default: Replace
+                      enum:
+                        - Replace
+                        - Merge
+                      type: string
+                    metadata:
+                      description: ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
+                      properties:
+                        annotations:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        labels:
+                          additionalProperties:
+                            type: string
+                          type: object
+                      type: object
+                    templateFrom:
+                      items:
+                        properties:
+                          configMap:
+                            properties:
+                              items:
+                                items:
+                                  properties:
+                                    key:
+                                      type: string
+                                    templateAs:
+                                      default: Values
+                                      enum:
+                                        - Values
+                                        - KeysAndValues
+                                      type: string
+                                  required:
+                                    - key
+                                  type: object
+                                type: array
+                              name:
+                                type: string
+                            required:
+                              - items
+                              - name
+                            type: object
+                          literal:
+                            type: string
+                          secret:
+                            properties:
+                              items:
+                                items:
+                                  properties:
+                                    key:
+                                      type: string
+                                    templateAs:
+                                      default: Values
+                                      enum:
+                                        - Values
+                                        - KeysAndValues
+                                      type: string
+                                  required:
+                                    - key
+                                  type: object
+                                type: array
+                              name:
+                                type: string
+                            required:
+                              - items
+                              - name
+                            type: object
+                          target:
+                            default: Data
+                            enum:
+                              - Data
+                              - Annotations
+                              - Labels
+                            type: string
+                        type: object
+                      type: array
+                    type:
+                      type: string
                   type: object
               required:
                 - secretStoreRefs
@@ -6344,6 +6470,7 @@ spec:
                               valueMap:
                                 additionalProperties:
                                   type: string
+                                description: 'Deprecated: ValueMap is deprecated and is intended to be removed in the future, use the `value` field instead.'
                                 type: object
                               version:
                                 type: string
@@ -7242,6 +7369,36 @@ spec:
                         server:
                           description: 'Server is the connection address for the Vault server, e.g: "https://vault.example.com:8200".'
                           type: string
+                        tls:
+                          description: The configuration used for client side related TLS communication, when the Vault server requires mutual authentication. Only used if the Server URL is using HTTPS protocol. This parameter is ignored for plain HTTP protocol connection. It's worth noting this configuration is different from the "TLS certificates auth method", which is available under the `auth.cert` section.
+                          properties:
+                            certSecretRef:
+                              description: CertSecretRef is a certificate added to the transport layer when communicating with the Vault server. If no key for the Secret is specified, external-secret will default to 'tls.crt'.
+                              properties:
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              type: object
+                            keySecretRef:
+                              description: KeySecretRef to a key in a Secret resource containing client private key added to the transport layer when communicating with the Vault server. If no key for the Secret is specified, external-secret will default to 'tls.key'.
+                              properties:
+                                key:
+                                  description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              type: object
+                          type: object
                         version:
                           default: v2
                           description: Version is the Vault KV secret engine version. This can be either "v1" or "v2". Version defaults to "v2".
@@ -8410,6 +8567,36 @@ spec:
                     server:
                       description: 'Server is the connection address for the Vault server, e.g: "https://vault.example.com:8200".'
                       type: string
+                    tls:
+                      description: The configuration used for client side related TLS communication, when the Vault server requires mutual authentication. Only used if the Server URL is using HTTPS protocol. This parameter is ignored for plain HTTP protocol connection. It's worth noting this configuration is different from the "TLS certificates auth method", which is available under the `auth.cert` section.
+                      properties:
+                        certSecretRef:
+                          description: CertSecretRef is a certificate added to the transport layer when communicating with the Vault server. If no key for the Secret is specified, external-secret will default to 'tls.crt'.
+                          properties:
+                            key:
+                              description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              type: string
+                            namespace:
+                              description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                              type: string
+                          type: object
+                        keySecretRef:
+                          description: KeySecretRef to a key in a Secret resource containing client private key added to the transport layer when communicating with the Vault server. If no key for the Secret is specified, external-secret will default to 'tls.key'.
+                          properties:
+                            key:
+                              description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              type: string
+                            namespace:
+                              description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                              type: string
+                          type: object
+                      type: object
                     version:
                       default: v2
                       description: Version is the Vault KV secret engine version. This can be either "v1" or "v2". Version defaults to "v2".

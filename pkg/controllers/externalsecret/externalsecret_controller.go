@@ -230,21 +230,20 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				return ctrl.Result{}, err
 			}
 
-			err = r.Delete(ctx, secret)
-			if err != nil && !apierrors.IsNotFound(err) {
+			if err := r.Delete(ctx, secret); err != nil && !apierrors.IsNotFound(err) {
 				r.markAsFailed(log, errDeleteSecret, err, &externalSecret, syncCallsError.With(resourceLabels))
+				return ctrl.Result{}, err
 			}
 
 			conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionTrue, esv1beta1.ConditionReasonSecretDeleted, "secret deleted due to DeletionPolicy")
 			SetExternalSecretCondition(&externalSecret, *conditionSynced)
-			return ctrl.Result{RequeueAfter: refreshInt}, err
-
-		case esv1beta1.DeletionPolicyMerge:
-			// noop, handled below
-
+			return ctrl.Result{RequeueAfter: refreshInt}, nil
 		// In case provider secrets don't exist the kubernetes secret will be kept as-is.
 		case esv1beta1.DeletionPolicyRetain:
+			r.markAsDone(&externalSecret, start, log)
 			return ctrl.Result{RequeueAfter: refreshInt}, nil
+		// noop, handled below
+		case esv1beta1.DeletionPolicyMerge:
 		}
 	}
 
@@ -259,7 +258,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			secret.Data = make(map[string][]byte)
 		}
 		// diff existing keys
-		keys, err := getManagedKeys(&existingSecret, externalSecret.Name)
+		keys, err := getManagedDataKeys(&existingSecret, externalSecret.Name)
 		if err != nil {
 			return err
 		}
@@ -447,7 +446,29 @@ func patchSecret(ctx context.Context, c client.Client, scheme *runtime.Scheme, s
 	return nil
 }
 
-func getManagedKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
+func getManagedDataKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
+	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]interface{}) []string {
+		dataFields := fields["f:data"]
+		if dataFields == nil {
+			return nil
+		}
+		df, ok := dataFields.(map[string]interface{})
+		if !ok {
+			return nil
+		}
+		var keys []string
+		for k := range df {
+			keys = append(keys, k)
+		}
+		return keys
+	})
+}
+
+func getManagedFieldKeys(
+	secret *v1.Secret,
+	fieldOwner string,
+	process func(fields map[string]interface{}) []string,
+) ([]string, error) {
 	fqdn := fmt.Sprintf(fieldOwnerTemplate, fieldOwner)
 	var keys []string
 	for _, v := range secret.ObjectMeta.ManagedFields {
@@ -459,19 +480,11 @@ func getManagedKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error unmarshaling managed fields: %w", err)
 		}
-		dataFields := fields["f:data"]
-		if dataFields == nil {
-			continue
-		}
-		df, ok := dataFields.(map[string]interface{})
-		if !ok {
-			continue
-		}
-		for k := range df {
-			if k == "." {
+		for _, key := range process(fields) {
+			if key == "." {
 				continue
 			}
-			keys = append(keys, strings.TrimPrefix(k, "f:"))
+			keys = append(keys, strings.TrimPrefix(key, "f:"))
 		}
 	}
 	return keys, nil
