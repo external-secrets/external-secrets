@@ -30,7 +30,7 @@ const (
 
 	// This is used to determine if a store is cluster-scoped or not.
 	// The EmptyStoreKind is not cluster-scoped, hence resources
-	// cannot be resovled across namespaces.
+	// cannot be resolved across namespaces.
 	// TODO: when we implement cluster-scoped generators
 	// we can remove this and replace it with a interface.
 	EmptyStoreKind = "EmptyStoreKind"

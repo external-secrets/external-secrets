@@ -34,15 +34,10 @@ import (
 )
 
 const (
-	errAlibabaClient                           = "cannot setup new Alibaba client: %w"
-	errAlibabaCredSecretName                   = "invalid Alibaba SecretStore resource: missing Alibaba APIKey"
-	errUninitalizedAlibabaProvider             = "provider Alibaba is not initialized"
-	errInvalidClusterStoreMissingAKIDNamespace = "invalid ClusterStore, missing  AccessKeyID namespace"
-	errInvalidClusterStoreMissingSKNamespace   = "invalid ClusterStore, missing namespace"
-	errFetchAccessKeyID                        = "could not fetch AccessKeyID secret: %w"
-	errFetchAccessKeySecret                    = "could not fetch AccessKeySecret secret: %w"
-	errMissingSAK                              = "missing AccessSecretKey"
-	errMissingAKID                             = "missing AccessKeyID"
+	errAlibabaClient               = "cannot setup new Alibaba client: %w"
+	errUninitalizedAlibabaProvider = "provider Alibaba is not initialized"
+	errFetchAccessKeyID            = "could not fetch AccessKeyID secret: %w"
+	errFetchAccessKeySecret        = "could not fetch AccessKeySecret secret: %w"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644

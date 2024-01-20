@@ -59,13 +59,9 @@ const (
 	audienceAnnotation   = "eks.amazonaws.com/audience"
 	defaultTokenAudience = "sts.amazonaws.com"
 
-	errInvalidClusterStoreMissingAKIDNamespace = "invalid ClusterSecretStore: missing AWS AccessKeyID Namespace"
-	errInvalidClusterStoreMissingSAKNamespace  = "invalid ClusterSecretStore: missing AWS SecretAccessKey Namespace"
-	errFetchAKIDSecret                         = "could not fetch accessKeyID secret: %w"
-	errFetchSAKSecret                          = "could not fetch SecretAccessKey secret: %w"
-	errFetchSTSecret                           = "could not fetch SessionToken secret: %w"
-	errMissingSAK                              = "missing SecretAccessKey"
-	errMissingAKID                             = "missing AccessKeyID"
+	errFetchAKIDSecret = "could not fetch accessKeyID secret: %w"
+	errFetchSAKSecret  = "could not fetch SecretAccessKey secret: %w"
+	errFetchSTSecret   = "could not fetch SessionToken secret: %w"
 )
 
 func init() {

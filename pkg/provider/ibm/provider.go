@@ -51,15 +51,13 @@ const (
 	payloadConst      = "payload"
 	smAPIKeyConst     = "api_key"
 
-	errIBMClient                             = "cannot setup new ibm client: %w"
-	errIBMCredSecretName                     = "invalid IBM SecretStore resource: missing IBM APIKey"
-	errUninitalizedIBMProvider               = "provider IBM is not initialized"
-	errInvalidClusterStoreMissingSKNamespace = "invalid ClusterStore, missing namespace"
-	errFetchSAKSecret                        = "could not fetch SecretAccessKey secret: %w"
-	errMissingSAK                            = "missing SecretAccessKey"
-	errJSONSecretUnmarshal                   = "unable to unmarshal secret: %w"
-	errJSONSecretMarshal                     = "unable to marshal secret: %w"
-	errExtractingSecret                      = "unable to extract the fetched secret %s of type %s while performing %s"
+	errIBMClient               = "cannot setup new ibm client: %w"
+	errIBMCredSecretName       = "invalid IBM SecretStore resource: missing IBM APIKey"
+	errUninitalizedIBMProvider = "provider IBM is not initialized"
+	errFetchSAKSecret          = "could not fetch SecretAccessKey secret: %w"
+	errJSONSecretUnmarshal     = "unable to unmarshal secret: %w"
+	errJSONSecretMarshal       = "unable to marshal secret: %w"
+	errExtractingSecret        = "unable to extract the fetched secret %s of type %s while performing %s"
 
 	defaultCacheSize   = 100
 	defaultCacheExpiry = 1 * time.Hour

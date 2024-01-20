@@ -43,20 +43,19 @@ import (
 )
 
 const (
-	errOracleClient                          = "cannot setup new oracle client: %w"
-	errORACLECredSecretName                  = "invalid oracle SecretStore resource: missing oracle APIKey"
-	errUninitalizedOracleProvider            = "provider oracle is not initialized"
-	errInvalidClusterStoreMissingSKNamespace = "invalid ClusterStore, missing namespace"
-	errFetchSAKSecret                        = "could not fetch SecretAccessKey secret: %w"
-	errMissingPK                             = "missing PrivateKey"
-	errMissingUser                           = "missing User ID"
-	errMissingTenancy                        = "missing Tenancy ID"
-	errMissingRegion                         = "missing Region"
-	errMissingFingerprint                    = "missing Fingerprint"
-	errMissingVault                          = "missing Vault"
-	errJSONSecretUnmarshal                   = "unable to unmarshal secret: %w"
-	errMissingKey                            = "missing Key in secret: %s"
-	errUnexpectedContent                     = "unexpected secret bundle content"
+	errOracleClient               = "cannot setup new oracle client: %w"
+	errORACLECredSecretName       = "invalid oracle SecretStore resource: missing oracle APIKey"
+	errUninitalizedOracleProvider = "provider oracle is not initialized"
+	errFetchSAKSecret             = "could not fetch SecretAccessKey secret: %w"
+	errMissingPK                  = "missing PrivateKey"
+	errMissingUser                = "missing User ID"
+	errMissingTenancy             = "missing Tenancy ID"
+	errMissingRegion              = "missing Region"
+	errMissingFingerprint         = "missing Fingerprint"
+	errMissingVault               = "missing Vault"
+	errJSONSecretUnmarshal        = "unable to unmarshal secret: %w"
+	errMissingKey                 = "missing Key in secret: %s"
+	errUnexpectedContent          = "unexpected secret bundle content"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
