@@ -23,6 +23,23 @@ The changes to the code proposed are summarized below:
 * Alters ClientManager logic to support refering to `NewClientFromRef` if `ProviderRef` is set
 
 The Following diagram shows how the new sequence would work:
+
+## SecretStore Reconcilers
+```mermaid
+sequenceDiagram
+  Reconciler ->> Reconciler: Check for spec.providers
+  Reconciler ->> APIServer: Creates Providers based on ProviderRef
+  Reconciler ->> APIServer: GetProvider
+  Reconciler ->> Provider: ValidateStore
+```
+## Provider Reconcilers - Empty on purpose
+```mermaid
+sequenceDiagram
+  Reconciler ->> Reconciler: Validates
+```
+
+
+## ExternalSecrets/PushSecrets Reconcilers (it excludes  generators logic)
 ```mermaid
 sequenceDiagram
   Reconciler ->> ClientManager: GetClient
@@ -45,6 +62,7 @@ An example of how this implementation would look like is available on [here](htt
 * We can add conversion to provider versions gradually as well
 * We can have multiple providers on different support versions (e.g. for community-maintained to be always on `v1alpha1`)
 * Users can opt out of providers  they don't use, making the runtime footprint smaller.
+* We delegate the decision of what to deprecate (SecretStore or SecretStore.spec.provider) to later on.
 
 ### Drawbacks
 * Complexity
