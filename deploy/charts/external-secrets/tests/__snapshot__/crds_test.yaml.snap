@@ -4,7 +4,7 @@ should match snapshot of default values:
     kind: CustomResourceDefinition
     metadata:
       annotations:
-        controller-gen.kubebuilder.io/version: v0.12.1
+        controller-gen.kubebuilder.io/version: v0.13.0
       name: secretstores.external-secrets.io
     spec:
       conversion:
@@ -662,7 +662,7 @@ should match snapshot of default values:
                           description: Oracle configures this store to sync secrets using Oracle Vault provider
                           properties:
                             auth:
-                              description: Auth configures how secret-manager authenticates with the Oracle Vault. If empty, use the instance principal, otherwise the user credentials specified in Auth.
+                              description: Auth configures how secret-manager authenticates with the Oracle Vault. If empty, instance principal is used. Optionally, the authenticating principal type and/or user data may be supplied for the use of workload identity and user principal.
                               properties:
                                 secretRef:
                                   description: SecretRef to pass through sensitive information.
@@ -708,9 +708,35 @@ should match snapshot of default values:
                                 - tenancy
                                 - user
                               type: object
+                            compartment:
+                              description: Compartment is the vault compartment OCID. Required for PushSecret
+                              type: string
+                            encryptionKey:
+                              description: EncryptionKey is the OCID of the encryption key within the vault. Required for PushSecret
+                              type: string
+                            principalType:
+                              description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+                              type: string
                             region:
                               description: Region is the region where vault is located.
                               type: string
+                            serviceAccountRef:
+                              description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+                              properties:
+                                audiences:
+                                  description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                  items:
+                                    type: string
+                                  type: array
+                                name:
+                                  description: The name of the ServiceAccount resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              required:
+                                - name
+                              type: object
                             vault:
                               description: Vault is the vault's OCID of the specific vault where secret is located.
                               type: string
@@ -1645,11 +1671,72 @@ should match snapshot of default values:
                                     - apiKeyRef
                                     - userRef
                                   type: object
-                              required:
-                                - apikey
+                                jwt:
+                                  properties:
+                                    account:
+                                      type: string
+                                    secretRef:
+                                      description: Optional SecretRef that refers to a key in a Secret resource containing JWT token to authenticate with Conjur using the JWT authentication method.
+                                      properties:
+                                        key:
+                                          description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                          type: string
+                                      type: object
+                                    serviceAccountRef:
+                                      description: Optional ServiceAccountRef specifies the Kubernetes service account for which to request a token for with the `TokenRequest` API.
+                                      properties:
+                                        audiences:
+                                          description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                          items:
+                                            type: string
+                                          type: array
+                                        name:
+                                          description: The name of the ServiceAccount resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                    serviceID:
+                                      description: The conjur authn jwt webservice id
+                                      type: string
+                                  required:
+                                    - account
+                                    - serviceID
+                                  type: object
                               type: object
                             caBundle:
                               type: string
+                            caProvider:
+                              description: Used to provide custom certificate authority (CA) certificates for a secret store. The CAProvider points to a Secret or ConfigMap resource that contains a PEM-encoded certificate.
+                              properties:
+                                key:
+                                  description: The key where the CA certificate can be found in the Secret or ConfigMap.
+                                  type: string
+                                name:
+                                  description: The name of the object located at the provider type.
+                                  type: string
+                                namespace:
+                                  description: The namespace the Provider type is in. Can only be defined when used in a ClusterSecretStore.
+                                  type: string
+                                type:
+                                  description: The type of provider to use such as "Secret", or "ConfigMap".
+                                  enum:
+                                    - Secret
+                                    - ConfigMap
+                                  type: string
+                              required:
+                                - name
+                                - type
+                              type: object
                             url:
                               type: string
                           required:
@@ -2165,9 +2252,35 @@ should match snapshot of default values:
                                 - tenancy
                                 - user
                               type: object
+                            compartment:
+                              description: Compartment is the vault compartment OCID. Required for PushSecret
+                              type: string
+                            encryptionKey:
+                              description: EncryptionKey is the OCID of the encryption key within the vault. Required for PushSecret
+                              type: string
+                            principalType:
+                              description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+                              type: string
                             region:
                               description: Region is the region where vault is located.
                               type: string
+                            serviceAccountRef:
+                              description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+                              properties:
+                                audiences:
+                                  description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                  items:
+                                    type: string
+                                  type: array
+                                name:
+                                  description: The name of the ServiceAccount resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                  type: string
+                              required:
+                                - name
+                              type: object
                             vault:
                               description: Vault is the vault's OCID of the specific vault where secret is located.
                               type: string

@@ -15,7 +15,7 @@ Uncomment the relevant line in the next steps to disable the automatic install o
 
 ### Option 1: Install from chart repository
 
-``` bash
+```bash
 helm repo add external-secrets https://charts.external-secrets.io
 
 helm install external-secrets \
@@ -29,7 +29,7 @@ helm install external-secrets \
 
 Build and install the Helm chart locally after cloning the repository.
 
-``` bash
+```bash
 make helm.build
 
 helm install external-secrets \
@@ -49,17 +49,33 @@ kubectl create secret generic awssm-secret --from-file=./access-key --from-file=
 
 ### Create your first SecretStore
 
-``` yaml
+Create a file 'basic-secret-store.yaml' with the following content.
+
+```yaml
 {% include 'basic-secret-store.yaml' %}
+```
+
+Apply it to create a SecretStore resource.
+
+```
+kubectl apply -f "basic-secret-store.yaml"
 ```
 
 ### Create your first ExternalSecret
 
-``` yaml
+Create a file 'basic-external-secret.yaml' with the following content.
+
+```yaml
 {% include 'basic-external-secret.yaml' %}
 ```
 
-``` bash
+Apply it to create an External Secret resource.
+
+```
+kubectl apply -f "basic-external-secret.yaml"
+```
+
+```bash
 kubectl describe externalsecret example
 # [...]
 Name:  example

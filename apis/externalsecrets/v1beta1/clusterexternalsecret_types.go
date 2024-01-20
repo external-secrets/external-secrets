@@ -26,16 +26,21 @@ type ClusterExternalSecretSpec struct {
 
 	// The name of the external secrets to be created defaults to the name of the ClusterExternalSecret
 	// +optional
-	ExternalSecretName string `json:"externalSecretName"`
+	ExternalSecretName string `json:"externalSecretName,omitempty"`
 
 	// The metadata of the external secrets to be created
 	// +optional
-	ExternalSecretMetadata ExternalSecretMetadata `json:"externalSecretMetadata"`
+	ExternalSecretMetadata ExternalSecretMetadata `json:"externalSecretMetadata,omitempty"`
 
 	// The labels to select by to find the Namespaces to create the ExternalSecrets in.
-	NamespaceSelector metav1.LabelSelector `json:"namespaceSelector"`
+	// +optional
+	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
 
-	// The time in which the controller should reconcile it's objects and recheck namespaces for labels.
+	// Choose namespaces by name. This field is ORed with anything that NamespaceSelector ends up choosing.
+	// +optional
+	Namespaces []string `json:"namespaces,omitempty"`
+
+	// The time in which the controller should reconcile its objects and recheck namespaces for labels.
 	RefreshInterval *metav1.Duration `json:"refreshTime,omitempty"`
 }
 
@@ -50,11 +55,7 @@ type ExternalSecretMetadata struct {
 
 type ClusterExternalSecretConditionType string
 
-const (
-	ClusterExternalSecretReady          ClusterExternalSecretConditionType = "Ready"
-	ClusterExternalSecretPartiallyReady ClusterExternalSecretConditionType = "PartiallyReady"
-	ClusterExternalSecretNotReady       ClusterExternalSecretConditionType = "NotReady"
-)
+const ClusterExternalSecretReady ClusterExternalSecretConditionType = "Ready"
 
 type ClusterExternalSecretStatusCondition struct {
 	Type   ClusterExternalSecretConditionType `json:"type"`
@@ -77,6 +78,9 @@ type ClusterExternalSecretNamespaceFailure struct {
 
 // ClusterExternalSecretStatus defines the observed state of ClusterExternalSecret.
 type ClusterExternalSecretStatus struct {
+	// ExternalSecretName is the name of the ExternalSecrets created by the ClusterExternalSecret
+	ExternalSecretName string `json:"externalSecretName,omitempty"`
+
 	// Failed namespaces are the namespaces that failed to apply an ExternalSecret
 	// +optional
 	FailedNamespaces []ClusterExternalSecretNamespaceFailure `json:"failedNamespaces,omitempty"`

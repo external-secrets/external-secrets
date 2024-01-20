@@ -15,6 +15,7 @@ limitations under the License.
 package utils
 
 import (
+	"bytes"
 	"crypto/md5" //nolint:gosec
 	"encoding/base64"
 	"encoding/json"
@@ -24,13 +25,30 @@ import (
 	"net/url"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
+	tpl "text/template"
 	"time"
 	"unicode"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/template/v2"
 )
+
+const (
+	errParse   = "unable to parse transform template: %s"
+	errExecute = "unable to execute transform template: %s"
+)
+
+// JSONMarshal takes an interface and returns a new escaped and encoded byte slice.
+func JSONMarshal(t interface{}) ([]byte, error) {
+	buffer := &bytes.Buffer{}
+	encoder := json.NewEncoder(buffer)
+	encoder.SetEscapeHTML(false)
+	err := encoder.Encode(t)
+	return bytes.TrimRight(buffer.Bytes(), "\n"), err
+}
 
 // MergeByteMap merges map of byte slices.
 func MergeByteMap(dst, src map[string][]byte) map[string][]byte {
@@ -47,7 +65,13 @@ func RewriteMap(operations []esv1beta1.ExternalSecretRewrite, in map[string][]by
 		if op.Regexp != nil {
 			out, err = RewriteRegexp(*op.Regexp, out)
 			if err != nil {
-				return nil, fmt.Errorf("failed rewriting operation[%v]: %w", i, err)
+				return nil, fmt.Errorf("failed rewriting regexp operation[%v]: %w", i, err)
+			}
+		}
+		if op.Transform != nil {
+			out, err = RewriteTransform(*op.Transform, out)
+			if err != nil {
+				return nil, fmt.Errorf("failed rewriting transform operation[%v]: %w", i, err)
 			}
 		}
 	}
@@ -66,6 +90,45 @@ func RewriteRegexp(operation esv1beta1.ExternalSecretRewriteRegexp, in map[strin
 		out[newKey] = value
 	}
 	return out, nil
+}
+
+// RewriteTransform applies string transformation on each secret key name to rewrite.
+func RewriteTransform(operation esv1beta1.ExtermalSecretRewriteTransform, in map[string][]byte) (map[string][]byte, error) {
+	out := make(map[string][]byte)
+	for key, value := range in {
+		data := map[string][]byte{
+			"value": []byte(key),
+		}
+
+		result, err := transform(operation.Template, data)
+		if err != nil {
+			return nil, err
+		}
+
+		newKey := string(result)
+		out[newKey] = value
+	}
+	return out, nil
+}
+
+func transform(val string, data map[string][]byte) ([]byte, error) {
+	strValData := make(map[string]string, len(data))
+	for k := range data {
+		strValData[k] = string(data[k])
+	}
+
+	t, err := tpl.New("transform").
+		Funcs(template.FuncMap()).
+		Parse(val)
+	if err != nil {
+		return nil, fmt.Errorf(errParse, err)
+	}
+	buf := bytes.NewBuffer(nil)
+	err = t.Execute(buf, strValData)
+	if err != nil {
+		return nil, fmt.Errorf(errExecute, err)
+	}
+	return buf.Bytes(), nil
 }
 
 // DecodeValues decodes values from a secretMap.
@@ -172,6 +235,44 @@ func convert(strategy esv1beta1.ExternalSecretConversionStrategy, str string) st
 func MergeStringMap(dest, src map[string]string) {
 	for k, v := range src {
 		dest[k] = v
+	}
+}
+
+var (
+	ErrUnexpectedKey = errors.New("unexpected key in data")
+	ErrSecretType    = errors.New("can not handle secret value with type")
+)
+
+func GetByteValueFromMap(data map[string]interface{}, key string) ([]byte, error) {
+	v, ok := data[key]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrUnexpectedKey, key)
+	}
+	return GetByteValue(v)
+}
+func GetByteValue(v interface{}) ([]byte, error) {
+	switch t := v.(type) {
+	case string:
+		return []byte(t), nil
+	case map[string]interface{}:
+		return json.Marshal(t)
+	case []string:
+		return []byte(strings.Join(t, "\n")), nil
+	case []byte:
+		return t, nil
+	// also covers int and float32 due to json.Marshal
+	case float64:
+		return []byte(strconv.FormatFloat(t, 'f', -1, 64)), nil
+	case json.Number:
+		return []byte(t.String()), nil
+	case []interface{}:
+		return json.Marshal(t)
+	case bool:
+		return []byte(strconv.FormatBool(t)), nil
+	case nil:
+		return []byte(nil), nil
+	default:
+		return nil, fmt.Errorf("%w: %T", ErrSecretType, t)
 	}
 }
 

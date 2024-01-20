@@ -21,10 +21,12 @@ import (
 	"testing"
 
 	ksm "github.com/keeper-security/secrets-manager-go/core"
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/provider/keepersecurity/fake"
+	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
 
 const (
@@ -49,7 +51,7 @@ func TestClientDeleteSecret(t *testing.T) {
 	}
 	type args struct {
 		ctx       context.Context
-		remoteRef v1beta1.PushRemoteRef
+		remoteRef v1beta1.PushSecretRemoteRef
 	}
 	tests := []struct {
 		name    string
@@ -472,14 +474,14 @@ func TestClientGetSecretMap(t *testing.T) {
 }
 
 func TestClientPushSecret(t *testing.T) {
+	secretKey := "secret-key"
 	type fields struct {
 		ksmClient SecurityClient
 		folderID  string
 	}
 	type args struct {
-		ctx       context.Context
-		value     []byte
-		remoteRef v1beta1.PushRemoteRef
+		value []byte
+		data  testingfake.PushSecretData
 	}
 	tests := []struct {
 		name    string
@@ -494,8 +496,8 @@ func TestClientPushSecret(t *testing.T) {
 				folderID:  folderID,
 			},
 			args: args{
-				ctx: context.Background(),
-				remoteRef: v1alpha1.PushSecretRemoteRef{
+				data: testingfake.PushSecretData{
+					SecretKey: secretKey,
 					RemoteKey: record0,
 				},
 				value: []byte("foo"),
@@ -516,8 +518,8 @@ func TestClientPushSecret(t *testing.T) {
 				folderID: folderID,
 			},
 			args: args{
-				ctx: context.Background(),
-				remoteRef: v1alpha1.PushSecretRemoteRef{
+				data: testingfake.PushSecretData{
+					SecretKey: secretKey,
 					RemoteKey: invalidRecord,
 				},
 				value: []byte("foo"),
@@ -538,8 +540,8 @@ func TestClientPushSecret(t *testing.T) {
 				folderID: folderID,
 			},
 			args: args{
-				ctx: context.Background(),
-				remoteRef: v1alpha1.PushSecretRemoteRef{
+				data: testingfake.PushSecretData{
+					SecretKey: secretKey,
 					RemoteKey: validExistingRecord,
 				},
 				value: []byte("foo2"),
@@ -560,8 +562,8 @@ func TestClientPushSecret(t *testing.T) {
 				folderID: folderID,
 			},
 			args: args{
-				ctx: context.Background(),
-				remoteRef: v1alpha1.PushSecretRemoteRef{
+				data: testingfake.PushSecretData{
+					SecretKey: secretKey,
 					RemoteKey: validExistingRecord,
 				},
 				value: []byte("foo2"),
@@ -582,8 +584,8 @@ func TestClientPushSecret(t *testing.T) {
 				folderID: folderID,
 			},
 			args: args{
-				ctx: context.Background(),
-				remoteRef: v1alpha1.PushSecretRemoteRef{
+				data: testingfake.PushSecretData{
+					SecretKey: secretKey,
 					RemoteKey: invalidRecord,
 				},
 				value: []byte("foo"),
@@ -604,8 +606,8 @@ func TestClientPushSecret(t *testing.T) {
 				folderID: folderID,
 			},
 			args: args{
-				ctx: context.Background(),
-				remoteRef: v1alpha1.PushSecretRemoteRef{
+				data: testingfake.PushSecretData{
+					SecretKey: secretKey,
 					RemoteKey: validExistingRecord,
 				},
 				value: []byte("foo2"),
@@ -619,7 +621,8 @@ func TestClientPushSecret(t *testing.T) {
 				ksmClient: tt.fields.ksmClient,
 				folderID:  tt.fields.folderID,
 			}
-			if err := c.PushSecret(tt.args.ctx, tt.args.value, tt.args.remoteRef); (err != nil) != tt.wantErr {
+			s := &corev1.Secret{Data: map[string][]byte{secretKey: tt.args.value}}
+			if err := c.PushSecret(context.Background(), s, tt.args.data); (err != nil) != tt.wantErr {
 				t.Errorf("PushSecret() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

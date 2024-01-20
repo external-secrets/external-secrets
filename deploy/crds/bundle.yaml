@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.1
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: clusterexternalsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -72,16 +72,28 @@ spec:
                               conversionStrategy:
                                 default: Default
                                 description: Used to define a conversion Strategy
+                                enum:
+                                  - Default
+                                  - Unicode
                                 type: string
                               decodingStrategy:
                                 default: None
                                 description: Used to define a decoding Strategy
+                                enum:
+                                  - Auto
+                                  - Base64
+                                  - Base64URL
+                                  - None
                                 type: string
                               key:
                                 description: Key is the key used in the Provider, mandatory
                                 type: string
                               metadataPolicy:
+                                default: None
                                 description: Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
+                                enum:
+                                  - None
+                                  - Fetch
                                 type: string
                               property:
                                 description: Used to select a specific property of the Provider value (if a map), if supported
@@ -100,7 +112,7 @@ spec:
                             maxProperties: 1
                             properties:
                               generatorRef:
-                                description: GeneratorRef points to a generator custom resource in
+                                description: "GeneratorRef points to a generator custom resource. \n Deprecated: The generatorRef is not implemented in .data[]. this will be removed with v1."
                                 properties:
                                   apiVersion:
                                     default: generators.external-secrets.io/v1alpha1
@@ -144,16 +156,28 @@ spec:
                               conversionStrategy:
                                 default: Default
                                 description: Used to define a conversion Strategy
+                                enum:
+                                  - Default
+                                  - Unicode
                                 type: string
                               decodingStrategy:
                                 default: None
                                 description: Used to define a decoding Strategy
+                                enum:
+                                  - Auto
+                                  - Base64
+                                  - Base64URL
+                                  - None
                                 type: string
                               key:
                                 description: Key is the key used in the Provider, mandatory
                                 type: string
                               metadataPolicy:
+                                default: None
                                 description: Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
+                                enum:
+                                  - None
+                                  - Fetch
                                 type: string
                               property:
                                 description: Used to select a specific property of the Provider value (if a map), if supported
@@ -170,10 +194,18 @@ spec:
                               conversionStrategy:
                                 default: Default
                                 description: Used to define a conversion Strategy
+                                enum:
+                                  - Default
+                                  - Unicode
                                 type: string
                               decodingStrategy:
                                 default: None
                                 description: Used to define a decoding Strategy
+                                enum:
+                                  - Auto
+                                  - Base64
+                                  - Base64URL
+                                  - None
                                 type: string
                               name:
                                 description: Finds secrets based on the name.
@@ -208,6 +240,15 @@ spec:
                                     - source
                                     - target
                                   type: object
+                                transform:
+                                  description: Used to apply string transformation on the secrets. The resulting key will be the output of the template applied by the operation.
+                                  properties:
+                                    template:
+                                      description: Used to define the template to apply on the secret name. `.value ` will specify the secret name in the template.
+                                      type: string
+                                  required:
+                                    - template
+                                  type: object
                               type: object
                             type: array
                           sourceRef:
@@ -215,7 +256,7 @@ spec:
                             maxProperties: 1
                             properties:
                               generatorRef:
-                                description: GeneratorRef points to a generator custom resource in
+                                description: GeneratorRef points to a generator custom resource.
                                 properties:
                                   apiVersion:
                                     default: generators.external-secrets.io/v1alpha1
@@ -300,9 +341,16 @@ spec:
                               type: object
                             engineVersion:
                               default: v2
+                              description: EngineVersion specifies the template engine version that should be used to compile/execute the template specified in .data and .templateFrom[].
+                              enum:
+                                - v1
+                                - v2
                               type: string
                             mergePolicy:
                               default: Replace
+                              enum:
+                                - Replace
+                                - Merge
                               type: string
                             metadata:
                               description: ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
@@ -328,6 +376,9 @@ spec:
                                               type: string
                                             templateAs:
                                               default: Values
+                                              enum:
+                                                - Values
+                                                - KeysAndValues
                                               type: string
                                           required:
                                             - key
@@ -350,6 +401,9 @@ spec:
                                               type: string
                                             templateAs:
                                               default: Values
+                                              enum:
+                                                - Values
+                                                - KeysAndValues
                                               type: string
                                           required:
                                             - key
@@ -363,6 +417,10 @@ spec:
                                     type: object
                                   target:
                                     default: Data
+                                    enum:
+                                      - Data
+                                      - Annotations
+                                      - Labels
                                     type: string
                                 type: object
                               type: array
@@ -402,12 +460,16 @@ spec:
                       type: object
                   type: object
                   x-kubernetes-map-type: atomic
+                namespaces:
+                  description: Choose namespaces by name. This field is ORed with anything that NamespaceSelector ends up choosing.
+                  items:
+                    type: string
+                  type: array
                 refreshTime:
-                  description: The time in which the controller should reconcile it's objects and recheck namespaces for labels.
+                  description: The time in which the controller should reconcile its objects and recheck namespaces for labels.
                   type: string
               required:
                 - externalSecretSpec
-                - namespaceSelector
               type: object
             status:
               description: ClusterExternalSecretStatus defines the observed state of ClusterExternalSecret.
@@ -426,6 +488,9 @@ spec:
                       - type
                     type: object
                   type: array
+                externalSecretName:
+                  description: ExternalSecretName is the name of the ExternalSecrets created by the ClusterExternalSecret
+                  type: string
                 failedNamespaces:
                   description: Failed namespaces are the namespaces that failed to apply an ExternalSecret
                   items:
@@ -467,7 +532,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.1
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: clustersecretstores.external-secrets.io
 spec:
   group: external-secrets.io
@@ -1115,7 +1180,7 @@ spec:
                       description: Oracle configures this store to sync secrets using Oracle Vault provider
                       properties:
                         auth:
-                          description: Auth configures how secret-manager authenticates with the Oracle Vault. If empty, use the instance principal, otherwise the user credentials specified in Auth.
+                          description: Auth configures how secret-manager authenticates with the Oracle Vault. If empty, instance principal is used. Optionally, the authenticating principal type and/or user data may be supplied for the use of workload identity and user principal.
                           properties:
                             secretRef:
                               description: SecretRef to pass through sensitive information.
@@ -1161,9 +1226,40 @@ spec:
                             - tenancy
                             - user
                           type: object
+                        compartment:
+                          description: Compartment is the vault compartment OCID. Required for PushSecret
+                          type: string
+                        encryptionKey:
+                          description: EncryptionKey is the OCID of the encryption key within the vault. Required for PushSecret
+                          type: string
+                        principalType:
+                          description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+                          enum:
+                            - ""
+                            - UserPrincipal
+                            - InstancePrincipal
+                            - Workload
+                          type: string
                         region:
                           description: Region is the region where vault is located.
                           type: string
+                        serviceAccountRef:
+                          description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+                          properties:
+                            audiences:
+                              description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              type: string
+                            namespace:
+                              description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                              type: string
+                          required:
+                            - name
+                          type: object
                         vault:
                           description: Vault is the vault's OCID of the specific vault where secret is located.
                           type: string
@@ -1870,7 +1966,7 @@ spec:
                       description: AWS configures this store to sync secrets using AWS Secret Manager provider
                       properties:
                         additionalRoles:
-                          description: AdditionalRoles is a chained list of Role ARNs which the SecretManager provider will sequentially assume before assuming Role
+                          description: AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming the Role
                           items:
                             type: string
                           type: array
@@ -1949,8 +2045,19 @@ spec:
                           description: AWS Region to be used for the provider
                           type: string
                         role:
-                          description: Role is a Role ARN which the SecretManager provider will assume
+                          description: Role is a Role ARN which the provider will assume
                           type: string
+                        secretsManager:
+                          description: SecretsManager defines how the provider behaves when interacting with AWS SecretsManager
+                          properties:
+                            forceDeleteWithoutRecovery:
+                              description: 'Specifies whether to delete the secret without any recovery window. You can''t use both this parameter and RecoveryWindowInDays in the same call. If you don''t use either, then by default Secrets Manager uses a 30 day recovery window. see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-ForceDeleteWithoutRecovery'
+                              type: boolean
+                            recoveryWindowInDays:
+                              description: 'The number of days from 7 to 30 that Secrets Manager waits before permanently deleting the secret. You can''t use both this parameter and ForceDeleteWithoutRecovery in the same call. If you don''t use either, then by default Secrets Manager uses a 30 day recovery window. see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays'
+                              format: int64
+                              type: integer
+                          type: object
                         service:
                           description: Service defines which service should be used to fetch the secrets
                           enum:
@@ -1971,7 +2078,7 @@ spec:
                             type: object
                           type: array
                         transitiveTagKeys:
-                          description: AWS STS assume role transitive session tags. Required when multiple rules are used with SecretStore
+                          description: AWS STS assume role transitive session tags. Required when multiple rules are used with the provider
                           items:
                             type: string
                           type: array
@@ -2098,11 +2205,72 @@ spec:
                                 - apiKeyRef
                                 - userRef
                               type: object
-                          required:
-                            - apikey
+                            jwt:
+                              properties:
+                                account:
+                                  type: string
+                                secretRef:
+                                  description: Optional SecretRef that refers to a key in a Secret resource containing JWT token to authenticate with Conjur using the JWT authentication method.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                serviceAccountRef:
+                                  description: Optional ServiceAccountRef specifies the Kubernetes service account for which to request a token for with the `TokenRequest` API.
+                                  properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                                serviceID:
+                                  description: The conjur authn jwt webservice id
+                                  type: string
+                              required:
+                                - account
+                                - serviceID
+                              type: object
                           type: object
                         caBundle:
                           type: string
+                        caProvider:
+                          description: Used to provide custom certificate authority (CA) certificates for a secret store. The CAProvider points to a Secret or ConfigMap resource that contains a PEM-encoded certificate.
+                          properties:
+                            key:
+                              description: The key where the CA certificate can be found in the Secret or ConfigMap.
+                              type: string
+                            name:
+                              description: The name of the object located at the provider type.
+                              type: string
+                            namespace:
+                              description: The namespace the Provider type is in. Can only be defined when used in a ClusterSecretStore.
+                              type: string
+                            type:
+                              description: The type of provider to use such as "Secret", or "ConfigMap".
+                              enum:
+                                - Secret
+                                - ConfigMap
+                              type: string
+                          required:
+                            - name
+                            - type
+                          type: object
                         url:
                           type: string
                       required:
@@ -2618,9 +2786,40 @@ spec:
                             - tenancy
                             - user
                           type: object
+                        compartment:
+                          description: Compartment is the vault compartment OCID. Required for PushSecret
+                          type: string
+                        encryptionKey:
+                          description: EncryptionKey is the OCID of the encryption key within the vault. Required for PushSecret
+                          type: string
+                        principalType:
+                          description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+                          enum:
+                            - ""
+                            - UserPrincipal
+                            - InstancePrincipal
+                            - Workload
+                          type: string
                         region:
                           description: Region is the region where vault is located.
                           type: string
+                        serviceAccountRef:
+                          description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+                          properties:
+                            audiences:
+                              description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              type: string
+                            namespace:
+                              description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                              type: string
+                          required:
+                            - name
+                          type: object
                         vault:
                           description: Vault is the vault's OCID of the specific vault where secret is located.
                           type: string
@@ -3342,7 +3541,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.1
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: externalsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -3395,6 +3594,9 @@ spec:
                           conversionStrategy:
                             default: Default
                             description: Used to define a conversion Strategy
+                            enum:
+                              - Default
+                              - Unicode
                             type: string
                           key:
                             description: Key is the key used in the Provider, mandatory
@@ -3423,6 +3625,9 @@ spec:
                       conversionStrategy:
                         default: Default
                         description: Used to define a conversion Strategy
+                        enum:
+                          - Default
+                          - Unicode
                         type: string
                       key:
                         description: Key is the key used in the Provider, mandatory
@@ -3459,6 +3664,10 @@ spec:
                     creationPolicy:
                       default: Owner
                       description: CreationPolicy defines rules on how to create the resulting Secret Defaults to 'Owner'
+                      enum:
+                        - Owner
+                        - Merge
+                        - None
                       type: string
                     immutable:
                       description: Immutable defines if the final secret will be immutable
@@ -3476,6 +3685,9 @@ spec:
                         engineVersion:
                           default: v1
                           description: EngineVersion specifies the template engine version that should be used to compile/execute the template specified in .data and .templateFrom[].
+                          enum:
+                            - v1
+                            - v2
                           type: string
                         metadata:
                           description: ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
@@ -3621,16 +3833,28 @@ spec:
                           conversionStrategy:
                             default: Default
                             description: Used to define a conversion Strategy
+                            enum:
+                              - Default
+                              - Unicode
                             type: string
                           decodingStrategy:
                             default: None
                             description: Used to define a decoding Strategy
+                            enum:
+                              - Auto
+                              - Base64
+                              - Base64URL
+                              - None
                             type: string
                           key:
                             description: Key is the key used in the Provider, mandatory
                             type: string
                           metadataPolicy:
+                            default: None
                             description: Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
+                            enum:
+                              - None
+                              - Fetch
                             type: string
                           property:
                             description: Used to select a specific property of the Provider value (if a map), if supported
@@ -3649,7 +3873,7 @@ spec:
                         maxProperties: 1
                         properties:
                           generatorRef:
-                            description: GeneratorRef points to a generator custom resource in
+                            description: "GeneratorRef points to a generator custom resource. \n Deprecated: The generatorRef is not implemented in .data[]. this will be removed with v1."
                             properties:
                               apiVersion:
                                 default: generators.external-secrets.io/v1alpha1
@@ -3693,16 +3917,28 @@ spec:
                           conversionStrategy:
                             default: Default
                             description: Used to define a conversion Strategy
+                            enum:
+                              - Default
+                              - Unicode
                             type: string
                           decodingStrategy:
                             default: None
                             description: Used to define a decoding Strategy
+                            enum:
+                              - Auto
+                              - Base64
+                              - Base64URL
+                              - None
                             type: string
                           key:
                             description: Key is the key used in the Provider, mandatory
                             type: string
                           metadataPolicy:
+                            default: None
                             description: Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
+                            enum:
+                              - None
+                              - Fetch
                             type: string
                           property:
                             description: Used to select a specific property of the Provider value (if a map), if supported
@@ -3719,10 +3955,18 @@ spec:
                           conversionStrategy:
                             default: Default
                             description: Used to define a conversion Strategy
+                            enum:
+                              - Default
+                              - Unicode
                             type: string
                           decodingStrategy:
                             default: None
                             description: Used to define a decoding Strategy
+                            enum:
+                              - Auto
+                              - Base64
+                              - Base64URL
+                              - None
                             type: string
                           name:
                             description: Finds secrets based on the name.
@@ -3757,6 +4001,15 @@ spec:
                                 - source
                                 - target
                               type: object
+                            transform:
+                              description: Used to apply string transformation on the secrets. The resulting key will be the output of the template applied by the operation.
+                              properties:
+                                template:
+                                  description: Used to define the template to apply on the secret name. `.value ` will specify the secret name in the template.
+                                  type: string
+                              required:
+                                - template
+                              type: object
                           type: object
                         type: array
                       sourceRef:
@@ -3764,7 +4017,7 @@ spec:
                         maxProperties: 1
                         properties:
                           generatorRef:
-                            description: GeneratorRef points to a generator custom resource in
+                            description: GeneratorRef points to a generator custom resource.
                             properties:
                               apiVersion:
                                 default: generators.external-secrets.io/v1alpha1
@@ -3849,9 +4102,16 @@ spec:
                           type: object
                         engineVersion:
                           default: v2
+                          description: EngineVersion specifies the template engine version that should be used to compile/execute the template specified in .data and .templateFrom[].
+                          enum:
+                            - v1
+                            - v2
                           type: string
                         mergePolicy:
                           default: Replace
+                          enum:
+                            - Replace
+                            - Merge
                           type: string
                         metadata:
                           description: ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
@@ -3877,6 +4137,9 @@ spec:
                                           type: string
                                         templateAs:
                                           default: Values
+                                          enum:
+                                            - Values
+                                            - KeysAndValues
                                           type: string
                                       required:
                                         - key
@@ -3899,6 +4162,9 @@ spec:
                                           type: string
                                         templateAs:
                                           default: Values
+                                          enum:
+                                            - Values
+                                            - KeysAndValues
                                           type: string
                                       required:
                                         - key
@@ -3912,6 +4178,10 @@ spec:
                                 type: object
                               target:
                                 default: Data
+                                enum:
+                                  - Data
+                                  - Annotations
+                                  - Labels
                                 type: string
                             type: object
                           type: array
@@ -3978,7 +4248,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.1
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: pushsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -4037,8 +4307,10 @@ spec:
                             type: string
                         required:
                           - remoteRef
-                          - secretKey
                         type: object
+                      metadata:
+                        description: Metadata is metadata attached to the secret. The structure of metadata is provider specific, please look it up in the provider documentation.
+                        x-kubernetes-preserve-unknown-fields: true
                     required:
                       - match
                     type: object
@@ -4046,6 +4318,9 @@ spec:
                 deletionPolicy:
                   default: None
                   description: 'Deletion Policy to handle Secrets in the provider. Possible Values: "Delete/None". Defaults to "None".'
+                  enum:
+                    - Delete
+                    - None
                   type: string
                 refreshInterval:
                   description: The Interval to which External Secrets will try to push a secret definition
@@ -4165,8 +4440,10 @@ spec:
                               type: string
                           required:
                             - remoteRef
-                            - secretKey
                           type: object
+                        metadata:
+                          description: Metadata is metadata attached to the secret. The structure of metadata is provider specific, please look it up in the provider documentation.
+                          x-kubernetes-preserve-unknown-fields: true
                       required:
                         - match
                       type: object
@@ -4197,7 +4474,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.1
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: secretstores.external-secrets.io
 spec:
   group: external-secrets.io
@@ -4845,7 +5122,7 @@ spec:
                       description: Oracle configures this store to sync secrets using Oracle Vault provider
                       properties:
                         auth:
-                          description: Auth configures how secret-manager authenticates with the Oracle Vault. If empty, use the instance principal, otherwise the user credentials specified in Auth.
+                          description: Auth configures how secret-manager authenticates with the Oracle Vault. If empty, instance principal is used. Optionally, the authenticating principal type and/or user data may be supplied for the use of workload identity and user principal.
                           properties:
                             secretRef:
                               description: SecretRef to pass through sensitive information.
@@ -4891,9 +5168,40 @@ spec:
                             - tenancy
                             - user
                           type: object
+                        compartment:
+                          description: Compartment is the vault compartment OCID. Required for PushSecret
+                          type: string
+                        encryptionKey:
+                          description: EncryptionKey is the OCID of the encryption key within the vault. Required for PushSecret
+                          type: string
+                        principalType:
+                          description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+                          enum:
+                            - ""
+                            - UserPrincipal
+                            - InstancePrincipal
+                            - Workload
+                          type: string
                         region:
                           description: Region is the region where vault is located.
                           type: string
+                        serviceAccountRef:
+                          description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+                          properties:
+                            audiences:
+                              description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              type: string
+                            namespace:
+                              description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                              type: string
+                          required:
+                            - name
+                          type: object
                         vault:
                           description: Vault is the vault's OCID of the specific vault where secret is located.
                           type: string
@@ -5600,7 +5908,7 @@ spec:
                       description: AWS configures this store to sync secrets using AWS Secret Manager provider
                       properties:
                         additionalRoles:
-                          description: AdditionalRoles is a chained list of Role ARNs which the SecretManager provider will sequentially assume before assuming Role
+                          description: AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming the Role
                           items:
                             type: string
                           type: array
@@ -5679,8 +5987,19 @@ spec:
                           description: AWS Region to be used for the provider
                           type: string
                         role:
-                          description: Role is a Role ARN which the SecretManager provider will assume
+                          description: Role is a Role ARN which the provider will assume
                           type: string
+                        secretsManager:
+                          description: SecretsManager defines how the provider behaves when interacting with AWS SecretsManager
+                          properties:
+                            forceDeleteWithoutRecovery:
+                              description: 'Specifies whether to delete the secret without any recovery window. You can''t use both this parameter and RecoveryWindowInDays in the same call. If you don''t use either, then by default Secrets Manager uses a 30 day recovery window. see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-ForceDeleteWithoutRecovery'
+                              type: boolean
+                            recoveryWindowInDays:
+                              description: 'The number of days from 7 to 30 that Secrets Manager waits before permanently deleting the secret. You can''t use both this parameter and ForceDeleteWithoutRecovery in the same call. If you don''t use either, then by default Secrets Manager uses a 30 day recovery window. see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays'
+                              format: int64
+                              type: integer
+                          type: object
                         service:
                           description: Service defines which service should be used to fetch the secrets
                           enum:
@@ -5701,7 +6020,7 @@ spec:
                             type: object
                           type: array
                         transitiveTagKeys:
-                          description: AWS STS assume role transitive session tags. Required when multiple rules are used with SecretStore
+                          description: AWS STS assume role transitive session tags. Required when multiple rules are used with the provider
                           items:
                             type: string
                           type: array
@@ -5828,11 +6147,72 @@ spec:
                                 - apiKeyRef
                                 - userRef
                               type: object
-                          required:
-                            - apikey
+                            jwt:
+                              properties:
+                                account:
+                                  type: string
+                                secretRef:
+                                  description: Optional SecretRef that refers to a key in a Secret resource containing JWT token to authenticate with Conjur using the JWT authentication method.
+                                  properties:
+                                    key:
+                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                serviceAccountRef:
+                                  description: Optional ServiceAccountRef specifies the Kubernetes service account for which to request a token for with the `TokenRequest` API.
+                                  properties:
+                                    audiences:
+                                      description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                                serviceID:
+                                  description: The conjur authn jwt webservice id
+                                  type: string
+                              required:
+                                - account
+                                - serviceID
+                              type: object
                           type: object
                         caBundle:
                           type: string
+                        caProvider:
+                          description: Used to provide custom certificate authority (CA) certificates for a secret store. The CAProvider points to a Secret or ConfigMap resource that contains a PEM-encoded certificate.
+                          properties:
+                            key:
+                              description: The key where the CA certificate can be found in the Secret or ConfigMap.
+                              type: string
+                            name:
+                              description: The name of the object located at the provider type.
+                              type: string
+                            namespace:
+                              description: The namespace the Provider type is in. Can only be defined when used in a ClusterSecretStore.
+                              type: string
+                            type:
+                              description: The type of provider to use such as "Secret", or "ConfigMap".
+                              enum:
+                                - Secret
+                                - ConfigMap
+                              type: string
+                          required:
+                            - name
+                            - type
+                          type: object
                         url:
                           type: string
                       required:
@@ -6348,9 +6728,40 @@ spec:
                             - tenancy
                             - user
                           type: object
+                        compartment:
+                          description: Compartment is the vault compartment OCID. Required for PushSecret
+                          type: string
+                        encryptionKey:
+                          description: EncryptionKey is the OCID of the encryption key within the vault. Required for PushSecret
+                          type: string
+                        principalType:
+                          description: The type of principal to use for authentication. If left blank, the Auth struct will determine the principal type. This optional field must be specified if using workload identity.
+                          enum:
+                            - ""
+                            - UserPrincipal
+                            - InstancePrincipal
+                            - Workload
+                          type: string
                         region:
                           description: Region is the region where vault is located.
                           type: string
+                        serviceAccountRef:
+                          description: ServiceAccountRef specified the service account that should be used when authenticating with WorkloadIdentity.
+                          properties:
+                            audiences:
+                              description: Audience specifies the `aud` claim for the service account token If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              type: string
+                            namespace:
+                              description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                              type: string
+                          required:
+                            - name
+                          type: object
                         vault:
                           description: Vault is the vault's OCID of the specific vault where secret is located.
                           type: string
@@ -7072,7 +7483,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.1
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: acraccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -7212,7 +7623,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.1
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: ecrauthorizationtokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -7339,7 +7750,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.1
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: fakes.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -7399,7 +7810,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.1
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: gcraccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -7506,7 +7917,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.1
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: passwords.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -7583,7 +7994,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.1
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: vaultdynamicsecrets.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -8013,6 +8424,9 @@ spec:
                 resultType:
                   default: Data
                   description: Result type defines which data is returned from the generator. By default it is the "data" section of the Vault API response. When using e.g. /auth/token/create the "data" section is empty but the "auth" section contains the generated token. Please refer to the vault docs regarding the result data structure.
+                  enum:
+                    - Data
+                    - Auth
                   type: string
               required:
                 - path

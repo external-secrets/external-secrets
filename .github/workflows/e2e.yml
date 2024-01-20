@@ -13,7 +13,7 @@ name: e2e tests
 
 env:
   # Common versions
-  GO_VERSION: '1.19'
+  GO_VERSION: '1.21'
   GINKGO_VERSION: 'v2.8.0'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
   KIND_VERSION: 'v0.17.0'
@@ -32,10 +32,12 @@ env:
   AWS_REGION: "eu-central-1"
   AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
 
-  AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID}}
-  AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET}}
-  TENANT_ID: ${{ secrets.TENANT_ID}}
-  VAULT_URL: ${{ secrets.VAULT_URL}}
+  TFC_AZURE_CLIENT_ID: ${{ secrets.TFC_AZURE_CLIENT_ID}}
+  TFC_AZURE_CLIENT_SECRET: ${{ secrets.TFC_AZURE_CLIENT_SECRET }}
+  TFC_AZURE_TENANT_ID: ${{ secrets.TFC_AZURE_TENANT_ID}}
+  TFC_AZURE_SUBSCRIPTION_ID: ${{ secrets.TFC_AZURE_SUBSCRIPTION_ID }}
+  TFC_VAULT_URL: ${{ secrets.TFC_VAULT_URL}}
+  
   SCALEWAY_API_URL: ${{ secrets.SCALEWAY_API_URL }}
   SCALEWAY_REGION: ${{ secrets.SCALEWAY_REGION }}
   SCALEWAY_PROJECT_ID: ${{ secrets.SCALEWAY_PROJECT_ID }}
@@ -54,7 +56,7 @@ jobs:
     steps:
 
     - name: Branch based PR checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Fetch History
       run: git fetch --prune --unshallow
@@ -69,7 +71,7 @@ jobs:
 
     # Check out merge commit
     - name: Fork based /ok-to-test checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
 
@@ -79,7 +81,7 @@ jobs:
     - uses: ./.github/actions/e2e
 
     # Update check run called "integration-fork"
-    - uses: actions/github-script@v6
+    - uses: actions/github-script@v7
       id: update-check-run
       if: ${{ always() }}
       env:

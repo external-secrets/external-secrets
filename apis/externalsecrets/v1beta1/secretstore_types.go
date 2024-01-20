@@ -24,7 +24,7 @@ type SecretStoreSpec struct {
 	// Used to select the correct ESO controller (think: ingress.ingressClassName)
 	// The ESO controller is instantiated with a specific controller name and filters ES based on this property
 	// +optional
-	Controller string `json:"controller"`
+	Controller string `json:"controller,omitempty"`
 
 	// Used to configure the provider. Only one provider may be set
 	Provider *SecretStoreProvider `json:"provider"`
@@ -35,7 +35,7 @@ type SecretStoreSpec struct {
 
 	// Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
 	// +optional
-	RefreshInterval int `json:"refreshInterval"`
+	RefreshInterval int `json:"refreshInterval,omitempty"`
 
 	// Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore
 	// +optional
@@ -213,9 +213,9 @@ const (
 // SecretStoreStatus defines the observed state of the SecretStore.
 type SecretStoreStatus struct {
 	// +optional
-	Conditions []SecretStoreStatusCondition `json:"conditions"`
+	Conditions []SecretStoreStatusCondition `json:"conditions,omitempty"`
 	// +optional
-	Capabilities SecretStoreCapabilities `json:"capabilities"`
+	Capabilities SecretStoreCapabilities `json:"capabilities,omitempty"`
 }
 
 // +kubebuilder:object:root=true

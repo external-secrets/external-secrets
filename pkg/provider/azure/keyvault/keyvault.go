@@ -295,7 +295,7 @@ func (a *Azure) deleteKeyVaultCertificate(ctx context.Context, certName string) 
 	return nil
 }
 
-func (a *Azure) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (a *Azure) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
 	objectType, secretName := getObjType(esv1beta1.ExternalSecretDataRemoteRef{Key: remoteRef.GetRemoteKey()})
 	switch objectType {
 	case defaultObjType:
@@ -496,8 +496,13 @@ func (a *Azure) setKeyVaultKey(ctx context.Context, secretName string, value []b
 }
 
 // PushSecret stores secrets into a Key vault instance.
-func (a *Azure) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
-	objectType, secretName := getObjType(esv1beta1.ExternalSecretDataRemoteRef{Key: remoteRef.GetRemoteKey()})
+func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	if data.GetSecretKey() == "" {
+		return fmt.Errorf("pushing the whole secret is not yet implemented")
+	}
+
+	objectType, secretName := getObjType(esv1beta1.ExternalSecretDataRemoteRef{Key: data.GetRemoteKey()})
+	value := secret.Data[data.GetSecretKey()]
 	switch objectType {
 	case defaultObjType:
 		return a.setKeyVaultSecret(ctx, secretName, value)
@@ -519,28 +524,31 @@ func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretF
 	checkName := ref.Name != nil && len(ref.Name.RegExp) > 0
 
 	secretListIter, err := basicClient.GetSecretsComplete(ctx, *a.provider.VaultURL, nil)
+	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecrets, err)
 	err = parseError(err)
 	if err != nil {
 		return nil, err
 	}
 
 	for secretListIter.NotDone() {
-		secretList := secretListIter.Response().Value
-		for _, secret := range *secretList {
-			ok, secretName := isValidSecret(checkTags, checkName, ref, secret)
-			if !ok {
-				continue
-			}
-
-			secretResp, err := basicClient.GetSecret(ctx, *a.provider.VaultURL, secretName, "")
-			err = parseError(err)
+		secret := secretListIter.Value()
+		ok, secretName := isValidSecret(checkTags, checkName, ref, secret)
+		if !ok {
+			err = secretListIter.Next()
 			if err != nil {
 				return nil, err
 			}
-
-			secretValue := *secretResp.Value
-			secretsMap[secretName] = []byte(secretValue)
+			continue
 		}
+		secretResp, err := basicClient.GetSecret(ctx, *a.provider.VaultURL, secretName, "")
+		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
+		err = parseError(err)
+		if err != nil {
+			return nil, err
+		}
+
+		secretValue := *secretResp.Value
+		secretsMap[secretName] = []byte(secretValue)
 
 		err = secretListIter.Next()
 		if err != nil {

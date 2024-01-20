@@ -15,6 +15,7 @@ package v1beta1
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -41,21 +42,26 @@ func validateExternalSecret(obj runtime.Object) (admission.Warnings, error) {
 		return nil, fmt.Errorf("unexpected type")
 	}
 
+	var errs error
 	if (es.Spec.Target.DeletionPolicy == DeletionPolicyDelete && es.Spec.Target.CreationPolicy == CreatePolicyMerge) ||
 		(es.Spec.Target.DeletionPolicy == DeletionPolicyDelete && es.Spec.Target.CreationPolicy == CreatePolicyNone) {
-		return nil, fmt.Errorf("deletionPolicy=Delete must not be used when the controller doesn't own the secret. Please set creationPolcy=Owner")
+		errs = errors.Join(errs, fmt.Errorf("deletionPolicy=Delete must not be used when the controller doesn't own the secret. Please set creationPolicy=Owner"))
 	}
 
 	if es.Spec.Target.DeletionPolicy == DeletionPolicyMerge && es.Spec.Target.CreationPolicy == CreatePolicyNone {
-		return nil, fmt.Errorf("deletionPolicy=Merge must not be used with creationPolcy=None. There is no Secret to merge with")
+		errs = errors.Join(errs, fmt.Errorf("deletionPolicy=Merge must not be used with creationPolicy=None. There is no Secret to merge with"))
+	}
+
+	if len(es.Spec.Data) == 0 && len(es.Spec.DataFrom) == 0 {
+		errs = errors.Join(errs, fmt.Errorf("either data or dataFrom should be specified"))
 	}
 
 	for _, ref := range es.Spec.DataFrom {
 		findOrExtract := ref.Find != nil || ref.Extract != nil
 		if findOrExtract && ref.SourceRef != nil && ref.SourceRef.GeneratorRef != nil {
-			return nil, fmt.Errorf("generator can not be used with find or extract")
+			errs = errors.Join(errs, fmt.Errorf("generator can not be used with find or extract"))
 		}
 	}
 
-	return nil, nil
+	return nil, errs
 }

@@ -72,9 +72,11 @@ a maintainer when a particular provider or authentication mechanism was changed:
 /ok-to-test-managed sha=xxxxxx provider=aws
 # or
 /ok-to-test-managed sha=xxxxxx provider=gcp
+# or
+/ok-to-test-managed sha=xxxxxx provider=azure
 ```
 
-Both tests can run in parallel. Once started they add a dynamic GitHub check `integration-managed-(gcp|aws)` to the PR that triggered the test.
+Both tests can run in parallel. Once started they add a dynamic GitHub check `integration-managed-(gcp|aws|azure)` to the PR that triggered the test.
 
 
 ### Executing Managed Kubernetes e2e tests locally

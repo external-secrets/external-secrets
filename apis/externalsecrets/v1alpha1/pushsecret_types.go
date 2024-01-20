@@ -16,6 +16,7 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -27,10 +28,10 @@ const (
 type PushSecretStoreRef struct {
 	// Optionally, sync to the SecretStore of the given name
 	// +optional
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 	// Optionally, sync to secret stores with label selector
 	// +optional
-	LabelSelector *metav1.LabelSelector `json:"labelSelector"`
+	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty"`
 	// Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
 	// Defaults to `SecretStore`
 	// +kubebuilder:default="SecretStore"
@@ -38,6 +39,7 @@ type PushSecretStoreRef struct {
 	Kind string `json:"kind,omitempty"`
 }
 
+// +kubebuilder:validation:Enum=Delete;None
 type PushSecretDeletionPolicy string
 
 const (
@@ -89,7 +91,8 @@ func (r PushSecretRemoteRef) GetProperty() string {
 
 type PushSecretMatch struct {
 	// Secret Key to be pushed
-	SecretKey string `json:"secretKey"`
+	// +optional
+	SecretKey string `json:"secretKey,omitempty"`
 	// Remote Refs to push to providers.
 	RemoteRef PushSecretRemoteRef `json:"remoteRef"`
 }
@@ -97,6 +100,26 @@ type PushSecretMatch struct {
 type PushSecretData struct {
 	// Match a given Secret Key to be pushed to the provider.
 	Match PushSecretMatch `json:"match"`
+	// Metadata is metadata attached to the secret.
+	// The structure of metadata is provider specific, please look it up in the provider documentation.
+	// +optional
+	Metadata *apiextensionsv1.JSON `json:"metadata,omitempty"`
+}
+
+func (d PushSecretData) GetMetadata() *apiextensionsv1.JSON {
+	return d.Metadata
+}
+
+func (d PushSecretData) GetSecretKey() string {
+	return d.Match.SecretKey
+}
+
+func (d PushSecretData) GetRemoteKey() string {
+	return d.Match.RemoteRef.RemoteKey
+}
+
+func (d PushSecretData) GetProperty() string {
+	return d.Match.RemoteRef.Property
 }
 
 // PushSecretConditionType indicates the condition of the PushSecret.

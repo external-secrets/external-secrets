@@ -37,7 +37,8 @@ Please consider sponsoring this project, there are many ways you can help us wit
 
 ## Bi-weekly Development Meeting
 
-We host our development meeting every odd wednesday at [8:00 PM Berlin Time](https://dateful.com/time-zone-converter?t=20:00&tz=Europe/Berlin) on [Jitsi](https://meet.jit.si/eso-community-meeting). Meeting notes are recorded on [hackmd](https://hackmd.io/GSGEpTVdRZCP6LDxV3FHJA).
+We host our development meeting every odd wednesday on [Jitsi](https://meet.jit.si/eso-community-meeting). We run the meeting with alternating times [8:00 PM Berlin Time](https://dateful.com/time-zone-converter?t=20:00&tz=Europe/Berlin) and [1:00 PM Berlin Time](https://dateful.com/time-zone-converter?t=13:00&tz=Europe/Berlin), we'll announce the time in our [Kubernetes Slack
+  channel](https://kubernetes.slack.com/messages/external-secrets). Meeting notes are recorded on [hackmd](https://hackmd.io/GSGEpTVdRZCP6LDxV3FHJA).
 
 Anyone is welcome to join. Feel free to ask questions, request feedback, raise awareness for an issue, or just say hi. ;)
 

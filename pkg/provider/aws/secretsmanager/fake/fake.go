@@ -15,7 +15,9 @@ limitations under the License.
 package fake
 
 import (
+	"bytes"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
@@ -44,8 +46,17 @@ func (sm Client) CreateSecretWithContext(ctx aws.Context, input *awssm.CreateSec
 	return sm.CreateSecretWithContextFn(ctx, input, options...)
 }
 
-func NewCreateSecretWithContextFn(output *awssm.CreateSecretOutput, err error) CreateSecretWithContextFn {
-	return func(ctx aws.Context, input *awssm.CreateSecretInput, options ...request.Option) (*awssm.CreateSecretOutput, error) {
+func NewCreateSecretWithContextFn(output *awssm.CreateSecretOutput, err error, expectedSecretBinary ...[]byte) CreateSecretWithContextFn {
+	return func(ctx aws.Context, actualInput *awssm.CreateSecretInput, options ...request.Option) (*awssm.CreateSecretOutput, error) {
+		if *actualInput.ClientRequestToken != "00000000-0000-0000-0000-000000000001" {
+			return nil, fmt.Errorf("expected the version to be 1 at creation")
+		}
+		if len(expectedSecretBinary) == 1 {
+			if bytes.Equal(actualInput.SecretBinary, expectedSecretBinary[0]) {
+				return output, err
+			}
+			return nil, fmt.Errorf("expected secret to be '%s' but was '%s'", string(expectedSecretBinary[0]), string(actualInput.SecretBinary))
+		}
 		return output, err
 	}
 }
@@ -55,6 +66,9 @@ func (sm Client) DeleteSecretWithContext(ctx aws.Context, input *awssm.DeleteSec
 
 func NewDeleteSecretWithContextFn(output *awssm.DeleteSecretOutput, err error) DeleteSecretWithContextFn {
 	return func(ctx aws.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (*awssm.DeleteSecretOutput, error) {
+		if input.ForceDeleteWithoutRecovery != nil && *input.ForceDeleteWithoutRecovery {
+			output.SetDeletionDate(time.Now())
+		}
 		return output, err
 	}
 }
@@ -73,8 +87,46 @@ func (sm Client) PutSecretValueWithContext(ctx aws.Context, input *awssm.PutSecr
 	return sm.PutSecretValueWithContextFn(ctx, input, options...)
 }
 
-func NewPutSecretValueWithContextFn(output *awssm.PutSecretValueOutput, err error) PutSecretValueWithContextFn {
-	return func(aws.Context, *awssm.PutSecretValueInput, ...request.Option) (*awssm.PutSecretValueOutput, error) {
+type ExpectedPutSecretValueInput struct {
+	SecretBinary []byte
+	Version      *string
+}
+
+func (e ExpectedPutSecretValueInput) assertEquals(actualInput *awssm.PutSecretValueInput) error {
+	errSecretBinary := e.assertSecretBinary(actualInput)
+	if errSecretBinary != nil {
+		return errSecretBinary
+	}
+	errSecretVersion := e.assertVersion(actualInput)
+	if errSecretVersion != nil {
+		return errSecretVersion
+	}
+
+	return nil
+}
+
+func (e ExpectedPutSecretValueInput) assertSecretBinary(actualInput *awssm.PutSecretValueInput) error {
+	if e.SecretBinary != nil && !bytes.Equal(actualInput.SecretBinary, e.SecretBinary) {
+		return fmt.Errorf("expected secret to be '%s' but was '%s'", string(e.SecretBinary), string(actualInput.SecretBinary))
+	}
+	return nil
+}
+
+func (e ExpectedPutSecretValueInput) assertVersion(actualInput *awssm.PutSecretValueInput) error {
+	if e.Version != nil && (*actualInput.ClientRequestToken != *e.Version) {
+		return fmt.Errorf("expected version to be '%s', but was '%s'", *e.Version, *actualInput.ClientRequestToken)
+	}
+	return nil
+}
+
+func NewPutSecretValueWithContextFn(output *awssm.PutSecretValueOutput, err error, expectedInput ...ExpectedPutSecretValueInput) PutSecretValueWithContextFn {
+	return func(actualContext aws.Context, actualInput *awssm.PutSecretValueInput, actualOptions ...request.Option) (*awssm.PutSecretValueOutput, error) {
+		if len(expectedInput) == 1 {
+			assertErr := expectedInput[0].assertEquals(actualInput)
+			if assertErr != nil {
+				return nil, assertErr
+			}
+		}
 		return output, err
 	}
 }
