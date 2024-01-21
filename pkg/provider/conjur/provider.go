@@ -32,6 +32,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/conjur/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 var (
@@ -109,13 +110,22 @@ func (p *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 		SSLCert:      cert,
 	}
 
-	if prov.Auth.Apikey != nil {
-		config.Account = prov.Auth.Apikey.Account
-		conjUser, secErr := p.secretKeyRef(ctx, prov.Auth.Apikey.UserRef)
+	if prov.Auth.APIKey != nil {
+		config.Account = prov.Auth.APIKey.Account
+		conjUser, secErr := resolvers.SecretKeyRef(
+			ctx,
+			p.kube,
+			p.StoreKind,
+			p.namespace, prov.Auth.APIKey.UserRef)
 		if secErr != nil {
 			return nil, fmt.Errorf(errBadServiceUser, secErr)
 		}
-		conjAPIKey, secErr := p.secretKeyRef(ctx, prov.Auth.Apikey.APIKeyRef)
+		conjAPIKey, secErr := resolvers.SecretKeyRef(
+			ctx,
+			p.kube,
+			p.StoreKind,
+			p.namespace,
+			prov.Auth.APIKey.APIKeyRef)
 		if secErr != nil {
 			return nil, fmt.Errorf(errBadServiceAPIKey, secErr)
 		}
@@ -224,20 +234,20 @@ func (c *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	if prov.URL == "" {
 		return fmt.Errorf("conjur URL cannot be empty")
 	}
-	if prov.Auth.Apikey != nil {
-		if prov.Auth.Apikey.Account == "" {
+	if prov.Auth.APIKey != nil {
+		if prov.Auth.APIKey.Account == "" {
 			return fmt.Errorf("missing Auth.ApiKey.Account")
 		}
-		if prov.Auth.Apikey.UserRef == nil {
+		if prov.Auth.APIKey.UserRef == nil {
 			return fmt.Errorf("missing Auth.Apikey.UserRef")
 		}
-		if prov.Auth.Apikey.APIKeyRef == nil {
+		if prov.Auth.APIKey.APIKeyRef == nil {
 			return fmt.Errorf("missing Auth.Apikey.ApiKeyRef")
 		}
-		if err := utils.ValidateReferentSecretSelector(store, *prov.Auth.Apikey.UserRef); err != nil {
+		if err := utils.ValidateReferentSecretSelector(store, *prov.Auth.APIKey.UserRef); err != nil {
 			return fmt.Errorf("invalid Auth.Apikey.UserRef: %w", err)
 		}
-		if err := utils.ValidateReferentSecretSelector(store, *prov.Auth.Apikey.APIKeyRef); err != nil {
+		if err := utils.ValidateReferentSecretSelector(store, *prov.Auth.APIKey.APIKeyRef); err != nil {
 			return fmt.Errorf("invalid Auth.Apikey.ApiKeyRef: %w", err)
 		}
 	}
@@ -265,7 +275,7 @@ func (c *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	}
 
 	// At least one auth must be configured
-	if prov.Auth.Apikey == nil && prov.Auth.Jwt == nil {
+	if prov.Auth.APIKey == nil && prov.Auth.Jwt == nil {
 		return fmt.Errorf("missing Auth.* configuration")
 	}
 
@@ -277,32 +287,7 @@ func (c *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
 }
 
-func (p *Client) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySelector) (string, error) {
-	secret := &corev1.Secret{}
-	ref := client.ObjectKey{
-		Namespace: p.namespace,
-		Name:      secretRef.Name,
-	}
-	if (p.StoreKind == esv1beta1.ClusterSecretStoreKind) &&
-		(secretRef.Namespace != nil) {
-		ref.Namespace = *secretRef.Namespace
-	}
-	err := p.kube.Get(ctx, ref, secret)
-	if err != nil {
-		return "", err
-	}
-
-	keyBytes, ok := secret.Data[secretRef.Key]
-	if !ok {
-		return "", err
-	}
-
-	value := string(keyBytes)
-	valueStr := strings.TrimSpace(value)
-	return valueStr, nil
-}
-
-// configMapKeyRef returns the value of a key in a configmap.
+// configMapKeyRef returns the value of a key in a ConfigMap.
 func (p *Client) configMapKeyRef(ctx context.Context, cmRef *esmeta.SecretKeySelector) (string, error) {
 	configMap := &corev1.ConfigMap{}
 	ref := client.ObjectKey{
@@ -349,7 +334,12 @@ func (p *Client) getCA(ctx context.Context, provider *esv1beta1.ConjurProvider) 
 				Namespace: provider.CAProvider.Namespace,
 				Key:       provider.CAProvider.Key,
 			}
-			ca, err = p.secretKeyRef(ctx, &keySelector)
+			ca, err = resolvers.SecretKeyRef(
+				ctx,
+				p.kube,
+				p.StoreKind,
+				p.namespace,
+				&keySelector)
 			if err != nil {
 				return "", fmt.Errorf(errUnableToFetchCAProviderSecret, err)
 			}

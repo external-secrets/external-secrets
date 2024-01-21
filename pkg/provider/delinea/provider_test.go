@@ -15,7 +15,6 @@ package delinea
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/DelineaXPM/dsv-sdk-go/v2/vault"
@@ -283,7 +282,7 @@ func TestNewClient(t *testing.T) {
 			},
 			kube: clientfake.NewClientBuilder().WithObjects(clientSecret).Build(),
 			errCheck: func(t *testing.T, err error) {
-				assert.EqualError(t, err, fmt.Sprintf(errNoSuchKeyFmt, "typo"))
+				assert.EqualError(t, err, "cannot find secret data for key: \"typo\"")
 			},
 		},
 		"valid secret refs": {
