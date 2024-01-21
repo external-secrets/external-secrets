@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 type PP struct{}
@@ -69,8 +70,8 @@ func (p *PP) Validate() (ValidationResult, error) {
 	return ValidationResultReady, nil
 }
 
-func (p *PP) ValidateStore(_ GenericStore) error {
-	return nil
+func (p *PP) ValidateStore(_ GenericStore) (admission.Warnings, error) {
+	return nil, nil
 }
 
 // TestRegister tests if the Register function

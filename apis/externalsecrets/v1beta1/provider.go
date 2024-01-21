@@ -19,6 +19,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 const (
@@ -51,7 +52,11 @@ type Provider interface {
 	NewClient(ctx context.Context, store GenericStore, kube client.Client, namespace string) (SecretsClient, error)
 
 	// ValidateStore checks if the provided store is valid
-	ValidateStore(store GenericStore) error
+	// The provider may return a warning and an error.
+	// The intended use of the warning to indicate a deprecation of behavior
+	// or other type of message that is NOT a validation failure but should be noticed by the user.
+	ValidateStore(store GenericStore) (admission.Warnings, error)
+
 	// Capabilities returns the provider Capabilities (Read, Write, ReadWrite)
 	Capabilities() SecretStoreCapabilities
 }

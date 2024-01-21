@@ -185,7 +185,7 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 	}
-	err := p.ValidateStore(store)
+	_, err := p.ValidateStore(store)
 	if err == nil {
 		t.Errorf(errExpectedErr)
 	} else if err.Error() != "serviceURL is required" {
@@ -193,7 +193,7 @@ func TestValidateStore(t *testing.T) {
 	}
 	url := "my-url"
 	store.Spec.Provider.IBM.ServiceURL = &url
-	err = p.ValidateStore(store)
+	_, err = p.ValidateStore(store)
 	if err == nil {
 		t.Errorf(errExpectedErr)
 	} else if err.Error() != "missing auth method" {
@@ -207,7 +207,7 @@ func TestValidateStore(t *testing.T) {
 			Namespace: &ns,
 		},
 	}
-	err = p.ValidateStore(store)
+	_, err = p.ValidateStore(store)
 	if err == nil {
 		t.Errorf(errExpectedErr)
 	} else if err.Error() != "namespace not allowed with namespaced SecretStore" {
@@ -230,7 +230,7 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 	}
-	err = p.ValidateStore(store)
+	_, err = p.ValidateStore(store)
 	expected := "cannot read container auth token"
 	if !ErrorContains(err, expected) {
 		t.Errorf("ProfileSelector test failed: %s, expected: '%s'", err.Error(), expected)

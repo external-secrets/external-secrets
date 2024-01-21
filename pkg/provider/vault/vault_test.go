@@ -1785,7 +1785,7 @@ func TestValidateStore(t *testing.T) {
 					},
 				},
 			}
-			if err := c.ValidateStore(store); (err != nil) != tt.wantErr {
+			if _, err := c.ValidateStore(store); (err != nil) != tt.wantErr {
 				t.Errorf("connector.ValidateStore() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
