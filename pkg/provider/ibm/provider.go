@@ -26,13 +26,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -51,15 +51,13 @@ const (
 	payloadConst      = "payload"
 	smAPIKeyConst     = "api_key"
 
-	errIBMClient                             = "cannot setup new ibm client: %w"
-	errIBMCredSecretName                     = "invalid IBM SecretStore resource: missing IBM APIKey"
-	errUninitalizedIBMProvider               = "provider IBM is not initialized"
-	errInvalidClusterStoreMissingSKNamespace = "invalid ClusterStore, missing namespace"
-	errFetchSAKSecret                        = "could not fetch SecretAccessKey secret: %w"
-	errMissingSAK                            = "missing SecretAccessKey"
-	errJSONSecretUnmarshal                   = "unable to unmarshal secret: %w"
-	errJSONSecretMarshal                     = "unable to marshal secret: %w"
-	errExtractingSecret                      = "unable to extract the fetched secret %s of type %s while performing %s"
+	errIBMClient               = "cannot setup new ibm client: %w"
+	errIBMCredSecretName       = "invalid IBM SecretStore resource: missing IBM APIKey"
+	errUninitalizedIBMProvider = "provider IBM is not initialized"
+	errFetchSAKSecret          = "could not fetch SecretAccessKey secret: %w"
+	errJSONSecretUnmarshal     = "unable to unmarshal secret: %w"
+	errJSONSecretMarshal       = "unable to marshal secret: %w"
+	errExtractingSecret        = "unable to extract the fetched secret %s of type %s while performing %s"
 
 	defaultCacheSize   = 100
 	defaultCacheExpiry = 1 * time.Hour
@@ -93,33 +91,11 @@ type client struct {
 }
 
 func (c *client) setAuth(ctx context.Context) error {
-	credentialsSecret := &corev1.Secret{}
-	credentialsSecretName := c.store.Auth.SecretRef.SecretAPIKey.Name
-	if credentialsSecretName == "" {
-		return fmt.Errorf(errIBMCredSecretName)
-	}
-	objectKey := types.NamespacedName{
-		Name:      credentialsSecretName,
-		Namespace: c.namespace,
-	}
-
-	// only ClusterStore is allowed to set namespace (and then it's required)
-	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
-		if c.store.Auth.SecretRef.SecretAPIKey.Namespace == nil {
-			return fmt.Errorf(errInvalidClusterStoreMissingSKNamespace)
-		}
-		objectKey.Namespace = *c.store.Auth.SecretRef.SecretAPIKey.Namespace
-	}
-
-	err := c.kube.Get(ctx, objectKey, credentialsSecret)
+	apiKey, err := resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, &c.store.Auth.SecretRef.SecretAPIKey)
 	if err != nil {
-		return fmt.Errorf(errFetchSAKSecret, err)
+		return err
 	}
-
-	c.credentials = credentialsSecret.Data[c.store.Auth.SecretRef.SecretAPIKey.Key]
-	if (c.credentials == nil) || (len(c.credentials) == 0) {
-		return fmt.Errorf(errMissingSAK)
-	}
+	c.credentials = []byte(apiKey)
 	return nil
 }
 

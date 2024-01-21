@@ -351,7 +351,7 @@ func makeAPIKeySecretStore(svcURL, svcUser, svcApikey, svcAccount string) *esv1b
 				Conjur: &esv1beta1.ConjurProvider{
 					URL: svcURL,
 					Auth: esv1beta1.ConjurAuth{
-						Apikey: &esv1beta1.ConjurApikey{
+						APIKey: &esv1beta1.ConjurAPIKey{
 							Account:   svcAccount,
 							UserRef:   uref,
 							APIKeyRef: aref,
@@ -465,7 +465,7 @@ func makeFakeCASource(kind, caData string) kclient.Object {
 				Namespace: "default",
 			},
 			Data: map[string][]byte{
-				"conjur-cert": []byte(caData),
+				"ca": []byte(caData),
 			},
 		}
 	}
