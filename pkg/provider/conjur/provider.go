@@ -27,6 +27,7 @@ import (
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -225,61 +226,61 @@ func (p *Client) Validate() (esv1beta1.ValidationResult, error) {
 }
 
 // ValidateStore validates the store.
-func (c *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+func (c *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	prov, err := util.GetConjurProvider(store)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if prov.URL == "" {
-		return fmt.Errorf("conjur URL cannot be empty")
+		return nil, fmt.Errorf("conjur URL cannot be empty")
 	}
 	if prov.Auth.APIKey != nil {
 		if prov.Auth.APIKey.Account == "" {
-			return fmt.Errorf("missing Auth.ApiKey.Account")
+			return nil, fmt.Errorf("missing Auth.ApiKey.Account")
 		}
 		if prov.Auth.APIKey.UserRef == nil {
-			return fmt.Errorf("missing Auth.Apikey.UserRef")
+			return nil, fmt.Errorf("missing Auth.Apikey.UserRef")
 		}
 		if prov.Auth.APIKey.APIKeyRef == nil {
-			return fmt.Errorf("missing Auth.Apikey.ApiKeyRef")
+			return nil, fmt.Errorf("missing Auth.Apikey.ApiKeyRef")
 		}
 		if err := utils.ValidateReferentSecretSelector(store, *prov.Auth.APIKey.UserRef); err != nil {
-			return fmt.Errorf("invalid Auth.Apikey.UserRef: %w", err)
+			return nil, fmt.Errorf("invalid Auth.Apikey.UserRef: %w", err)
 		}
 		if err := utils.ValidateReferentSecretSelector(store, *prov.Auth.APIKey.APIKeyRef); err != nil {
-			return fmt.Errorf("invalid Auth.Apikey.ApiKeyRef: %w", err)
+			return nil, fmt.Errorf("invalid Auth.Apikey.ApiKeyRef: %w", err)
 		}
 	}
 
 	if prov.Auth.Jwt != nil {
 		if prov.Auth.Jwt.Account == "" {
-			return fmt.Errorf("missing Auth.Jwt.Account")
+			return nil, fmt.Errorf("missing Auth.Jwt.Account")
 		}
 		if prov.Auth.Jwt.ServiceID == "" {
-			return fmt.Errorf("missing Auth.Jwt.ServiceID")
+			return nil, fmt.Errorf("missing Auth.Jwt.ServiceID")
 		}
 		if prov.Auth.Jwt.ServiceAccountRef == nil && prov.Auth.Jwt.SecretRef == nil {
-			return fmt.Errorf("must specify Auth.Jwt.SecretRef or Auth.Jwt.ServiceAccountRef")
+			return nil, fmt.Errorf("must specify Auth.Jwt.SecretRef or Auth.Jwt.ServiceAccountRef")
 		}
 		if prov.Auth.Jwt.SecretRef != nil {
 			if err := utils.ValidateReferentSecretSelector(store, *prov.Auth.Jwt.SecretRef); err != nil {
-				return fmt.Errorf("invalid Auth.Jwt.SecretRef: %w", err)
+				return nil, fmt.Errorf("invalid Auth.Jwt.SecretRef: %w", err)
 			}
 		}
 		if prov.Auth.Jwt.ServiceAccountRef != nil {
 			if err := utils.ValidateReferentServiceAccountSelector(store, *prov.Auth.Jwt.ServiceAccountRef); err != nil {
-				return fmt.Errorf("invalid Auth.Jwt.ServiceAccountRef: %w", err)
+				return nil, fmt.Errorf("invalid Auth.Jwt.ServiceAccountRef: %w", err)
 			}
 		}
 	}
 
 	// At least one auth must be configured
 	if prov.Auth.APIKey == nil && prov.Auth.Jwt == nil {
-		return fmt.Errorf("missing Auth.* configuration")
+		return nil, fmt.Errorf("missing Auth.* configuration")
 	}
 
-	return nil
+	return nil, nil
 }
 
 // Capabilities returns the provider Capabilities (Read, Write, ReadWrite).

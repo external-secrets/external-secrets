@@ -46,6 +46,7 @@ import (
 	pointer "k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
@@ -190,39 +191,39 @@ func getProvider(store esv1beta1.GenericStore) (*esv1beta1.AzureKVProvider, erro
 	return spc.Provider.AzureKV, nil
 }
 
-func (a *Azure) ValidateStore(store esv1beta1.GenericStore) error {
+func (a *Azure) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
-		return fmt.Errorf(errInvalidStore)
+		return nil, fmt.Errorf(errInvalidStore)
 	}
 	spc := store.GetSpec()
 	if spc == nil {
-		return fmt.Errorf(errInvalidStoreSpec)
+		return nil, fmt.Errorf(errInvalidStoreSpec)
 	}
 	if spc.Provider == nil {
-		return fmt.Errorf(errInvalidStoreProv)
+		return nil, fmt.Errorf(errInvalidStoreProv)
 	}
 	p := spc.Provider.AzureKV
 	if p == nil {
-		return fmt.Errorf(errInvalidAzureProv)
+		return nil, fmt.Errorf(errInvalidAzureProv)
 	}
 	if p.AuthSecretRef != nil {
 		if p.AuthSecretRef.ClientID != nil {
 			if err := utils.ValidateReferentSecretSelector(store, *p.AuthSecretRef.ClientID); err != nil {
-				return fmt.Errorf(errInvalidSecRefClientID, err)
+				return nil, fmt.Errorf(errInvalidSecRefClientID, err)
 			}
 		}
 		if p.AuthSecretRef.ClientSecret != nil {
 			if err := utils.ValidateReferentSecretSelector(store, *p.AuthSecretRef.ClientSecret); err != nil {
-				return fmt.Errorf(errInvalidSecRefClientSecret, err)
+				return nil, fmt.Errorf(errInvalidSecRefClientSecret, err)
 			}
 		}
 	}
 	if p.ServiceAccountRef != nil {
 		if err := utils.ValidateReferentServiceAccountSelector(store, *p.ServiceAccountRef); err != nil {
-			return fmt.Errorf(errInvalidSARef, err)
+			return nil, fmt.Errorf(errInvalidSARef, err)
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func canDelete(tags map[string]*string, err error) (bool, error) {

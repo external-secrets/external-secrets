@@ -20,6 +20,7 @@ import (
 	ksm "github.com/keeper-security/secrets-manager-go/core"
 	"github.com/keeper-security/secrets-manager-go/core/logger"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -82,32 +83,32 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return client, nil
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
-		return fmt.Errorf(errKeeperSecurityStore, store)
+		return nil, fmt.Errorf(errKeeperSecurityStore, store)
 	}
 	spc := store.GetSpec()
 	if spc == nil {
-		return fmt.Errorf(errKeeperSecurityNilSpec)
+		return nil, fmt.Errorf(errKeeperSecurityNilSpec)
 	}
 	if spc.Provider == nil {
-		return fmt.Errorf(errKeeperSecurityNilSpecProvider)
+		return nil, fmt.Errorf(errKeeperSecurityNilSpecProvider)
 	}
 	if spc.Provider.KeeperSecurity == nil {
-		return fmt.Errorf(errKeeperSecurityNilSpecProviderKeeperSecurity)
+		return nil, fmt.Errorf(errKeeperSecurityNilSpecProviderKeeperSecurity)
 	}
 
 	// check mandatory fields
 	config := spc.Provider.KeeperSecurity
 
 	if err := utils.ValidateSecretSelector(store, config.Auth); err != nil {
-		return fmt.Errorf(errKeeperSecurityStoreMissingAuth)
+		return nil, fmt.Errorf(errKeeperSecurityStoreMissingAuth)
 	}
 	if config.FolderID == "" {
-		return fmt.Errorf(errKeeperSecurityStoreMissingFolderID)
+		return nil, fmt.Errorf(errKeeperSecurityStoreMissingFolderID)
 	}
 
-	return nil
+	return nil, nil
 }
 
 func getKeeperSecurityAuth(ctx context.Context, store *esv1beta1.KeeperSecurityProvider, kube kclient.Client, storeKind, namespace string) (string, error) {

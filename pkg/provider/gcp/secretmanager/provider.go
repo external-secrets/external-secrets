@@ -22,6 +22,7 @@ import (
 	"golang.org/x/oauth2"
 	"google.golang.org/api/option"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -109,32 +110,32 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return client, nil
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
-		return fmt.Errorf(errInvalidStore)
+		return nil, fmt.Errorf(errInvalidStore)
 	}
 	spc := store.GetSpec()
 	if spc == nil {
-		return fmt.Errorf(errInvalidStoreSpec)
+		return nil, fmt.Errorf(errInvalidStoreSpec)
 	}
 	if spc.Provider == nil {
-		return fmt.Errorf(errInvalidStoreProv)
+		return nil, fmt.Errorf(errInvalidStoreProv)
 	}
 	g := spc.Provider.GCPSM
 	if p == nil {
-		return fmt.Errorf(errInvalidGCPProv)
+		return nil, fmt.Errorf(errInvalidGCPProv)
 	}
 	if g.Auth.SecretRef != nil {
 		if err := utils.ValidateReferentSecretSelector(store, g.Auth.SecretRef.SecretAccessKey); err != nil {
-			return fmt.Errorf(errInvalidAuthSecretRef, err)
+			return nil, fmt.Errorf(errInvalidAuthSecretRef, err)
 		}
 	}
 	if g.Auth.WorkloadIdentity != nil {
 		if err := utils.ValidateReferentServiceAccountSelector(store, g.Auth.WorkloadIdentity.ServiceAccountRef); err != nil {
-			return fmt.Errorf(errInvalidWISARef, err)
+			return nil, fmt.Errorf(errInvalidWISARef, err)
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func clusterProjectID(spec *esv1beta1.SecretStoreSpec) (string, error) {
