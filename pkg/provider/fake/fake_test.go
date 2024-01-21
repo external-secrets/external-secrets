@@ -56,24 +56,24 @@ func TestValidateStore(t *testing.T) {
 		},
 	}
 	// empty data must not error
-	err := p.ValidateStore(store)
+	_, err := p.ValidateStore(store)
 	gomega.Expect(err).To(gomega.BeNil())
 	// missing key in data
 	data := esv1beta1.FakeProviderData{}
 	data.Version = "v1"
 	store.Spec.Provider.Fake.Data = []esv1beta1.FakeProviderData{data}
-	err = p.ValidateStore(store)
+	_, err = p.ValidateStore(store)
 	gomega.Expect(err).To(gomega.BeEquivalentTo(fmt.Errorf(errMissingKeyField, 0)))
 	// missing values in data
 	data.Key = "/foo"
 	store.Spec.Provider.Fake.Data = []esv1beta1.FakeProviderData{data}
-	err = p.ValidateStore(store)
+	_, err = p.ValidateStore(store)
 	gomega.Expect(err).To(gomega.BeEquivalentTo(fmt.Errorf(errMissingValueField, 0)))
 	// spec ok
 	data.Value = "bar"
 	data.ValueMap = map[string]string{"foo": "bar"}
 	store.Spec.Provider.Fake.Data = []esv1beta1.FakeProviderData{data}
-	err = p.ValidateStore(store)
+	_, err = p.ValidateStore(store)
 	gomega.Expect(err).To(gomega.BeNil())
 }
 func TestClose(t *testing.T) {

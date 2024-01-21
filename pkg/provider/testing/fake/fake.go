@@ -19,6 +19,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
@@ -118,8 +119,8 @@ func (v *Client) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func (v *Client) ValidateStore(_ esv1beta1.GenericStore) error {
-	return nil
+func (v *Client) ValidateStore(_ esv1beta1.GenericStore) (admission.Warnings, error) {
+	return nil, nil
 }
 
 // WithGetSecretMap wraps the secret data map returned by this fake provider.

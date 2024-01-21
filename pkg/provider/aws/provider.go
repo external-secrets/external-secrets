@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	awsauth "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
@@ -59,31 +60,31 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return newClient(ctx, store, kube, namespace, awsauth.DefaultSTSProvider)
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	prov, err := util.GetAWSProvider(store)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	err = validateRegion(prov)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	err = validateSecretsManagerConfig(prov)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// case: static credentials
 	if prov.Auth.SecretRef != nil {
 		if err := utils.ValidateReferentSecretSelector(store, prov.Auth.SecretRef.AccessKeyID); err != nil {
-			return fmt.Errorf("invalid Auth.SecretRef.AccessKeyID: %w", err)
+			return nil, fmt.Errorf("invalid Auth.SecretRef.AccessKeyID: %w", err)
 		}
 		if err := utils.ValidateReferentSecretSelector(store, prov.Auth.SecretRef.SecretAccessKey); err != nil {
-			return fmt.Errorf("invalid Auth.SecretRef.SecretAccessKey: %w", err)
+			return nil, fmt.Errorf("invalid Auth.SecretRef.SecretAccessKey: %w", err)
 		}
 		if prov.Auth.SecretRef.SessionToken != nil {
 			if err := utils.ValidateReferentSecretSelector(store, *prov.Auth.SecretRef.SessionToken); err != nil {
-				return fmt.Errorf("invalid Auth.SecretRef.SessionToken: %w", err)
+				return nil, fmt.Errorf("invalid Auth.SecretRef.SessionToken: %w", err)
 			}
 		}
 	}
@@ -91,11 +92,11 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	// case: jwt credentials
 	if prov.Auth.JWTAuth != nil && prov.Auth.JWTAuth.ServiceAccountRef != nil {
 		if err := utils.ValidateReferentServiceAccountSelector(store, *prov.Auth.JWTAuth.ServiceAccountRef); err != nil {
-			return fmt.Errorf("invalid Auth.JWT.ServiceAccountRef: %w", err)
+			return nil, fmt.Errorf("invalid Auth.JWT.ServiceAccountRef: %w", err)
 		}
 	}
 
-	return nil
+	return nil, nil
 }
 
 func validateRegion(prov *esv1beta1.AWSProvider) error {

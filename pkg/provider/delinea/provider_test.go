@@ -153,7 +153,7 @@ func TestValidateStore(t *testing.T) {
 				},
 			}
 			p := &Provider{}
-			got := p.ValidateStore(&s)
+			_, got := p.ValidateStore(&s)
 			assert.Equal(t, tc.want, got)
 		})
 	}
@@ -178,7 +178,7 @@ func TestValidateStoreBailsOnUnexpectedStore(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			p := &Provider{}
-			got := p.ValidateStore(tc.store)
+			_, got := p.ValidateStore(tc.store)
 			assert.Equal(t, tc.want, got)
 		})
 	}
