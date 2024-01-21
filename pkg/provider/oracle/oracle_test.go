@@ -440,7 +440,7 @@ func TestVaultManagementService_NewClient(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: `could not fetch SecretAccessKey secret: secrets "non-existing-secret"`,
+			expectedErr: `cannot get Kubernetes secret "non-existing-secret": secrets "non-existing-secret" not found`,
 		},
 		{
 			desc: "invalid retry interval",

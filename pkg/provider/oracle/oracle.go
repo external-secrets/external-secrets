@@ -32,7 +32,6 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/vault"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -40,23 +39,23 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
-	errOracleClient                          = "cannot setup new oracle client: %w"
-	errORACLECredSecretName                  = "invalid oracle SecretStore resource: missing oracle APIKey"
-	errUninitalizedOracleProvider            = "provider oracle is not initialized"
-	errInvalidClusterStoreMissingSKNamespace = "invalid ClusterStore, missing namespace"
-	errFetchSAKSecret                        = "could not fetch SecretAccessKey secret: %w"
-	errMissingPK                             = "missing PrivateKey"
-	errMissingUser                           = "missing User ID"
-	errMissingTenancy                        = "missing Tenancy ID"
-	errMissingRegion                         = "missing Region"
-	errMissingFingerprint                    = "missing Fingerprint"
-	errMissingVault                          = "missing Vault"
-	errJSONSecretUnmarshal                   = "unable to unmarshal secret: %w"
-	errMissingKey                            = "missing Key in secret: %s"
-	errUnexpectedContent                     = "unexpected secret bundle content"
+	errOracleClient               = "cannot setup new oracle client: %w"
+	errORACLECredSecretName       = "invalid oracle SecretStore resource: missing oracle APIKey"
+	errUninitalizedOracleProvider = "provider oracle is not initialized"
+	errFetchSAKSecret             = "could not fetch SecretAccessKey secret: %w"
+	errMissingPK                  = "missing PrivateKey"
+	errMissingUser                = "missing User ID"
+	errMissingTenancy             = "missing Tenancy ID"
+	errMissingRegion              = "missing Region"
+	errMissingFingerprint         = "missing Fingerprint"
+	errMissingVault               = "missing Vault"
+	errJSONSecretUnmarshal        = "unable to unmarshal secret: %w"
+	errMissingKey                 = "missing Key in secret: %s"
+	errUnexpectedContent          = "unexpected secret bundle content"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -398,27 +397,17 @@ func getSecretData(ctx context.Context, kube kclient.Client, namespace, storeKin
 	if secretRef.Name == "" {
 		return "", fmt.Errorf(errORACLECredSecretName)
 	}
-
-	objectKey := types.NamespacedName{
-		Name:      secretRef.Name,
-		Namespace: namespace,
-	}
-
-	// only ClusterStore is allowed to set namespace (and then it's required)
-	if storeKind == esv1beta1.ClusterSecretStoreKind {
-		if secretRef.Namespace == nil {
-			return "", fmt.Errorf(errInvalidClusterStoreMissingSKNamespace)
-		}
-		objectKey.Namespace = *secretRef.Namespace
-	}
-
-	secret := corev1.Secret{}
-	err := kube.Get(ctx, objectKey, &secret)
+	secret, err := resolvers.SecretKeyRef(
+		ctx,
+		kube,
+		storeKind,
+		namespace,
+		&secretRef,
+	)
 	if err != nil {
 		return "", fmt.Errorf(errFetchSAKSecret, err)
 	}
-
-	return string(secret.Data[secretRef.Key]), nil
+	return secret, nil
 }
 
 func getUserAuthConfigurationProvider(ctx context.Context, kube kclient.Client, store *esv1beta1.OracleProvider, namespace, storeKind, region string) (common.ConfigurationProvider, error) {

@@ -332,7 +332,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				kube: clientfake.NewClientBuilder().Build(),
 			},
 			want: want{
-				err: fmt.Errorf(errGetKubeSecret, "vault-secret", "default", errors.New("secrets \"vault-secret\" not found")),
+				err: fmt.Errorf(`cannot get Kubernetes secret "vault-secret": %w`, errors.New(`secrets "vault-secret" not found`)),
 			},
 		},
 		"SuccessfulVaultStoreWithCertAuth": {
