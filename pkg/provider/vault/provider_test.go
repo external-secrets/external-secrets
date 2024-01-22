@@ -24,7 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	pointer "k8s.io/utils/ptr"
+	"k8s.io/utils/ptr"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -208,6 +208,22 @@ func makeSecretStore(tweaks ...secretStoreTweakFn) *esv1beta1.SecretStore {
 	return store
 }
 
+func makeClusterSecretStore(tweaks ...secretStoreTweakFn) *esv1beta1.ClusterSecretStore {
+	store := makeValidSecretStore()
+
+	for _, fn := range tweaks {
+		fn(store)
+	}
+
+	return &esv1beta1.ClusterSecretStore{
+		TypeMeta: metav1.TypeMeta{
+			Kind: esv1beta1.ClusterSecretStoreKind,
+		},
+		ObjectMeta: store.ObjectMeta,
+		Spec:       store.Spec,
+	}
+}
+
 type args struct {
 	newClientFunc func(c *vault.Config) (util.Client, error)
 	store         esv1beta1.GenericStore
@@ -251,8 +267,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			args: args{
 				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
 					s.Spec.RetrySettings = &esv1beta1.SecretStoreRetrySettings{
-						MaxRetries:    pointer.To(int32(3)),
-						RetryInterval: pointer.To("not-an-interval"),
+						MaxRetries:    ptr.To(int32(3)),
+						RetryInterval: ptr.To("not-an-interval"),
 					}
 				}),
 			},
@@ -265,8 +281,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			args: args{
 				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
 					s.Spec.RetrySettings = &esv1beta1.SecretStoreRetrySettings{
-						MaxRetries:    pointer.To(int32(3)),
-						RetryInterval: pointer.To("10m"),
+						MaxRetries:    ptr.To(int32(3)),
+						RetryInterval: ptr.To("10m"),
 					}
 				}),
 				ns:            "default",
@@ -578,6 +594,94 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				err: nil,
 			},
 		},
+		"SuccessfulVaultStoreWithSecretRef": {
+			reason: "Should return a Vault provider with secret ref auth",
+			args: args{
+				store: makeClusterSecretStore(func(s *esv1beta1.SecretStore) {
+					s.Spec.Provider.Vault.Auth.Kubernetes = nil
+					s.Spec.Provider.Vault.Auth.TokenSecretRef = &esmeta.SecretKeySelector{
+						Name:      "vault-token",
+						Namespace: ptr.To("default"),
+						Key:       "token",
+					}
+				}),
+				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "vault-token",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{
+						"token": []byte("token"),
+					},
+				}).Build(),
+				// no need to mock the secret as it is not used
+				newClientFunc: fake.ClientWithLoginMock,
+			},
+			want: want{},
+		},
+		"SuccessfulVaultStoreWithApproleRef": {
+			reason: "Should return a Vault provider with approle auth",
+			args: args{
+				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
+					s.Spec.Provider.Vault.Auth.Kubernetes = nil
+					s.Spec.Provider.Vault.Auth.AppRole = &esv1beta1.VaultAppRole{
+						SecretRef: esmeta.SecretKeySelector{
+							Name: "vault-secret-id",
+							Key:  "secret-id",
+						},
+						RoleRef: &esmeta.SecretKeySelector{
+							Name: "vault-secret-id",
+							Key:  "approle",
+						},
+					}
+				}),
+				ns: "default",
+				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "vault-secret-id",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{
+						"secret-id": []byte("myid"),
+						"approle":   []byte("myrole"),
+					},
+				}).Build(),
+				// no need to mock the secret as it is not used
+				newClientFunc: fake.ClientWithLoginMock,
+			},
+			want: want{},
+		},
+		"SuccessfulVaultStoreWithSecretRefAndReferentSpec": {
+			reason: "Should return a Vault provider with secret ref auth",
+			args: args{
+				store: makeClusterSecretStore(func(s *esv1beta1.SecretStore) {
+					s.Spec.Provider.Vault.Auth.TokenSecretRef = &esmeta.SecretKeySelector{
+						Name: "vault-token",
+						Key:  "token",
+					}
+				}),
+				// no need to mock the secret as it is not used
+				newClientFunc: fake.ClientWithLoginMock,
+			},
+			want: want{},
+		},
+		"SuccessfulVaultStoreWithJwtAuthAndReferentSpec": {
+			reason: "Should return a Vault provider with jwt auth",
+			args: args{
+				store: makeClusterSecretStore(func(s *esv1beta1.SecretStore) {
+					s.Spec.Provider.Vault.Auth.Kubernetes = nil
+					s.Spec.Provider.Vault.Auth.Jwt = &esv1beta1.VaultJwtAuth{
+						Role: "test-role",
+						SecretRef: &esmeta.SecretKeySelector{
+							Name: "vault-token",
+						},
+					}
+				}),
+				// no need to mock the secret as it is not used
+				newClientFunc: fake.ClientWithLoginMock,
+			},
+			want: want{},
+		},
 	}
 
 	for name, tc := range cases {
@@ -588,13 +692,13 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 }
 
 func vaultTest(t *testing.T, _ string, tc testCase) {
-	conn := &Provider{
+	prov := &Provider{
 		NewVaultClient: tc.args.newClientFunc,
 	}
 	if tc.args.newClientFunc == nil {
-		conn.NewVaultClient = NewVaultClient
+		prov.NewVaultClient = NewVaultClient
 	}
-	_, err := conn.newClient(context.Background(), tc.args.store, tc.args.kube, tc.args.corev1, tc.args.ns)
+	_, err := prov.newClient(context.Background(), tc.args.store, tc.args.kube, tc.args.corev1, tc.args.ns)
 	if diff := cmp.Diff(tc.want.err, err, EquateErrors()); diff != "" {
 		t.Errorf("\n%s\nvault.New(...): -want error, +got error:\n%s", tc.reason, diff)
 	}

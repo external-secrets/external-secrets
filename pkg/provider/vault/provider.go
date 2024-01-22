@@ -32,6 +32,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/cache"
 	"github.com/external-secrets/external-secrets/pkg/feature"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 var (
@@ -97,7 +98,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 }
 
 func (p *Provider) NewGeneratorClient(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, namespace string) (util.Client, error) {
-	vStore, cfg, err := p.prepareConfig(ctx, kube, corev1, vaultSpec, nil, namespace, "Generator")
+	vStore, cfg, err := p.prepareConfig(ctx, kube, corev1, vaultSpec, nil, namespace, resolvers.EmptyStoreKind)
 	if err != nil {
 		return nil, err
 	}
