@@ -11,12 +11,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM alpine:3.18@sha256:34871e7290500828b39e22294660bee86d966bc0017544e848dd9a255cdf59e0
-COPY requirements.txt /
+FROM alpine:3.19@sha256:51b67269f354137895d43f3b3d810bfacd3945438e94dc5ac55fdac340352f48
 RUN apk add -U --no-cache \
     python3 \
     python3-dev \
-    py3-pip==23.1.2-r0 \
+    py3-pip \
     musl-dev \
     git \
     openssh \
@@ -24,7 +23,14 @@ RUN apk add -U --no-cache \
     bash \
     gcc \
     diffutils
-RUN pip3 install -r /requirements.txt
+
+ENV PATH=$PATH:/.venv/bin
+COPY requirements.txt /
+RUN python3 -m venv .venv && \
+    source .venv/bin/activate && \
+    pip3 install --upgrade pip && \
+    pip3 install -r /requirements.txt
+
 # Disable the top-level directory owner check
 # https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9
 RUN git config --system --add safe.directory '*'
