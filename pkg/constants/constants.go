@@ -94,7 +94,7 @@ const (
 	CallAKEYLESSSMPutSecretValue        = "PutSecretValue"
 	CallAKEYLESSSMListSecrets           = "ListSecrets"
 	CallAKEYLESSSMGetRotatedSecretValue = "GetRotatedSecretValue"
-	CallAKEYLESSSMGetCertificate 		= "GetCertificate"
+	CallAKEYLESSSMGetCertificateValue 	= "GetCertificateValue"
 	CallAKEYLESSSMGetDynamicSecretValue = "GetDynamicSecretValue"
 	CallAKEYLESSSMGenerateSAToken       = "GenerateServiceAccountToken"
 

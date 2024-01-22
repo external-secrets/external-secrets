@@ -143,7 +143,7 @@ func (a *akeylessBase) GetCertificate(ctx context.Context, certificateName, toke
 	}
 
 	gcvOut, res, err := a.RestAPI.GetCertificateValue(ctx).Body(body).Execute()
-	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetCertificate, err)
+	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetCertificateValue, err)
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return "", fmt.Errorf("can't get certificate value: %v", string(apiErr.Body()))
