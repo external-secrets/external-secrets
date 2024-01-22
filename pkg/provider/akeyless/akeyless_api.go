@@ -113,8 +113,8 @@ func (a *akeylessBase) DescribeItem(ctx context.Context, itemName, token string)
 	} else {
 		body.Token = &token
 	}
-	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMDescribeSecret, err)
 	gsvOut, res, err := a.RestAPI.DescribeItem(ctx).Body(body).Execute()
+	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMDescribeSecret, err)
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			var item *Item
