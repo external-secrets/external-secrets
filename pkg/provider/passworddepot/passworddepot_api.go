@@ -1,3 +1,16 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package passworddepot
 
 import (
@@ -62,9 +75,9 @@ type Entry struct {
 	Itemclass   string    `json:"itemclass"`
 }
 
-type PasswortDepotApi struct {
+type API struct {
 	client   HTTPClient
-	baseUrl  string
+	baseURL  string
 	hostPort string
 	secret   *AccessData
 	password string
@@ -103,15 +116,15 @@ var errSecretNotFound = errors.New("Secret not found")
 
 // load tls certificates
 
-func NewPasswortDepotApi(baseUrl, username, password, hostPort string) (*PasswortDepotApi, error) {
-	api := &PasswortDepotApi{
-		baseUrl:  baseUrl,
+func NewAPI(baseURL, username, password, hostPort string) (*API, error) {
+	api := &API{
+		baseURL:  baseURL,
 		hostPort: hostPort,
 		username: username,
 		password: password,
 	}
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{},
+		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12},
 	}
 
 	api.client = &http.Client{Transport: tr}
@@ -122,13 +135,13 @@ func NewPasswortDepotApi(baseUrl, username, password, hostPort string) (*Passwor
 	return api, nil
 }
 
-func (api *PasswortDepotApi) doAuthenticatedRequest(r *http.Request) (*http.Response, error) {
+func (api *API) doAuthenticatedRequest(r *http.Request) (*http.Response, error) {
 	r.Header.Add("access_token", api.secret.AccessToken)
 	r.Header.Add("client_id", api.secret.ClientID)
 
 	return api.client.Do(r)
 }
-func (api *PasswortDepotApi) getDatabaseFingerprint(database string) (string, error) {
+func (api *API) getDatabaseFingerprint(database string) (string, error) {
 	databases, err := api.ListDatabases()
 	if err != nil {
 		return "", errors.Wrap(err, "error: getting database list")
@@ -143,7 +156,7 @@ func (api *PasswortDepotApi) getDatabaseFingerprint(database string) (string, er
 	return "", errDBNotFound
 }
 
-func (api *PasswortDepotApi) getSecretFingerprint(databaseFingerprint, secretName string, folder string) (string, error) {
+func (api *API) getSecretFingerprint(databaseFingerprint, secretName, folder string) (string, error) {
 	secrets, err := api.ListSecrets(databaseFingerprint, folder)
 	if err != nil {
 		return "", errors.Wrap(err, "error: getting secrets list")
@@ -157,21 +170,19 @@ func (api *PasswortDepotApi) getSecretFingerprint(databaseFingerprint, secretNam
 			fingerprint = entry.Fingerprint
 			if len(parts) > 1 {
 				return api.getSecretFingerprint(databaseFingerprint, strings.Join(parts[1:], "."), fingerprint)
-			} else {
-				return fingerprint, nil
 			}
+			return fingerprint, nil
 		}
 	}
-
 	return "", errSecretNotFound
 }
 
-func (api *PasswortDepotApi) getEndpointUrl(endpoint string) string {
-	return fmt.Sprintf("https://%s:%s/v1.0/%s", api.baseUrl, api.hostPort, endpoint)
+func (api *API) getendpointURL(endpoint string) string {
+	return fmt.Sprintf("https://%s:%s/v1.0/%s", api.baseURL, api.hostPort, endpoint)
 }
 
-func (api *PasswortDepotApi) login() error {
-	loginRequest, err := http.NewRequest("GET", api.getEndpointUrl("login"), nil)
+func (api *API) login() error {
+	loginRequest, err := http.NewRequest("GET", api.getendpointURL("login"), http.NoBody)
 	if err != nil {
 		return errors.Wrap(err, "error creating request")
 	}
@@ -209,12 +220,12 @@ func (api *PasswortDepotApi) login() error {
 	return nil
 }
 
-func (api *PasswortDepotApi) ListSecrets(dbFingerprint string, folder string) (DatabaseEntries, error) {
-	endpointUrl := api.getEndpointUrl(fmt.Sprintf("list?db=%s", dbFingerprint))
+func (api *API) ListSecrets(dbFingerprint, folder string) (DatabaseEntries, error) {
+	endpointURL := api.getendpointURL(fmt.Sprintf("list?db=%s", dbFingerprint))
 	if folder != "" {
-		endpointUrl = fmt.Sprintf("%s&folder=%s", endpointUrl, folder)
+		endpointURL = fmt.Sprintf("%s&folder=%s", endpointURL, folder)
 	}
-	listSecrets, err := http.NewRequest("GET", endpointUrl, nil)
+	listSecrets, err := http.NewRequest("GET", endpointURL, http.NoBody)
 	if err != nil {
 		return DatabaseEntries{}, errors.Wrap(err, "error: creating secrets request")
 	}
@@ -238,8 +249,8 @@ func (api *PasswortDepotApi) ListSecrets(dbFingerprint string, folder string) (D
 	return dbEntries, err
 }
 
-func (api *PasswortDepotApi) ListDatabases() (Databases, error) {
-	listDBRequest, err := http.NewRequest("GET", api.getEndpointUrl("list"), nil)
+func (api *API) ListDatabases() (Databases, error) {
+	listDBRequest, err := http.NewRequest("GET", api.getendpointURL("list"), http.NoBody)
 	if err != nil {
 		return Databases{}, errors.Wrap(err, "error: creating db request")
 	}
@@ -267,7 +278,7 @@ func (api *PasswortDepotApi) ListDatabases() (Databases, error) {
 	return databases, nil
 }
 
-func (api *PasswortDepotApi) GetSecret(database, secretName string) (SecretEntry, error) {
+func (api *API) GetSecret(database, secretName string) (SecretEntry, error) {
 	dbFingerprint, err := api.getDatabaseFingerprint(database)
 	if err != nil {
 		return SecretEntry{}, errors.Wrap(err, "error: getting DB fingerprint")
@@ -277,7 +288,7 @@ func (api *PasswortDepotApi) GetSecret(database, secretName string) (SecretEntry
 	if err != nil {
 		return SecretEntry{}, errors.Wrap(err, "error: getting Secret fingerprint")
 	}
-	readSecretRequest, err := http.NewRequest("GET", api.getEndpointUrl(fmt.Sprintf("read?db=%s&entry=%s", dbFingerprint, secretFingerprint)), nil)
+	readSecretRequest, err := http.NewRequest("GET", api.getendpointURL(fmt.Sprintf("read?db=%s&entry=%s", dbFingerprint, secretFingerprint)), http.NoBody)
 	if err != nil {
 		return SecretEntry{}, errors.Wrap(err, "error: creating secrets request")
 	}

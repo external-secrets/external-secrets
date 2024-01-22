@@ -1,9 +1,22 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package passworddepot
 
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"reflect"
 	"testing"
@@ -42,7 +55,7 @@ var (
 	}
 )
 
-func TestPasswortDepotApi_ListDatabases(t *testing.T) {
+func TestPasswortDepotApiListDatabases(t *testing.T) {
 	type fields struct {
 		funcStack []func(req *http.Request) (*http.Response, error)
 	}
@@ -88,11 +101,11 @@ func TestPasswortDepotApi_ListDatabases(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			api := &PasswortDepotApi{
+			api := &API{
 				client: &fakepassworddepot.MockClient{
 					FuncStack: tt.fields.funcStack,
 				},
-				baseUrl:  "localhost",
+				baseURL:  "localhost",
 				hostPort: "8714",
 				password: "test",
 				username: "test",
@@ -113,7 +126,7 @@ func TestPasswortDepotApi_ListDatabases(t *testing.T) {
 	}
 }
 
-func TestPasswortDepotApi_GetSecret(t *testing.T) {
+func TestPasswortDepotApiGetSecret(t *testing.T) {
 	type fields struct {
 		funcStack []func(req *http.Request) (*http.Response, error)
 	}
@@ -233,11 +246,11 @@ func TestPasswortDepotApi_GetSecret(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			api := &PasswortDepotApi{
+			api := &API{
 				client: &fakepassworddepot.MockClient{
 					FuncStack: tt.fields.funcStack,
 				},
-				baseUrl:  "localhost",
+				baseURL:  "localhost",
 				hostPort: "8714",
 				password: "test",
 				username: "test",
@@ -269,7 +282,7 @@ func createResponder(payload interface{}, withMarshal bool) func(*http.Request) 
 		res := http.Response{
 			Status:     "OK",
 			StatusCode: http.StatusOK,
-			Body:       ioutil.NopCloser(bytes.NewReader(payloadBytes)),
+			Body:       io.NopCloser(bytes.NewReader(payloadBytes)),
 		}
 		return &res, nil
 	}

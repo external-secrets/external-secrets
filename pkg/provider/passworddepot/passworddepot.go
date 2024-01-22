@@ -47,11 +47,11 @@ type PasswordDepot struct {
 	database string
 }
 
-func (p *PasswordDepot) ValidateStore(store esv1beta1.GenericStore) error {
+func (p *PasswordDepot) ValidateStore(esv1beta1.GenericStore) error {
 	return nil
 }
 
-func (a *PasswordDepot) Capabilities() esv1beta1.SecretStoreCapabilities {
+func (p *PasswordDepot) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
 }
 
@@ -102,14 +102,13 @@ func NewPasswordDepotProvider() *PasswordDepot {
 }
 
 // Method on PasswordDepot Provider to set up client with credentials and populate projectID.
-func (g *PasswordDepot) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *PasswordDepot) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.PasswordDepot == nil {
 		return nil, fmt.Errorf("no store type or wrong store type")
 	}
 	storeSpecPasswordDepot := storeSpec.Provider.PasswordDepot
 
-	// TODO check if all members needed
 	cliStore := passwordDepotClient{
 		kube:      kube,
 		store:     storeSpecPasswordDepot,
@@ -123,39 +122,39 @@ func (g *PasswordDepot) NewClient(ctx context.Context, store esv1beta1.GenericSt
 	}
 
 	// Create a new PasswordDepot client using credentials and options
-	passworddepotClient, err := NewPasswortDepotApi(storeSpecPasswordDepot.Host, username, password, "8714")
+	passworddepotClient, err := NewAPI(storeSpecPasswordDepot.Host, username, password, "8714")
 	if err != nil {
 		return nil, err
 	}
 
-	g.client = passworddepotClient
-	g.database = storeSpecPasswordDepot.Database
+	p.client = passworddepotClient
+	p.database = storeSpecPasswordDepot.Database
 
-	return g, nil
+	return p, nil
 }
 
-func (g *PasswordDepot) Validate() (esv1beta1.ValidationResult, error) {
+func (p *PasswordDepot) Validate() (esv1beta1.ValidationResult, error) {
 	return 0, nil
 }
 
-func (g *PasswordDepot) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
+func (p *PasswordDepot) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (g *PasswordDepot) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (p *PasswordDepot) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, fmt.Errorf("GetAllSecrets not implemented")
 }
 
-func (g *PasswordDepot) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
+func (p *PasswordDepot) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (g *PasswordDepot) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	if utils.IsNil(g.client) {
+func (p *PasswordDepot) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	if utils.IsNil(p.client) {
 		return nil, fmt.Errorf(errUninitalizedPasswordDepotProvider)
 	}
 
-	data, err := g.client.GetSecret(g.database, ref.Key)
+	data, err := p.client.GetSecret(p.database, ref.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -168,8 +167,8 @@ func (g *PasswordDepot) GetSecret(ctx context.Context, ref esv1beta1.ExternalSec
 	return value, nil
 }
 
-func (g *PasswordDepot) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	data, err := g.client.GetSecret(g.database, ref.Key)
+func (p *PasswordDepot) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	data, err := p.client.GetSecret(p.database, ref.Key)
 	if err != nil {
 		return nil, fmt.Errorf("error getting secret %s: %w", ref.Key, err)
 	}
@@ -177,7 +176,7 @@ func (g *PasswordDepot) GetSecretMap(ctx context.Context, ref esv1beta1.External
 	return data.ToMap(), nil
 }
 
-func (g *PasswordDepot) Close(ctx context.Context) error {
+func (p *PasswordDepot) Close(_ context.Context) error {
 	return nil
 }
 
