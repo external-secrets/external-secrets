@@ -206,7 +206,7 @@ func (api *API) login() error {
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return errors.New(fmt.Sprintf("failed to authenticate with the given credentials: %d %s", resp.StatusCode, buf.String()))
+		return fmt.Errorf("failed to authenticate with the given credentials: %d %s", resp.StatusCode, buf.String())
 	}
 
 	var accessData AccessData
