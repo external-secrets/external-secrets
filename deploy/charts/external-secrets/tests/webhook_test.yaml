@@ -161,3 +161,33 @@ tests:
     templates:
       - validatingwebhook.yaml
       - crds/externalsecret.yaml
+  - it: should override metrics port
+    set:
+      webhook.metrics.listen.port: 8888
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].args[5]
+          value: "--metrics-addr=:8888"
+  - it: should override image flavour
+    set:
+      webhook.image.repository: ghcr.io/external-secrets/external-secrets
+      webhook.image.tag: v0.9.8
+      webhook.image.flavour: ubi-boringssl
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: ghcr.io/external-secrets/external-secrets:v0.9.8-ubi-boringssl
+  - it: should override image flavour
+    set:
+      webhook.image.repository: example.com/external-secrets/external-secrets
+      webhook.image.tag: v0.9.9-ubi
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: example.com/external-secrets/external-secrets:v0.9.9-ubi

@@ -27,12 +27,12 @@ type ConjurProvider struct {
 
 type ConjurAuth struct {
 	// +optional
-	Apikey *ConjurApikey `json:"apikey,omitempty"`
+	APIKey *ConjurAPIKey `json:"apikey,omitempty"`
 	// +optional
 	Jwt *ConjurJWT `json:"jwt,omitempty"`
 }
 
-type ConjurApikey struct {
+type ConjurAPIKey struct {
 	Account   string                    `json:"account"`
 	UserRef   *esmeta.SecretKeySelector `json:"userRef"`
 	APIKeyRef *esmeta.SecretKeySelector `json:"apiKeyRef"`

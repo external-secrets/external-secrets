@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package kubernetes
 
 import (
@@ -19,6 +20,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/tidwall/gjson"
@@ -52,7 +54,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 			m[metaLabels] = secret.Labels
 			m[metaAnnotations] = secret.Annotations
 
-			j, err := jsonMarshal(m)
+			j, err := utils.JSONMarshal(m)
 			if err != nil {
 				return nil, err
 			}
@@ -63,7 +65,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		for key, val := range secret.Data {
 			m[key] = string(val)
 		}
-		j, err := jsonMarshal(m)
+		j, err := utils.JSONMarshal(m)
 		if err != nil {
 			return nil, err
 		}
@@ -71,14 +73,6 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	}
 
 	return getSecret(secret, ref)
-}
-
-func jsonMarshal(t interface{}) ([]byte, error) {
-	buffer := &bytes.Buffer{}
-	encoder := json.NewEncoder(buffer)
-	encoder.SetEscapeHTML(false)
-	err := encoder.Encode(t)
-	return bytes.TrimRight(buffer.Bytes(), "\n"), err
 }
 
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
@@ -107,10 +101,10 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecre
 }
 
 func (c *Client) PushSecret(ctx context.Context, secret *v1.Secret, data esv1beta1.PushSecretData) error {
-	if data.GetProperty() == "" {
-		return fmt.Errorf("requires property in RemoteRef to push secret value")
+	if data.GetProperty() == "" && data.GetSecretKey() != "" {
+		return fmt.Errorf("requires property in RemoteRef to push secret value if secret key is defined")
 	}
-	value := secret.Data[data.GetSecretKey()]
+
 	extSecret, getErr := c.userSecretClient.Get(ctx, data.GetRemoteKey(), metav1.GetOptions{})
 	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesGetSecret, getErr)
 	if getErr != nil {
@@ -120,17 +114,55 @@ func (c *Client) PushSecret(ctx context.Context, secret *v1.Secret, data esv1bet
 			if secret.Type != "" {
 				typ = secret.Type
 			}
-			return c.createSecret(ctx, value, typ, data)
+
+			return c.createSecret(ctx, secret, typ, data)
 		}
 		return getErr
 	}
-	// return gracefully if data is already in sync
-	if v, ok := extSecret.Data[data.GetProperty()]; ok && bytes.Equal(v, value) {
+
+	// the whole secret was pushed to the provider
+	if data.GetSecretKey() == "" {
+		if data.GetProperty() != "" {
+			value, err := c.marshalData(secret)
+			if err != nil {
+				return err
+			}
+
+			if v, ok := extSecret.Data[data.GetProperty()]; ok && bytes.Equal(v, value) {
+				return nil
+			}
+
+			return c.updateProperty(ctx, extSecret, data, value)
+		}
+
+		if reflect.DeepEqual(extSecret.Data, secret.Data) {
+			return nil
+		}
+
+		return c.updateMap(ctx, extSecret, secret.Data)
+	}
+
+	// only a single property was pushed
+	if v, ok := extSecret.Data[data.GetProperty()]; ok && bytes.Equal(v, secret.Data[data.GetSecretKey()]) {
 		return nil
 	}
 
-	// otherwise update remote property
-	return c.updateProperty(ctx, extSecret, data, value)
+	return c.updateProperty(ctx, extSecret, data, secret.Data[data.GetSecretKey()])
+}
+
+func (c *Client) marshalData(secret *v1.Secret) ([]byte, error) {
+	values := make(map[string]string)
+	for k, v := range secret.Data {
+		values[k] = string(v)
+	}
+
+	// marshal
+	value, err := utils.JSONMarshal(values)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal secrets into a single property: %w", err)
+	}
+
+	return value, nil
 }
 
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
@@ -164,7 +196,7 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 }
 
 func getPropertyMap(key, property string, tmpMap map[string][]byte) (map[string][]byte, error) {
-	byteArr, err := jsonMarshal(tmpMap)
+	byteArr, err := utils.JSONMarshal(tmpMap)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +238,7 @@ func getMapFromValues(property, jsonStr string) (map[string][]byte, error) {
 			return nil, err
 		}
 		for k, v := range tmpMap {
-			b, err := jsonMarshal(v)
+			b, err := utils.JSONMarshal(v)
 			if err != nil {
 				return nil, err
 			}
@@ -220,11 +252,11 @@ func getMapFromValues(property, jsonStr string) (map[string][]byte, error) {
 func getSecretMetadata(secret *v1.Secret) (map[string][]byte, error) {
 	var err error
 	tmpMap := make(map[string][]byte)
-	tmpMap[metaLabels], err = jsonMarshal(secret.ObjectMeta.Labels)
+	tmpMap[metaLabels], err = utils.JSONMarshal(secret.ObjectMeta.Labels)
 	if err != nil {
 		return nil, err
 	}
-	tmpMap[metaAnnotations], err = jsonMarshal(secret.ObjectMeta.Annotations)
+	tmpMap[metaAnnotations], err = utils.JSONMarshal(secret.ObjectMeta.Annotations)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +287,7 @@ func (c *Client) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFin
 	}
 	data := make(map[string][]byte)
 	for _, secret := range secrets.Items {
-		jsonStr, err := jsonMarshal(convertMap(secret.Data))
+		jsonStr, err := utils.JSONMarshal(convertMap(secret.Data))
 		if err != nil {
 			return nil, err
 		}
@@ -279,7 +311,7 @@ func (c *Client) findByName(ctx context.Context, ref esv1beta1.ExternalSecretFin
 		if !matcher.MatchName(secret.Name) {
 			continue
 		}
-		jsonStr, err := jsonMarshal(convertMap(secret.Data))
+		jsonStr, err := utils.JSONMarshal(convertMap(secret.Data))
 		if err != nil {
 			return nil, err
 		}
@@ -288,7 +320,7 @@ func (c *Client) findByName(ctx context.Context, ref esv1beta1.ExternalSecretFin
 	return utils.ConvertKeys(ref.ConversionStrategy, data)
 }
 
-func (c Client) Close(_ context.Context) error {
+func (c *Client) Close(_ context.Context) error {
 	return nil
 }
 
@@ -300,15 +332,36 @@ func convertMap(in map[string][]byte) map[string]string {
 	return out
 }
 
-func (c *Client) createSecret(ctx context.Context, value []byte, typed v1.SecretType, remoteRef esv1beta1.PushSecretRemoteRef) error {
+func (c *Client) createSecret(ctx context.Context, secret *v1.Secret, typed v1.SecretType, remoteRef esv1beta1.PushSecretData) error {
+	data := make(map[string][]byte)
+
+	if remoteRef.GetProperty() != "" {
+		// set a specific remote key
+		if remoteRef.GetSecretKey() == "" {
+			value, err := c.marshalData(secret)
+			if err != nil {
+				return err
+			}
+
+			data[remoteRef.GetProperty()] = value
+		} else {
+			// push a specific secret key into a specific remote property
+			data[remoteRef.GetProperty()] = secret.Data[remoteRef.GetSecretKey()]
+		}
+	} else {
+		// push the whole secret as is using each key of the secret as a property in the created secret
+		data = secret.Data
+	}
+
 	s := v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      remoteRef.GetRemoteKey(),
 			Namespace: c.store.RemoteNamespace,
 		},
-		Data: map[string][]byte{remoteRef.GetProperty(): value},
+		Data: data,
 		Type: typed,
 	}
+
 	_, err := c.userSecretClient.Create(ctx, &s, metav1.CreateOptions{})
 	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesCreateSecret, err)
 	return err
@@ -334,15 +387,31 @@ func (c *Client) removeProperty(ctx context.Context, extSecret *v1.Secret, remot
 	return err
 }
 
+func (c *Client) updateMap(ctx context.Context, extSecret *v1.Secret, values map[string][]byte) error {
+	// update the existing map with values from the pushed secret but keep existing values in tack.
+	for k, v := range values {
+		extSecret.Data[k] = v
+	}
+
+	return c.updateSecret(ctx, extSecret)
+}
+
 func (c *Client) updateProperty(ctx context.Context, extSecret *v1.Secret, remoteRef esv1beta1.PushSecretRemoteRef, value []byte) error {
 	if extSecret.Data == nil {
 		extSecret.Data = make(map[string][]byte)
 	}
+
 	// otherwise update remote secret
 	extSecret.Data[remoteRef.GetProperty()] = value
-	_, uErr := c.userSecretClient.Update(ctx, extSecret, metav1.UpdateOptions{})
-	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesUpdateSecret, uErr)
-	return uErr
+
+	return c.updateSecret(ctx, extSecret)
+}
+
+func (c *Client) updateSecret(ctx context.Context, extSecret *v1.Secret) error {
+	_, err := c.userSecretClient.Update(ctx, extSecret, metav1.UpdateOptions{})
+	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesUpdateSecret, err)
+
+	return err
 }
 
 func getSecret(secret *v1.Secret, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
@@ -406,7 +475,7 @@ func getFromSecretMetadata(secret *v1.Secret, ref esv1beta1.ExternalSecretDataRe
 	}
 
 	if len(path) == 1 {
-		j, err := jsonMarshal(metadata)
+		j, err := utils.JSONMarshal(metadata)
 		if err != nil {
 			return nil, false, err
 		}

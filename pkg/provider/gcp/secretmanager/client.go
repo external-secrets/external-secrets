@@ -50,7 +50,6 @@ const (
 	errClientClose                  = "unable to close SecretManager client: %w"
 	errMissingStoreSpec             = "invalid: missing store spec"
 	errFetchSAKSecret               = "could not fetch SecretAccessKey secret: %w"
-	errMissingSAK                   = "missing SecretAccessKey"
 	errUnableProcessJSONCredentials = "failed to process the provided JSON credentials: %w"
 	errUnableCreateGCPSMClient      = "failed to create GCP secretmanager client: %w"
 	errUninitalizedGCPProvider      = "provider GCP is not initialized"
@@ -131,6 +130,10 @@ func parseError(err error) error {
 
 // PushSecret pushes a kubernetes secret key into gcp provider Secret.
 func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecretData esv1beta1.PushSecretData) error {
+	if pushSecretData.GetSecretKey() == "" {
+		return fmt.Errorf("pushing the whole secret is not yet implemented")
+	}
+
 	payload := secret.Data[pushSecretData.GetSecretKey()]
 	secretName := fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, pushSecretData.GetRemoteKey())
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
