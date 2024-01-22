@@ -17,7 +17,12 @@ theme:
       media: "(prefers-color-scheme: dark)"
       toggle:
         icon: material/brightness-4
-        name: Switch to light mode
+        name: Switch to light mode  
+  features:
+    - navigation.tabs
+    - navigation.indexes
+    - navigation.expand
+  custom_dir: ../../overrides
 markdown_extensions:
   - attr_list
   - pymdownx.highlight
