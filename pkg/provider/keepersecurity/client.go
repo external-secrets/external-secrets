@@ -71,14 +71,14 @@ type SecurityClient interface {
 }
 
 type Field struct {
-	Type  string   `json:"type"`
-	Value []string `json:"value"`
+	Type  string        `json:"type"`
+	Value []interface{} `json:"value"`
 }
 
 type CustomField struct {
-	Type  string   `json:"type"`
-	Label string   `json:"label"`
-	Value []string `json:"value"`
+	Type  string        `json:"type"`
+	Label string        `json:"label"`
+	Value []interface{} `json:"value"`
 }
 
 type File struct {
@@ -162,6 +162,10 @@ func (c *Client) Close(_ context.Context) error {
 }
 
 func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	if data.GetSecretKey() == "" {
+		return fmt.Errorf("pushing the whole secret is not yet implemented")
+	}
+
 	value := secret.Data[data.GetSecretKey()]
 	parts, err := c.buildSecretNameAndKey(data)
 	if err != nil {
@@ -397,10 +401,25 @@ func (s *Secret) getItems(ref esv1beta1.ExternalSecretDataRemoteRef) (map[string
 	return secretData, nil
 }
 
+func getFieldValue(value []interface{}) []byte {
+	if len(value) < 1 {
+		return []byte{}
+	} else if len(value) == 1 {
+		res, _ := json.Marshal(value[0])
+		if str, ok := value[0].(string); ok {
+			res = []byte(str)
+		}
+		return res
+	} else {
+		res, _ := json.Marshal(value)
+		return res
+	}
+}
+
 func (s *Secret) getField(key string) ([]byte, error) {
 	for _, field := range s.Fields {
 		if field.Type == key && field.Type != keeperSecurityFileRef && field.Type != keeperSecurityMfa && len(field.Value) > 0 {
-			return []byte(field.Value[0]), nil
+			return getFieldValue(field.Value), nil
 		}
 	}
 
@@ -411,7 +430,7 @@ func (s *Secret) getFields() map[string][]byte {
 	secretData := make(map[string][]byte)
 	for _, field := range s.Fields {
 		if len(field.Value) > 0 {
-			secretData[field.Type] = []byte(field.Value[0])
+			secretData[field.Type] = getFieldValue(field.Value)
 		}
 	}
 
@@ -421,7 +440,7 @@ func (s *Secret) getFields() map[string][]byte {
 func (s *Secret) getCustomField(key string) ([]byte, error) {
 	for _, field := range s.Custom {
 		if field.Label == key && len(field.Value) > 0 {
-			return []byte(field.Value[0]), nil
+			return getFieldValue(field.Value), nil
 		}
 	}
 
@@ -432,7 +451,7 @@ func (s *Secret) getCustomFields() map[string][]byte {
 	secretData := make(map[string][]byte)
 	for _, field := range s.Custom {
 		if len(field.Value) > 0 {
-			secretData[field.Label] = []byte(field.Value[0])
+			secretData[field.Label] = getFieldValue(field.Value)
 		}
 	}
 

@@ -25,6 +25,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -128,31 +129,18 @@ func (c *Client) serviceAccountToken(ctx context.Context, serviceAccountRef *esm
 	return []byte(tr.Status.Token), nil
 }
 
-func (c *Client) fetchSecretKey(ctx context.Context, key esmeta.SecretKeySelector) ([]byte, error) {
-	keySecret := &corev1.Secret{}
-	objectKey := types.NamespacedName{
-		Name:      key.Name,
-		Namespace: c.namespace,
-	}
-	// only ClusterStore is allowed to set namespace (and then it's required)
-	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
-		if key.Namespace == nil {
-			return nil, fmt.Errorf(errInvalidClusterStoreMissingNamespace)
-		}
-		objectKey.Namespace = *key.Namespace
-	}
-	err := c.ctrlClient.Get(ctx, objectKey, keySecret)
+func (c *Client) fetchSecretKey(ctx context.Context, ref esmeta.SecretKeySelector) ([]byte, error) {
+	secret, err := resolvers.SecretKeyRef(
+		ctx,
+		c.ctrlClient,
+		c.storeKind,
+		c.namespace,
+		&ref,
+	)
 	if err != nil {
-		return nil, fmt.Errorf(errFetchCredentials, err)
+		return nil, err
 	}
-	val, ok := keySecret.Data[key.Key]
-	if !ok {
-		return nil, fmt.Errorf(errMissingCredentials, key.Key)
-	}
-	if len(val) == 0 {
-		return nil, fmt.Errorf(errEmptyKey, key.Key)
-	}
-	return val, nil
+	return []byte(secret), nil
 }
 
 func (c *Client) fetchConfigMapKey(ctx context.Context, key esmeta.SecretKeySelector) ([]byte, error) {

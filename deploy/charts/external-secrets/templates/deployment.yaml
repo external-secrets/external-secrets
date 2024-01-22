@@ -45,7 +45,7 @@ spec:
           securityContext:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          image: {{ include "external-secrets.image" (dict "chartAppVersion" .Chart.AppVersion "image" .Values.image) | trim }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- if or (.Values.leaderElect) (.Values.scopedNamespace) (.Values.processClusterStore) (.Values.processClusterExternalSecret) (.Values.concurrent) (.Values.extraArgs) }}
           args:
@@ -65,9 +65,9 @@ spec:
             {{- if not .Values.processClusterExternalSecret }}
           - --enable-cluster-external-secret-reconciler=false
             {{- end }}
-            {{- if not .Values.processPushSecret }}
+          {{- end }}
+          {{- if not .Values.processPushSecret }}
           - --enable-push-secret-reconciler=false
-            {{- end }}
           {{- end }}
           {{- if .Values.controllerClass }}
           - --controller-class={{ .Values.controllerClass }}
@@ -86,8 +86,9 @@ spec:
             {{- end }}
           {{- end }}
           {{- end }}
+          - --metrics-addr=:{{ .Values.metrics.listen.port }}
           ports:
-            - containerPort: {{ .Values.prometheus.service.port }}
+            - containerPort: {{ .Values.metrics.listen.port }}
               protocol: TCP
               name: metrics
           {{- with .Values.extraEnv }}
@@ -131,5 +132,8 @@ spec:
       {{- end }}
       {{- if .Values.priorityClassName }}
       priorityClassName: {{ .Values.priorityClassName }}
+      {{- end }}
+      {{- if .Values.podSpecExtra }}
+      {{- toYaml .Values.podSpecExtra | nindent 6 }}
       {{- end }}
 {{- end }}

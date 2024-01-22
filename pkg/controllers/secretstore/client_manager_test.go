@@ -28,6 +28,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
@@ -331,8 +332,8 @@ func (f *WrapProvider) Capabilities() esv1beta1.SecretStoreCapabilities {
 }
 
 // ValidateStore checks if the provided store is valid.
-func (f *WrapProvider) ValidateStore(_ esv1beta1.GenericStore) error {
-	return nil
+func (f *WrapProvider) ValidateStore(_ esv1beta1.GenericStore) (admission.Warnings, error) {
+	return nil, nil
 }
 
 type MockFakeClient struct {

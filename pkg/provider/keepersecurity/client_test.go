@@ -33,14 +33,15 @@ const (
 	folderID            = "a8ekf031k"
 	validExistingRecord = "record0/login"
 	invalidRecord       = "record5/login"
-	outputRecord0       = "{\"title\":\"record0\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":null,\"files\":null}"
-	outputRecord1       = "{\"title\":\"record1\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":null,\"files\":null}"
-	outputRecord2       = "{\"title\":\"record2\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":null,\"files\":null}"
+	outputRecord0       = "{\"title\":\"record0\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":[{\"type\":\"host\",\"label\":\"host0\",\"value\":[{\"hostName\":\"mysql\",\"port\":\"3306\"}]}],\"files\":null}"
+	outputRecord1       = "{\"title\":\"record1\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":[{\"type\":\"host\",\"label\":\"host1\",\"value\":[{\"hostName\":\"mysql\",\"port\":\"3306\"}]}],\"files\":null}"
+	outputRecord2       = "{\"title\":\"record2\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":[{\"type\":\"host\",\"label\":\"host2\",\"value\":[{\"hostName\":\"mysql\",\"port\":\"3306\"}]}],\"files\":null}"
 	record0             = "record0"
 	record1             = "record1"
 	record2             = "record2"
 	LoginKey            = "login"
 	PasswordKey         = "password"
+	HostKeyFormat       = "host%d"
 	RecordNameFormat    = "record%d"
 )
 
@@ -412,8 +413,9 @@ func TestClientGetSecretMap(t *testing.T) {
 				},
 			},
 			want: map[string][]byte{
-				LoginKey:    []byte("foo"),
-				PasswordKey: []byte("bar"),
+				LoginKey:                      []byte("foo"),
+				PasswordKey:                   []byte("bar"),
+				fmt.Sprintf(HostKeyFormat, 0): []byte("{\"hostName\":\"mysql\",\"port\":\"3306\"}"),
 			},
 			wantErr: false,
 		},
@@ -650,7 +652,7 @@ func generateRecords() []*ksm.Record {
 				},
 			}
 		}
-		sec := fmt.Sprintf("{\"title\":\"record%d\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}]}", i)
+		sec := fmt.Sprintf("{\"title\":\"record%d\",\"type\":\"login\",\"fields\":[{\"type\":\"login\",\"value\":[\"foo\"]},{\"type\":\"password\",\"value\":[\"bar\"]}],\"custom\":[{\"type\":\"host\",\"label\":\"host%d\",\"value\":[{\"hostName\":\"mysql\",\"port\":\"3306\"}]}]}", i, i)
 		record.SetTitle(fmt.Sprintf(RecordNameFormat, i))
 		record.SetStandardFieldValue(LoginKey, "foo")
 		record.SetStandardFieldValue(PasswordKey, "bar")

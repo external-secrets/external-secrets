@@ -204,7 +204,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Role is a Role ARN which the SecretManager provider will assume</p>
+<p>Role is a Role ARN which the provider will assume</p>
 </td>
 </tr>
 <tr>
@@ -227,7 +227,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>AdditionalRoles is a chained list of Role ARNs which the SecretManager provider will sequentially assume before assuming Role</p>
+<p>AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming the Role</p>
 </td>
 </tr>
 <tr>
@@ -257,6 +257,20 @@ string
 </tr>
 <tr>
 <td>
+<code>secretsManager</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretsManager">
+SecretsManager
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretsManager defines how the provider behaves when interacting with AWS SecretsManager</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>transitiveTagKeys</code></br>
 <em>
 []*string
@@ -264,7 +278,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>AWS STS assume role transitive session tags. Required when multiple rules are used with SecretStore</p>
+<p>AWS STS assume role transitive session tags. Required when multiple rules are used with the provider</p>
 </td>
 </tr>
 </tbody>
@@ -286,11 +300,11 @@ string
 </tr>
 </thead>
 <tbody><tr><td><p>&#34;ParameterStore&#34;</p></td>
-<td><p>AWSServiceParameterStore is the AWS SystemsManager ParameterStore.
+<td><p>AWSServiceParameterStore is the AWS SystemsManager ParameterStore service.
 see: <a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html">https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html</a></p>
 </td>
 </tr><tr><td><p>&#34;SecretsManager&#34;</p></td>
-<td><p>AWSServiceSecretsManager is the AWS SecretsManager.
+<td><p>AWSServiceSecretsManager is the AWS SecretsManager service.
 see: <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html">https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html</a></p>
 </td>
 </tr></tbody>
@@ -1773,7 +1787,7 @@ Kubernetes meta/v1.LabelSelector
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1beta1.ConjurApikey">ConjurApikey
+<h3 id="external-secrets.io/v1beta1.ConjurAPIKey">ConjurAPIKey
 </h3>
 <p>
 (<em>Appears on:</em>
@@ -1845,8 +1859,8 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <code>apikey</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.ConjurApikey">
-ConjurApikey
+<a href="#external-secrets.io/v1beta1.ConjurAPIKey">
+ConjurAPIKey
 </a>
 </em>
 </td>
@@ -2268,36 +2282,6 @@ string
 <td>
 <em>(Optional)</em>
 <p>Format enables the downloading of secrets as a file (string)</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1beta1.ExtermalSecretRewriteTransform">ExtermalSecretRewriteTransform
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretRewrite">ExternalSecretRewrite</a>)
-</p>
-<p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>template</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Used to define the template to apply on the secret name.
-<code>.value</code> will specify the secret name in the template.</p>
 </td>
 </tr>
 </tbody>
@@ -2982,8 +2966,8 @@ The resulting key will be the output of a regexp.ReplaceAll operation.</p>
 <td>
 <code>transform</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.ExtermalSecretRewriteTransform">
-ExtermalSecretRewriteTransform
+<a href="#external-secrets.io/v1beta1.ExternalSecretRewriteTransform">
+ExternalSecretRewriteTransform
 </a>
 </em>
 </td>
@@ -3031,6 +3015,36 @@ string
 </td>
 <td>
 <p>Used to define the target pattern of a ReplaceAll operation.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ExternalSecretRewriteTransform">ExternalSecretRewriteTransform
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretRewrite">ExternalSecretRewrite</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>template</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Used to define the template to apply on the secret name.
+<code>.value</code> will specify the secret name in the template.</p>
 </td>
 </tr>
 </tbody>
@@ -3578,6 +3592,7 @@ map[string]string
 </em>
 </td>
 <td>
+<p>Deprecated: ValueMap is deprecated and is intended to be removed in the future, use the <code>value</code> field instead.</p>
 </td>
 </tr>
 <tr>
@@ -5674,6 +5689,60 @@ Kubernetes meta/v1.Time
 <p>
 <p>SecretsClient provides access to secrets.</p>
 </p>
+<h3 id="external-secrets.io/v1beta1.SecretsManager">SecretsManager
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.AWSProvider">AWSProvider</a>)
+</p>
+<p>
+<p>SecretsManager defines how the provider behaves when interacting with AWS
+SecretsManager. Some of these settings are only applicable to controlling how
+secrets are deleted, and hence only apply to PushSecret (and only when
+deletionPolicy is set to Delete).</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>forceDeleteWithoutRecovery</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specifies whether to delete the secret without any recovery window. You
+can&rsquo;t use both this parameter and RecoveryWindowInDays in the same call.
+If you don&rsquo;t use either, then by default Secrets Manager uses a 30 day
+recovery window.
+see: <a href="https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-ForceDeleteWithoutRecovery">https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-ForceDeleteWithoutRecovery</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>recoveryWindowInDays</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The number of days from 7 to 30 that Secrets Manager waits before
+permanently deleting the secret. You can&rsquo;t use both this parameter and
+ForceDeleteWithoutRecovery in the same call. If you don&rsquo;t use either,
+then by default Secrets Manager uses a 30 day recovery window.
+see: <a href="https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays">https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays</a></p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.SenhaseguraAuth">SenhaseguraAuth
 </h3>
 <p>
@@ -6625,6 +6694,56 @@ authenticate with Vault using the Cert authentication method</p>
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.VaultClientTLS">VaultClientTLS
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.VaultProvider">VaultProvider</a>)
+</p>
+<p>
+<p>VaultClientTLS is the configuration used for client side related TLS communication,
+when the Vault server requires mutual authentication.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>certSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>CertSecretRef is a certificate added to the transport layer
+when communicating with the Vault server.
+If no key for the Secret is specified, external-secret will default to &lsquo;tls.crt&rsquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>keySecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>KeySecretRef to a key in a Secret resource containing client private key
+added to the transport layer when communicating with the Vault server.
+If no key for the Secret is specified, external-secret will default to &lsquo;tls.key&rsquo;.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.VaultIamAuth">VaultIamAuth
 </h3>
 <p>
@@ -7134,6 +7253,24 @@ More about namespaces can be found here <a href="https://www.vaultproject.io/doc
 if the Server URL is using HTTPS protocol. This parameter is ignored for
 plain HTTP protocol connection. If not set the system root certificates
 are used to validate the TLS connection.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tls</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.VaultClientTLS">
+VaultClientTLS
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The configuration used for client side related TLS communication, when the Vault server
+requires mutual authentication. Only used if the Server URL is using HTTPS protocol.
+This parameter is ignored for plain HTTP protocol connection.
+It&rsquo;s worth noting this configuration is different from the &ldquo;TLS certificates auth method&rdquo;,
+which is available under the <code>auth.cert</code> section.</p>
 </td>
 </tr>
 <tr>

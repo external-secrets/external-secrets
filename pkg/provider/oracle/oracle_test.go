@@ -308,7 +308,7 @@ func TestValidateStore(t *testing.T) {
 	}
 	p := VaultManagementService{}
 	for _, tc := range testCases {
-		err := p.ValidateStore(tc.store)
+		_, err := p.ValidateStore(tc.store)
 		if tc.err != nil && err != nil && err.Error() != tc.err.Error() {
 			t.Errorf("test failed! want %v, got %v", tc.err, err)
 		} else if tc.err == nil && err != nil {
@@ -440,7 +440,7 @@ func TestVaultManagementService_NewClient(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: `could not fetch SecretAccessKey secret: secrets "non-existing-secret"`,
+			expectedErr: `cannot get Kubernetes secret "non-existing-secret": secrets "non-existing-secret" not found`,
 		},
 		{
 			desc: "invalid retry interval",

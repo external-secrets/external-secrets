@@ -20,6 +20,7 @@ import (
 	"net/url"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	senhaseguraAuth "github.com/external-secrets/external-secrets/pkg/provider/senhasegura/auth"
@@ -70,8 +71,8 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 // Validate store using Validating webhook during secret store creating
 // Checks here are usually the best experience for the user, as the SecretStore will not be created until it is a 'valid' one.
 // https://github.com/external-secrets/external-secrets/pull/830#discussion_r833278518
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
-	return validateStore(store)
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+	return nil, validateStore(store)
 }
 
 func validateStore(store esv1beta1.GenericStore) error {

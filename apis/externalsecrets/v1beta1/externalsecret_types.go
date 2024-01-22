@@ -288,7 +288,7 @@ type ExternalSecretRewrite struct {
 	// Used to apply string transformation on the secrets.
 	// The resulting key will be the output of the template applied by the operation.
 	// +optional
-	Transform *ExtermalSecretRewriteTransform `json:"transform,omitempty"`
+	Transform *ExternalSecretRewriteTransform `json:"transform,omitempty"`
 }
 
 type ExternalSecretRewriteRegexp struct {
@@ -298,7 +298,7 @@ type ExternalSecretRewriteRegexp struct {
 	Target string `json:"target"`
 }
 
-type ExtermalSecretRewriteTransform struct {
+type ExternalSecretRewriteTransform struct {
 	// Used to define the template to apply on the secret name.
 	// `.value ` will specify the secret name in the template.
 	Template string `json:"template"`

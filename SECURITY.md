@@ -9,7 +9,7 @@
 ## Reporting security problems
 
 **DO NOT CREATE AN ISSUE** to report a security problem. Instead, please
-send an email to contact@external-secrets.io
+send an email to cncf-ExternalSecretsOp-maintainers@lists.cncf.io
 
 <a name="vulnerability-management"></a>
 ## Vulnerability Management Plans
@@ -20,3 +20,7 @@ We learn about critical software updates and security threats from these sources
 
 1. GitHub Security Alerts
 2. [Dependabot](https://dependabot.com/) Dependency Updates
+
+## Security Incident Response
+
+Please follow the guide [SECURITY_RESPONSE.md](SECURITY_RESPONSE.md).

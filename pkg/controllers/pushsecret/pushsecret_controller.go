@@ -41,16 +41,13 @@ import (
 )
 
 const (
-	errFailedGetSecret        = "could not get source secret"
-	errPatchStatus            = "error merging"
-	errGetSecretStore         = "could not get SecretStore %q, %w"
-	errGetClusterSecretStore  = "could not get ClusterSecretStore %q, %w"
-	errGetProviderFailed      = "could not start provider"
-	errGetSecretsClientFailed = "could not start secrets client"
-	errCloseStoreClient       = "error when calling provider close method"
-	errSetSecretFailed        = "could not write remote ref %v to target secretstore %v: %v"
-	errFailedSetSecret        = "set secret failed: %v"
-	pushSecretFinalizer       = "pushsecret.externalsecrets.io/finalizer"
+	errFailedGetSecret       = "could not get source secret"
+	errPatchStatus           = "error merging"
+	errGetSecretStore        = "could not get SecretStore %q, %w"
+	errGetClusterSecretStore = "could not get ClusterSecretStore %q, %w"
+	errSetSecretFailed       = "could not write remote ref %v to target secretstore %v: %v"
+	errFailedSetSecret       = "set secret failed: %v"
+	pushSecretFinalizer      = "pushsecret.externalsecrets.io/finalizer"
 )
 
 type Reconciler struct {
@@ -153,6 +150,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		return ctrl.Result{}, err
 	}
+
+	if err := r.applyTemplate(ctx, &ps, secret); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	syncedSecrets, err := r.PushSecretToProviders(ctx, secretStores, ps, secret, mgr)
 	if err != nil {
 		if errors.Is(err, locks.ErrConflict) {
@@ -280,14 +282,16 @@ func (r *Reconciler) PushSecretToProviders(ctx context.Context, stores map[esapi
 			return out, fmt.Errorf("could not get secrets client for store %v: %w", store.GetName(), err)
 		}
 		for _, data := range ps.Spec.Data {
-			if _, ok := secret.Data[data.Match.SecretKey]; !ok {
-				return out, fmt.Errorf("secret key %v does not exist", data.Match.SecretKey)
+			if data.Match.SecretKey != "" {
+				if _, ok := secret.Data[data.Match.SecretKey]; !ok {
+					return out, fmt.Errorf("secret key %v does not exist", data.Match.SecretKey)
+				}
 			}
 
-			err := secretClient.PushSecret(ctx, secret, data)
-			if err != nil {
+			if err := secretClient.PushSecret(ctx, secret, data); err != nil {
 				return out, fmt.Errorf(errSetSecretFailed, data.Match.SecretKey, store.GetName(), err)
 			}
+
 			out[storeKey][statusRef(data)] = data
 		}
 	}

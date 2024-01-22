@@ -18,15 +18,22 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/aws/session"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager/fake"
@@ -779,6 +786,7 @@ func TestDeleteSecret(t *testing.T) {
 	}
 	type args struct {
 		client               fakesm.Client
+		config               esv1beta1.SecretsManager
 		getSecretOutput      *awssm.GetSecretValueOutput
 		describeSecretOutput *awssm.DescribeSecretOutput
 		deleteSecretOutput   *awssm.DeleteSecretOutput
@@ -799,6 +807,7 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 
 				client:          fakeClient,
+				config:          esv1beta1.SecretsManager{},
 				getSecretOutput: &awssm.GetSecretValueOutput{},
 				describeSecretOutput: &awssm.DescribeSecretOutput{
 					Tags: []*awssm.Tag{&secretTag},
@@ -813,10 +822,34 @@ func TestDeleteSecret(t *testing.T) {
 			},
 			reason: "",
 		},
+		"Deletes Successfully with ForceDeleteWithoutRecovery": {
+			args: args{
+
+				client: fakeClient,
+				config: esv1beta1.SecretsManager{
+					ForceDeleteWithoutRecovery: true,
+				},
+				getSecretOutput: &awssm.GetSecretValueOutput{},
+				describeSecretOutput: &awssm.DescribeSecretOutput{
+					Tags: []*awssm.Tag{&secretTag},
+				},
+				deleteSecretOutput: &awssm.DeleteSecretOutput{
+					DeletionDate: aws.Time(time.Now()),
+				},
+				getSecretErr:      nil,
+				describeSecretErr: nil,
+				deleteSecretErr:   nil,
+			},
+			want: want{
+				err: nil,
+			},
+			reason: "",
+		},
 		"Not Managed by ESO": {
 			args: args{
 
 				client:          fakeClient,
+				config:          esv1beta1.SecretsManager{},
 				getSecretOutput: &awssm.GetSecretValueOutput{},
 				describeSecretOutput: &awssm.DescribeSecretOutput{
 					Tags: []*awssm.Tag{},
@@ -831,10 +864,54 @@ func TestDeleteSecret(t *testing.T) {
 			},
 			reason: "",
 		},
+		"Invalid Recovery Window": {
+			args: args{
+
+				client: fakesm.Client{},
+				config: esv1beta1.SecretsManager{
+					RecoveryWindowInDays: 1,
+				},
+				getSecretOutput: &awssm.GetSecretValueOutput{},
+				describeSecretOutput: &awssm.DescribeSecretOutput{
+					Tags: []*awssm.Tag{&secretTag},
+				},
+				deleteSecretOutput: &awssm.DeleteSecretOutput{},
+				getSecretErr:       nil,
+				describeSecretErr:  nil,
+				deleteSecretErr:    nil,
+			},
+			want: want{
+				err: errors.New("invalid DeleteSecretInput: RecoveryWindowInDays must be between 7 and 30 days"),
+			},
+			reason: "",
+		},
+		"RecoveryWindowInDays is supplied with ForceDeleteWithoutRecovery": {
+			args: args{
+
+				client: fakesm.Client{},
+				config: esv1beta1.SecretsManager{
+					RecoveryWindowInDays:       7,
+					ForceDeleteWithoutRecovery: true,
+				},
+				getSecretOutput: &awssm.GetSecretValueOutput{},
+				describeSecretOutput: &awssm.DescribeSecretOutput{
+					Tags: []*awssm.Tag{&secretTag},
+				},
+				deleteSecretOutput: &awssm.DeleteSecretOutput{},
+				getSecretErr:       nil,
+				describeSecretErr:  nil,
+				deleteSecretErr:    nil,
+			},
+			want: want{
+				err: errors.New("invalid DeleteSecretInput: ForceDeleteWithoutRecovery conflicts with RecoveryWindowInDays"),
+			},
+			reason: "",
+		},
 		"Failed to get Tags": {
 			args: args{
 
 				client:               fakeClient,
+				config:               esv1beta1.SecretsManager{},
 				getSecretOutput:      &awssm.GetSecretValueOutput{},
 				describeSecretOutput: nil,
 				deleteSecretOutput:   nil,
@@ -850,6 +927,7 @@ func TestDeleteSecret(t *testing.T) {
 		"Secret Not Found": {
 			args: args{
 				client:               fakeClient,
+				config:               esv1beta1.SecretsManager{},
 				getSecretOutput:      nil,
 				describeSecretOutput: nil,
 				deleteSecretOutput:   nil,
@@ -864,6 +942,7 @@ func TestDeleteSecret(t *testing.T) {
 		"Not expected AWS error": {
 			args: args{
 				client:               fakeClient,
+				config:               esv1beta1.SecretsManager{},
 				getSecretOutput:      nil,
 				describeSecretOutput: nil,
 				deleteSecretOutput:   nil,
@@ -878,6 +957,7 @@ func TestDeleteSecret(t *testing.T) {
 		"unexpected error": {
 			args: args{
 				client:               fakeClient,
+				config:               esv1beta1.SecretsManager{},
 				getSecretOutput:      nil,
 				describeSecretOutput: nil,
 				deleteSecretOutput:   nil,
@@ -895,21 +975,23 @@ func TestDeleteSecret(t *testing.T) {
 			ref := fake.PushSecretData{RemoteKey: "fake-key"}
 			sm := SecretsManager{
 				client: &tc.args.client,
+				config: &tc.args.config,
 			}
 			tc.args.client.GetSecretValueWithContextFn = fakesm.NewGetSecretValueWithContextFn(tc.args.getSecretOutput, tc.args.getSecretErr)
 			tc.args.client.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(tc.args.describeSecretOutput, tc.args.describeSecretErr)
 			tc.args.client.DeleteSecretWithContextFn = fakesm.NewDeleteSecretWithContextFn(tc.args.deleteSecretOutput, tc.args.deleteSecretErr)
 			err := sm.DeleteSecret(context.TODO(), ref)
+			t.Logf("DeleteSecret error: %v", err)
 
 			// Error nil XOR tc.want.err nil
 			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {
-				t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, err)
+				t.Errorf("\nTesting DeleteSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %v", name, tc.reason, tc.want.err, err)
 			}
 
 			// if errors are the same type but their contents do not match
 			if err != nil && tc.want.err != nil {
 				if !strings.Contains(err.Error(), tc.want.err.Error()) {
-					t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error got nil", name, tc.reason, tc.want.err)
+					t.Errorf("\nTesting DeleteSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error got nil", name, tc.reason, tc.want.err)
 				}
 			}
 		})
@@ -948,4 +1030,284 @@ func getTagSlice() []*awssm.Tag {
 			Value: &tagValue2,
 		},
 	}
+}
+func TestSecretsManagerGetAllSecrets(t *testing.T) {
+	ctx := context.Background()
+
+	errBoom := errors.New("boom")
+	secretName := "my-secret"
+	secretVersion := "AWSCURRENT"
+	secretPath := "/path/to/secret"
+	secretValue := "secret value"
+	secretTags := map[string]string{
+		"foo": "bar",
+	}
+	// Test cases
+	testCases := []struct {
+		name string
+		ref  esv1beta1.ExternalSecretFind
+
+		secretName    string
+		secretVersion string
+		secretValue   string
+		fetchError    error
+		listSecretsFn func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error)
+
+		expectedData  map[string][]byte
+		expectedError string
+	}{
+		{
+			name: "Matching secrets found",
+			ref: esv1beta1.ExternalSecretFind{
+				Name: &esv1beta1.FindName{
+					RegExp: secretName,
+				},
+				Path: ptr.To(secretPath),
+			},
+			secretName:    secretName,
+			secretVersion: secretVersion,
+			secretValue:   secretValue,
+			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error) {
+				assert.Len(t, input.Filters, 1)
+				assert.Equal(t, "name", *input.Filters[0].Key)
+				assert.Equal(t, secretPath, *input.Filters[0].Values[0])
+				return &awssm.ListSecretsOutput{
+					SecretList: []*awssm.SecretListEntry{
+						{
+							Name: ptr.To(secretName),
+						},
+					},
+				}, nil
+			},
+			expectedData: map[string][]byte{
+				secretName: []byte(secretValue),
+			},
+			expectedError: "",
+		},
+		{
+			name: "Error occurred while fetching secret value",
+			ref: esv1beta1.ExternalSecretFind{
+				Name: &esv1beta1.FindName{
+					RegExp: secretName,
+				},
+				Path: ptr.To(secretPath),
+			},
+			secretName:    secretName,
+			secretVersion: secretVersion,
+			secretValue:   secretValue,
+			fetchError:    errBoom,
+			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error) {
+				return &awssm.ListSecretsOutput{
+					SecretList: []*awssm.SecretListEntry{
+						{
+							Name: ptr.To(secretName),
+						},
+					},
+				}, nil
+			},
+			expectedData:  nil,
+			expectedError: errBoom.Error(),
+		},
+		{
+			name: "regexp: error occurred while listing secrets",
+			ref: esv1beta1.ExternalSecretFind{
+				Name: &esv1beta1.FindName{
+					RegExp: secretName,
+				},
+			},
+			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error) {
+				return nil, errBoom
+			},
+			expectedData:  nil,
+			expectedError: errBoom.Error(),
+		},
+		{
+			name: "regep: no matching secrets found",
+			ref: esv1beta1.ExternalSecretFind{
+				Name: &esv1beta1.FindName{
+					RegExp: secretName,
+				},
+			},
+			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error) {
+				return &awssm.ListSecretsOutput{
+					SecretList: []*awssm.SecretListEntry{
+						{
+							Name: ptr.To("other-secret"),
+						},
+					},
+				}, nil
+			},
+			expectedData:  make(map[string][]byte),
+			expectedError: "",
+		},
+		{
+			name: "invalid regexp",
+			ref: esv1beta1.ExternalSecretFind{
+				Name: &esv1beta1.FindName{
+					RegExp: "[",
+				},
+			},
+			expectedData:  nil,
+			expectedError: "could not compile find.name.regexp [[]: error parsing regexp: missing closing ]: `[`",
+		},
+
+		{
+			name: "tags: Matching secrets found",
+			ref: esv1beta1.ExternalSecretFind{
+				Tags: secretTags,
+			},
+			secretName:    secretName,
+			secretVersion: secretVersion,
+			secretValue:   secretValue,
+			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error) {
+				assert.Len(t, input.Filters, 2)
+				assert.Equal(t, "tag-key", *input.Filters[0].Key)
+				assert.Equal(t, "foo", *input.Filters[0].Values[0])
+				assert.Equal(t, "tag-value", *input.Filters[1].Key)
+				assert.Equal(t, "bar", *input.Filters[1].Values[0])
+				return &awssm.ListSecretsOutput{
+					SecretList: []*awssm.SecretListEntry{
+						{
+							Name: ptr.To(secretName),
+						},
+					},
+				}, nil
+			},
+			expectedData: map[string][]byte{
+				secretName: []byte(secretValue),
+			},
+			expectedError: "",
+		},
+		{
+			name: "tags: error occurred while fetching secret value",
+			ref: esv1beta1.ExternalSecretFind{
+				Tags: secretTags,
+			},
+			secretName:    secretName,
+			secretVersion: secretVersion,
+			secretValue:   secretValue,
+			fetchError:    errBoom,
+			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error) {
+				return &awssm.ListSecretsOutput{
+					SecretList: []*awssm.SecretListEntry{
+						{
+							Name: ptr.To(secretName),
+						},
+					},
+				}, nil
+			},
+			expectedData:  nil,
+			expectedError: errBoom.Error(),
+		},
+		{
+			name: "tags: error occurred while listing secrets",
+			ref: esv1beta1.ExternalSecretFind{
+				Tags: secretTags,
+			},
+			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error) {
+				return nil, errBoom
+			},
+			expectedData:  nil,
+			expectedError: errBoom.Error(),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			fc := fakesm.NewClient()
+			fc.ListSecretsFn = tc.listSecretsFn
+			fc.WithValue(&awssm.GetSecretValueInput{
+				SecretId:     ptr.To(tc.secretName),
+				VersionStage: ptr.To(tc.secretVersion),
+			}, &awssm.GetSecretValueOutput{
+				Name:          ptr.To(tc.secretName),
+				VersionStages: []*string{ptr.To(tc.secretVersion)},
+				SecretBinary:  []byte(tc.secretValue),
+			}, tc.fetchError)
+			sm := SecretsManager{
+				client: fc,
+				cache:  make(map[string]*awssm.GetSecretValueOutput),
+			}
+			data, err := sm.GetAllSecrets(ctx, tc.ref)
+			if err != nil && err.Error() != tc.expectedError {
+				t.Errorf("unexpected error: got %v, want %v", err, tc.expectedError)
+			}
+			if !reflect.DeepEqual(data, tc.expectedData) {
+				t.Errorf("unexpected data: got %v, want %v", data, tc.expectedData)
+			}
+		})
+	}
+}
+
+func TestSecretsManagerValidate(t *testing.T) {
+	type fields struct {
+		sess         *session.Session
+		referentAuth bool
+	}
+	validSession, _ := session.NewSession(aws.NewConfig().WithCredentials(credentials.NewStaticCredentials("fake", "fake", "fake")))
+	invalidSession, _ := session.NewSession(aws.NewConfig().WithCredentials(credentials.NewCredentials(&FakeCredProvider{
+		retrieveFunc: func() (credentials.Value, error) {
+			return credentials.Value{}, errors.New("invalid credentials")
+		},
+	})))
+	tests := []struct {
+		name    string
+		fields  fields
+		want    esv1beta1.ValidationResult
+		wantErr bool
+	}{
+		{
+			name: "ReferentAuth should always return unknown",
+			fields: fields{
+				referentAuth: true,
+			},
+			want: esv1beta1.ValidationResultUnknown,
+		},
+		{
+			name: "Valid credentials should return ready",
+			fields: fields{
+				sess: validSession,
+			},
+			want: esv1beta1.ValidationResultReady,
+		},
+		{
+			name: "Invalid credentials should return error",
+			fields: fields{
+				sess: invalidSession,
+			},
+			want:    esv1beta1.ValidationResultError,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sm := &SecretsManager{
+				sess:         tt.fields.sess,
+				referentAuth: tt.fields.referentAuth,
+			}
+			got, err := sm.Validate()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SecretsManager.Validate() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("SecretsManager.Validate() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// FakeCredProvider implements the AWS credentials.Provider interface
+// It is used to inject an error into the AWS session to cause a
+// validation error.
+type FakeCredProvider struct {
+	retrieveFunc func() (credentials.Value, error)
+}
+
+func (f *FakeCredProvider) Retrieve() (credentials.Value, error) {
+	return f.retrieveFunc()
+}
+
+func (f *FakeCredProvider) IsExpired() bool {
+	return true
 }

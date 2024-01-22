@@ -17,6 +17,7 @@ package fake
 import (
 	"bytes"
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
@@ -33,6 +34,7 @@ type Client struct {
 	PutSecretValueWithContextFn PutSecretValueWithContextFn
 	DescribeSecretWithContextFn DescribeSecretWithContextFn
 	DeleteSecretWithContextFn   DeleteSecretWithContextFn
+	ListSecretsFn               ListSecretsFn
 }
 
 type CreateSecretWithContextFn func(aws.Context, *awssm.CreateSecretInput, ...request.Option) (*awssm.CreateSecretOutput, error)
@@ -40,6 +42,7 @@ type GetSecretValueWithContextFn func(aws.Context, *awssm.GetSecretValueInput, .
 type PutSecretValueWithContextFn func(aws.Context, *awssm.PutSecretValueInput, ...request.Option) (*awssm.PutSecretValueOutput, error)
 type DescribeSecretWithContextFn func(aws.Context, *awssm.DescribeSecretInput, ...request.Option) (*awssm.DescribeSecretOutput, error)
 type DeleteSecretWithContextFn func(ctx aws.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (*awssm.DeleteSecretOutput, error)
+type ListSecretsFn func(ctx aws.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error)
 
 func (sm Client) CreateSecretWithContext(ctx aws.Context, input *awssm.CreateSecretInput, options ...request.Option) (*awssm.CreateSecretOutput, error) {
 	return sm.CreateSecretWithContextFn(ctx, input, options...)
@@ -59,12 +62,16 @@ func NewCreateSecretWithContextFn(output *awssm.CreateSecretOutput, err error, e
 		return output, err
 	}
 }
+
 func (sm Client) DeleteSecretWithContext(ctx aws.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (*awssm.DeleteSecretOutput, error) {
 	return sm.DeleteSecretWithContextFn(ctx, input, opts...)
 }
 
 func NewDeleteSecretWithContextFn(output *awssm.DeleteSecretOutput, err error) DeleteSecretWithContextFn {
 	return func(ctx aws.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (*awssm.DeleteSecretOutput, error) {
+		if input.ForceDeleteWithoutRecovery != nil && *input.ForceDeleteWithoutRecovery {
+			output.SetDeletionDate(time.Now())
+		}
 		return output, err
 	}
 }
@@ -152,8 +159,8 @@ func (sm *Client) GetSecretValue(in *awssm.GetSecretValueInput) (*awssm.GetSecre
 	return nil, fmt.Errorf("test case not found")
 }
 
-func (sm *Client) ListSecrets(*awssm.ListSecretsInput) (*awssm.ListSecretsOutput, error) {
-	return nil, nil
+func (sm *Client) ListSecrets(input *awssm.ListSecretsInput) (*awssm.ListSecretsOutput, error) {
+	return sm.ListSecretsFn(nil, input)
 }
 
 func (sm *Client) cacheKeyForInput(in *awssm.GetSecretValueInput) string {

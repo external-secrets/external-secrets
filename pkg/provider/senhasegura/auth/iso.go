@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 type ISOInterface interface {
@@ -76,12 +77,18 @@ func Authenticate(ctx context.Context, store esv1beta1.GenericStore, provider *e
 IsoSessionFromSecretRef initialize an ISO OAuth2 flow with .spec.provider.senhasegura.auth.isoSecretRef parameters.
 */
 func (s *SenhaseguraIsoSession) IsoSessionFromSecretRef(ctx context.Context, provider *esv1beta1.SenhaseguraProvider, store esv1beta1.GenericStore, kube client.Client, namespace string) (*SenhaseguraIsoSession, error) {
-	clientSecret, err := getKubernetesSecret(ctx, provider.Auth.ClientSecret, store, kube, namespace)
+	secret, err := resolvers.SecretKeyRef(
+		ctx,
+		kube,
+		store.GetKind(),
+		namespace,
+		&provider.Auth.ClientSecret,
+	)
 	if err != nil {
 		return &SenhaseguraIsoSession{}, err
 	}
 
-	isoToken, err := s.GetIsoToken(provider.Auth.ClientID, clientSecret, provider.URL, provider.IgnoreSslCertificate)
+	isoToken, err := s.GetIsoToken(provider.Auth.ClientID, secret, provider.URL, provider.IgnoreSslCertificate)
 	if err != nil {
 		return &SenhaseguraIsoSession{}, err
 	}
