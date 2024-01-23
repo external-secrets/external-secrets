@@ -23,6 +23,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -81,11 +82,17 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.C
 	defer useMu.Unlock()
 
 	authOpts := gophercloud.AuthOptions{
-		IdentityEndpoint: storeSpec.Provider.Barbican.AuthUrl,
-		Username:         storeSpec.Provider.Barbican.Username,
-		Password:         password,
 		DomainID:         storeSpec.Provider.Barbican.UserDomain,
 		TenantName:       storeSpec.Provider.Barbican.ProjectName,
+		IdentityEndpoint: storeSpec.Provider.Barbican.AuthUrl,
+	}
+
+	if storeSpec.Provider.Barbican.AuthType == "username" {
+		authOpts.Username = storeSpec.Provider.Barbican.Username
+		authOpts.Password = password
+	} else {
+		authOpts.ApplicationCredentialID = storeSpec.Provider.Barbican.AppCredentialID
+		authOpts.ApplicationCredentialSecret = password
 	}
 
 	endpointOpts := gophercloud.EndpointOpts{
@@ -116,27 +123,27 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.C
 	return client, nil
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
-		return fmt.Errorf(errInvalidStore)
+		return nil, fmt.Errorf(errInvalidStore)
 	}
 	spc := store.GetSpec()
 	if spc == nil {
-		return fmt.Errorf(errInvalidStoreSpec)
+		return nil, fmt.Errorf(errInvalidStoreSpec)
 	}
 	if spc.Provider == nil {
-		return fmt.Errorf(errInvalidStoreProv)
+		return nil, fmt.Errorf(errInvalidStoreProv)
 	}
 	g := spc.Provider.Barbican
 	if p == nil {
-		return fmt.Errorf(errInvalidBarbicanProv)
+		return nil, fmt.Errorf(errInvalidBarbicanProv)
 	}
 	if g.Auth.SecretRef != nil {
 		if err := utils.ValidateReferentSecretSelector(store, g.Auth.SecretRef.SecretAccessKey); err != nil {
-			return fmt.Errorf(errInvalidAuthSecretRef, err)
+			return nil, fmt.Errorf(errInvalidAuthSecretRef, err)
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func getPasswordFromSecrets(ctx context.Context, auth esv1beta1.BarbicanAuth, kube kclient.Client, namespace string) (string, error) {

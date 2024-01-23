@@ -31,6 +31,10 @@ type BarbicanAuthSecretRef struct {
 
 // BarbicanProvider Configures a store to sync secrets using the Barbican Secret Manager provider.
 type BarbicanProvider struct {
+	// AuthType defines the auth type. Currently username and appcredentials are supported.
+	// +kubebuilder:validation:Enum=username;appcredentials
+	AuthType string `json:"authType"`
+
 	// Auth defines the information necessary to authenticate against Barbican
 	// +optional
 	Auth BarbicanAuth `json:"auth,omitempty"`
@@ -39,21 +43,30 @@ type BarbicanProvider struct {
 	AuthUrl string `json:"auth_url"`
 
 	// The Domain of the user.
+	// +optional
 	UserDomain string `json:"user_domain"`
 
 	// The user name. If you do not provide a user name and password, you must provide a token.
+	// +optional
 	Username string `json:"username"`
 
+	// The user name. If you do not provide a user name and password, you must provide a token.
+	// +optional
+	AppCredentialID string `json:"app_credential_id"`
+
 	// The project name. Both the Project ID and Project Name are optional.
+	// +optional
 	ProjectName string `json:"project_name"`
 
 	// ServiceName [optional] is the service name for the client (e.g., "nova") as it
 	// appears in the service catalog. Services can have the same Type but a
 	// different Name, which is why both Type and Name are sometimes needed.
+	// +optional
 	ServiceName string `json:"service_name,omitempty"`
 
 	// Region [required] is the geographic region in which the endpoint resides,
 	// generally specifying which datacenter should house your resources.
 	// Required only for services that span multiple regions.
+	// +optional
 	Region string `json:"region"`
 }

@@ -1093,13 +1093,17 @@ spec:
                                   description: The SecretAccessKey is used for authentication
                                   properties:
                                     key:
-                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
                                       type: string
                                     name:
                                       description: The name of the Secret resource being referred to.
                                       type: string
                                     namespace:
-                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
                                       type: string
                                   type: object
                               type: object
@@ -2692,6 +2696,9 @@ spec:
                     barbican:
                       description: Barbican configures this store to sync secrets using OpenStack Barbican provider
                       properties:
+                        app_credential_id:
+                          description: The user name. If you do not provide a user name and password, you must provide a token.
+                          type: string
                         auth:
                           description: Auth defines the information necessary to authenticate against Barbican
                           properties:
@@ -2701,13 +2708,17 @@ spec:
                                   description: The SecretAccessKey is used for authentication
                                   properties:
                                     key:
-                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
                                       type: string
                                     name:
                                       description: The name of the Secret resource being referred to.
                                       type: string
                                     namespace:
-                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
                                       type: string
                                   type: object
                               type: object
@@ -2715,14 +2726,26 @@ spec:
                         auth_url:
                           description: OpenStack Auth Url
                           type: string
+                        authType:
+                          description: AuthType defines the auth type. Currently username and appcredentials are supported.
+                          enum:
+                            - username
+                            - appcredentials
+                          type: string
                         project_name:
                           description: The project name. Both the Project ID and Project Name are optional.
                           type: string
                         region:
-                          description: Region [required] is the geographic region in which the endpoint resides, generally specifying which datacenter should house your resources. Required only for services that span multiple regions.
+                          description: |-
+                            Region [required] is the geographic region in which the endpoint resides,
+                            generally specifying which datacenter should house your resources.
+                            Required only for services that span multiple regions.
                           type: string
                         service_name:
-                          description: ServiceName [optional] is the service name for the client (e.g., "nova") as it appears in the service catalog. Services can have the same Type but a different Name, which is why both Type and Name are sometimes needed.
+                          description: |-
+                            ServiceName [optional] is the service name for the client (e.g., "nova") as it
+                            appears in the service catalog. Services can have the same Type but a
+                            different Name, which is why both Type and Name are sometimes needed.
                           type: string
                         user_domain:
                           description: The Domain of the user.
@@ -2731,11 +2754,8 @@ spec:
                           description: The user name. If you do not provide a user name and password, you must provide a token.
                           type: string
                       required:
+                        - authType
                         - auth_url
-                        - project_name
-                        - region
-                        - user_domain
-                        - username
                       type: object
                     conjur:
                       description: Conjur configures this store to sync secrets using conjur provider
@@ -6139,13 +6159,17 @@ spec:
                                   description: The SecretAccessKey is used for authentication
                                   properties:
                                     key:
-                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
                                       type: string
                                     name:
                                       description: The name of the Secret resource being referred to.
                                       type: string
                                     namespace:
-                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
                                       type: string
                                   type: object
                               type: object
@@ -7738,6 +7762,9 @@ spec:
                     barbican:
                       description: Barbican configures this store to sync secrets using OpenStack Barbican provider
                       properties:
+                        app_credential_id:
+                          description: The user name. If you do not provide a user name and password, you must provide a token.
+                          type: string
                         auth:
                           description: Auth defines the information necessary to authenticate against Barbican
                           properties:
@@ -7747,13 +7774,17 @@ spec:
                                   description: The SecretAccessKey is used for authentication
                                   properties:
                                     key:
-                                      description: The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be defaulted, in others it may be required.
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
                                       type: string
                                     name:
                                       description: The name of the Secret resource being referred to.
                                       type: string
                                     namespace:
-                                      description: Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults to the namespace of the referent.
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
                                       type: string
                                   type: object
                               type: object
@@ -7761,14 +7792,26 @@ spec:
                         auth_url:
                           description: OpenStack Auth Url
                           type: string
+                        authType:
+                          description: AuthType defines the auth type. Currently username and appcredentials are supported.
+                          enum:
+                            - username
+                            - appcredentials
+                          type: string
                         project_name:
                           description: The project name. Both the Project ID and Project Name are optional.
                           type: string
                         region:
-                          description: Region [required] is the geographic region in which the endpoint resides, generally specifying which datacenter should house your resources. Required only for services that span multiple regions.
+                          description: |-
+                            Region [required] is the geographic region in which the endpoint resides,
+                            generally specifying which datacenter should house your resources.
+                            Required only for services that span multiple regions.
                           type: string
                         service_name:
-                          description: ServiceName [optional] is the service name for the client (e.g., "nova") as it appears in the service catalog. Services can have the same Type but a different Name, which is why both Type and Name are sometimes needed.
+                          description: |-
+                            ServiceName [optional] is the service name for the client (e.g., "nova") as it
+                            appears in the service catalog. Services can have the same Type but a
+                            different Name, which is why both Type and Name are sometimes needed.
                           type: string
                         user_domain:
                           description: The Domain of the user.
@@ -7777,11 +7820,8 @@ spec:
                           description: The user name. If you do not provide a user name and password, you must provide a token.
                           type: string
                       required:
+                        - authType
                         - auth_url
-                        - project_name
-                        - region
-                        - user_domain
-                        - username
                       type: object
                     conjur:
                       description: Conjur configures this store to sync secrets using conjur provider
