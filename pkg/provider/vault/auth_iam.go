@@ -86,20 +86,20 @@ func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1beta1
 	// Default to controller pod's identity
 	if jwtAuth == nil && secretRefAuth == nil {
 		// Checking if controller pod's service account is IRSA enabled and Web Identity token is available on pod
-		tknFile, tknFileEnvVarPresent := os.LookupEnv(vaultiamauth.AWSWebIdentityTokenFileEnvVar)
-		if !tknFileEnvVarPresent {
+		tokenFile, ok := os.LookupEnv(vaultiamauth.AWSWebIdentityTokenFileEnvVar)
+		if !ok {
 			return fmt.Errorf(errIrsaTokenEnvVarNotFoundOnPod, vaultiamauth.AWSWebIdentityTokenFileEnvVar) // No Web Identity(IRSA) token found on pod
 		}
 
 		// IRSA enabled service account, let's check that the jwt token filemount and file exists
-		if _, err := os.Stat(tknFile); err != nil {
-			return fmt.Errorf(errIrsaTokenFileNotFoundOnPod, tknFile, err)
+		if _, err := os.Stat(tokenFile); err != nil {
+			return fmt.Errorf(errIrsaTokenFileNotFoundOnPod, tokenFile, err)
 		}
 
 		// everything looks good so far, let's fetch the jwt token from AWS_WEB_IDENTITY_TOKEN_FILE
-		jwtByte, err := os.ReadFile(tknFile)
+		jwtByte, err := os.ReadFile(tokenFile)
 		if err != nil {
-			return fmt.Errorf(errIrsaTokenFileNotReadable, tknFile, err)
+			return fmt.Errorf(errIrsaTokenFileNotReadable, tokenFile, err)
 		}
 
 		// let's parse the jwt token
@@ -107,7 +107,7 @@ func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1beta1
 
 		token, _, err := parser.ParseUnverified(string(jwtByte), jwt.MapClaims{})
 		if err != nil {
-			return fmt.Errorf(errIrsaTokenNotValidJWT, tknFile, err) // JWT token parser error
+			return fmt.Errorf(errIrsaTokenNotValidJWT, tokenFile, err) // JWT token parser error
 		}
 
 		var ns string
@@ -118,7 +118,7 @@ func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1beta1
 			ns = claims["kubernetes.io"].(map[string]interface{})["namespace"].(string)
 			sa = claims["kubernetes.io"].(map[string]interface{})["serviceaccount"].(map[string]interface{})["name"].(string)
 		} else {
-			return fmt.Errorf(errPodInfoNotFoundOnToken, tknFile, err)
+			return fmt.Errorf(errPodInfoNotFoundOnToken, tokenFile, err)
 		}
 
 		creds, err = vaultiamauth.CredsFromControllerServiceAccount(ctx, sa, ns, regionAWS, k, jwtProvider)
