@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
@@ -245,16 +246,16 @@ func (providerchef *Providerchef) GetSecretMap(ctx context.Context, ref v1beta1.
 }
 
 // ValidateStore checks if the provided store is valid.
-func (providerchef *Providerchef) ValidateStore(store v1beta1.GenericStore) error {
+func (providerchef *Providerchef) ValidateStore(store v1beta1.GenericStore) (admission.Warnings, error) {
 	chefProvider, err := getChefProvider(store)
 	if err != nil {
-		return fmt.Errorf(errChefStore, err)
+		return nil, fmt.Errorf(errChefStore, err)
 	}
 	// check namespace compared to kind
 	if err := utils.ValidateSecretSelector(store, chefProvider.Auth.SecretRef.SecretKey); err != nil {
-		return fmt.Errorf(errChefStore, err)
+		return nil, fmt.Errorf(errChefStore, err)
 	}
-	return nil
+	return nil, nil
 }
 
 // getChefProvider validates the incoming store and return the chef provider.
