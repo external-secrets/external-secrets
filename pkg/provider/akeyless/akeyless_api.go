@@ -70,6 +70,7 @@ func (a *akeylessBase) GetToken(accessID, accType, accTypeParam string, k8sAuth 
 	}
 
 	authOut, res, err := a.RestAPI.Auth(ctx).Body(*authBody).Execute()
+	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMAuth, err)
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return "", fmt.Errorf("authentication failed: %v", string(apiErr.Body()))
@@ -84,7 +85,6 @@ func (a *akeylessBase) GetToken(accessID, accType, accTypeParam string, k8sAuth 
 
 func (a *akeylessBase) GetSecretByType(ctx context.Context, secretName, token string, version int32) (string, error) {
 	item, err := a.DescribeItem(ctx, secretName, token)
-	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMDescribeSecret, err)
 	if err != nil {
 		return "", err
 	}
@@ -114,7 +114,7 @@ func (a *akeylessBase) DescribeItem(ctx context.Context, itemName, token string)
 		body.Token = &token
 	}
 	gsvOut, res, err := a.RestAPI.DescribeItem(ctx).Body(body).Execute()
-	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMDescribeSecret, err)
+	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMDescribeItem, err)
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			var item *Item
@@ -304,7 +304,7 @@ func (a *akeylessBase) ListSecrets(ctx context.Context, path, tag, token string)
 	}
 
 	lipOut, res, err := a.RestAPI.ListItems(ctx).Body(gsvBody).Execute()
-	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMListSecrets, err)
+	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMListItems, err)
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return nil, fmt.Errorf("can't get secrets list: %v", string(apiErr.Body()))
