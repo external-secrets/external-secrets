@@ -400,7 +400,7 @@ func TestGetSecretMap(t *testing.T) {
 		want   want
 	}{
 		"ReadSecretKV1": {
-			reason: "Should map the secret even if it has a nil value",
+			reason: "Should read a v1 secret",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				vClient: &fake.Logical{
@@ -416,7 +416,7 @@ func TestGetSecretMap(t *testing.T) {
 			},
 		},
 		"ReadSecretKV2": {
-			reason: "Should map the secret even if it has a nil value",
+			reason: "Should read a v2 secret",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vClient: &fake.Logical{
@@ -434,7 +434,7 @@ func TestGetSecretMap(t *testing.T) {
 			},
 		},
 		"ReadSecretWithSpecialCharactersKV1": {
-			reason: "Should map the secret even if it has a nil value",
+			reason: "Should read a v1 secret with special characters",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				vClient: &fake.Logical{
@@ -450,7 +450,7 @@ func TestGetSecretMap(t *testing.T) {
 			},
 		},
 		"ReadSecretWithSpecialCharactersKV2": {
-			reason: "Should map the secret even if it has a nil value",
+			reason: "Should read a v2 secret with special characters",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vClient: &fake.Logical{
@@ -468,7 +468,7 @@ func TestGetSecretMap(t *testing.T) {
 			},
 		},
 		"ReadSecretWithNilValueKV1": {
-			reason: "Should map the secret even if it has a nil value",
+			reason: "Should read v1 secret with a nil value",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				vClient: &fake.Logical{
@@ -485,7 +485,7 @@ func TestGetSecretMap(t *testing.T) {
 			},
 		},
 		"ReadSecretWithNilValueKV2": {
-			reason: "Should map the secret even if it has a nil value",
+			reason: "Should read v2 secret with a nil value",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vClient: &fake.Logical{
@@ -503,7 +503,7 @@ func TestGetSecretMap(t *testing.T) {
 			},
 		},
 		"ReadSecretWithTypesKV2": {
-			reason: "Should map the secret even if it has other types",
+			reason: "Should read v2 secret with different types",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vClient: &fake.Logical{
@@ -524,7 +524,7 @@ func TestGetSecretMap(t *testing.T) {
 			},
 		},
 		"ReadNestedSecret": {
-			reason: "Should map the secret for deeply nested property",
+			reason: "Should read the secret with nested property",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				data: esv1beta1.ExternalSecretDataRemoteRef{
@@ -543,7 +543,7 @@ func TestGetSecretMap(t *testing.T) {
 			},
 		},
 		"ReadDeeplyNestedSecret": {
-			reason: "Should map the secret for deeply nested property",
+			reason: "Should read the secret for deeply nested property",
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				data: esv1beta1.ExternalSecretDataRemoteRef{

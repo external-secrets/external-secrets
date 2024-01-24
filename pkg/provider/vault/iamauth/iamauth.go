@@ -40,6 +40,7 @@ import (
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	awsutil "github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
@@ -81,7 +82,7 @@ func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region st
 		Handlers:          handlers,
 	})
 	if err != nil {
-		return nil, err
+		return nil, awsutil.SanitizeErr(err)
 	}
 	tokenFetcher := &authTokenFetcher{
 		Namespace:      namespace,

@@ -38,6 +38,10 @@ import (
 const (
 	tokenSecretName  = "example-secret-token"
 	secretDataString = "some-creds"
+	tlsAuthCerts     = "tls-auth-certs"
+	tlsKey           = "tls.key"
+	tlsCrt           = "tls.crt"
+	vaultCert        = "vault-cert"
 )
 
 var (
@@ -90,12 +94,12 @@ func makeValidSecretStoreWithCerts() *esv1beta1.SecretStore {
 					Auth: esv1beta1.VaultAuth{
 						Cert: &esv1beta1.VaultCertAuth{
 							ClientCert: esmeta.SecretKeySelector{
-								Name: "tls-auth-certs",
-								Key:  "tls.crt",
+								Name: tlsAuthCerts,
+								Key:  tlsCrt,
 							},
 							SecretRef: esmeta.SecretKeySelector{
-								Name: "tls-auth-certs",
-								Key:  "tls.key",
+								Name: tlsAuthCerts,
+								Key:  tlsKey,
 							},
 						},
 					},
@@ -108,7 +112,7 @@ func makeValidSecretStoreWithCerts() *esv1beta1.SecretStore {
 func makeValidSecretStoreWithK8sCerts(isSecret bool) *esv1beta1.SecretStore {
 	store := makeSecretStore()
 	caProvider := &esv1beta1.CAProvider{
-		Name: "vault-cert",
+		Name: vaultCert,
 		Key:  "cert",
 	}
 
@@ -147,7 +151,7 @@ func makeInvalidClusterSecretStoreWithK8sCerts() *esv1beta1.ClusterSecretStore {
 						},
 					},
 					CAProvider: &esv1beta1.CAProvider{
-						Name: "vault-cert",
+						Name: vaultCert,
 						Key:  "cert",
 						Type: "Secret",
 					},
@@ -353,12 +357,12 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				ns:    "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "tls-auth-certs",
+						Name:      tlsAuthCerts,
 						Namespace: "default",
 					},
 					Data: map[string][]byte{
-						"tls.key": secretClientKey,
-						"tls.crt": clientCrt,
+						tlsKey: secretClientKey,
+						tlsCrt: clientCrt,
 					},
 				}).Build(),
 				newClientFunc: fake.ClientWithLoginMock,
@@ -374,7 +378,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				ns:    "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "vault-cert",
+						Name:      vaultCert,
 						Namespace: "default",
 					},
 					Data: map[string][]byte{
@@ -407,7 +411,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				ns:    "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "vault-cert",
+						Name:      vaultCert,
 						Namespace: "default",
 					},
 					Data: map[string][]byte{},
@@ -448,7 +452,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				ns:    "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "vault-cert",
+						Name:      vaultCert,
 						Namespace: "default",
 					},
 					Data: map[string]string{
@@ -479,7 +483,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 					},
 				}, &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "vault-cert",
+						Name:      vaultCert,
 						Namespace: "default",
 					},
 					Data: map[string]string{},
@@ -497,12 +501,12 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				ns:    "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "tls-auth-certs",
+						Name:      tlsAuthCerts,
 						Namespace: "default",
 					},
 					Data: map[string][]byte{
-						"tls.key": secretClientKey,
-						"tls.crt": []byte("cert with mistak"),
+						tlsKey: secretClientKey,
+						tlsCrt: []byte("cert with mistak"),
 					},
 				}).Build(),
 				newClientFunc: fake.ClientWithLoginMock,
@@ -518,12 +522,12 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				ns:    "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "tls-auth-certs",
+						Name:      tlsAuthCerts,
 						Namespace: "default",
 					},
 					Data: map[string][]byte{
-						"tls.key": []byte("key with mistake"),
-						"tls.crt": clientCrt,
+						tlsKey: []byte("key with mistake"),
+						tlsCrt: clientCrt,
 					},
 				}).Build(),
 				newClientFunc: fake.ClientWithLoginMock,
@@ -538,22 +542,22 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
 					s.Spec.Provider.Vault.ClientTLS = esv1beta1.VaultClientTLS{
 						CertSecretRef: &esmeta.SecretKeySelector{
-							Name: "tls-auth-certs",
+							Name: tlsAuthCerts,
 						},
 						KeySecretRef: &esmeta.SecretKeySelector{
-							Name: "tls-auth-certs",
+							Name: tlsAuthCerts,
 						},
 					}
 				}),
 				ns: "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "tls-auth-certs",
+						Name:      tlsAuthCerts,
 						Namespace: "default",
 					},
 					Data: map[string][]byte{
-						"tls.key": []byte("key with mistake"),
-						"tls.crt": clientCrt,
+						tlsKey: []byte("key with mistake"),
+						tlsCrt: clientCrt,
 					},
 				}).Build(),
 				corev1:        utilfake.NewCreateTokenMock().WithToken("ok"),
@@ -569,22 +573,22 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
 					s.Spec.Provider.Vault.ClientTLS = esv1beta1.VaultClientTLS{
 						CertSecretRef: &esmeta.SecretKeySelector{
-							Name: "tls-auth-certs",
+							Name: tlsAuthCerts,
 						},
 						KeySecretRef: &esmeta.SecretKeySelector{
-							Name: "tls-auth-certs",
+							Name: tlsAuthCerts,
 						},
 					}
 				}),
 				ns: "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "tls-auth-certs",
+						Name:      tlsAuthCerts,
 						Namespace: "default",
 					},
 					Data: map[string][]byte{
-						"tls.key": secretClientKey,
-						"tls.crt": clientCrt,
+						tlsKey: secretClientKey,
+						tlsCrt: clientCrt,
 					},
 				}).Build(),
 				corev1:        utilfake.NewCreateTokenMock().WithToken("ok"),

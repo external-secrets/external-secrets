@@ -22,6 +22,8 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+const fakeValidationValue = "fake-value"
+
 func TestValidateStore(t *testing.T) {
 	type args struct {
 		auth      esv1beta1.VaultAuth
@@ -68,7 +70,7 @@ func TestValidateStore(t *testing.T) {
 			args: args{
 				auth: esv1beta1.VaultAuth{
 					AppRole: &esv1beta1.VaultAppRole{
-						RoleID: "fake-value",
+						RoleID: fakeValidationValue,
 					},
 				},
 			},
@@ -80,7 +82,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1beta1.VaultAuth{
 					AppRole: &esv1beta1.VaultAppRole{
 						RoleRef: &esmeta.SecretKeySelector{
-							Name: "fake-value",
+							Name: fakeValidationValue,
 						},
 					},
 				},
@@ -195,7 +197,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1beta1.VaultAuth{
 					AppRole: &esv1beta1.VaultAppRole{
 						RoleRef: &esmeta.SecretKeySelector{
-							Name: "fake-value",
+							Name: fakeValidationValue,
 						},
 					},
 				},
@@ -216,7 +218,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1beta1.VaultAuth{
 					AppRole: &esv1beta1.VaultAppRole{
 						RoleRef: &esmeta.SecretKeySelector{
-							Name: "fake-value",
+							Name: fakeValidationValue,
 						},
 					},
 				},
@@ -234,7 +236,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1beta1.VaultAuth{
 					AppRole: &esv1beta1.VaultAppRole{
 						RoleRef: &esmeta.SecretKeySelector{
-							Name: "fake-value",
+							Name: fakeValidationValue,
 						},
 					},
 				},
