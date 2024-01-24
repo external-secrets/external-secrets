@@ -82,7 +82,7 @@ spec:
     remoteRef:
       key: vivid_global/apikey
       property: api_key
-- secretKey: APP_PROPERTIES
+  - secretKey: APP_PROPERTIES
     remoteRef:
       key: vivid_global/app_properties # databagName/dataItemName , it will fetch all key-vlaues present in the dataItem
   target:
@@ -96,12 +96,39 @@ spec:
           {
             "username": "{{.USERNAME}}",
             "password": "{{.PASSWORD}}",
-            "app_apikey": "{{.APIKEY}}"
+            "app_apikey": "{{.APIKEY}}",
+            "app_properties": "{{.APP_PROPERTIES}}"
           }
 
 ```
 
 When above `ClusterSecretStore` and `ExternalSecret` resources are created, the `ExternalSecret` will connect to the Chef Server using the private key and will fetch the data bags contains into `vivid-credentials` secret resource.
+
+### Createing SecretStore
+
+Chef `SecretStores` are bound to a namespace and can not reference resources across namespaces. For cross-namespace SecretStores, you must use Chef `ClusterSecretStores`.
+
+You can follow below example to create `SecretStore` resource.
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: vivid-secretstore # name of SecretStore
+  namespace: vivid # must required for kind: SecretStore
+spec:
+  provider:
+    chef:
+      username: user # Chef User name
+      serverurl: https://manage.chef.io/organizations/testuser/ # Chef server URL
+      auth:
+        secretRef:
+          privateKeySecretRef:
+            name: chef-user-secret # name of Kubernetes Secret resource containing the Chef User's private key
+            key: user-private-key # name of the key inside Secret resource
+            namespace: vivid # the ns where the k8s secret resource containing Chef User's private key resides
+
+```
 
 
 follow : apis/externalsecrets/v1beta1/secretstore_chef_types.go for more info
