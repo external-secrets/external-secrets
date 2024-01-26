@@ -238,12 +238,6 @@ Alternatively, the secret name along with its secret group name can be specified
 {% include 'ibm-external-secret-by-name.yaml' %}
 ```
 
-Please note that the below mechanism to get the secret by name is deprecated and not supported.
-
-```yaml
-{% include 'ibm-external-secret-by-name-deprecated.yaml' %}
-```
-
 ### Getting the Kubernetes secret
 The operator will fetch the IBM Secret Manager secret and inject it as a `Kind=Secret`
 ```
