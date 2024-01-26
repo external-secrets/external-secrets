@@ -28,7 +28,6 @@ require (
 	github.com/hashicorp/vault/api/auth/kubernetes v0.5.0
 	github.com/hashicorp/vault/api/auth/ldap v0.5.0
 	github.com/huandu/xstrings v1.4.0 // indirect
-	github.com/lestrrat-go/jwx v1.2.28
 	github.com/onsi/ginkgo/v2 v2.15.0
 	github.com/onsi/gomega v1.30.0
 	github.com/oracle/oci-go-sdk/v65 v65.56.0
@@ -80,6 +79,7 @@ require (
 	github.com/hashicorp/vault/api/auth/aws v0.5.0
 	github.com/hashicorp/vault/api/auth/userpass v0.5.0
 	github.com/keeper-security/secrets-manager-go/core v1.6.2
+	github.com/lestrrat-go/jwx/v2 v2.0.19
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.8.1
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.22
 	github.com/sethvargo/go-password v0.2.0
@@ -110,6 +110,8 @@ require (
 	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/hashicorp/go-secure-stdlib/awsutil v0.2.3 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
+	github.com/lestrrat-go/httprc v1.0.4 // indirect
+	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/zalando/go-keyring v0.2.3 // indirect
@@ -162,7 +164,7 @@ require (
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
-	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
+	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
@@ -185,7 +187,6 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
-	github.com/lestrrat-go/backoff/v2 v2.0.8 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.2 // indirect
 	github.com/lestrrat-go/httpcc v1.0.1 // indirect
 	github.com/lestrrat-go/iter v1.0.2 // indirect

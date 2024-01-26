@@ -92,6 +92,15 @@ const (
 	CallGitLabGroupGetVariable     = "GroupVariableGet"
 	CallGitLabGroupListVariables   = "GroupVariablesList"
 
+	ProviderAKEYLESSSM                  = "AKEYLESSLESS/SecretsManager"
+	CallAKEYLESSSMGetSecretValue        = "GetSecretValue"
+	CallAKEYLESSSMDescribeItem          = "DescribeItem"
+	CallAKEYLESSSMListItems             = "ListItems"
+	CallAKEYLESSSMAuth                  = "Auth"
+	CallAKEYLESSSMGetRotatedSecretValue = "GetRotatedSecretValue"
+	CallAKEYLESSSMGetCertificateValue   = "GetCertificateValue"
+	CallAKEYLESSSMGetDynamicSecretValue = "GetDynamicSecretsValue"
+
 	StatusError   = "error"
 	StatusSuccess = "success"
 )
