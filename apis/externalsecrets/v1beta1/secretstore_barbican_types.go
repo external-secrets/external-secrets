@@ -40,29 +40,29 @@ type BarbicanProvider struct {
 	Auth BarbicanAuth `json:"auth,omitempty"`
 
 	// OpenStack Auth Url
-	AuthUrl string `json:"auth_url"`
+	AuthUrl string `json:"authURL"`
 
 	// The Domain of the user.
 	// +optional
-	UserDomain string `json:"user_domain"`
+	UserDomain string `json:"userDomain"`
 
 	// The user name. If you do not provide a user name and password, you must provide a token.
 	// +optional
-	Username string `json:"username"`
+	Username string `json:"userName"`
 
 	// The user name. If you do not provide a user name and password, you must provide a token.
 	// +optional
-	AppCredentialID string `json:"app_credential_id"`
+	AppCredentialID string `json:"appCredentialID"`
 
 	// The project name. Both the Project ID and Project Name are optional.
 	// +optional
-	ProjectName string `json:"project_name"`
+	ProjectName string `json:"projectName"`
 
 	// ServiceName [optional] is the service name for the client (e.g., "nova") as it
 	// appears in the service catalog. Services can have the same Type but a
 	// different Name, which is why both Type and Name are sometimes needed.
 	// +optional
-	ServiceName string `json:"service_name,omitempty"`
+	ServiceName string `json:"serviceName,omitempty"`
 
 	// Region [required] is the geographic region in which the endpoint resides,
 	// generally specifying which datacenter should house your resources.

@@ -2696,7 +2696,7 @@ spec:
                     barbican:
                       description: Barbican configures this store to sync secrets using OpenStack Barbican provider
                       properties:
-                        app_credential_id:
+                        appCredentialID:
                           description: The user name. If you do not provide a user name and password, you must provide a token.
                           type: string
                         auth:
@@ -2723,16 +2723,16 @@ spec:
                                   type: object
                               type: object
                           type: object
-                        auth_url:
-                          description: OpenStack Auth Url
-                          type: string
                         authType:
                           description: AuthType defines the auth type. Currently username and appcredentials are supported.
                           enum:
                             - username
                             - appcredentials
                           type: string
-                        project_name:
+                        authURL:
+                          description: OpenStack Auth Url
+                          type: string
+                        projectName:
                           description: The project name. Both the Project ID and Project Name are optional.
                           type: string
                         region:
@@ -2741,21 +2741,21 @@ spec:
                             generally specifying which datacenter should house your resources.
                             Required only for services that span multiple regions.
                           type: string
-                        service_name:
+                        serviceName:
                           description: |-
                             ServiceName [optional] is the service name for the client (e.g., "nova") as it
                             appears in the service catalog. Services can have the same Type but a
                             different Name, which is why both Type and Name are sometimes needed.
                           type: string
-                        user_domain:
+                        userDomain:
                           description: The Domain of the user.
                           type: string
-                        username:
+                        userName:
                           description: The user name. If you do not provide a user name and password, you must provide a token.
                           type: string
                       required:
                         - authType
-                        - auth_url
+                        - authURL
                       type: object
                     conjur:
                       description: Conjur configures this store to sync secrets using conjur provider
@@ -7762,7 +7762,7 @@ spec:
                     barbican:
                       description: Barbican configures this store to sync secrets using OpenStack Barbican provider
                       properties:
-                        app_credential_id:
+                        appCredentialID:
                           description: The user name. If you do not provide a user name and password, you must provide a token.
                           type: string
                         auth:
@@ -7789,16 +7789,16 @@ spec:
                                   type: object
                               type: object
                           type: object
-                        auth_url:
-                          description: OpenStack Auth Url
-                          type: string
                         authType:
                           description: AuthType defines the auth type. Currently username and appcredentials are supported.
                           enum:
                             - username
                             - appcredentials
                           type: string
-                        project_name:
+                        authURL:
+                          description: OpenStack Auth Url
+                          type: string
+                        projectName:
                           description: The project name. Both the Project ID and Project Name are optional.
                           type: string
                         region:
@@ -7807,21 +7807,21 @@ spec:
                             generally specifying which datacenter should house your resources.
                             Required only for services that span multiple regions.
                           type: string
-                        service_name:
+                        serviceName:
                           description: |-
                             ServiceName [optional] is the service name for the client (e.g., "nova") as it
                             appears in the service catalog. Services can have the same Type but a
                             different Name, which is why both Type and Name are sometimes needed.
                           type: string
-                        user_domain:
+                        userDomain:
                           description: The Domain of the user.
                           type: string
-                        username:
+                        userName:
                           description: The user name. If you do not provide a user name and password, you must provide a token.
                           type: string
                       required:
                         - authType
-                        - auth_url
+                        - authURL
                       type: object
                     conjur:
                       description: Conjur configures this store to sync secrets using conjur provider
