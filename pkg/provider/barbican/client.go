@@ -44,7 +44,6 @@ const (
 )
 
 type Client struct {
-	// config    *config
 	client    *gophercloud.ServiceClient
 	kube      kclient.Client
 	store     *esv1beta1.BarbicanProvider
