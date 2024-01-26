@@ -27,6 +27,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 // Provider is a secrets provider for OpenStack Barbican.
@@ -69,7 +70,7 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.C
 	}
 	bStore := storeSpec.Provider.Barbican
 
-	password, err := getPasswordFromSecrets(ctx, storeSpec.Provider.Barbican.Auth, kube, namespace)
+	password, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, &bStore.Auth.SecretRef.SecretAccessKey)
 	if err != nil {
 		return nil, err
 	}
