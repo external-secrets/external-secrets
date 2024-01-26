@@ -171,22 +171,3 @@ func isReferentSpec(prov *esv1beta1.BarbicanProvider) bool {
 func StringPtr(s string) *string {
 	return &s
 }
-
-// it returns the barbican provider or an error.
-func GetBarbicanProvider(store esv1beta1.GenericStore) (*esv1beta1.BarbicanProvider, error) {
-	if store == nil {
-		return nil, fmt.Errorf(errNilStore)
-	}
-	spc := store.GetSpec()
-	if spc == nil {
-		return nil, fmt.Errorf(errMissingStoreSpec)
-	}
-	if spc.Provider == nil {
-		return nil, fmt.Errorf(errMissingProvider)
-	}
-	prov := spc.Provider.Barbican
-	if prov == nil {
-		return nil, fmt.Errorf(errInvalidProviderSpec, store.GetObjectMeta().String())
-	}
-	return prov, nil
-}
