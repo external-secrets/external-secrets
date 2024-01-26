@@ -16,7 +16,6 @@ package barbican
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
@@ -50,8 +49,6 @@ func init() {
 	})
 }
 
-var useMu = sync.Mutex{}
-
 func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadWrite
 }
@@ -78,9 +75,6 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.C
 	if storeSpec.Provider.Barbican.ServiceName == "" {
 		storeSpec.Provider.Barbican.ServiceName = "barbican"
 	}
-
-	useMu.Lock()
-	defer useMu.Unlock()
 
 	authOpts := gophercloud.AuthOptions{
 		DomainID:         storeSpec.Provider.Barbican.UserDomain,
