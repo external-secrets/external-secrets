@@ -72,10 +72,6 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.C
 		return nil, err
 	}
 
-	if storeSpec.Provider.Barbican.ServiceName == "" {
-		storeSpec.Provider.Barbican.ServiceName = "barbican"
-	}
-
 	authOpts := gophercloud.AuthOptions{
 		DomainID:         storeSpec.Provider.Barbican.UserDomain,
 		TenantName:       storeSpec.Provider.Barbican.ProjectName,

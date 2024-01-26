@@ -62,6 +62,7 @@ type BarbicanProvider struct {
 	// appears in the service catalog. Services can have the same Type but a
 	// different Name, which is why both Type and Name are sometimes needed.
 	// +optional
+	// +kubebuilder:default=barbican
 	ServiceName string `json:"serviceName,omitempty"`
 
 	// Region [required] is the geographic region in which the endpoint resides,
