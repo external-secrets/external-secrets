@@ -126,6 +126,11 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		err    error
 	)
 
+	metrics.ObserveAPICall(constants.ProviderBarbican, constants.CallBarbicanGetSecret, err)
+	if err != nil {
+		return nil, err
+	}
+
 	if uuid == "" {
 		secret, err = c.getByName(ctx, name)
 		if err != nil {
@@ -151,10 +156,6 @@ func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
 // GetSecretMap returns multiple k/v pairs from the provider.
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := c.GetSecret(ctx, ref)
-	metrics.ObserveAPICall(constants.ProviderBarbican, constants.CallBarbicanGetSecret, err)
-	if err != nil {
-		return nil, err
-	}
 
 	kv := make(map[string]json.RawMessage)
 	err = json.Unmarshal(data, &kv)
