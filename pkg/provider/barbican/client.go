@@ -90,7 +90,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 	}
 
 	allSecrets, err := secrets.ExtractSecrets(allPages)
-	metrics.ObserveAPICall(constants.ProviderBarbican, constants.CallBarbicanGetAllSecrets, err)
+	metrics.ObserveAPICall(constants.ProviderBarbican, constants.CallBarbicanExtractSecrets, err)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 
 	for name, id := range mapUUIDByUniqueNames {
 		payload, err := secrets.GetPayload(c.client, id, secrets.GetPayloadOpts{PayloadContentType: "*/*"}).Extract()
-		metrics.ObserveAPICall(constants.ProviderBarbican, constants.CallBarbicanGetAllSecrets, err)
+		metrics.ObserveAPICall(constants.ProviderBarbican, constants.CallBarbicanGetSecretPayload, err)
 		if err != nil {
 			return nil, err
 		}
