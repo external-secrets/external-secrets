@@ -24,6 +24,7 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/keymanager/v1/secrets"
 	corev1 "k8s.io/api/core/v1"
@@ -153,24 +154,20 @@ func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := c.GetSecret(ctx, ref)
 
-	kv := make(map[string]json.RawMessage)
-	err = json.Unmarshal(data, &kv)
+	var secretData map[string]interface{}
+	err = json.Unmarshal(data, &secretData)
 	if err != nil {
-		return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
+		return nil, err
 	}
-
-	secretData := make(map[string][]byte)
-	for k, v := range kv {
-		var strVal string
-		err = json.Unmarshal(v, &strVal)
-		if err == nil {
-			secretData[k] = []byte(strVal)
-		} else {
-			secretData[k] = v
+	byteMap := make(map[string][]byte, len(secretData))
+	for k := range secretData {
+		byteMap[k], err = utils.GetByteValueFromMap(secretData, k)
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	return secretData, nil
+	return byteMap, nil
 }
 
 // PushSecret pushes a kubernetes secret key into barbican provider Secret.
