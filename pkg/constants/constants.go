@@ -56,7 +56,6 @@ const (
 	ProviderBarbican             = "Barbican/SecretManager"
 	CallBarbicanGetSecret        = "GetSecret"
 	CallBarbicanGetAllSecrets    = "GetAllSecrets"
-	CallBarbicanExtractSecrets   = "ExtractSecrets"
 	CallBarbicanGetSecretPayload = "GetSecretPayload"
 	CallBarbicanDeleteSecret     = "DeleteSecret"
 	CallBarbicanCreateSecret     = "CreateSecret"

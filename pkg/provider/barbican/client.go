@@ -90,10 +90,6 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 	}
 
 	allSecrets, err := secrets.ExtractSecrets(allPages)
-	metrics.ObserveAPICall(constants.ProviderBarbican, constants.CallBarbicanExtractSecrets, err)
-	if err != nil {
-		return nil, err
-	}
 
 	mapUUIDByUniqueNames := make(map[string]string, len(allSecrets))
 	for _, v := range allSecrets {
