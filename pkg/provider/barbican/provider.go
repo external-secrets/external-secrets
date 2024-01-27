@@ -19,8 +19,6 @@ import (
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -67,23 +65,29 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.C
 	}
 	bStore := storeSpec.Provider.Barbican
 
-	password, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, &bStore.Auth.SecretRef.SecretAccessKey)
-	if err != nil {
-		return nil, err
-	}
-
 	authOpts := gophercloud.AuthOptions{
 		DomainID:         storeSpec.Provider.Barbican.UserDomain,
 		TenantName:       storeSpec.Provider.Barbican.ProjectName,
 		IdentityEndpoint: storeSpec.Provider.Barbican.AuthUrl,
 	}
 
-	if storeSpec.Provider.Barbican.AuthType == "username" {
-		authOpts.Username = storeSpec.Provider.Barbican.Username
+	if storeSpec.Provider.Barbican.Auth.UserPass != nil {
+		authOpts.Username = storeSpec.Provider.Barbican.Auth.UserPass.UserName
+
+		password, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, &bStore.Auth.UserPass.PasswordRef.SecretAccessKey)
+		if err != nil {
+			return nil, err
+		}
 		authOpts.Password = password
-	} else {
-		authOpts.ApplicationCredentialID = storeSpec.Provider.Barbican.AppCredentialID
+	} else if storeSpec.Provider.Barbican.Auth.AppCredentials != nil {
+		authOpts.ApplicationCredentialID = storeSpec.Provider.Barbican.Auth.AppCredentials.ApplicationID
+		password, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, &bStore.Auth.AppCredentials.ApplicationSecretRef.SecretAccessKey)
+		if err != nil {
+			return nil, err
+		}
 		authOpts.ApplicationCredentialSecret = password
+	} else {
+		return nil, fmt.Errorf(errInitProvider, "Chossing an authentication strategy is mandatory")
 	}
 
 	endpointOpts := gophercloud.EndpointOpts{
@@ -103,7 +107,6 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.C
 	}
 
 	client := &Client{
-		// config:    config,
 		client:    c,
 		kube:      kube,
 		store:     bStore,
@@ -129,40 +132,28 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 	if p == nil {
 		return nil, fmt.Errorf(errInvalidBarbicanProv)
 	}
-	if g.Auth.SecretRef != nil {
-		if err := utils.ValidateReferentSecretSelector(store, g.Auth.SecretRef.SecretAccessKey); err != nil {
+
+	if g.Auth.UserPass != nil {
+		if err := utils.ValidateReferentSecretSelector(store, g.Auth.DeepCopy().UserPass.PasswordRef.SecretAccessKey); err != nil {
 			return nil, fmt.Errorf(errInvalidAuthSecretRef, err)
 		}
+	} else if g.Auth.AppCredentials != nil {
+		if err := utils.ValidateReferentSecretSelector(store, g.Auth.DeepCopy().AppCredentials.ApplicationSecretRef.SecretAccessKey); err != nil {
+			return nil, fmt.Errorf(errInvalidAuthSecretRef, err)
+		}
+	} else {
+		return nil, fmt.Errorf(errInvalidBarbicanProv)
 	}
+
 	return nil, nil
 }
 
-func getPasswordFromSecrets(ctx context.Context, auth esv1beta1.BarbicanAuth, kube kclient.Client, namespace string) (string, error) {
-	sr := auth.SecretRef
-	if sr == nil {
-		return "", fmt.Errorf(errMissingSAK)
-	}
-	credentialsSecret := &v1.Secret{}
-	credentialsSecretName := sr.SecretAccessKey.Name
-	objectKey := types.NamespacedName{
-		Name:      credentialsSecretName,
-		Namespace: namespace,
-	}
-	err := kube.Get(ctx, objectKey, credentialsSecret)
-	if err != nil {
-		return "", fmt.Errorf(errFetchSAKSecret, err)
-	}
-	credentials := credentialsSecret.Data[sr.SecretAccessKey.Key]
-	if (credentials == nil) || (len(credentials) == 0) {
-		return "", fmt.Errorf(errMissingSAK)
-	}
-
-	return string(credentials), nil
-}
-
 func isReferentSpec(prov *esv1beta1.BarbicanProvider) bool {
-	if prov.Auth.SecretRef != nil &&
-		prov.Auth.SecretRef.SecretAccessKey.Namespace == nil {
+	if prov.Auth.UserPass != nil && prov.Auth.UserPass.PasswordRef != nil &&
+		prov.Auth.UserPass.PasswordRef.SecretAccessKey.Namespace == nil {
+		return true
+	} else if prov.Auth.UserPass != nil && prov.Auth.AppCredentials.ApplicationSecretRef != nil &&
+		prov.Auth.AppCredentials.ApplicationSecretRef.SecretAccessKey.Namespace == nil {
 		return true
 	}
 	return false

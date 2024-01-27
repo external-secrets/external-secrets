@@ -22,7 +22,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -68,10 +67,13 @@ func TestProvider(t *testing.T) {
 					Provider: &esv1beta1.SecretStoreProvider{
 						Barbican: &esv1beta1.BarbicanProvider{
 							Auth: esv1beta1.BarbicanAuth{
-								SecretRef: &esv1beta1.BarbicanAuthSecretRef{
-									SecretAccessKey: esmeta.SecretKeySelector{
-										Name:      "foo",
-										Namespace: StringPtr("NOOP"),
+								UserPass: &esv1beta1.BarbicanAuthUserPass{
+									UserName: "foo",
+									PasswordRef: &esv1beta1.BarbicanAuthSecretRef{
+										SecretAccessKey: esmeta.SecretKeySelector{
+											Name:      "foo",
+											Namespace: StringPtr("NOOP"),
+										},
 									},
 								},
 							},
@@ -115,10 +117,13 @@ func TestValidateStore(t *testing.T) {
 						Provider: &esv1beta1.SecretStoreProvider{
 							Barbican: &esv1beta1.BarbicanProvider{
 								Auth: esv1beta1.BarbicanAuth{
-									SecretRef: &esv1beta1.BarbicanAuthSecretRef{
-										SecretAccessKey: esmeta.SecretKeySelector{
-											Name:      "foobar",
-											Namespace: pointer.String("unacceptable"),
+									UserPass: &esv1beta1.BarbicanAuthUserPass{
+										UserName: "foo",
+										PasswordRef: &esv1beta1.BarbicanAuthSecretRef{
+											SecretAccessKey: esmeta.SecretKeySelector{
+												Name:      "foobar",
+												Namespace: StringPtr("unacceptable"),
+											},
 										},
 									},
 								},
@@ -140,9 +145,12 @@ func TestValidateStore(t *testing.T) {
 						Provider: &esv1beta1.SecretStoreProvider{
 							Barbican: &esv1beta1.BarbicanProvider{
 								Auth: esv1beta1.BarbicanAuth{
-									SecretRef: &esv1beta1.BarbicanAuthSecretRef{
-										SecretAccessKey: esmeta.SecretKeySelector{
-											Name: "foobar",
+									UserPass: &esv1beta1.BarbicanAuthUserPass{
+										UserName: "foobar",
+										PasswordRef: &esv1beta1.BarbicanAuthSecretRef{
+											SecretAccessKey: esmeta.SecretKeySelector{
+												Name: "foobar",
+											},
 										},
 									},
 								},
@@ -164,9 +172,12 @@ func TestValidateStore(t *testing.T) {
 						Provider: &esv1beta1.SecretStoreProvider{
 							Barbican: &esv1beta1.BarbicanProvider{
 								Auth: esv1beta1.BarbicanAuth{
-									SecretRef: &esv1beta1.BarbicanAuthSecretRef{
-										SecretAccessKey: esmeta.SecretKeySelector{
-											Name: "foobar",
+									UserPass: &esv1beta1.BarbicanAuthUserPass{
+										UserName: "foobar",
+										PasswordRef: &esv1beta1.BarbicanAuthSecretRef{
+											SecretAccessKey: esmeta.SecretKeySelector{
+												Name: "foobar",
+											},
 										},
 									},
 								},
@@ -194,10 +205,12 @@ func TestValidRetryInput(t *testing.T) {
 			Provider: &esv1beta1.SecretStoreProvider{
 				Barbican: &esv1beta1.BarbicanProvider{
 					Auth: esv1beta1.BarbicanAuth{
-						SecretRef: &esv1beta1.BarbicanAuthSecretRef{
-							SecretAccessKey: esmeta.SecretKeySelector{
-								Name: "creds",
-								Key:  "sak",
+						UserPass: &esv1beta1.BarbicanAuthUserPass{
+							UserName: "foobar",
+							PasswordRef: &esv1beta1.BarbicanAuthSecretRef{
+								SecretAccessKey: esmeta.SecretKeySelector{
+									Name: "foobar",
+								},
 							},
 						},
 					},

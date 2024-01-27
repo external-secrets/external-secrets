@@ -18,9 +18,24 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+type BarbicanAuthUserPass struct {
+	UserName    string                 `json:"userName"`
+	PasswordRef *BarbicanAuthSecretRef `json:"passwordRef"`
+}
+
+type BarbicanAuthAppCredentials struct {
+	ApplicationID        string                 `json:"applicationID"`
+	ApplicationSecretRef *BarbicanAuthSecretRef `json:"applicationSecretRef"`
+}
+
 type BarbicanAuth struct {
+	// Authentication strategy with username and password
 	// +optional
-	SecretRef *BarbicanAuthSecretRef `json:"secretRef,omitempty"`
+	UserPass *BarbicanAuthUserPass `json:"userPass,omitempty"`
+
+	// Authentication strategy with application credentials
+	// +optional
+	AppCredentials *BarbicanAuthAppCredentials `json:"appCredentials,omitempty"`
 }
 
 type BarbicanAuthSecretRef struct {
@@ -31,10 +46,6 @@ type BarbicanAuthSecretRef struct {
 
 // BarbicanProvider Configures a store to sync secrets using the Barbican Secret Manager provider.
 type BarbicanProvider struct {
-	// AuthType defines the auth type. Currently username and appcredentials are supported.
-	// +kubebuilder:validation:Enum=username;appcredentials
-	AuthType string `json:"authType"`
-
 	// Auth defines the information necessary to authenticate against Barbican
 	// +optional
 	Auth BarbicanAuth `json:"auth,omitempty"`
@@ -45,14 +56,6 @@ type BarbicanProvider struct {
 	// The Domain of the user.
 	// +optional
 	UserDomain string `json:"userDomain"`
-
-	// The user name. If you do not provide a user name and password, you must provide a token.
-	// +optional
-	Username string `json:"userName"`
-
-	// The user name. If you do not provide a user name and password, you must provide a token.
-	// +optional
-	AppCredentialID string `json:"appCredentialID"`
 
 	// The project name. Both the Project ID and Project Name are optional.
 	// +optional
