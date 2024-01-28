@@ -73,6 +73,6 @@ roleRef:
   name: {{ include "external-secrets.fullname" . }}-cert-controller
 subjects:
   - name: {{ include "external-secrets-cert-controller.serviceAccountName" . }}
-    namespace: {{ .Release.Namespace | quote }}
+    namespace: {{ template "external-secrets.namespace" . }}
     kind: ServiceAccount
 {{- end }}

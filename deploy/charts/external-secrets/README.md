@@ -111,6 +111,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
 | metrics.service.port | int | `8080` | Metrics service port to scrape |
 | nameOverride | string | `""` |  |
+| namespaceOverride | string | `""` |  |
 | nodeSelector | object | `{}` |  |
 | podAnnotations | object | `{}` | Annotations to add to Pod |
 | podDisruptionBudget | object | `{"enabled":false,"minAvailable":1}` | Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/ |
