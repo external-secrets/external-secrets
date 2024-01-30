@@ -2,9 +2,9 @@
 
 `Chef External Secrets provider` will enable users to seamlessly integrate their Chef-based secret management with Kubernetes through the existing External Secrets framework.
 
-In many enterprises, legacy applications and infrastructure are still tightly integrated with Chef/Chef Infra Server/Chef Server Cluster for configuration and secrets management. Teams often rely on [Chef data bags](https://docs.chef.io/data_bags/) to securely store sensitive information such as application secrets and infrastructure configurations. These data bags serve as a centralized repository for managing and distributing sensitive data across the Chef ecosystem.
+In many enterprises, legacy applications and infrastructure are still tightly integrated with the Chef/Chef Infra Server/Chef Server Cluster for configuration and secrets management. Teams often rely on [Chef data bags](https://docs.chef.io/data_bags/) to securely store sensitive information such as application secrets and infrastructure configurations. These data bags serve as a centralized repository for managing and distributing sensitive data across the Chef ecosystem.
 
-**NOTE:** `Chef External Secrets provider` is designed only to fetch data form the Chef data bags into Kubernetes secrets, it won't update/delete any item in the data bags. 
+**NOTE:** `Chef External Secrets provider` is designed only to fetch data from the Chef data bags into Kubernetes secrets, it won't update/delete any item in the data bags. 
 
 ### Authentication
 
@@ -15,19 +15,19 @@ The following command can be used to create Chef Users:
 chef-server-ctl user-create USER_NAME FIRST_NAME [MIDDLE_NAME] LAST_NAME EMAIL 'PASSWORD' (options)
 ```
 
-More details on the above command are available here https://docs.chef.io/server/server_users/#user-create. The above command will return the default private key (PRIVATE_KEY_VALUE), which we will use for authentication. Additionally, a Chef User with access to specific data bags, private key pair with expiration date can be created with the help of [knife user key](https://docs.chef.io/server/auth/#knife-user-key) command.
+More details on the above command are available here [Chef User Create Option](https://docs.chef.io/server/server_users/#user-create). The above command will return the default private key (PRIVATE_KEY_VALUE), which we will use for authentication. Additionally, a Chef User with access to specific data bags, a private key pair with an expiration date can be created with the help of the  [knife user key](https://docs.chef.io/server/auth/#knife-user-key) command.
 
 ### Create a secret containing your private key
 
-We need to store above User's apikey into a secret resource.
+We need to store the above User's API key into a secret resource.
 Example:
 ```sh
 kubectl create secret generic chef-user-secret -n vivid --from-literal=user-private-key='PRIVATE_KEY_VALUE'
 ```
 
-### Createing ClusterSecretStore
+### Creating ClusterSecretStore
 
-The Chef `ClusterSecretStore` is a cluster scoped SecretStore that can be referenced by all Chef `ExternalSecrets` from all namespaces. You can follow below example to create `ClusterSecretStore` resource.
+The Chef `ClusterSecretStore` is a cluster-scoped SecretStore that can be referenced by all Chef `ExternalSecrets` from all namespaces. You can follow the below example to create a `ClusterSecretStore` resource.
 
 ```yaml
 apiVersion: external-secrets.io/v1beta1
@@ -44,78 +44,33 @@ spec:
           privateKeySecretRef:
             key: user-private-key # name of the key inside Secret resource
             name: chef-user-secret # name of Kubernetes Secret resource containing the Chef User's private key
-            namespace: vivid # the namespace in which above Secret resource resides
+            namespace: vivid # the namespace in which the above Secret resource resides
 ```
 
 
 ### Createing ExternalSecret
 
-The Chef `ExternalSecret` describes what data should be fetched from Chef Data bags, how the data should be transformed and saved as a Kind=Secret.
+The Chef `ExternalSecret` describes what data should be fetched from Chef Data bags, and how the data should be transformed and saved as a Kind=Secret.
 
-You can follow below example to create `ExternalSecret` resource.
+You can follow the below example to create an `ExternalSecret` resource.
 ```yaml
-apiVersion: external-secrets.io/v1beta1
-kind: ExternalSecret
-metadata:
-  name: vivid-external-secrets # name of ExternalSecret
-  namespace: vivid # namespace inside which the ExternalSecret will be created
-  annotations:
-    company/contacts: user.a@company.com, user.b@company.com
-    company/team: vivid-dev
-  labels:
-    app.kubernetes.io/name: external-secrets
-spec:
-  refreshInterval: 15m
-  secretStoreRef:
-    name: vivid-clustersecretstore # name of ClusterSecretStore
-    kind: ClusterSecretStore
-  data:
-  - secretKey: USERNAME
-    remoteRef:
-      key: vivid_prod/global_user # databagName/dataItemName
-      property: username # a json key in dataItem
-  - secretKey: PASSWORD
-    remoteRef:
-      key: vivid_prod/global_user
-      property: password
-  - secretKey: APIKEY
-    remoteRef:
-      key: vivid_global/apikey
-      property: api_key
-  - secretKey: APP_PROPERTIES
-    remoteRef:
-      key: vivid_global/app_properties # databagName/dataItemName , it will fetch all key-vlaues present in the dataItem
-  target:
-    name: vivid-credentials # name of kubernetes Secret resource that will be created and will contain the obtained secrets
-    creationPolicy: Owner
-    template:
-      mergePolicy: Replace    
-      engineVersion: v2
-      data:
-        secrets.json: |
-          {
-            "username": "{{.USERNAME}}",
-            "password": "{{.PASSWORD}}",
-            "app_apikey": "{{.APIKEY}}",
-            "app_properties": "{{.APP_PROPERTIES}}"
-          }
-
+{% include 'chef-external-secret.yaml' %}
 ```
 
-When above `ClusterSecretStore` and `ExternalSecret` resources are created, the `ExternalSecret` will connect to the Chef Server using the private key and will fetch the data bags contains into `vivid-credentials` secret resource.
+When the above `ClusterSecretStore` and `ExternalSecret` resources are created, the `ExternalSecret` will connect to the Chef Server using the private key and will fetch the data bags contained in the `vivid-credentials` secret resource.
 
 ### Createing SecretStore
 
 Chef `SecretStores` are bound to a namespace and can not reference resources across namespaces. For cross-namespace SecretStores, you must use Chef `ClusterSecretStores`.
 
-You can follow below example to create `SecretStore` resource.
+You can follow the below example to create a `SecretStore` resource.
 
 ```yaml
 apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
   name: vivid-secretstore # name of SecretStore
-  namespace: vivid # must required for kind: SecretStore
+  namespace: vivid # must be required for kind: SecretStore
 spec:
   provider:
     chef:
@@ -131,4 +86,4 @@ spec:
 ```
 
 
-follow : apis/externalsecrets/v1beta1/secretstore_chef_types.go for more info
+follow : [this file](https://github.com/external-secrets/external-secrets/blob/main/apis/externalsecrets/v1beta1/secretstore_chef_types.go) for more info
