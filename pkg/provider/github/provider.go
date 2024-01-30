@@ -105,7 +105,7 @@ func (g *Github) getStoreSecret(ctx context.Context, ref esmeta.SecretKeySelecto
 
 func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
 	pSpec := store.GetSpec().Provider.Github
-	privatKey := pSpec.Auth.SecretRef.PrivatKey
+	privatKey := pSpec.Auth.PrivatKey.SecretRef
 	err := utils.ValidateSecretSelector(store, privatKey)
 	if err != nil {
 		return err

@@ -28,9 +28,9 @@ type GithubProvider struct {
 }
 
 type GithubAuth struct {
-	SecretRef GithubSecretRef `json:"secretRef"`
+	PrivatKey GithubSecretRef `json:"privatKey"`
 }
 
 type GithubSecretRef struct {
-	PrivatKey esmeta.SecretKeySelector `json:"privatKey"`
+	SecretRef esmeta.SecretKeySelector `json:"secretRef"`
 }

@@ -1001,9 +1001,9 @@ spec:
                         auth:
                           description: Auth configures how secret-manager authenticates with a Github instance.
                           properties:
-                            secretRef:
+                            privatKey:
                               properties:
-                                privatKey:
+                                secretRef:
                                   description: A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -1017,10 +1017,10 @@ spec:
                                       type: string
                                   type: object
                               required:
-                                - privatKey
+                                - secretRef
                               type: object
                           required:
-                            - secretRef
+                            - privatKey
                           type: object
                         installID:
                           type: string
@@ -2517,9 +2517,9 @@ spec:
                         auth:
                           description: Auth configures how ESO authenticates with a Github instance.
                           properties:
-                            secretRef:
+                            privatKey:
                               properties:
-                                privatKey:
+                                secretRef:
                                   description: A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -2533,10 +2533,10 @@ spec:
                                       type: string
                                   type: object
                               required:
-                                - privatKey
+                                - secretRef
                               type: object
                           required:
-                            - secretRef
+                            - privatKey
                           type: object
                         installID:
                           type: string
@@ -5117,9 +5117,9 @@ spec:
                         auth:
                           description: Auth configures how secret-manager authenticates with a Github instance.
                           properties:
-                            secretRef:
+                            privatKey:
                               properties:
-                                privatKey:
+                                secretRef:
                                   description: A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -5133,10 +5133,10 @@ spec:
                                       type: string
                                   type: object
                               required:
-                                - privatKey
+                                - secretRef
                               type: object
                           required:
-                            - secretRef
+                            - privatKey
                           type: object
                         installID:
                           type: string
@@ -6633,9 +6633,9 @@ spec:
                         auth:
                           description: Auth configures how ESO authenticates with a Github instance.
                           properties:
-                            secretRef:
+                            privatKey:
                               properties:
-                                privatKey:
+                                secretRef:
                                   description: A reference to a specific 'key' within a Secret resource, In some instances, `key` is a required field.
                                   properties:
                                     key:
@@ -6649,10 +6649,10 @@ spec:
                                       type: string
                                   type: object
                               required:
-                                - privatKey
+                                - secretRef
                               type: object
                           required:
-                            - secretRef
+                            - privatKey
                           type: object
                         installID:
                           type: string

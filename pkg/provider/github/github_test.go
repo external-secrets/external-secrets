@@ -40,8 +40,8 @@ var (
 		AppID:     "123456",
 		InstallID: "123456789",
 		Auth: esv1beta1.GithubAuth{
-			SecretRef: esv1beta1.GithubSecretRef{
-				PrivatKey: esmeta.SecretKeySelector{
+			PrivatKey: esv1beta1.GithubSecretRef{
+				SecretRef: esmeta.SecretKeySelector{
 					Name: "testName",
 					Key:  "testKey",
 				},
@@ -50,9 +50,9 @@ var (
 	}
 	secretStore = &corev1.Secret{
 		ObjectMeta: v1.ObjectMeta{
-			Name: githubProvider.Auth.SecretRef.PrivatKey.Name,
+			Name: githubProvider.Auth.PrivatKey.SecretRef.Name,
 		},
-		Data: map[string][]byte{githubProvider.Auth.SecretRef.PrivatKey.Key: []byte(`-----BEGIN RSA PRIVATE KEY-----
+		Data: map[string][]byte{githubProvider.Auth.PrivatKey.SecretRef.Key: []byte(`-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEAyKemEl+pul0OULxNG4Ak/FQUghJA0XUmChlClORD8ghcRRJj
 CGOGglrHSm0u7cMU7EM8JusAnz48aogbsLsYE1wYwYgHUkx7VRPO83ODVY569O82
 jm96reAuq5IijnSQEVgVExguPu5VaUh5plCazvACxEcpes2YZOgEG/DD7FySzQxU

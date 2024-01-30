@@ -44,11 +44,11 @@ func (g *Github) GetPrivateKeyAppID(ctx context.Context) (*rsa.PrivateKey, strin
 		return nil, "", fmt.Errorf("can't get provider: %w", err)
 	}
 
-	key, err := g.getStoreSecret(ctx, provider.Auth.SecretRef.PrivatKey)
+	key, err := g.getStoreSecret(ctx, provider.Auth.PrivatKey.SecretRef)
 	if err != nil {
 		return nil, "", fmt.Errorf("can't get provider auth secret: %w", err)
 	}
-	pk, err := jwt.ParseRSAPrivateKeyFromPEM(key.Data[provider.Auth.SecretRef.PrivatKey.Key])
+	pk, err := jwt.ParseRSAPrivateKeyFromPEM(key.Data[provider.Auth.PrivatKey.SecretRef.Key])
 	if err != nil {
 		return nil, "", fmt.Errorf("error parsing RSA private key: %w", err)
 	}
