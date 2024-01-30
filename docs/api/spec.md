@@ -3802,7 +3802,7 @@ or a namespaced SecretStore.</p>
 <tbody>
 <tr>
 <td>
-<code>secretRef</code></br>
+<code>privatKey</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.GithubSecretRef">
 GithubSecretRef
@@ -3894,7 +3894,7 @@ GithubAuth
 <tbody>
 <tr>
 <td>
-<code>privatKey</code></br>
+<code>secretRef</code></br>
 <em>
 <a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
 External Secrets meta/v1.SecretKeySelector

@@ -21,6 +21,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -103,27 +104,27 @@ func (g *Github) getStoreSecret(ctx context.Context, ref esmeta.SecretKeySelecto
 	return secret, nil
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	pSpec := store.GetSpec().Provider.Github
 	privatKey := pSpec.Auth.PrivatKey.SecretRef
 	err := utils.ValidateSecretSelector(store, privatKey)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if pSpec.AppID == "" || pSpec.InstallID == "" {
-		return fmt.Errorf("appID and instllIDs must not be empty")
+		return nil, fmt.Errorf("appID and instllIDs must not be empty")
 	}
 
 	if privatKey.Key == "" {
-		return fmt.Errorf("privatKey.key cannot be empty")
+		return nil, fmt.Errorf("privatKey.key cannot be empty")
 	}
 
 	if privatKey.Name == "" {
-		return fmt.Errorf("privatKey.name cannot be empty")
+		return nil, fmt.Errorf("privatKey.name cannot be empty")
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (g *Github) Validate() (esv1beta1.ValidationResult, error) {
