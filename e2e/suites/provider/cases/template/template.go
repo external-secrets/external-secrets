@@ -165,6 +165,7 @@ func genericPushSecretTemplate(f *framework.Framework) (string, func(*framework.
 
 			// create an external secret that fetches the created remote secret
 			// and check the value
+			exampleOutput := "example-output"
 			es := &esv1beta1.ExternalSecret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "e2e-es",
@@ -176,11 +177,11 @@ func genericPushSecretTemplate(f *framework.Framework) (string, func(*framework.
 						Name: f.Namespace.Name,
 					},
 					Target: esv1beta1.ExternalSecretTarget{
-						Name: "example-output",
+						Name: exampleOutput,
 					},
 					Data: []esv1beta1.ExternalSecretData{
 						{
-							SecretKey: "example-output",
+							SecretKey: exampleOutput,
 							RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
 								Key: "key",
 							},
@@ -196,7 +197,7 @@ func genericPushSecretTemplate(f *framework.Framework) (string, func(*framework.
 			err = wait.PollImmediate(time.Second*5, time.Second*15, func() (bool, error) {
 				err := f.CRClient.Get(context.Background(), types.NamespacedName{
 					Namespace: f.Namespace.Name,
-					Name:      "example-output",
+					Name:      exampleOutput,
 				}, outputSecret)
 				if apierrors.IsNotFound(err) {
 					return false, nil
@@ -205,7 +206,7 @@ func genericPushSecretTemplate(f *framework.Framework) (string, func(*framework.
 			})
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-			v, ok := outputSecret.Data["example-output"]
+			v, ok := outputSecret.Data[exampleOutput]
 			gomega.Expect(ok).To(gomega.BeTrue())
 			gomega.Expect(string(v)).To(gomega.Equal("executed: BAR"))
 		}
