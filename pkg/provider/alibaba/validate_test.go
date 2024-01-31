@@ -14,8 +14,9 @@ limitations under the License.
 package alibaba
 
 import (
-	"testing"
 	"fmt"
+	"github.com/pkg/errors"
+	"testing"
 )
 
 type AlibabaProvider struct {
@@ -29,7 +30,6 @@ type AlibabaAuth struct {
 
 type SecretReference struct {
 	AccessKeyID string
-	// Add other required fields
 }
 
 type GenericStore struct {
@@ -42,9 +42,6 @@ type SecretStoreSpec struct {
 
 type SecretStoreProvider struct {
 	Alibaba *AlibabaProvider
-}
-
-type KeyManagementService struct {
 }
 
 func (kms *KeyManagementService) ValidateStore(store GenericStore) error {
@@ -71,52 +68,60 @@ func (kms *KeyManagementService) ValidateStore(store GenericStore) error {
 }
 
 func TestValidateStore(t *testing.T) {
+	tests := []struct {
+		name     string
+		store    *GenericStore
+		expected error
+	}{
+		{
+			name: "Valid store should pass validation",
+			store: &GenericStore{
+				Spec: &SecretStoreSpec{
+					Provider: &SecretStoreProvider{
+						Alibaba: &AlibabaProvider{
+							RegionID: "mockRegionID",
+							Auth: AlibabaAuth{
+								SecretRef: SecretReference{
+									AccessKeyID: "mockAccessKeyID",
+									// Add other required fields for testing
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: nil,
+		},
+		{
+			name: "Invalid store with missing region should fail validation",
+			store: &GenericStore{
+				Spec: &SecretStoreSpec{
+					Provider: &SecretStoreProvider{
+						Alibaba: &AlibabaProvider{
+							// Missing RegionID intentionally
+							Auth: AlibabaAuth{
+								SecretRef: SecretReference{
+									AccessKeyID: "mockAccessKeyID",
+									// Add other required fields for testing
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: errors.New("Missing region ID"),
+		},
+		// Add more test cases as needed
+	}
+
 	kms := &KeyManagementService{}
 
-	// Test case: Valid store should pass validation
-	validStore := &GenericStore{
-		Spec: &SecretStoreSpec{
-			Provider: &SecretStoreProvider{
-				Alibaba: &AlibabaProvider{
-					RegionID: "mockRegionID",
-					Auth: AlibabaAuth{
-						SecretRef: SecretReference{
-							AccessKeyID: "mockAccessKeyID",
-							// Add other required fields for testing
-						},
-					},
-				},
-			},
-		},
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := kms.ValidateStore(*tc.store)
+			if !errors.Is(err, tc.expected) {
+				t.Errorf("ValidateStore() failed, expected: %v, got: %v", tc.expected, err)
+			}
+		})
 	}
-
-	err := kms.ValidateStore(*validStore)
-	if err != nil {
-		t.Errorf("ValidateStore() failed, expected: nil, got: %v", err)
-	}
-
-	// Test case: Invalid store with missing region should fail validation
-	invalidStoreMissingRegion := &GenericStore{
-		Spec: &SecretStoreSpec{
-			Provider: &SecretStoreProvider{
-				Alibaba: &AlibabaProvider{
-					// Missing RegionID intentionally
-					Auth: AlibabaAuth{
-						SecretRef: SecretReference{
-							AccessKeyID: "mockAccessKeyID",
-							// Add other required fields for testing
-						},
-					},
-				},
-			},
-		},
-	}
-
-	err = kms.ValidateStore(*invalidStoreMissingRegion)
-	if err == nil {
-		t.Error("ValidateStore() failed, expected: error, got: nil")
-	}
-
-	
 }
-
