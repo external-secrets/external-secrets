@@ -207,6 +207,148 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 	}
 
+	updateIfNotExists := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		fakeProvider.SecretExistsFn = func(ctx context.Context, ref v1beta1.PushSecretRemoteRef) (bool, error) {
+			_, ok := fakeProvider.SetSecretArgs[ref.GetRemoteKey()]
+			return ok, nil
+		}
+		tc.pushsecret.Spec.UpdatePolicy = v1alpha1.PushSecretUpdatePolicyIfNotExists
+		initialValue := fakeProvider.SetSecretArgs[tc.pushsecret.Spec.Data[0].Match.RemoteRef.RemoteKey].Value
+		tc.secret.Data["key"] = []byte("different-value")
+
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			Eventually(func() bool {
+				By("checking if Provider value did not get updated")
+				Expect(k8sClient.Update(context.Background(), secret, &client.UpdateOptions{})).Should(Succeed())
+				providerValue, ok := fakeProvider.SetSecretArgs[ps.Spec.Data[0].Match.RemoteRef.RemoteKey]
+				if !ok {
+					return false
+				}
+				got := providerValue.Value
+				return bytes.Equal(got, initialValue)
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+
+	updateIfNotExistsPartialSecrets := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		fakeProvider.SecretExistsFn = func(ctx context.Context, ref v1beta1.PushSecretRemoteRef) (bool, error) {
+			_, ok := fakeProvider.SetSecretArgs[ref.GetRemoteKey()]
+			return ok, nil
+		}
+		tc.pushsecret.Spec.UpdatePolicy = v1alpha1.PushSecretUpdatePolicyIfNotExists
+		tc.pushsecret.Spec.Data = append(tc.pushsecret.Spec.Data, v1alpha1.PushSecretData{
+			Match: v1alpha1.PushSecretMatch{
+				SecretKey: "other-key",
+				RemoteRef: v1alpha1.PushSecretRemoteRef{
+					RemoteKey: "path/to/other-key",
+				},
+			},
+		})
+
+		initialValue := fakeProvider.SetSecretArgs[tc.pushsecret.Spec.Data[0].Match.RemoteRef.RemoteKey].Value
+		tc.secret.Data["key"] = []byte("different-value") // change initial value in secret
+		tc.secret.Data["other-key"] = []byte("other-value")
+
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			Eventually(func() bool {
+				By("checking if only not existing Provider value got updated")
+				Expect(k8sClient.Update(context.Background(), secret, &client.UpdateOptions{})).Should(Succeed())
+				providerValue, ok := fakeProvider.SetSecretArgs[ps.Spec.Data[0].Match.RemoteRef.RemoteKey]
+				if !ok {
+					return false
+				}
+				got := providerValue.Value
+				otherProviderValue, ok := fakeProvider.SetSecretArgs[ps.Spec.Data[1].Match.RemoteRef.RemoteKey]
+				if !ok {
+					return false
+				}
+				gotOther := otherProviderValue.Value
+
+				return bytes.Equal(gotOther, tc.secret.Data["other-key"]) && bytes.Equal(got, initialValue)
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+
+	updateIfNotExistsSyncStatus := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		fakeProvider.SecretExistsFn = func(ctx context.Context, ref v1beta1.PushSecretRemoteRef) (bool, error) {
+			_, ok := fakeProvider.SetSecretArgs[ref.GetRemoteKey()]
+			return ok, nil
+		}
+		tc.pushsecret.Spec.UpdatePolicy = v1alpha1.PushSecretUpdatePolicyIfNotExists
+		tc.secret.Data["key"] = []byte("different-value")
+		updatedPS := &v1alpha1.PushSecret{}
+
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			Eventually(func() bool {
+				By("checking if PS status gets updated correctly with UpdatePolicy=IfNotExists")
+				Expect(k8sClient.Update(context.Background(), secret, &client.UpdateOptions{})).Should(Succeed())
+				psKey := types.NamespacedName{Name: PushSecretName, Namespace: PushSecretNamespace}
+				err := k8sClient.Get(context.Background(), psKey, updatedPS)
+				if err != nil {
+					return false
+				}
+				_, ok := updatedPS.Status.SyncedPushSecrets[fmt.Sprintf("SecretStore/%v", PushSecretStore)]["path/to/key"]
+				if ok {
+					return false
+				}
+				_, ok = updatedPS.Status.ExistingPushSecrets[fmt.Sprintf("SecretStore/%v", PushSecretStore)]["path/to/key"]
+				if !ok {
+					return false
+				}
+				expected := v1alpha1.PushSecretStatusCondition{
+					Type:    v1alpha1.PushSecretReady,
+					Status:  v1.ConditionTrue,
+					Reason:  v1alpha1.ReasonSynced,
+					Message: "PushSecret synced successfully. Existing secrets in provider unchanged.",
+				}
+				return checkCondition(ps.Status, expected)
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+
+	updateIfNotExistsSyncFailed := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		fakeProvider.SecretExistsFn = func(ctx context.Context, ref v1beta1.PushSecretRemoteRef) (bool, error) {
+			return false, fmt.Errorf("don't know")
+		}
+		tc.pushsecret.Spec.UpdatePolicy = v1alpha1.PushSecretUpdatePolicyIfNotExists
+		initialValue := fakeProvider.SetSecretArgs[tc.pushsecret.Spec.Data[0].Match.RemoteRef.RemoteKey].Value
+		tc.secret.Data["key"] = []byte("different-value")
+
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			Eventually(func() bool {
+				By("checking if sync failed if secret existence cannot be verified in Provider")
+				providerValue, ok := fakeProvider.SetSecretArgs[ps.Spec.Data[0].Match.RemoteRef.RemoteKey]
+				if !ok {
+					return false
+				}
+				got := providerValue.Value
+				expected := v1alpha1.PushSecretStatusCondition{
+					Type:    v1alpha1.PushSecretReady,
+					Status:  v1.ConditionFalse,
+					Reason:  v1alpha1.ReasonErrored,
+					Message: "set secret failed: could not verify if secret exists in store: don't know",
+				}
+				return checkCondition(ps.Status, expected) && bytes.Equal(got, initialValue)
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	syncSuccessfullyWithTemplate := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
@@ -269,6 +411,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			return true
 		}
 	}
+
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	syncAndDeleteSuccessfully := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
@@ -768,6 +911,10 @@ var _ = Describe("ExternalSecret controller", func() {
 			// this must be optional so we can test faulty es configuration
 		},
 		Entry("should sync", syncSuccessfully),
+		Entry("should not update existing secret if UpdatePolicy=IfNotExists", updateIfNotExists),
+		Entry("should only update parts of secret that don't already exist if UpdatePolicy=IfNotExists", updateIfNotExistsPartialSecrets),
+		Entry("should update the PushSecret status correctly if UpdatePolicy=IfNotExists", updateIfNotExistsSyncStatus),
+		Entry("should fail if secret existence cannot be verified if UpdatePolicy=IfNotExists", updateIfNotExistsSyncFailed),
 		Entry("should sync with template", syncSuccessfullyWithTemplate),
 		Entry("should delete if DeletionPolicy=Delete", syncAndDeleteSuccessfully),
 		Entry("should track deletion tasks if Delete fails", failDelete),

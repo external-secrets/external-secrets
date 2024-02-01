@@ -119,6 +119,10 @@ func (c *Client) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef
 	return fmt.Errorf("not implemented")
 }
 
+func (c *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
 func (c *Client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
 	return fmt.Errorf("not implemented")
 }

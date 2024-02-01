@@ -488,6 +488,31 @@ func (v *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecre
 	return nil
 }
 
+func (v *client) SecretExists(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) (bool, error) {
+	path := v.buildPath(remoteRef.GetRemoteKey())
+	secretVal, err := v.readSecret(ctx, path, "")
+	if err != nil {
+		if errors.Is(err, esv1beta1.NoSecretError{}) {
+			return false, nil
+		}
+		return false, err
+	}
+	if remoteRef.GetProperty() != "" {
+		buf := &bytes.Buffer{}
+		enc := json.NewEncoder(buf)
+		enc.SetEscapeHTML(false)
+		err = enc.Encode(secretVal)
+		if err != nil {
+			return false, fmt.Errorf("error encoding vault secret: %w", err)
+		}
+		if _, ok := secretVal[remoteRef.GetProperty()]; ok {
+			return true, nil
+		}
+		return false, nil
+	}
+	return true, nil
+}
+
 func (v *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
 	value := secret.Data[data.GetSecretKey()]
 	label := map[string]interface{}{
@@ -761,6 +786,10 @@ func (v *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		}
 	}
 
+	return v.extractSecretValue(data, ref.Property)
+}
+
+func (v *client) extractSecretValue(data map[string]interface{}, property string) ([]byte, error) {
 	// Return nil if secret value is null
 	if data == nil {
 		return nil, esv1beta1.NoSecretError{}
@@ -770,22 +799,23 @@ func (v *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		return nil, err
 	}
 	// (1): return raw json if no property is defined
-	if ref.Property == "" {
+	if property == "" {
 		return jsonStr, nil
 	}
 
 	// For backwards compatibility we want the
 	// actual keys to take precedence over gjson syntax
 	// (2): extract key from secret with property
-	if _, ok := data[ref.Property]; ok {
-		return utils.GetByteValueFromMap(data, ref.Property)
+	if _, ok := data[property]; ok {
+		return utils.GetByteValueFromMap(data, property)
 	}
 
 	// (3): extract key from secret using gjson
-	val := gjson.Get(string(jsonStr), ref.Property)
+	val := gjson.Get(string(jsonStr), property)
 	if !val.Exists() {
-		return nil, fmt.Errorf(errSecretKeyFmt, ref.Property)
+		return nil, fmt.Errorf(errSecretKeyFmt, property)
 	}
+
 	return []byte(val.String()), nil
 }
 
