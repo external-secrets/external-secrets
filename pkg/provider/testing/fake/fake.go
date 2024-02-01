@@ -32,15 +32,14 @@ type SetSecretCallArgs struct {
 
 // Client is a fake client for testing.
 type Client struct {
-	SetSecretArgs         map[string]SetSecretCallArgs
-	NewFn                 func(context.Context, esv1beta1.GenericStore, client.Client, string) (esv1beta1.SecretsClient, error)
-	GetSecretFn           func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error)
-	GetSecretMapFn        func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error)
-	GetPushSecretTargetFn func(context.Context, esv1beta1.PushSecretRemoteRef) ([]byte, error)
-	GetAllSecretsFn       func(context.Context, esv1beta1.ExternalSecretFind) (map[string][]byte, error)
-	SecretExistsFn        func(context.Context, esv1beta1.PushSecretRemoteRef) (bool, error)
-	SetSecretFn           func() error
-	DeleteSecretFn        func() error
+	SetSecretArgs   map[string]SetSecretCallArgs
+	NewFn           func(context.Context, esv1beta1.GenericStore, client.Client, string) (esv1beta1.SecretsClient, error)
+	GetSecretFn     func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error)
+	GetSecretMapFn  func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error)
+	GetAllSecretsFn func(context.Context, esv1beta1.ExternalSecretFind) (map[string][]byte, error)
+	SecretExistsFn  func(context.Context, esv1beta1.PushSecretRemoteRef) (bool, error)
+	SetSecretFn     func() error
+	DeleteSecretFn  func() error
 }
 
 // New returns a fake provider/client.
@@ -50,9 +49,6 @@ func New() *Client {
 			return nil, nil
 		},
 		GetSecretMapFn: func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-			return nil, nil
-		},
-		GetPushSecretTargetFn: func(context.Context, esv1beta1.PushSecretRemoteRef) ([]byte, error) {
 			return nil, nil
 		},
 		GetAllSecretsFn: func(context.Context, esv1beta1.ExternalSecretFind) (map[string][]byte, error) {

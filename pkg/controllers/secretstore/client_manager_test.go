@@ -356,10 +356,6 @@ func (c *MockFakeClient) GetSecret(_ context.Context, _ esv1beta1.ExternalSecret
 	return nil, nil
 }
 
-func (c *MockFakeClient) GetPushSecretTarget(_ context.Context, _ esv1beta1.PushSecretRemoteRef) ([]byte, error) {
-	return nil, nil
-}
-
 func (c *MockFakeClient) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
