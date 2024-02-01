@@ -269,18 +269,15 @@ func ClientWithLoginMock(_ *vault.Config) (util.Client, error) {
 		MockAuth:      NewVaultAuth(),
 		MockLogical:   NewVaultLogical(),
 	}
-	auth := cl.Auth()
-	token := cl.AuthToken()
-	logical := cl.Logical()
-	out := util.VClient{
+
+	return &util.VaultClient{
 		SetTokenFunc:     cl.SetToken,
 		TokenFunc:        cl.Token,
 		ClearTokenFunc:   cl.ClearToken,
-		AuthField:        auth,
-		AuthTokenField:   token,
-		LogicalField:     logical,
+		AuthField:        cl.Auth(),
+		AuthTokenField:   cl.AuthToken(),
+		LogicalField:     cl.Logical(),
 		SetNamespaceFunc: cl.SetNamespace,
 		AddHeaderFunc:    cl.AddHeader,
-	}
-	return out, nil
+	}, nil
 }
