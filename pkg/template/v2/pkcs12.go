@@ -16,7 +16,6 @@ package template
 import (
 	"bytes"
 	"crypto/x509"
-
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
