@@ -224,7 +224,7 @@ func TestNewSession(t *testing.T) {
 					Data: map[string][]byte{},
 				},
 			},
-			expectErr: "missing SecretAccessKey",
+			expectErr: "could not fetch SecretAccessKey secret: cannot find secret data for key: \"two\"",
 		},
 		{
 			name:      "should not be able to access secrets from different namespace",

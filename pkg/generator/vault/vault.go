@@ -42,7 +42,7 @@ const (
 )
 
 func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, error) {
-	c := &provider.Connector{NewVaultClient: provider.NewVaultClient}
+	c := &provider.Provider{NewVaultClient: provider.NewVaultClient}
 
 	// controller-runtime/client does not support TokenRequest or other subresource APIs
 	// so we need to construct our own client and use it to fetch tokens
@@ -59,7 +59,7 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 	return g.generate(ctx, c, jsonSpec, kube, clientset.CoreV1(), namespace)
 }
 
-func (g *Generator) generate(ctx context.Context, c *provider.Connector, jsonSpec *apiextensions.JSON, kube client.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (map[string][]byte, error) {
+func (g *Generator) generate(ctx context.Context, c *provider.Provider, jsonSpec *apiextensions.JSON, kube client.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (map[string][]byte, error) {
 	if jsonSpec == nil {
 		return nil, fmt.Errorf(errNoSpec)
 	}

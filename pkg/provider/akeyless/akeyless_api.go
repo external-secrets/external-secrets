@@ -35,6 +35,9 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/metrics"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 var apiErr akeyless.GenericOpenAPIError
@@ -67,6 +70,7 @@ func (a *akeylessBase) GetToken(accessID, accType, accTypeParam string, k8sAuth 
 	}
 
 	authOut, res, err := a.RestAPI.Auth(ctx).Body(*authBody).Execute()
+	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMAuth, err)
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return "", fmt.Errorf("authentication failed: %v", string(apiErr.Body()))
@@ -110,6 +114,7 @@ func (a *akeylessBase) DescribeItem(ctx context.Context, itemName, token string)
 		body.Token = &token
 	}
 	gsvOut, res, err := a.RestAPI.DescribeItem(ctx).Body(body).Execute()
+	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMDescribeItem, err)
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			var item *Item
@@ -138,6 +143,7 @@ func (a *akeylessBase) GetCertificate(ctx context.Context, certificateName, toke
 	}
 
 	gcvOut, res, err := a.RestAPI.GetCertificateValue(ctx).Body(body).Execute()
+	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetCertificateValue, err)
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return "", fmt.Errorf("can't get certificate value: %v", string(apiErr.Body()))
@@ -166,6 +172,7 @@ func (a *akeylessBase) GetRotatedSecrets(ctx context.Context, secretName, token 
 	}
 
 	gsvOut, res, err := a.RestAPI.GetRotatedSecretValue(ctx).Body(body).Execute()
+	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetRotatedSecretValue, err)
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return "", fmt.Errorf("can't get rotated secret value: %v", string(apiErr.Body()))
@@ -214,6 +221,7 @@ func (a *akeylessBase) GetDynamicSecrets(ctx context.Context, secretName, token 
 	}
 
 	gsvOut, res, err := a.RestAPI.GetDynamicSecretValue(ctx).Body(body).Execute()
+	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetDynamicSecretValue, err)
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return "", fmt.Errorf("can't get dynamic secret value: %v", string(apiErr.Body()))
@@ -243,6 +251,7 @@ func (a *akeylessBase) GetStaticSecret(ctx context.Context, secretName, token st
 	}
 
 	gsvOut, res, err := a.RestAPI.GetSecretValue(ctx).Body(gsvBody).Execute()
+	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetSecretValue, err)
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return "", fmt.Errorf("can't get secret value: %v", string(apiErr.Body()))
@@ -295,6 +304,7 @@ func (a *akeylessBase) ListSecrets(ctx context.Context, path, tag, token string)
 	}
 
 	lipOut, res, err := a.RestAPI.ListItems(ctx).Body(gsvBody).Execute()
+	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMListItems, err)
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return nil, fmt.Errorf("can't get secrets list: %v", string(apiErr.Body()))
@@ -335,7 +345,7 @@ func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAu
 				tokenRef = kubernetesAuth.SecretRef.DeepCopy()
 				tokenRef.Key = "token"
 			}
-			jwt, err := a.secretKeyRef(ctx, tokenRef)
+			jwt, err := resolvers.SecretKeyRef(ctx, a.kube, a.storeKind, a.namespace, tokenRef)
 			if err != nil {
 				return "", err
 			}
@@ -363,7 +373,7 @@ func (a *akeylessBase) getJWTFromServiceAccount(ctx context.Context, serviceAcco
 		return "", fmt.Errorf(errGetKubeSASecrets, ref.Name)
 	}
 	for _, tokenRef := range serviceAccount.Secrets {
-		retval, err := a.secretKeyRef(ctx, &esmeta.SecretKeySelector{
+		token, err := resolvers.SecretKeyRef(ctx, a.kube, a.storeKind, a.namespace, &esmeta.SecretKeySelector{
 			Name:      tokenRef.Name,
 			Namespace: &ref.Namespace,
 			Key:       "token",
@@ -372,34 +382,9 @@ func (a *akeylessBase) getJWTFromServiceAccount(ctx context.Context, serviceAcco
 			continue
 		}
 
-		return retval, nil
+		return token, nil
 	}
 	return "", fmt.Errorf(errGetKubeSANoToken, ref.Name)
-}
-
-func (a *akeylessBase) secretKeyRef(ctx context.Context, secretRef *esmeta.SecretKeySelector) (string, error) {
-	secret := &corev1.Secret{}
-	ref := types.NamespacedName{
-		Namespace: a.namespace,
-		Name:      secretRef.Name,
-	}
-	if (a.storeKind == esv1beta1.ClusterSecretStoreKind) &&
-		(secretRef.Namespace != nil) {
-		ref.Namespace = *secretRef.Namespace
-	}
-	err := a.kube.Get(ctx, ref, secret)
-	if err != nil {
-		return "", fmt.Errorf(errGetKubeSecret, ref.Name, err)
-	}
-
-	keyBytes, ok := secret.Data[secretRef.Key]
-	if !ok {
-		return "", fmt.Errorf(errSecretKeyFmt, secretRef.Key)
-	}
-
-	value := string(keyBytes)
-	valueStr := strings.TrimSpace(value)
-	return valueStr, nil
 }
 
 func (a *akeylessBase) getJWTfromServiceAccountToken(ctx context.Context, serviceAccountRef esmeta.ServiceAccountSelector, additionalAud []string, expirationSeconds int64) (string, error) {

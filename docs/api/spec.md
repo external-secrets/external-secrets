@@ -1691,7 +1691,7 @@ Kubernetes meta/v1.LabelSelector
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1beta1.ConjurApikey">ConjurApikey
+<h3 id="external-secrets.io/v1beta1.ConjurAPIKey">ConjurAPIKey
 </h3>
 <p>
 (<em>Appears on:</em>
@@ -1763,8 +1763,8 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <code>apikey</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.ConjurApikey">
-ConjurApikey
+<a href="#external-secrets.io/v1beta1.ConjurAPIKey">
+ConjurAPIKey
 </a>
 </em>
 </td>
@@ -6593,6 +6593,56 @@ authenticate with Vault using the Cert authentication method</p>
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.VaultClientTLS">VaultClientTLS
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.VaultProvider">VaultProvider</a>)
+</p>
+<p>
+<p>VaultClientTLS is the configuration used for client side related TLS communication,
+when the Vault server requires mutual authentication.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>certSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>CertSecretRef is a certificate added to the transport layer
+when communicating with the Vault server.
+If no key for the Secret is specified, external-secret will default to &lsquo;tls.crt&rsquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>keySecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>KeySecretRef to a key in a Secret resource containing client private key
+added to the transport layer when communicating with the Vault server.
+If no key for the Secret is specified, external-secret will default to &lsquo;tls.key&rsquo;.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.VaultIamAuth">VaultIamAuth
 </h3>
 <p>
@@ -7102,6 +7152,24 @@ More about namespaces can be found here <a href="https://www.vaultproject.io/doc
 if the Server URL is using HTTPS protocol. This parameter is ignored for
 plain HTTP protocol connection. If not set the system root certificates
 are used to validate the TLS connection.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tls</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.VaultClientTLS">
+VaultClientTLS
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The configuration used for client side related TLS communication, when the Vault server
+requires mutual authentication. Only used if the Server URL is using HTTPS protocol.
+This parameter is ignored for plain HTTP protocol connection.
+It&rsquo;s worth noting this configuration is different from the &ldquo;TLS certificates auth method&rdquo;,
+which is available under the <code>auth.cert</code> section.</p>
 </td>
 </tr>
 <tr>

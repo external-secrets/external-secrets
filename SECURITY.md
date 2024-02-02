@@ -20,3 +20,7 @@ We learn about critical software updates and security threats from these sources
 
 1. GitHub Security Alerts
 2. [Dependabot](https://dependabot.com/) Dependency Updates
+
+## Security Incident Response
+
+Please follow the guide [SECURITY_RESPONSE.md](SECURITY_RESPONSE.md).

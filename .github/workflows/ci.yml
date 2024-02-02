@@ -15,15 +15,21 @@ env:
   # Sonar
   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
+permissions:
+  contents: read
+
 jobs:
   detect-noop:
+    permissions:
+      actions: write  # for fkirc/skip-duplicate-actions to skip or stop workflow runs
+      contents: read  # for fkirc/skip-duplicate-actions to read and compare commits
     runs-on: ubuntu-latest
     outputs:
       noop: ${{ steps.noop.outputs.should_skip }}
     steps:
       - name: Detect No-op Changes
         id: noop
-        uses: fkirc/skip-duplicate-actions@v5.3.1
+        uses: fkirc/skip-duplicate-actions@f75f66ce1886f00957d99748a42c724f4330bdcf # v5.3.1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           paths_ignore: '["**.md", "**.png", "**.jpg"]'
@@ -31,16 +37,19 @@ jobs:
           concurrent_skipping: false
 
   lint:
+    permissions:
+      contents: read  # for actions/checkout to fetch code
+      pull-requests: read  # for golangci/golangci-lint-action to fetch pull requests
     runs-on: ubuntu-latest
     needs: detect-noop
     if: needs.detect-noop.outputs.noop != 'true' && github.ref != 'refs/heads/main'
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         id: setup-go
         with:
           go-version-file: "go.mod"
@@ -50,7 +59,7 @@ jobs:
         run: go mod download
 
       - name: Lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@3a919529898de77ec3da873e3063ca4b10e7f5cc # v3.7.0
         with:
           version: ${{ env.GOLANGCI_VERSION }}
           skip-pkg-cache: true
@@ -63,10 +72,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         id: setup-go
         with:
           go-version-file: "go.mod"
@@ -91,13 +100,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Fetch History
         run: git fetch --prune --unshallow
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
         id: setup-go
         with:
           go-version-file: "go.mod"
@@ -107,7 +116,7 @@ jobs:
         run: go mod download
 
       - name: Cache envtest binaries
-        uses: actions/cache@v3
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: bin/k8s
           key: ${{ runner.os }}-envtest-${{env.KUBERNETES_VERSION}}
@@ -117,7 +126,7 @@ jobs:
           make test
 
       - name: Publish Unit Test Coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@4fe8c5f003fae66aa5ebb77cfd3e7bfbbda0b6b0 # v3.1.5
         with:
           flags: unittests
           file: ./cover.out

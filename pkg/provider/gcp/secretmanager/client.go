@@ -50,7 +50,6 @@ const (
 	errClientClose                  = "unable to close SecretManager client: %w"
 	errMissingStoreSpec             = "invalid: missing store spec"
 	errFetchSAKSecret               = "could not fetch SecretAccessKey secret: %w"
-	errMissingSAK                   = "missing SecretAccessKey"
 	errUnableProcessJSONCredentials = "failed to process the provided JSON credentials: %w"
 	errUnableCreateGCPSMClient      = "failed to create GCP secretmanager client: %w"
 	errUninitalizedGCPProvider      = "provider GCP is not initialized"

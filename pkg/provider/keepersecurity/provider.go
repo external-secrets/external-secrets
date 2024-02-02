@@ -19,12 +19,12 @@ import (
 
 	ksm "github.com/keeper-security/secrets-manager-go/core"
 	"github.com/keeper-security/secrets-manager-go/core/logger"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -66,8 +66,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 
 	keeperStore := storeSpec.Provider.KeeperSecurity
 
-	isClusterKind := store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind
-	clientConfig, err := getKeeperSecurityAuth(ctx, keeperStore, kube, isClusterKind, namespace)
+	clientConfig, err := getKeeperSecurityAuth(ctx, keeperStore, kube, store.GetKind(), namespace)
 	if err != nil {
 		return nil, fmt.Errorf(errKeeperSecurityUnableToCreateConfig, err)
 	}
@@ -84,61 +83,39 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return client, nil
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
-		return fmt.Errorf(errKeeperSecurityStore, store)
+		return nil, fmt.Errorf(errKeeperSecurityStore, store)
 	}
 	spc := store.GetSpec()
 	if spc == nil {
-		return fmt.Errorf(errKeeperSecurityNilSpec)
+		return nil, fmt.Errorf(errKeeperSecurityNilSpec)
 	}
 	if spc.Provider == nil {
-		return fmt.Errorf(errKeeperSecurityNilSpecProvider)
+		return nil, fmt.Errorf(errKeeperSecurityNilSpecProvider)
 	}
 	if spc.Provider.KeeperSecurity == nil {
-		return fmt.Errorf(errKeeperSecurityNilSpecProviderKeeperSecurity)
+		return nil, fmt.Errorf(errKeeperSecurityNilSpecProviderKeeperSecurity)
 	}
 
 	// check mandatory fields
 	config := spc.Provider.KeeperSecurity
 
 	if err := utils.ValidateSecretSelector(store, config.Auth); err != nil {
-		return fmt.Errorf(errKeeperSecurityStoreMissingAuth)
+		return nil, fmt.Errorf(errKeeperSecurityStoreMissingAuth)
 	}
 	if config.FolderID == "" {
-		return fmt.Errorf(errKeeperSecurityStoreMissingFolderID)
+		return nil, fmt.Errorf(errKeeperSecurityStoreMissingFolderID)
 	}
 
-	return nil
+	return nil, nil
 }
 
-func getKeeperSecurityAuth(ctx context.Context, store *esv1beta1.KeeperSecurityProvider, kube kclient.Client, isClusterKind bool, namespace string) (string, error) {
-	auth := store.Auth
-
-	credentialsSecret := &v1.Secret{}
-	credentialsSecretName := auth.Name
-	objectKey := types.NamespacedName{
-		Name:      credentialsSecretName,
-		Namespace: namespace,
-	}
-
-	// only ClusterStore is allowed to set namespace (and then it's required)
-	if isClusterKind {
-		if credentialsSecretName != "" && auth.Namespace == nil {
-			return "", fmt.Errorf(errInvalidClusterStoreMissingK8sSecretNamespace)
-		} else if credentialsSecretName != "" {
-			objectKey.Namespace = *auth.Namespace
-		}
-	}
-
-	err := kube.Get(ctx, objectKey, credentialsSecret)
-	if err != nil {
-		return "", fmt.Errorf(errFetchK8sSecret, err)
-	}
-	data := credentialsSecret.Data[auth.Key]
-	if (data == nil) || (len(data) == 0) {
-		return "", fmt.Errorf(errMissingK8sSecretKey, auth.Key)
-	}
-
-	return string(data), nil
+func getKeeperSecurityAuth(ctx context.Context, store *esv1beta1.KeeperSecurityProvider, kube kclient.Client, storeKind, namespace string) (string, error) {
+	return resolvers.SecretKeyRef(
+		ctx,
+		kube,
+		storeKind,
+		namespace,
+		&store.Auth)
 }
