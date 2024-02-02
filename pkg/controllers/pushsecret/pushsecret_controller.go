@@ -186,7 +186,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
 
-func (r *Reconciler) markAsFailed(msg string, ps *esapi.PushSecret, badSyncState esapi.PushSecretsMap, existingSecrets esapi.PushSecretsMap) {
+func (r *Reconciler) markAsFailed(msg string, ps *esapi.PushSecret, badSyncState, existingSecrets esapi.PushSecretsMap) {
 	cond := newPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
 	setPushSecretCondition(ps, *cond)
 	if badSyncState != nil {
@@ -198,7 +198,7 @@ func (r *Reconciler) markAsFailed(msg string, ps *esapi.PushSecret, badSyncState
 	r.recorder.Event(ps, v1.EventTypeWarning, esapi.ReasonErrored, msg)
 }
 
-func (r *Reconciler) markAsDone(ps *esapi.PushSecret, syncedSecrets esapi.PushSecretsMap, existingSecrets esapi.PushSecretsMap) {
+func (r *Reconciler) markAsDone(ps *esapi.PushSecret, syncedSecrets, existingSecrets esapi.PushSecretsMap) {
 	msg := "PushSecret synced successfully"
 	if !isEmpty(existingSecrets) {
 		msg += ". Existing secrets in provider unchanged."

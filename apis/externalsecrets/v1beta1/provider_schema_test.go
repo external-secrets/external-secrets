@@ -46,7 +46,7 @@ func (p *PP) DeleteSecret(_ context.Context, _ PushSecretRemoteRef) error {
 	return nil
 }
 
-// Exists checks if a secret is already present in the provider at the given location
+// Exists checks if a secret is already present in the provider at the given location.
 func (p *PP) SecretExists(_ context.Context, _ PushSecretRemoteRef) (bool, error) {
 	return false, nil
 }
