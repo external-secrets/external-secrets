@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/go-chef/chef"
 	"github.com/tidwall/gjson"
@@ -36,7 +37,7 @@ import (
 const (
 	errChefStore                             = "received invalid Chef SecretStore resource: %w"
 	errMissingStore                          = "missing store"
-	errMisingStoreSpec                       = "missing store spec"
+	errMissingStoreSpec                      = "missing store spec"
 	errMissingProvider                       = "missing provider"
 	errMissingChefProvider                   = "missing chef provider"
 	errMissingUserName                       = "missing username"
@@ -51,7 +52,7 @@ const (
 	errUninitalizedChefProvider              = "chef provider is not initialized"
 	errNoDatabagItemFound                    = "data bag item %s not found in data bag %s"
 	errNoDatabagItemPropertyFound            = "property %s not found in data bag item"
-	errCannotListDataBagItems                = "unable to list items in data bag %s"
+	errCannotListDataBagItems                = "unable to list items in data bag %s, may be given data bag doesn't exists or it is empty"
 	errUnableToConvertToJSON                 = "unable to convert databagItem into JSON"
 	errInvalidFormat                         = "invalid key format in data section. Expected value 'databagName/databagItemName'"
 	errStoreValidateFailed                   = "unable to validate provided store. Check if username, serverUrl and privateKey are correct"
@@ -63,6 +64,8 @@ const (
 	CallChefListDataBagItems = "ListDataBagItems"
 	CallChefGetUser          = "GetUser"
 )
+
+var contextTimeout = time.Second * 25
 
 type DatabagFetcher interface {
 	GetItem(databagName string, databagItem string) (item chef.DataBagItem, err error)
@@ -109,13 +112,12 @@ func (providerchef *Providerchef) NewClient(ctx context.Context, store v1beta1.G
 		objectKey.Namespace = *chefProvider.Auth.SecretRef.SecretKey.Namespace
 	}
 
-	err = kube.Get(ctx, objectKey, credentialsSecret)
-	if err != nil {
+	if err := kube.Get(ctx, objectKey, credentialsSecret); err != nil {
 		return nil, fmt.Errorf(errFetchK8sSecret, err)
 	}
 
 	secretKey := credentialsSecret.Data[chefProvider.Auth.SecretRef.SecretKey.Key]
-	if (secretKey == nil) || (len(secretKey) == 0) {
+	if len(secretKey) == 0 {
 		return nil, fmt.Errorf(errMissingSecretKey)
 	}
 
@@ -135,7 +137,7 @@ func (providerchef *Providerchef) NewClient(ctx context.Context, store v1beta1.G
 }
 
 // Close closes the client connection.
-func (providerchef *Providerchef) Close(ctx context.Context) error {
+func (providerchef *Providerchef) Close(_ context.Context) error {
 	return nil
 }
 
@@ -151,8 +153,7 @@ func (providerchef *Providerchef) Validate() (v1beta1.ValidationResult, error) {
 }
 
 // GetAllSecrets Retrieves a map[string][]byte with the Databag names as key and the Databag's Items as secrets.
-// Retrives all DatabagItems of a Databag.
-func (providerchef *Providerchef) GetAllSecrets(ctx context.Context, ref v1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (providerchef *Providerchef) GetAllSecrets(_ context.Context, _ v1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, fmt.Errorf("dataFrom.find not suppported")
 }
 
@@ -172,29 +173,51 @@ func (providerchef *Providerchef) GetSecret(ctx context.Context, ref v1beta1.Ext
 	}
 	log.Info("fetching secret value", "databag Name:", databagName, "databag Item:", databagItem)
 	if databagName != "" && databagItem != "" {
-		return getSingleDatabagItem(providerchef, databagName, databagItem, ref.Property)
+		return getSingleDatabagItemWithContext(ctx, providerchef, databagName, databagItem, ref.Property)
 	}
 
 	return nil, fmt.Errorf(errInvalidFormat)
 }
 
-func getSingleDatabagItem(providerchef *Providerchef, dataBagName, databagItemName, propertyName string) ([]byte, error) {
-	ditem, err := providerchef.databagService.GetItem(dataBagName, databagItemName)
-	metrics.ObserveAPICall(ProviderChef, CallChefGetDataBagItem, err)
-	if err != nil {
-		return nil, fmt.Errorf(errNoDatabagItemFound, databagItemName, dataBagName)
-	}
+func getSingleDatabagItemWithContext(ctx context.Context, providerchef *Providerchef, dataBagName, databagItemName, propertyName string) ([]byte, error) {
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, contextTimeout)
+	defer cancel()
+	resultChan := make(chan []byte, 1)
+	errChan := make(chan error, 1)
 
-	jsonByte, err := json.Marshal(ditem)
-	if err != nil {
-		return nil, fmt.Errorf(errUnableToConvertToJSON)
-	}
+	go func() {
+		ditem, err := providerchef.databagService.GetItem(dataBagName, databagItemName)
+		if err != nil {
+			errChan <- fmt.Errorf(errNoDatabagItemFound, databagItemName, dataBagName)
+			return
+		}
 
-	if propertyName != "" {
-		return getPropertyFromDatabagItem(jsonByte, propertyName)
-	}
+		jsonByte, err := json.Marshal(ditem)
+		if err != nil {
+			errChan <- fmt.Errorf(errUnableToConvertToJSON)
+			return
+		}
 
-	return jsonByte, nil
+		if propertyName != "" {
+			propertyValue, err := getPropertyFromDatabagItem(jsonByte, propertyName)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			resultChan <- propertyValue
+		} else {
+			resultChan <- jsonByte
+		}
+	}()
+
+	select {
+	case <-ctxWithTimeout.Done():
+		return nil, ctxWithTimeout.Err()
+	case err := <-errChan:
+		return nil, err
+	case result := <-resultChan:
+		return result, nil
+	}
 }
 
 /*
@@ -228,7 +251,7 @@ func (providerchef *Providerchef) GetSecretMap(ctx context.Context, ref v1beta1.
 		return nil, fmt.Errorf(errInvalidDataform)
 	}
 	getAllSecrets := make(map[string][]byte)
-	log.Info("fetching all items from databag:", databagName)
+	log.Info("fetching all items from", "databag:", databagName)
 	dataItems, err := providerchef.databagService.ListItems(databagName)
 	metrics.ObserveAPICall(ProviderChef, CallChefListDataBagItems, err)
 	if err != nil {
@@ -236,7 +259,7 @@ func (providerchef *Providerchef) GetSecretMap(ctx context.Context, ref v1beta1.
 	}
 
 	for dataItem := range *dataItems {
-		dItem, err := getSingleDatabagItem(providerchef, databagName, dataItem, "")
+		dItem, err := getSingleDatabagItemWithContext(ctx, providerchef, databagName, dataItem, "")
 		if err != nil {
 			return nil, fmt.Errorf(errNoDatabagItemFound, dataItem, databagName)
 		}
@@ -265,7 +288,7 @@ func getChefProvider(store v1beta1.GenericStore) (*v1beta1.ChefProvider, error) 
 	}
 	storeSpec := store.GetSpec()
 	if storeSpec == nil {
-		return nil, fmt.Errorf(errMisingStoreSpec)
+		return nil, fmt.Errorf(errMissingStoreSpec)
 	}
 	provider := storeSpec.Provider
 	if provider == nil {

@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-chef/chef"
 	corev1 "k8s.io/api/core/v1"
@@ -42,6 +43,7 @@ const (
 	authNamespace            = "chef-demo-auth-namespace"
 	kind                     = "SecretStore"
 	apiversion               = "external-secrets.io/v1beta1"
+	databagName              = "databag01"
 )
 
 type chefTestCase struct {
@@ -112,6 +114,12 @@ func makeinValidRef() *esv1beta1.ExternalSecretDataRemoteRef {
 	}
 }
 
+func makeValidRefForGetSecretMap(databag string) *esv1beta1.ExternalSecretDataRemoteRef {
+	return &esv1beta1.ExternalSecretDataRemoteRef{
+		Key: databag,
+	}
+}
+
 func makeValidChefTestCaseCustom(tweaks ...func(smtc *chefTestCase)) *chefTestCase {
 	smtc := makeValidChefTestCase()
 	for _, fn := range tweaks {
@@ -136,7 +144,7 @@ func TestChefGetSecret(t *testing.T) {
 
 	invalidDatabagItemName := func(smtc *chefTestCase) {
 		smtc.expectError = "data bag item item02 not found in data bag databag01"
-		smtc.databagName = "databag01"
+		smtc.databagName = databagName
 		smtc.databagItemName = "item02"
 		smtc.expectedByte = nil
 		smtc.ref = makeValidRef(smtc.databagName, smtc.databagItemName, "")
@@ -144,7 +152,7 @@ func TestChefGetSecret(t *testing.T) {
 
 	noProperty := func(smtc *chefTestCase) {
 		smtc.expectError = "property findProperty not found in data bag item"
-		smtc.databagName = "databag01"
+		smtc.databagName = databagName
 		smtc.databagItemName = "item01"
 		smtc.expectedByte = nil
 		smtc.ref = makeValidRef(smtc.databagName, smtc.databagItemName, "findProperty")
@@ -170,9 +178,11 @@ func TestChefGetSecret(t *testing.T) {
 	sm := Providerchef{
 		databagService: &chef.DataBagService{},
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	for k, v := range successCases {
 		sm.databagService = v.mockClient
-		out, err := sm.GetSecret(context.Background(), *v.ref)
+		out, err := sm.GetSecret(ctx, *v.ref)
 		if err != nil && !utils.ErrorContains(err, v.expectError) {
 			t.Errorf("[case %d] expected error: %v, got: %v", k, v.expectError, err)
 		} else if v.expectError != "" && err == nil {
@@ -191,13 +201,6 @@ func TestChefGetSecretMap(t *testing.T) {
 		smtc.expectError = "chef provider is not initialized"
 	}
 
-	invalidDatabag := func(smtc *chefTestCase) {
-		smtc.expectedByte = nil
-		smtc.ref = makeinValidRef()
-		smtc.ref.Key = "dataBag02"
-		smtc.expectError = "unable to list items in data bag dataBag02"
-	}
-
 	databagHasSlash := func(smtc *chefTestCase) {
 		smtc.expectedByte = nil
 		smtc.ref = makeinValidRef()
@@ -205,18 +208,34 @@ func TestChefGetSecretMap(t *testing.T) {
 		smtc.expectError = "invalid key format in dataForm section. Expected only 'databagName'"
 	}
 
+	withProperty := func(smtc *chefTestCase) {
+		smtc.expectedByte = []byte(`{"item01":"{\"id\":\"databag01-item01\",\"some_key\":\"fe7f29ede349519a1\",\"some_password\":\"dolphin_123zc\",\"some_username\":\"testuser\"}"}`)
+		smtc.databagName = databagName
+		smtc.ref = makeValidRefForGetSecretMap(smtc.databagName)
+	}
+
+	withProperty2 := func(smtc *chefTestCase) {
+		smtc.expectError = "unable to list items in data bag 123, may be given data bag doesn't exists or it is empty"
+		smtc.expectedByte = nil
+		smtc.databagName = "123"
+		smtc.ref = makeValidRefForGetSecretMap(smtc.databagName)
+	}
+
 	successCases := []*chefTestCase{
 		makeValidChefTestCaseCustom(nilClient),
-		makeValidChefTestCaseCustom(invalidDatabag),
 		makeValidChefTestCaseCustom(databagHasSlash),
+		makeValidChefTestCaseCustom(withProperty),
+		makeValidChefTestCaseCustom(withProperty2),
 	}
 
 	pc := Providerchef{
 		databagService: &chef.DataBagService{},
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	for k, v := range successCases {
 		pc.databagService = v.mockClient
-		out, err := pc.GetSecretMap(context.Background(), *v.ref)
+		out, err := pc.GetSecretMap(ctx, *v.ref)
 		if err != nil && !utils.ErrorContains(err, v.expectError) {
 			t.Errorf("[case %d] expected error: %v, got: %v", k, v.expectError, err)
 		} else if v.expectError != "" && err == nil {
@@ -385,25 +404,25 @@ func TestCapabilities(t *testing.T) {
 }
 
 // Test Cases To be added when Close function is implemented.
-func TestClose(t *testing.T) {
+func TestClose(_ *testing.T) {
 	pc := Providerchef{}
 	pc.Close(context.Background())
 }
 
 // Test Cases To be added when GetAllSecrets function is implemented.
-func TestGetAllSecrets(t *testing.T) {
+func TestGetAllSecrets(_ *testing.T) {
 	pc := Providerchef{}
 	pc.GetAllSecrets(context.Background(), esv1beta1.ExternalSecretFind{})
 }
 
 // Test Cases To be implemented when DeleteSecret function is implemented.
-func TestDeleteSecret(t *testing.T) {
+func TestDeleteSecret(_ *testing.T) {
 	pc := Providerchef{}
 	pc.DeleteSecret(context.Background(), nil)
 }
 
 // Test Cases To be implemented when PushSecret function is implemented.
-func TestPushSecret(t *testing.T) {
+func TestPushSecret(_ *testing.T) {
 	pc := Providerchef{}
 	pc.PushSecret(context.Background(), &corev1.Secret{}, nil)
 }

@@ -38,7 +38,7 @@ spec:
   provider:
     chef:
       username: user # Chef User name
-      serverurl: https://manage.chef.io/organizations/testuser/ # Chef server URL
+      serverUrl: https://manage.chef.io/organizations/testuser/ # Chef server URL
       auth:
         secretRef:
           privateKeySecretRef:
@@ -47,19 +47,7 @@ spec:
             namespace: vivid # the namespace in which the above Secret resource resides
 ```
 
-
-### Createing ExternalSecret
-
-The Chef `ExternalSecret` describes what data should be fetched from Chef Data bags, and how the data should be transformed and saved as a Kind=Secret.
-
-You can follow the below example to create an `ExternalSecret` resource.
-```yaml
-{% include 'chef-external-secret.yaml' %}
-```
-
-When the above `ClusterSecretStore` and `ExternalSecret` resources are created, the `ExternalSecret` will connect to the Chef Server using the private key and will fetch the data bags contained in the `vivid-credentials` secret resource.
-
-### Createing SecretStore
+### Creating SecretStore
 
 Chef `SecretStores` are bound to a namespace and can not reference resources across namespaces. For cross-namespace SecretStores, you must use Chef `ClusterSecretStores`.
 
@@ -75,7 +63,7 @@ spec:
   provider:
     chef:
       username: user # Chef User name
-      serverurl: https://manage.chef.io/organizations/testuser/ # Chef server URL
+      serverUrl: https://manage.chef.io/organizations/testuser/ # Chef server URL
       auth:
         secretRef:
           privateKeySecretRef:
@@ -85,5 +73,41 @@ spec:
 
 ```
 
+### Creating ExternalSecret
+
+The Chef `ExternalSecret` describes what data should be fetched from Chef Data bags, and how the data should be transformed and saved as a Kind=Secret.
+
+You can follow the below example to create an `ExternalSecret` resource.
+```yaml
+{% include 'chef-external-secret.yaml' %}
+```
+
+When the above `ClusterSecretStore` and `ExternalSecret` resources are created, the `ExternalSecret` will connect to the Chef Server using the private key and will fetch the data bags contained in the `vivid-credentials` secret resource.
+
+To get all data items inside the data bag, you can use the `dataFrom` directive:
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: vivid-external-secrets # name of ExternalSecret
+  namespace: vivid # namespace inside which the ExternalSecret will be created
+  annotations:
+    company/contacts: user.a@company.com, user.b@company.com
+    company/team: vivid-dev
+  labels:
+    app.kubernetes.io/name: external-secrets
+spec:
+  refreshInterval: 15m
+  secretStoreRef:
+    name: vivid-clustersecretstore # name of ClusterSecretStore
+    kind: ClusterSecretStore
+  dataFrom:
+  - extract:
+      key: vivid_global # only data bag name
+  target:
+    name: vivid_global_all_cred # name of Kubernetes Secret resource that will be created and will contain the obtained secrets
+    creationPolicy: Owner
+
+```
 
 follow : [this file](https://github.com/external-secrets/external-secrets/blob/main/apis/externalsecrets/v1beta1/secretstore_chef_types.go) for more info

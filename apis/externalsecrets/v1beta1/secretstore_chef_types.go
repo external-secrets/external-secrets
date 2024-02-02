@@ -34,5 +34,5 @@ type ChefProvider struct {
 	// UserName should be the user ID on the chef server
 	UserName string `json:"username"`
 	// ServerURL is the chef server URL used to connect to. If using orgs you should include your org in the url and terminate the url with a "/"
-	ServerURL string `json:"serverurl"`
+	ServerURL string `json:"serverUrl"`
 }
