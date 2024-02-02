@@ -54,7 +54,7 @@ func (mc *ChefMockClient) Get(name string) (user chef.User, err error) {
 	return user, err
 }
 
-func (mc *ChefMockClient) WithItem(dataBagName, databagItemName string, err error) {
+func (mc *ChefMockClient) WithItem(_, _ string, _ error) {
 	if mc != nil {
 		mc.getItem = func(dataBagName, databagItemName string) (item chef.DataBagItem, err error) {
 			ret := make(map[string]interface{})
@@ -78,7 +78,7 @@ func (mc *ChefMockClient) WithItem(dataBagName, databagItemName string, err erro
 	}
 }
 
-func (mc *ChefMockClient) WithListItems(databagName string, err error) {
+func (mc *ChefMockClient) WithListItems(_ string, _ error) {
 	if mc != nil {
 		mc.listItems = func(databagName string) (data *chef.DataBagListResult, err error) {
 			ret := make(chef.DataBagListResult)
@@ -93,7 +93,7 @@ func (mc *ChefMockClient) WithListItems(databagName string, err error) {
 	}
 }
 
-func (mc *ChefMockClient) WithUser(userName string, err error) {
+func (mc *ChefMockClient) WithUser(_ string, _ error) {
 	if mc != nil {
 		mc.getUser = func(name string) (user chef.User, err error) {
 			return chef.User{

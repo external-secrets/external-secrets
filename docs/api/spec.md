@@ -1214,7 +1214,7 @@ string
 </tr>
 <tr>
 <td>
-<code>serverurl</code></br>
+<code>serverUrl</code></br>
 <em>
 string
 </em>

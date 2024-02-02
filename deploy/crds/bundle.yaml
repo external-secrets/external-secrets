@@ -2697,7 +2697,7 @@ spec:
                           required:
                             - secretRef
                           type: object
-                        serverurl:
+                        serverUrl:
                           description: ServerURL is the chef server URL used to connect to. If using orgs you should include your org in the url and terminate the url with a "/"
                           type: string
                         username:
@@ -2705,7 +2705,7 @@ spec:
                           type: string
                       required:
                         - auth
-                        - serverurl
+                        - serverUrl
                         - username
                       type: object
                     conjur:
@@ -7714,7 +7714,7 @@ spec:
                           required:
                             - secretRef
                           type: object
-                        serverurl:
+                        serverUrl:
                           description: ServerURL is the chef server URL used to connect to. If using orgs you should include your org in the url and terminate the url with a "/"
                           type: string
                         username:
@@ -7722,7 +7722,7 @@ spec:
                           type: string
                       required:
                         - auth
-                        - serverurl
+                        - serverUrl
                         - username
                       type: object
                     conjur:
