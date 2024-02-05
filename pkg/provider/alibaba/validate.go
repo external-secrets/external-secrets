@@ -15,31 +15,60 @@ package alibaba
 
 import (
 	"fmt"
-
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+)
+
+const (
+	errNilStore        = "found nil store"
+	errMissingProvider = "storeSpec is missing provider"
+	errInvalidProvider = "invalid provider spec. Missing Alibaba field in store %s"
+	errRegionNotFound  = "region not found"
 )
 
 func (kms *KeyManagementService) ValidateStore(store esv1beta1.GenericStore) error {
-
-	storeSpec := store.GetSpec()
-	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Alibaba == nil {
-		return fmt.Errorf("no store type or wrong store type")
-	}
-
-	alibabaSpec := storeSpec.Provider.Alibaba
-
-	regionID := alibabaSpec.RegionID
-
-	if regionID == "" {
-		return fmt.Errorf("missing alibaba region")
-	}
-
-	accessKeyID := alibabaSpec.Auth.SecretRef.AccessKeyID
-	err := utils.ValidateSecretSelector(store, accessKeyID)
+	prov, err := kms.GetAlibabaProvider(store)
 	if err != nil {
 		return err
 	}
+	err = validateRegion(prov)
+	if err != nil {
+		return err
+	}
+	return nil
 
-	return kms.validateStoreAuth(store)
+}
+
+func validateRegion(prov *esv1beta1.AlibabaProvider) error {
+	resolver := endpoints.DefaultResolver()
+	partitions := resolver.(endpoints.EnumPartitions).Partitions()
+	found := false
+	for _, p := range partitions {
+		for id := range p.Regions() {
+			if id == prov.RegionID {
+				found = true
+			}
+		}
+	}
+	if !found {
+		return fmt.Errorf(errRegionNotFound)
+	}
+	return nil
+}
+func (kms *KeyManagementService) GetAlibabaProvider(store esv1beta1.GenericStore) (*esv1beta1.AlibabaProvider, error) {
+	if store == nil {
+		return nil, fmt.Errorf(errNilStore)
+	}
+	spc := store.GetSpec()
+	if spc == nil {
+		return nil, fmt.Errorf(errNilStore)
+	}
+	if spc.Provider == nil {
+		return nil, fmt.Errorf(errMissingProvider)
+	}
+	provider := spc.Provider.Alibaba
+	if provider == nil {
+		return nil, fmt.Errorf(errInvalidProvider, store.GetObjectMeta().String())
+	}
+	return provider, nil
 }
