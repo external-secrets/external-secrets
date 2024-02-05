@@ -33,7 +33,7 @@ import (
 	"github.com/Azure/go-autorest/autorest/azure"
 	kvauth "github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
-	"github.com/lestrrat-go/jwx/jwk"
+	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/tidwall/gjson"
 	"golang.org/x/crypto/pkcs12"
 	"golang.org/x/crypto/sha3"
@@ -456,7 +456,7 @@ func (a *Azure) setKeyVaultKey(ctx context.Context, secretName string, value []b
 	if err != nil {
 		return fmt.Errorf("could not load private key %v: %w", secretName, err)
 	}
-	jwKey, err := jwk.New(key)
+	jwKey, err := jwk.FromRaw(key)
 	if err != nil {
 		return fmt.Errorf("failed to generate a JWK from secret %v content: %w", secretName, err)
 	}
