@@ -21,7 +21,6 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/IBM/go-sdk-core/v5/core"
 	sm "github.com/IBM/secrets-manager-go-sdk/v2/secretsmanagerv2"
@@ -48,9 +47,6 @@ type secretManagerTestCase struct {
 	mockClient      *fakesm.IBMMockClient
 	apiInput        *sm.GetSecretOptions
 	apiOutput       sm.SecretIntf
-	listInput       *sm.ListSecretsOptions
-	listOutput      *sm.SecretMetadataPaginatedCollection
-	listError       error
 	getByNameInput  *sm.GetSecretByNameTypeOptions
 	getByNameOutput sm.SecretIntf
 	getByNameError  error
@@ -69,9 +65,6 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		apiInput:        makeValidAPIInput(),
 		ref:             makeValidRef(),
 		apiOutput:       makeValidAPIOutput(),
-		listInput:       makeValidListInput(),
-		listOutput:      makeValidListSecretsOutput(),
-		listError:       nil,
 		getByNameInput:  makeValidGetByNameInput(),
 		getByNameOutput: makeValidGetByNameOutput(),
 		getByNameError:  nil,
@@ -85,9 +78,6 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		GetSecretOptions:       smtc.apiInput,
 		GetSecretOutput:        smtc.apiOutput,
 		GetSecretErr:           smtc.apiErr,
-		ListSecretsOptions:     smtc.listInput,
-		ListSecretsOutput:      smtc.listOutput,
-		ListSecretsErr:         smtc.listError,
 		GetSecretByNameOptions: smtc.getByNameInput,
 		GetSecretByNameOutput:  smtc.getByNameOutput,
 		GetSecretByNameErr:     smtc.getByNameError,
@@ -133,16 +123,6 @@ func makeValidGetByNameOutput() sm.SecretIntf {
 	return i
 }
 
-func makeValidListSecretsOutput() *sm.SecretMetadataPaginatedCollection {
-	list := sm.SecretMetadataPaginatedCollection{}
-	return &list
-}
-
-func makeValidListInput() *sm.ListSecretsOptions {
-	listOpt := sm.ListSecretsOptions{}
-	return &listOpt
-}
-
 func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTestCase)) *secretManagerTestCase {
 	smtc := makeValidSecretManagerTestCase()
 	for _, fn := range tweaks {
@@ -152,9 +132,6 @@ func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTest
 		GetSecretOptions:       smtc.apiInput,
 		GetSecretOutput:        smtc.apiOutput,
 		GetSecretErr:           smtc.apiErr,
-		ListSecretsOptions:     smtc.listInput,
-		ListSecretsOutput:      smtc.listOutput,
-		ListSecretsErr:         smtc.listError,
 		GetSecretByNameOptions: smtc.getByNameInput,
 		GetSecretByNameOutput:  smtc.getByNameOutput,
 		GetSecretByNameErr:     smtc.apiErr,
@@ -185,7 +162,7 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 	}
-	err := p.ValidateStore(store)
+	_, err := p.ValidateStore(store)
 	if err == nil {
 		t.Errorf(errExpectedErr)
 	} else if err.Error() != "serviceURL is required" {
@@ -193,7 +170,7 @@ func TestValidateStore(t *testing.T) {
 	}
 	url := "my-url"
 	store.Spec.Provider.IBM.ServiceURL = &url
-	err = p.ValidateStore(store)
+	_, err = p.ValidateStore(store)
 	if err == nil {
 		t.Errorf(errExpectedErr)
 	} else if err.Error() != "missing auth method" {
@@ -207,7 +184,7 @@ func TestValidateStore(t *testing.T) {
 			Namespace: &ns,
 		},
 	}
-	err = p.ValidateStore(store)
+	_, err = p.ValidateStore(store)
 	if err == nil {
 		t.Errorf(errExpectedErr)
 	} else if err.Error() != "namespace not allowed with namespaced SecretStore" {
@@ -230,7 +207,7 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 	}
-	err = p.ValidateStore(store)
+	_, err = p.ValidateStore(store)
 	expected := "cannot read container auth token"
 	if !ErrorContains(err, expected) {
 		t.Errorf("ProfileSelector test failed: %s, expected: '%s'", err.Error(), expected)
@@ -317,16 +294,9 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 				Username:   &secretUsername,
 				Password:   &secretPassword,
 			}
-			secretMetadata := &sm.UsernamePasswordSecretMetadata{
-				Name: utilpointer.To("testyname"),
-				ID:   utilpointer.To(secretUUID),
-			}
 			smtc.name = name
 			smtc.apiInput.ID = utilpointer.To(secretUUID)
 			smtc.apiOutput = secret
-			smtc.listInput.Search = utilpointer.To("testyname")
-			smtc.listOutput.Secrets = make([]sm.SecretMetadataIntf, 1)
-			smtc.listOutput.Secrets[0] = secretMetadata
 			smtc.ref.Key = "username_password/" + secretName
 			smtc.ref.Property = property
 			if property == "username" {
@@ -337,8 +307,6 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		}
 	}
 	setSecretUserPassByID := funcSetUserPass(secretUUID, "username", "good case: username_password type - get username by ID")
-	setSecretUserPassUsername := funcSetUserPass("testyname", "username", "good case: username_password type - get username by secret name")
-	setSecretUserPassPassword := funcSetUserPass("testyname", "password", "good case: username_password type - get password by secret name")
 
 	// good case: iam_credentials type
 	funcSetSecretIam := func(secretName, name string) func(*secretManagerTestCase) {
@@ -349,24 +317,17 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 				ID:         utilpointer.To(secretUUID),
 				ApiKey:     utilpointer.To(secretAPIKey),
 			}
-			secretMetadata := &sm.IAMCredentialsSecretMetadata{
-				Name: utilpointer.To("testyname"),
-				ID:   utilpointer.To(secretUUID),
-			}
 			smtc.apiInput.ID = utilpointer.To(secretUUID)
 			smtc.name = name
 			smtc.apiOutput = secret
-			smtc.listInput.Search = utilpointer.To("testyname")
-			smtc.listOutput.Secrets = make([]sm.SecretMetadataIntf, 1)
-			smtc.listOutput.Secrets[0] = secretMetadata
 			smtc.ref.Key = iamCredentialsSecret + secretName
 			smtc.expectedSecret = secretAPIKey
 		}
 	}
 
 	setSecretIamByID := funcSetSecretIam(secretUUID, "good case: iam_credenatials type - get API Key by ID")
-	setSecretIamByName := funcSetSecretIam("testyname", "good case: iam_credenatials type - get API Key by name")
 
+	// good case: iam_credentials type - get API Key by name, providing the secret group ID
 	funcSetSecretIamNew := func(secretName, groupName, name string) func(*secretManagerTestCase) {
 		return func(smtc *secretManagerTestCase) {
 			secret := &sm.IAMCredentialsSecret{
@@ -400,16 +361,9 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 				ID:          utilpointer.To(secretUUID),
 				Credentials: dummySrvCreds,
 			}
-			secretMetadata := &sm.ServiceCredentialsSecretMetadata{
-				Name: utilpointer.To("testyname"),
-				ID:   utilpointer.To(secretUUID),
-			}
 			smtc.apiInput.ID = utilpointer.To(secretUUID)
 			smtc.name = name
 			smtc.apiOutput = secret
-			smtc.listInput.Search = utilpointer.To("testyname")
-			smtc.listOutput.Secrets = make([]sm.SecretMetadataIntf, 1)
-			smtc.listOutput.Secrets[0] = secretMetadata
 			smtc.ref.Key = "service_credentials/" + secretName
 			smtc.expectedSecret = "{\"apikey\":\"01234567890\"}"
 		}
@@ -601,10 +555,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setNilMockClient),
 		makeValidSecretManagerTestCaseCustom(badSecretUserPass),
 		makeValidSecretManagerTestCaseCustom(setSecretUserPassByID),
-		makeValidSecretManagerTestCaseCustom(setSecretUserPassUsername),
-		makeValidSecretManagerTestCaseCustom(setSecretUserPassPassword),
 		makeValidSecretManagerTestCaseCustom(setSecretIamByID),
-		makeValidSecretManagerTestCaseCustom(setSecretIamByName),
 		makeValidSecretManagerTestCaseCustom(setSecretCert),
 		makeValidSecretManagerTestCaseCustom(setSecretKV),
 		makeValidSecretManagerTestCaseCustom(setSecretKVWithKey),
@@ -626,7 +577,6 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	for _, v := range successCases {
 		t.Run(v.name, func(t *testing.T) {
 			sm.IBMClient = v.mockClient
-			sm.cache = NewCache(10, 1*time.Minute)
 			out, err := sm.GetSecret(context.Background(), *v.ref)
 			if !ErrorContains(err, v.expectError) {
 				t.Errorf("unexpected error:\n%s, expected:\n'%s'", err.Error(), v.expectError)

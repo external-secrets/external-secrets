@@ -38,6 +38,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/cache"
 	"github.com/external-secrets/external-secrets/pkg/feature"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 // Config contains configuration to create a new AWS provider.
@@ -58,13 +59,9 @@ const (
 	audienceAnnotation   = "eks.amazonaws.com/audience"
 	defaultTokenAudience = "sts.amazonaws.com"
 
-	errInvalidClusterStoreMissingAKIDNamespace = "invalid ClusterSecretStore: missing AWS AccessKeyID Namespace"
-	errInvalidClusterStoreMissingSAKNamespace  = "invalid ClusterSecretStore: missing AWS SecretAccessKey Namespace"
-	errFetchAKIDSecret                         = "could not fetch accessKeyID secret: %w"
-	errFetchSAKSecret                          = "could not fetch SecretAccessKey secret: %w"
-	errFetchSTSecret                           = "could not fetch SessionToken secret: %w"
-	errMissingSAK                              = "missing SecretAccessKey"
-	errMissingAKID                             = "missing AccessKeyID"
+	errFetchAKIDSecret = "could not fetch accessKeyID secret: %w"
+	errFetchSAKSecret  = "could not fetch SecretAccessKey secret: %w"
+	errFetchSTSecret   = "could not fetch SessionToken secret: %w"
 )
 
 func init() {
@@ -98,11 +95,11 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 		}
 	}
 
-	// use credentials from sercretRef
+	// use credentials from secretRef
 	secretRef := prov.Auth.SecretRef
 	if secretRef != nil {
 		log.V(1).Info("using credentials from secretRef")
-		creds, err = credsFromSecretRef(ctx, prov.Auth, isClusterKind, kube, namespace)
+		creds, err = credsFromSecretRef(ctx, prov.Auth, store.GetKind(), kube, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -176,11 +173,11 @@ func NewGeneratorSession(ctx context.Context, auth esv1beta1.AWSAuth, role, regi
 		}
 	}
 
-	// use credentials from sercretRef
+	// use credentials from secretRef
 	secretRef := auth.SecretRef
 	if secretRef != nil {
 		log.V(1).Info("using credentials from secretRef")
-		creds, err = credsFromSecretRef(ctx, auth, false, kube, namespace)
+		creds, err = credsFromSecretRef(ctx, auth, "", kube, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -211,55 +208,22 @@ func NewGeneratorSession(ctx context.Context, auth esv1beta1.AWSAuth, role, regi
 // construct a aws.Credentials object
 // The namespace of the external secret is used if the ClusterSecretStore does not specify a namespace (referentAuth)
 // If the ClusterSecretStore defines a namespace it will take precedence.
-func credsFromSecretRef(ctx context.Context, auth esv1beta1.AWSAuth, isClusterKind bool, kube client.Client, namespace string) (*credentials.Credentials, error) {
-	ke := client.ObjectKey{
-		Name:      auth.SecretRef.AccessKeyID.Name,
-		Namespace: namespace,
-	}
-	if isClusterKind && auth.SecretRef.AccessKeyID.Namespace != nil {
-		ke.Namespace = *auth.SecretRef.AccessKeyID.Namespace
-	}
-	akSecret := v1.Secret{}
-	err := kube.Get(ctx, ke, &akSecret)
-	if err != nil {
-		return nil, fmt.Errorf(errFetchAKIDSecret, err)
-	}
-	ke = client.ObjectKey{
-		Name:      auth.SecretRef.SecretAccessKey.Name,
-		Namespace: namespace,
-	}
-	if isClusterKind && auth.SecretRef.SecretAccessKey.Namespace != nil {
-		ke.Namespace = *auth.SecretRef.SecretAccessKey.Namespace
-	}
-	sakSecret := v1.Secret{}
-	err = kube.Get(ctx, ke, &sakSecret)
+func credsFromSecretRef(ctx context.Context, auth esv1beta1.AWSAuth, storeKind string, kube client.Client, namespace string) (*credentials.Credentials, error) {
+	sak, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &auth.SecretRef.SecretAccessKey)
 	if err != nil {
 		return nil, fmt.Errorf(errFetchSAKSecret, err)
 	}
-	sak := string(sakSecret.Data[auth.SecretRef.SecretAccessKey.Key])
-	aks := string(akSecret.Data[auth.SecretRef.AccessKeyID.Key])
-	if sak == "" {
-		return nil, fmt.Errorf(errMissingSAK)
-	}
-	if aks == "" {
-		return nil, fmt.Errorf(errMissingAKID)
+	aks, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &auth.SecretRef.AccessKeyID)
+	if err != nil {
+		return nil, fmt.Errorf(errFetchAKIDSecret, err)
 	}
 
 	var sessionToken string
 	if auth.SecretRef.SessionToken != nil {
-		ke = client.ObjectKey{
-			Name:      auth.SecretRef.SessionToken.Name,
-			Namespace: namespace,
-		}
-		if isClusterKind && auth.SecretRef.SessionToken.Namespace != nil {
-			ke.Namespace = *auth.SecretRef.SessionToken.Namespace
-		}
-		stSecret := v1.Secret{}
-		err = kube.Get(ctx, ke, &stSecret)
+		sessionToken, err = resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, auth.SecretRef.SessionToken)
 		if err != nil {
 			return nil, fmt.Errorf(errFetchSTSecret, err)
 		}
-		sessionToken = string(stSecret.Data[auth.SecretRef.SessionToken.Key])
 	}
 
 	return credentials.NewStaticCredentials(aks, sak, sessionToken), err

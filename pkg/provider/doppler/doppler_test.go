@@ -268,7 +268,7 @@ func TestValidateStore(t *testing.T) {
 	p := Provider{}
 	for _, tc := range testCases {
 		t.Run(tc.label, func(t *testing.T) {
-			err := p.ValidateStore(tc.store)
+			_, err := p.ValidateStore(tc.store)
 			if tc.err != nil && err != nil && err.Error() != tc.err.Error() {
 				t.Errorf("test failed! want %v, got %v", tc.err, err)
 			} else if tc.err == nil && err != nil {

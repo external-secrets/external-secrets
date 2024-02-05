@@ -154,7 +154,7 @@ Examples of using the `my-env-config` and `my-cert` Items [seen above](#manually
 
 ### Additional Notes
 #### General
-* It's intuative to use Document type Items for Kubernetes secrets mounted as files, and Password type Items for ones that will be mounted as environment variables, but either can be used for either. It comes down to what's more convenient.
+* It's intuitive to use Document type Items for Kubernetes secrets mounted as files, and Password type Items for ones that will be mounted as environment variables, but either can be used for either. It comes down to what's more convenient.
 
 #### Why no version history
 * 1Password only supports version history on their in-built `password` field. Therefore, implementing version history in this provider would require one Item in 1Password per `remoteRef` in an ExternalSecret. Additionally `remoteRef.property` would be pointless/unusable.

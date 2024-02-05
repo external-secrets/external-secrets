@@ -77,7 +77,7 @@ func TableFunc(f *Framework, prov SecretStoreProvider) func(...func(*TestCase)) 
 		if tc.ExternalSecretV1Alpha1 != nil {
 			err = tc.Framework.CRClient.Create(context.Background(), tc.ExternalSecretV1Alpha1)
 			Expect(err).ToNot(HaveOccurred())
-		} else {
+		} else if tc.ExternalSecret != nil {
 			// create v1beta1 external secret otherwise
 			err = tc.Framework.CRClient.Create(context.Background(), tc.ExternalSecret)
 			Expect(err).ToNot(HaveOccurred())
@@ -89,19 +89,23 @@ func TableFunc(f *Framework, prov SecretStoreProvider) func(...func(*TestCase)) 
 			}
 		}
 		// in case target name is empty
-		if tc.ExternalSecret.Spec.Target.Name == "" {
+		if tc.ExternalSecret != nil && tc.ExternalSecret.Spec.Target.Name == "" {
 			TargetSecretName = tc.ExternalSecret.ObjectMeta.Name
 		}
 
 		// wait for Kind=Secret to have the expected data
-		secret, err := tc.Framework.WaitForSecretValue(tc.Framework.Namespace.Name, TargetSecretName, tc.ExpectedSecret)
-		if err != nil {
-			f.printESDebugLogs(tc.ExternalSecret.Name, tc.ExternalSecret.Namespace)
-			log.Logf("Did not match. Expected: %+v, Got: %+v", tc.ExpectedSecret, secret)
-		}
+		if tc.ExpectedSecret != nil {
+			secret, err := tc.Framework.WaitForSecretValue(tc.Framework.Namespace.Name, TargetSecretName, tc.ExpectedSecret)
+			if err != nil {
+				f.printESDebugLogs(tc.ExternalSecret.Name, tc.ExternalSecret.Namespace)
+				log.Logf("Did not match. Expected: %+v, Got: %+v", tc.ExpectedSecret, secret)
+			}
 
-		Expect(err).ToNot(HaveOccurred())
-		tc.AfterSync(prov, secret)
+			Expect(err).ToNot(HaveOccurred())
+			tc.AfterSync(prov, secret)
+		} else {
+			tc.AfterSync(prov, nil)
+		}
 	}
 }
 
