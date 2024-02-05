@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -52,33 +53,7 @@ var (
 		ObjectMeta: v1.ObjectMeta{
 			Name: githubProvider.Auth.PrivatKey.SecretRef.Name,
 		},
-		Data: map[string][]byte{githubProvider.Auth.PrivatKey.SecretRef.Key: []byte(`-----BEGIN RSA PRIVATE KEY-----
-MIIEpAIBAAKCAQEAyKemEl+pul0OULxNG4Ak/FQUghJA0XUmChlClORD8ghcRRJj
-CGOGglrHSm0u7cMU7EM8JusAnz48aogbsLsYE1wYwYgHUkx7VRPO83ODVY569O82
-jm96reAuq5IijnSQEVgVExguPu5VaUh5plCazvACxEcpes2YZOgEG/DD7FySzQxU
-NTTih7A0ovc5SkPUNESdaLFOE5rVofh2evZ1ws74iWr6zQOo2u8JJd8h24gakPUg
-nLpro3V2Bmg0vt/VR3w1s6LmbOR15xwi3m8sW89Gv8TYcxajEG1RaLLeARxRBYTj
-f8oLEDveZqOjLyonFJJELlaaRa48QQ0wS9YRVQIDAQABAoIBAFpAvjwpd0hyLsw1
-xmEGRJySnR7cYvdTwCZusjoSalVlWUtgN9dAHPJpLpbVgXREeRbELzw6G++EqNwq
-GHpnzS54EFKMgu6LpDXiUQXEAWDsU3X0Ww+6KO4olhVqB80XtO14NxJ9n9+CiDxw
-8vbR7rAB2Ny8PXYVH+TTT3XZ1+Zp+V+qaGDXMKioD2+9OMdz8yf6/9hjT0k6FC0H
-c4H+e7DCdN2OznRieKagQO4rDYUoa35C0upJnCH0DZytSSXlJYerOd5HUO1eTtrM
-uMX1tOIFVpzpTncPsLQPsznnkj/U/xuKeq3uI/6SIaGngsvirGsXgUF5wrjuEJlK
-8BXGi4kCgYEA5P8+lQcziKofjDYHVNHoyUSkmyXObHhElgCPJ68c4nZ3MqTyF9oR
-59tcNhK5t0PjAp8NIpO8iNwYCX0Cal/JMz9YlInTlloMp7wyjAc3LT/IEgwccizV
-wXi7XxWZbX1wXwcJrVvmA6luNtD5xcMSxroQySnVuoGDxe/Lwzpzf+sCgYEA4FDW
-IrW/MoJJC5Ghvs78PPEQt5AiDgOtZLiIV2GfM4hixVG1PkgYkHo9+zpdgNKc31V2
-QCqLOu394aqHl4W/vcws2z/J3aioARVlZfniA2J1AacIBUiLdxsoHQDePrkR9kMb
-/kuxbxriAls1Epf4P6rWaU9oFkOK3RPKhijlo78CgYAxAXKaH+1mXMndjp5pB3bi
-w57aWO/hBKfg1gPMwUvUJvgBTY1Fj3RvguEr7TvzPULyh6ke8jDRtRArz6XZr9/1
-6KODPi+aqHC24K6MiurC8zhUrGTWBkREYBrxEUVBSivnGjF2+QizVenxLy2Updd5
-0c3PzvUfMaJKlLOtdu/KuwKBgQDbahbbot2f4VLj7xLAmqSeU8rfUywMe0pbMCml
-F4drF+hNTGw1vL3SbNA98sxNWzY5OtZNU5AXF350A6NX8msokxP5bj7eA8A6NxyV
-EEUkvGTpNeIhkOFiovysyhGaVtscAG7cYlvv6uLSHTcftekNFeVe415UEMM/FsHO
-Uyi07wKBgQCf8JfdcE7nOM5AnWF8Dw87BEht5CxSz4ygByrJ8sJUq0XQINKogvgI
-NI3XrrfAE2qh1aGG5+NHy5eQ1/8gwRl+smSrhqomIIUf2806C1s/mcSurxIYXLCb
-SJa4fZiSZ11qjwyL+9TRT5w2eNdmydYpcHCAByjlXWda3ov5/qfJuQ==
------END RSA PRIVATE KEY-----`)},
+		Data: map[string][]byte{},
 	}
 	validResponce = []byte(`{
 				"token": "ghs_16C7e42F292c6912E7710c838347Ae178B4a",
@@ -142,6 +117,11 @@ func TestGetSecret(t *testing.T) {
 		rw.Write(validResponce)
 	}))
 	defer server.Close()
+
+	pk, err := os.ReadFile("github_test_pk.pem")
+	assert.NoError(t, err, "Should not error when reading privatKey")
+
+	secretStore.Data[githubProvider.Auth.PrivatKey.SecretRef.Key] = pk
 	g := Github{
 		store: &esv1beta1.SecretStore{
 			Spec: esv1beta1.SecretStoreSpec{
