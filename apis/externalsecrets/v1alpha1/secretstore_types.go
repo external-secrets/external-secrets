@@ -89,6 +89,10 @@ type SecretStoreProvider struct {
 	// Fake configures a store with static key/value pairs
 	// +optional
 	Fake *FakeProvider `json:"fake,omitempty"`
+
+	// Github configures this store to sync secrets using Github Variables provider
+	// +optional
+	Github *GithubProvider `json:"github,omitempty"`
 }
 
 type SecretStoreRetrySettings struct {

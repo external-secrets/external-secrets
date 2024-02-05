@@ -3784,6 +3784,128 @@ or a namespaced SecretStore.</p>
 </h3>
 <p>
 </p>
+<h3 id="external-secrets.io/v1beta1.GithubAuth">GithubAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.GithubProvider">GithubProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>privatKey</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.GithubSecretRef">
+GithubSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.GithubProvider">GithubProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>url</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>URL configures the Github instance URL. Defaults to <a href="https://github.com/">https://github.com/</a>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>appID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>installID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.GithubAuth">
+GithubAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how ESO authenticates with a Github instance.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.GithubSecretRef">GithubSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.GithubAuth">GithubAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.GitlabAuth">GitlabAuth
 </h3>
 <p>
@@ -5287,6 +5409,20 @@ DelineaProvider
 <em>(Optional)</em>
 <p>Delinea DevOps Secrets Vault
 <a href="https://docs.delinea.com/online-help/products/devops-secrets-vault/current">https://docs.delinea.com/online-help/products/devops-secrets-vault/current</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>github</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.GithubProvider">
+GithubProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Github configures this store to sync secrets using Github Variables provider</p>
 </td>
 </tr>
 </tbody>
