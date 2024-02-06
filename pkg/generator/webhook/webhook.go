@@ -12,7 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package Webhook
+package webhook
 
 import (
 	"bytes"
@@ -25,55 +25,43 @@ import (
 	"net/http"
 	tpl "text/template"
 
-	"github.com/external-secrets/external-secrets/pkg/template/v2"
+	"github.com/PaesslerAG/jsonpath"
 	corev1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/PaesslerAG/jsonpath"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
+	"github.com/external-secrets/external-secrets/pkg/template/v2"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
-type WebhookRequest struct {
-	Parameters map[string]string `json:"parameters"`
-}
-
-type WebhookResponse struct {
-	Secrets map[string]string `json:"secrets"`
-}
-
-type WebHook struct {
+type Webhook struct {
 	kube      client.Client
-	store     genv1alpha1.Webhook
 	namespace string
 	storeKind string
 	http      *http.Client
 	url       string
 }
 
-const (
-	errNoSpec    = "no config spec provided"
-	errParseSpec = "unable to parse spec: %w"
-	errGetToken  = "unable to get authorization token: %w"
-)
-
-func (g *WebHook) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kclient client.Client, ns string) (map[string][]byte, error) {
+func (w *Webhook) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kclient client.Client, ns string) (map[string][]byte, error) {
 	provider, err := parseSpec(jsonSpec.Raw)
-	g.namespace = provider.Namespace
-	g.url = provider.Spec.URL
-	g.kube = kclient
-	g.http, err = g.getHTTPClient(provider)
+	if err != nil {
+		return nil, err
+	}
+	w.namespace = ns
+	w.url = provider.Spec.URL
+	w.kube = kclient
+	w.http, err = w.getHTTPClient(provider)
 	if err != nil {
 		return nil, err
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get store: %w", err)
 	}
-	result, err := g.getWebhookData(ctx, provider)
+	result, err := w.getWebhookData(ctx, provider)
 	if err != nil {
 		return nil, err
 	}
@@ -123,10 +111,10 @@ func parseSpec(data []byte) (*genv1alpha1.Webhook, error) {
 }
 
 func init() {
-	genv1alpha1.Register(genv1alpha1.WebhookKind, &WebHook{})
+	genv1alpha1.Register(genv1alpha1.WebhookKind, &Webhook{})
 }
 
-func (w *WebHook) getStoreSecret(ctx context.Context, ref genv1alpha1.SecretKeySelector) (*corev1.Secret, error) {
+func (w *Webhook) getStoreSecret(ctx context.Context, ref genv1alpha1.SecretKeySelector) (*corev1.Secret, error) {
 	ke := client.ObjectKey{
 		Name:      ref.Name,
 		Namespace: w.namespace,
@@ -145,7 +133,7 @@ func (w *WebHook) getStoreSecret(ctx context.Context, ref genv1alpha1.SecretKeyS
 	return secret, nil
 }
 
-func (w *WebHook) getTemplateData(ctx context.Context, secrets []genv1alpha1.WebhookSecret) (map[string]map[string]string, error) {
+func (w *Webhook) getTemplateData(ctx context.Context, secrets []genv1alpha1.WebhookSecret) (map[string]map[string]string, error) {
 	data := map[string]map[string]string{}
 	for _, secref := range secrets {
 		if _, ok := data[secref.Name]; !ok {
@@ -162,7 +150,7 @@ func (w *WebHook) getTemplateData(ctx context.Context, secrets []genv1alpha1.Web
 	return data, nil
 }
 
-func (w *WebHook) getWebhookData(ctx context.Context, provider *genv1alpha1.Webhook) ([]byte, error) {
+func (w *Webhook) getWebhookData(ctx context.Context, provider *genv1alpha1.Webhook) ([]byte, error) {
 	if w.http == nil {
 		return nil, fmt.Errorf("http client not initialized")
 	}
@@ -207,7 +195,7 @@ func (w *WebHook) getWebhookData(ctx context.Context, provider *genv1alpha1.Webh
 	return io.ReadAll(resp.Body)
 }
 
-func (w *WebHook) getHTTPClient(provider *genv1alpha1.Webhook) (*http.Client, error) {
+func (w *Webhook) getHTTPClient(provider *genv1alpha1.Webhook) (*http.Client, error) {
 	client := &http.Client{}
 	if provider.Spec.Timeout != nil {
 		client.Timeout = provider.Spec.Timeout.Duration
@@ -229,7 +217,7 @@ func (w *WebHook) getHTTPClient(provider *genv1alpha1.Webhook) (*http.Client, er
 	return client, nil
 }
 
-func (w *WebHook) getCACertPool(provider *genv1alpha1.Webhook) (*x509.CertPool, error) {
+func (w *Webhook) getCACertPool(provider *genv1alpha1.Webhook) (*x509.CertPool, error) {
 	caCertPool := x509.NewCertPool()
 	if len(provider.Spec.CABundle) > 0 {
 		ok := caCertPool.AppendCertsFromPEM(provider.Spec.CABundle)
@@ -263,7 +251,7 @@ func (w *WebHook) getCACertPool(provider *genv1alpha1.Webhook) (*x509.CertPool, 
 	return caCertPool, nil
 }
 
-func (w *WebHook) getCertFromSecret(provider *genv1alpha1.Webhook) ([]byte, error) {
+func (w *Webhook) getCertFromSecret(provider *genv1alpha1.Webhook) ([]byte, error) {
 	secretRef := esmeta.SecretKeySelector{
 		Name:      provider.Spec.CAProvider.Name,
 		Namespace: &w.namespace,
@@ -289,7 +277,7 @@ func (w *WebHook) getCertFromSecret(provider *genv1alpha1.Webhook) ([]byte, erro
 	return []byte(cert), nil
 }
 
-func (w *WebHook) getCertFromConfigMap(provider *genv1alpha1.Webhook) ([]byte, error) {
+func (w *Webhook) getCertFromConfigMap(provider *genv1alpha1.Webhook) ([]byte, error) {
 	objKey := client.ObjectKey{
 		Name: provider.Spec.CAProvider.Name,
 	}

@@ -98,16 +98,6 @@ type WebhookSecret struct {
 	SecretRef SecretKeySelector `json:"secretRef"`
 }
 
-// ExternalServer defines the server connection parameters.
-type ExternalServer struct {
-	Url string `json:"url"`
-}
-
-// ExternalAuth defines authentication mechanism.
-type ExternalAuth struct {
-	TokenRef SecretKeySelector `json:"tokenRef"`
-}
-
 type SecretKeySelector struct {
 	// The name of the Secret resource being referred to.
 	Name string `json:"name,omitempty"`
