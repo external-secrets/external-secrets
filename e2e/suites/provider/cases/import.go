@@ -26,4 +26,5 @@ import (
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/scaleway"
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/template"
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/vault"
+	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/conjur"
 )
