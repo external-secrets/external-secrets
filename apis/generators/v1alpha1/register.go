@@ -23,7 +23,7 @@ import (
 
 // Package type metadata.
 const (
-	Group   = "generators.Webhook-secrets.io"
+	Group   = "generators.external-secrets.io"
 	Version = "v1alpha1"
 )
 
