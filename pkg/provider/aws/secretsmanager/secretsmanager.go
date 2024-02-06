@@ -204,6 +204,10 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	return err
 }
 
+func (sm *SecretsManager) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
 func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret, psd esv1beta1.PushSecretData) error {
 	if psd.GetSecretKey() == "" {
 		return fmt.Errorf("pushing the whole secret is not yet implemented")

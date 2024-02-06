@@ -91,6 +91,10 @@ func (g *gitlabBase) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemot
 	return fmt.Errorf("not implemented")
 }
 
+func (g *gitlabBase) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
 func (g *gitlabBase) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
 	return fmt.Errorf("not implemented")
 }

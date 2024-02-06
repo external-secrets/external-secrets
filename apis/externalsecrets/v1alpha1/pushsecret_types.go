@@ -41,6 +41,14 @@ type PushSecretStoreRef struct {
 	Kind string `json:"kind,omitempty"`
 }
 
+// +kubebuilder:validation:Enum=Replace;IfNotExists
+type PushSecretUpdatePolicy string
+
+const (
+	PushSecretUpdatePolicyReplace     PushSecretUpdatePolicy = "Replace"
+	PushSecretUpdatePolicyIfNotExists PushSecretUpdatePolicy = "IfNotExists"
+)
+
 // +kubebuilder:validation:Enum=Delete;None
 type PushSecretDeletionPolicy string
 
@@ -54,6 +62,10 @@ type PushSecretSpec struct {
 	// The Interval to which External Secrets will try to push a secret definition
 	RefreshInterval *metav1.Duration     `json:"refreshInterval,omitempty"`
 	SecretStoreRefs []PushSecretStoreRef `json:"secretStoreRefs"`
+	// Update Policy to handle Secrets in the provider. Possible Values: "Replace/IfNotExists". Defaults to "Replace".
+	// +kubebuilder:default="Replace"
+	// +optional
+	UpdatePolicy PushSecretUpdatePolicy `json:"updatePolicy,omitempty"`
 	// Deletion Policy to handle Secrets in the provider. Possible Values: "Delete/None". Defaults to "None".
 	// +kubebuilder:default="None"
 	// +optional
@@ -148,7 +160,7 @@ type PushSecretStatusCondition struct {
 	// +optional
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 }
-type SyncedPushSecretsMap map[string]map[string]PushSecretData
+type PushSecretsMap map[string]map[string]PushSecretData
 
 // PushSecretStatus indicates the history of the status of PushSecret.
 type PushSecretStatus struct {
@@ -161,7 +173,10 @@ type PushSecretStatus struct {
 	SyncedResourceVersion string `json:"syncedResourceVersion,omitempty"`
 	// Synced Push Secrets for later deletion. Matches Secret Stores to PushSecretData that was stored to that secretStore.
 	// +optional
-	SyncedPushSecrets SyncedPushSecretsMap `json:"syncedPushSecrets,omitempty"`
+	SyncedPushSecrets PushSecretsMap `json:"syncedPushSecrets,omitempty"`
+	// Push Secrets that already exist in Provider when synced with UpdatePolicy=IfNotExists.
+	// +optional
+	ExistingPushSecrets PushSecretsMap `json:"existingPushSecrets,omitempty"`
 	// +optional
 	Conditions []PushSecretStatusCondition `json:"conditions,omitempty"`
 }

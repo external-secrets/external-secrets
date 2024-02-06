@@ -310,6 +310,10 @@ func (a *Azure) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecret
 	}
 }
 
+func (a *Azure) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
 func getCertificateFromValue(value []byte) (*x509.Certificate, error) {
 	// 1st: try decode pkcs12
 	_, localCert, err := pkcs12.Decode(value, "")

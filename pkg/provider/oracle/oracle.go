@@ -159,6 +159,10 @@ func (vms *VaultManagementService) DeleteSecret(ctx context.Context, remoteRef e
 	}
 }
 
+func (vms *VaultManagementService) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
 func (vms *VaultManagementService) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	var page *string
 	var summaries []vault.SecretSummary

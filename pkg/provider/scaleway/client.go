@@ -264,6 +264,10 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecre
 	return nil
 }
 
+func (c *client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
 func (c *client) Validate() (esv1beta1.ValidationResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

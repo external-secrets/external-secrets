@@ -41,6 +41,10 @@ func (c *yandexCloudSecretsClient) DeleteSecret(_ context.Context, _ esv1beta1.P
 	return fmt.Errorf("not implemented")
 }
 
+func (c *yandexCloudSecretsClient) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
 func (c *yandexCloudSecretsClient) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
 	return fmt.Errorf("not implemented")
 }
