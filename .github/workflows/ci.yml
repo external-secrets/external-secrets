@@ -96,7 +96,7 @@ jobs:
   unit-tests:
     runs-on: ubuntu-latest
     needs: detect-noop
-    if: needs.detect-noop.outputs.noop != 'true' && github.ref != 'refs/heads/main'
+    if: needs.detect-noop.outputs.noop != 'true'
 
     steps:
       - name: Checkout
