@@ -39,10 +39,11 @@ import (
 )
 
 var (
-	svcURL     = "https://example.com"
-	svcUser    = "user"
-	svcApikey  = "apikey"
-	svcAccount = "account1"
+	svcURL           = "https://example.com"
+	svcUser          = "user"
+	svcApikey        = "apikey"
+	svcAccount       = "account1"
+	jwtAuthenticator = "jwt-authenticator"
 )
 
 func makeValidRef(k string) *esv1beta1.ExternalSecretDataRemoteRef {
@@ -81,27 +82,27 @@ func TestValidateStore(t *testing.T) {
 		},
 
 		{
-			store: makeJWTSecretStore(svcURL, "conjur", "", "jwt-auth-service", "myconjuraccount"),
+			store: makeJWTSecretStore(svcURL, "conjur", "", "jwt-auth-service", "", "myconjuraccount"),
 			err:   nil,
 		},
 		{
-			store: makeJWTSecretStore(svcURL, "", "jwt-secret", "jwt-auth-service", "myconjuraccount"),
+			store: makeJWTSecretStore(svcURL, "", "jwt-secret", "jwt-auth-service", "", "myconjuraccount"),
 			err:   nil,
 		},
 		{
-			store: makeJWTSecretStore(svcURL, "conjur", "", "jwt-auth-service", ""),
+			store: makeJWTSecretStore(svcURL, "conjur", "", "jwt-auth-service", "", ""),
 			err:   fmt.Errorf("missing Auth.Jwt.Account"),
 		},
 		{
-			store: makeJWTSecretStore(svcURL, "conjur", "", "", "myconjuraccount"),
+			store: makeJWTSecretStore(svcURL, "conjur", "", "", "", "myconjuraccount"),
 			err:   fmt.Errorf("missing Auth.Jwt.ServiceID"),
 		},
 		{
-			store: makeJWTSecretStore("", "conjur", "", "jwt-auth-service", "myconjuraccount"),
+			store: makeJWTSecretStore("", "conjur", "", "jwt-auth-service", "", "myconjuraccount"),
 			err:   fmt.Errorf("conjur URL cannot be empty"),
 		},
 		{
-			store: makeJWTSecretStore(svcURL, "", "", "jwt-auth-service", "myconjuraccount"),
+			store: makeJWTSecretStore(svcURL, "", "", "jwt-auth-service", "", "myconjuraccount"),
 			err:   fmt.Errorf("must specify Auth.Jwt.SecretRef or Auth.Jwt.ServiceAccountRef"),
 		},
 
@@ -175,7 +176,22 @@ func TestGetSecret(t *testing.T) {
 		"JwtWithServiceAccountRefReadSecretSuccess": {
 			reason: "Should read a secret successfully using a JWT auth secret store that references a k8s service account.",
 			args: args{
-				store: makeJWTSecretStore(svcURL, "my-service-account", "", "jwt-authenticator", "myconjuraccount"),
+				store: makeJWTSecretStore(svcURL, svcAccount, "", jwtAuthenticator, "", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects().Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+				corev1:     utilfake.NewCreateTokenMock().WithToken(createFakeJwtToken(true)),
+			},
+			want: want{
+				err:   nil,
+				value: "secret",
+			},
+		},
+		"JwtWithServiceAccountRefWithHostIdReadSecretSuccess": {
+			reason: "Should read a secret successfully using a JWT auth secret store that references a k8s service account and uses a host ID.",
+			args: args{
+				store: makeJWTSecretStore(svcURL, svcAccount, "", jwtAuthenticator, "myhostid", "myconjuraccount"),
 				kube: clientfake.NewClientBuilder().
 					WithObjects().Build(),
 				namespace:  "default",
@@ -190,7 +206,7 @@ func TestGetSecret(t *testing.T) {
 		"JwtWithSecretRefReadSecretSuccess": {
 			reason: "Should read a secret successfully using an JWT auth secret store that references a k8s secret.",
 			args: args{
-				store: makeJWTSecretStore(svcURL, "", "jwt-secret", "jwt-authenticator", "myconjuraccount"),
+				store: makeJWTSecretStore(svcURL, "", "jwt-secret", jwtAuthenticator, "", "myconjuraccount"),
 				kube: clientfake.NewClientBuilder().
 					WithObjects(&corev1.Secret{
 						ObjectMeta: metav1.ObjectMeta{
@@ -212,7 +228,7 @@ func TestGetSecret(t *testing.T) {
 		"JwtWithCABundleSuccess": {
 			reason: "Should read a secret successfully using a JWT auth secret store that references a k8s service account.",
 			args: args{
-				store: makeJWTSecretStore(svcURL, "my-service-account", "", "jwt-authenticator", "myconjuraccount"),
+				store: makeJWTSecretStore(svcURL, svcAccount, "", jwtAuthenticator, "", "myconjuraccount"),
 				kube: clientfake.NewClientBuilder().
 					WithObjects().Build(),
 				namespace:  "default",
@@ -364,7 +380,7 @@ func makeAPIKeySecretStore(svcURL, svcUser, svcApikey, svcAccount string) *esv1b
 	return store
 }
 
-func makeJWTSecretStore(svcURL, serviceAccountName, secretName, jwtServiceID, conjurAccount string) *esv1beta1.SecretStore {
+func makeJWTSecretStore(svcURL, serviceAccountName, secretName, jwtServiceID, jwtHostID, conjurAccount string) *esv1beta1.SecretStore {
 	serviceAccountRef := &esmeta.ServiceAccountSelector{
 		Name:      serviceAccountName,
 		Audiences: []string{"conjur"},
@@ -392,6 +408,7 @@ func makeJWTSecretStore(svcURL, serviceAccountName, secretName, jwtServiceID, co
 							ServiceID:         jwtServiceID,
 							ServiceAccountRef: serviceAccountRef,
 							SecretRef:         secretRef,
+							HostID:            jwtHostID,
 						},
 					},
 				},
@@ -402,7 +419,7 @@ func makeJWTSecretStore(svcURL, serviceAccountName, secretName, jwtServiceID, co
 }
 
 func makeStoreWithCA(caSource, caData string) *esv1beta1.SecretStore {
-	store := makeJWTSecretStore(svcURL, "conjur", "", "jwt-auth-service", "myconjuraccount")
+	store := makeJWTSecretStore(svcURL, "conjur", "", "jwt-auth-service", "", "myconjuraccount")
 	if caSource == "secret" {
 		store.Spec.Provider.Conjur.CAProvider = &esv1beta1.CAProvider{
 			Type: esv1beta1.CAProviderTypeSecret,
@@ -502,7 +519,7 @@ func (c *ConjurMockAPIClient) NewClientFromKey(_ conjurapi.Config, _ authn.Login
 	return &fake.ConjurMockClient{}, nil
 }
 
-func (c *ConjurMockAPIClient) NewClientFromJWT(_ conjurapi.Config, _, _ string) (SecretsClient, error) {
+func (c *ConjurMockAPIClient) NewClientFromJWT(_ conjurapi.Config, _, _, _ string) (SecretsClient, error) {
 	return &fake.ConjurMockClient{}, nil
 }
 
