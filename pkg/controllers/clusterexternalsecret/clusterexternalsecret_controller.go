@@ -59,7 +59,6 @@ const (
 	errNamespaces           = "could not get namespaces from selector"
 	errGetExistingES        = "could not get existing ExternalSecret"
 	errNamespacesFailed     = "one or more namespaces failed"
-	errNamespaceNotFound    = "no namespace matches"
 )
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -179,7 +178,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		provisionedNamespaces = append(provisionedNamespaces, namespace.Name)
 	}
 
-	condition := NewClusterExternalSecretCondition(failedNamespaces, &namespaceList)
+	condition := NewClusterExternalSecretCondition(failedNamespaces)
 	SetClusterExternalSecretCondition(&clusterExternalSecret, *condition)
 
 	clusterExternalSecret.Status.FailedNamespaces = toNamespaceFailures(failedNamespaces)
