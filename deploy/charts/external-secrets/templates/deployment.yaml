@@ -91,6 +91,15 @@ spec:
             - containerPort: {{ .Values.metrics.listen.port }}
               protocol: TCP
               name: metrics
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: http
+            timeoutSeconds: {{ .Values.probes.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.livenessProbe.failureThreshold }}
+            periodSeconds: {{ .Values.probes.livenessProbe.periodSeconds }}
+            successThreshold: {{ .Values.probes.livenessProbe.successThreshold }}
+            initialDelaySeconds: {{ .Values.probes.livenessProbe.initialDelaySeconds }}
           {{- with .Values.extraEnv }}
           env:
             {{- toYaml . | nindent 12 }}
