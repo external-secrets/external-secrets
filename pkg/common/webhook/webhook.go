@@ -19,12 +19,14 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	tpl "text/template"
 
+	"github.com/PaesslerAG/jsonpath"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -71,6 +73,48 @@ func (w *Webhook) getStoreSecret(ctx context.Context, ref SecretKeySelector) (*c
 	}
 	return secret, nil
 }
+func (w *Webhook) GetSecretMap(ctx context.Context, provider *Spec, ref *esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	result, err := w.GetWebhookData(ctx, provider, ref)
+	if err != nil {
+		return nil, err
+	}
+	// We always want json here, so just parse it out
+	jsondata := interface{}(nil)
+	if err := json.Unmarshal(result, &jsondata); err != nil {
+		return nil, fmt.Errorf("failed to parse response json: %w", err)
+	}
+	// Get subdata via jsonpath, if given
+	if provider.Result.JSONPath != "" {
+		jsondata, err = jsonpath.Get(provider.Result.JSONPath, jsondata)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get response path %s: %w", provider.Result.JSONPath, err)
+		}
+	}
+	// If the value is a string, try to parse it as json
+	jsonstring, ok := jsondata.(string)
+	if ok {
+		// This could also happen if the response was a single json-encoded string
+		// but that is an extremely unlikely scenario
+		if err := json.Unmarshal([]byte(jsonstring), &jsondata); err != nil {
+			return nil, fmt.Errorf("failed to parse response json from jsonpath: %w", err)
+		}
+	}
+	// Use the data as a key-value map
+	jsonvalue, ok := jsondata.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("failed to get response (wrong type: %T)", jsondata)
+	}
+	// Change the map of generic objects to a map of byte arrays
+	values := make(map[string][]byte)
+	for rKey, rValue := range jsonvalue {
+		jVal, ok := rValue.(string)
+		if !ok {
+			return nil, fmt.Errorf("failed to get response (wrong type in key '%s': %T)", rKey, rValue)
+		}
+		values[rKey] = []byte(jVal)
+	}
+	return values, nil
+}
 
 func (w *Webhook) GetTemplateData(ctx context.Context, ref *esv1beta1.ExternalSecretDataRemoteRef, secrets []Secret) (map[string]map[string]string, error) {
 	data := map[string]map[string]string{}
@@ -108,11 +152,11 @@ func (w *Webhook) GetWebhookData(ctx context.Context, provider *Spec, ref *esv1b
 	if method == "" {
 		method = http.MethodGet
 	}
-	url, err := executeTemplateString(provider.URL, data)
+	url, err := ExecuteTemplateString(provider.URL, data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse url: %w", err)
 	}
-	body, err := executeTemplate(provider.Body, data)
+	body, err := ExecuteTemplate(provider.Body, data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse body: %w", err)
 	}
@@ -122,7 +166,7 @@ func (w *Webhook) GetWebhookData(ctx context.Context, provider *Spec, ref *esv1b
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	for hKey, hValueTpl := range provider.Headers {
-		hValue, err := executeTemplateString(hValueTpl, data)
+		hValue, err := ExecuteTemplateString(hValueTpl, data)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse header %s: %w", hKey, err)
 		}
@@ -250,15 +294,15 @@ func (w *Webhook) GetCertFromConfigMap(provider *Spec) ([]byte, error) {
 	return []byte(val), nil
 }
 
-func executeTemplateString(tmpl string, data map[string]map[string]string) (string, error) {
-	result, err := executeTemplate(tmpl, data)
+func ExecuteTemplateString(tmpl string, data map[string]map[string]string) (string, error) {
+	result, err := ExecuteTemplate(tmpl, data)
 	if err != nil {
 		return "", err
 	}
 	return result.String(), nil
 }
 
-func executeTemplate(tmpl string, data map[string]map[string]string) (bytes.Buffer, error) {
+func ExecuteTemplate(tmpl string, data map[string]map[string]string) (bytes.Buffer, error) {
 	var result bytes.Buffer
 	if tmpl == "" {
 		return result, nil

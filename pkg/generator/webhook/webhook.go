@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/PaesslerAG/jsonpath"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -50,47 +49,7 @@ func (w *Webhook) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kc
 	if err != nil {
 		return nil, fmt.Errorf("failed to get store: %w", err)
 	}
-	result, err := w.wh.GetWebhookData(ctx, provider, nil)
-	if err != nil {
-		return nil, err
-	}
-	// We always want json here, so just parse it out
-	jsondata := interface{}(nil)
-	if err := json.Unmarshal(result, &jsondata); err != nil {
-		return nil, fmt.Errorf("failed to parse response json: %w", err)
-	}
-	// Get subdata via jsonpath, if given
-	if provider.Result.JSONPath != "" {
-		jsondata, err = jsonpath.Get(provider.Result.JSONPath, jsondata)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get response path %s: %w", provider.Result.JSONPath, err)
-		}
-	}
-	// If the value is a string, try to parse it as json
-	jsonstring, ok := jsondata.(string)
-	if ok {
-		// This could also happen if the response was a single json-encoded string
-		// but that is an extremely unlikely scenario
-		if err := json.Unmarshal([]byte(jsonstring), &jsondata); err != nil {
-			return nil, fmt.Errorf("failed to parse response json from jsonpath: %w", err)
-		}
-	}
-	// Use the data as a key-value map
-	jsonvalue, ok := jsondata.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("failed to get response (wrong type: %T)", jsondata)
-	}
-
-	// Change the map of generic objects to a map of byte arrays
-	values := make(map[string][]byte)
-	for rKey, rValue := range jsonvalue {
-		jVal, ok := rValue.(string)
-		if !ok {
-			return nil, fmt.Errorf("failed to get response (wrong type in key '%s': %T)", rKey, rValue)
-		}
-		values[rKey] = []byte(jVal)
-	}
-	return values, nil
+	return w.wh.GetSecretMap(ctx, provider, nil)
 }
 
 func parseSpec(data []byte) (*webhook.Spec, error) {

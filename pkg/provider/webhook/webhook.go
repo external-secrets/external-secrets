@@ -15,12 +15,10 @@ limitations under the License.
 package webhook
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
-	tpl "text/template"
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
@@ -30,7 +28,6 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/common/webhook"
-	"github.com/external-secrets/external-secrets/pkg/template/v2"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -132,7 +129,7 @@ func (w *WebHook) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDat
 	if err != nil {
 		return nil, err
 	}
-	resultJSONPath, err := executeTemplateString(provider.Result.JSONPath, data)
+	resultJSONPath, err := webhook.ExecuteTemplateString(provider.Result.JSONPath, data)
 	if err != nil {
 		return nil, err
 	}
@@ -191,48 +188,7 @@ func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecret
 	if err != nil {
 		return nil, fmt.Errorf("failed to get store: %w", err)
 	}
-	result, err := w.wh.GetWebhookData(ctx, provider, &ref)
-	if err != nil {
-		return nil, err
-	}
-
-	// We always want json here, so just parse it out
-	jsondata := interface{}(nil)
-	if err := json.Unmarshal(result, &jsondata); err != nil {
-		return nil, fmt.Errorf("failed to parse response json: %w", err)
-	}
-	// Get subdata via jsonpath, if given
-	if provider.Result.JSONPath != "" {
-		jsondata, err = jsonpath.Get(provider.Result.JSONPath, jsondata)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get response path %s: %w", provider.Result.JSONPath, err)
-		}
-	}
-	// If the value is a string, try to parse it as json
-	jsonstring, ok := jsondata.(string)
-	if ok {
-		// This could also happen if the response was a single json-encoded string
-		// but that is an extremely unlikely scenario
-		if err := json.Unmarshal([]byte(jsonstring), &jsondata); err != nil {
-			return nil, fmt.Errorf("failed to parse response json from jsonpath: %w", err)
-		}
-	}
-	// Use the data as a key-value map
-	jsonvalue, ok := jsondata.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("failed to get response (wrong type: %T)", jsondata)
-	}
-
-	// Change the map of generic objects to a map of byte arrays
-	values := make(map[string][]byte)
-	for rKey, rValue := range jsonvalue {
-		jVal, ok := rValue.(string)
-		if !ok {
-			return nil, fmt.Errorf("failed to get response (wrong type in key '%s': %T)", rKey, rValue)
-		}
-		values[rKey] = []byte(jVal)
-	}
-	return values, nil
+	return w.wh.GetSecretMap(ctx, provider, &ref)
 }
 
 func (w *WebHook) Close(_ context.Context) error {
@@ -247,27 +203,4 @@ func (w *WebHook) Validate() (esv1beta1.ValidationResult, error) {
 		return esv1beta1.ValidationResultError, err
 	}
 	return esv1beta1.ValidationResultReady, nil
-}
-
-func executeTemplateString(tmpl string, data map[string]map[string]string) (string, error) {
-	result, err := executeTemplate(tmpl, data)
-	if err != nil {
-		return "", err
-	}
-	return result.String(), nil
-}
-
-func executeTemplate(tmpl string, data map[string]map[string]string) (bytes.Buffer, error) {
-	var result bytes.Buffer
-	if tmpl == "" {
-		return result, nil
-	}
-	urlt, err := tpl.New("webhooktemplate").Funcs(template.FuncMap()).Parse(tmpl)
-	if err != nil {
-		return result, err
-	}
-	if err := urlt.Execute(&result, data); err != nil {
-		return result, err
-	}
-	return result, nil
 }
