@@ -17,13 +17,8 @@ package webhook
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
 	"strconv"
 	tpl "text/template"
 	"time"
@@ -34,12 +29,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/constants"
-	"github.com/external-secrets/external-secrets/pkg/metrics"
+	"github.com/external-secrets/external-secrets/pkg/common/webhook"
 	"github.com/external-secrets/external-secrets/pkg/template/v2"
 	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -50,11 +42,9 @@ var _ esv1beta1.Provider = &Provider{}
 type Provider struct{}
 
 type WebHook struct {
-	kube      client.Client
+	wh        webhook.Webhook
 	store     esv1beta1.GenericStore
-	namespace string
 	storeKind string
-	http      *http.Client
 	url       string
 }
 
@@ -70,11 +60,17 @@ func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 }
 
 func (p *Provider) NewClient(_ context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+	wh := webhook.Webhook{
+		Kube:      kube,
+		Namespace: namespace,
+	}
 	whClient := &WebHook{
-		kube:      kube,
 		store:     store,
-		namespace: namespace,
+		wh:        wh,
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
+	}
+	if whClient.storeKind == esv1beta1.ClusterSecretStoreKind {
+		whClient.wh.ClusterScoped = true
 	}
 	provider, err := getProvider(store)
 	if err != nil {
@@ -82,7 +78,7 @@ func (p *Provider) NewClient(_ context.Context, store esv1beta1.GenericStore, ku
 	}
 	whClient.url = provider.URL
 
-	whClient.http, err = whClient.getHTTPClient(provider)
+	whClient.wh.HTTP, err = whClient.wh.GetHTTPClient(provider)
 	if err != nil {
 		return nil, err
 	}
@@ -93,30 +89,18 @@ func (p *Provider) ValidateStore(_ esv1beta1.GenericStore) (admission.Warnings, 
 	return nil, nil
 }
 
-func getProvider(store esv1beta1.GenericStore) (*esv1beta1.WebhookProvider, error) {
+func getProvider(store esv1beta1.GenericStore) (*webhook.Spec, error) {
 	spc := store.GetSpec()
 	if spc == nil || spc.Provider == nil || spc.Provider.Webhook == nil {
 		return nil, fmt.Errorf("missing store provider webhook")
 	}
-	return spc.Provider.Webhook, nil
-}
-
-func (w *WebHook) getStoreSecret(ctx context.Context, ref esmeta.SecretKeySelector) (*corev1.Secret, error) {
-	ke := client.ObjectKey{
-		Name:      ref.Name,
-		Namespace: w.namespace,
+	out := webhook.Spec{}
+	d, err := json.Marshal(spc.Provider.Webhook)
+	if err != nil {
+		return nil, err
 	}
-	if w.storeKind == esv1beta1.ClusterSecretStoreKind {
-		if ref.Namespace == nil {
-			return nil, fmt.Errorf("no namespace on ClusterSecretStore webhook secret %s", ref.Name)
-		}
-		ke.Namespace = *ref.Namespace
-	}
-	secret := &corev1.Secret{}
-	if err := w.kube.Get(ctx, ke, secret); err != nil {
-		return nil, fmt.Errorf("failed to get clustersecretstore webhook secret %s: %w", ref.Name, err)
-	}
-	return secret, nil
+	err = json.Unmarshal(d, &out)
+	return &out, err
 }
 
 func (w *WebHook) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
@@ -139,12 +123,12 @@ func (w *WebHook) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDat
 	if err != nil {
 		return nil, fmt.Errorf("failed to get store: %w", err)
 	}
-	result, err := w.getWebhookData(ctx, provider, ref)
+	result, err := w.wh.GetWebhookData(ctx, provider, &ref)
 	if err != nil {
 		return nil, err
 	}
 	// Only parse as json if we have a jsonpath set
-	data, err := w.getTemplateData(ctx, ref, provider.Secrets)
+	data, err := w.wh.GetTemplateData(ctx, &ref, provider.Secrets)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +191,7 @@ func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecret
 	if err != nil {
 		return nil, fmt.Errorf("failed to get store: %w", err)
 	}
-	result, err := w.getWebhookData(ctx, provider, ref)
+	result, err := w.wh.GetWebhookData(ctx, provider, &ref)
 	if err != nil {
 		return nil, err
 	}
@@ -249,187 +233,6 @@ func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecret
 		values[rKey] = []byte(jVal)
 	}
 	return values, nil
-}
-
-func (w *WebHook) getTemplateData(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef, secrets []esv1beta1.WebhookSecret) (map[string]map[string]string, error) {
-	data := map[string]map[string]string{
-		"remoteRef": {
-			"key":      url.QueryEscape(ref.Key),
-			"version":  url.QueryEscape(ref.Version),
-			"property": url.QueryEscape(ref.Property),
-		},
-	}
-	for _, secref := range secrets {
-		if _, ok := data[secref.Name]; !ok {
-			data[secref.Name] = make(map[string]string)
-		}
-		secret, err := w.getStoreSecret(ctx, secref.SecretRef)
-		if err != nil {
-			return nil, err
-		}
-		for sKey, sVal := range secret.Data {
-			data[secref.Name][sKey] = string(sVal)
-		}
-	}
-	return data, nil
-}
-
-func (w *WebHook) getWebhookData(ctx context.Context, provider *esv1beta1.WebhookProvider, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	if w.http == nil {
-		return nil, fmt.Errorf("http client not initialized")
-	}
-	data, err := w.getTemplateData(ctx, ref, provider.Secrets)
-	if err != nil {
-		return nil, err
-	}
-	method := provider.Method
-	if method == "" {
-		method = http.MethodGet
-	}
-	url, err := executeTemplateString(provider.URL, data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse url: %w", err)
-	}
-	body, err := executeTemplate(provider.Body, data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse body: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, method, url, &body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-	for hKey, hValueTpl := range provider.Headers {
-		hValue, err := executeTemplateString(hValueTpl, data)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse header %s: %w", hKey, err)
-		}
-		req.Header.Add(hKey, hValue)
-	}
-
-	resp, err := w.http.Do(req)
-	metrics.ObserveAPICall(constants.ProviderWebhook, constants.CallWebhookHTTPReq, err)
-	if err != nil {
-		return nil, fmt.Errorf("failed to call endpoint: %w", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode == 404 {
-		return nil, esv1beta1.NoSecretError{}
-	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("endpoint gave error %s", resp.Status)
-	}
-	return io.ReadAll(resp.Body)
-}
-
-func (w *WebHook) getHTTPClient(provider *esv1beta1.WebhookProvider) (*http.Client, error) {
-	client := &http.Client{}
-	if provider.Timeout != nil {
-		client.Timeout = provider.Timeout.Duration
-	}
-	if len(provider.CABundle) == 0 && provider.CAProvider == nil {
-		// No need to process ca stuff if it is not there
-		return client, nil
-	}
-	caCertPool, err := w.getCACertPool(provider)
-	if err != nil {
-		return nil, err
-	}
-
-	tlsConf := &tls.Config{
-		RootCAs:    caCertPool,
-		MinVersion: tls.VersionTLS12,
-	}
-	client.Transport = &http.Transport{TLSClientConfig: tlsConf}
-	return client, nil
-}
-
-func (w *WebHook) getCACertPool(provider *esv1beta1.WebhookProvider) (*x509.CertPool, error) {
-	caCertPool := x509.NewCertPool()
-	if len(provider.CABundle) > 0 {
-		ok := caCertPool.AppendCertsFromPEM(provider.CABundle)
-		if !ok {
-			return nil, fmt.Errorf("failed to append cabundle")
-		}
-	}
-
-	if provider.CAProvider != nil && w.storeKind == esv1beta1.ClusterSecretStoreKind && provider.CAProvider.Namespace == nil {
-		return nil, fmt.Errorf("missing namespace on CAProvider secret")
-	}
-
-	if provider.CAProvider != nil {
-		var cert []byte
-		var err error
-
-		switch provider.CAProvider.Type {
-		case esv1beta1.WebhookCAProviderTypeSecret:
-			cert, err = w.getCertFromSecret(provider)
-		case esv1beta1.WebhookCAProviderTypeConfigMap:
-			cert, err = w.getCertFromConfigMap(provider)
-		default:
-			err = fmt.Errorf("unknown caprovider type: %s", provider.CAProvider.Type)
-		}
-
-		if err != nil {
-			return nil, err
-		}
-
-		ok := caCertPool.AppendCertsFromPEM(cert)
-		if !ok {
-			return nil, fmt.Errorf("failed to append cabundle")
-		}
-	}
-	return caCertPool, nil
-}
-
-func (w *WebHook) getCertFromSecret(provider *esv1beta1.WebhookProvider) ([]byte, error) {
-	secretRef := esmeta.SecretKeySelector{
-		Name:      provider.CAProvider.Name,
-		Namespace: &w.namespace,
-		Key:       provider.CAProvider.Key,
-	}
-
-	if provider.CAProvider.Namespace != nil {
-		secretRef.Namespace = provider.CAProvider.Namespace
-	}
-
-	ctx := context.Background()
-	cert, err := resolvers.SecretKeyRef(
-		ctx,
-		w.kube,
-		w.storeKind,
-		w.namespace,
-		&secretRef,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return []byte(cert), nil
-}
-
-func (w *WebHook) getCertFromConfigMap(provider *esv1beta1.WebhookProvider) ([]byte, error) {
-	objKey := client.ObjectKey{
-		Name: provider.CAProvider.Name,
-	}
-
-	if provider.CAProvider.Namespace != nil {
-		objKey.Namespace = *provider.CAProvider.Namespace
-	}
-
-	configMapRef := &corev1.ConfigMap{}
-	ctx := context.Background()
-	err := w.kube.Get(ctx, objKey, configMapRef)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get caprovider secret %s: %w", objKey.Name, err)
-	}
-
-	val, ok := configMapRef.Data[provider.CAProvider.Key]
-	if !ok {
-		return nil, fmt.Errorf("failed to get caprovider configmap %s -> %s", objKey.Name, provider.CAProvider.Key)
-	}
-
-	return []byte(val), nil
 }
 
 func (w *WebHook) Close(_ context.Context) error {
