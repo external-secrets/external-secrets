@@ -49,7 +49,7 @@ var _ = Describe("[azuremanaged] with pod identity", Label("azure", "keyvault", 
 	})
 
 	DescribeTable("sync secrets",
-		framework.TableFunc(f,
+		framework.TableFuncWithExternalSecret(f,
 			prov),
 		// uses pod id
 		framework.Compose(withPodID, f, common.SimpleDataSync, usePodIDESReference),
