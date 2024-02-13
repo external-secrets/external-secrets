@@ -62,7 +62,7 @@ type PushSecretSpec struct {
 	// The Interval to which External Secrets will try to push a secret definition
 	RefreshInterval *metav1.Duration     `json:"refreshInterval,omitempty"`
 	SecretStoreRefs []PushSecretStoreRef `json:"secretStoreRefs"`
-	// Update Policy to handle Secrets in the provider. Possible Values: "Replace/IfNotExists". Defaults to "Replace".
+	// UpdatePolicy to handle Secrets in the provider. Possible Values: "Replace/IfNotExists". Defaults to "Replace".
 	// +kubebuilder:default="Replace"
 	// +optional
 	UpdatePolicy PushSecretUpdatePolicy `json:"updatePolicy,omitempty"`

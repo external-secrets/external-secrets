@@ -5670,7 +5670,7 @@ spec:
                   type: object
                 updatePolicy:
                   default: Replace
-                  description: 'Update Policy to handle Secrets in the provider. Possible Values: "Replace/IfNotExists". Defaults to "Replace".'
+                  description: 'UpdatePolicy to handle Secrets in the provider. Possible Values: "Replace/IfNotExists". Defaults to "Replace".'
                   enum:
                     - Replace
                     - IfNotExists
