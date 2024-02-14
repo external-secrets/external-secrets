@@ -50,7 +50,7 @@ var _ = Describe("[gcpmanaged] with pod identity", Label("gcp", "secretsmanager"
 	})
 
 	DescribeTable("sync secrets",
-		framework.TableFunc(f,
+		framework.TableFuncWithExternalSecret(f,
 			prov),
 		// uses pod id
 		framework.Compose(withPodID, f, common.SimpleDataSync, usePodIDESReference),
@@ -86,7 +86,7 @@ var _ = Describe("[gcpmanaged] with service account", Label("gcp", "secretsmanag
 	})
 
 	DescribeTable("sync secrets",
-		framework.TableFunc(f,
+		framework.TableFuncWithExternalSecret(f,
 			prov),
 		// uses specific sa
 		framework.Compose(withSpecifcSA, f, common.JSONDataFromSync, useSpecifcSAESReference(prov)),
