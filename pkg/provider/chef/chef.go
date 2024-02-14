@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/go-chef/chef"
+	"github.com/go-logr/logr"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -80,12 +81,11 @@ type Providerchef struct {
 	clientName     string
 	databagService DatabagFetcher
 	userService    UserInterface
+	log            logr.Logger
 }
 
 var _ v1beta1.SecretsClient = &Providerchef{}
 var _ v1beta1.Provider = &Providerchef{}
-
-var log = ctrl.Log.WithName("provider").WithName("chef").WithName("secretsmanager")
 
 func init() {
 	v1beta1.Register(&Providerchef{}, &v1beta1.SecretStoreProvider{
@@ -133,6 +133,7 @@ func (providerchef *Providerchef) NewClient(ctx context.Context, store v1beta1.G
 	providerchef.clientName = chefProvider.UserName
 	providerchef.databagService = client.DataBags
 	providerchef.userService = client.Users
+	providerchef.log = ctrl.Log.WithName("provider").WithName("chef").WithName("secretsmanager")
 	return providerchef, nil
 }
 
@@ -171,7 +172,7 @@ func (providerchef *Providerchef) GetSecret(ctx context.Context, ref v1beta1.Ext
 		databagName = nameSplitted[0]
 		databagItem = nameSplitted[1]
 	}
-	log.Info("fetching secret value", "databag Name:", databagName, "databag Item:", databagItem)
+	providerchef.log.Info("fetching secret value", "databag Name:", databagName, "databag Item:", databagItem)
 	if databagName != "" && databagItem != "" {
 		return getSingleDatabagItemWithContext(ctx, providerchef, databagName, databagItem, ref.Property)
 	}
@@ -182,41 +183,46 @@ func (providerchef *Providerchef) GetSecret(ctx context.Context, ref v1beta1.Ext
 func getSingleDatabagItemWithContext(ctx context.Context, providerchef *Providerchef, dataBagName, databagItemName, propertyName string) ([]byte, error) {
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, contextTimeout)
 	defer cancel()
-	resultChan := make(chan []byte, 1)
-	errChan := make(chan error, 1)
-
-	go func() {
-		ditem, err := providerchef.databagService.GetItem(dataBagName, databagItemName)
-		if err != nil {
-			errChan <- fmt.Errorf(errNoDatabagItemFound, databagItemName, dataBagName)
-			return
-		}
-
-		jsonByte, err := json.Marshal(ditem)
-		if err != nil {
-			errChan <- fmt.Errorf(errUnableToConvertToJSON)
-			return
-		}
-
-		if propertyName != "" {
-			propertyValue, err := getPropertyFromDatabagItem(jsonByte, propertyName)
+	type result = struct {
+		values []byte
+		err    error
+	}
+	getWithTimeout := func() chan result {
+		resultChan := make(chan result, 1)
+		go func() {
+			defer close(resultChan)
+			ditem, err := providerchef.databagService.GetItem(dataBagName, databagItemName)
+			metrics.ObserveAPICall(ProviderChef, CallChefGetDataBagItem, err)
 			if err != nil {
-				errChan <- err
+				resultChan <- result{err: fmt.Errorf(errNoDatabagItemFound, databagItemName, dataBagName)}
 				return
 			}
-			resultChan <- propertyValue
-		} else {
-			resultChan <- jsonByte
-		}
-	}()
-
+			jsonByte, err := json.Marshal(ditem)
+			if err != nil {
+				resultChan <- result{err: fmt.Errorf(errUnableToConvertToJSON)}
+				return
+			}
+			if propertyName != "" {
+				propertyValue, err := getPropertyFromDatabagItem(jsonByte, propertyName)
+				if err != nil {
+					resultChan <- result{err: err}
+					return
+				}
+				resultChan <- result{values: propertyValue}
+			} else {
+				resultChan <- result{values: jsonByte}
+			}
+		}()
+		return resultChan
+	}
 	select {
 	case <-ctxWithTimeout.Done():
 		return nil, ctxWithTimeout.Err()
-	case err := <-errChan:
-		return nil, err
-	case result := <-resultChan:
-		return result, nil
+	case r := <-getWithTimeout():
+		if r.err != nil {
+			return nil, r.err
+		}
+		return r.values, nil
 	}
 }
 
@@ -251,7 +257,7 @@ func (providerchef *Providerchef) GetSecretMap(ctx context.Context, ref v1beta1.
 		return nil, fmt.Errorf(errInvalidDataform)
 	}
 	getAllSecrets := make(map[string][]byte)
-	log.Info("fetching all items from", "databag:", databagName)
+	providerchef.log.Info("fetching all items from", "databag:", databagName)
 	dataItems, err := providerchef.databagService.ListItems(databagName)
 	metrics.ObserveAPICall(ProviderChef, CallChefListDataBagItems, err)
 	if err != nil {
