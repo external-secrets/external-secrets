@@ -2665,6 +2665,49 @@ spec:
                       required:
                         - vaultUrl
                       type: object
+                    chef:
+                      description: Chef configures this store to sync secrets with chef server
+                      properties:
+                        auth:
+                          description: Auth defines the information necessary to authenticate against chef Server
+                          properties:
+                            secretRef:
+                              description: ChefAuthSecretRef holds secret references for chef server login credentials.
+                              properties:
+                                privateKeySecretRef:
+                                  description: SecretKey is the Signing Key in PEM format, used for authentication.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              required:
+                                - privateKeySecretRef
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        serverUrl:
+                          description: ServerURL is the chef server URL used to connect to. If using orgs you should include your org in the url and terminate the url with a "/"
+                          type: string
+                        username:
+                          description: UserName should be the user ID on the chef server
+                          type: string
+                      required:
+                        - auth
+                        - serverUrl
+                        - username
+                      type: object
                     conjur:
                       description: Conjur configures this store to sync secrets using conjur provider
                       properties:
@@ -7638,6 +7681,49 @@ spec:
                           type: string
                       required:
                         - vaultUrl
+                      type: object
+                    chef:
+                      description: Chef configures this store to sync secrets with chef server
+                      properties:
+                        auth:
+                          description: Auth defines the information necessary to authenticate against chef Server
+                          properties:
+                            secretRef:
+                              description: ChefAuthSecretRef holds secret references for chef server login credentials.
+                              properties:
+                                privateKeySecretRef:
+                                  description: SecretKey is the Signing Key in PEM format, used for authentication.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              required:
+                                - privateKeySecretRef
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        serverUrl:
+                          description: ServerURL is the chef server URL used to connect to. If using orgs you should include your org in the url and terminate the url with a "/"
+                          type: string
+                        username:
+                          description: UserName should be the user ID on the chef server
+                          type: string
+                      required:
+                        - auth
+                        - serverUrl
+                        - username
                       type: object
                     conjur:
                       description: Conjur configures this store to sync secrets using conjur provider
