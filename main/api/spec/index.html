@@ -1793,6 +1793,8 @@
       
         
       
+        
+      
     
     
     
@@ -1882,6 +1884,27 @@
   
   <span class="md-ellipsis">
     Azure Key Vault
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/chef/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Chef
   </span>
   
 
@@ -3940,6 +3963,123 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ChefAuth">ChefAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ChefProvider">ChefProvider</a>)
+</p>
+<p>
+<p>ChefAuth contains a secretRef for credentials.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ChefAuthSecretRef">
+ChefAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ChefAuthSecretRef">ChefAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ChefAuth">ChefAuth</a>)
+</p>
+<p>
+<p>ChefAuthSecretRef holds secret references for chef server login credentials.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>privateKeySecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>SecretKey is the Signing Key in PEM format, used for authentication.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ChefProvider">ChefProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>ChefProvider configures a store to sync secrets using basic chef server connection credentials.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ChefAuth">
+ChefAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth defines the information necessary to authenticate against chef Server</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>username</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>UserName should be the user ID on the chef server</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serverUrl</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ServerURL is the chef server URL used to connect to. If using orgs you should include your org in the url and terminate the url with a &ldquo;/&rdquo;</p>
 </td>
 </tr>
 </tbody>
@@ -8123,6 +8263,20 @@ DelineaProvider
 <em>(Optional)</em>
 <p>Delinea DevOps Secrets Vault
 <a href="https://docs.delinea.com/online-help/products/devops-secrets-vault/current">https://docs.delinea.com/online-help/products/devops-secrets-vault/current</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>chef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ChefProvider">
+ChefProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Chef configures this store to sync secrets with chef server</p>
 </td>
 </tr>
 </tbody>
