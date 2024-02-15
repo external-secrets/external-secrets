@@ -89,6 +89,7 @@ nav:
     - AWS Secrets Manager: provider/aws-secrets-manager.md
     - AWS Parameter Store: provider/aws-parameter-store.md
     - Azure Key Vault: provider/azure-key-vault.md
+    - Chef: provider/chef.md
     - CyberArk Conjur: provider/conjur.md
     - Google Cloud Secret Manager: provider/google-secrets-manager.md
     - HashiCorp Vault: provider/hashicorp-vault.md
@@ -109,6 +110,7 @@ nav:
     - Cloak End 2 End Encrypted Secrets: provider/cloak.md
     - Scaleway: provider/scaleway.md
     - Delinea: provider/delinea.md
+    - Pulumi ESC: provider/pulumi.md
   - Examples:
     - FluxCD: examples/gitops-using-fluxcd.md
     - Anchore Engine: examples/anchore-engine-credentials.md
