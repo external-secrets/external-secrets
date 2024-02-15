@@ -2075,6 +2075,49 @@ should match snapshot of default values:
                           required:
                             - vaultUrl
                           type: object
+                        chef:
+                          description: Chef configures this store to sync secrets with chef server
+                          properties:
+                            auth:
+                              description: Auth defines the information necessary to authenticate against chef Server
+                              properties:
+                                secretRef:
+                                  description: ChefAuthSecretRef holds secret references for chef server login credentials.
+                                  properties:
+                                    privateKeySecretRef:
+                                      description: SecretKey is the Signing Key in PEM format, used for authentication.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                            defaulted, in others it may be required.
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                            to the namespace of the referent.
+                                          type: string
+                                      type: object
+                                  required:
+                                    - privateKeySecretRef
+                                  type: object
+                              required:
+                                - secretRef
+                              type: object
+                            serverUrl:
+                              description: ServerURL is the chef server URL used to connect to. If using orgs you should include your org in the url and terminate the url with a "/"
+                              type: string
+                            username:
+                              description: UserName should be the user ID on the chef server
+                              type: string
+                          required:
+                            - auth
+                            - serverUrl
+                            - username
+                          type: object
                         conjur:
                           description: Conjur configures this store to sync secrets using conjur provider
                           properties:
@@ -2864,6 +2907,51 @@ should match snapshot of default values:
                           required:
                             - region
                             - vault
+                          type: object
+                        pulumi:
+                          description: Pulumi configures this store to sync secrets using the Pulumi provider
+                          properties:
+                            accessToken:
+                              description: AccessToken is the access tokens to sign in to the Pulumi Cloud Console.
+                              properties:
+                                secretRef:
+                                  description: SecretRef is a reference to a secret containing the Pulumi API token.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              type: object
+                            apiUrl:
+                              default: https://api.pulumi.com
+                              description: APIURL is the URL of the Pulumi API.
+                              type: string
+                            environment:
+                              description: |-
+                                Environment are YAML documents composed of static key-value pairs, programmatic expressions,
+                                dynamically retrieved values from supported providers including all major clouds,
+                                and other Pulumi ESC environments.
+                                To create a new environment, visit https://www.pulumi.com/docs/esc/environments/ for more information.
+                              type: string
+                            organization:
+                              description: |-
+                                Organization are a space to collaborate on shared projects and stacks.
+                                To create a new organization, visit https://app.pulumi.com/ and click "New Organization".
+                              type: string
+                          required:
+                            - accessToken
+                            - environment
+                            - organization
                           type: object
                         scaleway:
                           description: Scaleway
