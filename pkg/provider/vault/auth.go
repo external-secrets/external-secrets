@@ -42,6 +42,18 @@ const (
 // setAuth gets a new token using the configured mechanism.
 // If there's already a valid token, does nothing.
 func (c *client) setAuth(ctx context.Context, cfg *vault.Config) error {
+
+	if c.store.Namespace != nil {
+		if c.store.Auth.Namespace != nil {
+			// Different Auth Vault Namespace than Secret Vault Namespace
+			// Switch namespaces then switch back at the end
+			if *c.store.Auth.Namespace != *c.store.Namespace {
+				c.client.SetNamespace(*c.store.Auth.Namespace)
+				defer c.client.SetNamespace(*c.store.Namespace)
+			}
+		}
+	}
+
 	tokenExists := false
 	var err error
 	if c.client.Token() != "" {
