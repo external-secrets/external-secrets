@@ -186,19 +186,16 @@ metrics:
     # -- Additional service annotations
     annotations: {}
 
-probes:
-
-  livenessProbe:
-
-    timeoutSeconds: 5
-
-    failureThreshold: 5
-
-    periodSeconds: 10
-
-    successThreshold: 1
-
-    initialDelaySeconds: 10
+livenessProbe:
+  # -- Address for readiness probe
+  address: ""
+  # -- ReadinessProbe port for kubelet
+  port: 8082
+  timeoutSeconds: 5
+  failureThreshold: 5
+  periodSeconds: 10
+  successThreshold: 1
+  initialDelaySeconds: 10
 
 nodeSelector: {}
 
