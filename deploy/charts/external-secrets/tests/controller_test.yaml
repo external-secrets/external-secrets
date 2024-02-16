@@ -54,17 +54,13 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].args[1]
           value: "--metrics-addr=:8888"
-  - it: should override livenessProbe
+  - it: should override livenessProbe port
     set:
-      probes.livenessProbe.timeoutSeconds: 5
-      probes.livenessProbe.failureThreshold: 5
-      probes.livenessProbe.periodSeconds: 10
-      probes.livenessProbe.successThreshold: 1
-      probes.livenessProbe.initialDelaySeconds: 10
+      livenessProbe.port: 8082
     asserts:
       - equal:
-          path: spec.template.spec.containers[0].probes.livenessProbe
-          value: 5/5/10/1/10
+          path: spec.template.spec.containers[0].args[2]
+          value: "--live-addr=:8082"
   - it: should override image flavour
     set:
       image.repository: ghcr.io/external-secrets/external-secrets
