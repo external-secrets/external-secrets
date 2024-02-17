@@ -813,6 +813,8 @@
       
         
       
+        
+      
     
     
       
@@ -973,6 +975,27 @@
   
   <span class="md-ellipsis">
     Fake
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/webhook/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Webhook
   </span>
   
 
@@ -2266,6 +2289,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#webhook-as-generators" class="md-nav__link">
+    <span class="md-ellipsis">
+      Webhook as generators
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3009,6 +3041,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#webhook-as-generators" class="md-nav__link">
+    <span class="md-ellipsis">
+      Webhook as generators
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3138,6 +3179,8 @@ Each secret has a <code>name</code> property which determines the name of the ob
 <span class="w">        </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;namespace&gt;</span><span class="w"> </span><span class="c1"># Only used in ClusterSecretStores</span>
 <span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;key inside secret&gt;</span>
 </code></pre></div>
+<h3 id="webhook-as-generators">Webhook as generators</h3>
+<p>You can also leverage webhooks as generators, following the same syntax. The only difference is that the webhook generator needs its source secrets to be labeled, as opposed to webhook secretstores. Please see the <a href="../../api/generator/webhook/">generator-webhook</a> documentation for more information. </p>
 
 
 
