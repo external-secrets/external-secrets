@@ -71,6 +71,7 @@ func NewVaultClient(config *vault.Config) (util.Client, error) {
 		AuthField:        vaultClient.Auth(),
 		AuthTokenField:   vaultClient.Auth().Token(),
 		LogicalField:     vaultClient.Logical(),
+		NamespaceFunc:    vaultClient.Namespace,
 		SetNamespaceFunc: vaultClient.SetNamespace,
 		AddHeaderFunc:    vaultClient.AddHeader,
 	}, nil
