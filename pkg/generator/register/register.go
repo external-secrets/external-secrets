@@ -24,4 +24,5 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/generator/gcr"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/password"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/vault"
+	_ "github.com/external-secrets/external-secrets/pkg/generator/webhook"
 )
