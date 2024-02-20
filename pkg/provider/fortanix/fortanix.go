@@ -34,16 +34,14 @@ const (
 	errPushSecretsNotSupported       = "pushing secrets is currently not supported"
 	errDeleteSecretsNotSupported     = "deleting secrets is currently not supported"
 	errGettingSecrets                = "error getting secret %s: %w"
-	errUnmarshalSecret               = "unable to unmarshal secret: %w"
+	errUnmarshalSecret               = "unable to unmarshal secret, is it a valid JSON?: %w"
 	errUnableToGetValue              = "unable to get value for key %s"
 	errGettingSecretMapNotSupported  = "getting secret map is currently not supported"
 	errGettingAllSecretsNotSupported = "getting all secrets is currently not supported"
 )
 
 func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	securityObject, err := c.sdkms.GetSobject(ctx, &sdkms.GetSobjectParams{}, sdkms.SobjectDescriptor{
-		Name: &ref.Key,
-	})
+	securityObject, err := c.sdkms.GetSobject(ctx, &sdkms.GetSobjectParams{}, *sdkms.SobjectByName(ref.Key))
 
 	if err != nil {
 		return nil, err
@@ -54,9 +52,10 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	}
 
 	kv := make(map[string]string)
+
 	err = json.Unmarshal(*securityObject.Value, &kv)
 	if err != nil {
-		return nil, errors.New(errUnmarshalSecret)
+		return nil, fmt.Errorf(errUnmarshalSecret, err)
 	}
 
 	value, ok := kv[ref.Property]
