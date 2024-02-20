@@ -47,6 +47,14 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		return nil, err
 	}
 
+	if securityObject.ObjType == sdkms.ObjectTypeSecret {
+		securityObject, err = c.sdkms.ExportSobject(ctx, *sdkms.SobjectByID(*securityObject.Kid))
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if ref.Property == "" {
 		return *securityObject.Value, nil
 	}

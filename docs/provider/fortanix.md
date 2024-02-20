@@ -1,4 +1,6 @@
-## Fortanix SDKMS
+## Fortanix DSM / SDKMS
+
+Populate kubernetes secrets from OPAQUE or SECRET security objects in Fortanix.
 
 ### Authentication
 
