@@ -128,6 +128,18 @@ var _ = Describe("ExternalSecret controller", func() {
 		})).To(Succeed())
 	})
 
+	const (
+		defaultKey          = "key"
+		defaultVal          = "value"
+		defaultPath         = "path/to/key"
+		otherKey            = "other-key"
+		otherVal            = "other-value"
+		otherPath           = "path/to/other-key"
+		newKey              = "new-key"
+		newVal              = "new-value"
+		storePrefixTemplate = "SecretStore/%v"
+	)
+
 	makeDefaultTestcase := func() *testCase {
 		return &testCase{
 			pushsecret: &v1alpha1.PushSecret{
@@ -150,9 +162,9 @@ var _ = Describe("ExternalSecret controller", func() {
 					Data: []v1alpha1.PushSecretData{
 						{
 							Match: v1alpha1.PushSecretMatch{
-								SecretKey: "key",
+								SecretKey: defaultKey,
 								RemoteRef: v1alpha1.PushSecretRemoteRef{
-									RemoteKey: "path/to/key",
+									RemoteKey: defaultPath,
 								},
 							},
 						},
@@ -165,7 +177,7 @@ var _ = Describe("ExternalSecret controller", func() {
 					Namespace: PushSecretNamespace,
 				},
 				Data: map[string][]byte{
-					"key": []byte("value"),
+					defaultKey: []byte(defaultVal),
 				},
 			},
 			store: &v1beta1.SecretStore{
@@ -195,7 +207,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
 			Eventually(func() bool {
 				By("checking if Provider value got updated")
-				secretValue := secret.Data["key"]
+				secretValue := secret.Data[defaultKey]
 				providerValue, ok := fakeProvider.SetSecretArgs[ps.Spec.Data[0].Match.RemoteRef.RemoteKey]
 				if !ok {
 					return false
@@ -217,7 +229,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 		tc.pushsecret.Spec.UpdatePolicy = v1alpha1.PushSecretUpdatePolicyIfNotExists
 		initialValue := fakeProvider.SetSecretArgs[tc.pushsecret.Spec.Data[0].Match.RemoteRef.RemoteKey].Value
-		tc.secret.Data["key"] = []byte("different-value")
+		tc.secret.Data[defaultKey] = []byte(newVal)
 
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
 			Eventually(func() bool {
@@ -245,16 +257,16 @@ var _ = Describe("ExternalSecret controller", func() {
 		tc.pushsecret.Spec.UpdatePolicy = v1alpha1.PushSecretUpdatePolicyIfNotExists
 		tc.pushsecret.Spec.Data = append(tc.pushsecret.Spec.Data, v1alpha1.PushSecretData{
 			Match: v1alpha1.PushSecretMatch{
-				SecretKey: "other-key",
+				SecretKey: otherKey,
 				RemoteRef: v1alpha1.PushSecretRemoteRef{
-					RemoteKey: "path/to/other-key",
+					RemoteKey: otherPath,
 				},
 			},
 		})
 
 		initialValue := fakeProvider.SetSecretArgs[tc.pushsecret.Spec.Data[0].Match.RemoteRef.RemoteKey].Value
-		tc.secret.Data["key"] = []byte("different-value") // change initial value in secret
-		tc.secret.Data["other-key"] = []byte("other-value")
+		tc.secret.Data[defaultKey] = []byte(newVal) // change initial value in secret
+		tc.secret.Data[otherKey] = []byte(otherVal)
 
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
 			Eventually(func() bool {
@@ -271,7 +283,7 @@ var _ = Describe("ExternalSecret controller", func() {
 				}
 				gotOther := otherProviderValue.Value
 
-				return bytes.Equal(gotOther, tc.secret.Data["other-key"]) && bytes.Equal(got, initialValue)
+				return bytes.Equal(gotOther, tc.secret.Data[otherKey]) && bytes.Equal(got, initialValue)
 			}, time.Second*10, time.Second).Should(BeTrue())
 			return true
 		}
@@ -286,23 +298,32 @@ var _ = Describe("ExternalSecret controller", func() {
 			return ok, nil
 		}
 		tc.pushsecret.Spec.UpdatePolicy = v1alpha1.PushSecretUpdatePolicyIfNotExists
-		tc.secret.Data["key"] = []byte("different-value")
+		tc.pushsecret.Spec.Data = append(tc.pushsecret.Spec.Data, v1alpha1.PushSecretData{
+			Match: v1alpha1.PushSecretMatch{
+				SecretKey: otherKey,
+				RemoteRef: v1alpha1.PushSecretRemoteRef{
+					RemoteKey: otherPath,
+				},
+			},
+		})
+		tc.secret.Data[defaultKey] = []byte(newVal)
+		tc.secret.Data[otherKey] = []byte(otherVal)
 		updatedPS := &v1alpha1.PushSecret{}
 
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
 			Eventually(func() bool {
-				By("checking if PS status gets updated correctly with UpdatePolicy=IfNotExists")
+				By("checking if PushSecret status gets updated correctly with UpdatePolicy=IfNotExists")
 				Expect(k8sClient.Update(context.Background(), secret, &client.UpdateOptions{})).Should(Succeed())
 				psKey := types.NamespacedName{Name: PushSecretName, Namespace: PushSecretNamespace}
 				err := k8sClient.Get(context.Background(), psKey, updatedPS)
 				if err != nil {
 					return false
 				}
-				_, ok := updatedPS.Status.SyncedPushSecrets[fmt.Sprintf("SecretStore/%v", PushSecretStore)]["path/to/key"]
-				if ok {
+				_, ok := updatedPS.Status.SyncedPushSecrets[fmt.Sprintf(storePrefixTemplate, PushSecretStore)][defaultPath]
+				if !ok {
 					return false
 				}
-				_, ok = updatedPS.Status.ExistingPushSecrets[fmt.Sprintf("SecretStore/%v", PushSecretStore)]["path/to/key"]
+				_, ok = updatedPS.Status.SyncedPushSecrets[fmt.Sprintf(storePrefixTemplate, PushSecretStore)][otherPath]
 				if !ok {
 					return false
 				}
@@ -310,7 +331,7 @@ var _ = Describe("ExternalSecret controller", func() {
 					Type:    v1alpha1.PushSecretReady,
 					Status:  v1.ConditionTrue,
 					Reason:  v1alpha1.ReasonSynced,
-					Message: "PushSecret synced successfully. Existing secrets in provider unchanged.",
+					Message: "PushSecret synced successfully. Existing secrets in providers unchanged.",
 				}
 				return checkCondition(ps.Status, expected)
 			}, time.Second*10, time.Second).Should(BeTrue())
@@ -327,7 +348,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 		tc.pushsecret.Spec.UpdatePolicy = v1alpha1.PushSecretUpdatePolicyIfNotExists
 		initialValue := fakeProvider.SetSecretArgs[tc.pushsecret.Spec.Data[0].Match.RemoteRef.RemoteKey].Value
-		tc.secret.Data["key"] = []byte("different-value")
+		tc.secret.Data[defaultKey] = []byte(newVal)
 
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
 			Eventually(func() bool {
@@ -374,9 +395,9 @@ var _ = Describe("ExternalSecret controller", func() {
 				Data: []v1alpha1.PushSecretData{
 					{
 						Match: v1alpha1.PushSecretMatch{
-							SecretKey: "key",
+							SecretKey: defaultKey,
 							RemoteRef: v1alpha1.PushSecretRemoteRef{
-								RemoteKey: "path/to/key",
+								RemoteKey: defaultPath,
 							},
 						},
 					},
@@ -393,7 +414,7 @@ var _ = Describe("ExternalSecret controller", func() {
 					Type:          v1.SecretTypeOpaque,
 					EngineVersion: v1beta1.TemplateEngineV2,
 					Data: map[string]string{
-						"key": "{{ .key | toString | upper }} was templated",
+						defaultKey: "{{ .key | toString | upper }} was templated",
 					},
 				},
 			},
@@ -438,9 +459,9 @@ var _ = Describe("ExternalSecret controller", func() {
 				Data: []v1alpha1.PushSecretData{
 					{
 						Match: v1alpha1.PushSecretMatch{
-							SecretKey: "key",
+							SecretKey: defaultKey,
 							RemoteRef: v1alpha1.PushSecretRemoteRef{
-								RemoteKey: "path/to/key",
+								RemoteKey: defaultPath,
 							},
 						},
 					},
@@ -448,7 +469,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			},
 		}
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
-			ps.Spec.Data[0].Match.RemoteRef.RemoteKey = "different-key"
+			ps.Spec.Data[0].Match.RemoteRef.RemoteKey = newKey
 			updatedPS := &v1alpha1.PushSecret{}
 			Expect(k8sClient.Update(context.Background(), ps, &client.UpdateOptions{})).Should(Succeed())
 			Eventually(func() bool {
@@ -458,11 +479,11 @@ var _ = Describe("ExternalSecret controller", func() {
 				if err != nil {
 					return false
 				}
-				key, ok := updatedPS.Status.SyncedPushSecrets[fmt.Sprintf("SecretStore/%v", PushSecretStore)]["different-key"]
+				key, ok := updatedPS.Status.SyncedPushSecrets[fmt.Sprintf(storePrefixTemplate, PushSecretStore)][newKey]
 				if !ok {
 					return false
 				}
-				return key.Match.SecretKey == "key"
+				return key.Match.SecretKey == defaultKey
 			}, time.Second*10, time.Second).Should(BeTrue())
 			return true
 		}
@@ -495,9 +516,9 @@ var _ = Describe("ExternalSecret controller", func() {
 				Data: []v1alpha1.PushSecretData{
 					{
 						Match: v1alpha1.PushSecretMatch{
-							SecretKey: "key",
+							SecretKey: defaultKey,
 							RemoteRef: v1alpha1.PushSecretRemoteRef{
-								RemoteKey: "path/to/key",
+								RemoteKey: defaultPath,
 							},
 						},
 					},
@@ -505,7 +526,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			},
 		}
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
-			ps.Spec.Data[0].Match.RemoteRef.RemoteKey = "different-key"
+			ps.Spec.Data[0].Match.RemoteRef.RemoteKey = newKey
 			updatedPS := &v1alpha1.PushSecret{}
 			Expect(k8sClient.Update(context.Background(), ps, &client.UpdateOptions{})).Should(Succeed())
 			Eventually(func() bool {
@@ -515,11 +536,11 @@ var _ = Describe("ExternalSecret controller", func() {
 				if err != nil {
 					return false
 				}
-				_, ok := updatedPS.Status.SyncedPushSecrets[fmt.Sprintf("SecretStore/%v", PushSecretStore)]["different-key"]
+				_, ok := updatedPS.Status.SyncedPushSecrets[fmt.Sprintf(storePrefixTemplate, PushSecretStore)][newKey]
 				if !ok {
 					return false
 				}
-				_, ok = updatedPS.Status.SyncedPushSecrets[fmt.Sprintf("SecretStore/%v", PushSecretStore)]["path/to/key"]
+				_, ok = updatedPS.Status.SyncedPushSecrets[fmt.Sprintf(storePrefixTemplate, PushSecretStore)][defaultPath]
 				return ok
 			}, time.Second*10, time.Second).Should(BeTrue())
 			return true
@@ -603,7 +624,7 @@ var _ = Describe("ExternalSecret controller", func() {
 				if err != nil {
 					return false
 				}
-				key, ok := updatedPS.Status.SyncedPushSecrets["SecretStore/new-store"]["path/to/key"]
+				key, ok := updatedPS.Status.SyncedPushSecrets["SecretStore/new-store"][defaultPath]
 				if !ok {
 					return false
 				}
@@ -611,7 +632,7 @@ var _ = Describe("ExternalSecret controller", func() {
 				if syncedLen != 1 {
 					return false
 				}
-				return key.Match.SecretKey == "key"
+				return key.Match.SecretKey == defaultKey
 			}, time.Second*10, time.Second).Should(BeTrue())
 			return true
 		}
@@ -648,9 +669,9 @@ var _ = Describe("ExternalSecret controller", func() {
 				Data: []v1alpha1.PushSecretData{
 					{
 						Match: v1alpha1.PushSecretMatch{
-							SecretKey: "key",
+							SecretKey: defaultKey,
 							RemoteRef: v1alpha1.PushSecretRemoteRef{
-								RemoteKey: "path/to/key",
+								RemoteKey: defaultPath,
 							},
 						},
 					},
@@ -677,7 +698,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			},
 		}
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
-			secretValue := secret.Data["key"]
+			secretValue := secret.Data[defaultKey]
 			providerValue := fakeProvider.SetSecretArgs[ps.Spec.Data[0].Match.RemoteRef.RemoteKey].Value
 			expected := v1alpha1.PushSecretStatusCondition{
 				Type:    v1alpha1.PushSecretReady,
@@ -709,7 +730,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		}
 		tc.pushsecret.Spec.SecretStoreRefs[0].Kind = "ClusterSecretStore"
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
-			secretValue := secret.Data["key"]
+			secretValue := secret.Data[defaultKey]
 			providerValue := fakeProvider.SetSecretArgs[ps.Spec.Data[0].Match.RemoteRef.RemoteKey].Value
 			expected := v1alpha1.PushSecretStatusCondition{
 				Type:    v1alpha1.PushSecretReady,
@@ -749,9 +770,9 @@ var _ = Describe("ExternalSecret controller", func() {
 				Data: []v1alpha1.PushSecretData{
 					{
 						Match: v1alpha1.PushSecretMatch{
-							SecretKey: "key",
+							SecretKey: defaultKey,
 							RemoteRef: v1alpha1.PushSecretRemoteRef{
-								RemoteKey: "path/to/key",
+								RemoteKey: defaultPath,
 							},
 						},
 					},
@@ -774,7 +795,7 @@ var _ = Describe("ExternalSecret controller", func() {
 			},
 		}
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
-			secretValue := secret.Data["key"]
+			secretValue := secret.Data[defaultKey]
 			providerValue := fakeProvider.SetSecretArgs[ps.Spec.Data[0].Match.RemoteRef.RemoteKey].Value
 			expected := v1alpha1.PushSecretStatusCondition{
 				Type:    v1alpha1.PushSecretReady,
