@@ -16,11 +16,11 @@ package v1beta1
 import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 
 type FortanixProvider struct {
-	// ApiUrl is the URL of SDKMS API. Defaults to `sdkms.fortanix.com`.
-	ApiUrl string `json:"apiUrl,omitempty"`
+	// APIURL is the URL of SDKMS API. Defaults to `sdkms.fortanix.com`.
+	APIURL string `json:"apiUrl,omitempty"`
 
-	// ApiKey is the API token to access SDKMS Applications.
-	ApiKey *FortanixProviderSecretRef `json:"apiKey,omitempty"`
+	// APIKey is the API token to access SDKMS Applications.
+	APIKey *FortanixProviderSecretRef `json:"apiKey,omitempty"`
 }
 
 type FortanixProviderSecretRef struct {

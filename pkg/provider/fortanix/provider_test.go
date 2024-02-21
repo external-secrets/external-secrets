@@ -22,15 +22,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"k8s.io/client-go/tools/clientcmd"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	kubeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
-	kubeclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func pointer[T any](d T) *T {
@@ -114,7 +113,7 @@ func TestNewClient(t *testing.T) {
 			Spec: esv1beta1.SecretStoreSpec{
 				Provider: &esv1beta1.SecretStoreProvider{
 					Fortanix: &esv1beta1.FortanixProvider{
-						ApiKey: &esv1beta1.FortanixProviderSecretRef{
+						APIKey: &esv1beta1.FortanixProviderSecretRef{
 							SecretRef: &v1.SecretKeySelector{
 								Name: "secret-name",
 								Key:  "apiKey",
@@ -138,7 +137,7 @@ func TestNewClient(t *testing.T) {
 			Spec: esv1beta1.SecretStoreSpec{
 				Provider: &esv1beta1.SecretStoreProvider{
 					Fortanix: &esv1beta1.FortanixProvider{
-						ApiKey: &esv1beta1.FortanixProviderSecretRef{
+						APIKey: &esv1beta1.FortanixProviderSecretRef{
 							SecretRef: &v1.SecretKeySelector{
 								Name: "missing-secret",
 								Key:  "apiKey",
@@ -166,13 +165,13 @@ func TestValidateStore(t *testing.T) {
 		},
 		"missing api key secret ref": {
 			cfg: esv1beta1.FortanixProvider{
-				ApiKey: &esv1beta1.FortanixProviderSecretRef{},
+				APIKey: &esv1beta1.FortanixProviderSecretRef{},
 			},
 			want: errors.New("apiKey.secretRef is required"),
 		},
 		"missing api key secret ref name": {
 			cfg: esv1beta1.FortanixProvider{
-				ApiKey: &esv1beta1.FortanixProviderSecretRef{
+				APIKey: &esv1beta1.FortanixProviderSecretRef{
 					SecretRef: &v1.SecretKeySelector{
 						Key: "key",
 					},
@@ -182,7 +181,7 @@ func TestValidateStore(t *testing.T) {
 		},
 		"missing api key secret ref key": {
 			cfg: esv1beta1.FortanixProvider{
-				ApiKey: &esv1beta1.FortanixProviderSecretRef{
+				APIKey: &esv1beta1.FortanixProviderSecretRef{
 					SecretRef: &v1.SecretKeySelector{
 						Name: "name",
 					},
@@ -192,7 +191,7 @@ func TestValidateStore(t *testing.T) {
 		},
 		"disallowed namespace in store ref": {
 			cfg: esv1beta1.FortanixProvider{
-				ApiKey: &esv1beta1.FortanixProviderSecretRef{
+				APIKey: &esv1beta1.FortanixProviderSecretRef{
 					SecretRef: &v1.SecretKeySelector{
 						Key:       "key",
 						Name:      "name",

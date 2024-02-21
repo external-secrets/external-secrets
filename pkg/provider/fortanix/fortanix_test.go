@@ -20,10 +20,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/fortanix/sdkms-client-go/sdkms"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 func newTestClient(t *testing.T, handler func(w http.ResponseWriter, r *http.Request)) *client {
@@ -103,7 +104,7 @@ func TestGetOpaqueSecurityObject(t *testing.T) {
 func TestGetSecretSecurityObject(t *testing.T) {
 	ctx := context.Background()
 	securityObjectName := "securityObjectName"
-	securityObjectId := "id"
+	securityObjectID := "id"
 
 	securityObjectValue := toJSON(t, testSecurityObjectValue{
 		Property: "value",
@@ -116,7 +117,7 @@ func TestGetSecretSecurityObject(t *testing.T) {
 			User: &securityObjectUser,
 		},
 		Name:    &securityObjectName,
-		Kid:     &securityObjectId,
+		Kid:     &securityObjectID,
 		Value:   &securityObjectValue,
 		ObjType: sdkms.ObjectTypeSecret,
 	}
