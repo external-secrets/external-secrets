@@ -24,6 +24,7 @@ SOFTWARE
 Original Author: Anish Ramasekar https://github.com/aramase
 In: https://github.com/Azure/secrets-store-csi-driver-provider-azure/pull/332
 */
+
 package template
 
 import (

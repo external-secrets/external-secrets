@@ -21,15 +21,18 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
 )
 
-func NewClusterExternalSecretCondition(failedNamespaces map[string]error, namespaceList *v1.NamespaceList) *esv1beta1.ClusterExternalSecretStatusCondition {
-	conditionType := getConditionType(failedNamespaces, namespaceList)
-	condition := &esv1beta1.ClusterExternalSecretStatusCondition{
-		Type:   conditionType,
-		Status: v1.ConditionTrue,
+func NewClusterExternalSecretCondition(failedNamespaces map[string]error) *esv1beta1.ClusterExternalSecretStatusCondition {
+	if len(failedNamespaces) == 0 {
+		return &esv1beta1.ClusterExternalSecretStatusCondition{
+			Type:   esv1beta1.ClusterExternalSecretReady,
+			Status: v1.ConditionTrue,
+		}
 	}
 
-	if conditionType != esv1beta1.ClusterExternalSecretReady {
-		condition.Message = errNamespacesFailed
+	condition := &esv1beta1.ClusterExternalSecretStatusCondition{
+		Type:    esv1beta1.ClusterExternalSecretReady,
+		Status:  v1.ConditionFalse,
+		Message: errNamespacesFailed,
 	}
 
 	return condition
@@ -50,16 +53,4 @@ func filterOutCondition(conditions []esv1beta1.ClusterExternalSecretStatusCondit
 		newConditions = append(newConditions, c)
 	}
 	return newConditions
-}
-
-func getConditionType(failedNamespaces map[string]error, namespaceList *v1.NamespaceList) esv1beta1.ClusterExternalSecretConditionType {
-	if len(failedNamespaces) == 0 {
-		return esv1beta1.ClusterExternalSecretReady
-	}
-
-	if len(failedNamespaces) < len(namespaceList.Items) {
-		return esv1beta1.ClusterExternalSecretPartiallyReady
-	}
-
-	return esv1beta1.ClusterExternalSecretNotReady
 }

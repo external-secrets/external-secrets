@@ -28,6 +28,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
@@ -100,7 +101,7 @@ func TestManagerGet(t *testing.T) {
 	type args struct {
 		storeRef  esv1beta1.SecretStoreRef
 		namespace string
-		sourceRef *esv1beta1.SourceRef
+		sourceRef *esv1beta1.StoreGeneratorSourceRef
 	}
 	tests := []struct {
 		name              string
@@ -168,7 +169,7 @@ func TestManagerGet(t *testing.T) {
 					Kind: esv1beta1.SecretStoreKind,
 				},
 				// this should take precedence
-				sourceRef: &esv1beta1.SourceRef{
+				sourceRef: &esv1beta1.StoreGeneratorSourceRef{
 					SecretStoreRef: &esv1beta1.SecretStoreRef{
 						Name: otherStore.Name,
 						Kind: esv1beta1.SecretStoreKind,
@@ -331,8 +332,8 @@ func (f *WrapProvider) Capabilities() esv1beta1.SecretStoreCapabilities {
 }
 
 // ValidateStore checks if the provided store is valid.
-func (f *WrapProvider) ValidateStore(_ esv1beta1.GenericStore) error {
-	return nil
+func (f *WrapProvider) ValidateStore(_ esv1beta1.GenericStore) (admission.Warnings, error) {
+	return nil, nil
 }
 
 type MockFakeClient struct {
@@ -340,11 +341,11 @@ type MockFakeClient struct {
 	closeCalled bool
 }
 
-func (c *MockFakeClient) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
+func (c *MockFakeClient) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
 	return nil
 }
 
-func (c *MockFakeClient) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
+func (c *MockFakeClient) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
 	return nil
 }
 

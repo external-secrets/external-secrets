@@ -9,21 +9,27 @@ on:
 
 env:
   # Common versions
-  GOLANGCI_VERSION: 'v1.52.2'
-  KUBERNETES_VERSION: '1.24.x'
+  GOLANGCI_VERSION: 'v1.54.2'
+  KUBERNETES_VERSION: '1.28.x'
 
   # Sonar
   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
+permissions:
+  contents: read
+
 jobs:
   detect-noop:
+    permissions:
+      actions: write  # for fkirc/skip-duplicate-actions to skip or stop workflow runs
+      contents: read  # for fkirc/skip-duplicate-actions to read and compare commits
     runs-on: ubuntu-latest
     outputs:
       noop: ${{ steps.noop.outputs.should_skip }}
     steps:
       - name: Detect No-op Changes
         id: noop
-        uses: fkirc/skip-duplicate-actions@v5.3.0
+        uses: fkirc/skip-duplicate-actions@f75f66ce1886f00957d99748a42c724f4330bdcf # v5.3.1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           paths_ignore: '["**.md", "**.png", "**.jpg"]'
@@ -31,39 +37,29 @@ jobs:
           concurrent_skipping: false
 
   lint:
+    permissions:
+      contents: read  # for actions/checkout to fetch code
+      pull-requests: read  # for golangci/golangci-lint-action to fetch pull requests
     runs-on: ubuntu-latest
     needs: detect-noop
-    if: needs.detect-noop.outputs.noop != 'true'
+    if: needs.detect-noop.outputs.noop != 'true' && github.ref != 'refs/heads/main'
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        id: setup-go
         with:
           go-version-file: "go.mod"
 
-      - name: Find the Go Cache
-        id: go
-        run: |
-          echo "::set-output name=build-cache::$(go env GOCACHE)"
-          echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
-
-      - name: Cache the Go Build Cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
-
-      - name: Cache Go Dependencies
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-mod-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+      - name: Download Go modules
+        if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
+        run: go mod download
 
       - name: Lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@3cfe3a4abbb849e10058ce4af15d205b6da42804 # v4.0.0
         with:
           version: ${{ env.GOLANGCI_VERSION }}
           skip-pkg-cache: true
@@ -72,39 +68,26 @@ jobs:
   check-diff:
     runs-on: ubuntu-latest
     needs: detect-noop
-    if: needs.detect-noop.outputs.noop != 'true'
+    if: needs.detect-noop.outputs.noop != 'true' && github.ref != 'refs/heads/main'
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+
+      - name: Setup Go
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        id: setup-go
+        with:
+          go-version-file: "go.mod"
+
+      - name: Download Go modules
+        if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
+        run: go mod download
 
       - name: Configure Git
         run: |
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-
-      - name: Setup Go
-        uses: actions/setup-go@v4
-        with:
-          go-version-file: "go.mod"
-
-      - name: Find the Go Cache
-        id: go
-        run: |
-          echo "::set-output name=build-cache::$(go env GOCACHE)"
-          echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
-
-      - name: Cache the Go Build Cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
-
-      - name: Cache Go Dependencies
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-mod-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
 
       - name: Check Diff
         run: |
@@ -117,36 +100,23 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Fetch History
         run: git fetch --prune --unshallow
 
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        id: setup-go
         with:
           go-version-file: "go.mod"
 
-      - name: Find the Go Cache
-        id: go
-        run: |
-          echo "::set-output name=build-cache::$(go env GOCACHE)"
-          echo "::set-output name=mod-cache::$(go env GOMODCACHE)"
-
-      - name: Cache the Go Build Cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
-
-      - name: Cache Go Dependencies
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-mod-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+      - name: Download Go modules
+        if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
+        run: go mod download
 
       - name: Cache envtest binaries
-        uses: actions/cache@v3
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: bin/k8s
           key: ${{ runner.os }}-envtest-${{env.KUBERNETES_VERSION}}
@@ -154,6 +124,14 @@ jobs:
       - name: Run Unit Tests
         run: |
           make test
+
+      - name: Publish Unit Test Coverage
+        uses: codecov/codecov-action@e0b68c6749509c5f83f984dd99a76a1c1a231044 # v4.0.1
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        with:
+          flags: unittests
+          file: ./cover.out
 
   publish-artifacts:
     needs: detect-noop
@@ -167,8 +145,8 @@ jobs:
         include:
         - dockerfile: "Dockerfile"
           build-args: "CGO_ENABLED=0"
-          build-arch: "amd64 arm64"
-          build-platform: "linux/amd64,linux/arm64"
+          build-arch: "amd64 arm64 s390x"
+          build-platform: "linux/amd64,linux/arm64,linux/s390x"
           tag-suffix: "" # distroless
         - dockerfile: "Dockerfile.ubi"
           build-args: "CGO_ENABLED=0"

@@ -166,7 +166,7 @@ spec:
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			c := &provider.Connector{NewVaultClient: fake.ClientWithLoginMock}
+			c := &provider.Provider{NewVaultClient: fake.ClientWithLoginMock}
 			gen := &Generator{}
 			val, err := gen.generate(context.Background(), c, tc.args.jsonSpec, tc.args.kube, tc.args.corev1, "testing")
 			if diff := cmp.Diff(tc.want.err.Error(), err.Error()); diff != "" {

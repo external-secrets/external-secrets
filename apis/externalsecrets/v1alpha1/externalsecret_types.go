@@ -31,6 +31,7 @@ type SecretStoreRef struct {
 }
 
 // ExternalSecretCreationPolicy defines rules on how to create the resulting Secret.
+// +kubebuilder:validation:Enum=Owner;Merge;None
 type ExternalSecretCreationPolicy string
 
 const (
@@ -75,6 +76,7 @@ type ExternalSecretTemplate struct {
 	TemplateFrom []TemplateFrom `json:"templateFrom,omitempty"`
 }
 
+// +kubebuilder:validation:Enum=v1;v2
 type TemplateEngineVersion string
 
 const (
@@ -147,6 +149,7 @@ type ExternalSecretDataRemoteRef struct {
 	ConversionStrategy ExternalSecretConversionStrategy `json:"conversionStrategy,omitempty"`
 }
 
+// +kubebuilder:validation:Enum=Default;Unicode
 type ExternalSecretConversionStrategy string
 
 const (

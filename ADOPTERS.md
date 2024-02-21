@@ -3,10 +3,12 @@
 <!-- Add yourself here if you are using ESO in your company or your project! -->
 
 - [Amadeus](https://amadeus.com/)
+- [Codefresh](https://codefresh.io/)
 - [Container Solutions](http://container-solutions.com/)
 - [DaangnPay](https://www.daangnpay.com/)
 - [Epidemic Sound](https://www.epidemicsound.com/)
 - [Form3](https://www.form3.tech/)
+- [GoTo](https://www.goto.com/)
 - [Heureka Group](https://heureka.group)
 - [K8S Website Infra](https://k8s.io/)
 - [Mercedes-Benz Tech Innovation](https://www.mercedes-benz-techinnovation.com/)
@@ -14,6 +16,7 @@
 - [OpenClassrooms](https://openclassrooms.com)
 - [Pento](https://www.pento.io/)
 - [Petco Health and Wellness Company, Inc](https://www.petco.com/)
+- [Pets at Home Group plc](https://petsathome.com)
 - [Pier Insurance](https://www.pier.digital/)
 - [PITS Global Data Recovery Services](https://www.pitsdatarecovery.net/)
 - [PHOENIX MEDIA](https://www.phoenix-media.eu/)

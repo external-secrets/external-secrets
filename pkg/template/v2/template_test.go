@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package template
 
 import (
@@ -243,6 +244,18 @@ func TestExecute(t *testing.T) {
 			},
 			expectedData: map[string][]byte{
 				"foo": []byte(`db+postgresql://user:pass@db.host:5432/dbname`),
+			},
+		},
+		{
+			name: "use upper function",
+			tpl: map[string][]byte{
+				"foo": []byte(`{{ .value | upper }}`),
+			},
+			data: map[string][]byte{
+				"value": []byte(`username`),
+			},
+			expectedData: map[string][]byte{
+				"foo": []byte(`USERNAME`),
 			},
 		},
 		{

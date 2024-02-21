@@ -68,6 +68,14 @@ var (
 	PasswordGroupVersionKind = SchemeGroupVersion.WithKind(PasswordKind)
 )
 
+// Webhook type metadata.
+var (
+	WebhookKind             = reflect.TypeOf(Webhook{}).Name()
+	WebhookGroupKind        = schema.GroupKind{Group: Group, Kind: WebhookKind}.String()
+	WebhookKindAPIVersion   = WebhookKind + "." + SchemeGroupVersion.String()
+	WebhookGroupVersionKind = SchemeGroupVersion.WithKind(WebhookKind)
+)
+
 // Fake type metadata.
 var (
 	FakeKind             = reflect.TypeOf(Fake{}).Name()
@@ -91,4 +99,5 @@ func init() {
 	SchemeBuilder.Register(&Fake{}, &FakeList{})
 	SchemeBuilder.Register(&VaultDynamicSecret{}, &VaultDynamicSecretList{})
 	SchemeBuilder.Register(&Password{}, &PasswordList{})
+	SchemeBuilder.Register(&Webhook{}, &WebhookList{})
 }

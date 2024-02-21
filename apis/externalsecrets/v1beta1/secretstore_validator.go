@@ -58,5 +58,5 @@ func validateStore(store GenericStore) (admission.Warnings, error) {
 	if err != nil {
 		return nil, err
 	}
-	return nil, provider.ValidateStore(store)
+	return provider.ValidateStore(store)
 }

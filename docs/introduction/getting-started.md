@@ -9,13 +9,18 @@ and manages Kubernetes secret resources with ExternalSecret resources.
 
 ## Installing with Helm
 
-The default install options will automatically install and manage the CRDs as part of your helm release. If you do not want the CRDs to be automatically upgraded and managed, you must set the `installCRDs` option to `false`. (e.g. `--set installCRDS=false`)
+The default install options will automatically install and manage the CRDs as part of your helm release. If you do not want the CRDs to be automatically upgraded and managed, you must set the `installCRDs` option to `false`. (e.g. `--set installCRDs=false`)
+
+You can install those CRDs outside of `helm` using:
+```bash
+kubectl apply -k "https://github.com/external-secrets/external-secrets//config/crds/bases?ref=v0.9.11"
+```
 
 Uncomment the relevant line in the next steps to disable the automatic install of CRDs.
 
 ### Option 1: Install from chart repository
 
-``` bash
+```bash
 helm repo add external-secrets https://charts.external-secrets.io
 
 helm install external-secrets \
@@ -29,7 +34,7 @@ helm install external-secrets \
 
 Build and install the Helm chart locally after cloning the repository.
 
-``` bash
+```bash
 make helm.build
 
 helm install external-secrets \
@@ -49,17 +54,33 @@ kubectl create secret generic awssm-secret --from-file=./access-key --from-file=
 
 ### Create your first SecretStore
 
-``` yaml
+Create a file 'basic-secret-store.yaml' with the following content.
+
+```yaml
 {% include 'basic-secret-store.yaml' %}
+```
+
+Apply it to create a SecretStore resource.
+
+```
+kubectl apply -f "basic-secret-store.yaml"
 ```
 
 ### Create your first ExternalSecret
 
-``` yaml
+Create a file 'basic-external-secret.yaml' with the following content.
+
+```yaml
 {% include 'basic-external-secret.yaml' %}
 ```
 
-``` bash
+Apply it to create an External Secret resource.
+
+```
+kubectl apply -f "basic-external-secret.yaml"
+```
+
+```bash
 kubectl describe externalsecret example
 # [...]
 Name:  example

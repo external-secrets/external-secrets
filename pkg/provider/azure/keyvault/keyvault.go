@@ -33,7 +33,7 @@ import (
 	"github.com/Azure/go-autorest/autorest/azure"
 	kvauth "github.com/Azure/go-autorest/autorest/azure/auth"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
-	"github.com/lestrrat-go/jwx/jwk"
+	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/tidwall/gjson"
 	"golang.org/x/crypto/pkcs12"
 	"golang.org/x/crypto/sha3"
@@ -46,15 +46,16 @@ import (
 	pointer "k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -193,39 +194,39 @@ func getProvider(store esv1beta1.GenericStore) (*esv1beta1.AzureKVProvider, erro
 	return spc.Provider.AzureKV, nil
 }
 
-func (a *Azure) ValidateStore(store esv1beta1.GenericStore) error {
+func (a *Azure) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
-		return fmt.Errorf(errInvalidStore)
+		return nil, fmt.Errorf(errInvalidStore)
 	}
 	spc := store.GetSpec()
 	if spc == nil {
-		return fmt.Errorf(errInvalidStoreSpec)
+		return nil, fmt.Errorf(errInvalidStoreSpec)
 	}
 	if spc.Provider == nil {
-		return fmt.Errorf(errInvalidStoreProv)
+		return nil, fmt.Errorf(errInvalidStoreProv)
 	}
 	p := spc.Provider.AzureKV
 	if p == nil {
-		return fmt.Errorf(errInvalidAzureProv)
+		return nil, fmt.Errorf(errInvalidAzureProv)
 	}
 	if p.AuthSecretRef != nil {
 		if p.AuthSecretRef.ClientID != nil {
 			if err := utils.ValidateReferentSecretSelector(store, *p.AuthSecretRef.ClientID); err != nil {
-				return fmt.Errorf(errInvalidSecRefClientID, err)
+				return nil, fmt.Errorf(errInvalidSecRefClientID, err)
 			}
 		}
 		if p.AuthSecretRef.ClientSecret != nil {
 			if err := utils.ValidateReferentSecretSelector(store, *p.AuthSecretRef.ClientSecret); err != nil {
-				return fmt.Errorf(errInvalidSecRefClientSecret, err)
+				return nil, fmt.Errorf(errInvalidSecRefClientSecret, err)
 			}
 		}
 	}
 	if p.ServiceAccountRef != nil {
 		if err := utils.ValidateReferentServiceAccountSelector(store, *p.ServiceAccountRef); err != nil {
-			return fmt.Errorf(errInvalidSARef, err)
+			return nil, fmt.Errorf(errInvalidSARef, err)
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func canDelete(tags map[string]*string, err error) (bool, error) {
@@ -298,7 +299,7 @@ func (a *Azure) deleteKeyVaultCertificate(ctx context.Context, certName string) 
 	return nil
 }
 
-func (a *Azure) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (a *Azure) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
 	objectType, secretName := getObjType(esv1beta1.ExternalSecretDataRemoteRef{Key: remoteRef.GetRemoteKey()})
 	switch objectType {
 	case defaultObjType:
@@ -458,7 +459,7 @@ func (a *Azure) setKeyVaultKey(ctx context.Context, secretName string, value []b
 	if err != nil {
 		return fmt.Errorf("could not load private key %v: %w", secretName, err)
 	}
-	jwKey, err := jwk.New(key)
+	jwKey, err := jwk.FromRaw(key)
 	if err != nil {
 		return fmt.Errorf("failed to generate a JWK from secret %v content: %w", secretName, err)
 	}
@@ -499,8 +500,13 @@ func (a *Azure) setKeyVaultKey(ctx context.Context, secretName string, value []b
 }
 
 // PushSecret stores secrets into a Key vault instance.
-func (a *Azure) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
-	objectType, secretName := getObjType(esv1beta1.ExternalSecretDataRemoteRef{Key: remoteRef.GetRemoteKey()})
+func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	if data.GetSecretKey() == "" {
+		return fmt.Errorf("pushing the whole secret is not yet implemented")
+	}
+
+	objectType, secretName := getObjType(esv1beta1.ExternalSecretDataRemoteRef{Key: data.GetRemoteKey()})
+	value := secret.Data[data.GetSecretKey()]
 	switch objectType {
 	case defaultObjType:
 		return a.setKeyVaultSecret(ctx, secretName, value)
@@ -522,28 +528,31 @@ func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretF
 	checkName := ref.Name != nil && len(ref.Name.RegExp) > 0
 
 	secretListIter, err := basicClient.GetSecretsComplete(ctx, *a.provider.VaultURL, nil)
+	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecrets, err)
 	err = parseError(err)
 	if err != nil {
 		return nil, err
 	}
 
 	for secretListIter.NotDone() {
-		secretList := secretListIter.Response().Value
-		for _, secret := range *secretList {
-			ok, secretName := isValidSecret(checkTags, checkName, ref, secret)
-			if !ok {
-				continue
-			}
-
-			secretResp, err := basicClient.GetSecret(ctx, *a.provider.VaultURL, secretName, "")
-			err = parseError(err)
+		secret := secretListIter.Value()
+		ok, secretName := isValidSecret(checkTags, checkName, ref, secret)
+		if !ok {
+			err = secretListIter.Next()
 			if err != nil {
 				return nil, err
 			}
-
-			secretValue := *secretResp.Value
-			secretsMap[secretName] = []byte(secretValue)
+			continue
 		}
+		secretResp, err := basicClient.GetSecret(ctx, *a.provider.VaultURL, secretName, "")
+		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
+		err = parseError(err)
+		if err != nil {
+			return nil, err
+		}
+
+		secretValue := *secretResp.Value
+		secretsMap[secretName] = []byte(secretValue)
 
 		err = secretListIter.Next()
 		if err != nil {
@@ -885,44 +894,26 @@ func (a *Azure) authorizerForServicePrincipal(ctx context.Context) (autorest.Aut
 	if a.provider.AuthSecretRef.ClientID == nil || a.provider.AuthSecretRef.ClientSecret == nil {
 		return nil, fmt.Errorf(errMissingClientIDSecret)
 	}
-	clusterScoped := false
-	if a.store.GetKind() == esv1beta1.ClusterSecretStoreKind {
-		clusterScoped = true
-	}
-	cid, err := a.secretKeyRef(ctx, a.namespace, *a.provider.AuthSecretRef.ClientID, clusterScoped)
+	clientID, err := resolvers.SecretKeyRef(
+		ctx,
+		a.crClient,
+		a.store.GetKind(),
+		a.namespace, a.provider.AuthSecretRef.ClientID)
 	if err != nil {
 		return nil, err
 	}
-	csec, err := a.secretKeyRef(ctx, a.namespace, *a.provider.AuthSecretRef.ClientSecret, clusterScoped)
+	clientSecret, err := resolvers.SecretKeyRef(
+		ctx,
+		a.crClient,
+		a.store.GetKind(),
+		a.namespace, a.provider.AuthSecretRef.ClientSecret)
 	if err != nil {
 		return nil, err
 	}
-	clientCredentialsConfig := kvauth.NewClientCredentialsConfig(cid, csec, *a.provider.TenantID)
+	clientCredentialsConfig := kvauth.NewClientCredentialsConfig(clientID, clientSecret, *a.provider.TenantID)
 	clientCredentialsConfig.Resource = kvResourceForProviderConfig(a.provider.EnvironmentType)
 	clientCredentialsConfig.AADEndpoint = AadEndpointForType(a.provider.EnvironmentType)
 	return clientCredentialsConfig.Authorizer()
-}
-
-// secretKeyRef fetch a secret key.
-func (a *Azure) secretKeyRef(ctx context.Context, namespace string, secretRef smmeta.SecretKeySelector, clusterScoped bool) (string, error) {
-	var secret corev1.Secret
-	ref := types.NamespacedName{
-		Name:      secretRef.Name,
-		Namespace: namespace,
-	}
-	if clusterScoped && secretRef.Namespace != nil {
-		ref.Namespace = *secretRef.Namespace
-	}
-	err := a.crClient.Get(ctx, ref, &secret)
-	if err != nil {
-		return "", fmt.Errorf(errFindSecret, ref.Namespace, ref.Name, err)
-	}
-	keyBytes, ok := secret.Data[secretRef.Key]
-	if !ok {
-		return "", fmt.Errorf(errFindDataKey, secretRef.Key, secretRef.Name, namespace)
-	}
-	value := strings.TrimSpace(string(keyBytes))
-	return value, nil
 }
 
 func (a *Azure) Close(_ context.Context) error {
@@ -963,6 +954,21 @@ func AadEndpointForType(t esv1beta1.AzureEnvironmentType) string {
 		return azure.GermanCloud.ActiveDirectoryEndpoint
 	default:
 		return azure.PublicCloud.ActiveDirectoryEndpoint
+	}
+}
+
+func ServiceManagementEndpointForType(t esv1beta1.AzureEnvironmentType) string {
+	switch t {
+	case esv1beta1.AzureEnvironmentPublicCloud:
+		return azure.PublicCloud.ServiceManagementEndpoint
+	case esv1beta1.AzureEnvironmentChinaCloud:
+		return azure.ChinaCloud.ServiceManagementEndpoint
+	case esv1beta1.AzureEnvironmentUSGovernmentCloud:
+		return azure.USGovernmentCloud.ServiceManagementEndpoint
+	case esv1beta1.AzureEnvironmentGermanCloud:
+		return azure.GermanCloud.ServiceManagementEndpoint
+	default:
+		return azure.PublicCloud.ServiceManagementEndpoint
 	}
 }
 

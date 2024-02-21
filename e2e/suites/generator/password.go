@@ -12,6 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package generator
 
 import (
@@ -51,7 +52,7 @@ var _ = Describe("password generator", Label("password"), func() {
 	customResourceGenerator := func(tc *testCase) {
 		tc.ExternalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
 			{
-				SourceRef: &esv1beta1.SourceRef{
+				SourceRef: &esv1beta1.StoreGeneratorSourceRef{
 					GeneratorRef: &esv1beta1.GeneratorRef{
 						// we don't need to specify the apiVersion,
 						// this should be inferred by the controller.

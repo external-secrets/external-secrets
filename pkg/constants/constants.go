@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package constants
 
 const (
@@ -35,6 +36,7 @@ const (
 	CallAzureKVDeleteKey         = "DeleteKey"
 	CallAzureKVImportKey         = "ImportKey"
 	CallAzureKVGetSecret         = "GetSecret"
+	CallAzureKVGetSecrets        = "GetSecrets"
 	CallAzureKVDeleteSecret      = "DeleteSecret"
 	CallAzureKVGetCertificate    = "GetCertificate"
 	CallAzureKVDeleteCertificate = "DeleteCertificate"
@@ -69,9 +71,10 @@ const (
 	CallKubernetesUpdateSecret                 = "UpdateSecret"
 	CallKubernetesCreateSelfSubjectRulesReview = "CreateSelfSubjectRulesReview"
 
-	ProviderIBMSM        = "IBM/SecretsManager"
-	CallIBMSMGetSecret   = "GetSecret"
-	CallIBMSMListSecrets = "ListSecrets"
+	ProviderIBMSM                = "IBM/SecretsManager"
+	CallIBMSMGetSecret           = "GetSecret"
+	CallIBMSMListSecrets         = "ListSecrets"
+	CallIBMSMGetSecretByNameType = "GetSecretByNameType"
 
 	ProviderWebhook    = "Webhook"
 	CallWebhookHTTPReq = "HTTPRequest"
@@ -82,6 +85,15 @@ const (
 	CallGitLabProjectListVariables = "ProjectVariablesList"
 	CallGitLabGroupGetVariable     = "GroupVariableGet"
 	CallGitLabGroupListVariables   = "GroupVariablesList"
+
+	ProviderAKEYLESSSM                  = "AKEYLESSLESS/SecretsManager"
+	CallAKEYLESSSMGetSecretValue        = "GetSecretValue"
+	CallAKEYLESSSMDescribeItem          = "DescribeItem"
+	CallAKEYLESSSMListItems             = "ListItems"
+	CallAKEYLESSSMAuth                  = "Auth"
+	CallAKEYLESSSMGetRotatedSecretValue = "GetRotatedSecretValue"
+	CallAKEYLESSSMGetCertificateValue   = "GetCertificateValue"
+	CallAKEYLESSSMGetDynamicSecretValue = "GetDynamicSecretsValue"
 
 	StatusError   = "error"
 	StatusSuccess = "success"

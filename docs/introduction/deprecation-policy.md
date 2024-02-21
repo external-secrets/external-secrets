@@ -20,7 +20,7 @@ The project is currently in `beta` state. Please try the `beta` features and pro
 
 ## API Surface
 
-We define the following scope that is covered by our deprecation policy. We follow the [9 Rules of the Kuberenetes Deprecation Policy](https://kubernetes.io/docs/reference/using-api/deprecation-policy/).
+We define the following scope that is covered by our deprecation policy. We follow the [9 Rules of the Kubernetes Deprecation Policy](https://kubernetes.io/docs/reference/using-api/deprecation-policy/).
 
 ### Scope
 * API Objects and fields: `.Spec`, `.Status` and `.Status.Conditions[]`

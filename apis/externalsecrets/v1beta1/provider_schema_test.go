@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package v1beta1
 
 import (
@@ -18,7 +19,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 type PP struct{}
@@ -35,12 +38,12 @@ func (p *PP) NewClient(_ context.Context, _ GenericStore, _ client.Client, _ str
 }
 
 // PushSecret writes a single secret into a provider.
-func (p *PP) PushSecret(_ context.Context, _ []byte, _ PushRemoteRef) error {
+func (p *PP) PushSecret(_ context.Context, _ *corev1.Secret, _ PushSecretData) error {
 	return nil
 }
 
 // DeleteSecret deletes a single secret from a provider.
-func (p *PP) DeleteSecret(_ context.Context, _ PushRemoteRef) error {
+func (p *PP) DeleteSecret(_ context.Context, _ PushSecretRemoteRef) error {
 	return nil
 }
 
@@ -68,8 +71,8 @@ func (p *PP) Validate() (ValidationResult, error) {
 	return ValidationResultReady, nil
 }
 
-func (p *PP) ValidateStore(_ GenericStore) error {
-	return nil
+func (p *PP) ValidateStore(_ GenericStore) (admission.Warnings, error) {
+	return nil, nil
 }
 
 // TestRegister tests if the Register function

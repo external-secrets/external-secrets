@@ -35,6 +35,37 @@ You can get the final value with:
 kubectl get secret secret-to-be-created -n <namespace> -o jsonpath="{.data\.dockerconfigjson}" | base64 -d
 ```
 
+Alternately, if you only have the container registry name and password value, you can take advantage of the advanced ExternalSecret templating functions to create the secret:
+
+```yaml
+{% raw %}
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: dk-cfg-example
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: example
+    kind: SecretStore
+  target:
+    template:
+      type: kubernetes.io/dockerconfigjson
+      data:
+        .dockerconfigjson: '{"auths":{"{{ .registryName | lower }}.{{ .registryHost }}":{"username":"{{ .registryName }}","password":"{{ .password }}","auth":"{{ printf "%s:%s" .registryName .password | b64enc }}"}}}'
+  data:
+  - secretKey: registryName
+    remoteRef:
+      key: secret/docker-registry-name # "myRegistry"
+  - secretKey: registryHost
+    remoteRef:
+      key: secret/docker-registry-host # "docker.io"
+  - secretKey: password
+    remoteRef:
+      key: secret/docker-registry-password
+{% endraw %}
+```
+
 ## TLS Cert example
 
 We are assuming here that you already have valid certificates, maybe generated with letsencrypt or any other CA. So to simplify you can use openssl to generate a single secret pkcs12 cert based on your cert.pem and privkey.pen files.

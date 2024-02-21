@@ -17,7 +17,9 @@ package v1beta1
 import (
 	"context"
 
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 const (
@@ -50,7 +52,11 @@ type Provider interface {
 	NewClient(ctx context.Context, store GenericStore, kube client.Client, namespace string) (SecretsClient, error)
 
 	// ValidateStore checks if the provided store is valid
-	ValidateStore(store GenericStore) error
+	// The provider may return a warning and an error.
+	// The intended use of the warning to indicate a deprecation of behavior
+	// or other type of message that is NOT a validation failure but should be noticed by the user.
+	ValidateStore(store GenericStore) (admission.Warnings, error)
+
 	// Capabilities returns the provider Capabilities (Read, Write, ReadWrite)
 	Capabilities() SecretStoreCapabilities
 }
@@ -68,10 +74,10 @@ type SecretsClient interface {
 	GetSecret(ctx context.Context, ref ExternalSecretDataRemoteRef) ([]byte, error)
 
 	// PushSecret will write a single secret into the provider
-	PushSecret(ctx context.Context, value []byte, remoteRef PushRemoteRef) error
+	PushSecret(ctx context.Context, secret *corev1.Secret, data PushSecretData) error
 
 	// DeleteSecret will delete the secret from a provider
-	DeleteSecret(ctx context.Context, remoteRef PushRemoteRef) error
+	DeleteSecret(ctx context.Context, remoteRef PushSecretRemoteRef) error
 
 	// Validate checks if the client is configured correctly
 	// and is able to retrieve secrets from the provider.

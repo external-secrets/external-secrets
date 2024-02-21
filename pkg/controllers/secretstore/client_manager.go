@@ -103,7 +103,7 @@ func (m *Manager) GetFromStore(ctx context.Context, store esv1beta1.GenericStore
 // while sourceRef.SecretStoreRef takes precedence over storeRef.
 // Do not close the client returned from this func, instead close
 // the manager once you're done with recinciling the external secret.
-func (m *Manager) Get(ctx context.Context, storeRef esv1beta1.SecretStoreRef, namespace string, sourceRef *esv1beta1.SourceRef) (esv1beta1.SecretsClient, error) {
+func (m *Manager) Get(ctx context.Context, storeRef esv1beta1.SecretStoreRef, namespace string, sourceRef *esv1beta1.StoreGeneratorSourceRef) (esv1beta1.SecretsClient, error) {
 	if sourceRef != nil && sourceRef.SecretStoreRef != nil {
 		storeRef = *sourceRef.SecretStoreRef
 	}

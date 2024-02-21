@@ -39,7 +39,7 @@ type VaultProvider struct {
 	// for fetching secrets from Vault is optional and will be appended
 	// if not present in specified path.
 	// +optional
-	Path *string `json:"path"`
+	Path *string `json:"path,omitempty"`
 
 	// Version is the Vault KV secret engine version. This can be either "v1" or
 	// "v2". Version defaults to "v2".
@@ -61,6 +61,14 @@ type VaultProvider struct {
 	// +optional
 	CABundle []byte `json:"caBundle,omitempty"`
 
+	// The configuration used for client side related TLS communication, when the Vault server
+	// requires mutual authentication. Only used if the Server URL is using HTTPS protocol.
+	// This parameter is ignored for plain HTTP protocol connection.
+	// It's worth noting this configuration is different from the "TLS certificates auth method",
+	// which is available under the `auth.cert` section.
+	// +optional
+	ClientTLS VaultClientTLS `json:"tls,omitempty"`
+
 	// The provider for the CA bundle to use to validate Vault server certificate.
 	// +optional
 	CAProvider *CAProvider `json:"caProvider,omitempty"`
@@ -78,6 +86,20 @@ type VaultProvider struct {
 	// https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header
 	// +optional
 	ForwardInconsistent bool `json:"forwardInconsistent,omitempty"`
+}
+
+// VaultClientTLS is the configuration used for client side related TLS communication,
+// when the Vault server requires mutual authentication.
+type VaultClientTLS struct {
+	// CertSecretRef is a certificate added to the transport layer
+	// when communicating with the Vault server.
+	// If no key for the Secret is specified, external-secret will default to 'tls.crt'.
+	CertSecretRef *esmeta.SecretKeySelector `json:"certSecretRef,omitempty"`
+
+	// KeySecretRef to a key in a Secret resource containing client private key
+	// added to the transport layer when communicating with the Vault server.
+	// If no key for the Secret is specified, external-secret will default to 'tls.key'.
+	KeySecretRef *esmeta.SecretKeySelector `json:"keySecretRef,omitempty"`
 }
 
 // VaultAuth is the configuration used to authenticate with a Vault server.
@@ -260,7 +282,7 @@ type VaultJwtAuth struct {
 	// Role is a JWT role to authenticate using the JWT/OIDC Vault
 	// authentication method
 	// +optional
-	Role string `json:"role"`
+	Role string `json:"role,omitempty"`
 
 	// Optional SecretRef that refers to a key in a Secret resource containing JWT token to
 	// authenticate with Vault using the JWT/OIDC authentication method.

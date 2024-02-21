@@ -1,15 +1,15 @@
-{{- if .Values.serviceMonitor.enabled }}
+{{- if and ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) .Values.serviceMonitor.enabled -}}
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "external-secrets.fullname" . }}-metrics
   namespace: {{ .Release.Namespace | quote }}
   labels:
-    {{- include "external-secrets.selectorLabels" . | nindent 4 }}
+    {{- include "external-secrets.labels" . | nindent 4 }}
 spec:
   type: ClusterIP
   ports:
-    - port: 8080
+    - port: {{ .Values.metrics.service.port }}
       protocol: TCP
       name: metrics
   selector:
@@ -57,7 +57,7 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - port: 8080
+    - port: {{ .Values.webhook.metrics.service.port }}
       protocol: TCP
       name: metrics
   selector:
@@ -106,7 +106,7 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - port: 8080
+    - port: {{ .Values.certController.metrics.listen.port }}
       protocol: TCP
       name: metrics
   selector:

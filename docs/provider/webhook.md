@@ -123,3 +123,5 @@ spec:
         key: <key inside secret>
 ```
 
+### Webhook as generators
+You can also leverage webhooks as generators, following the same syntax. The only difference is that the webhook generator needs its source secrets to be labeled, as opposed to webhook secretstores. Please see the [generator-webhook](../api/generator/webhook.md) documentation for more information. 

@@ -11,11 +11,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package common
 
 import (
 	"context"
 	"fmt"
+
+	corev1 "k8s.io/api/core/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
@@ -34,11 +37,11 @@ func (c *yandexCloudSecretsClient) GetSecret(ctx context.Context, ref esv1beta1.
 	return c.secretGetter.GetSecret(ctx, c.iamToken, ref.Key, ref.Version, ref.Property)
 }
 
-func (c *yandexCloudSecretsClient) DeleteSecret(_ context.Context, _ esv1beta1.PushRemoteRef) error {
+func (c *yandexCloudSecretsClient) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (c *yandexCloudSecretsClient) PushSecret(_ context.Context, _ []byte, _ esv1beta1.PushRemoteRef) error {
+func (c *yandexCloudSecretsClient) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
 	return fmt.Errorf("not implemented")
 }
 

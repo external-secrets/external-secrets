@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package cmd
 
 import (
@@ -29,9 +30,12 @@ import (
 	// To allow using gcp auth.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -147,15 +151,28 @@ var rootCmd = &cobra.Command{
 		config := ctrl.GetConfigOrDie()
 		config.QPS = clientQPS
 		config.Burst = clientBurst
-		mgr, err := ctrl.NewManager(config, ctrl.Options{
-			Scheme:                scheme,
-			MetricsBindAddress:    metricsAddr,
-			Port:                  9443,
-			LeaderElection:        enableLeaderElection,
-			LeaderElectionID:      "external-secrets-controller",
-			ClientDisableCacheFor: cacheList,
-			Namespace:             namespace,
-		})
+		ctrlOpts := ctrl.Options{
+			Scheme: scheme,
+			Metrics: server.Options{
+				BindAddress: metricsAddr,
+			},
+			WebhookServer: webhook.NewServer(webhook.Options{
+				Port: 9443,
+			}),
+			Client: client.Options{
+				Cache: &client.CacheOptions{
+					DisableFor: cacheList,
+				},
+			},
+			LeaderElection:   enableLeaderElection,
+			LeaderElectionID: "external-secrets-controller",
+		}
+		if namespace != "" {
+			ctrlOpts.Cache.DefaultNamespaces = map[string]cache.Config{
+				namespace: {},
+			}
+		}
+		mgr, err := ctrl.NewManager(config, ctrlOpts)
 		if err != nil {
 			setupLog.Error(err, "unable to start manager")
 			os.Exit(1)

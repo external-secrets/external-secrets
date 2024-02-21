@@ -24,8 +24,9 @@ metadata:
   name: fake
 spec:
   conditions:
-    namespaceSelector:
-      app: frontend
+    - namespaceSelector:
+        matchLabels:
+          app: frontend
 ```
 
 ### 3. Selectively Disable Reconciliation of Cluster-Wide Resources

@@ -1,8 +1,7 @@
-ARG GO_VERSION=1.19
-FROM golang:$GO_VERSION-buster as builder
+FROM golang:1.22.0-bookworm@sha256:874c2677e43be36a429823f2742af85844772664f273c1c8c8235f10aba51cd3 as builder
 
-ENV KUBECTL_VERSION="v1.24.3"
-ENV HELM_VERSION="v3.7.1"
+ENV KUBECTL_VERSION="v1.28.3"
+ENV HELM_VERSION="v3.13.1"
 
 RUN go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.6
 RUN wget -q https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl -O /usr/local/bin/kubectl && \
@@ -17,7 +16,7 @@ COPY . .
 WORKDIR /usr/src/app/e2e
 RUN make e2e-bin
 
-FROM alpine:3.15.0
+FROM alpine:3.19.1@sha256:c5b1261d6d3e43071626931fc004f70149baeba2c8ec672bd4f27761f8e1ad6b
 RUN apk add -U --no-cache \
     ca-certificates \
     bash \
