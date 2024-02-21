@@ -40,6 +40,14 @@ const (
 	errAPIKeySecretRefKeyIsRequired  = "apiKey.secretRef.key is required"
 )
 
+var _ esv1beta1.Provider = &Provider{}
+
+func init() {
+	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
+		Fortanix: &esv1beta1.FortanixProvider{},
+	})
+}
+
 func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
 }
