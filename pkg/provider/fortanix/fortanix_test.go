@@ -53,7 +53,7 @@ type testSecurityObjectValue struct {
 	Property string `json:"property"`
 }
 
-func TestGetSecret(t *testing.T) {
+func TestGetOpaqueSecurityObject(t *testing.T) {
 	ctx := context.Background()
 	securityObjectName := "securityObjectName"
 
@@ -76,7 +76,7 @@ func TestGetSecret(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("get raw secret value", func(t *testing.T) {
+	t.Run("get raw secret value from opaque security object", func(t *testing.T) {
 		ref := esv1beta1.ExternalSecretDataRemoteRef{
 			Key: securityObjectName,
 		}
@@ -87,7 +87,57 @@ func TestGetSecret(t *testing.T) {
 		assert.Equal(t, securityObjectValue, got)
 	})
 
-	t.Run("get property from secret value", func(t *testing.T) {
+	t.Run("get inner property value from opaque security object", func(t *testing.T) {
+		ref := esv1beta1.ExternalSecretDataRemoteRef{
+			Key:      securityObjectName,
+			Property: "property",
+		}
+
+		got, err := client.GetSecret(ctx, ref)
+
+		assert.NoError(t, err)
+		assert.Equal(t, []byte(`value`), got)
+	})
+}
+
+func TestGetSecretSecurityObject(t *testing.T) {
+	ctx := context.Background()
+	securityObjectName := "securityObjectName"
+	securityObjectId := "id"
+
+	securityObjectValue := toJSON(t, testSecurityObjectValue{
+		Property: "value",
+	})
+
+	securityObjectUser := "user"
+
+	securityObject := sdkms.Sobject{
+		Creator: sdkms.Principal{
+			User: &securityObjectUser,
+		},
+		Name:    &securityObjectName,
+		Kid:     &securityObjectId,
+		Value:   &securityObjectValue,
+		ObjType: sdkms.ObjectTypeSecret,
+	}
+
+	client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		err := json.NewEncoder(w).Encode(securityObject)
+		require.NoError(t, err)
+	})
+
+	t.Run("get raw secret value from secret security object", func(t *testing.T) {
+		ref := esv1beta1.ExternalSecretDataRemoteRef{
+			Key: securityObjectName,
+		}
+
+		got, err := client.GetSecret(ctx, ref)
+
+		assert.NoError(t, err)
+		assert.Equal(t, securityObjectValue, got)
+	})
+
+	t.Run("get inner property value from secret security object", func(t *testing.T) {
 		ref := esv1beta1.ExternalSecretDataRemoteRef{
 			Key:      securityObjectName,
 			Property: "property",
