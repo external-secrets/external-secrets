@@ -45,7 +45,7 @@ We can pass a few secrets as env variables as below:
                 name: example
                 key: surname
 ```
-
+ 
 Here, <br>
 \<key1\> and \<key2> are the names of keys that will be created and passed as env variables.
 <br>
