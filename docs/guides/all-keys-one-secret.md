@@ -18,37 +18,57 @@ Now, when creating our ExternalSecret resource, instead of using the data field,
 ```yaml
 {% include 'gcpsm-data-from-external-secret.yaml' %}
 ```
+<br>
+Here, "example" is the name of Kubernetes secrets which will be created.
+<br>
 when we use 
+
 ```
   dataFrom:
   - extract:
       key: all-keys-example-secret
 ```
-We get all the secrets present in the key-value pair in the secret manager in the form of key values and also we can pass either all or a few key-values as environment variables.
+We get all the secrets present in the key-value pair in the secret manager(external secret store of AWS or GCP or Azure) in the form of key values and also we can pass either all or a few key-values as environment variables.
 
-We can pass all or a few secrets as env variables as below:
+We can pass a few secrets as env variables as below:
 ```
         env:
           - name: key1
             valueFrom:
               secretKeyRef:
-                name: my_secrets
+                name: example
                 key: username
 
           - name: key2
             valueFrom:
               secretKeyRef:
-                name: my_secrets
-                key: password
+                name: example
+                key: surname
 ```
 
 Here, <br>
-key1 and key2 are the names of keys that will be created and passed as env variables.
-
-<\my_secrets\>: my_secrets is the name of your external secret created by you.
-<\username\> and <password>: is the particular key in the secrets manager whose value you want to pass.
+\<key1\> and \<key2> are the names of keys that will be created and passed as env variables.
+<br>
+\<example\>: example is the name of your external secret created by you.
+<br>
+\<username\> and \<password>: is the particular key in the secrets manager whose value you want to pass.
+<br>
 To check both values we can run:
 ```
 kubectl get secret secret-to-be-created -n <namespace> -o jsonpath='{.data.username}' | base64 -d
 kubectl get secret secret-to-be-created -n <namespace> -o jsonpath='{.data.surname}' | base64 -d
+```
+
+<br>
+Also, if you have a large number of secrets and you want to pass all of them as enviromnent variables, then either you can replicate the above steps in your deployment file for all the keys or you can use the envFrom block as below:
+<br>
+
+```
+    spec:
+      containers:
+      - command:
+        - mkdir abc.sh
+        envFrom:
+        - secretRef:
+            name: example
 ```
