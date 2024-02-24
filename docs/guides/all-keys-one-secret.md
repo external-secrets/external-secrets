@@ -47,7 +47,7 @@ key1 and key2 are the names of keys that will be created and passed as env varia
 
 <my_secrets>: my_secrets is the name of your external secret created by you.
 
-<username> and < password >: are the particular key in the secrets manager whose value you want to pass.
+<username>, <password>: are the particular key in the secrets manager whose value you want to pass.
 
 To check both values we can run:
 ```
