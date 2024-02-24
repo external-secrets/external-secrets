@@ -144,6 +144,14 @@ type SecretStoreProvider struct {
 	// https://docs.delinea.com/online-help/products/devops-secrets-vault/current
 	// +optional
 	Delinea *DelineaProvider `json:"delinea,omitempty"`
+
+	// Chef configures this store to sync secrets with chef server
+	// +optional
+	Chef *ChefProvider `json:"chef,omitempty"`
+
+	// Pulumi configures this store to sync secrets using the Pulumi provider
+	// +optional
+	Pulumi *PulumiProvider `json:"pulumi,omitempty"`
 }
 
 type CAProviderType string

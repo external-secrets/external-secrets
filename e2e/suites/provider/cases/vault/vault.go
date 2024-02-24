@@ -15,10 +15,11 @@ package vault
 import (
 	"context"
 	"fmt"
+	"time"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"time"
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
@@ -48,7 +49,7 @@ var _ = Describe("[vault]", Label("vault"), func() {
 	prov := newVaultProvider(f)
 
 	DescribeTable("sync secrets",
-		framework.TableFunc(f, prov),
+		framework.TableFuncWithExternalSecret(f, prov),
 		// uses token auth
 		framework.Compose(withTokenAuth, f, common.FindByName, useTokenAuth),
 		framework.Compose(withTokenAuth, f, common.FindByNameAndRewrite, useTokenAuth),
@@ -127,7 +128,7 @@ var _ = Describe("[vault] with mTLS", Label("vault", "vault-mtls"), func() {
 	prov := newVaultProvider(f)
 
 	DescribeTable("sync secrets",
-		framework.TableFunc(f, prov),
+		framework.TableFuncWithExternalSecret(f, prov),
 		// uses token auth
 		framework.Compose(withTokenAuthAndMTLS, f, common.FindByName, useMTLSAndTokenAuth),
 		// use referent auth

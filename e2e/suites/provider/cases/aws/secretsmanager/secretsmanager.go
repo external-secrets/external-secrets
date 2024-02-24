@@ -37,7 +37,7 @@ var _ = Describe("[aws] ", Label("aws", "secretsmanager"), func() {
 	prov := NewFromEnv(f)
 
 	DescribeTable("sync secrets",
-		framework.TableFunc(f,
+		framework.TableFuncWithExternalSecret(f,
 			prov),
 		framework.Compose(withStaticAuth, f, common.SimpleDataSync, useStaticAuth),
 		framework.Compose(withStaticAuth, f, common.NestedJSONWithGJSON, useStaticAuth),

@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package onepassword
 
 import (
@@ -28,7 +29,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	fake "github.com/external-secrets/external-secrets/pkg/provider/onepassword/fake"
+	"github.com/external-secrets/external-secrets/pkg/provider/onepassword/fake"
 )
 
 const (

@@ -33,7 +33,7 @@ var _ = Describe("[kubernetes] ", Label("kubernetes"), func() {
 	prov := NewProvider(f)
 
 	DescribeTable("sync secrets",
-		framework.TableFunc(f,
+		framework.TableFuncWithExternalSecret(f,
 			prov),
 		Entry(common.JSONDataWithProperty(f)),
 		Entry(common.JSONDataWithoutTargetName(f)),

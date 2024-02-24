@@ -59,7 +59,7 @@ jobs:
         run: go mod download
 
       - name: Lint
-        uses: golangci/golangci-lint-action@3a919529898de77ec3da873e3063ca4b10e7f5cc # v3.7.0
+        uses: golangci/golangci-lint-action@3cfe3a4abbb849e10058ce4af15d205b6da42804 # v4.0.0
         with:
           version: ${{ env.GOLANGCI_VERSION }}
           skip-pkg-cache: true
@@ -96,7 +96,7 @@ jobs:
   unit-tests:
     runs-on: ubuntu-latest
     needs: detect-noop
-    if: needs.detect-noop.outputs.noop != 'true' && github.ref != 'refs/heads/main'
+    if: needs.detect-noop.outputs.noop != 'true'
 
     steps:
       - name: Checkout
@@ -127,6 +127,8 @@ jobs:
 
       - name: Publish Unit Test Coverage
         uses: codecov/codecov-action@e0b68c6749509c5f83f984dd99a76a1c1a231044 # v4.0.1
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           flags: unittests
           file: ./cover.out
