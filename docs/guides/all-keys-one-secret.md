@@ -45,9 +45,8 @@ We can pass all or a few secrets as env variables as below:
 Here, <br>
 key1 and key2 are the names of keys that will be created and passed as env variables.
 
-<my_secrets>: my_secrets is the name of your external secret created by you.
-<username>: is the particular key in the secrets manager whose value you want to pass.
-<password>: Similarly, password is the particular key in the secrets manager whose value you want to pass.
+<\my_secrets\>: my_secrets is the name of your external secret created by you.
+<\username\> and <password>: is the particular key in the secrets manager whose value you want to pass.
 To check both values we can run:
 ```
 kubectl get secret secret-to-be-created -n <namespace> -o jsonpath='{.data.username}' | base64 -d
