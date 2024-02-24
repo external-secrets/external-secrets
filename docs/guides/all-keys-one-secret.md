@@ -9,7 +9,7 @@ Then create a secret in Google Cloud Secret Manager that contains a JSON string 
 ![secret-value](../pictures/screenshot_json_string_gcp_secret_value.png)
 
 Let's call this secret all-keys-example-secret on Google Cloud.
-
+ 
 
 ### Creating dataFrom external secret
 
