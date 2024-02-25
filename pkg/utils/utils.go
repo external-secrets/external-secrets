@@ -34,11 +34,16 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/template/v2"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
 const (
 	errParse   = "unable to parse transform template: %s"
 	errExecute = "unable to execute transform template: %s"
+)
+
+var (
+	errKeyNotFound = errors.New("key not found")
 )
 
 // JSONMarshal takes an interface and returns a new escaped and encoded byte slice.
@@ -412,4 +417,43 @@ func ConvertToType[T any](obj interface{}) (T, error) {
 	}
 
 	return v, nil
+}
+
+// FetchValueFromMetadata fetches a key from a metadata if it exists. It will recursively look in
+// embedded values as well. Must be a unique key, otherwise it will just return the first
+// occurrence.
+func FetchValueFromMetadata[T any](key string, data *apiextensionsv1.JSON, def T) (t T, _ error) {
+	if data == nil {
+		return def, nil
+	}
+
+	m := map[string]any{}
+	if err := json.Unmarshal(data.Raw, &m); err != nil {
+		return t, fmt.Errorf("failed to parse JSON raw data: %w", err)
+	}
+
+	v, err := dig[T](key, m)
+	if err != nil {
+		if errors.Is(err, errKeyNotFound) {
+			return def, nil
+		}
+	}
+
+	return v, nil
+}
+
+func dig[T any](key string, data map[string]any) (t T, _ error) {
+	for k, v := range data {
+		if k == key {
+			c, _ := v.(T)
+			return c, nil
+		}
+
+		switch ty := v.(type) {
+		case map[string]any:
+			return dig[T](key, ty)
+		}
+	}
+
+	return t, errKeyNotFound
 }
