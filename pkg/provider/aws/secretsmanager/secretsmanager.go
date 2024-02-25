@@ -43,8 +43,8 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
+// Declares metadata information for pushing secrets to AWS Secret Store.
 const (
-	// Declares metadata information for pushing secrets to AWS Secret Store.
 	SecretPushFormatKey    = "secretPushFormat"
 	SecretPushFormatString = "string"
 	SecretPushFormatBinary = "binary"
@@ -223,15 +223,6 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 
 	secretName := psd.GetRemoteKey()
 	value := secret.Data[psd.GetSecretKey()]
-	managedBy := managedBy
-	externalSecrets := externalSecrets
-	externalSecretsTag := []*awssm.Tag{
-		{
-			Key:   &managedBy,
-			Value: &externalSecrets,
-		},
-	}
-
 	secretValue := awssm.GetSecretValueInput{
 		SecretId: &secretName,
 	}
@@ -240,7 +231,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 		SecretId: &secretName,
 	}
 
-	secretPushFormat, err := utils.FetchValueFromMetadata[string](SecretPushFormatKey, psd.GetMetadata(), SecretPushFormatBinary)
+	secretPushFormat, err := utils.FetchValueFromMetadata(SecretPushFormatKey, psd.GetMetadata(), SecretPushFormatBinary)
 	if err != nil {
 		return fmt.Errorf("failed to parse metadata: %w", err)
 	}
@@ -262,12 +253,16 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 			return err
 		}
 		if aerr.Code() == awssm.ErrCodeResourceNotFoundException {
-			secretVersion := initialVersion
 			input := &awssm.CreateSecretInput{
-				Name:               &secretName,
-				SecretBinary:       value,
-				Tags:               externalSecretsTag,
-				ClientRequestToken: &secretVersion,
+				Name:         &secretName,
+				SecretBinary: value,
+				Tags: []*awssm.Tag{
+					{
+						Key:   utilpointer.To(managedBy),
+						Value: utilpointer.To(externalSecrets),
+					},
+				},
+				ClientRequestToken: utilpointer.To(initialVersion),
 			}
 			if secretPushFormat == SecretPushFormatString {
 				input.SetSecretBinary(nil).SetSecretString(string(value))
