@@ -444,12 +444,16 @@ func FetchValueFromMetadata[T any](key string, data *apiextensionsv1.JSON, def T
 }
 
 func dig[T any](key string, data map[string]any) (t T, _ error) {
-	for k, v := range data {
-		if k == key {
-			c, _ := v.(T)
-			return c, nil
+	if v, ok := data[key]; ok {
+		c, k := v.(T)
+		if !k {
+			return t, fmt.Errorf("failed to convert value to the desired type; was: %T", v)
 		}
 
+		return c, nil
+	}
+
+	for _, v := range data {
 		if ty, ok := v.(map[string]any); ok {
 			return dig[T](key, ty)
 		}

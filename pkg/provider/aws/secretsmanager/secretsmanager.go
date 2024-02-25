@@ -231,11 +231,6 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 		SecretId: &secretName,
 	}
 
-	secretPushFormat, err := utils.FetchValueFromMetadata(SecretPushFormatKey, psd.GetMetadata(), SecretPushFormatBinary)
-	if err != nil {
-		return fmt.Errorf("failed to parse metadata: %w", err)
-	}
-
 	awsSecret, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
 
@@ -252,56 +247,15 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 		if ok := errors.As(err, &aerr); !ok {
 			return err
 		}
+
 		if aerr.Code() == awssm.ErrCodeResourceNotFoundException {
-			input := &awssm.CreateSecretInput{
-				Name:         &secretName,
-				SecretBinary: value,
-				Tags: []*awssm.Tag{
-					{
-						Key:   utilpointer.To(managedBy),
-						Value: utilpointer.To(externalSecrets),
-					},
-				},
-				ClientRequestToken: utilpointer.To(initialVersion),
-			}
-			if secretPushFormat == SecretPushFormatString {
-				input.SetSecretBinary(nil).SetSecretString(string(value))
-			}
-
-			_, err = sm.client.CreateSecretWithContext(ctx, input)
-			metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMCreateSecret, err)
-			return err
+			return sm.createSecretWithContext(ctx, secretName, psd, value)
 		}
+
 		return err
-	}
-	data, err := sm.client.DescribeSecretWithContext(ctx, &secretInput)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDescribeSecret, err)
-	if err != nil {
-		return err
-	}
-	if !isManagedByESO(data) {
-		return fmt.Errorf("secret not managed by external-secrets")
-	}
-	if awsSecret != nil && bytes.Equal(awsSecret.SecretBinary, value) {
-		return nil
 	}
 
-	newVersionNumber, err := bumpVersionNumber(awsSecret.VersionId)
-	if err != nil {
-		return err
-	}
-	input := &awssm.PutSecretValueInput{
-		SecretId:           awsSecret.ARN,
-		SecretBinary:       value,
-		ClientRequestToken: newVersionNumber,
-	}
-	if secretPushFormat == SecretPushFormatString {
-		input.SetSecretBinary(nil).SetSecretString(string(value))
-	}
-
-	_, err = sm.client.PutSecretValueWithContext(ctx, input)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutSecretValue, err)
-	return err
+	return sm.putSecretValueWithContext(ctx, secretInput, awsSecret, psd, value)
 }
 
 func padOrTrim(b []byte) []byte {
@@ -577,4 +531,67 @@ func (sm *SecretsManager) Validate() (esv1beta1.ValidationResult, error) {
 
 func (sm *SecretsManager) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadWrite
+}
+
+func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretName string, psd esv1beta1.PushSecretData, value []byte) error {
+	secretPushFormat, err := utils.FetchValueFromMetadata(SecretPushFormatKey, psd.GetMetadata(), SecretPushFormatBinary)
+	if err != nil {
+		return fmt.Errorf("failed to parse metadata: %w", err)
+	}
+
+	input := &awssm.CreateSecretInput{
+		Name:         &secretName,
+		SecretBinary: value,
+		Tags: []*awssm.Tag{
+			{
+				Key:   utilpointer.To(managedBy),
+				Value: utilpointer.To(externalSecrets),
+			},
+		},
+		ClientRequestToken: utilpointer.To(initialVersion),
+	}
+	if secretPushFormat == SecretPushFormatString {
+		input.SetSecretBinary(nil).SetSecretString(string(value))
+	}
+
+	_, err = sm.client.CreateSecretWithContext(ctx, input)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMCreateSecret, err)
+
+	return err
+}
+
+func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretInput awssm.DescribeSecretInput, awsSecret *awssm.GetSecretValueOutput, psd esv1beta1.PushSecretData, value []byte) error {
+	data, err := sm.client.DescribeSecretWithContext(ctx, &secretInput)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDescribeSecret, err)
+	if err != nil {
+		return err
+	}
+	if !isManagedByESO(data) {
+		return fmt.Errorf("secret not managed by external-secrets")
+	}
+	if awsSecret != nil && bytes.Equal(awsSecret.SecretBinary, value) {
+		return nil
+	}
+
+	newVersionNumber, err := bumpVersionNumber(awsSecret.VersionId)
+	if err != nil {
+		return err
+	}
+	input := &awssm.PutSecretValueInput{
+		SecretId:           awsSecret.ARN,
+		SecretBinary:       value,
+		ClientRequestToken: newVersionNumber,
+	}
+	secretPushFormat, err := utils.FetchValueFromMetadata(SecretPushFormatKey, psd.GetMetadata(), SecretPushFormatBinary)
+	if err != nil {
+		return fmt.Errorf("failed to parse metadata: %w", err)
+	}
+	if secretPushFormat == SecretPushFormatString {
+		input.SetSecretBinary(nil).SetSecretString(string(value))
+	}
+
+	_, err = sm.client.PutSecretValueWithContext(ctx, input)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutSecretValue, err)
+
+	return err
 }
