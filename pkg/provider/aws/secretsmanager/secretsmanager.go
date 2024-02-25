@@ -28,7 +28,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -41,6 +40,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -240,6 +240,11 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 		SecretId: &secretName,
 	}
 
+	secretPushFormat, err := utils.FetchValueFromMetadata[string](SecretPushFormatKey, psd.GetMetadata(), SecretPushFormatBinary)
+	if err != nil {
+		return fmt.Errorf("failed to parse metadata: %w", err)
+	}
+
 	awsSecret, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
 
@@ -248,15 +253,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 		if currentSecret != "" && !gjson.Valid(currentSecret) {
 			return errors.New("PushSecret for aws secrets manager with a pushSecretData property requires a json secret")
 		}
-		value, err = sjson.SetBytes([]byte(currentSecret), psd.GetProperty(), value)
-		if err != nil {
-			return fmt.Errorf("failed to set bytes: %w", err)
-		}
-	}
-
-	secretPushFormat, err := utils.FetchValueFromMetadata[string](SecretPushFormatKey, psd.GetMetadata(), SecretPushFormatBinary)
-	if err != nil {
-		return fmt.Errorf("failed to parse metadata: %w", err)
+		value, _ = sjson.SetBytes([]byte(currentSecret), psd.GetProperty(), value)
 	}
 
 	var aerr awserr.Error

@@ -31,10 +31,11 @@ import (
 	"time"
 	"unicode"
 
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/template/v2"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
 const (
@@ -449,8 +450,7 @@ func dig[T any](key string, data map[string]any) (t T, _ error) {
 			return c, nil
 		}
 
-		switch ty := v.(type) {
-		case map[string]any:
+		if ty, ok := v.(map[string]any); ok {
 			return dig[T](key, ty)
 		}
 	}
