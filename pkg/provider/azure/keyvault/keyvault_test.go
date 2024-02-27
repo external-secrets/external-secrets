@@ -1611,10 +1611,10 @@ func TestValidateStore(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			a := &Azure{}
 			if tt.name == "storeIsNil" {
-				if err := a.ValidateStore(nil); (err != nil) != tt.wantErr {
+				if _, err := a.ValidateStore(nil); (err != nil) != tt.wantErr {
 					t.Errorf(errStore, err, tt.wantErr)
 				}
-			} else if err := a.ValidateStore(tt.args.store); (err != nil) != tt.wantErr {
+			} else if _, err := a.ValidateStore(tt.args.store); (err != nil) != tt.wantErr {
 				t.Errorf(errStore, err, tt.wantErr)
 			}
 		})

@@ -1,0 +1,5 @@
+authenticators: authn,authn-jwt/eso-tests
+logLevel: "debug"
+service:
+  external:
+    enabled: false # For KinD, use NotePort rather than LoadBalancer

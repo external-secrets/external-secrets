@@ -11,11 +11,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package delinea
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/DelineaXPM/dsv-sdk-go/v2/vault"
@@ -154,7 +154,7 @@ func TestValidateStore(t *testing.T) {
 				},
 			}
 			p := &Provider{}
-			got := p.ValidateStore(&s)
+			_, got := p.ValidateStore(&s)
 			assert.Equal(t, tc.want, got)
 		})
 	}
@@ -179,7 +179,7 @@ func TestValidateStoreBailsOnUnexpectedStore(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			p := &Provider{}
-			got := p.ValidateStore(tc.store)
+			_, got := p.ValidateStore(tc.store)
 			assert.Equal(t, tc.want, got)
 		})
 	}
@@ -283,7 +283,7 @@ func TestNewClient(t *testing.T) {
 			},
 			kube: clientfake.NewClientBuilder().WithObjects(clientSecret).Build(),
 			errCheck: func(t *testing.T, err error) {
-				assert.EqualError(t, err, fmt.Sprintf(errNoSuchKeyFmt, "typo"))
+				assert.EqualError(t, err, "cannot find secret data for key: \"typo\"")
 			},
 		},
 		"valid secret refs": {

@@ -39,7 +39,7 @@ var _ = Describe("[gcp]", Label("gcp", "secretsmanager"), func() {
 	f := framework.New("eso-gcp")
 	prov := NewFromEnv(f, "")
 
-	DescribeTable("sync secrets", framework.TableFunc(f, prov),
+	DescribeTable("sync secrets", framework.TableFuncWithExternalSecret(f, prov),
 		framework.Compose(withStaticAuth, f, common.SimpleDataSync, useStaticAuth),
 		framework.Compose(withStaticAuth, f, common.JSONDataWithProperty, useStaticAuth),
 		framework.Compose(withStaticAuth, f, common.JSONDataFromSync, useStaticAuth),

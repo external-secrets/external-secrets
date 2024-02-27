@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package gitlab
 
 import (
@@ -46,7 +47,7 @@ const (
 	groupvalue            = "groupvalue"
 	groupid               = "groupId"
 	defaultErrorMessage   = "[%d] unexpected error: [%s], expected: [%s]"
-	errMissingCredentials = "credentials are empty"
+	errMissingCredentials = "cannot get Kubernetes secret \"\": secrets \"\" not found"
 	testKey               = "testKey"
 	findTestPrefix        = "test.*"
 )
@@ -351,7 +352,7 @@ func TestNewClient(t *testing.T) {
 	store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken.Name = authorizedKeySecretName
 	store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken.Key = authorizedKeySecretKey
 	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
-	tassert.EqualError(t, err, "couldn't find secret on cluster: secrets \"authorizedKeySecretName\" not found")
+	tassert.EqualError(t, err, "cannot get Kubernetes secret \"authorizedKeySecretName\": secrets \"authorizedKeySecretName\" not found")
 	tassert.Nil(t, secretClient)
 
 	err = createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, newFakeAuthorizedKey()))
@@ -873,7 +874,7 @@ func TestValidateStore(t *testing.T) {
 	}
 	p := Provider{}
 	for _, tc := range testCases {
-		err := p.ValidateStore(tc.store)
+		_, err := p.ValidateStore(tc.store)
 		if tc.err != nil && err != nil && err.Error() != tc.err.Error() {
 			t.Errorf("test failed! want %v, got %v", tc.err, err)
 		} else if tc.err == nil && err != nil {

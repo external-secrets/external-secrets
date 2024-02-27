@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package gitlab
 
 import (
@@ -25,7 +26,6 @@ import (
 	"github.com/tidwall/gjson"
 	"github.com/xanzy/go-gitlab"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -33,13 +33,13 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
 	errGitlabCredSecretName                   = "credentials are empty"
 	errInvalidClusterStoreMissingSAKNamespace = "invalid clusterStore missing SAK namespace"
 	errFetchSAKSecret                         = "couldn't find secret on cluster: %w"
-	errMissingSAK                             = "missing credentials while setting auth"
 	errList                                   = "could not verify whether the gilabClient is valid: %w"
 	errProjectAuth                            = "gitlabClient is not allowed to get secrets for project id [%s]"
 	errGroupAuth                              = "gitlabClient is not allowed to get secrets for group id [%s]"
@@ -78,34 +78,13 @@ func (a ProjectGroupPathSorter) Less(i, j int) bool { return len(a[i].FullPath) 
 var log = ctrl.Log.WithName("provider").WithName("gitlab")
 
 // Set gitlabBase credentials to Access Token.
-func (g *gitlabBase) getAuth(ctx context.Context) ([]byte, error) {
-	credentialsSecret := &corev1.Secret{}
-	credentialsSecretName := g.store.Auth.SecretRef.AccessToken.Name
-	if credentialsSecretName == "" {
-		return nil, fmt.Errorf(errGitlabCredSecretName)
-	}
-	objectKey := types.NamespacedName{
-		Name:      credentialsSecretName,
-		Namespace: g.namespace,
-	}
-	// only ClusterStore is allowed to set namespace (and then it's required)
-	if g.storeKind == esv1beta1.ClusterSecretStoreKind {
-		if g.store.Auth.SecretRef.AccessToken.Namespace == nil {
-			return nil, fmt.Errorf(errInvalidClusterStoreMissingSAKNamespace)
-		}
-		objectKey.Namespace = *g.store.Auth.SecretRef.AccessToken.Namespace
-	}
-
-	err := g.kube.Get(ctx, objectKey, credentialsSecret)
-	if err != nil {
-		return nil, fmt.Errorf(errFetchSAKSecret, err)
-	}
-
-	credentials := credentialsSecret.Data[g.store.Auth.SecretRef.AccessToken.Key]
-	if len(credentials) == 0 {
-		return nil, fmt.Errorf(errMissingSAK)
-	}
-	return credentials, nil
+func (g *gitlabBase) getAuth(ctx context.Context) (string, error) {
+	return resolvers.SecretKeyRef(
+		ctx,
+		g.kube,
+		g.storeKind,
+		g.namespace,
+		&g.store.Auth.SecretRef.AccessToken)
 }
 
 func (g *gitlabBase) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {

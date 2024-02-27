@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package akeyless
 
 import (
@@ -157,7 +158,7 @@ func TestValidateStore(t *testing.T) {
 			},
 		}
 
-		err := provider.ValidateStore(store)
+		_, err := provider.ValidateStore(store)
 		if err != nil {
 			t.Errorf(err.Error())
 		}
@@ -183,7 +184,7 @@ func TestValidateStore(t *testing.T) {
 			},
 		}
 
-		err := provider.ValidateStore(store)
+		_, err := provider.ValidateStore(store)
 		if err != nil {
 			t.Errorf(err.Error())
 		}
@@ -201,7 +202,7 @@ func TestValidateStore(t *testing.T) {
 			},
 		}
 
-		err := provider.ValidateStore(store)
+		_, err := provider.ValidateStore(store)
 		if err == nil {
 			t.Errorf("expected an error")
 		}
@@ -226,7 +227,7 @@ func TestValidateStore(t *testing.T) {
 			},
 		}
 
-		err := provider.ValidateStore(store)
+		_, err := provider.ValidateStore(store)
 		if err == nil {
 			t.Errorf("expected an error")
 		}

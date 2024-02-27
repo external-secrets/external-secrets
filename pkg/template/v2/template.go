@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package template
 
 import (
@@ -30,6 +31,9 @@ var tplFuncs = tpl.FuncMap{
 	"pkcs12keyPass":  pkcs12keyPass,
 	"pkcs12cert":     pkcs12cert,
 	"pkcs12certPass": pkcs12certPass,
+
+	"pemToPkcs12":     pemToPkcs12,
+	"pemToPkcs12Pass": pemToPkcs12Pass,
 
 	"filterPEM": filterPEM,
 

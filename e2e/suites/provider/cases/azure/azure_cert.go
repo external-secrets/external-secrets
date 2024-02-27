@@ -41,7 +41,7 @@ var _ = Describe("[azure]", Label("azure", "keyvault", "cert"), func() {
 		prov.DeleteCertificate(certName)
 	})
 
-	ff := framework.TableFunc(f, prov)
+	ff := framework.TableFuncWithExternalSecret(f, prov)
 	It("should sync keyvault objects with type=cert", func() {
 		ff(func(tc *framework.TestCase) {
 			secretKey := "azkv-cert"

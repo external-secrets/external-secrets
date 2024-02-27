@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package externalsecret
 
 import (
@@ -18,7 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	esmetrics "github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 )
 
 // NewExternalSecretCondition a set of default options for creating an External Secret Condition.

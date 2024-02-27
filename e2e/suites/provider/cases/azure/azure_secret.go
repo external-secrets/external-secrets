@@ -32,7 +32,7 @@ var _ = Describe("[azure]", Label("azure", "keyvault", "secret"), func() {
 	f := framework.New("eso-azure")
 	prov := newFromEnv(f)
 
-	DescribeTable("sync secrets", framework.TableFunc(f, prov),
+	DescribeTable("sync secrets", framework.TableFuncWithExternalSecret(f, prov),
 		framework.Compose(withStaticCredentials, f, common.SimpleDataSync, useStaticCredentials),
 		framework.Compose(withStaticCredentials, f, common.NestedJSONWithGJSON, useStaticCredentials),
 		framework.Compose(withStaticCredentials, f, common.JSONDataFromSync, useStaticCredentials),
