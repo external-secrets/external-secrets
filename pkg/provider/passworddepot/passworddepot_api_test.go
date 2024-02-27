@@ -69,7 +69,7 @@ func TestPasswortDepotApiListDatabases(t *testing.T) {
 			name: "list databases",
 			fields: fields{
 				funcStack: []func(req *http.Request) (*http.Response, error){
-					createResponder(mockDatabaseList, true),
+					createResponder(mockDatabaseList, true), //nolint:bodyclose // linters bug
 				},
 			},
 			want: Databases{
@@ -92,7 +92,7 @@ func TestPasswortDepotApiListDatabases(t *testing.T) {
 			name: "bad response body",
 			fields: fields{
 				funcStack: []func(req *http.Request) (*http.Response, error){
-					createResponder([]byte("bad response"), false),
+					createResponder([]byte("bad response"), false), //nolint:bodyclose // linters bug
 				},
 			},
 			want:    Databases{},
@@ -145,9 +145,9 @@ func TestPasswortDepotApiGetSecret(t *testing.T) {
 			name: "get secret",
 			fields: fields{
 				funcStack: []func(req *http.Request) (*http.Response, error){
-					createResponder(mockDatabaseList, true),
-					createResponder(mockDatabaseEntries, true),
-					createResponder(SecretEntry{
+					createResponder(mockDatabaseList, true),    //nolint:bodyclose // linters bug
+					createResponder(mockDatabaseEntries, true), //nolint:bodyclose // linters bug
+					createResponder(SecretEntry{ //nolint:bodyclose // linters bug
 						Name:        mySecret,
 						Fingerprint: fingerprint1,
 						Pass:        "yery53cr3t",
@@ -169,8 +169,8 @@ func TestPasswortDepotApiGetSecret(t *testing.T) {
 			name: "get nested secret",
 			fields: fields{
 				funcStack: []func(req *http.Request) (*http.Response, error){
-					createResponder(mockDatabaseList, true),
-					createResponder(DatabaseEntries{
+					createResponder(mockDatabaseList, true), //nolint:bodyclose // linters bug
+					createResponder(DatabaseEntries{ //nolint:bodyclose // linters bug
 						Entries: []Entry{
 							{
 								Name:        "Production",
@@ -178,8 +178,8 @@ func TestPasswortDepotApiGetSecret(t *testing.T) {
 							},
 						},
 					}, true),
-					createResponder(mockDatabaseEntries, true),
-					createResponder(SecretEntry{
+					createResponder(mockDatabaseEntries, true), //nolint:bodyclose // linters bug
+					createResponder(SecretEntry{ //nolint:bodyclose // linters bug
 						Name:        mySecret,
 						Fingerprint: fingerprint1,
 						Pass:        "yery53cr3t",
@@ -201,8 +201,8 @@ func TestPasswortDepotApiGetSecret(t *testing.T) {
 			name: "bad response body on database entries",
 			fields: fields{
 				funcStack: []func(req *http.Request) (*http.Response, error){
-					createResponder(mockDatabaseList, true),
-					createResponder([]byte("bad body"), false),
+					createResponder(mockDatabaseList, true),    //nolint:bodyclose // linters bug
+					createResponder([]byte("bad body"), false), //nolint:bodyclose // linters bug
 				},
 			},
 			args: args{
@@ -216,9 +216,9 @@ func TestPasswortDepotApiGetSecret(t *testing.T) {
 			name: "bad response on secret entry",
 			fields: fields{
 				funcStack: []func(req *http.Request) (*http.Response, error){
-					createResponder(mockDatabaseList, true),
-					createResponder(mockDatabaseEntries, true),
-					createResponder([]byte("bad response body"), false),
+					createResponder(mockDatabaseList, true),             //nolint:bodyclose // linters bug
+					createResponder(mockDatabaseEntries, true),          //nolint:bodyclose // linters bug
+					createResponder([]byte("bad response body"), false), //nolint:bodyclose // linters bug
 				},
 			},
 			args: args{
@@ -232,8 +232,8 @@ func TestPasswortDepotApiGetSecret(t *testing.T) {
 			name: "no secret with name",
 			fields: fields{
 				funcStack: []func(req *http.Request) (*http.Response, error){
-					createResponder(mockDatabaseList, true),
-					createResponder(DatabaseEntries{Entries: []Entry{}}, true),
+					createResponder(mockDatabaseList, true),                    //nolint:bodyclose // linters bug
+					createResponder(DatabaseEntries{Entries: []Entry{}}, true), //nolint:bodyclose // linters bug
 				},
 			},
 			args: args{
