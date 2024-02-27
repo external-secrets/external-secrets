@@ -33,7 +33,6 @@ type client struct {
 const (
 	errPushSecretsNotSupported       = "pushing secrets is currently not supported"
 	errDeleteSecretsNotSupported     = "deleting secrets is currently not supported"
-	errGettingSecrets                = "error getting secret %s: %w"
 	errUnmarshalSecret               = "unable to unmarshal secret, is it a valid JSON?: %w"
 	errUnableToGetValue              = "unable to get value for key %s"
 	errGettingSecretMapNotSupported  = "getting secret map is currently not supported"
