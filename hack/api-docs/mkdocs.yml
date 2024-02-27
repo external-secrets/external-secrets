@@ -89,7 +89,6 @@ nav:
       - Using Latest Image: guides/using-latest-image.md
       - Disable Cluster Features: guides/disable-cluster-features.md
   - Provider:
-<<<<<<< HEAD
     - AWS Secrets Manager: provider/aws-secrets-manager.md
     - AWS Parameter Store: provider/aws-parameter-store.md
     - Azure Key Vault: provider/azure-key-vault.md
@@ -132,7 +131,6 @@ nav:
       - Talks: eso-talks.md
       - Demos: eso-demos.md
       - Blogs: eso-blogs.md
-=======
     - AWS:
       - Secrets Manager: provider-aws-secrets-manager.md
       - Parameter Store: provider-aws-parameter-store.md
