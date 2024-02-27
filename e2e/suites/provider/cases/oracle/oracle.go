@@ -25,7 +25,7 @@ var _ = Describe("[oracle]", Label("oracle"), func() {
 	f := framework.New("eso-oracle")
 	prov := newFromEnv(f)
 
-	DescribeTable("sync secrets", framework.TableFunc(f, prov),
+	DescribeTable("sync secrets", framework.TableFuncWithExternalSecret(f, prov),
 		Entry(common.SimpleDataSync(f)),
 		Entry(common.NestedJSONWithGJSON(f)),
 		Entry(common.JSONDataFromSync(f)),

@@ -80,7 +80,6 @@ func (v *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 	return v.GetAllSecretsFn(ctx, ref)
 }
 
-// Not Implemented PushSecret.
 func (v *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
 	v.SetSecretArgs[data.GetRemoteKey()] = SetSecretCallArgs{
 		Value:     secret.Data[data.GetSecretKey()],

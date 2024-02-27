@@ -58,12 +58,7 @@ const (
 	errInvalidKeys          = "secret keys from spec.dataFrom.%v[%d] can only have alphanumeric,'-', '_' or '.' characters. Convert them using rewrite (https://external-secrets.io/latest/guides-datafrom-rewrite)"
 	errUpdateSecret         = "could not update Secret"
 	errPatchStatus          = "unable to patch status"
-	errStoreRef             = "could not get store reference"
-	errStoreUsability       = "could not use store reference"
-	errStoreProvider        = "could not get store provider"
-	errStoreClient          = "could not get provider client"
 	errGetExistingSecret    = "could not get existing secret: %w"
-	errCloseStoreClient     = "could not close provider client"
 	errSetCtrlReference     = "could not set ExternalSecret controller reference: %w"
 	errFetchTplFrom         = "error fetching templateFrom data: %w"
 	errGetSecretData        = "could not get secret data from provider"
@@ -75,8 +70,6 @@ const (
 	errPolicyMergeGetSecret = "unable to get secret %s: %w"
 	errPolicyMergeMutate    = "unable to mutate secret %s: %w"
 	errPolicyMergePatch     = "unable to patch secret %s: %w"
-	errTplCMMissingKey      = "error in configmap %s: missing key %s"
-	errTplSecMissingKey     = "error in secret %s: missing key %s"
 )
 
 // Reconciler reconciles a ExternalSecret object.

@@ -122,10 +122,12 @@ func (p *Provider) PushSecret(_ context.Context, secret *corev1.Secret, data esv
 		}
 		return nil
 	}
+
 	if currentData.Origin != FakeSetSecret {
 		return fmt.Errorf("key already exists")
 	}
 	currentData.Value = string(value)
+
 	return nil
 }
 

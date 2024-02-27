@@ -30,7 +30,7 @@ var _ = ginkgo.Describe("[delinea]", ginkgo.Label("delinea"), func() {
 		createResources(context.Background(), f, cfg)
 	})
 
-	ginkgo.DescribeTable("sync secrets", framework.TableFunc(f, provider),
+	ginkgo.DescribeTable("sync secrets", framework.TableFuncWithExternalSecret(f, provider),
 
 		ginkgo.Entry(common.JSONDataWithProperty(f)),
 		ginkgo.Entry(common.JSONDataWithoutTargetName(f)),
