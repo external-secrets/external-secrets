@@ -17,12 +17,12 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: "Run FOSSA Scan"
-        uses: fossas/fossa-action@45d0cd825dcbe195c58a83662b0abb684ca739d8 # main
+        uses: fossas/fossa-action@47ef11b1e1e3812e88dae436ccbd2d0cbd1adab0 # main
         with:
           api-key: ${{secrets.FOSSA_API_KEY}}
 
       - name: "Run FOSSA Test"
-        uses: fossas/fossa-action@45d0cd825dcbe195c58a83662b0abb684ca739d8 # main
+        uses: fossas/fossa-action@47ef11b1e1e3812e88dae436ccbd2d0cbd1adab0 # main
         with:
           api-key: ${{secrets.FOSSA_API_KEY}}
           run-tests: true
