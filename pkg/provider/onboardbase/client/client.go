@@ -32,6 +32,8 @@ import (
 const HTTPTimeoutDuration = 20 * time.Second
 const ObbSecretsEndpointPath = "/secrets"
 
+const errUnableToDecrtypt = "unable to decrypt secret payload"
+
 type OnboardbaseClient struct {
 	baseURL             *url.URL
 	OnboardbaseAPIKey   string
@@ -186,11 +188,11 @@ func (c *OnboardbaseClient) getSecretsFromPayload(data secretResponseBodyData) (
 		passphrase := c.OnboardbasePassCode
 		key, err := aesdecrypt.Run(secret.Key, passphrase)
 		if err != nil {
-			return nil, &APIError{Err: err, Message: "unable to decrypt secret payload", Data: secret.Key}
+			return nil, &APIError{Err: err, Message: errUnableToDecrtypt, Data: secret.Key}
 		}
 		value, err := aesdecrypt.Run(secret.Value, passphrase)
 		if err != nil {
-			return nil, &APIError{Err: err, Message: "unable to decrypt secret payload", Data: secret.Value}
+			return nil, &APIError{Err: err, Message: errUnableToDecrtypt, Data: secret.Value}
 		}
 		kv[key] = value
 	}
@@ -203,7 +205,7 @@ func (c *OnboardbaseClient) mapSecretsByPlainKey(data secretResponseBodyData) (m
 		passphrase := c.OnboardbasePassCode
 		key, err := aesdecrypt.Run(secret.Key, passphrase)
 		if err != nil {
-			return nil, &APIError{Err: err, Message: "unable to decrypt secret payload", Data: secret.Key}
+			return nil, &APIError{Err: err, Message: errUnableToDecrtypt, Data: secret.Key}
 		}
 		kv[key] = secret
 	}
