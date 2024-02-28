@@ -3658,6 +3658,79 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.FortanixProvider">FortanixProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiUrl</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>APIURL is the URL of SDKMS API. Defaults to <code>sdkms.fortanix.com</code>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>apiKey</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.FortanixProviderSecretRef">
+FortanixProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>APIKey is the API token to access SDKMS Applications.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.FortanixProviderSecretRef">FortanixProviderSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.FortanixProvider">FortanixProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>SecretRef is a reference to a secret containing the SDKMS API Key.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.GCPSMAuth">GCPSMAuth
 </h3>
 <p>
@@ -5531,6 +5604,20 @@ PulumiProvider
 <td>
 <em>(Optional)</em>
 <p>Pulumi configures this store to sync secrets using the Pulumi provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>fortanix</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.FortanixProvider">
+FortanixProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Fortanix configures this store to sync secrets using the Fortanix provider</p>
 </td>
 </tr>
 </tbody>
