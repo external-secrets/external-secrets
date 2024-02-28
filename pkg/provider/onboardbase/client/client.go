@@ -28,7 +28,7 @@ import (
 
 	aesdecrypt "github.com/Onboardbase/go-cryptojs-aes-decrypt/decrypt"
 )
-
+const HTTP_TIMEOUT_DURATION = 20 * time.Second
 type OnboardbaseClient struct {
 	baseURL             *url.URL
 	OnboardbaseAPIKey   string
@@ -133,7 +133,7 @@ func NewOnboardbaseClient(onboardbaseAPIKey, onboardbasePasscode string) (*Onboa
 		VerifyTLS:           true,
 		UserAgent:           "onboardbase-external-secrets",
 		httpClient: &http.Client{
-			Timeout:   10 * time.Second,
+			Timeout:   HTTP_TIMEOUT_DURATION,
 			Transport: httpTransport,
 		},
 	}
@@ -356,7 +356,7 @@ func (c *OnboardbaseClient) performRequest(config *performRequestConfig) (*apiRe
 	}
 
 	// timeout this request after 20 seconds
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), HTTP_TIMEOUT_DURATION)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, config.method, reqURL.String(), bodyReader)
