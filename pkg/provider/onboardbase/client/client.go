@@ -16,6 +16,7 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -41,7 +42,7 @@ type queryParams map[string]string
 
 type headers map[string]string
 type DeleteSecretsRequest struct {
-	SecretId string `json:"secretId,omitempty"`
+	SecretID string `json:"secretId,omitempty"`
 }
 
 type httpRequestBody []byte
@@ -84,11 +85,11 @@ type SecretsRequest struct {
 
 type secretResponseBodyObject struct {
 	Title string `json:"title,omitempty"`
-	Id    string `json:"id,omitempty"`
+	ID    string `json:"id,omitempty"`
 }
 
 type secretResponseSecrets struct {
-	Id    string `json:"id"`
+	ID    string `json:"id"`
 	Key   string `json:"key"`
 	Value string `json:"value"`
 }
@@ -160,7 +161,16 @@ func (c *OnboardbaseClient) SetBaseURL(urlStr string) error {
 }
 
 func (c *OnboardbaseClient) Authenticate() error {
-	if _, err := c.performRequest("/team/members", "GET", headers{}, queryParams{}, httpRequestBody{}); err != nil {
+	_, err := c.performRequest(
+		&performRequestConfig{
+			path:    "/team/members",
+			method:  "GET",
+			headers: headers{},
+			params:  queryParams{},
+			body:    httpRequestBody{},
+		})
+
+	if err != nil {
 		return err
 	}
 
@@ -198,9 +208,14 @@ func (c *OnboardbaseClient) mapSecretsByPlainKey(data secretResponseBodyData) (m
 }
 
 func (c *OnboardbaseClient) GetSecret(request SecretRequest) (*SecretResponse, error) {
-	params := request.buildQueryParams()
-
-	response, err := c.performRequest("/secrets", "GET", headers{}, params, httpRequestBody{})
+	response, err := c.performRequest(
+		&performRequestConfig{
+			path:    "/secrets",
+			method:  "GET",
+			headers: headers{},
+			params:  request.buildQueryParams(),
+			body:    httpRequestBody{},
+		})
 	if err != nil {
 		return nil, err
 	}
@@ -235,19 +250,25 @@ func (c *OnboardbaseClient) DeleteSecret(request SecretRequest) error {
 		return err
 	}
 	secret, ok := secrets[request.Name]
-	if !ok || secret.Id == "" {
+	if !ok || secret.ID == "" {
 		return nil
 	}
 
 	params := request.buildQueryParams()
 	deleteSecretDto := &DeleteSecretsRequest{
-		SecretId: secret.Id,
+		SecretID: secret.ID,
 	}
 	body, jsonErr := json.Marshal(deleteSecretDto)
 	if jsonErr != nil {
 		return &APIError{Err: jsonErr, Message: "unable to unmarshal delete secrets payload"}
 	}
-	_, err = c.performRequest("/secrets", "DELETE", headers{}, params, body)
+	_, err = c.performRequest(&performRequestConfig{
+		path:    "/secrets",
+		method:  "DELETE",
+		headers: headers{},
+		params:  params,
+		body:    body,
+	})
 	if err != nil {
 		return err
 	}
@@ -256,10 +277,13 @@ func (c *OnboardbaseClient) DeleteSecret(request SecretRequest) error {
 }
 
 func (c *OnboardbaseClient) makeGetSecretsRequest(request SecretsRequest) (*secretResponseBody, *apiResponse, error) {
-	headers := headers{}
-
-	params := request.buildQueryParams()
-	response, apiErr := c.performRequest("/secrets", "GET", headers, params, httpRequestBody{})
+	response, apiErr := c.performRequest(&performRequestConfig{
+		path:    "/secrets",
+		method:  "GET",
+		headers: headers{},
+		params:  request.buildQueryParams(),
+		body:    httpRequestBody{},
+	})
 	if apiErr != nil {
 		return nil, nil, apiErr
 	}
@@ -309,41 +333,47 @@ func (r *SecretRequest) buildQueryParams() queryParams {
 	return params
 }
 
-func (c *OnboardbaseClient) performRequest(path, method string, headers headers, params queryParams, body httpRequestBody) (*apiResponse, error) {
-	urlStr := c.BaseURL().String() + path
+type performRequestConfig struct {
+	path    string
+	method  string
+	headers headers
+	params  queryParams
+	body    httpRequestBody
+}
+
+func (c *OnboardbaseClient) performRequest(config *performRequestConfig) (*apiResponse, error) {
+	urlStr := c.BaseURL().String() + config.path
 	reqURL, err := url.Parse(urlStr)
 	if err != nil {
 		return nil, &APIError{Err: err, Message: fmt.Sprintf("invalid API URL: %s", urlStr)}
 	}
 
 	var bodyReader io.Reader
-	if body != nil {
-		bodyReader = bytes.NewReader(body)
+	if config.body != nil {
+		bodyReader = bytes.NewReader(config.body)
 	} else {
 		bodyReader = http.NoBody
 	}
 
-	req, err := http.NewRequest(method, reqURL.String(), bodyReader)
+	// timeout this request after 20 seconds
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, config.method, reqURL.String(), bodyReader)
 	if err != nil {
 		return nil, &APIError{Err: err, Message: "unable to form HTTP request"}
 	}
 
-	if method == "POST" && req.Header.Get("content-type") == "" {
-		req.Header.Set("content-type", "application/json")
-	}
-
-	if req.Header.Get("accept") == "" {
-		req.Header.Set("accept", "application/json")
-	}
+	req.Header.Set("content-type", "application/json")
 	req.Header.Set("user-agent", c.UserAgent)
 	req.Header.Set("api_key", c.OnboardbaseAPIKey)
 
-	for key, value := range headers {
+	for key, value := range config.headers {
 		req.Header.Set(key, value)
 	}
 
 	query := req.URL.Query()
-	for key, value := range params {
+	for key, value := range config.params {
 		query.Add(key, value)
 	}
 	req.URL.RawQuery = query.Encode()
@@ -357,7 +387,7 @@ func (c *OnboardbaseClient) performRequest(path, method string, headers headers,
 
 	bodyResponse, err := io.ReadAll(r.Body)
 	if err != nil {
-		return &apiResponse{HTTPResponse: r, Body: nil}, &APIError{Err: err, Message: "unable to read entire response body"}
+		return nil, &APIError{Err: err, Message: "unable to read entire response body"}
 	}
 
 	response := &apiResponse{HTTPResponse: r, Body: bodyResponse}

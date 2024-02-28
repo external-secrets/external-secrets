@@ -121,12 +121,12 @@ func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
+func (c *Client) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
 	// not implemented
 	return nil
 }
 
-func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, remoteRef esv1beta1.PushSecretData) error {
+func (c *Client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
 	// not implemented
 	return nil
 }
@@ -204,7 +204,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 		}
 		matcher = m
 	}
-	
+
 	selected := map[string][]byte{}
 	for key, value := range secrets {
 		if (matcher != nil && !matcher.MatchName(key)) || (ref.Path != nil && !strings.HasPrefix(key, *ref.Path)) {

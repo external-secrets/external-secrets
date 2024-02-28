@@ -40,16 +40,16 @@ const (
 )
 
 type onboardbaseTestCase struct {
-	label          string
-	fakeClient     *fake.OnboardbaseClient
-	request        client.SecretRequest
-	response       *client.SecretResponse
-	remoteRef      *esv1beta1.ExternalSecretDataRemoteRef
-	PushSecretRemoteRef  esv1beta1.PushSecretRemoteRef
-	apiErr         error
-	expectError    string
-	expectedSecret string
-	expectedData   map[string][]byte
+	label               string
+	fakeClient          *fake.OnboardbaseClient
+	request             client.SecretRequest
+	response            *client.SecretResponse
+	remoteRef           *esv1beta1.ExternalSecretDataRemoteRef
+	PushSecretRemoteRef esv1beta1.PushSecretRemoteRef
+	apiErr              error
+	expectError         string
+	expectedSecret      string
+	expectedData        map[string][]byte
 }
 
 func makeValidAPIRequest() client.SecretRequest {
@@ -75,7 +75,7 @@ type pushRemoteRef struct {
 	secretKey string
 }
 
-func (pRef pushRemoteRef) GetProperty () string {
+func (pRef pushRemoteRef) GetProperty() string {
 	return ""
 }
 
@@ -91,15 +91,15 @@ func makeValidPushRemoteRef(key string) esv1beta1.PushSecretRemoteRef {
 
 func makeValidOnboardbaseTestCase() *onboardbaseTestCase {
 	return &onboardbaseTestCase{
-		fakeClient:     &fake.OnboardbaseClient{},
-		request:        makeValidAPIRequest(),
-		response:       makeValidAPIOutput(),
-		remoteRef:      makeValidRemoteRef(),
-		PushSecretRemoteRef:  makeValidPushRemoteRef(validSecretName),
-		apiErr:         nil,
-		expectError:    "",
-		expectedSecret: "",
-		expectedData:   make(map[string][]byte),
+		fakeClient:          &fake.OnboardbaseClient{},
+		request:             makeValidAPIRequest(),
+		response:            makeValidAPIOutput(),
+		remoteRef:           makeValidRemoteRef(),
+		PushSecretRemoteRef: makeValidPushRemoteRef(validSecretName),
+		apiErr:              nil,
+		expectError:         "",
+		expectedSecret:      "",
+		expectedData:        make(map[string][]byte),
 	}
 }
 

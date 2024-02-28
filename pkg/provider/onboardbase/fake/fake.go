@@ -39,11 +39,11 @@ func (obbc *OnboardbaseClient) GetSecret(request client.SecretRequest) (*client.
 	return obbc.getSecret(request)
 }
 
-func (obbc *OnboardbaseClient) GetSecrets(request client.SecretsRequest) (*client.SecretsResponse, error) {
+func (obbc *OnboardbaseClient) GetSecrets(_ client.SecretsRequest) (*client.SecretsResponse, error) {
 	return &client.SecretsResponse{}, nil
 }
 
-func (obbc *OnboardbaseClient) DeleteSecret(request client.SecretRequest) error {
+func (obbc *OnboardbaseClient) DeleteSecret(_ client.SecretRequest) error {
 	return nil
 }
 
