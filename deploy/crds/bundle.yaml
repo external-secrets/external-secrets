@@ -3007,6 +3007,34 @@ spec:
                       required:
                         - data
                       type: object
+                    fortanix:
+                      description: Fortanix configures this store to sync secrets using the Fortanix provider
+                      properties:
+                        apiKey:
+                          description: APIKey is the API token to access SDKMS Applications.
+                          properties:
+                            secretRef:
+                              description: SecretRef is a reference to a secret containing the SDKMS API Key.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                          type: object
+                        apiUrl:
+                          description: APIURL is the URL of SDKMS API. Defaults to `sdkms.fortanix.com`.
+                          type: string
+                      type: object
                     gcpsm:
                       description: GCPSM configures this store to sync secrets using Google Cloud Platform Secret Manager provider
                       properties:
@@ -8132,6 +8160,34 @@ spec:
                           type: array
                       required:
                         - data
+                      type: object
+                    fortanix:
+                      description: Fortanix configures this store to sync secrets using the Fortanix provider
+                      properties:
+                        apiKey:
+                          description: APIKey is the API token to access SDKMS Applications.
+                          properties:
+                            secretRef:
+                              description: SecretRef is a reference to a secret containing the SDKMS API Key.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                          type: object
+                        apiUrl:
+                          description: APIURL is the URL of SDKMS API. Defaults to `sdkms.fortanix.com`.
+                          type: string
                       type: object
                     gcpsm:
                       description: GCPSM configures this store to sync secrets using Google Cloud Platform Secret Manager provider
