@@ -222,7 +222,7 @@ func TestGetSecretMap(t *testing.T) {
 
 	complexJSON := func(pstc *onboardbaseTestCase) {
 		pstc.label = "valid unmarshalling for nested json"
-		pstc.response.Value = `{"API_KEY": "3a3ea4f5", "AUTH_SA": {"appID": "a1ea-48bd-8749-b6f5ec3c5a1f"}}`
+		pstc.response.Value = `{"API_KEY": "3a3ea4fs5", "AUTH_SA": {"appID": "a1ea-48bd-8749-b6f5ec3c5a1f"}}`
 		pstc.expectedData["API_KEY"] = []byte("3a3ea4f5")
 		pstc.expectedData["AUTH_SA"] = []byte(`{"appID": "a1ea-48bd-8749-b6f5ec3c5a1f"}`)
 	}
