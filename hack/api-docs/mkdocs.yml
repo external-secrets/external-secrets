@@ -12,6 +12,8 @@ theme:
     - navigation.indexes
     - navigation.expand
   custom_dir: ../../overrides
+  logo: pictures/eso-round-logo.svg
+  favicon: pictures/eso-round-logo.svg
 markdown_extensions:
   - attr_list
   - pymdownx.highlight
