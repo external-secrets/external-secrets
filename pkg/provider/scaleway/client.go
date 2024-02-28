@@ -336,7 +336,7 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 		}
 
 		totalFetched := uint64(*request.Page-1)*uint64(*request.PageSize) + uint64(len(response.Secrets))
-		done = totalFetched == uint64(response.TotalCount)
+		done = totalFetched == response.TotalCount
 
 		*request.Page++
 
