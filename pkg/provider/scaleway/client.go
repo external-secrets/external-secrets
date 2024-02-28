@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1alpha1"
+	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1beta1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
