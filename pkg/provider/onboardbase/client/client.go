@@ -155,11 +155,6 @@ func (c *OnboardbaseClient) SetBaseURL(urlStr string) error {
 	if err != nil {
 		return err
 	}
-
-	if baseURL.Scheme == "" {
-		baseURL.Scheme = "https"
-	}
-
 	c.baseURL = baseURL
 	return nil
 }
@@ -184,7 +179,7 @@ func (c *OnboardbaseClient) getSecretsFromPayload(data secretResponseBodyData) (
 		if err != nil {
 			return nil, &APIError{Err: err, Message: "unable to decrypt secret payload", Data: secret.Value}
 		}
-		kv[strings.ToLower(key)] = value
+		kv[key] = value
 	}
 	return kv, nil
 }

@@ -69,7 +69,7 @@ type SecretsClientInterface interface {
 
 func (c *Client) setAuth(ctx context.Context) error {
 	credentialsSecret := &corev1.Secret{}
-	credentialsSecretName := c.store.Auth.OnboardbaseAPIKey.Name
+	credentialsSecretName := c.store.Auth.OnboardbaseAPIKeyRef.Name
 	if credentialsSecretName == "" {
 		return fmt.Errorf(errOnboardbaseAPIKeySecretName)
 	}
@@ -79,10 +79,10 @@ func (c *Client) setAuth(ctx context.Context) error {
 	}
 	// only ClusterStore is allowed to set namespace (and then it's required)
 	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
-		if c.store.Auth.OnboardbaseAPIKey.Namespace == nil {
+		if c.store.Auth.OnboardbaseAPIKeyRef.Namespace == nil {
 			return fmt.Errorf(errInvalidClusterStoreMissingOnboardbaseAPIKeyNamespace)
 		}
-		objectKey.Namespace = *c.store.Auth.OnboardbaseAPIKey.Namespace
+		objectKey.Namespace = *c.store.Auth.OnboardbaseAPIKeyRef.Namespace
 	}
 
 	err := c.kube.Get(ctx, objectKey, credentialsSecret)
@@ -90,15 +90,15 @@ func (c *Client) setAuth(ctx context.Context) error {
 		return fmt.Errorf(errFetchOnboardbaseAPIKeySecret, err)
 	}
 
-	onboardbaseAPIKey := credentialsSecret.Data[c.store.Auth.OnboardbaseAPIKey.Key]
+	onboardbaseAPIKey := credentialsSecret.Data[c.store.Auth.OnboardbaseAPIKeyRef.Key]
 	if (onboardbaseAPIKey == nil) || (len(onboardbaseAPIKey) == 0) {
-		return fmt.Errorf(errMissingOnboardbaseAPIKey, c.store.Auth.OnboardbaseAPIKey.Key, credentialsSecretName)
+		return fmt.Errorf(errMissingOnboardbaseAPIKey, c.store.Auth.OnboardbaseAPIKeyRef.Key, credentialsSecretName)
 	}
 	c.onboardbaseAPIKey = string(onboardbaseAPIKey)
 
-	onboardbasePasscode := credentialsSecret.Data[c.store.Auth.OnboardbasePasscode.Key]
+	onboardbasePasscode := credentialsSecret.Data[c.store.Auth.OnboardbasePasscodeRef.Key]
 	if (onboardbasePasscode == nil) || (len(onboardbasePasscode) == 0) {
-		return fmt.Errorf(errMissingOnboardbasePasscode, c.store.Auth.OnboardbasePasscode.Key, credentialsSecretName)
+		return fmt.Errorf(errMissingOnboardbasePasscode, c.store.Auth.OnboardbasePasscodeRef.Key, credentialsSecretName)
 	}
 
 	c.onboardbasePasscode = string(onboardbasePasscode)
@@ -121,12 +121,12 @@ func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
 	// not implemented
 	return nil
 }
 
-func (c *Client) PushSecret(ctx context.Context, value []byte, remoteRef esv1beta1.PushRemoteRef) error {
+func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, remoteRef esv1beta1.PushSecretData) error {
 	// not implemented
 	return nil
 }
@@ -135,7 +135,7 @@ func (c *Client) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRe
 	request := onboardbaseClient.SecretRequest{
 		Project:     c.project,
 		Environment: c.environment,
-		Name:        strings.ToLower(ref.Key),
+		Name:        ref.Key,
 	}
 
 	secret, err := c.onboardbase.GetSecret(request)
@@ -187,7 +187,6 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 	}
 
 	secrets, err := c.getSecrets(ctx)
-	selected := map[string][]byte{}
 
 	if err != nil {
 		return nil, err
@@ -205,7 +204,8 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 		}
 		matcher = m
 	}
-
+	
+	selected := map[string][]byte{}
 	for key, value := range secrets {
 		if (matcher != nil && !matcher.MatchName(key)) || (ref.Path != nil && !strings.HasPrefix(key, *ref.Path)) {
 			continue

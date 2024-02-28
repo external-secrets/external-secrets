@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	oClient "github.com/external-secrets/external-secrets/pkg/provider/onboardbase/client"
@@ -80,26 +81,26 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return client, nil
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	onboardbaseStoreSpec := storeSpec.Provider.Onboardbase
-	onboardbaseAPIKeySecretRef := onboardbaseStoreSpec.Auth.OnboardbaseAPIKey
+	onboardbaseAPIKeySecretRef := onboardbaseStoreSpec.Auth.OnboardbaseAPIKeyRef
 	if err := utils.ValidateSecretSelector(store, onboardbaseAPIKeySecretRef); err != nil {
-		return fmt.Errorf(errInvalidStore, err)
+		return nil, fmt.Errorf(errInvalidStore, err)
 	}
 
 	if onboardbaseAPIKeySecretRef.Name == "" {
-		return fmt.Errorf(errInvalidStore, "onboardbaseAPIKey.name cannot be empty")
+		return nil, fmt.Errorf(errInvalidStore, "onboardbaseAPIKey.name cannot be empty")
 	}
 
-	onboardbasePasscodeKeySecretRef := onboardbaseStoreSpec.Auth.OnboardbasePasscode
+	onboardbasePasscodeKeySecretRef := onboardbaseStoreSpec.Auth.OnboardbasePasscodeRef
 	if err := utils.ValidateSecretSelector(store, onboardbasePasscodeKeySecretRef); err != nil {
-		return fmt.Errorf(errInvalidStore, err)
+		return nil, fmt.Errorf(errInvalidStore, err)
 	}
 
 	if onboardbasePasscodeKeySecretRef.Name == "" {
-		return fmt.Errorf(errInvalidStore, "onboardbasePasscode.name cannot be empty")
+		return nil, fmt.Errorf(errInvalidStore, "onboardbasePasscode.name cannot be empty")
 	}
 
-	return nil
+	return nil, nil
 }

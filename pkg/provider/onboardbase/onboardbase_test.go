@@ -45,7 +45,7 @@ type onboardbaseTestCase struct {
 	request        client.SecretRequest
 	response       *client.SecretResponse
 	remoteRef      *esv1beta1.ExternalSecretDataRemoteRef
-	pushRemoteRef  esv1beta1.PushRemoteRef
+	PushSecretRemoteRef  esv1beta1.PushSecretRemoteRef
 	apiErr         error
 	expectError    string
 	expectedSecret string
@@ -75,11 +75,15 @@ type pushRemoteRef struct {
 	secretKey string
 }
 
+func (pRef pushRemoteRef) GetProperty () string {
+	return ""
+}
+
 func (pRef pushRemoteRef) GetRemoteKey() string {
 	return pRef.secretKey
 }
 
-func makeValidPushRemoteRef(key string) esv1beta1.PushRemoteRef {
+func makeValidPushRemoteRef(key string) esv1beta1.PushSecretRemoteRef {
 	return pushRemoteRef{
 		secretKey: key,
 	}
@@ -91,7 +95,7 @@ func makeValidOnboardbaseTestCase() *onboardbaseTestCase {
 		request:        makeValidAPIRequest(),
 		response:       makeValidAPIOutput(),
 		remoteRef:      makeValidRemoteRef(),
-		pushRemoteRef:  makeValidPushRemoteRef(validSecretName),
+		PushSecretRemoteRef:  makeValidPushRemoteRef(validSecretName),
 		apiErr:         nil,
 		expectError:    "",
 		expectedSecret: "",
@@ -167,7 +171,7 @@ func TestDeleteSecret(t *testing.T) {
 	setMissingSecret := func(pstc *onboardbaseTestCase) {
 		pstc.label = "invalid missing secret"
 		pstc.remoteRef.Key = missingSecret
-		pstc.pushRemoteRef = makeValidPushRemoteRef(missingSecret)
+		pstc.PushSecretRemoteRef = makeValidPushRemoteRef(missingSecret)
 		pstc.request.Name = missingSecret
 		pstc.response = nil
 		pstc.expectError = missingSecretErr
@@ -177,7 +181,7 @@ func TestDeleteSecret(t *testing.T) {
 	setInvalidSecret := func(pstc *onboardbaseTestCase) {
 		pstc.label = "invalid secret name format"
 		pstc.remoteRef.Key = invalidSecret
-		pstc.pushRemoteRef = makeValidPushRemoteRef(invalidSecret)
+		pstc.PushSecretRemoteRef = makeValidPushRemoteRef(invalidSecret)
 		pstc.request.Name = invalidSecret
 		pstc.response = nil
 		pstc.expectError = missingSecretErr
@@ -187,7 +191,7 @@ func TestDeleteSecret(t *testing.T) {
 	deleteSecret := func(pstc *onboardbaseTestCase) {
 		pstc.label = "delete secret successfully"
 		pstc.remoteRef.Key = validSecretName
-		pstc.pushRemoteRef = makeValidPushRemoteRef(validSecretName)
+		pstc.PushSecretRemoteRef = makeValidPushRemoteRef(validSecretName)
 		pstc.request.Name = validSecretName
 		pstc.response = nil
 		pstc.apiErr = nil
@@ -202,7 +206,7 @@ func TestDeleteSecret(t *testing.T) {
 	c := Client{}
 	for k, tc := range testCases {
 		c.onboardbase = tc.fakeClient
-		err := c.DeleteSecret(context.Background(), tc.pushRemoteRef)
+		err := c.DeleteSecret(context.Background(), tc.PushSecretRemoteRef)
 		if err != nil && !ErrorContains(err, tc.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), tc.expectError)
 		}
@@ -288,12 +292,12 @@ func makeSecretStore(fn ...storeModifier) *esv1beta1.SecretStore {
 
 func withAuth(name, key string, namespace *string, passcode string) storeModifier {
 	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
-		store.Spec.Provider.Onboardbase.Auth.OnboardbaseAPIKey = v1.SecretKeySelector{
+		store.Spec.Provider.Onboardbase.Auth.OnboardbaseAPIKeyRef = v1.SecretKeySelector{
 			Name:      name,
 			Key:       key,
 			Namespace: namespace,
 		}
-		store.Spec.Provider.Onboardbase.Auth.OnboardbasePasscode = v1.SecretKeySelector{
+		store.Spec.Provider.Onboardbase.Auth.OnboardbasePasscodeRef = v1.SecretKeySelector{
 			Name:      passcode,
 			Key:       passcode,
 			Namespace: namespace,
@@ -341,7 +345,7 @@ func TestValidateStore(t *testing.T) {
 	p := Provider{}
 	for _, tc := range testCases {
 		t.Run(tc.label, func(t *testing.T) {
-			err := p.ValidateStore(tc.store)
+			_, err := p.ValidateStore(tc.store)
 			if tc.err != nil && err != nil && err.Error() != tc.err.Error() {
 				t.Errorf("test failed! want %v, got %v", tc.err, err)
 			} else if tc.err == nil && err != nil {
