@@ -28,7 +28,10 @@ import (
 
 	aesdecrypt "github.com/Onboardbase/go-cryptojs-aes-decrypt/decrypt"
 )
-const HTTP_TIMEOUT_DURATION = 20 * time.Second
+
+const HTTPTimeoutDuration = 20 * time.Second
+const ObbSecretsEndpointPath = "/secrets"
+
 type OnboardbaseClient struct {
 	baseURL             *url.URL
 	OnboardbaseAPIKey   string
@@ -133,7 +136,7 @@ func NewOnboardbaseClient(onboardbaseAPIKey, onboardbasePasscode string) (*Onboa
 		VerifyTLS:           true,
 		UserAgent:           "onboardbase-external-secrets",
 		httpClient: &http.Client{
-			Timeout:   HTTP_TIMEOUT_DURATION,
+			Timeout:   HTTPTimeoutDuration,
 			Transport: httpTransport,
 		},
 	}
@@ -210,7 +213,7 @@ func (c *OnboardbaseClient) mapSecretsByPlainKey(data secretResponseBodyData) (m
 func (c *OnboardbaseClient) GetSecret(request SecretRequest) (*SecretResponse, error) {
 	response, err := c.performRequest(
 		&performRequestConfig{
-			path:    "/secrets",
+			path:    ObbSecretsEndpointPath,
 			method:  "GET",
 			headers: headers{},
 			params:  request.buildQueryParams(),
@@ -263,7 +266,7 @@ func (c *OnboardbaseClient) DeleteSecret(request SecretRequest) error {
 		return &APIError{Err: jsonErr, Message: "unable to unmarshal delete secrets payload"}
 	}
 	_, err = c.performRequest(&performRequestConfig{
-		path:    "/secrets",
+		path:    ObbSecretsEndpointPath,
 		method:  "DELETE",
 		headers: headers{},
 		params:  params,
@@ -278,7 +281,7 @@ func (c *OnboardbaseClient) DeleteSecret(request SecretRequest) error {
 
 func (c *OnboardbaseClient) makeGetSecretsRequest(request SecretsRequest) (*secretResponseBody, *apiResponse, error) {
 	response, apiErr := c.performRequest(&performRequestConfig{
-		path:    "/secrets",
+		path:    ObbSecretsEndpointPath,
 		method:  "GET",
 		headers: headers{},
 		params:  request.buildQueryParams(),
@@ -356,7 +359,7 @@ func (c *OnboardbaseClient) performRequest(config *performRequestConfig) (*apiRe
 	}
 
 	// timeout this request after 20 seconds
-	ctx, cancel := context.WithTimeout(context.Background(), HTTP_TIMEOUT_DURATION)
+	ctx, cancel := context.WithTimeout(context.Background(), HTTPTimeoutDuration)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, config.method, reqURL.String(), bodyReader)
@@ -394,21 +397,25 @@ func (c *OnboardbaseClient) performRequest(config *performRequestConfig) (*apiRe
 	success := isSuccess(r.StatusCode)
 
 	if !success {
-		if contentType := r.Header.Get("content-type"); strings.HasPrefix(contentType, "application/json") {
-			var errResponse apiErrorResponse
-			err := json.Unmarshal(bodyResponse, &errResponse)
-			if err != nil {
-				return response, &APIError{Err: err, Message: "unable to unmarshal error JSON payload"}
-			}
-			return response, &APIError{Err: nil, Message: strings.Join(errResponse.Messages, "\n")}
-		}
-		return nil, &APIError{Err: fmt.Errorf("%d status code; %d bytes", r.StatusCode, len(bodyResponse)), Message: "unable to load response"}
+		return handlePerformRequestFailure(response)
 	}
 
 	if success && err != nil {
 		return nil, &APIError{Err: err, Message: "unable to load data from successful response"}
 	}
 	return response, nil
+}
+
+func handlePerformRequestFailure(response *apiResponse) (*apiResponse, *APIError) {
+	if contentType := response.HTTPResponse.Header.Get("content-type"); strings.HasPrefix(contentType, "application/json") {
+		var errResponse apiErrorResponse
+		err := json.Unmarshal(response.Body, &errResponse)
+		if err != nil {
+			return response, &APIError{Err: err, Message: "unable to unmarshal error JSON payload"}
+		}
+		return response, &APIError{Err: nil, Message: strings.Join(errResponse.Messages, "\n")}
+	}
+	return nil, &APIError{Err: fmt.Errorf("%d status code; %d bytes", response.HTTPResponse.StatusCode, len(response.Body)), Message: "unable to load response"}
 }
 
 func isSuccess(statusCode int) bool {
