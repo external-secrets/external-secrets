@@ -337,6 +337,10 @@ func (providerchef *Providerchef) PushSecret(_ context.Context, _ *corev1.Secret
 	return fmt.Errorf("not implemented")
 }
 
+func (providerchef *Providerchef) SecretExists(_ context.Context, _ v1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (providerchef *Providerchef) Capabilities() v1beta1.SecretStoreCapabilities {
 	return v1beta1.SecretStoreReadOnly
