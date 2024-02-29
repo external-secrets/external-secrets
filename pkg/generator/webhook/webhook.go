@@ -37,17 +37,14 @@ func (w *Webhook) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kc
 	provider, err := parseSpec(jsonSpec.Raw)
 	w.wh = webhook.Webhook{}
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse provider spec: %w", err)
 	}
 	w.wh.Namespace = ns
 	w.url = provider.URL
 	w.wh.Kube = kclient
 	w.wh.HTTP, err = w.wh.GetHTTPClient(provider)
 	if err != nil {
-		return nil, err
-	}
-	if err != nil {
-		return nil, fmt.Errorf("failed to get store: %w", err)
+		return nil, fmt.Errorf("failed to prepare provider http client: %w", err)
 	}
 	return w.wh.GetSecretMap(ctx, provider, nil)
 }
