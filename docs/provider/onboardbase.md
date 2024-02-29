@@ -1,5 +1,5 @@
 
-![Doppler External Secrets Provider](../pictures/onboardbase-provider.png)
+![Onboardbase External Secrets Provider](../pictures/onboardbase-provider.png)
 
 ## Onboardbase Secret Management
 
@@ -9,16 +9,16 @@ Sync secrets from [Onboardbase](https://www.onboardbase.com/) to Kubernetes usin
 
 ### Get an Onboardbase [API Key](https://docs.onboardbase.com/reference/api-auth).
 
-Create the Doppler Token secret by opening the Doppler dashboard and navigating to the desired Project and Config, then create a new Service Token from the **Access** tab:
+Create the Onboardbase API by opening the organization tab under your account settings:
 
-![Doppler Service Token](../pictures/onboardbase-api-key.png)
+![Onboardabse API Key](../pictures/onboardbase-api-key.png)
 
 
 
 And view them under the team name in your Account settings
 
 
-![Doppler Service Token](../pictures/onboardbase-create-api-key.png)
+![Onboardabse API Key](../pictures/onboardbase-create-api-key.png)
 
 Create an Onboardbase API secret with your API Key and Passcode value:
 
@@ -43,7 +43,7 @@ The below operations are possible with the Onboardbase provider:
 2. [Fetch all](#2-fetch-all)
 3. [Filter](#3-filter)
 
-Let's explore each use case using a fictional `auth-api` Doppler project.
+Let's explore each use case using a fictional `auth-api` Onboardbase project.
 
 ### 1. Fetch
 
