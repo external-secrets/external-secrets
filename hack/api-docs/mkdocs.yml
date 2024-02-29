@@ -114,6 +114,7 @@ nav:
     - Scaleway: provider/scaleway.md
     - Delinea: provider/delinea.md
     - Pulumi ESC: provider/pulumi.md
+    - Onboardbase: provider/onboardbase.md
   - Examples:
     - FluxCD: examples/gitops-using-fluxcd.md
     - Anchore Engine: examples/anchore-engine-credentials.md
