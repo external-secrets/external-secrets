@@ -11,7 +11,7 @@ image:
   # -- The flavour of tag you want to use
   # There are different image flavours available, like distroless and ubi.
   # Please see GitHub release notes for image tags for these flavors.
-  # By default the distroless image is used.
+  # By default, the distroless image is used.
   flavour: ""
 
 # -- If set, install and upgrade CRDs through helm chart.
@@ -269,21 +269,21 @@ webhook:
   nodeSelector: {}
 
   certManager:
-    # -- Enabling cert-manager support will disable the built in secret and
+    # -- Enabling cert-manager support will disable the built-in secret and
     # switch to using cert-manager (installed separately) to automatically issue
     # and renew the webhook certificate. This chart does not install
     # cert-manager for you, See https://cert-manager.io/docs/
     enabled: false
     # -- Automatically add the cert-manager.io/inject-ca-from annotation to the
     # webhooks and CRDs. As long as you have the cert-manager CA Injector
-    # enabled, this will automatically setup your webhook's CA to the one used
+    # enabled, this will automatically set up your webhook's CA to the one used
     # by cert-manager. See https://cert-manager.io/docs/concepts/ca-injector
     addInjectorAnnotations: true
     cert:
       # -- Create a certificate resource within this chart. See
       # https://cert-manager.io/docs/usage/certificate/
       create: true
-      # -- For the Certificate created by this chart, setup the issuer. See
+      # -- For the Certificate created by this chart, set up the issuer. See
       # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.IssuerSpec
       issuerRef:
         group: cert-manager.io
