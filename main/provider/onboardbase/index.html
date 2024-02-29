@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../scaleway/">
+        <link rel="prev" href="../pulumi/">
       
       
-        <link rel="next" href="../pulumi/">
+        <link rel="next" href="../../examples/gitops-using-fluxcd/">
       
       
       <link rel="icon" href="../../pictures/eso-round-logo.svg">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Delinea - External Secrets Operator</title>
+        <title>Onboardbase - External Secrets Operator</title>
       
     
     
@@ -72,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#delinea-devops-secrets-vault" class="md-skip">
+        <a href="#onboardbase-secret-management" class="md-skip">
           Skip to content
         </a>
       
@@ -121,7 +121,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Delinea
+              Onboardbase
             
           </span>
         </div>
@@ -2340,28 +2340,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Delinea
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../delinea/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2370,57 +2352,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#delinea-devops-secrets-vault" class="md-nav__link">
-    <span class="md-ellipsis">
-      Delinea DevOps Secrets Vault
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Delinea DevOps Secrets Vault">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#creating-a-secretstore" class="md-nav__link">
-    <span class="md-ellipsis">
-      Creating a SecretStore
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#referencing-secrets" class="md-nav__link">
-    <span class="md-ellipsis">
-      Referencing Secrets
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -2451,10 +2382,28 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../onboardbase/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Onboardbase
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -2463,6 +2412,99 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#onboardbase-secret-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      Onboardbase Secret Management
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      Authentication
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authentication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get-an-onboardbase-api-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      Get an Onboardbase API Key.
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#use-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      Use Cases
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Use Cases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-fetch" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Fetch
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-fetch-all" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Fetch all
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-filter" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Filter
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -2978,28 +3020,70 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#delinea-devops-secrets-vault" class="md-nav__link">
+  <a href="#onboardbase-secret-management" class="md-nav__link">
     <span class="md-ellipsis">
-      Delinea DevOps Secrets Vault
+      Onboardbase Secret Management
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Delinea DevOps Secrets Vault">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      Authentication
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authentication">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#creating-a-secretstore" class="md-nav__link">
+  <a href="#get-an-onboardbase-api-key" class="md-nav__link">
     <span class="md-ellipsis">
-      Creating a SecretStore
+      Get an Onboardbase API Key.
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#use-cases" class="md-nav__link">
+    <span class="md-ellipsis">
+      Use Cases
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Use Cases">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-fetch" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Fetch
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#referencing-secrets" class="md-nav__link">
+  <a href="#2-fetch-all" class="md-nav__link">
     <span class="md-ellipsis">
-      Referencing Secrets
+      2. Fetch all
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-filter" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Filter
     </span>
   </a>
   
@@ -3028,51 +3112,101 @@
   
 
 
-  <h1>Delinea</h1>
+  <h1>Onboardbase</h1>
 
-<h2 id="delinea-devops-secrets-vault">Delinea DevOps Secrets Vault</h2>
-<p>External Secrets Operator integrates with <a href="https://docs.delinea.com/online-help/products/devops-secrets-vault/current">Delinea DevOps Secrets Vault</a>.</p>
-<p>Please note that the <a href="https://delinea.com/products/secret-server">Delinea Secret Server</a> product is NOT in scope of this integration.</p>
-<h3 id="creating-a-secretstore">Creating a SecretStore</h3>
-<p>You need client ID, client secret and tenant to authenticate with DSV.
-Both client ID and client secret can be specified either directly in the config, or by referencing a kubernetes secret.</p>
-<p>To acquire client ID and client secret, refer to the  <a href="https://docs.delinea.com/dsv/current/tutorials/policy.md">policy management</a> and <a href="https://docs.delinea.com/dsv/current/usage/cli-ref/client.md">client management</a> documentation.</p>
+<p><img alt="Onboardbase External Secrets Provider" src="../../pictures/onboardbase-provider.png" /></p>
+<h2 id="onboardbase-secret-management">Onboardbase Secret Management</h2>
+<p>Sync secrets from <a href="https://www.onboardbase.com/">Onboardbase</a> to Kubernetes using the External Secrets Operator.</p>
+<h2 id="authentication">Authentication</h2>
+<h3 id="get-an-onboardbase-api-key">Get an Onboardbase <a href="https://docs.onboardbase.com/reference/api-auth">API Key</a>.</h3>
+<p>Create the Onboardbase API by opening the organization tab under your account settings:</p>
+<p><img alt="Onboardabse API Key" src="../../pictures/onboardbase-api-key.png" /></p>
+<p>And view them under the team name in your Account settings</p>
+<p><img alt="Onboardabse API Key" src="../../pictures/onboardbase-create-api-key.png" /></p>
+<p>Create an Onboardbase API secret with your API Key and Passcode value:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">HISTIGNORE</span><span class="o">=</span><span class="s1">&#39;*kubectl*&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>onboardbase-auth-secret<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--from-literal<span class="o">=</span><span class="nv">API_KEY</span><span class="o">=</span>*****VZYKYJNMMEMK*****<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--from-literal<span class="o">=</span><span class="nv">PASSCODE</span><span class="o">=</span>api-key-passcode
+</code></pre></div>
+<p>Then to create a generic <code>SecretStore</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-store</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onboardbase-external-secret-store</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">delinea</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">tenant</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;TENANT&gt;</span>
-<span class="w">      </span><span class="nt">tld</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;TLD&gt;</span>
-<span class="w">      </span><span class="nt">clientId</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;CLIENT_ID&gt;</span>
-<span class="w">      </span><span class="nt">clientSecret</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;NAME_OF_KUBE_SECRET&gt;</span>
-<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;KEY_IN_KUBE_SECRET&gt;</span>
+<span class="w">    </span><span class="nt">onboardbase</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">project</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">project-name</span><span class="w"> </span><span class="c1"># can be altered from here</span>
+<span class="w">      </span><span class="nt">environment</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">development</span><span class="w"> </span><span class="c1"># can be altered from here</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">apiKey</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onboardbase-auth-secret</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onboardbase-api-key</span><span class="w"> </span>
+<span class="w">        </span><span class="nt">passcode</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onboardbase-auth-secret</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onboardbase-passcode</span>
 </code></pre></div>
-<p>Both <code>clientId</code> and <code>clientSecret</code> can either be specified directly via the <code>value</code> field or can reference a kubernetes secret.</p>
-<p>The <code>tenant</code> field must correspond to the host name / site name of your DevOps vault. If you selected a region other than the US you must also specify the TLD, e.g. <code>tld: eu</code>.</p>
-<p>If required, the URL template (<code>urlTemplate</code>) can be customized as well.</p>
-<h3 id="referencing-secrets">Referencing Secrets</h3>
-<p>Secrets can be referenced by path. Getting a specific version of a secret is not yet supported.</p>
-<p>Note that because all DSV secrets are JSON objects, you must specify <code>remoteRef.property</code>. You can access nested values or arrays using <a href="https://github.com/tidwall/gjson/blob/master/SYNTAX.md">gjson syntax</a>.</p>
+<h2 id="use-cases">Use Cases</h2>
+<p>The below operations are possible with the Onboardbase provider:</p>
+<ol>
+<li><a href="#1-fetch">Fetch</a></li>
+<li><a href="#2-fetch-all">Fetch all</a></li>
+<li><a href="#3-filter">Filter</a></li>
+</ol>
+<p>Let's explore each use case using a fictional <code>auth-api</code> Onboardbase project.</p>
+<h3 id="1-fetch">1. Fetch</h3>
+<p>To sync one or more individual secrets:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">service-name-secrets</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20s</span>
-<span class="w">    </span><span class="nt">secretStoreRef</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-store</span>
-<span class="w">    </span><span class="nt">data</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;KEY_IN_KUBE_SECRET&gt;</span>
-<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;SECRET_PATH&gt;</span>
-<span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;JSON_PROPERTY&gt;</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10m</span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onboardbase-external-secret-store</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">service-name-secrets</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DATABASE_URI</span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"> </span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DATABASE_URI</span>
+</code></pre></div>
+<h3 id="2-fetch-all">2. Fetch all</h3>
+<p>To sync every secret from a config:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">service-name-secrets</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10m</span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onboardbase-external-secret-store</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">service-name-secrets</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.*</span>
+</code></pre></div>
+<h3 id="3-filter">3. Filter</h3>
+<p>To filter secrets by <code>path</code> (path prefix), <code>name</code> (regular expression) or a combination of both:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">service-name-secrets</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10m</span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onboardbase-external-secret-store</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">service-name-secrets</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DATABASE_</span>
 </code></pre></div>
 
 
