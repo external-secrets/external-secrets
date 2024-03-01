@@ -57,7 +57,6 @@ var (
 	setupLog                              = ctrl.Log.WithName("setup")
 	dnsName                               string
 	certDir                               string
-	liveAddr                              string
 	metricsAddr                           string
 	healthzAddr                           string
 	controllerClass                       string
@@ -145,7 +144,6 @@ var rootCmd = &cobra.Command{
 			Metrics: server.Options{
 				BindAddress: metricsAddr,
 			},
-			LivenessEndpointName: liveAddr,
 			WebhookServer: webhook.NewServer(webhook.Options{
 				Port: 9443,
 			}),
@@ -259,7 +257,6 @@ func Execute() {
 
 func init() {
 	rootCmd.Flags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	rootCmd.Flags().StringVar(&liveAddr, "live-addr", ":8082", "The address the live endpoint binds to.")
 	rootCmd.Flags().StringVar(&controllerClass, "controller-class", "default", "The controller is instantiated with a specific controller name and filters ES based on this property")
 	rootCmd.Flags().BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+

@@ -87,20 +87,10 @@ spec:
           {{- end }}
           {{- end }}
           - --metrics-addr=:{{ .Values.metrics.listen.port }}
-          - --live-addr=:{{ .Values.livenessProbe.port }}
           ports:
             - containerPort: {{ .Values.metrics.listen.port }}
               protocol: TCP
               name: metrics
-          livenessProbe:
-            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
-            httpGet:
-              port: {{ .Values.livenessProbe.port }}
-              path: /live
-            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
-            successThreshold: {{ .Values.livenessProbe.successThreshold }}
-            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
           {{- with .Values.extraEnv }}
           env:
             {{- toYaml . | nindent 12 }}
