@@ -32,18 +32,8 @@ should match snapshot of default values:
             - args:
                 - --concurrent=1
                 - --metrics-addr=:8080
-                - --live-addr=:8082
               image: ghcr.io/external-secrets/external-secrets:v0.9.13
               imagePullPolicy: IfNotPresent
-              livenessProbe:
-                failureThreshold: 5
-                httpGet:
-                  path: /live
-                  port: 8082
-                initialDelaySeconds: 10
-                periodSeconds: 10
-                successThreshold: 1
-                timeoutSeconds: 5
               name: external-secrets
               ports:
                 - containerPort: 8080

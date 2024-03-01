@@ -11,7 +11,7 @@ image:
   # -- The flavour of tag you want to use
   # There are different image flavours available, like distroless and ubi.
   # Please see GitHub release notes for image tags for these flavors.
-  # By default, the distroless image is used.
+  # By default the distroless image is used.
   flavour: ""
 
 # -- If set, install and upgrade CRDs through helm chart.
@@ -186,22 +186,6 @@ metrics:
     # -- Additional service annotations
     annotations: {}
 
-livenessProbe:
-  # -- Address for liveness probe
-  address: ""
-  # -- Liveness probe port for kubelet
-  port: 8082
-  # -- Specify the maximum amount of time to wait for a probe to respond before considering it fails
-  timeoutSeconds: 5
-  # -- Number of consecutive probe failures that should occur before considering the probe as failed
-  failureThreshold: 5
-  # -- Period in seconds for K8s to start performing probes
-  periodSeconds: 10
-  # -- Number of successful probes to mark probe successful
-  successThreshold: 1
-  # -- Delay in seconds for container to start before performing the initial probe
-  initialDelaySeconds: 10
-
 nodeSelector: {}
 
 tolerations: []
@@ -269,21 +253,21 @@ webhook:
   nodeSelector: {}
 
   certManager:
-    # -- Enabling cert-manager support will disable the built-in secret and
+    # -- Enabling cert-manager support will disable the built in secret and
     # switch to using cert-manager (installed separately) to automatically issue
     # and renew the webhook certificate. This chart does not install
     # cert-manager for you, See https://cert-manager.io/docs/
     enabled: false
     # -- Automatically add the cert-manager.io/inject-ca-from annotation to the
     # webhooks and CRDs. As long as you have the cert-manager CA Injector
-    # enabled, this will automatically set up your webhook's CA to the one used
+    # enabled, this will automatically setup your webhook's CA to the one used
     # by cert-manager. See https://cert-manager.io/docs/concepts/ca-injector
     addInjectorAnnotations: true
     cert:
       # -- Create a certificate resource within this chart. See
       # https://cert-manager.io/docs/usage/certificate/
       create: true
-      # -- For the Certificate created by this chart, set up the issuer. See
+      # -- For the Certificate created by this chart, setup the issuer. See
       # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.IssuerSpec
       issuerRef:
         group: cert-manager.io
