@@ -1,4 +1,4 @@
-authenticators: authn,authn-jwt/eso-tests
+authenticators: authn,authn-jwt/eso-tests,authn-jwt/eso-tests-hostid
 logLevel: "debug"
 service:
   external:

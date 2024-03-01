@@ -14,8 +14,10 @@ limitations under the License.
 package addon
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -51,7 +53,8 @@ func NewConjur(namespace string) *Conjur {
 			Namespace:    namespace,
 			ReleaseName:  fmt.Sprintf("conjur-%s", namespace), // avoid cluster role collision
 			Chart:        fmt.Sprintf("%s/conjur-oss", repo),
-			ChartVersion: "2.0.7",
+			// Use latest version of Conjur OSS. To pin to a specific version, uncomment the following line.
+			// ChartVersion: "2.0.7",
 			Repo: ChartRepo{
 				Name: repo,
 				URL:  "https://cyberark.github.io/helm-charts",
@@ -148,8 +151,99 @@ func (l *Conjur) initConjur() error {
 
 func (l *Conjur) configureConjur() error {
 	ginkgo.By("configuring conjur")
-	// TODO: This will be used for the JWT tests
+	// Construct Conjur policy for authn-jwt. This uses the token-app-property "sub" to
+	// authenticate the host. This means that Conjur will determine which host is authenticating
+	// based on the "sub" claim in the JWT token, which is provided by the Kubernetes service account.
+	policy := `- !policy
+  id: conjur/authn-jwt/eso-tests
+  body:
+    - !webservice
+    - !variable public-keys
+    - !variable issuer
+    - !variable token-app-property
+    - !variable audience`
+
+	_, err := l.ConjurClient.LoadPolicy(conjurapi.PolicyModePost, "root", strings.NewReader(policy))
+	if err != nil {
+		return fmt.Errorf("unable to load authn-jwt policy: %w", err)
+	}
+
+	// Construct Conjur policy for authn-jwt-hostid. This does not use the token-app-property variable
+	// and instead uses the HostID passed in the authentication URL to determine which host is authenticating.
+	// This is not the recommended way to authenticate, but it is needed for certain use cases where the
+	// JWT token does not contain the "sub" claim.
+	policy = `- !policy
+  id: conjur/authn-jwt/eso-tests-hostid
+  body:
+    - !webservice
+    - !variable public-keys
+    - !variable issuer
+    - !variable audience`
+
+	_, err = l.ConjurClient.LoadPolicy(conjurapi.PolicyModePost, "root", strings.NewReader(policy))
+	if err != nil {
+		return fmt.Errorf("unable to load authn-jwt policy: %w", err)
+	}
+
+	// Fetch the jwks info from the k8s cluster
+	pubKeysJson, issuer, err := l.fetchJWKSandIssuer()
+	if err != nil {
+		return fmt.Errorf("unable to fetch jwks and issuer: %w", err)
+	}
+
+	// Set the variables for the authn-jwt policies
+	secrets := map[string]string{
+		"conjur/authn-jwt/eso-tests/audience":           l.ConjurURL,
+		"conjur/authn-jwt/eso-tests/issuer":             issuer,
+		"conjur/authn-jwt/eso-tests/public-keys":        string(pubKeysJson),
+		"conjur/authn-jwt/eso-tests/token-app-property": "sub",
+		"conjur/authn-jwt/eso-tests-hostid/audience":    l.ConjurURL,
+		"conjur/authn-jwt/eso-tests-hostid/issuer":      issuer,
+		"conjur/authn-jwt/eso-tests-hostid/public-keys": string(pubKeysJson),
+	}
+
+	for secretPath, secretValue := range secrets {
+		err := l.ConjurClient.AddSecret(secretPath, secretValue)
+		if err != nil {
+			return fmt.Errorf("unable to add secret %s: %w", secretPath, err)
+		}
+	}
+
 	return nil
+}
+
+func (l *Conjur) fetchJWKSandIssuer() (pubKeysJson string, issuer string, err error) {
+	kc := l.chart.config.KubeClientSet
+
+	// Fetch the openid-configuration
+	res, err := kc.CoreV1().RESTClient().Get().AbsPath("/.well-known/openid-configuration").DoRaw(context.Background())
+	if err != nil {
+		return "", "", fmt.Errorf("unable to fetch openid-configuration: %w", err)
+	}
+	var openidConfig map[string]interface{}
+	json.Unmarshal(res, &openidConfig)
+	issuer = openidConfig["issuer"].(string)
+
+	// Fetch the jwks
+	jwksJson, err := kc.CoreV1().RESTClient().Get().AbsPath("/openid/v1/jwks").DoRaw(context.Background())
+	if err != nil {
+		return "", "", fmt.Errorf("unable to fetch jwks: %w", err)
+	}
+	var jwks map[string]interface{}
+	json.Unmarshal(jwksJson, &jwks)
+
+	// Create a JSON object with the jwks that can be used by Conjur
+	pubKeysObj := map[string]interface{}{
+		"type":  "jwks",
+		"value": jwks,
+	}
+	pubKeysJsonObj, err := json.Marshal(pubKeysObj)
+	if err != nil {
+		return "", "", fmt.Errorf("unable to marshal jwks: %w", err)
+	}
+
+	pubKeysJson = string(pubKeysJsonObj)
+	return pubKeysJson, issuer, nil
 }
 
 func (l *Conjur) Logs() error {

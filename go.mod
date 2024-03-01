@@ -63,6 +63,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.9.2
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.5.1
 	github.com/DelineaXPM/dsv-sdk-go/v2 v2.1.2
+	github.com/Onboardbase/go-cryptojs-aes-decrypt v0.0.0-20230430095000-27c0d3a9016d
 	github.com/akeylesslabs/akeyless-go/v3 v3.6.1
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.5
 	github.com/alibabacloud-go/kms-20160120/v3 v3.1.0
@@ -72,6 +73,7 @@ require (
 	github.com/aliyun/credentials-go v1.3.2
 	github.com/avast/retry-go/v4 v4.5.1
 	github.com/cyberark/conjur-api-go v0.11.1
+	github.com/fortanix/sdkms-client-go v0.4.0
 	github.com/go-openapi/strfmt v0.22.0
 	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/hashicorp/golang-lru v1.0.2
@@ -86,6 +88,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/tidwall/sjson v1.2.5
 	sigs.k8s.io/yaml v1.4.0
+	software.sslmate.com/src/go-pkcs12 v0.4.0
 )
 
 require (
