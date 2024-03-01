@@ -19,8 +19,9 @@ import (
 	"testing"
 	"time"
 
-	vault "github.com/oracle/oci-go-sdk/v65/vault"
+	"github.com/oracle/oci-go-sdk/v65/vault"
 	v1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
@@ -535,6 +536,90 @@ func TestRewrite(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("RewriteMap() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFetchValueFromMetadata(t *testing.T) {
+	type args struct {
+		key  string
+		data *apiextensionsv1.JSON
+		def  any
+	}
+	type testCase struct {
+		name    string
+		args    args
+		wantT   any
+		wantErr bool
+	}
+	tests := []testCase{
+		{
+			name: "plain dig for an existing key",
+			args: args{
+				key: "key",
+				data: &apiextensionsv1.JSON{
+					Raw: []byte(
+						`{"key": "value"}`,
+					),
+				},
+				def: "def",
+			},
+			wantT:   "value",
+			wantErr: false,
+		},
+		{
+			name: "return default if key not found",
+			args: args{
+				key: "key2",
+				data: &apiextensionsv1.JSON{
+					Raw: []byte(
+						`{"key": "value"}`,
+					),
+				},
+				def: "def",
+			},
+			wantT:   "def",
+			wantErr: false,
+		},
+		{
+			name: "use a different type",
+			args: args{
+				key: "key",
+				data: &apiextensionsv1.JSON{
+					Raw: []byte(
+						`{"key": 123}`,
+					),
+				},
+				def: 1234,
+			},
+			wantT:   float64(123), // unmarshal is always float64
+			wantErr: false,
+		},
+		{
+			name: "digging deeper",
+			args: args{
+				key: "key2",
+				data: &apiextensionsv1.JSON{
+					Raw: []byte(
+						`{"key": {"key2": "value"}}`,
+					),
+				},
+				def: "",
+			},
+			wantT:   "value",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotT, err := FetchValueFromMetadata(tt.args.key, tt.args.data, tt.args.def)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("FetchValueFromMetadata() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotT, tt.wantT) {
+				t.Errorf("FetchValueFromMetadata() gotT = %v, want %v", gotT, tt.wantT)
 			}
 		})
 	}

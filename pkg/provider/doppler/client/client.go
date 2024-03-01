@@ -41,7 +41,12 @@ type httpRequestBody []byte
 
 type Secrets map[string]string
 
-type RawSecrets map[string]*interface{}
+type Change struct {
+	Name         string  `json:"name"`
+	OriginalName string  `json:"originalName"`
+	Value        *string `json:"value"`
+	ShouldDelete bool    `json:"shouldDelete,omitempty"`
+}
 
 type APIError struct {
 	Err     error
@@ -74,9 +79,10 @@ type SecretsRequest struct {
 }
 
 type UpdateSecretsRequest struct {
-	Secrets RawSecrets `json:"secrets,omitempty"`
-	Project string     `json:"project,omitempty"`
-	Config  string     `json:"config,omitempty"`
+	Secrets        Secrets  `json:"secrets,omitempty"`
+	ChangeRequests []Change `json:"change_requests,omitempty"`
+	Project        string   `json:"project,omitempty"`
+	Config         string   `json:"config,omitempty"`
 }
 
 type secretResponseBody struct {

@@ -910,6 +910,46 @@ should match snapshot of default values:
                             - region
                             - vault
                           type: object
+                        passworddepot:
+                          description: Configures a store to sync secrets with a Password Depot instance.
+                          properties:
+                            auth:
+                              description: Auth configures how secret-manager authenticates with a Password Depot instance.
+                              properties:
+                                secretRef:
+                                  properties:
+                                    credentials:
+                                      description: Username / Password is used for authentication.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                            defaulted, in others it may be required.
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                            to the namespace of the referent.
+                                          type: string
+                                      type: object
+                                  type: object
+                              required:
+                                - secretRef
+                              type: object
+                            database:
+                              description: Database to use as source
+                              type: string
+                            host:
+                              description: URL configures the Password Depot instance URL.
+                              type: string
+                          required:
+                            - auth
+                            - database
+                            - host
+                          type: object
                         vault:
                           description: Vault configures this store to sync secrets using Hashi provider
                           properties:
@@ -2174,6 +2214,11 @@ should match snapshot of default values:
                                   properties:
                                     account:
                                       type: string
+                                    hostId:
+                                      description: |-
+                                        Optional HostID for JWT authentication. This may be used depending
+                                        on how the Conjur JWT authenticator policy is configured.
+                                      type: string
                                     secretRef:
                                       description: |-
                                         Optional SecretRef that refers to a key in a Secret resource containing JWT token to
@@ -2416,6 +2461,34 @@ should match snapshot of default values:
                               type: array
                           required:
                             - data
+                          type: object
+                        fortanix:
+                          description: Fortanix configures this store to sync secrets using the Fortanix provider
+                          properties:
+                            apiKey:
+                              description: APIKey is the API token to access SDKMS Applications.
+                              properties:
+                                secretRef:
+                                  description: SecretRef is a reference to a secret containing the SDKMS API Key.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              type: object
+                            apiUrl:
+                              description: APIURL is the URL of SDKMS API. Defaults to `sdkms.fortanix.com`.
+                              type: string
                           type: object
                         gcpsm:
                           description: GCPSM configures this store to sync secrets using Google Cloud Platform Secret Manager provider
@@ -2748,6 +2821,70 @@ should match snapshot of default values:
                           required:
                             - auth
                           type: object
+                        onboardbase:
+                          description: Onboardbase configures this store to sync secrets using the Onboardbase provider
+                          properties:
+                            apiHost:
+                              default: https://public.onboardbase.com/api/v1/
+                              description: APIHost use this to configure the host url for the API for selfhosted installation, default is https://public.onboardbase.com/api/v1/
+                              type: string
+                            auth:
+                              description: Auth configures how the Operator authenticates with the Onboardbase API
+                              properties:
+                                apiKeyRef:
+                                  description: |-
+                                    OnboardbaseAPIKey is the APIKey generated by an admin account.
+                                    It is used to recognize and authorize access to a project and environment within onboardbase
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                passcodeRef:
+                                  description: OnboardbasePasscode is the passcode attached to the API Key
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              required:
+                                - apiKeyRef
+                                - passcodeRef
+                              type: object
+                            environment:
+                              default: development
+                              description: Environment is the name of an environmnent within a project to pull the secrets from
+                              type: string
+                            project:
+                              default: development
+                              description: Project is an onboardbase project that the secrets should be pulled from
+                              type: string
+                          required:
+                            - apiHost
+                            - auth
+                            - environment
+                            - project
+                          type: object
                         onepassword:
                           description: OnePassword configures this store to sync secrets using the 1Password Cloud provider
                           properties:
@@ -2907,6 +3044,46 @@ should match snapshot of default values:
                           required:
                             - region
                             - vault
+                          type: object
+                        passworddepot:
+                          description: Configures a store to sync secrets with a Password Depot instance.
+                          properties:
+                            auth:
+                              description: Auth configures how secret-manager authenticates with a Password Depot instance.
+                              properties:
+                                secretRef:
+                                  properties:
+                                    credentials:
+                                      description: Username / Password is used for authentication.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                            defaulted, in others it may be required.
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                            to the namespace of the referent.
+                                          type: string
+                                      type: object
+                                  type: object
+                              required:
+                                - secretRef
+                              type: object
+                            database:
+                              description: Database to use as source
+                              type: string
+                            host:
+                              description: URL configures the Password Depot instance URL.
+                              type: string
+                          required:
+                            - auth
+                            - database
+                            - host
                           type: object
                         pulumi:
                           description: Pulumi configures this store to sync secrets using the Pulumi provider

@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
@@ -389,6 +390,62 @@ func TestSetSecret(t *testing.T) {
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 				gomega.Expect(string(out)).To(gomega.Equal(row.expValue))
 			}
+		})
+	}
+}
+
+type secretExistsTestCase struct {
+	name      string
+	input     []esv1beta1.FakeProviderData
+	request   esv1alpha1.PushSecretRemoteRef
+	expExists bool
+}
+
+func TestSecretExists(t *testing.T) {
+	gomega.RegisterTestingT(t)
+	p := &Provider{}
+	tbl := []secretExistsTestCase{
+		{
+			name:  "return false, nil if no existing secret",
+			input: []esv1beta1.FakeProviderData{},
+			request: esv1alpha1.PushSecretRemoteRef{
+				RemoteKey: "/foo",
+			},
+			expExists: false,
+		},
+		{
+			name: "return true, nil if existing secret",
+			input: []esv1beta1.FakeProviderData{
+				{
+					Key:   "/foo",
+					Value: "bar",
+				},
+			},
+			request: esv1alpha1.PushSecretRemoteRef{
+				RemoteKey: "/foo",
+			},
+			expExists: true,
+		},
+	}
+
+	for i, row := range tbl {
+		t.Run(row.name, func(t *testing.T) {
+			cl, err := p.NewClient(context.Background(), &esv1beta1.SecretStore{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("secret-store-%v", i),
+				},
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						Fake: &esv1beta1.FakeProvider{
+							Data: row.input,
+						},
+					},
+				},
+			}, nil, "")
+			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+			exists, err := cl.SecretExists(context.TODO(), row.request)
+			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+			gomega.Expect(exists).To(gomega.Equal(row.expExists))
 		})
 	}
 }

@@ -59,6 +59,7 @@ const (
 	errStoreValidateFailed                   = "unable to validate provided store. Check if username, serverUrl and privateKey are correct"
 	errServerURLNoEndSlash                   = "serverurl does not end with slash(/)"
 	errInvalidDataform                       = "invalid key format in dataForm section. Expected only 'databagName'"
+	errNotImplemented                        = "not implemented"
 
 	ProviderChef             = "Chef"
 	CallChefGetDataBagItem   = "GetDataBagItem"
@@ -329,12 +330,16 @@ func getChefProvider(store v1beta1.GenericStore) (*v1beta1.ChefProvider, error) 
 
 // Not Implemented DeleteSecret.
 func (providerchef *Providerchef) DeleteSecret(_ context.Context, _ v1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf(errNotImplemented)
 }
 
 // Not Implemented PushSecret.
 func (providerchef *Providerchef) PushSecret(_ context.Context, _ *corev1.Secret, _ v1beta1.PushSecretData) error {
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf(errNotImplemented)
+}
+
+func (providerchef *Providerchef) SecretExists(_ context.Context, _ v1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf(errNotImplemented)
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).

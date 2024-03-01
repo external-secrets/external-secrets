@@ -238,7 +238,132 @@ see: <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.
 </td>
 </tr></tbody>
 </table>
-<h3 id="external-secrets.io/v1beta1.AkeylessAuth">AkeylessAuth
+<h3 id="external-secrets.io/v1alpha1.AlibabaAuth">AlibabaAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.AlibabaProvider">AlibabaProvider</a>)
+</p>
+<p>
+<p>AlibabaAuth contains a secretRef for credentials.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.AlibabaAuthSecretRef">
+AlibabaAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.AlibabaAuthSecretRef">AlibabaAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.AlibabaAuth">AlibabaAuth</a>)
+</p>
+<p>
+<p>AlibabaAuthSecretRef holds secret references for Alibaba credentials.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessKeyIDSecretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>The AccessKeyID is used for authentication</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>accessKeySecretSecretRef</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>The AccessKeySecret is used for authentication</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.AlibabaProvider">AlibabaProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>AlibabaProvider configures a store to sync secrets using the Alibaba Secret Manager provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.AlibabaAuth">
+AlibabaAuth
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>endpoint</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>regionID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Alibaba Region to be used for the provider</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.AzureKVAuth">AzureKVAuth
 </h3>
 <p>
 (<em>Appears on:</em>
@@ -337,7 +462,93 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1beta1.AkeylessKubernetesAuth">AkeylessKubernetesAuth
+<h3 id="external-secrets.io/v1alpha1.CAProvider">CAProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.VaultProvider">VaultProvider</a>)
+</p>
+<p>
+<p>Defines a location to fetch the cert for the vault provider from.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>type</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.CAProviderType">
+CAProviderType
+</a>
+</em>
+</td>
+<td>
+<p>The type of provider to use such as &ldquo;Secret&rdquo;, or &ldquo;ConfigMap&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The name of the object located at the provider type.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>key</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The key the value inside of the provider type to use, only used with &ldquo;Secret&rdquo; type</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The namespace the Provider type is in.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.CAProviderType">CAProviderType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.CAProvider">CAProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;ConfigMap&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Secret&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.ClusterSecretStore">ClusterSecretStore
 </h3>
 <p>
 (<em>Appears on:</em>
@@ -1092,6 +1303,18 @@ string
 <p>Reason is why the ExternalSecret failed to apply to the namespace</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>immutable</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Immutable defines if the final secret will be immutable</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.ClusterExternalSecretSpec">ClusterExternalSecretSpec
@@ -1585,7 +1808,257 @@ string
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1beta1.ExternalSecret">ExternalSecret
+<h3 id="external-secrets.io/v1alpha1.OracleAuth">OracleAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.OracleProvider">OracleProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.OracleSecretRef">
+OracleSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>SecretRef to pass through sensitive information.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.OracleProvider">OracleProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>Configures an store to sync secrets using a Oracle Vault
+backend.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.OracleAuth">
+OracleAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how secret-manager authenticates with the Oracle Vault.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>user</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>User is an access OCID specific to the account.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tenancy</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>projectID is an access token specific to the secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>projectID is an access token specific to the secret.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.OracleSecretRef">OracleSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.OracleAuth">OracleAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>privatekey</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>The Access Token is used for authentication</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>fingerprint</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>projectID is an access token specific to the secret.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.PasswordDepotAuth">PasswordDepotAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.PasswordDepotProvider">PasswordDepotProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>SecretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PasswordDepotSecretRef">
+PasswordDepotSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.PasswordDepotProvider">PasswordDepotProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>Configures a store to sync secrets with a Password Depot instance.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>host</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>URL configures the Password Depot instance URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>database</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Database to use as source</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PasswordDepotAuth">
+PasswordDepotAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how secret-manager authenticates with a Password Depot instance.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.PasswordDepotSecretRef">PasswordDepotSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1alpha1.PasswordDepotAuth">PasswordDepotAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>credentials</code></br>
+<em>
+github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
+</em>
+</td>
+<td>
+<p>Username / Password is used for authentication.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1alpha1.SecretStore">SecretStore
 </h3>
 <p>
 <p>ExternalSecret is the Schema for the external-secrets API.</p>
@@ -5359,7 +5832,21 @@ Kubernetes service account token retrieved by the <code>TokenRequest</code> API.
 <tbody>
 <tr>
 <td>
-<code>serviceAccountRef</code></br>
+<code>oracle</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.OracleProvider">
+OracleProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Oracle configures this store to sync secrets using Oracle Vault provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ibm</code></br>
 <em>
 github.com/external-secrets/external-secrets/apis/meta/v1.ServiceAccountSelector
 </em>
@@ -5397,6 +5884,34 @@ Kubernetes service account token for the service account referenced by
 <code>serviceAccountRef</code>.
 Deprecated: this will be removed in the future.
 Defaults to 10 minutes.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>alibaba</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.AlibabaProvider">
+AlibabaProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Alibaba configures this store to sync secrets using Alibaba Cloud provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>passworddepot</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.PasswordDepotProvider">
+PasswordDepotProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PasswordDepot configures this store to sync secrets using PasswordDepot provider</p>
 </td>
 </tr>
 </tbody>
@@ -6096,6 +6611,20 @@ github.com/external-secrets/external-secrets/apis/meta/v1.SecretKeySelector
 <td>
 <em>(Optional)</em>
 <p>The authorized key used for authentication</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1alpha1.CAProvider">
+CAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The provider for the CA bundle to use to validate Vault server certificate.</p>
 </td>
 </tr>
 </tbody>

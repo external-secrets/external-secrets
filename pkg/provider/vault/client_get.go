@@ -70,32 +70,7 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		}
 	}
 
-	// Return nil if secret value is null
-	if data == nil {
-		return nil, esv1beta1.NoSecretError{}
-	}
-	jsonStr, err := json.Marshal(data)
-	if err != nil {
-		return nil, err
-	}
-	// (1): return raw json if no property is defined
-	if ref.Property == "" {
-		return jsonStr, nil
-	}
-
-	// For backwards compatibility we want the
-	// actual keys to take precedence over gjson syntax
-	// (2): extract key from secret with property
-	if _, ok := data[ref.Property]; ok {
-		return utils.GetByteValueFromMap(data, ref.Property)
-	}
-
-	// (3): extract key from secret using gjson
-	val := gjson.Get(string(jsonStr), ref.Property)
-	if !val.Exists() {
-		return nil, fmt.Errorf(errSecretKeyFmt, ref.Property)
-	}
-	return []byte(val.String()), nil
+	return getSecretValue(data, ref.Property)
 }
 
 // GetSecretMap supports two modes of operation:
@@ -121,6 +96,25 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 	}
 
 	return byteMap, nil
+}
+
+func (c *client) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRemoteRef) (bool, error) {
+	path := c.buildPath(ref.GetRemoteKey())
+	data, err := c.readSecret(ctx, path, "")
+	if err != nil {
+		if errors.Is(err, esv1beta1.NoSecretError{}) {
+			return false, nil
+		}
+		return false, err
+	}
+	value, err := getSecretValue(data, ref.GetProperty())
+	if err != nil {
+		if errors.Is(err, esv1beta1.NoSecretError{}) || err.Error() == fmt.Sprintf(errSecretKeyFmt, ref.GetProperty()) {
+			return false, nil
+		}
+		return false, err
+	}
+	return value != nil, nil
 }
 
 func (c *client) readSecret(ctx context.Context, path, version string) (map[string]interface{}, error) {
@@ -160,6 +154,34 @@ func (c *client) readSecret(ctx context.Context, path, version string) (map[stri
 	}
 
 	return secretData, nil
+}
+
+func getSecretValue(data map[string]interface{}, property string) ([]byte, error) {
+	if data == nil {
+		return nil, esv1beta1.NoSecretError{}
+	}
+	jsonStr, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	// (1): return raw json if no property is defined
+	if property == "" {
+		return jsonStr, nil
+	}
+
+	// For backwards compatibility we want the
+	// actual keys to take precedence over gjson syntax
+	// (2): extract key from secret with property
+	if _, ok := data[property]; ok {
+		return utils.GetByteValueFromMap(data, property)
+	}
+
+	// (3): extract key from secret using gjson
+	val := gjson.Get(string(jsonStr), property)
+	if !val.Exists() {
+		return nil, fmt.Errorf(errSecretKeyFmt, property)
+	}
+	return []byte(val.String()), nil
 }
 
 func (c *client) readSecretMetadata(ctx context.Context, path string) (map[string]string, error) {

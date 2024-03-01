@@ -38,6 +38,7 @@ type Client struct {
 	GetSecretFn     func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error)
 	GetSecretMapFn  func(context.Context, esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error)
 	GetAllSecretsFn func(context.Context, esv1beta1.ExternalSecretFind) (map[string][]byte, error)
+	SecretExistsFn  func(context.Context, esv1beta1.PushSecretRemoteRef) (bool, error)
 	SetSecretFn     func() error
 	DeleteSecretFn  func() error
 }
@@ -53,6 +54,9 @@ func New() *Client {
 		},
 		GetAllSecretsFn: func(context.Context, esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 			return nil, nil
+		},
+		SecretExistsFn: func(context.Context, esv1beta1.PushSecretRemoteRef) (bool, error) {
+			return false, nil
 		},
 		SetSecretFn: func() error {
 			return nil
@@ -90,6 +94,10 @@ func (v *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1b
 
 func (v *Client) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
 	return v.DeleteSecretFn()
+}
+
+func (v *Client) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return v.SecretExistsFn(ctx, ref)
 }
 
 // GetSecret implements the provider.Provider interface.
