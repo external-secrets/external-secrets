@@ -95,7 +95,7 @@ func (p *Client) newClientFromJwt(ctx context.Context, config conjurapi.Config, 
 		return nil, getJWTError
 	}
 
-	client, clientError := p.clientAPI.NewClientFromJWT(config, jwtToken, jwtAuth.ServiceID)
+	client, clientError := p.clientAPI.NewClientFromJWT(config, jwtToken, jwtAuth.ServiceID, jwtAuth.HostID)
 	if clientError != nil {
 		return nil, clientError
 	}

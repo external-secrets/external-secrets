@@ -12,6 +12,8 @@ theme:
     - navigation.indexes
     - navigation.expand
   custom_dir: ../../overrides
+  logo: pictures/eso-round-logo.svg
+  favicon: pictures/eso-round-logo.svg
 markdown_extensions:
   - attr_list
   - pymdownx.highlight
@@ -112,6 +114,7 @@ nav:
     - Scaleway: provider/scaleway.md
     - Delinea: provider/delinea.md
     - Pulumi ESC: provider/pulumi.md
+    - Onboardbase: provider/onboardbase.md
   - Examples:
     - FluxCD: examples/gitops-using-fluxcd.md
     - Anchore Engine: examples/anchore-engine-credentials.md
