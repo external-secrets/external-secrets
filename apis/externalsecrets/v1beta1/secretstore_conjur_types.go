@@ -44,6 +44,11 @@ type ConjurJWT struct {
 	// The conjur authn jwt webservice id
 	ServiceID string `json:"serviceID"`
 
+	// Optional HostID for JWT authentication. This may be used depending
+	// on how the Conjur JWT authenticator policy is configured.
+	// +optional
+	HostID string `json:"hostId"`
+
 	// Optional SecretRef that refers to a key in a Secret resource containing JWT token to
 	// authenticate with Conjur using the JWT authentication method.
 	// +optional

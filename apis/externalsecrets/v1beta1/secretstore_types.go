@@ -129,6 +129,10 @@ type SecretStoreProvider struct {
 	// +optional
 	Doppler *DopplerProvider `json:"doppler,omitempty"`
 
+	// Onboardbase configures this store to sync secrets using the Onboardbase provider
+	// +optional
+	Onboardbase *OnboardbaseProvider `json:"onboardbase,omitempty"`
+
 	// KeeperSecurity configures this store to sync secrets using the KeeperSecurity provider
 	// +optional
 	KeeperSecurity *KeeperSecurityProvider `json:"keepersecurity,omitempty"`
@@ -149,6 +153,10 @@ type SecretStoreProvider struct {
 	// Pulumi configures this store to sync secrets using the Pulumi provider
 	// +optional
 	Pulumi *PulumiProvider `json:"pulumi,omitempty"`
+
+	// Fortanix configures this store to sync secrets using the Fortanix provider
+	// +optional
+	Fortanix *FortanixProvider `json:"fortanix,omitempty"`
 }
 
 type CAProviderType string

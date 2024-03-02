@@ -12,6 +12,8 @@ theme:
     - navigation.indexes
     - navigation.expand
   custom_dir: ../../overrides
+  logo: pictures/eso-round-logo.svg
+  favicon: pictures/eso-round-logo.svg
 markdown_extensions:
   - attr_list
   - pymdownx.highlight
@@ -25,8 +27,8 @@ plugins:
   - macros:
       include_dir: docs/snippets
 copyright: |
-  &copy; 2023 The external-secrets Authors.<br/>
-  &copy; 2023 The Linux Foundation. All rights reserved.<br/><br/>
+  &copy; 2024 The external-secrets Authors.<br/>
+  &copy; 2024 The Linux Foundation. All rights reserved.<br/><br/>
   The Linux Foundation has registered trademarks and uses trademarks.<br/>
   For a list of trademarks of The Linux Foundation, please see our <a href="https://www.linuxfoundation.org/trademark-usage/">Trademark Usage page</a>.
 extra:
@@ -112,6 +114,7 @@ nav:
     - Scaleway: provider/scaleway.md
     - Delinea: provider/delinea.md
     - Pulumi ESC: provider/pulumi.md
+    - Onboardbase: provider/onboardbase.md
   - Examples:
     - FluxCD: examples/gitops-using-fluxcd.md
     - Anchore Engine: examples/anchore-engine-credentials.md
