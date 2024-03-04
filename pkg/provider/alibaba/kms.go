@@ -302,20 +302,6 @@ func (kms *KeyManagementService) Validate() (esv1beta1.ValidationResult, error) 
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func (kms *KeyManagementService) validateStoreAuth(store esv1beta1.GenericStore) error {
-	storeSpec := store.GetSpec()
-	alibabaSpec := storeSpec.Provider.Alibaba
-
-	switch {
-	case alibabaSpec.Auth.RRSAAuth != nil:
-		return kms.validateStoreRRSAAuth(store)
-	case alibabaSpec.Auth.SecretRef != nil:
-		return kms.validateStoreAccessKeyAuth(store)
-	default:
-		return fmt.Errorf("missing alibaba auth provider")
-	}
-}
-
 func (kms *KeyManagementService) validateStoreRRSAAuth(store esv1beta1.GenericStore) error {
 	storeSpec := store.GetSpec()
 	alibabaSpec := storeSpec.Provider.Alibaba
