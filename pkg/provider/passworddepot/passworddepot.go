@@ -123,7 +123,7 @@ func (p *PasswordDepot) NewClient(ctx context.Context, store esv1beta1.GenericSt
 	}
 
 	// Create a new PasswordDepot client using credentials and options
-	passworddepotClient, err := NewAPI(storeSpecPasswordDepot.Host, username, password, "8714")
+	passworddepotClient, err := NewAPI(ctx, storeSpecPasswordDepot.Host, username, password, "8714")
 	if err != nil {
 		return nil, err
 	}

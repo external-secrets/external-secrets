@@ -15,18 +15,16 @@ package passworddepot
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/pkg/errors"
 )
-
-const errorReadBody = "error: read body"
-const errorDoRequest = "error: do request"
 
 type HTTPClient interface {
 	Do(*http.Request) (*http.Response, error)
@@ -111,12 +109,12 @@ type SecretEntry struct {
 	Safemode    string    `json:"safemode"`
 }
 
-var errDBNotFound = errors.New("Database not found")
-var errSecretNotFound = errors.New("Secret not found")
+var errDBNotFound = errors.New("database not found")
+var errSecretNotFound = errors.New("secret not found")
 
 // load tls certificates
 
-func NewAPI(baseURL, username, password, hostPort string) (*API, error) {
+func NewAPI(ctx context.Context, baseURL, username, password, hostPort string) (*API, error) {
 	api := &API{
 		baseURL:  baseURL,
 		hostPort: hostPort,
@@ -128,9 +126,9 @@ func NewAPI(baseURL, username, password, hostPort string) (*API, error) {
 	}
 
 	api.client = &http.Client{Transport: tr}
-	err := api.login()
+	err := api.login(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to login")
+		return nil, fmt.Errorf("failed to login: %w", err)
 	}
 	return api, nil
 }
@@ -144,7 +142,7 @@ func (api *API) doAuthenticatedRequest(r *http.Request) (*http.Response, error) 
 func (api *API) getDatabaseFingerprint(database string) (string, error) {
 	databases, err := api.ListDatabases()
 	if err != nil {
-		return "", errors.Wrap(err, "error: getting database list")
+		return "", fmt.Errorf("error: getting database list: %w", err)
 	}
 
 	for _, db := range databases.Databases {
@@ -159,7 +157,7 @@ func (api *API) getDatabaseFingerprint(database string) (string, error) {
 func (api *API) getSecretFingerprint(databaseFingerprint, secretName, folder string) (string, error) {
 	secrets, err := api.ListSecrets(databaseFingerprint, folder)
 	if err != nil {
-		return "", errors.Wrap(err, "error: getting secrets list")
+		return "", fmt.Errorf("error: getting secrets list: %w", err)
 	}
 
 	parts := strings.Split(secretName, ".")
@@ -181,38 +179,32 @@ func (api *API) getendpointURL(endpoint string) string {
 	return fmt.Sprintf("https://%s:%s/v1.0/%s", api.baseURL, api.hostPort, endpoint)
 }
 
-func (api *API) login() error {
-	loginRequest, err := http.NewRequest("GET", api.getendpointURL("login"), http.NoBody)
+func (api *API) login(ctx context.Context) error {
+	loginRequest, err := http.NewRequestWithContext(ctx, "GET", api.getendpointURL("login"), http.NoBody)
 	if err != nil {
-		return errors.Wrap(err, "error creating request")
+		return fmt.Errorf("error creating request: %w", err)
 	}
 	loginRequest.Header.Add("user", api.username)
 	loginRequest.Header.Add("pass", api.password)
 
 	resp, err := api.client.Do(loginRequest)
 	if err != nil {
-		return errors.Wrap(err, errorDoRequest)
+		return fmt.Errorf("error: do request: %w", err)
 	}
 	defer func() {
 		if resp.Body != nil {
 			resp.Body.Close()
 		}
 	}()
-
 	var buf bytes.Buffer
-	_, err = buf.ReadFrom(resp.Body)
-	if err != nil {
-		return errors.Wrap(err, errorReadBody)
-	}
-
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		return fmt.Errorf("failed to authenticate with the given credentials: %d %s", resp.StatusCode, buf.String())
 	}
 
-	var accessData AccessData
-	err = json.Unmarshal(buf.Bytes(), &accessData)
+	accessData := AccessData{}
+	err = ReadAndUnmarshal(resp.Body, &accessData)
 	if err != nil {
-		return errors.Wrap(err, "error: unmarshal body")
+		return fmt.Errorf("error: failed to unmarshal response body: %w", err)
 	}
 
 	api.secret = &accessData
@@ -227,89 +219,83 @@ func (api *API) ListSecrets(dbFingerprint, folder string) (DatabaseEntries, erro
 	}
 	listSecrets, err := http.NewRequest("GET", endpointURL, http.NoBody)
 	if err != nil {
-		return DatabaseEntries{}, errors.Wrap(err, "error: creating secrets request")
+		return DatabaseEntries{}, fmt.Errorf("error: creating secrets request: %w", err)
 	}
 
 	respSecretsList, err := api.doAuthenticatedRequest(listSecrets)
 	if err != nil {
-		return DatabaseEntries{}, errors.Wrap(err, errorDoRequest)
+		return DatabaseEntries{}, fmt.Errorf("error: do request: %w", err)
 	}
 	defer func() {
 		if respSecretsList.Body != nil {
 			respSecretsList.Body.Close()
 		}
 	}()
-	var buf bytes.Buffer
-	_, err = buf.ReadFrom(respSecretsList.Body)
-	if err != nil {
-		return DatabaseEntries{}, err
-	}
-	var dbEntries DatabaseEntries
-	err = json.Unmarshal(buf.Bytes(), &dbEntries)
+
+	dbEntries := DatabaseEntries{}
+
+	err = ReadAndUnmarshal(respSecretsList.Body, &dbEntries)
 	return dbEntries, err
+}
+func ReadAndUnmarshal(content io.ReadCloser, target any) error {
+	var buf bytes.Buffer
+	_, err := buf.ReadFrom(content)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(buf.Bytes(), target)
 }
 
 func (api *API) ListDatabases() (Databases, error) {
 	listDBRequest, err := http.NewRequest("GET", api.getendpointURL("list"), http.NoBody)
 	if err != nil {
-		return Databases{}, errors.Wrap(err, "error: creating db request")
+		return Databases{}, fmt.Errorf("error: creating db request: %w", err)
 	}
 
 	respDBList, err := api.doAuthenticatedRequest(listDBRequest)
 	if err != nil {
-		return Databases{}, errors.Wrap(err, errorDoRequest)
+		return Databases{}, fmt.Errorf("error: do request: %w", err)
 	}
 	defer func() {
 		if respDBList.Body != nil {
 			respDBList.Body.Close()
 		}
 	}()
-	var dbBuf bytes.Buffer
-	_, err = dbBuf.ReadFrom(respDBList.Body)
-	if err != nil {
-		return Databases{}, errors.Wrap(err, errorReadBody)
-	}
-	var databases Databases
-	err = json.Unmarshal(dbBuf.Bytes(), &databases)
-	if err != nil {
-		return Databases{}, errors.Wrap(err, "error: unmarshal response")
-	}
 
-	return databases, nil
+	databases := Databases{}
+
+	err = ReadAndUnmarshal(respDBList.Body, &databases)
+	return databases, err
 }
 
 func (api *API) GetSecret(database, secretName string) (SecretEntry, error) {
 	dbFingerprint, err := api.getDatabaseFingerprint(database)
 	if err != nil {
-		return SecretEntry{}, errors.Wrap(err, "error: getting DB fingerprint")
+		return SecretEntry{}, fmt.Errorf("error: getting DB fingerprint: %w", err)
 	}
 
 	secretFingerprint, err := api.getSecretFingerprint(dbFingerprint, secretName, "")
 	if err != nil {
-		return SecretEntry{}, errors.Wrap(err, "error: getting Secret fingerprint")
+		return SecretEntry{}, fmt.Errorf("error: getting Secret fingerprint: %w", err)
 	}
 	readSecretRequest, err := http.NewRequest("GET", api.getendpointURL(fmt.Sprintf("read?db=%s&entry=%s", dbFingerprint, secretFingerprint)), http.NoBody)
 	if err != nil {
-		return SecretEntry{}, errors.Wrap(err, "error: creating secrets request")
+		return SecretEntry{}, fmt.Errorf("error: creating secrets request: %w", err)
 	}
 
 	respSecretRead, err := api.doAuthenticatedRequest(readSecretRequest)
 	if err != nil {
-		return SecretEntry{}, errors.Wrap(err, errorDoRequest)
+		return SecretEntry{}, fmt.Errorf("error: do request: %w", err)
 	}
 	defer func() {
 		if respSecretRead.Body != nil {
 			respSecretRead.Body.Close()
 		}
 	}()
-	var buf bytes.Buffer
-	_, err = buf.ReadFrom(respSecretRead.Body)
-	if err != nil {
-		fmt.Println(errorReadBody, err)
-		return SecretEntry{}, err
-	}
-	var secretEntry SecretEntry
-	err = json.Unmarshal(buf.Bytes(), &secretEntry)
+
+	secretEntry := SecretEntry{}
+
+	err = ReadAndUnmarshal(respSecretRead.Body, &secretEntry)
 	return secretEntry, err
 }
 

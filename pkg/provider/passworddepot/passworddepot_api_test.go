@@ -32,11 +32,11 @@ const someDB = "some-db"
 var (
 	mockDatabaseList = Databases{
 		Databases: []struct {
-			Name         string    "json:\"name\""
-			Fingerprint  string    "json:\"fingerprint\""
-			Date         time.Time "json:\"date\""
-			Rights       string    "json:\"rights\""
-			Reasondelete string    "json:\"reasondelete\""
+			Name         string    `json:"name"`
+			Fingerprint  string    `json:"fingerprint"`
+			Date         time.Time `json:"date"`
+			Rights       string    `json:"rights"`
+			Reasondelete string    `json:"reasondelete"`
 		}{
 			{
 				Name:        someDB,
@@ -74,11 +74,11 @@ func TestPasswortDepotApiListDatabases(t *testing.T) {
 			},
 			want: Databases{
 				Databases: []struct {
-					Name         string    "json:\"name\""
-					Fingerprint  string    "json:\"fingerprint\""
-					Date         time.Time "json:\"date\""
-					Rights       string    "json:\"rights\""
-					Reasondelete string    "json:\"reasondelete\""
+					Name         string    `json:"name"`
+					Fingerprint  string    `json:"fingerprint"`
+					Date         time.Time `json:"date"`
+					Rights       string    `json:"rights"`
+					Reasondelete string    `json:"reasondelete"`
 				}{
 					{
 						Name:        someDB,
