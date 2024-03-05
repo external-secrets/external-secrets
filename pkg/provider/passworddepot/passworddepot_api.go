@@ -26,6 +26,10 @@ import (
 	"time"
 )
 
+const (
+	DoRequestError = "error: do request: %w"
+)
+
 type HTTPClient interface {
 	Do(*http.Request) (*http.Response, error)
 }
@@ -189,7 +193,7 @@ func (api *API) login(ctx context.Context) error {
 
 	resp, err := api.client.Do(loginRequest)
 	if err != nil {
-		return fmt.Errorf("error: do request: %w", err)
+		return fmt.Errorf(DoRequestError, err)
 	}
 	defer func() {
 		if resp.Body != nil {
@@ -224,7 +228,7 @@ func (api *API) ListSecrets(dbFingerprint, folder string) (DatabaseEntries, erro
 
 	respSecretsList, err := api.doAuthenticatedRequest(listSecrets)
 	if err != nil {
-		return DatabaseEntries{}, fmt.Errorf("error: do request: %w", err)
+		return DatabaseEntries{}, fmt.Errorf(DoRequestError, err)
 	}
 	defer func() {
 		if respSecretsList.Body != nil {
@@ -254,7 +258,7 @@ func (api *API) ListDatabases() (Databases, error) {
 
 	respDBList, err := api.doAuthenticatedRequest(listDBRequest)
 	if err != nil {
-		return Databases{}, fmt.Errorf("error: do request: %w", err)
+		return Databases{}, fmt.Errorf(DoRequestError, err)
 	}
 	defer func() {
 		if respDBList.Body != nil {
@@ -285,7 +289,7 @@ func (api *API) GetSecret(database, secretName string) (SecretEntry, error) {
 
 	respSecretRead, err := api.doAuthenticatedRequest(readSecretRequest)
 	if err != nil {
-		return SecretEntry{}, fmt.Errorf("error: do request: %w", err)
+		return SecretEntry{}, fmt.Errorf(DoRequestError, err)
 	}
 	defer func() {
 		if respSecretRead.Body != nil {
