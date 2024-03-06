@@ -29,6 +29,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
+	"github.com/external-secrets/external-secrets/pkg/provider/util/locks"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
@@ -65,6 +66,7 @@ const (
 	errExpectedOneFieldMsgF = "%w: '%s' in '%s', got %d"
 
 	documentCategory = "DOCUMENT"
+	providerName     = "OnePassword"
 )
 
 // Custom Errors //.
@@ -294,6 +296,12 @@ func (provider *ProviderOnePassword) PushSecret(_ context.Context, secret *corev
 	if !ok {
 		return ErrKeyNotFound
 	}
+
+	unlock, err := locks.TryLock(providerName, ref.GetRemoteKey())
+	if err != nil {
+		return err
+	}
+	defer unlock()
 
 	title := ref.GetRemoteKey()
 	providerItem, err := provider.findItem(title)
