@@ -2174,6 +2174,11 @@ should match snapshot of default values:
                                   properties:
                                     account:
                                       type: string
+                                    hostId:
+                                      description: |-
+                                        Optional HostID for JWT authentication. This may be used depending
+                                        on how the Conjur JWT authenticator policy is configured.
+                                      type: string
                                     secretRef:
                                       description: |-
                                         Optional SecretRef that refers to a key in a Secret resource containing JWT token to

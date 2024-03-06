@@ -3,7 +3,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "external-secrets.fullname" . }}-metrics
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ template "external-secrets.namespace" . }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
 spec:
@@ -24,14 +24,14 @@ metadata:
 {{ toYaml .Values.serviceMonitor.additionalLabels | indent 4 }}
 {{- end }}
   name: {{ include "external-secrets.fullname" . }}-metrics
-  namespace: {{ .Values.serviceMonitor.namespace | default .Release.Namespace | quote }}
+  namespace: {{ .Values.serviceMonitor.namespace | default (include "external-secrets.namespace" .) | quote }}
 spec:
   selector:
     matchLabels:
       {{- include "external-secrets.selectorLabels" . | nindent 6 }}
   namespaceSelector:
     matchNames:
-    - {{ .Release.Namespace | quote }}
+    - {{ template "external-secrets.namespace" . }}
   endpoints:
   - port: metrics
     interval: {{ .Values.serviceMonitor.interval }}
@@ -51,7 +51,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "external-secrets.fullname" . }}-webhook-metrics
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ template "external-secrets.namespace" . }}
   labels:
     {{- include "external-secrets-webhook-metrics.labels" . | nindent 4 }}
 spec:
@@ -72,14 +72,14 @@ metadata:
 {{ toYaml .Values.serviceMonitor.additionalLabels | indent 4 }}
 {{- end }}
   name: {{ include "external-secrets.fullname" . }}-webhook-metrics
-  namespace: {{ .Values.serviceMonitor.namespace | default .Release.Namespace | quote }}
+  namespace: {{ .Values.serviceMonitor.namespace | default (include "external-secrets.namespace" .) | quote }}
 spec:
   selector:
     matchLabels:
       {{- include "external-secrets-webhook-metrics.labels" . | nindent 6 }}
   namespaceSelector:
     matchNames:
-    - {{ .Release.Namespace | quote }}
+    - {{ template "external-secrets.namespace" . }}
   endpoints:
   - port: metrics
     interval: {{ .Values.serviceMonitor.interval }}
@@ -100,7 +100,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "external-secrets.fullname" . }}-cert-controller-metrics
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ template "external-secrets.namespace" . }}
   labels:
     {{- include "external-secrets-cert-controller-metrics.labels" . | nindent 4 }}
 spec:
@@ -121,14 +121,14 @@ metadata:
 {{ toYaml .Values.serviceMonitor.additionalLabels | indent 4 }}
 {{- end }}
   name: {{ include "external-secrets.fullname" . }}-cert-controller-metrics
-  namespace: {{ .Values.serviceMonitor.namespace | default .Release.Namespace | quote }}
+  namespace: {{ .Values.serviceMonitor.namespace | default (include "external-secrets.namespace" .) | quote }}
 spec:
   selector:
     matchLabels:
       {{- include "external-secrets-cert-controller-metrics.labels" . | nindent 6 }}
   namespaceSelector:
     matchNames:
-    - {{ .Release.Namespace | quote }}
+    - {{ template "external-secrets.namespace" . }}
   endpoints:
   - port: metrics
     interval: {{ .Values.serviceMonitor.interval }}

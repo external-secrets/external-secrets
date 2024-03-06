@@ -21,7 +21,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	corev1 "k8s.io/api/core/v1"
 
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/doppler/client"
@@ -31,11 +33,15 @@ import (
 const (
 	validSecretName   = "API_KEY"
 	validSecretValue  = "3a3ea4f5"
+	validRemoteKey    = "REMOTE_KEY"
 	dopplerProject    = "DOPPLER_PROJECT"
 	dopplerProjectVal = "auth-api"
 	missingSecret     = "INVALID_NAME"
 	invalidSecret     = "doppler_project"
+	invalidRemoteKey  = "INVALID_REMOTE_KEY"
 	missingSecretErr  = "could not get secret"
+	missingDeleteErr  = "could not delete secrets"
+	missingPushErr    = "could not push secrets"
 )
 
 type dopplerTestCase struct {
@@ -50,9 +56,40 @@ type dopplerTestCase struct {
 	expectedData   map[string][]byte
 }
 
+type updateSecretCase struct {
+	label       string
+	fakeClient  *fake.DopplerClient
+	request     client.UpdateSecretsRequest
+	remoteRef   *esv1alpha1.PushSecretRemoteRef
+	secret      corev1.Secret
+	secretData  esv1beta1.PushSecretData
+	apiErr      error
+	expectError string
+}
+
 func makeValidAPIRequest() client.SecretRequest {
 	return client.SecretRequest{
 		Name: validSecretName,
+	}
+}
+
+func makeValidPushRequest() client.UpdateSecretsRequest {
+	return client.UpdateSecretsRequest{
+		Secrets: client.Secrets{
+			validRemoteKey: validSecretValue,
+		},
+	}
+}
+
+func makeValidDeleteRequest() client.UpdateSecretsRequest {
+	return client.UpdateSecretsRequest{
+		ChangeRequests: []client.Change{
+			{
+				Name:         validRemoteKey,
+				OriginalName: validRemoteKey,
+				ShouldDelete: true,
+			},
+		},
 	}
 }
 
@@ -69,6 +106,33 @@ func makeValidRemoteRef() *esv1beta1.ExternalSecretDataRemoteRef {
 	}
 }
 
+func makeValidPushRemoteRef() *esv1alpha1.PushSecretRemoteRef {
+	return &esv1alpha1.PushSecretRemoteRef{
+		RemoteKey: validRemoteKey,
+	}
+}
+
+func makeValidSecret() corev1.Secret {
+	return corev1.Secret{
+		Data: map[string][]byte{
+			validSecretName: []byte(validSecretValue),
+		},
+	}
+}
+
+func makeValidSecretData() esv1alpha1.PushSecretData {
+	return makeSecretData(validSecretName, *makeValidPushRemoteRef())
+}
+
+func makeSecretData(key string, ref esv1alpha1.PushSecretRemoteRef) esv1alpha1.PushSecretData {
+	return esv1alpha1.PushSecretData{
+		Match: esv1alpha1.PushSecretMatch{
+			SecretKey: key,
+			RemoteRef: ref,
+		},
+	}
+}
+
 func makeValidDopplerTestCase() *dopplerTestCase {
 	return &dopplerTestCase{
 		fakeClient:     &fake.DopplerClient{},
@@ -82,12 +146,32 @@ func makeValidDopplerTestCase() *dopplerTestCase {
 	}
 }
 
+func makeValidUpdateSecretTestCase() *updateSecretCase {
+	return &updateSecretCase{
+		fakeClient:  &fake.DopplerClient{},
+		remoteRef:   makeValidPushRemoteRef(),
+		secret:      makeValidSecret(),
+		secretData:  makeValidSecretData(),
+		apiErr:      nil,
+		expectError: "",
+	}
+}
+
 func makeValidDopplerTestCaseCustom(tweaks ...func(pstc *dopplerTestCase)) *dopplerTestCase {
 	pstc := makeValidDopplerTestCase()
 	for _, fn := range tweaks {
 		fn(pstc)
 	}
 	pstc.fakeClient.WithValue(pstc.request, pstc.response, pstc.apiErr)
+	return pstc
+}
+
+func makeValidUpdateSecretCaseCustom(tweaks ...func(pstc *updateSecretCase)) *updateSecretCase {
+	pstc := makeValidUpdateSecretTestCase()
+	for _, fn := range tweaks {
+		fn(pstc)
+	}
+	pstc.fakeClient.WithUpdateValue(pstc.request, pstc.apiErr)
 	return pstc
 }
 
@@ -120,7 +204,7 @@ func TestGetSecret(t *testing.T) {
 	}
 
 	setClientError := func(pstc *dopplerTestCase) {
-		pstc.label = "invalid client error"
+		pstc.label = "invalid client error" //nolint:goconst
 		pstc.response = &client.SecretResponse{}
 		pstc.expectError = missingSecretErr
 		pstc.apiErr = fmt.Errorf("")
@@ -203,6 +287,93 @@ func ErrorContains(out error, want string) bool {
 		return false
 	}
 	return strings.Contains(out.Error(), want)
+}
+
+func TestDeleteSecret(t *testing.T) {
+	deleteSecret := func(pstc *updateSecretCase) {
+		pstc.label = "delete secret"
+		pstc.request = makeValidDeleteRequest()
+	}
+
+	deleteMissingSecret := func(pstc *updateSecretCase) {
+		pstc.label = "delete missing secret"
+		pstc.request = makeValidDeleteRequest()
+		pstc.remoteRef.RemoteKey = invalidRemoteKey
+		pstc.expectError = missingDeleteErr
+		pstc.apiErr = fmt.Errorf("")
+	}
+
+	setClientError := func(pstc *updateSecretCase) {
+		pstc.label = "invalid client error"
+		pstc.request = makeValidDeleteRequest()
+		pstc.expectError = missingDeleteErr
+		pstc.apiErr = fmt.Errorf("")
+	}
+
+	testCases := []*updateSecretCase{
+		makeValidUpdateSecretCaseCustom(deleteSecret),
+		makeValidUpdateSecretCaseCustom(deleteMissingSecret),
+		makeValidUpdateSecretCaseCustom(setClientError),
+	}
+
+	c := Client{}
+	for k, tc := range testCases {
+		c.doppler = tc.fakeClient
+		err := c.DeleteSecret(context.Background(), tc.remoteRef)
+
+		if !ErrorContains(err, tc.expectError) {
+			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), tc.expectError)
+		}
+	}
+}
+
+func TestPushSecret(t *testing.T) {
+	pushSecret := func(pstc *updateSecretCase) {
+		pstc.label = "push secret"
+		pstc.request = makeValidPushRequest()
+	}
+
+	pushMissingSecretKey := func(pstc *updateSecretCase) {
+		pstc.label = "push missing secret key"
+		pstc.secretData = makeSecretData(invalidSecret, *makeValidPushRemoteRef())
+		pstc.expectError = missingPushErr
+		pstc.apiErr = fmt.Errorf("")
+	}
+
+	pushMissingRemoteSecret := func(pstc *updateSecretCase) {
+		pstc.label = "push missing remote secret"
+		pstc.secretData = makeSecretData(
+			validSecretName,
+			esv1alpha1.PushSecretRemoteRef{
+				RemoteKey: invalidRemoteKey,
+			},
+		)
+		pstc.expectError = missingPushErr
+		pstc.apiErr = fmt.Errorf("")
+	}
+
+	setClientError := func(pstc *updateSecretCase) {
+		pstc.label = "invalid client error"
+		pstc.expectError = missingPushErr
+		pstc.apiErr = fmt.Errorf("")
+	}
+
+	testCases := []*updateSecretCase{
+		makeValidUpdateSecretCaseCustom(pushSecret),
+		makeValidUpdateSecretCaseCustom(pushMissingSecretKey),
+		makeValidUpdateSecretCaseCustom(pushMissingRemoteSecret),
+		makeValidUpdateSecretCaseCustom(setClientError),
+	}
+
+	c := Client{}
+	for k, tc := range testCases {
+		c.doppler = tc.fakeClient
+		err := c.PushSecret(context.Background(), &tc.secret, tc.secretData)
+
+		if !ErrorContains(err, tc.expectError) {
+			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), tc.expectError)
+		}
+	}
 }
 
 type storeModifier func(*esv1beta1.SecretStore) *esv1beta1.SecretStore
