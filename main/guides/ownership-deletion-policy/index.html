@@ -3167,6 +3167,10 @@
 <p>The field <code>spec.target.creationPolicy</code> defines how the operator creates the a secret.</p>
 <h3 id="owner-default">Owner (default)</h3>
 <p>The External Secret Operator creates secret and sets the <code>ownerReference</code> field on the Secret. This secret is subject to <a href="https://kubernetes.io/docs/concepts/architecture/garbage-collection/">garbage collection</a> if the initial <code>ExternalSecret</code> is absent. If a secret with the same name already exists that is not owned by the controller it will result in a conflict. The operator will just error out, not claiming the ownership.</p>
+<div class="admonition note">
+<p class="admonition-title">Secrets with <code>ownerReference</code> field not found</p>
+<p>If the secret exists and the ownerReference field is not found, the controller treats this secret as orphaned. It will take ownership of this secret by adding an <code>ownerReference</code> field and updating it.</p>
+</div>
 <h3 id="orphan">Orphan</h3>
 <p>The operator creates the secret but does not set the <code>ownerReference</code> on the Secret. That means the Secret will not be subject to garbage collection. If a secret with the same name already exists it will be updated.</p>
 <h3 id="merge">Merge</h3>
