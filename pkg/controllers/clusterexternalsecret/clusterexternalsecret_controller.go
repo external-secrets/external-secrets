@@ -151,8 +151,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	failedNamespaces := r.deleteOutdatedExternalSecrets(ctx, namespaceList, esName, clusterExternalSecret.Name, clusterExternalSecret.Status.ProvisionedNamespaces)
 
-	var provisionedNamespaces []string
-	var provisionedExternalSecrets []esv1beta1.ExternalSecret
+	provisionedNamespaces := []string{}
+	provisionedExternalSecrets := []esv1beta1.ExternalSecret{}
 	for _, namespace := range namespaceList.Items {
 		var existingES esv1beta1.ExternalSecret
 		err = r.Get(ctx, types.NamespacedName{
