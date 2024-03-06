@@ -151,7 +151,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	failedNamespaces := r.deleteOutdatedExternalSecrets(ctx, namespaceList, esName, clusterExternalSecret.Name, clusterExternalSecret.Status.ProvisionedNamespaces)
 
-	provisionedNamespaces := []string{}
+	var provisionedNamespaces []string
+	var provisionedExternalSecrets []esv1beta1.ExternalSecret
 	for _, namespace := range namespaceList.Items {
 		var existingES esv1beta1.ExternalSecret
 		err = r.Get(ctx, types.NamespacedName{
@@ -175,10 +176,21 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			continue
 		}
 
+		if err := r.Get(ctx, types.NamespacedName{
+			Name:      esName,
+			Namespace: namespace.Name,
+		}, &existingES); err != nil {
+			log.Error(err, errGetExistingES)
+			failedNamespaces[namespace.Name] = err
+			continue
+		}
+		provisionedExternalSecrets = append(provisionedExternalSecrets, existingES)
 		provisionedNamespaces = append(provisionedNamespaces, namespace.Name)
 	}
 
 	condition := NewClusterExternalSecretCondition(failedNamespaces)
+	condition.Synced = getSecretsSynced(provisionedExternalSecrets, namespaceList)
+
 	SetClusterExternalSecretCondition(&clusterExternalSecret, *condition)
 
 	clusterExternalSecret.Status.FailedNamespaces = toNamespaceFailures(failedNamespaces)
@@ -372,4 +384,17 @@ func namespacePredicate() predicate.Predicate {
 			return true
 		},
 	}
+}
+
+func getSecretsSynced(syncedNSExternalSecrets []esv1beta1.ExternalSecret, namespaceList v1.NamespaceList) string {
+	syncedNum := 0
+	for _, es := range syncedNSExternalSecrets {
+		for _, condition := range es.Status.Conditions {
+			if condition.Reason == esv1beta1.ConditionReasonSecretSynced && condition.Type == esv1beta1.ExternalSecretReady {
+				syncedNum++
+				break
+			}
+		}
+	}
+	return fmt.Sprintf("%d/%d", syncedNum, len(namespaceList.Items))
 }

@@ -63,6 +63,10 @@ type ClusterExternalSecretStatusCondition struct {
 
 	// +optional
 	Message string `json:"message,omitempty"`
+
+	// Synced shows the number of synced secret and the total number of assigned namespaces, like '3/5'
+	// +optional
+	Synced string `json:"synced,omitempty"`
 }
 
 // ClusterExternalSecretNamespaceFailure represents a failed namespace deployment and it's reason.
@@ -100,6 +104,7 @@ type ClusterExternalSecretStatus struct {
 // +kubebuilder:printcolumn:name="Store",type=string,JSONPath=`.spec.externalSecretSpec.secretStoreRef.name`
 // +kubebuilder:printcolumn:name="Refresh Interval",type=string,JSONPath=`.spec.refreshTime`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:printcolumn:name="Synced",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].synced`
 // ClusterExternalSecret is the Schema for the clusterexternalsecrets API.
 type ClusterExternalSecret struct {
 	metav1.TypeMeta   `json:",inline"`

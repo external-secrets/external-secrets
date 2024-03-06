@@ -114,6 +114,10 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 				var gotCes esv1beta1.ClusterExternalSecret
 				err = k8sClient.Get(ctx, key, &gotCes)
 				g.Expect(err).ShouldNot(HaveOccurred())
+				// decouple with Reconcile loop of externalsecret_controller
+				for i, _ := range gotCes.Status.Conditions {
+					gotCes.Status.Conditions[i].Synced = ""
+				}
 
 				g.Expect(gotCes.Labels).To(Equal(expectedCES.Labels))
 				g.Expect(gotCes.Annotations).To(Equal(expectedCES.Annotations))
