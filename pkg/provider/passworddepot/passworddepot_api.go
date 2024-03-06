@@ -195,11 +195,7 @@ func (api *API) login(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf(DoRequestError, err)
 	}
-	defer func() {
-		if resp.Body != nil {
-			resp.Body.Close()
-		}
-	}()
+
 	var buf bytes.Buffer
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		return fmt.Errorf("failed to authenticate with the given credentials: %d %s", resp.StatusCode, buf.String())
@@ -230,11 +226,6 @@ func (api *API) ListSecrets(dbFingerprint, folder string) (DatabaseEntries, erro
 	if err != nil {
 		return DatabaseEntries{}, fmt.Errorf(DoRequestError, err)
 	}
-	defer func() {
-		if respSecretsList.Body != nil {
-			respSecretsList.Body.Close()
-		}
-	}()
 
 	dbEntries := DatabaseEntries{}
 
@@ -243,6 +234,11 @@ func (api *API) ListSecrets(dbFingerprint, folder string) (DatabaseEntries, erro
 }
 func ReadAndUnmarshal(content io.ReadCloser, target any) error {
 	var buf bytes.Buffer
+	defer func() {
+		if content != nil {
+			content.Close()
+		}
+	}()
 	_, err := buf.ReadFrom(content)
 	if err != nil {
 		return err
@@ -260,12 +256,6 @@ func (api *API) ListDatabases() (Databases, error) {
 	if err != nil {
 		return Databases{}, fmt.Errorf(DoRequestError, err)
 	}
-	defer func() {
-		if respDBList.Body != nil {
-			respDBList.Body.Close()
-		}
-	}()
-
 	databases := Databases{}
 
 	err = ReadAndUnmarshal(respDBList.Body, &databases)
@@ -291,12 +281,6 @@ func (api *API) GetSecret(database, secretName string) (SecretEntry, error) {
 	if err != nil {
 		return SecretEntry{}, fmt.Errorf(DoRequestError, err)
 	}
-	defer func() {
-		if respSecretRead.Body != nil {
-			respSecretRead.Body.Close()
-		}
-	}()
-
 	secretEntry := SecretEntry{}
 
 	err = ReadAndUnmarshal(respSecretRead.Body, &secretEntry)
