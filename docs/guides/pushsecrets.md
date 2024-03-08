@@ -1,9 +1,10 @@
 
 Contrary to what `ExternalSecret` does by pulling secrets from secret providers and creating `kind=Secret` in your cluster, `PushSecret` reads a local `kind=Secret` and pushes its content to a secret provider.
 
-If there's already a secret in the secrets provided with the intended name of the secret to be created by the `PushSecret` you'll see the `PushSecret` in Error state, and when described you'll see a message saying `secret not managed by external-secrets`.
+The update behavior of `PushSecret` is controlled by `spec.updatePolicy`. The default policy is `Replace`, such that secrets are overwritten in the provider, regardless of whether there already is a secret present in the provider at the given location. If you do not want `PushSecret` to overwrite existing secrets in the provider, you can set `spec.UpdatePolicy` to `IfNotExists`. With this policy, the provider becomes the source of truth. Please note that with using `spec.updatePolicy=IfNotExists` it is possible that the secret value referenced by the `PushSecret` within the cluster differs from the secret value at the given location in the provider.
 
-By default, the secret created in the secret provided will not be deleted even after deleting the `PushSecret`, unless you set `spec.deletionPolicy` to Delete. 
+By default, the secret created in the secret provided will not be deleted even after deleting the `PushSecret`, unless you set `spec.deletionPolicy` to `Delete`. 
+
 
 ``` yaml
 {% include 'full-pushsecret.yaml' %}

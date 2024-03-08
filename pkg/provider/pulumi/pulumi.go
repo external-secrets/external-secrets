@@ -61,6 +61,10 @@ func (c *client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.Pus
 	return errors.New(errPushSecretsNotSupported)
 }
 
+func (c *client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, errors.New(errPushSecretsNotSupported)
+}
+
 func (c *client) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
 	return errors.New(errDeleteSecretsNotSupported)
 }

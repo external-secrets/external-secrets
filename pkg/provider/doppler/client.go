@@ -118,6 +118,10 @@ func (c *Client) DeleteSecret(_ context.Context, ref esv1beta1.PushSecretRemoteR
 	return nil
 }
 
+func (c *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
 func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
 	value := secret.Data[data.GetSecretKey()]
 

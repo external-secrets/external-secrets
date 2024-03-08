@@ -208,6 +208,10 @@ func (provider *ProviderOnePassword) DeleteSecret(_ context.Context, ref esv1bet
 	return nil
 }
 
+func (provider *ProviderOnePassword) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
 const (
 	passwordLabel = "password"
 )

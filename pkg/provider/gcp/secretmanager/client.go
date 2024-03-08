@@ -129,6 +129,10 @@ func parseError(err error) error {
 	return err
 }
 
+func (c *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
 // PushSecret pushes a kubernetes secret key into gcp provider Secret.
 func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecretData esv1beta1.PushSecretData) error {
 	if pushSecretData.GetSecretKey() == "" {
