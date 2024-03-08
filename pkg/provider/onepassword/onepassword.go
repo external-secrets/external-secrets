@@ -302,11 +302,7 @@ func (provider *ProviderOnePassword) PushSecret(ctx context.Context, secret *cor
 			return fmt.Errorf(errCreateItem, err)
 		}
 
-		err = provider.waitForFunc(ctx, func() error {
-			_, err := provider.findItem(title)
-
-			return err
-		})
+		err = provider.waitForFunc(ctx, provider.waitForItemToExist(title))
 		return err
 	} else if err != nil {
 		return err
@@ -326,21 +322,7 @@ func (provider *ProviderOnePassword) PushSecret(ctx context.Context, secret *cor
 		return fmt.Errorf(errUpdateItem, err)
 	}
 
-	if err := provider.waitForFunc(ctx, func() error {
-		item, err := provider.findItem(title)
-		if err != nil {
-			return err
-		}
-
-		for _, field := range item.Fields {
-			// we found the label with the right value
-			if field.Label == label && field.Value == string(val) {
-				return nil
-			}
-		}
-
-		return fmt.Errorf("not found")
-	}); err != nil {
+	if err := provider.waitForFunc(ctx, provider.waitForLabelToBeUpdated(title, label, val)); err != nil {
 		return fmt.Errorf("failed waiting for label update: %w", err)
 	}
 
@@ -617,15 +599,42 @@ func (provider *ProviderOnePassword) waitForFunc(ctx context.Context, fn func() 
 	done, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
+	var err error
 	for {
 		select {
 		case <-tick.C:
-			if err := fn(); err == nil {
+			if err = fn(); err == nil {
 				return nil
 			}
 		case <-done.Done():
-			return fmt.Errorf("timeout to wait for function to run successful")
+			return fmt.Errorf("timeout to wait for function to run successfully; last error was: %w", err)
 		}
+	}
+}
+
+func (provider *ProviderOnePassword) waitForItemToExist(title string) func() error {
+	return func() error {
+		_, err := provider.findItem(title)
+
+		return err
+	}
+}
+
+func (provider *ProviderOnePassword) waitForLabelToBeUpdated(title, label string, val []byte) func() error {
+	return func() error {
+		item, err := provider.findItem(title)
+		if err != nil {
+			return err
+		}
+
+		for _, field := range item.Fields {
+			// we found the label with the right value
+			if field.Label == label && field.Value == string(val) {
+				return nil
+			}
+		}
+
+		return fmt.Errorf("label %s no found on value with title %s", title, label)
 	}
 }
 
