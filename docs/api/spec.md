@@ -973,6 +973,102 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.BarbicanAuth">BarbicanAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.BarbicanProvider">BarbicanProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BarbicanAuthSecretRef">
+BarbicanAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.BarbicanAuthSecretRef">BarbicanAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.BarbicanAuth">BarbicanAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretAccessKeySecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The SecretAccessKey is used for authentication</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.BarbicanProvider">BarbicanProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>BarbicanProvider Configures a store to sync secrets using the Barbican Secret Manager provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BarbicanAuth">
+BarbicanAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth defines the information necessary to authenticate against GCP</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.CAProvider">CAProvider
 </h3>
 <p>
@@ -5704,6 +5800,10 @@ ConjurProvider
 </tr>
 <tr>
 <td>
+<code>barbican</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BarbicanProvider">
+BarbicanProvider
 <code>delinea</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.DelineaProvider">
@@ -5713,6 +5813,7 @@ DelineaProvider
 </td>
 <td>
 <em>(Optional)</em>
+<p>Barbican configures this store to sync secrets using OpenStack Barbican provider</p>
 <p>Delinea DevOps Secrets Vault
 <a href="https://docs.delinea.com/online-help/products/devops-secrets-vault/current">https://docs.delinea.com/online-help/products/devops-secrets-vault/current</a></p>
 </td>

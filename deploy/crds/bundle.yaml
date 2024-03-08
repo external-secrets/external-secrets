@@ -1081,6 +1081,34 @@ spec:
                       required:
                         - vaultUrl
                       type: object
+                    barbican:
+                      description: Barbican configures this store to sync secrets using OpenStack Barbican provider
+                      properties:
+                        auth:
+                          description: Auth defines the information necessary to authenticate against Barbican
+                          properties:
+                            secretRef:
+                              properties:
+                                secretAccessKeySecretRef:
+                                  description: The SecretAccessKey is used for authentication
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              type: object
+                          type: object
+                      type: object
                     fake:
                       description: Fake configures a store with static key/value pairs
                       properties:
@@ -2664,6 +2692,96 @@ spec:
                           type: string
                       required:
                         - vaultUrl
+                      type: object
+                    barbican:
+                      description: Barbican configures this store to sync secrets using OpenStack Barbican provider
+                      properties:
+                        auth:
+                          description: Auth defines the information necessary to authenticate against Barbican
+                          properties:
+                            appCredentials:
+                              description: Authentication strategy with application credentials
+                              properties:
+                                applicationID:
+                                  type: string
+                                applicationSecretRef:
+                                  properties:
+                                    secretAccessKeySecretRef:
+                                      description: The SecretAccessKey is used for authentication
+                                      properties:
+                                        key:
+                                          description: |-
+                                            The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                            defaulted, in others it may be required.
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                            to the namespace of the referent.
+                                          type: string
+                                      type: object
+                                  type: object
+                              required:
+                                - applicationID
+                                - applicationSecretRef
+                              type: object
+                            userPass:
+                              description: Authentication strategy with username and password
+                              properties:
+                                passwordRef:
+                                  properties:
+                                    secretAccessKeySecretRef:
+                                      description: The SecretAccessKey is used for authentication
+                                      properties:
+                                        key:
+                                          description: |-
+                                            The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                            defaulted, in others it may be required.
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                            to the namespace of the referent.
+                                          type: string
+                                      type: object
+                                  type: object
+                                userName:
+                                  type: string
+                              required:
+                                - passwordRef
+                                - userName
+                              type: object
+                          type: object
+                        authURL:
+                          description: OpenStack Auth Url
+                          type: string
+                        projectName:
+                          description: The project name. Both the Project ID and Project Name are optional.
+                          type: string
+                        region:
+                          description: |-
+                            Region [required] is the geographic region in which the endpoint resides,
+                            generally specifying which datacenter should house your resources.
+                            Required only for services that span multiple regions.
+                          type: string
+                        serviceName:
+                          default: barbican
+                          description: |-
+                            ServiceName [optional] is the service name for the client (e.g., "nova") as it
+                            appears in the service catalog. Services can have the same Type but a
+                            different Name, which is why both Type and Name are sometimes needed.
+                          type: string
+                        userDomain:
+                          description: The Domain of the user.
+                          type: string
+                      required:
+                        - authURL
                       type: object
                     chef:
                       description: Chef configures this store to sync secrets with chef server
@@ -6249,6 +6367,34 @@ spec:
                       required:
                         - vaultUrl
                       type: object
+                    barbican:
+                      description: Barbican configures this store to sync secrets using OpenStack Barbican provider
+                      properties:
+                        auth:
+                          description: Auth defines the information necessary to authenticate against Barbican
+                          properties:
+                            secretRef:
+                              properties:
+                                secretAccessKeySecretRef:
+                                  description: The SecretAccessKey is used for authentication
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              type: object
+                          type: object
+                      type: object
                     fake:
                       description: Fake configures a store with static key/value pairs
                       properties:
@@ -7832,6 +7978,96 @@ spec:
                           type: string
                       required:
                         - vaultUrl
+                      type: object
+                    barbican:
+                      description: Barbican configures this store to sync secrets using OpenStack Barbican provider
+                      properties:
+                        auth:
+                          description: Auth defines the information necessary to authenticate against Barbican
+                          properties:
+                            appCredentials:
+                              description: Authentication strategy with application credentials
+                              properties:
+                                applicationID:
+                                  type: string
+                                applicationSecretRef:
+                                  properties:
+                                    secretAccessKeySecretRef:
+                                      description: The SecretAccessKey is used for authentication
+                                      properties:
+                                        key:
+                                          description: |-
+                                            The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                            defaulted, in others it may be required.
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                            to the namespace of the referent.
+                                          type: string
+                                      type: object
+                                  type: object
+                              required:
+                                - applicationID
+                                - applicationSecretRef
+                              type: object
+                            userPass:
+                              description: Authentication strategy with username and password
+                              properties:
+                                passwordRef:
+                                  properties:
+                                    secretAccessKeySecretRef:
+                                      description: The SecretAccessKey is used for authentication
+                                      properties:
+                                        key:
+                                          description: |-
+                                            The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                            defaulted, in others it may be required.
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                            to the namespace of the referent.
+                                          type: string
+                                      type: object
+                                  type: object
+                                userName:
+                                  type: string
+                              required:
+                                - passwordRef
+                                - userName
+                              type: object
+                          type: object
+                        authURL:
+                          description: OpenStack Auth Url
+                          type: string
+                        projectName:
+                          description: The project name. Both the Project ID and Project Name are optional.
+                          type: string
+                        region:
+                          description: |-
+                            Region [required] is the geographic region in which the endpoint resides,
+                            generally specifying which datacenter should house your resources.
+                            Required only for services that span multiple regions.
+                          type: string
+                        serviceName:
+                          default: barbican
+                          description: |-
+                            ServiceName [optional] is the service name for the client (e.g., "nova") as it
+                            appears in the service catalog. Services can have the same Type but a
+                            different Name, which is why both Type and Name are sometimes needed.
+                          type: string
+                        userDomain:
+                          description: The Domain of the user.
+                          type: string
+                      required:
+                        - authURL
                       type: object
                     chef:
                       description: Chef configures this store to sync secrets with chef server

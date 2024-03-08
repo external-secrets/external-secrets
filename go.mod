@@ -76,6 +76,7 @@ require (
 	github.com/fortanix/sdkms-client-go v0.4.0
 	github.com/go-openapi/strfmt v0.22.0
 	github.com/golang-jwt/jwt/v5 v5.2.0
+	github.com/gophercloud/gophercloud v1.8.0
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/hashicorp/vault/api/auth/aws v0.6.0
 	github.com/hashicorp/vault/api/auth/userpass v0.6.0
