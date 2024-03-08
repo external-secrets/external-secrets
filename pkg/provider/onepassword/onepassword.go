@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
+	"time"
 
 	"github.com/1Password/connect-sdk-go/connect"
 	"github.com/1Password/connect-sdk-go/onepassword"
@@ -29,7 +30,6 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
-	"github.com/external-secrets/external-secrets/pkg/provider/util/locks"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
@@ -46,8 +46,6 @@ const (
 	errOnePasswordStoreAtLeastOneVault            = "must be at least one vault: spec.provider.onepassword.vaults"
 	errOnePasswordStoreInvalidConnectHost         = "unable to parse URL: spec.provider.onepassword.connectHost: %w"
 	errOnePasswordStoreNonUniqueVaultNumbers      = "vault order numbers must be unique"
-	errFetchK8sSecret                             = "could not fetch ConnectToken Secret: %w"
-	errMissingToken                               = "missing Secret Token"
 	errGetVault                                   = "error finding 1Password Vault: %w"
 
 	errGetItem               = "error finding 1Password Item: %w"
@@ -60,13 +58,11 @@ const (
 	// custom error messages.
 	errKeyNotFoundMsg       = "key not found in 1Password Vaults"
 	errNoVaultsMsg          = "no vaults found"
-	errNoChangesMsg         = "no changes made to 1Password Item"
 	errExpectedOneItemMsg   = "expected one 1Password Item matching"
 	errExpectedOneFieldMsg  = "expected one 1Password ItemField matching"
 	errExpectedOneFieldMsgF = "%w: '%s' in '%s', got %d"
 
 	documentCategory = "DOCUMENT"
-	providerName     = "OnePassword"
 )
 
 // Custom Errors //.
@@ -88,8 +84,10 @@ type ProviderOnePassword struct {
 }
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1beta1.SecretsClient = &ProviderOnePassword{}
-var _ esv1beta1.Provider = &ProviderOnePassword{}
+var (
+	_ esv1beta1.SecretsClient = &ProviderOnePassword{}
+	_ esv1beta1.Provider      = &ProviderOnePassword{}
+)
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (provider *ProviderOnePassword) Capabilities() esv1beta1.SecretStoreCapabilities {
@@ -253,9 +251,9 @@ func (provider *ProviderOnePassword) createItem(val []byte, ref esv1beta1.PushSe
 // the value is different, the value is updated. If the label exists and the
 // value is the same, nothing is done.
 func updateFieldValue(fields []*onepassword.ItemField, label, newVal string) ([]*onepassword.ItemField, error) {
-	// This will always iterate over all items
-	// but its done to ensure that two fields with the same label
-	// exist resulting in undefined behavior
+	// This will always iterate over all items.
+	// This is done to ensure that two fields with the same label
+	// exist resulting in undefined behavior.
 	var (
 		found bool
 		index int
@@ -272,9 +270,9 @@ func updateFieldValue(fields []*onepassword.ItemField, label, newVal string) ([]
 	if !found {
 		return append(fields, generateNewItemField(label, newVal)), nil
 	}
-	if field := fields[index]; newVal != field.Value {
-		field.Value = newVal
-		fields[index] = field
+
+	if fields[index].Value != newVal {
+		fields[index].Value = newVal
 	}
 
 	return fields, nil
@@ -291,17 +289,11 @@ func generateNewItemField(label, newVal string) *onepassword.ItemField {
 	return field
 }
 
-func (provider *ProviderOnePassword) PushSecret(_ context.Context, secret *corev1.Secret, ref esv1beta1.PushSecretData) error {
+func (provider *ProviderOnePassword) PushSecret(ctx context.Context, secret *corev1.Secret, ref esv1beta1.PushSecretData) error {
 	val, ok := secret.Data[ref.GetSecretKey()]
 	if !ok {
 		return ErrKeyNotFound
 	}
-
-	unlock, err := locks.TryLock(providerName, ref.GetRemoteKey())
-	if err != nil {
-		return err
-	}
-	defer unlock()
 
 	title := ref.GetRemoteKey()
 	providerItem, err := provider.findItem(title)
@@ -309,7 +301,13 @@ func (provider *ProviderOnePassword) PushSecret(_ context.Context, secret *corev
 		if err = provider.createItem(val, ref); err != nil {
 			return fmt.Errorf(errCreateItem, err)
 		}
-		return nil
+
+		err = provider.waitForFunc(ctx, func() error {
+			_, err := provider.findItem(title)
+
+			return err
+		})
+		return err
 	} else if err != nil {
 		return err
 	}
@@ -327,6 +325,25 @@ func (provider *ProviderOnePassword) PushSecret(_ context.Context, secret *corev
 	if _, err = provider.client.UpdateItem(providerItem, providerItem.Vault.ID); err != nil {
 		return fmt.Errorf(errUpdateItem, err)
 	}
+
+	if err := provider.waitForFunc(ctx, func() error {
+		item, err := provider.findItem(title)
+		if err != nil {
+			return err
+		}
+
+		for _, field := range item.Fields {
+			// we found the label with the right value
+			if field.Label == label && field.Value == string(val) {
+				return nil
+			}
+		}
+
+		return fmt.Errorf("not found")
+	}); err != nil {
+		return fmt.Errorf("failed waiting for label update: %w", err)
+	}
+
 	return nil
 }
 
@@ -586,6 +603,30 @@ func (provider *ProviderOnePassword) getAllForVault(vaultID string, ref esv1beta
 	}
 
 	return nil
+}
+
+// waitForFunc will wait for OnePassword to _actually_ create/update the secret. OnePassword returns immediately after
+// the initial create/update which makes the next call for the same item create/update a new item with the same name. Hence, we'll
+// wait for the item to exist or be updated on OnePassword's side as well.
+// Ideally we could do bulk operations and handle data with one submit, but that would require re-writing the entire
+// push secret controller. For now, this is sufficient.
+func (provider *ProviderOnePassword) waitForFunc(ctx context.Context, fn func() error) error {
+	// check every .5 seconds
+	tick := time.NewTicker(500 * time.Millisecond)
+	defer tick.Stop()
+	done, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	for {
+		select {
+		case <-tick.C:
+			if err := fn(); err == nil {
+				return nil
+			}
+		case <-done.Done():
+			return fmt.Errorf("timeout to wait for function to run successful")
+		}
+	}
 }
 
 func countFieldsWithLabel(fieldLabel string, fields []*onepassword.ItemField) int {
