@@ -32,6 +32,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
@@ -464,6 +465,9 @@ func TestSetSecret(t *testing.T) {
 	}
 
 	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: secretKey, RemoteKey: "fake-key", Property: ""}
+	pushSecretDataWithMetadata := fake.PushSecretData{SecretKey: secretKey, RemoteKey: "fake-key", Property: "", Metadata: &apiextensionsv1.JSON{
+		Raw: []byte(`{"secretPushFormat": "string"}`),
+	}}
 	pushSecretDataWithProperty := fake.PushSecretData{SecretKey: secretKey, RemoteKey: "fake-key", Property: "other-fake-property"}
 
 	type args struct {
@@ -491,6 +495,22 @@ func TestSetSecret(t *testing.T) {
 					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretSucceedsWithExistingSecretAndStringFormat": {
+			reason: "a secret can be pushed to aws secrets manager when it already exists",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
+					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+				},
+				pushSecretData: pushSecretDataWithMetadata,
 			},
 			want: want{
 				err: nil,
