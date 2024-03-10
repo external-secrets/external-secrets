@@ -1939,6 +1939,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#additional-metadata-for-pushsecret" class="md-nav__link">
+    <span class="md-ellipsis">
+      Additional Metadata for PushSecret
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3099,6 +3108,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#additional-metadata-for-pushsecret" class="md-nav__link">
+    <span class="md-ellipsis">
+      Additional Metadata for PushSecret
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3315,6 +3333,32 @@ way users of the <code>SecretStore</code> can only access the secrets necessary.
 <span class="w">        </span><span class="nt">forceDeleteWithoutRecovery</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <span class="w">        </span><span class="c1"># recoveryWindowInDays: 9 (conflicts with forceDeleteWithoutRecovery)</span>
 </code></pre></div>
+<h4 id="additional-metadata-for-pushsecret">Additional Metadata for PushSecret</h4>
+<p>It's possible to configure AWS Secrets Manager to either push secrets in <code>binary</code> format or as plain <code>string</code>.</p>
+<p>To control this behaviour set the following provider metadata:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pushsecret-example</span><span class="w"> </span><span class="c1"># Customisable</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">teamb</span><span class="w"> </span><span class="c1"># Same of the SecretStores</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">deletionPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Delete</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10s</span><span class="w"> </span><span class="c1"># Refresh interval for which push secret will reconcile</span>
+<span class="w">  </span><span class="nt">secretStoreRefs</span><span class="p">:</span><span class="w"> </span><span class="c1"># A list of secret stores to push secrets to</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">teamb-secret-store</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">secret</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-secret</span><span class="w"> </span><span class="c1"># Source Kubernetes secret to be pushed</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">key1</span><span class="w"> </span><span class="c1"># Source Kubernetes secret key to be pushed</span>
+<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">teamb-my-first-parameter-3</span><span class="w"> </span><span class="c1"># Remote reference (where the secret is going to be pushed)</span>
+<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretPushFormat</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+</code></pre></div>
+<p><code>secretPushFormat</code> takes two options. <code>binary</code> and <code>string</code>, where <code>binary</code> is the <em>default</em>.</p>
 <h3 id="json-secret-values">JSON Secret Values</h3>
 <p>SecretsManager supports <em>simple</em> key/value pairs that are stored as json. If you use the API you can store more complex JSON objects. You can access nested values or arrays using <a href="https://github.com/tidwall/gjson/blob/master/SYNTAX.md">gjson syntax</a>:</p>
 <p>Consider the following JSON object that is stored in the SecretsManager key <code>friendslist</code>:
