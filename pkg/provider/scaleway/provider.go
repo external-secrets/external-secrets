@@ -18,7 +18,7 @@ import (
 	"context"
 	"fmt"
 
-	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1alpha1"
+	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1beta1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"github.com/scaleway/scaleway-sdk-go/validation"
 	ctrl "sigs.k8s.io/controller-runtime"

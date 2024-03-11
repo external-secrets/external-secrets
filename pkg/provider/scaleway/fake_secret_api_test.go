@@ -20,7 +20,7 @@ import (
 	"strconv"
 
 	"github.com/google/uuid"
-	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1alpha1"
+	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1beta1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
@@ -316,7 +316,7 @@ func (f *fakeSecretAPI) ListSecrets(request *smapi.ListSecretsRequest, _ ...scw.
 	// pagination
 
 	response := smapi.ListSecretsResponse{
-		TotalCount: uint32(len(matches)),
+		TotalCount: uint64(len(matches)),
 	}
 
 	if request.Page == nil || request.PageSize == nil {

@@ -40,7 +40,7 @@ const (
 	errGitlabCredSecretName                   = "credentials are empty"
 	errInvalidClusterStoreMissingSAKNamespace = "invalid clusterStore missing SAK namespace"
 	errFetchSAKSecret                         = "couldn't find secret on cluster: %w"
-	errList                                   = "could not verify whether the gilabClient is valid: %w"
+	errList                                   = "could not verify whether the gitlabClient is valid: %w"
 	errProjectAuth                            = "gitlabClient is not allowed to get secrets for project id [%s]"
 	errGroupAuth                              = "gitlabClient is not allowed to get secrets for group id [%s]"
 	errUninitializedGitlabProvider            = "provider gitlab is not initialized"
@@ -49,6 +49,7 @@ const (
 	errTagsOnlyEnvironmentSupported           = "'find.tags' only supports 'environment_scope'"
 	errPathNotImplemented                     = "'find.path' is not implemented in the GitLab provider"
 	errJSONSecretUnmarshal                    = "unable to unmarshal secret: %w"
+	errNotImplemented                         = "not implemented"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -88,11 +89,15 @@ func (g *gitlabBase) getAuth(ctx context.Context) (string, error) {
 }
 
 func (g *gitlabBase) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf(errNotImplemented)
+}
+
+func (g *gitlabBase) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf(errNotImplemented)
 }
 
 func (g *gitlabBase) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf(errNotImplemented)
 }
 
 // GetAllSecrets syncs all gitlab project and group variables into a single Kubernetes Secret.

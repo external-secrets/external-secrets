@@ -27,6 +27,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 )
@@ -690,6 +691,193 @@ func TestGetSecretPath(t *testing.T) {
 			want := vStore.buildPath(tc.args.path)
 			if diff := cmp.Diff(want, tc.args.expected); diff != "" {
 				t.Errorf("\n%s\nvault.buildPath(...): -want expected, +got error:\n%s", tc.reason, diff)
+			}
+		})
+	}
+}
+
+func TestSecretExists(t *testing.T) {
+	secret := map[string]interface{}{
+		"foo": "bar",
+	}
+	secretWithNil := map[string]interface{}{
+		"hi": nil,
+	}
+	errNope := errors.New("nope")
+	type args struct {
+		store   *esv1beta1.VaultProvider
+		vClient util.Logical
+	}
+	type want struct {
+		exists bool
+		err    error
+	}
+	tests := map[string]struct {
+		reason string
+		args   args
+		ref    *testingfake.PushSecretData
+		want   want
+	}{
+		"NoExistingSecretV1": {
+			reason: "Should return false, nil if secret does not exist in provider.",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vClient: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, esv1beta1.NoSecretError{}),
+				},
+			},
+			ref: &testingfake.PushSecretData{RemoteKey: "secret"},
+			want: want{
+				exists: false,
+				err:    nil,
+			},
+		},
+		"NoExistingSecretV2": {
+			reason: "Should return false, nil if secret does not exist in provider.",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vClient: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, esv1beta1.NoSecretError{}),
+				},
+			},
+			ref: &testingfake.PushSecretData{RemoteKey: "secret"},
+			want: want{
+				exists: false,
+				err:    nil,
+			},
+		},
+		"NoExistingSecretWithPropertyV2": {
+			reason: "Should return false, nil if secret with property does not exist in provider.",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vClient: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+						"data": secret,
+					}, nil),
+				},
+			},
+			ref: &testingfake.PushSecretData{RemoteKey: "secret", Property: "different"},
+			want: want{
+				exists: false,
+				err:    nil,
+			},
+		},
+		"NoExistingSecretWithPropertyV1": {
+			reason: "Should return false, nil if secret with property does not exist in provider.",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vClient: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(secret, nil),
+				},
+			},
+			ref: &testingfake.PushSecretData{RemoteKey: "secret", Property: "different"},
+			want: want{
+				exists: false,
+				err:    nil,
+			},
+		},
+		"ExistingSecretV1": {
+			reason: "Should return true, nil if secret exists in provider.",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vClient: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(secret, nil),
+				},
+			},
+			ref: &testingfake.PushSecretData{RemoteKey: "secret"},
+			want: want{
+				exists: true,
+				err:    nil,
+			},
+		},
+		"ExistingSecretV2": {
+			reason: "Should return true, nil if secret exists in provider.",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vClient: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+						"data": secret,
+					}, nil),
+				},
+			},
+			ref: &testingfake.PushSecretData{RemoteKey: "secret"},
+			want: want{
+				exists: true,
+				err:    nil,
+			},
+		},
+		"ExistingSecretWithNilV1": {
+			reason: "Should return false, nil if secret in provider has nil value.",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vClient: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(secretWithNil, nil),
+				},
+			},
+			ref: &testingfake.PushSecretData{RemoteKey: "secret", Property: "hi"},
+			want: want{
+				exists: false,
+				err:    nil,
+			},
+		},
+		"ExistingSecretWithNilV2": {
+			reason: "Should return false, nil if secret in provider has nil value.",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vClient: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+						"data": secretWithNil,
+					}, nil),
+				},
+			},
+			ref: &testingfake.PushSecretData{RemoteKey: "secret", Property: "hi"},
+			want: want{
+				exists: false,
+				err:    nil,
+			},
+		},
+		"ErrorReadingSecretV1": {
+			reason: "Should return error if secret existence cannot be verified.",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				vClient: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, errNope),
+				},
+			},
+			ref: &testingfake.PushSecretData{RemoteKey: "secret"},
+			want: want{
+				exists: false,
+				err:    fmt.Errorf(errReadSecret, errNope),
+			},
+		},
+		"ErrorReadingSecretV2": {
+			reason: "Should return error if secret existence cannot be verified.",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vClient: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, errNope),
+				},
+			},
+			ref: &testingfake.PushSecretData{RemoteKey: "secret"},
+			want: want{
+				exists: false,
+				err:    fmt.Errorf(errReadSecret, errNope),
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			client := &client{
+				logical: tc.args.vClient,
+				store:   tc.args.store,
+			}
+			exists, err := client.SecretExists(context.Background(), tc.ref)
+			if diff := cmp.Diff(exists, tc.want.exists); diff != "" {
+				t.Errorf("\n%s\nvault.SecretExists(...): -want exists, +got exists:\n%s", tc.reason, diff)
+			}
+			if diff := cmp.Diff(tc.want.err, err, EquateErrors()); diff != "" {
+				t.Errorf("\n%s\nvault.GetSecret(...): -want error, +got error:\n%s", tc.reason, diff)
 			}
 		})
 	}

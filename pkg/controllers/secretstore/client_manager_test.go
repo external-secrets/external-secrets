@@ -349,6 +349,10 @@ func (c *MockFakeClient) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretR
 	return nil
 }
 
+func (c *MockFakeClient) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, nil
+}
+
 func (c *MockFakeClient) GetSecret(_ context.Context, _ esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	return nil, nil
 }

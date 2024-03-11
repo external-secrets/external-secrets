@@ -71,6 +71,10 @@ func (c *client) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef
 	return errors.New("deleting secrets is not supported by Delinea DevOps Secrets Vault")
 }
 
+func (c *client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, errors.New("not implemented")
+}
+
 func (c *client) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
