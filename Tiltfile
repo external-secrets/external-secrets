@@ -26,8 +26,8 @@ settings.update(read_yaml(
 objects = decode_yaml_stream(read_file('bin/deploy/manifests/external-secrets.yaml'))
 for o in objects:
     if o.get('kind') == 'Deployment' and o.get('metadata').get('name') in ['external-secrets-cert-controller', 'external-secrets', 'external-secrets-webhook']:
-        o['spec']['template']['spec']['securityContext'] = {'runAsNonRoot': False}
-        o['spec']['template']['spec']['imagePullPolicy'] = 'Always'
+        o['spec']['template']['spec']['containers'][0]['securityContext'] = {'runAsNonRoot': False, 'readOnlyRootFilesystem': False}
+        o['spec']['template']['spec']['containers'][0]['imagePullPolicy'] = 'Always'
         if settings.get('debug').get('enabled') and o.get('metadata').get('name') == 'external-secrets':
             o['spec']['template']['spec']['containers'][0]['ports'] = [{'containerPort': 30000}]
 
