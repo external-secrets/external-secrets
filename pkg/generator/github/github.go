@@ -44,11 +44,15 @@ type Github struct {
 }
 
 const (
-	defaultLoginUsername = `token`
+	defaultLoginUsername = "token"
+	defaultGithubAPI     = "https://api.github.com"
 
 	errNoSpec    = "no config spec provided"
 	errParseSpec = "unable to parse spec: %w"
 	errGetToken  = "unable to get authorization token: %w"
+
+	contextTimeout    = 30 * time.Second
+	httpClientTimeout = 5 * time.Second
 )
 
 func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, error) {
@@ -68,12 +72,15 @@ func (g *Generator) generate(
 	if jsonSpec == nil {
 		return nil, fmt.Errorf(errNoSpec)
 	}
+	ctx, cancel := context.WithTimeout(ctx, contextTimeout)
+	defer cancel()
+
 	gh, err := newGHClient(ctx, kube, namespace, g.httpClient, jsonSpec)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 	// Github api expects POST request
-	req, err := http.NewRequestWithContext(context.TODO(), "POST", gh.URL, http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, gh.URL, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
@@ -88,13 +95,13 @@ func (g *Generator) generate(
 
 	// git access token
 	var gat map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&gat); err != nil && resp.StatusCode < 300 {
+	if err := json.NewDecoder(resp.Body).Decode(&gat); err != nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return nil, fmt.Errorf("error decoding response: %w", err)
 	}
 
 	accessToken, ok := gat["token"].(string)
 	if !ok {
-		return nil, fmt.Errorf("token is not a string")
+		return nil, fmt.Errorf("token isn't a string or token key doesn't exist")
 	}
 	return map[string][]byte{
 		defaultLoginUsername: []byte(accessToken),
@@ -104,7 +111,9 @@ func (g *Generator) generate(
 func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client,
 	js *apiextensions.JSON) (*Github, error) {
 	if hc == nil {
-		hc = &http.Client{}
+		hc = &http.Client{
+			Timeout: httpClientTimeout,
+		}
 	}
 	res, err := parseSpec(js.Raw)
 	if err != nil {
@@ -113,7 +122,7 @@ func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client
 	gh := &Github{Kube: k, Namespace: n, HTTP: hc}
 
 	ghPath := fmt.Sprintf("/app/installations/%s/access_tokens", res.Spec.InstallID)
-	gh.URL = "https://api.github.com" + ghPath
+	gh.URL = defaultGithubAPI + ghPath
 	if res.Spec.URL != "" {
 		gh.URL = res.Spec.URL + ghPath
 	}

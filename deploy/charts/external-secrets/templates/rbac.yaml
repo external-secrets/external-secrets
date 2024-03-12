@@ -147,7 +147,6 @@ rules:
     - "fakes"
     - "gcraccesstokens"
     - "githubaccesstokens"
-    - "githubaccesstokens"
     - "passwords"
     - "vaultdynamicsecrets"
     verbs:

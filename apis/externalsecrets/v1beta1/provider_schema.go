@@ -98,6 +98,7 @@ func getProviderName(storeSpec *SecretStoreProvider) (string, error) {
 	if err != nil || storeBytes == nil {
 		return "", fmt.Errorf("failed to marshal store spec: %w", err)
 	}
+
 	storeMap := make(map[string]interface{})
 	err = json.Unmarshal(storeBytes, &storeMap)
 	if err != nil {

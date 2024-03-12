@@ -12,6 +12,7 @@ metadata:
 spec:
   appID: "0000000" # (1)
   installID: "00000000" # (5)
+  url: "" # (Default https://api.github.com.)
   auth:
     privatKey:
       secretRef:
