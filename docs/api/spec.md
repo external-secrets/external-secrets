@@ -3817,10 +3817,6 @@ GithubSecretRef
 <h3 id="external-secrets.io/v1beta1.GithubProvider">GithubProvider
 </h3>
 <p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
-</p>
-<p>
 </p>
 <table>
 <thead>
@@ -5409,20 +5405,6 @@ DelineaProvider
 <em>(Optional)</em>
 <p>Delinea DevOps Secrets Vault
 <a href="https://docs.delinea.com/online-help/products/devops-secrets-vault/current">https://docs.delinea.com/online-help/products/devops-secrets-vault/current</a></p>
-</td>
-</tr>
-<tr>
-<td>
-<code>github</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.GithubProvider">
-GithubProvider
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Github configures this store to sync secrets using Github Variables provider</p>
 </td>
 </tr>
 </tbody>
