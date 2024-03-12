@@ -12,6 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package flux
 
 import (
@@ -28,7 +29,7 @@ var _ = Describe("flux", Label("flux"), func() {
 	f := framework.New("flux")
 	prov := fake.NewProvider(f)
 
-	DescribeTable("sync secrets", framework.TableFunc(f, prov),
+	DescribeTable("sync secrets", framework.TableFuncWithExternalSecret(f, prov),
 		Entry(common.SimpleDataSync(f)),
 		Entry(common.JSONDataFromSync(f)),
 		Entry(common.SSHKeySync(f)),

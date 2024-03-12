@@ -13,6 +13,9 @@ The field `spec.target.creationPolicy` defines how the operator creates the a se
 ### Owner (default)
 The External Secret Operator creates secret and sets the `ownerReference` field on the Secret. This secret is subject to [garbage collection](https://kubernetes.io/docs/concepts/architecture/garbage-collection/) if the initial `ExternalSecret` is absent. If a secret with the same name already exists that is not owned by the controller it will result in a conflict. The operator will just error out, not claiming the ownership.
 
+!!! note "Secrets with `ownerReference` field not found"
+    If the secret exists and the ownerReference field is not found, the controller treats this secret as orphaned. It will take ownership of this secret by adding an `ownerReference` field and updating it.
+
 ### Orphan
 The operator creates the secret but does not set the `ownerReference` on the Secret. That means the Secret will not be subject to garbage collection. If a secret with the same name already exists it will be updated.
 

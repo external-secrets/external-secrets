@@ -2,6 +2,8 @@ package scaleway
 
 import (
 	"context"
+	"sync"
+
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -10,7 +12,6 @@ import (
 	"github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sync"
 )
 
 var cleanupOnce sync.Once
@@ -37,7 +38,7 @@ var _ = ginkgo.Describe("[scaleway]", ginkgo.Label("scaleway"), func() {
 		createResources(context.Background(), f, cfg)
 	})
 
-	ginkgo.DescribeTable("sync secrets", framework.TableFunc(f, provider),
+	ginkgo.DescribeTable("sync secrets", framework.TableFuncWithExternalSecret(f, provider),
 
 		//ginkgo.Entry(common.SyncV1Alpha1(f)), // not supported
 		ginkgo.Entry(common.SimpleDataSync(f)),

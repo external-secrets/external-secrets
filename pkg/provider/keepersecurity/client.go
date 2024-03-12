@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package keepersecurity
 
 import (
@@ -209,6 +210,10 @@ func (c *Client) DeleteSecret(_ context.Context, remoteRef esv1beta1.PushSecretR
 	}
 
 	return nil
+}
+
+func (c *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
 }
 
 func (c *Client) buildSecretNameAndKey(remoteRef esv1beta1.PushSecretRemoteRef) ([]string, error) {

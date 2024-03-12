@@ -42,7 +42,7 @@ var _ = Describe("[azure]", Label("azure", "keyvault", "key"), func() {
 		prov.DeleteKey(keyName)
 	})
 
-	ff := framework.TableFunc(f, prov)
+	ff := framework.TableFuncWithExternalSecret(f, prov)
 
 	It("should sync keyvault objects with type=key", func() {
 		ff(func(tc *framework.TestCase) {

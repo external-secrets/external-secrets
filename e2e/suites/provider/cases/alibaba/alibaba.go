@@ -27,7 +27,7 @@ var _ = Describe("[alibaba]", Label("alibaba"), func() {
 	f := framework.New("eso-alibaba")
 	prov := newFromEnv(f)
 
-	DescribeTable("sync secrets", framework.TableFunc(f, prov),
+	DescribeTable("sync secrets", framework.TableFuncWithExternalSecret(f, prov),
 		Entry(common.SimpleDataSync(f)),
 		Entry(common.NestedJSONWithGJSON(f)),
 		Entry(common.JSONDataFromSync(f)),

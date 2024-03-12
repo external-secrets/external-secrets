@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package onepassword
 
 import (
@@ -205,6 +206,10 @@ func (provider *ProviderOnePassword) DeleteSecret(_ context.Context, ref esv1bet
 		return fmt.Errorf(errDeleteItem, err)
 	}
 	return nil
+}
+
+func (provider *ProviderOnePassword) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
 }
 
 const (

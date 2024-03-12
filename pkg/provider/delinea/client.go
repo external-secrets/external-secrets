@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package delinea
 
 import (
@@ -68,6 +69,10 @@ func (c *client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.Pus
 
 func (c *client) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
 	return errors.New("deleting secrets is not supported by Delinea DevOps Secrets Vault")
+}
+
+func (c *client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, errors.New("not implemented")
 }
 
 func (c *client) Validate() (esv1beta1.ValidationResult, error) {

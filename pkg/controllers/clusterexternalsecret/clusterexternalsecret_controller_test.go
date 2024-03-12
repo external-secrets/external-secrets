@@ -634,7 +634,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 				}
 			},
 		}),
-		Entry("Should not be ready if no namespace matches", testCase{
+		Entry("Should be ready if no namespace matches", testCase{
 			namespaces: []v1.Namespace{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -659,9 +659,8 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 						ExternalSecretName: created.Name,
 						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
 							{
-								Type:    esv1beta1.ClusterExternalSecretReady,
-								Status:  v1.ConditionFalse,
-								Message: errNamespaceNotFound,
+								Type:   esv1beta1.ClusterExternalSecretReady,
+								Status: v1.ConditionTrue,
 							},
 						},
 					},

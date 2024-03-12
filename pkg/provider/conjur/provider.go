@@ -1,4 +1,3 @@
-// Package conjur provides a Conjur provider for External Secrets.
 /*
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,6 +11,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+// Package conjur provides a Conjur provider for External Secrets.
 package conjur
 
 import (
@@ -190,6 +191,10 @@ func (p *Client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.Pus
 func (p *Client) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
 	// NOT IMPLEMENTED
 	return nil
+}
+
+func (p *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.

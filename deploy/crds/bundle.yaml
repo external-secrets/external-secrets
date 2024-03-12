@@ -2710,6 +2710,49 @@ spec:
                       required:
                         - vaultUrl
                       type: object
+                    chef:
+                      description: Chef configures this store to sync secrets with chef server
+                      properties:
+                        auth:
+                          description: Auth defines the information necessary to authenticate against chef Server
+                          properties:
+                            secretRef:
+                              description: ChefAuthSecretRef holds secret references for chef server login credentials.
+                              properties:
+                                privateKeySecretRef:
+                                  description: SecretKey is the Signing Key in PEM format, used for authentication.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              required:
+                                - privateKeySecretRef
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        serverUrl:
+                          description: ServerURL is the chef server URL used to connect to. If using orgs you should include your org in the url and terminate the url with a "/"
+                          type: string
+                        username:
+                          description: UserName should be the user ID on the chef server
+                          type: string
+                      required:
+                        - auth
+                        - serverUrl
+                        - username
+                      type: object
                     conjur:
                       description: Conjur configures this store to sync secrets using conjur provider
                       properties:
@@ -2765,6 +2808,11 @@ spec:
                             jwt:
                               properties:
                                 account:
+                                  type: string
+                                hostId:
+                                  description: |-
+                                    Optional HostID for JWT authentication. This may be used depending
+                                    on how the Conjur JWT authenticator policy is configured.
                                   type: string
                                 secretRef:
                                   description: |-
@@ -3008,6 +3056,34 @@ spec:
                           type: array
                       required:
                         - data
+                      type: object
+                    fortanix:
+                      description: Fortanix configures this store to sync secrets using the Fortanix provider
+                      properties:
+                        apiKey:
+                          description: APIKey is the API token to access SDKMS Applications.
+                          properties:
+                            secretRef:
+                              description: SecretRef is a reference to a secret containing the SDKMS API Key.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                          type: object
+                        apiUrl:
+                          description: APIURL is the URL of SDKMS API. Defaults to `sdkms.fortanix.com`.
+                          type: string
                       type: object
                     gcpsm:
                       description: GCPSM configures this store to sync secrets using Google Cloud Platform Secret Manager provider
@@ -3340,6 +3416,70 @@ spec:
                       required:
                         - auth
                       type: object
+                    onboardbase:
+                      description: Onboardbase configures this store to sync secrets using the Onboardbase provider
+                      properties:
+                        apiHost:
+                          default: https://public.onboardbase.com/api/v1/
+                          description: APIHost use this to configure the host url for the API for selfhosted installation, default is https://public.onboardbase.com/api/v1/
+                          type: string
+                        auth:
+                          description: Auth configures how the Operator authenticates with the Onboardbase API
+                          properties:
+                            apiKeyRef:
+                              description: |-
+                                OnboardbaseAPIKey is the APIKey generated by an admin account.
+                                It is used to recognize and authorize access to a project and environment within onboardbase
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                            passcodeRef:
+                              description: OnboardbasePasscode is the passcode attached to the API Key
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                          required:
+                            - apiKeyRef
+                            - passcodeRef
+                          type: object
+                        environment:
+                          default: development
+                          description: Environment is the name of an environmnent within a project to pull the secrets from
+                          type: string
+                        project:
+                          default: development
+                          description: Project is an onboardbase project that the secrets should be pulled from
+                          type: string
+                      required:
+                        - apiHost
+                        - auth
+                        - environment
+                        - project
+                      type: object
                     onepassword:
                       description: OnePassword configures this store to sync secrets using the 1Password Cloud provider
                       properties:
@@ -3499,6 +3639,51 @@ spec:
                       required:
                         - region
                         - vault
+                      type: object
+                    pulumi:
+                      description: Pulumi configures this store to sync secrets using the Pulumi provider
+                      properties:
+                        accessToken:
+                          description: AccessToken is the access tokens to sign in to the Pulumi Cloud Console.
+                          properties:
+                            secretRef:
+                              description: SecretRef is a reference to a secret containing the Pulumi API token.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                          type: object
+                        apiUrl:
+                          default: https://api.pulumi.com
+                          description: APIURL is the URL of the Pulumi API.
+                          type: string
+                        environment:
+                          description: |-
+                            Environment are YAML documents composed of static key-value pairs, programmatic expressions,
+                            dynamically retrieved values from supported providers including all major clouds,
+                            and other Pulumi ESC environments.
+                            To create a new environment, visit https://www.pulumi.com/docs/esc/environments/ for more information.
+                          type: string
+                        organization:
+                          description: |-
+                            Organization are a space to collaborate on shared projects and stacks.
+                            To create a new organization, visit https://app.pulumi.com/ and click "New Organization".
+                          type: string
+                      required:
+                        - accessToken
+                        - environment
+                        - organization
                       type: object
                     scaleway:
                       description: Scaleway
@@ -5528,6 +5713,13 @@ spec:
                     type:
                       type: string
                   type: object
+                updatePolicy:
+                  default: Replace
+                  description: 'UpdatePolicy to handle Secrets in the provider. Possible Values: "Replace/IfNotExists". Defaults to "Replace".'
+                  enum:
+                    - Replace
+                    - IfNotExists
+                  type: string
               required:
                 - secretStoreRefs
                 - selector
@@ -5597,7 +5789,9 @@ spec:
                         - match
                       type: object
                     type: object
-                  description: Synced Push Secrets for later deletion. Matches Secret Stores to PushSecretData that was stored to that secretStore.
+                  description: |-
+                    Synced PushSecrets, including secrets that already exist in provider.
+                    Matches secret stores to PushSecretData that was stored to that secret store.
                   type: object
                 syncedResourceVersion:
                   description: SyncedResourceVersion keeps track of the last synced version.
@@ -7729,6 +7923,49 @@ spec:
                       required:
                         - vaultUrl
                       type: object
+                    chef:
+                      description: Chef configures this store to sync secrets with chef server
+                      properties:
+                        auth:
+                          description: Auth defines the information necessary to authenticate against chef Server
+                          properties:
+                            secretRef:
+                              description: ChefAuthSecretRef holds secret references for chef server login credentials.
+                              properties:
+                                privateKeySecretRef:
+                                  description: SecretKey is the Signing Key in PEM format, used for authentication.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              required:
+                                - privateKeySecretRef
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        serverUrl:
+                          description: ServerURL is the chef server URL used to connect to. If using orgs you should include your org in the url and terminate the url with a "/"
+                          type: string
+                        username:
+                          description: UserName should be the user ID on the chef server
+                          type: string
+                      required:
+                        - auth
+                        - serverUrl
+                        - username
+                      type: object
                     conjur:
                       description: Conjur configures this store to sync secrets using conjur provider
                       properties:
@@ -7784,6 +8021,11 @@ spec:
                             jwt:
                               properties:
                                 account:
+                                  type: string
+                                hostId:
+                                  description: |-
+                                    Optional HostID for JWT authentication. This may be used depending
+                                    on how the Conjur JWT authenticator policy is configured.
                                   type: string
                                 secretRef:
                                   description: |-
@@ -8027,6 +8269,34 @@ spec:
                           type: array
                       required:
                         - data
+                      type: object
+                    fortanix:
+                      description: Fortanix configures this store to sync secrets using the Fortanix provider
+                      properties:
+                        apiKey:
+                          description: APIKey is the API token to access SDKMS Applications.
+                          properties:
+                            secretRef:
+                              description: SecretRef is a reference to a secret containing the SDKMS API Key.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                          type: object
+                        apiUrl:
+                          description: APIURL is the URL of SDKMS API. Defaults to `sdkms.fortanix.com`.
+                          type: string
                       type: object
                     gcpsm:
                       description: GCPSM configures this store to sync secrets using Google Cloud Platform Secret Manager provider
@@ -8359,6 +8629,70 @@ spec:
                       required:
                         - auth
                       type: object
+                    onboardbase:
+                      description: Onboardbase configures this store to sync secrets using the Onboardbase provider
+                      properties:
+                        apiHost:
+                          default: https://public.onboardbase.com/api/v1/
+                          description: APIHost use this to configure the host url for the API for selfhosted installation, default is https://public.onboardbase.com/api/v1/
+                          type: string
+                        auth:
+                          description: Auth configures how the Operator authenticates with the Onboardbase API
+                          properties:
+                            apiKeyRef:
+                              description: |-
+                                OnboardbaseAPIKey is the APIKey generated by an admin account.
+                                It is used to recognize and authorize access to a project and environment within onboardbase
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                            passcodeRef:
+                              description: OnboardbasePasscode is the passcode attached to the API Key
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                          required:
+                            - apiKeyRef
+                            - passcodeRef
+                          type: object
+                        environment:
+                          default: development
+                          description: Environment is the name of an environmnent within a project to pull the secrets from
+                          type: string
+                        project:
+                          default: development
+                          description: Project is an onboardbase project that the secrets should be pulled from
+                          type: string
+                      required:
+                        - apiHost
+                        - auth
+                        - environment
+                        - project
+                      type: object
                     onepassword:
                       description: OnePassword configures this store to sync secrets using the 1Password Cloud provider
                       properties:
@@ -8518,6 +8852,51 @@ spec:
                       required:
                         - region
                         - vault
+                      type: object
+                    pulumi:
+                      description: Pulumi configures this store to sync secrets using the Pulumi provider
+                      properties:
+                        accessToken:
+                          description: AccessToken is the access tokens to sign in to the Pulumi Cloud Console.
+                          properties:
+                            secretRef:
+                              description: SecretRef is a reference to a secret containing the Pulumi API token.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                          type: object
+                        apiUrl:
+                          default: https://api.pulumi.com
+                          description: APIURL is the URL of the Pulumi API.
+                          type: string
+                        environment:
+                          description: |-
+                            Environment are YAML documents composed of static key-value pairs, programmatic expressions,
+                            dynamically retrieved values from supported providers including all major clouds,
+                            and other Pulumi ESC environments.
+                            To create a new environment, visit https://www.pulumi.com/docs/esc/environments/ for more information.
+                          type: string
+                        organization:
+                          description: |-
+                            Organization are a space to collaborate on shared projects and stacks.
+                            To create a new organization, visit https://app.pulumi.com/ and click "New Organization".
+                          type: string
+                      required:
+                        - accessToken
+                        - environment
+                        - organization
                       type: object
                     scaleway:
                       description: Scaleway
@@ -10909,6 +11288,152 @@ spec:
               required:
                 - path
                 - provider
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+  conversion:
+    strategy: Webhook
+    webhook:
+      conversionReviewVersions:
+        - v1
+      clientConfig:
+        service:
+          name: kubernetes
+          namespace: default
+          path: /convert
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+  name: webhooks.generators.external-secrets.io
+spec:
+  group: generators.external-secrets.io
+  names:
+    categories:
+      - webhook
+    kind: Webhook
+    listKind: WebhookList
+    plural: webhooks
+    shortNames:
+      - webhookl
+    singular: webhook
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: |-
+            Webhook connects to a third party API server to handle the secrets generation
+            configuration parameters in spec.
+            You can specify the server, the token, and additional body parameters.
+            See documentation for the full API specification for requests and responses.
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: WebhookSpec controls the behavior of the external generator. Any body parameters should be passed to the server through the parameters field.
+              properties:
+                body:
+                  description: Body
+                  type: string
+                caBundle:
+                  description: |-
+                    PEM encoded CA bundle used to validate webhook server certificate. Only used
+                    if the Server URL is using HTTPS protocol. This parameter is ignored for
+                    plain HTTP protocol connection. If not set the system root certificates
+                    are used to validate the TLS connection.
+                  format: byte
+                  type: string
+                caProvider:
+                  description: The provider for the CA bundle to use to validate webhook server certificate.
+                  properties:
+                    key:
+                      description: The key the value inside of the provider type to use, only used with "Secret" type
+                      type: string
+                    name:
+                      description: The name of the object located at the provider type.
+                      type: string
+                    namespace:
+                      description: The namespace the Provider type is in.
+                      type: string
+                    type:
+                      description: The type of provider to use such as "Secret", or "ConfigMap".
+                      enum:
+                        - Secret
+                        - ConfigMap
+                      type: string
+                  required:
+                    - name
+                    - type
+                  type: object
+                headers:
+                  additionalProperties:
+                    type: string
+                  description: Headers
+                  type: object
+                method:
+                  description: Webhook Method
+                  type: string
+                result:
+                  description: Result formatting
+                  properties:
+                    jsonPath:
+                      description: Json path of return value
+                      type: string
+                  type: object
+                secrets:
+                  description: |-
+                    Secrets to fill in templates
+                    These secrets will be passed to the templating function as key value pairs under the given name
+                  items:
+                    properties:
+                      name:
+                        description: Name of this secret in templates
+                        type: string
+                      secretRef:
+                        description: Secret ref to fill in credentials
+                        properties:
+                          key:
+                            description: The key where the token is found.
+                            type: string
+                          name:
+                            description: The name of the Secret resource being referred to.
+                            type: string
+                        type: object
+                    required:
+                      - name
+                      - secretRef
+                    type: object
+                  type: array
+                timeout:
+                  description: Timeout
+                  type: string
+                url:
+                  description: Webhook url to call
+                  type: string
+              required:
+                - result
+                - url
               type: object
           type: object
       served: true

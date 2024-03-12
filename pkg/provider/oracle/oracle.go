@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package oracle
 
 import (
@@ -156,6 +157,10 @@ func (vms *VaultManagementService) DeleteSecret(ctx context.Context, remoteRef e
 	default:
 		return sanitizeOCISDKErr(err)
 	}
+}
+
+func (vms *VaultManagementService) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
 }
 
 func (vms *VaultManagementService) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {

@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package conjur
 
 import (
@@ -94,7 +95,7 @@ func (p *Client) newClientFromJwt(ctx context.Context, config conjurapi.Config, 
 		return nil, getJWTError
 	}
 
-	client, clientError := p.clientAPI.NewClientFromJWT(config, jwtToken, jwtAuth.ServiceID)
+	client, clientError := p.clientAPI.NewClientFromJWT(config, jwtToken, jwtAuth.ServiceID, jwtAuth.HostID)
 	if clientError != nil {
 		return nil, clientError
 	}
