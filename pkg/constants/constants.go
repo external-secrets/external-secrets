@@ -95,8 +95,6 @@ const (
 	CallAKEYLESSSMGetCertificateValue   = "GetCertificateValue"
 	CallAKEYLESSSMGetDynamicSecretValue = "GetDynamicSecretsValue"
 
-	ProviderGitHub = "GitHub"
-
 	StatusError   = "error"
 	StatusSuccess = "success"
 )
