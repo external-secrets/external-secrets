@@ -157,6 +157,9 @@ type SecretStoreProvider struct {
 	// Fortanix configures this store to sync secrets using the Fortanix provider
 	// +optional
 	Fortanix *FortanixProvider `json:"fortanix,omitempty"`
+
+	// +optional
+	PasswordDepot *PasswordDepotProvider `json:"passworddepot,omitempty"`
 }
 
 type CAProviderType string

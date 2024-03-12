@@ -1500,6 +1500,46 @@ spec:
                         - region
                         - vault
                       type: object
+                    passworddepot:
+                      description: Configures a store to sync secrets with a Password Depot instance.
+                      properties:
+                        auth:
+                          description: Auth configures how secret-manager authenticates with a Password Depot instance.
+                          properties:
+                            secretRef:
+                              properties:
+                                credentials:
+                                  description: Username / Password is used for authentication.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        database:
+                          description: Database to use as source
+                          type: string
+                        host:
+                          description: URL configures the Password Depot instance URL.
+                          type: string
+                      required:
+                        - auth
+                        - database
+                        - host
+                      type: object
                     vault:
                       description: Vault configures this store to sync secrets using Hashi provider
                       properties:
@@ -3594,6 +3634,46 @@ spec:
                       required:
                         - region
                         - vault
+                      type: object
+                    passworddepot:
+                      description: Configures a store to sync secrets with a Password Depot instance.
+                      properties:
+                        auth:
+                          description: Auth configures how secret-manager authenticates with a Password Depot instance.
+                          properties:
+                            secretRef:
+                              properties:
+                                credentials:
+                                  description: Username / Password is used for authentication.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        database:
+                          description: Database to use as source
+                          type: string
+                        host:
+                          description: URL configures the Password Depot instance URL.
+                          type: string
+                      required:
+                        - auth
+                        - database
+                        - host
                       type: object
                     pulumi:
                       description: Pulumi configures this store to sync secrets using the Pulumi provider
@@ -6668,6 +6748,46 @@ spec:
                         - region
                         - vault
                       type: object
+                    passworddepot:
+                      description: Configures a store to sync secrets with a Password Depot instance.
+                      properties:
+                        auth:
+                          description: Auth configures how secret-manager authenticates with a Password Depot instance.
+                          properties:
+                            secretRef:
+                              properties:
+                                credentials:
+                                  description: Username / Password is used for authentication.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        database:
+                          description: Database to use as source
+                          type: string
+                        host:
+                          description: URL configures the Password Depot instance URL.
+                          type: string
+                      required:
+                        - auth
+                        - database
+                        - host
+                      type: object
                     vault:
                       description: Vault configures this store to sync secrets using Hashi provider
                       properties:
@@ -8762,6 +8882,46 @@ spec:
                       required:
                         - region
                         - vault
+                      type: object
+                    passworddepot:
+                      description: Configures a store to sync secrets with a Password Depot instance.
+                      properties:
+                        auth:
+                          description: Auth configures how secret-manager authenticates with a Password Depot instance.
+                          properties:
+                            secretRef:
+                              properties:
+                                credentials:
+                                  description: Username / Password is used for authentication.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        database:
+                          description: Database to use as source
+                          type: string
+                        host:
+                          description: URL configures the Password Depot instance URL.
+                          type: string
+                      required:
+                        - auth
+                        - database
+                        - host
                       type: object
                     pulumi:
                       description: Pulumi configures this store to sync secrets using the Pulumi provider

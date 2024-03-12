@@ -131,3 +131,27 @@ nav:
       - Talks: eso-talks.md
       - Demos: eso-demos.md
       - Blogs: eso-blogs.md
+    - AWS:
+      - Secrets Manager: provider-aws-secrets-manager.md
+      - Parameter Store: provider-aws-parameter-store.md
+    - Azure:
+      - Key Vault: provider-azure-key-vault.md
+    - Google:
+      - Secrets Manager: provider-google-secrets-manager.md
+    - IBM:
+      - Secrets Manager: provider-ibm-secrets-manager.md
+    - HashiCorp Vault: provider-hashicorp-vault.md
+    - Yandex:
+        - Lockbox: provider-yandex-lockbox.md
+    - Password Depot: provider-passworddepot.md
+    - Gitlab:
+      - Gitlab Project Variables: provider-gitlab-project-variables.md
+    - Oracle:
+      - Oracle Vault: provider-oracle-vault.md
+  - References:
+    - API specification: spec.md
+  - Contributing:
+    - Developer guide: contributing-devguide.md
+    - Contributing Process: contributing-process.md
+    - Code of Conduct: contributing-coc.md
+  - Deprecation Policy: deprecation-policy.md
