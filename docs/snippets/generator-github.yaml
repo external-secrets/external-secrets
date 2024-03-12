@@ -5,18 +5,15 @@
 # 4. Install your Github app https://docs.github.com/en/apps/using-github-apps/installing-your-own-github-app
 # 5. Get `installID` https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-an-installation-access-token-for-a-github-app#generating-an-installation-access-token (2)
 ---
-apiVersion: external-secrets.io/v1beta1
-kind: SecretStore
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: GithubAccessToken
 metadata:
-  name: github-secret-stor
-  namespace: external-secrets
+  name: github-auth-token
 spec:
-  provider:
-    github:
-      appID: "0000000" # (1)
-      installID: "00000000" # (5)
-      auth:
-        privatKey:
-          secretRef:
-            name: github-app-pem # (2)
-            key: key
+  appID: "0000000" # (1)
+  installID: "00000000" # (5)
+  auth:
+    privatKey:
+      secretRef:
+        name: github-app-pem # (2)
+        key: key

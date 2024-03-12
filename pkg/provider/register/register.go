@@ -27,7 +27,6 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/doppler"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/fake"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
-	_ "github.com/external-secrets/external-secrets/pkg/provider/github"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/gitlab"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/ibm"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/keepersecurity"
