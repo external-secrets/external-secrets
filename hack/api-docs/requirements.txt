@@ -7,7 +7,7 @@ csscompressor==0.9.5
 ghp-import==2.1.0
 htmlmin==0.1.12
 idna==3.6
-importlib-metadata==7.0.1
+importlib-metadata==7.0.2
 importlib-resources==6.1.2
 Jinja2==3.1.3
 jsmin==3.0.1
