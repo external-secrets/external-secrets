@@ -191,18 +191,13 @@ func (api *API) login(ctx context.Context) error {
 	loginRequest.Header.Add("user", api.username)
 	loginRequest.Header.Add("pass", api.password)
 
-	resp, err := api.client.Do(loginRequest)
+	resp, err := api.client.Do(loginRequest) //nolint:bodyclose // linters bug
 	if err != nil {
 		return fmt.Errorf(DoRequestError, err)
 	}
 
-	var buf bytes.Buffer
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return fmt.Errorf("failed to authenticate with the given credentials: %d %s", resp.StatusCode, buf.String())
-	}
-
 	accessData := AccessData{}
-	err = ReadAndUnmarshal(resp.Body, &accessData)
+	err = ReadAndUnmarshal(resp.Body, resp, &accessData)
 	if err != nil {
 		return fmt.Errorf("error: failed to unmarshal response body: %w", err)
 	}
@@ -222,23 +217,26 @@ func (api *API) ListSecrets(dbFingerprint, folder string) (DatabaseEntries, erro
 		return DatabaseEntries{}, fmt.Errorf("error: creating secrets request: %w", err)
 	}
 
-	respSecretsList, err := api.doAuthenticatedRequest(listSecrets)
+	respSecretsList, err := api.doAuthenticatedRequest(listSecrets) //nolint:bodyclose // linters bug
 	if err != nil {
 		return DatabaseEntries{}, fmt.Errorf(DoRequestError, err)
 	}
 
 	dbEntries := DatabaseEntries{}
-
-	err = ReadAndUnmarshal(respSecretsList.Body, &dbEntries)
+	err = ReadAndUnmarshal(respSecretsList.Body, respSecretsList, &dbEntries)
 	return dbEntries, err
 }
-func ReadAndUnmarshal(content io.ReadCloser, target any) error {
+
+func ReadAndUnmarshal(content io.ReadCloser, resp *http.Response, target any) error {
 	var buf bytes.Buffer
 	defer func() {
 		if content != nil {
 			content.Close()
 		}
 	}()
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return fmt.Errorf("failed to authenticate with the given credentials: %d %s", resp.StatusCode, buf.String())
+	}
 	_, err := buf.ReadFrom(content)
 	if err != nil {
 		return err
@@ -252,13 +250,13 @@ func (api *API) ListDatabases() (Databases, error) {
 		return Databases{}, fmt.Errorf("error: creating db request: %w", err)
 	}
 
-	respDBList, err := api.doAuthenticatedRequest(listDBRequest)
+	respDBList, err := api.doAuthenticatedRequest(listDBRequest) //nolint:bodyclose // linters bug
 	if err != nil {
 		return Databases{}, fmt.Errorf(DoRequestError, err)
 	}
-	databases := Databases{}
 
-	err = ReadAndUnmarshal(respDBList.Body, &databases)
+	databases := Databases{}
+	err = ReadAndUnmarshal(respDBList.Body, respDBList, &databases)
 	return databases, err
 }
 
@@ -277,13 +275,13 @@ func (api *API) GetSecret(database, secretName string) (SecretEntry, error) {
 		return SecretEntry{}, fmt.Errorf("error: creating secrets request: %w", err)
 	}
 
-	respSecretRead, err := api.doAuthenticatedRequest(readSecretRequest)
+	respSecretRead, err := api.doAuthenticatedRequest(readSecretRequest) //nolint:bodyclose // linters bug
 	if err != nil {
 		return SecretEntry{}, fmt.Errorf(DoRequestError, err)
 	}
-	secretEntry := SecretEntry{}
 
-	err = ReadAndUnmarshal(respSecretRead.Body, &secretEntry)
+	secretEntry := SecretEntry{}
+	err = ReadAndUnmarshal(respSecretRead.Body, respSecretRead, &secretEntry)
 	return secretEntry, err
 }
 
