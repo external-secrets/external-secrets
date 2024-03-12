@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -197,7 +196,7 @@ func (api *API) login(ctx context.Context) error {
 	}
 
 	accessData := AccessData{}
-	err = ReadAndUnmarshal(resp.Body, resp, &accessData)
+	err = ReadAndUnmarshal(resp, &accessData)
 	if err != nil {
 		return fmt.Errorf("error: failed to unmarshal response body: %w", err)
 	}
@@ -223,21 +222,21 @@ func (api *API) ListSecrets(dbFingerprint, folder string) (DatabaseEntries, erro
 	}
 
 	dbEntries := DatabaseEntries{}
-	err = ReadAndUnmarshal(respSecretsList.Body, respSecretsList, &dbEntries)
+	err = ReadAndUnmarshal(respSecretsList, &dbEntries)
 	return dbEntries, err
 }
 
-func ReadAndUnmarshal(content io.ReadCloser, resp *http.Response, target any) error {
+func ReadAndUnmarshal(resp *http.Response, target any) error {
 	var buf bytes.Buffer
 	defer func() {
-		if content != nil {
-			content.Close()
+		if resp.Body != nil {
+			resp.Body.Close()
 		}
 	}()
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		return fmt.Errorf("failed to authenticate with the given credentials: %d %s", resp.StatusCode, buf.String())
 	}
-	_, err := buf.ReadFrom(content)
+	_, err := buf.ReadFrom(resp.Body)
 	if err != nil {
 		return err
 	}
@@ -256,7 +255,7 @@ func (api *API) ListDatabases() (Databases, error) {
 	}
 
 	databases := Databases{}
-	err = ReadAndUnmarshal(respDBList.Body, respDBList, &databases)
+	err = ReadAndUnmarshal(respDBList, &databases)
 	return databases, err
 }
 
@@ -281,7 +280,7 @@ func (api *API) GetSecret(database, secretName string) (SecretEntry, error) {
 	}
 
 	secretEntry := SecretEntry{}
-	err = ReadAndUnmarshal(respSecretRead.Body, respSecretRead, &secretEntry)
+	err = ReadAndUnmarshal(respSecretRead, &secretEntry)
 	return secretEntry, err
 }
 
