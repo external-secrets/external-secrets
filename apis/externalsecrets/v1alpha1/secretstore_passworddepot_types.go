@@ -31,7 +31,7 @@ type PasswordDepotProvider struct {
 }
 
 type PasswordDepotAuth struct {
-	SecretRef PasswordDepotSecretRef `json:"SecretRef"`
+	SecretRef PasswordDepotSecretRef `json:"secretRef"`
 }
 
 type PasswordDepotSecretRef struct {
