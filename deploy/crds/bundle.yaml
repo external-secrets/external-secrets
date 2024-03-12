@@ -1506,7 +1506,7 @@ spec:
                         auth:
                           description: Auth configures how secret-manager authenticates with a Password Depot instance.
                           properties:
-                            SecretRef:
+                            secretRef:
                               properties:
                                 credentials:
                                   description: Username / Password is used for authentication.
@@ -1527,7 +1527,7 @@ spec:
                                   type: object
                               type: object
                           required:
-                            - SecretRef
+                            - secretRef
                           type: object
                         database:
                           description: Database to use as source
@@ -6754,7 +6754,7 @@ spec:
                         auth:
                           description: Auth configures how secret-manager authenticates with a Password Depot instance.
                           properties:
-                            SecretRef:
+                            secretRef:
                               properties:
                                 credentials:
                                   description: Username / Password is used for authentication.
@@ -6775,7 +6775,7 @@ spec:
                                   type: object
                               type: object
                           required:
-                            - SecretRef
+                            - secretRef
                           type: object
                         database:
                           description: Database to use as source
