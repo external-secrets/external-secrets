@@ -134,7 +134,7 @@ func (p *PasswordDepot) NewClient(ctx context.Context, store esv1beta1.GenericSt
 	return p, nil
 }
 
-func (p *PasswordDepot) SecretExists(ctx context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (p *PasswordDepot) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
 	return false, fmt.Errorf("not implemented")
 }
 
