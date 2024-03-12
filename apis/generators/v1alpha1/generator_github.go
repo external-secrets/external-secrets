@@ -37,7 +37,7 @@ type GithubSecretRef struct {
 	SecretRef esmeta.SecretKeySelector `json:"secretRef"`
 }
 
-// GithubAccessToken generates an gs_ access token
+// GithubAccessToken generates ghs_ accessToken
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
