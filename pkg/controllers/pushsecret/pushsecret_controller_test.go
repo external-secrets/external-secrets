@@ -71,9 +71,9 @@ func checkCondition(status v1alpha1.PushSecretStatus, cond v1alpha1.PushSecretSt
 
 type testTweaks func(*testCase)
 
-var _ = Describe("ExternalSecret controller", func() {
+var _ = Describe("PushSecret controller", func() {
 	const (
-		PushSecretName  = "test-es"
+		PushSecretName  = "test-ps"
 		PushSecretStore = "test-store"
 		SecretName      = "test-secret"
 	)
@@ -871,7 +871,8 @@ var _ = Describe("ExternalSecret controller", func() {
 			}
 			return checkCondition(ps.Status, expected)
 		}
-	} // if target Secret name is not specified it should use the ExternalSecret name.
+	}
+	// if target Secret name is not specified it should use the ExternalSecret name.
 	setSecretFail := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
 			return fmt.Errorf("boom")
@@ -899,6 +900,31 @@ var _ = Describe("ExternalSecret controller", func() {
 				Message: "set secret failed: could not get secrets client for store test-store: boom",
 			}
 			return checkCondition(ps.Status, expected)
+		}
+	}
+	// if store name does not match store
+	skipUnmanagedStore := func(tc *testCase) {
+		tc.store = &v1beta1.SecretStore{
+			TypeMeta: metav1.TypeMeta{
+				Kind: "SecretStore",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      PushSecretStore,
+				Namespace: PushSecretNamespace,
+			},
+			Spec: v1beta1.SecretStoreSpec{
+				Controller: "other-controller",
+				Provider: &v1beta1.SecretStoreProvider{
+					Fake: &v1beta1.FakeProvider{
+						Data: []v1beta1.FakeProviderData{},
+					},
+				},
+			},
+		}
+
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			cond := getPushSecretCondition(ps.Status, v1alpha1.PushSecretReady)
+			return cond == nil
 		}
 	}
 	DescribeTable("When reconciling a PushSecret",
@@ -950,5 +976,6 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should fail if no valid SecretStore", failNoSecretStore),
 		Entry("should fail if no valid ClusterSecretStore", failNoClusterStore),
 		Entry("should fail if NewClient fails", newClientFail),
+		Entry("should skip if unmanaged store", skipUnmanagedStore),
 	)
 })

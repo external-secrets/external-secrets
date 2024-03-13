@@ -92,6 +92,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, fmt.Errorf("get resource: %w", err)
 	}
 
+	// skip when pointing to an unmanaged store
+	skip, err := shouldSkipUnmanagedStore(ctx, req.Namespace, r, ps)
+	if skip {
+		log.Info("skipping unmanaged store as it points to a unmanaged controllerClass")
+		return ctrl.Result{}, nil
+	}
+	if err != nil {
+		log.Error(err, "Error in skipping unmanaged store logic")
+	}
+
 	refreshInt := r.RequeueInterval
 	if ps.Spec.RefreshInterval != nil {
 		refreshInt = ps.Spec.RefreshInterval.Duration
@@ -456,4 +466,41 @@ func statusRef(ref v1beta1.PushSecretData) string {
 		return ref.GetRemoteKey() + "/" + ref.GetProperty()
 	}
 	return ref.GetRemoteKey()
+}
+
+// shouldSkipUnmanagedStore iterates over all secretStore references in the pushSecret spec,
+// fetches the store and evaluates the controllerClass property.
+// Returns true if any storeRef points to store with a non-matching controllerClass.
+func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconciler, ps esapi.PushSecret) (bool, error) {
+	var storeList []esapi.PushSecretStoreRef
+
+	for _, ref := range ps.Spec.SecretStoreRefs {
+		if ref.Name != "" {
+			storeList = append(storeList, ref)
+		}
+	}
+
+	for _, ref := range storeList {
+		var store v1beta1.GenericStore
+
+		switch ref.Kind {
+		case v1beta1.SecretStoreKind, "":
+			store = &v1beta1.SecretStore{}
+		case v1beta1.ClusterSecretStoreKind:
+			store = &v1beta1.ClusterSecretStore{}
+			namespace = ""
+		}
+		err := r.Client.Get(ctx, types.NamespacedName{
+			Name:      ref.Name,
+			Namespace: namespace,
+		}, store)
+		if err != nil {
+			return false, err
+		}
+		class := store.GetSpec().Controller
+		if class != "" && class != r.ControllerClass {
+			return true, nil
+		}
+	}
+	return false, nil
 }
