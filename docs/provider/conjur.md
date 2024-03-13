@@ -135,7 +135,7 @@ kubectl apply -n external-secrets -f conjur-external-secret.yaml
 #### Step 5: Get the K8s secret
 
 * Log in to your Conjur server and verify that your secret exists
-* Review the value of your Kubernetes secret to see that it contains the same value as the Conjur server
+* Review the value of your Kubernetes secret to verify that it contains the same value as the Conjur server
 
 ```shell
 # WARNING: this command will reveal the stored secret in plain text
