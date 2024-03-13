@@ -1,22 +1,22 @@
 ## Conjur Provider
 
-The following sections outline what is needed to get your external-secrets Conjur provider setup.
+The section describes how to set up the Conjur external secrets provider setup.
 
 ### Prerequisites
 
-Before installing the Conjure provider, you need:
+Before installing the Conjur provider, you need:
 
 *   A running Conjur Server, with:
-    *   An accessible Conjur endpoint without trailing paths ('/'), ex: https://myapi.example.com
-    *   Your Conjur authentication info (such as `hostid`, `apikey`, or JWT service ID)
-    *   Support for your authentication method (`apikey` is supported by default, `jwt` requires additional configuration)
-    *   **Optional**: Conjur server certificate (see [below](#conjur-server-certificate))
+    *   An accessible Conjur endpoint without trailing paths ('/'), ex: `https://myapi.example.com`.
+    *   Your configured Conjur authentication info (such as `hostid`, `apikey`, or JWT service ID). For more information on configuring Conjur, see [Policy statement reference](https://docs.cyberark.com/conjur-open-source/Latest/en/Content/Operations/Policy/policy-statement-ref.htm).
+    *   Support for your authentication method (`apikey` is supported by default, `jwt` requires additional configuration).
+    *   **Optional**: Conjur server certificate (see [below](#conjur-server-certificate)).
 *   Kubernetes cluster
-    -   External Secrets Operator is installed
+    -   External Secrets Operator is installed.
 
 ### Conjur server certificate
 
-When you set up your Conjur server with a self-signed certificate, we recommend that you populate the `caBundle` field with a self-signed certificate in the secret-store definition. The certificate CA must be referenced in the secret-store definition using either `caBundle` or `caProvider`:
+If you set up your Conjur server with a self-signed certificate, we recommend that you populate the `caBundle` field with a self-signed certificate in the secret-store definition. The certificate CA must be referenced in the secret-store definition using either `caBundle` or `caProvider`:
 
 ```yaml
 {% include 'conjur-ca-bundle.yaml' %}
