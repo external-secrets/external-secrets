@@ -1,18 +1,17 @@
 ## Conjur Provider
 
-The section describes how to set up the Conjur external secrets provider setup.
+The section describes how to set up the Conjur provider with External Secrets Operator (ESO). For a working example, see the [Accelerator-K8s-External-Secrets repo](https://github.com/conjurdemos/Accelerator-K8s-External-Secrets).
 
 ### Prerequisites
 
 Before installing the Conjur provider, you need:
 
 *   A running Conjur Server, with:
-    *   An accessible Conjur endpoint without trailing paths ('/'), ex: `https://myapi.example.com`.
+    *   An accessible Conjur endpoint, provided to ESO without trailing paths ('/'). For example, `https://myapi.example.com`.
     *   Your configured Conjur authentication info (such as `hostid`, `apikey`, or JWT service ID). For more information on configuring Conjur, see [Policy statement reference](https://docs.cyberark.com/conjur-open-source/Latest/en/Content/Operations/Policy/policy-statement-ref.htm).
     *   Support for your authentication method (`apikey` is supported by default, `jwt` requires additional configuration).
     *   **Optional**: Conjur server certificate (see [below](#conjur-server-certificate)).
-*   Kubernetes cluster
-    -   External Secrets Operator is installed.
+*   A Kubernetes cluster with ESO installed.
 
 ### Conjur server certificate
 
