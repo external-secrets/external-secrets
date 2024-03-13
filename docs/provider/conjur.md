@@ -16,7 +16,7 @@ Before installing the Conjure provider, you need:
 
 ### Conjur server certificate
 
-When you set up your Conjur server with a self-signed certificate, we recommend that you `caBundle` with a self-signed certificate in the secret-store definition.The certificate CA must be referenced in the secret-store definition using either `caBundle` or `caProvider`:
+When you set up your Conjur server with a self-signed certificate, we recommend that you populate the `caBundle` field with a self-signed certificate in the secret-store definition. The certificate CA must be referenced in the secret-store definition using either `caBundle` or `caProvider`:
 
 ```yaml
 {% include 'conjur-ca-bundle.yaml' %}
