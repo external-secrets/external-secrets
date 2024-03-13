@@ -17,6 +17,7 @@ package secretstore
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -236,6 +237,13 @@ func (m *Manager) shouldProcessSecret(store esv1beta1.GenericStore, ns string) (
 			}
 		}
 
+		if condition.NamespacesRegex != nil {
+			match, err := matchStringInList(condition.NamespacesRegex, ns)
+			if match || err != nil {
+				return true, err
+			}
+		}
+
 		if condition.Namespaces != nil {
 			if slices.Contains(condition.Namespaces, ns) {
 				return true, nil // namespace in the namespaces list
@@ -256,4 +264,17 @@ func assertStoreIsUsable(store esv1beta1.GenericStore) error {
 		return fmt.Errorf(errSecretStoreNotReady, store.GetName())
 	}
 	return nil
+}
+
+func matchStringInList(list []string, item string) (bool, error) {
+	for _, ll := range list {
+		if item == ll {
+			return true, nil
+		}
+		match, err := regexp.MatchString(ll, item)
+		if match || err != nil {
+			return match, err
+		}
+	}
+	return false, nil
 }
