@@ -15,7 +15,7 @@ Before installing the Conjur provider, you need:
 
 ### Conjur server certificate
 
-If you set up your Conjur server with a self-signed certificate, we recommend that you populate the `caBundle` field with a self-signed certificate in the secret-store definition. The certificate CA must be referenced in the secret-store definition using either `caBundle` or `caProvider`:
+If you set up your Conjur server with a self-signed certificate, we recommend that you populate the `caBundle` field with the Conjur self-signed certificate in the secret-store definition. The certificate CA must be referenced in the secret-store definition using either `caBundle` or `caProvider`:
 
 ```yaml
 {% include 'conjur-ca-bundle.yaml' %}
@@ -144,7 +144,13 @@ kubectl apply -n external-secrets -f conjur-external-secret.yaml
 kubectl get secret -n external-secrets conjur -o jsonpath="{.data.secret00}"  | base64 --decode && echo
 ```
 
-### Support
+### See also
+
+* [Accelerator-K8s-External-Secrets repo](https://github.com/conjurdemos/Accelerator-K8s-External-Secrets)
+* [Configure Conjur JWT authentication](https://docs.cyberark.com/conjur-open-source/Latest/en/Content/Operations/Services/cjr-authn-jwt-guidelines.htm)
+
+
+### License
 
 Copyright (c) 2023 CyberArk Software Ltd. All rights reserved.
 
