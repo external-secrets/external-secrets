@@ -2047,7 +2047,7 @@ func TestProviderOnePasswordPushSecret(t *testing.T) {
 				},
 			},
 			updateValidateFunc: func(item *onepassword.Item, s string) (*onepassword.Item, error) {
-				validateItem(t, &onepassword.Item{
+				expectedItem := &onepassword.Item{
 					Vault: onepassword.ItemVault{
 						ID: vaultName,
 					},
@@ -2063,8 +2063,9 @@ func TestProviderOnePasswordPushSecret(t *testing.T) {
 							Type:  onepassword.FieldTypeConcealed,
 						},
 					},
-				}, item)
-				return nil, nil
+				}
+				validateItem(t, expectedItem, item)
+				return expectedItem, nil
 			},
 			existingItems: []onepassword.Item{
 				{
