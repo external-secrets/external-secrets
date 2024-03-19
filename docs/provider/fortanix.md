@@ -26,6 +26,7 @@ spec:
 ### Referencing Secrets
 
 ```yaml
+# Raw stored value
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
@@ -36,15 +37,37 @@ spec:
     kind: SecretStore
     name: secret-store
   data:
-
-  # Raw stored value
   - secretKey: <KEY_IN_KUBE_SECRET>
     remoteRef:
       key: <SDKMS_SECURITY_OBJECT_NAME>
-
-  # From stored key-value JSON
+---
+# From stored key-value JSON
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: secret-from-property
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: secret-store
+  data:
   - secretKey: <KEY_IN_KUBE_SECRET>
     remoteRef:
       key: <SDKMS_SECURITY_OBJECT_NAME>
       property: <SECURITY_OBJECT_VALUE_INNER_PROPERTY>
+---
+# Extract all keys from stored key-value JSON
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: secret-from-extract
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: secret-store
+  dataFrom:
+  - extract:
+      key: <SDKMS_SECURITY_OBJECT_NAME>
 ```
