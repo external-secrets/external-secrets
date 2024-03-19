@@ -554,6 +554,17 @@ func (in *ClusterExternalSecretSpec) DeepCopyInto(out *ClusterExternalSecretSpec
 		*out = new(v1.LabelSelector)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.NamespaceSelectors != nil {
+		in, out := &in.NamespaceSelectors, &out.NamespaceSelectors
+		*out = make([]*v1.LabelSelector, len(*in))
+		for i := range *in {
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(v1.LabelSelector)
+				(*in).DeepCopyInto(*out)
+			}
+		}
+	}
 	if in.Namespaces != nil {
 		in, out := &in.Namespaces, &out.Namespaces
 		*out = make([]string, len(*in))
