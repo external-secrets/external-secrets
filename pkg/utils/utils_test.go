@@ -23,6 +23,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
@@ -228,6 +229,77 @@ func TestConvertKeys(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ConvertKeys() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestReverseKeys(t *testing.T) {
+	type args struct {
+		encodingStrategy esv1beta1.ExternalSecretConversionStrategy
+		decodingStrategy esv1alpha1.PushSecretConversionStrategy
+		in               map[string][]byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    map[string][]byte
+		wantErr bool
+	}{
+		{
+			name: "encoding and decoding strategy are selecting Unicode conversion and reverse unicode, so the in and want should match, this test covers Unicode characters beyond the Basic Multilingual Plane (BMP)",
+			args: args{
+				encodingStrategy: esv1beta1.ExternalSecretConversionUnicode,
+				decodingStrategy: esv1alpha1.PushSecretConversionReverseUnicode,
+				in: map[string][]byte{
+					"😀foo😁bar😂baz😈bing": []byte(`noop`),
+				},
+			},
+			want: map[string][]byte{
+				"😀foo😁bar😂baz😈bing": []byte(`noop`),
+			},
+		},
+		{
+			name: "encoding and decoding strategy are selecting Unicode conversion and reverse unicode, so the in and want should match, this test covers Unicode characters in the Basic Multilingual Plane (BMP)",
+			args: args{
+				encodingStrategy: esv1beta1.ExternalSecretConversionUnicode,
+				decodingStrategy: esv1alpha1.PushSecretConversionReverseUnicode,
+				in: map[string][]byte{
+					"some-array[0].entity": []byte(`noop`),
+				},
+			},
+			want: map[string][]byte{
+				"some-array[0].entity": []byte(`noop`),
+			},
+		},
+		{
+			name: "the encoding strategy is selecting Unicode conversion, but the decoding strategy is none, so we want an encoded representation of the content",
+			args: args{
+				encodingStrategy: esv1beta1.ExternalSecretConversionUnicode,
+				decodingStrategy: esv1alpha1.PushSecretConversionNone,
+				in: map[string][]byte{
+					"some-array[0].entity": []byte(`noop`),
+				},
+			},
+			want: map[string][]byte{
+				"some-array_U005b_0_U005d_.entity": []byte(`noop`),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ConvertKeys(tt.args.encodingStrategy, tt.args.in)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ConvertKeys() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			got, err = ReverseKeys(tt.args.decodingStrategy, got)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ReverseKeys() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReverseKeys() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -536,6 +608,50 @@ func TestRewrite(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("RewriteMap() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_reverse(t *testing.T) {
+	type args struct {
+		strategy esv1alpha1.PushSecretConversionStrategy
+		in       string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "do not change the key when using the None strategy",
+			args: args{
+				strategy: esv1alpha1.PushSecretConversionNone,
+				in:       "some-array_U005b_0_U005d_.entity",
+			},
+			want: "some-array_U005b_0_U005d_.entity",
+		},
+		{
+			name: "reverse an unicode encoded key",
+			args: args{
+				strategy: esv1alpha1.PushSecretConversionReverseUnicode,
+				in:       "some-array_U005b_0_U005d_.entity",
+			},
+			want: "some-array[0].entity",
+		},
+		{
+			name: "do not attempt to decode an invalid unicode representation",
+			args: args{
+				strategy: esv1alpha1.PushSecretConversionReverseUnicode,
+				in:       "_U0xxx_x_U005b_",
+			},
+			want: "_U0xxx_x[",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := reverse(tt.args.strategy, tt.args.in); got != tt.want {
+				t.Errorf("reverse() = %v, want %v", got, tt.want)
 			}
 		})
 	}

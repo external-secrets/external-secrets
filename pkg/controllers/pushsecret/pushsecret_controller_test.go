@@ -637,6 +637,64 @@ var _ = Describe("ExternalSecret controller", func() {
 			return true
 		}
 	}
+	// if conversion strategy is defined, revert the keys based on the strategy.
+	syncSuccessfullyWithConversionStrategy := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		tc.pushsecret = &v1alpha1.PushSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      PushSecretName,
+				Namespace: PushSecretNamespace,
+			},
+			Spec: v1alpha1.PushSecretSpec{
+				SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
+					{
+						Name: PushSecretStore,
+						Kind: "SecretStore",
+					},
+				},
+				Selector: v1alpha1.PushSecretSelector{
+					Secret: v1alpha1.PushSecretSecret{
+						Name: SecretName,
+					},
+				},
+				Data: []v1alpha1.PushSecretData{
+					{
+						ConversionStrategy: v1alpha1.PushSecretConversionReverseUnicode,
+						Match: v1alpha1.PushSecretMatch{
+							SecretKey: "some-array[0].entity",
+							RemoteRef: v1alpha1.PushSecretRemoteRef{
+								RemoteKey: "path/to/key",
+							},
+						},
+					},
+				},
+			},
+		}
+		tc.secret = &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      SecretName,
+				Namespace: PushSecretNamespace,
+			},
+			Data: map[string][]byte{
+				"some-array_U005b_0_U005d_.entity": []byte("value"),
+			},
+		}
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			Eventually(func() bool {
+				By("checking if Provider value got updated")
+				secretValue := secret.Data["some-array_U005b_0_U005d_.entity"]
+				providerValue, ok := fakeProvider.SetSecretArgs[ps.Spec.Data[0].Match.RemoteRef.RemoteKey]
+				if !ok {
+					return false
+				}
+				got := providerValue.Value
+				return bytes.Equal(got, secretValue)
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	syncMatchingLabels := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
@@ -937,6 +995,7 @@ var _ = Describe("ExternalSecret controller", func() {
 		Entry("should update the PushSecret status correctly if UpdatePolicy=IfNotExists", updateIfNotExistsSyncStatus),
 		Entry("should fail if secret existence cannot be verified if UpdatePolicy=IfNotExists", updateIfNotExistsSyncFailed),
 		Entry("should sync with template", syncSuccessfullyWithTemplate),
+		Entry("should sync with conversion strategy", syncSuccessfullyWithConversionStrategy),
 		Entry("should delete if DeletionPolicy=Delete", syncAndDeleteSuccessfully),
 		Entry("should track deletion tasks if Delete fails", failDelete),
 		Entry("should track deleted stores if Delete fails", failDeleteStore),
