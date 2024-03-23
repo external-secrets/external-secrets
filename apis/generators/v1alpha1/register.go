@@ -100,6 +100,14 @@ var (
 	GithubAccessTokenGroupVersionKind = SchemeGroupVersion.WithKind(GithubAccessTokenKind)
 )
 
+// Uuid type metadata.
+var (
+	UuidKind             = reflect.TypeOf(Uuid{}).Name()
+	UuidGroupKind        = schema.GroupKind{Group: Group, Kind: UuidKind}.String()
+	UuidKindAPIVersion   = UuidKind + "." + SchemeGroupVersion.String()
+	UuidGroupVersionKind = SchemeGroupVersion.WithKind(UuidKind)
+)
+
 func init() {
 	SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationToken{})
 	SchemeBuilder.Register(&GCRAccessToken{}, &GCRAccessTokenList{})
