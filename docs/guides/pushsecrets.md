@@ -40,3 +40,6 @@ This will _marshal_ the entire secret data and push it into this single property
 
 !!! warning inline
     This should _ONLY_ be done if the secret data is marshal-able. Values like, binary data cannot be marshaled and will result in error or invalid secret data.
+
+### Key conversion strategy
+You can also set `data[*].conversionStrategy: ReverseUnicode` to reverse the invalid character replaced by the `conversionStrategy: Unicode` configuration in the `ExternalSecret` object as [documented here](../guides/getallsecrets/#avoiding-name-conflicts).
