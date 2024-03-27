@@ -362,6 +362,7 @@ func TestPushSecret(t *testing.T) {
 		want   want
 		data   *testingfake.PushSecretData
 		value  []byte
+		secret *corev1.Secret
 	}{
 		"SetSecretKV1": {
 			reason: "secret is successfully set, with no existing vault secret",
@@ -648,6 +649,21 @@ func TestPushSecret(t *testing.T) {
 				err: errors.New("secret not managed by external-secrets"),
 			},
 		},
+		"WholeSecretKV2": {
+			reason: "secret is successfully set, with no existing vault secret",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
+					WriteWithContextFn:        fake.ExpectWriteWithContextValue(map[string]interface{}{"data": map[string]interface{}{"key1": "value1", "key2": "value2"}}),
+				},
+			},
+			data:   &testingfake.PushSecretData{SecretKey: "", RemoteKey: "secret", Property: ""},
+			secret: &corev1.Secret{Data: map[string][]byte{"key1": []byte(`value1`), "key2": []byte(`value2`)}},
+			want: want{
+				err: nil,
+			},
+		},
 	}
 
 	for name, tc := range tests {
@@ -660,11 +676,14 @@ func TestPushSecret(t *testing.T) {
 				logical: tc.args.vLogical,
 				store:   tc.args.store,
 			}
-			val := tc.value
-			if val == nil {
-				val = []byte(`{"fake-key":"fake-value"}`)
+			s := tc.secret
+			if s == nil {
+				val := tc.value
+				if val == nil {
+					val = []byte(`{"fake-key":"fake-value"}`)
+				}
+				s = &corev1.Secret{Data: map[string][]byte{secretKey: val}}
 			}
-			s := &corev1.Secret{Data: map[string][]byte{secretKey: val}}
 			err := client.PushSecret(context.Background(), s, data)
 
 			// Error nil XOR tc.want.err nil
