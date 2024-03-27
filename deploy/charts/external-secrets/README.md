@@ -98,6 +98,10 @@ The command removes all the Kubernetes components associated with the chart and 
 | extraVolumeMounts | list | `[]` |  |
 | extraVolumes | list | `[]` |  |
 | fullnameOverride | string | `""` |  |
+| global.affinity | object | `{}` |  |
+| global.nodeSelector | object | `{}` |  |
+| global.tolerations | list | `[]` |  |
+| global.topologySpreadConstraints | list | `[]` |  |
 | hostNetwork | bool | `false` | Run the controller on the host network |
 | image.flavour | string | `""` | The flavour of tag you want to use There are different image flavours available, like distroless and ubi. Please see GitHub release notes for image tags for these flavors. By default the distroless image is used. |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
