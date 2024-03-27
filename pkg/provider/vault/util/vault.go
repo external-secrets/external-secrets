@@ -46,6 +46,7 @@ type Client interface {
 	Auth() Auth
 	Logical() Logical
 	AuthToken() Token
+	Namespace() string
 	SetNamespace(namespace string)
 	AddHeader(key, value string)
 }
@@ -57,12 +58,17 @@ type VaultClient struct {
 	AuthField        Auth
 	LogicalField     Logical
 	AuthTokenField   Token
+	NamespaceFunc    func() string
 	SetNamespaceFunc func(namespace string)
 	AddHeaderFunc    func(key, value string)
 }
 
 func (v VaultClient) AddHeader(key, value string) {
 	v.AddHeaderFunc(key, value)
+}
+
+func (v VaultClient) Namespace() string {
+	return v.NamespaceFunc()
 }
 
 func (v VaultClient) SetNamespace(namespace string) {

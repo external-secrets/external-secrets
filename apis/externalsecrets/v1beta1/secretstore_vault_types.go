@@ -104,8 +104,16 @@ type VaultClientTLS struct {
 
 // VaultAuth is the configuration used to authenticate with a Vault server.
 // Only one of `tokenSecretRef`, `appRole`,  `kubernetes`, `ldap`, `userPass`, `jwt` or `cert`
-// can be specified.
+// can be specified. A namespace to authenticate against can optionally be specified.
 type VaultAuth struct {
+	// Name of the vault namespace to authenticate to. This can be different than the namespace your secret is in.
+	// Namespaces is a set of features within Vault Enterprise that allows
+	// Vault environments to support Secure Multi-tenancy. e.g: "ns1".
+	// More about namespaces can be found here https://www.vaultproject.io/docs/enterprise/namespaces
+	// This will default to Vault.Namespace field if set, or empty otherwise
+	// +optional
+	Namespace *string `json:"namespace,omitempty"`
+
 	// TokenSecretRef authenticates with Vault by presenting a token.
 	// +optional
 	TokenSecretRef *esmeta.SecretKeySelector `json:"tokenSecretRef,omitempty"`

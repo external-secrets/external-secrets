@@ -6876,7 +6876,7 @@ resource is used as the app role secret.</p>
 <p>
 <p>VaultAuth is the configuration used to authenticate with a Vault server.
 Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code>, <code>userPass</code>, <code>jwt</code> or <code>cert</code>
-can be specified.</p>
+can be specified. A namespace to authenticate against can optionally be specified.</p>
 </p>
 <table>
 <thead>
@@ -6886,6 +6886,22 @@ can be specified.</p>
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Name of the vault namespace to authenticate to. This can be different than the namespace your secret is in.
+Namespaces is a set of features within Vault Enterprise that allows
+Vault environments to support Secure Multi-tenancy. e.g: &ldquo;ns1&rdquo;.
+More about namespaces can be found here <a href="https://www.vaultproject.io/docs/enterprise/namespaces">https://www.vaultproject.io/docs/enterprise/namespaces</a>
+This will default to Vault.Namespace field if set, or empty otherwise</p>
+</td>
+</tr>
 <tr>
 <td>
 <code>tokenSecretRef</code></br>
