@@ -15,6 +15,7 @@ limitations under the License.
 package utils
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
 	"time"
@@ -620,6 +621,107 @@ func TestFetchValueFromMetadata(t *testing.T) {
 			}
 			if !reflect.DeepEqual(gotT, tt.wantT) {
 				t.Errorf("FetchValueFromMetadata() gotT = %v, want %v", gotT, tt.wantT)
+			}
+		})
+	}
+}
+
+func TestGetByteValue(t *testing.T) {
+	type args struct {
+		data interface{}
+	}
+	type testCase struct {
+		name    string
+		args    args
+		want    []byte
+		wantErr bool
+	}
+	tests := []testCase{
+		{
+			name: "string",
+			args: args{
+				data: "value",
+			},
+			want:    []byte("value"),
+			wantErr: false,
+		},
+		{
+			name: "map of interface{}",
+			args: args{
+				data: map[string]interface{}{
+					"key": "value",
+				},
+			},
+			want:    []byte(`{"key":"value"}`),
+			wantErr: false,
+		},
+		{
+			name: "slice of string",
+			args: args{
+				data: []string{"value1", "value2"},
+			},
+			want:    []byte("value1\nvalue2"),
+			wantErr: false,
+		},
+		{
+			name: "json.RawMessage",
+			args: args{
+				data: json.RawMessage(`{"key":"value"}`),
+			},
+			want:    []byte(`{"key":"value"}`),
+			wantErr: false,
+		},
+		{
+			name: "float64",
+			args: args{
+				data: 123.45,
+			},
+			want:    []byte("123.45"),
+			wantErr: false,
+		},
+		{
+			name: "json.Number",
+			args: args{
+				data: json.Number("123.45"),
+			},
+			want:    []byte("123.45"),
+			wantErr: false,
+		},
+		{
+			name: "slice of interface{}",
+			args: args{
+				data: []interface{}{"value1", "value2"},
+			},
+			want:    []byte(`["value1","value2"]`),
+			wantErr: false,
+		},
+		{
+			name: "boolean",
+			args: args{
+				data: true,
+			},
+			want:    []byte("true"),
+			wantErr: false,
+		},
+		{
+			name: "nil",
+			args: args{
+				data: nil,
+			},
+			want:    []byte(nil),
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetByteValue(tt.args.data)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetByteValue() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetByteValue() = %v, want %v", got, tt.want)
 			}
 		})
 	}

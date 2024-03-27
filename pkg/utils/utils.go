@@ -264,6 +264,8 @@ func GetByteValue(v interface{}) ([]byte, error) {
 		return json.Marshal(t)
 	case []string:
 		return []byte(strings.Join(t, "\n")), nil
+	case json.RawMessage:
+		return t, nil
 	case []byte:
 		return t, nil
 	// also covers int and float32 due to json.Marshal
