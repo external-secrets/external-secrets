@@ -55,6 +55,7 @@ rules:
     - "gcraccesstokens"
     - "passwords"
     - "vaultdynamicsecrets"
+    - "webhooks"
     verbs:
     - "get"
     - "list"
@@ -147,6 +148,7 @@ rules:
     - "gcraccesstokens"
     - "passwords"
     - "vaultdynamicsecrets"
+    - "webhooks"
     verbs:
       - "get"
       - "watch"
@@ -190,6 +192,7 @@ rules:
     - "gcraccesstokens"
     - "passwords"
     - "vaultdynamicsecrets"
+    - "webhooks"
     verbs:
       - "create"
       - "delete"
