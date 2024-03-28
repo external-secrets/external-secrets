@@ -27,6 +27,9 @@ spec:
         - jsonPath: .status.conditions[?(@.type=="Ready")].status
           name: Ready
           type: string
+        - jsonPath: .status.conditions[?(@.type=="Ready")].synced
+          name: Synced
+          type: string
       name: v1beta1
       schema:
         openAPIV3Schema:
@@ -552,6 +555,9 @@ spec:
                       message:
                         type: string
                       status:
+                        type: string
+                      synced:
+                        description: Synced shows the number of synced secret and the total number of assigned namespaces, like '3/5'
                         type: string
                       type:
                         type: string
