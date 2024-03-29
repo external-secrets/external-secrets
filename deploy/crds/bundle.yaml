@@ -2440,6 +2440,8 @@ spec:
                         regionID:
                           description: Alibaba Region to be used for the provider
                           type: string
+                        service:
+                          type: string
                       required:
                         - auth
                         - regionID
@@ -7695,6 +7697,8 @@ spec:
                           type: object
                         regionID:
                           description: Alibaba Region to be used for the provider
+                          type: string
+                        service:
                           type: string
                       required:
                         - auth

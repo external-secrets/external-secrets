@@ -12,11 +12,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package alibaba
+package keymanagementservice
 
 import (
 	"context"
 	"fmt"
+	"github.com/external-secrets/external-secrets/pkg/provider/alibaba/auth"
 	"reflect"
 	"strings"
 	"testing"
@@ -24,8 +25,6 @@ import (
 	kmssdk "github.com/alibabacloud-go/kms-20160120/v3/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	fakesm "github.com/external-secrets/external-secrets/pkg/provider/alibaba/fake"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -35,7 +34,7 @@ const (
 )
 
 type keyManagementServiceTestCase struct {
-	mockClient     *fakesm.AlibabaMockClient
+	mockClient     *AlibabaMockClient
 	apiInput       *kmssdk.GetSecretValueRequest
 	apiOutput      *kmssdk.GetSecretValueResponseBody
 	ref            *esv1beta1.ExternalSecretDataRemoteRef
@@ -48,7 +47,7 @@ type keyManagementServiceTestCase struct {
 
 func makeValidKMSTestCase() *keyManagementServiceTestCase {
 	kmstc := keyManagementServiceTestCase{
-		mockClient:     &fakesm.AlibabaMockClient{},
+		mockClient:     &AlibabaMockClient{},
 		apiInput:       makeValidAPIInput(),
 		ref:            makeValidRef(),
 		apiOutput:      makeValidAPIOutput(),
@@ -98,7 +97,7 @@ var setAPIErr = func(kmstc *keyManagementServiceTestCase) {
 
 var setNilMockClient = func(kmstc *keyManagementServiceTestCase) {
 	kmstc.mockClient = nil
-	kmstc.expectError = errUninitalizedAlibabaProvider
+	kmstc.expectError = auth.ErrUninitializedAlibabaProvider
 }
 
 func TestAlibabaKMSGetSecret(t *testing.T) {
@@ -173,64 +172,6 @@ func TestGetSecretMap(t *testing.T) {
 		if err == nil && !reflect.DeepEqual(out, v.expectedData) {
 			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
 		}
-	}
-}
-
-func TestValidateAccessKeyStore(t *testing.T) {
-	kms := KeyManagementService{}
-
-	store := &esv1beta1.SecretStore{
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Alibaba: &esv1beta1.AlibabaProvider{
-					RegionID: "region-1",
-					Auth: esv1beta1.AlibabaAuth{
-						SecretRef: &esv1beta1.AlibabaAuthSecretRef{
-							AccessKeyID: esmeta.SecretKeySelector{
-								Name: "accessKeyID",
-								Key:  "key-1",
-							},
-							AccessKeySecret: esmeta.SecretKeySelector{
-								Name: "accessKeySecret",
-								Key:  "key-1",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	_, err := kms.ValidateStore(store)
-	if err != nil {
-		t.Errorf(err.Error())
-	}
-}
-
-func TestValidateRRSAStore(t *testing.T) {
-	kms := KeyManagementService{}
-
-	store := &esv1beta1.SecretStore{
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Alibaba: &esv1beta1.AlibabaProvider{
-					RegionID: "region-1",
-					Auth: esv1beta1.AlibabaAuth{
-						RRSAAuth: &esv1beta1.AlibabaRRSAAuth{
-							OIDCProviderARN:   "acs:ram::1234:oidc-provider/ack-rrsa-ce123456",
-							OIDCTokenFilePath: "/var/run/secrets/tokens/oidc-token",
-							RoleARN:           "acs:ram::1234:role/test-role",
-							SessionName:       "secrets",
-						},
-					},
-				},
-			},
-		},
-	}
-
-	_, err := kms.ValidateStore(store)
-	if err != nil {
-		t.Errorf(err.Error())
 	}
 }
 

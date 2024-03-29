@@ -101,7 +101,8 @@ nav:
     - Akeyless: provider/akeyless.md
     - Yandex Certificate Manager: provider/yandex-certificate-manager.md
     - Yandex Lockbox: provider/yandex-lockbox.md
-    - Alibaba Cloud: provider/alibaba.md
+    - Alibaba Cloud Key Management Service: provider/alibaba-key-management-service.md
+    - Alibaba Cloud Parameter Store: provider/alibaba-parameter-store.md
     - GitLab Variables: provider/gitlab-variables.md
     - Oracle Vault: provider/oracle-vault.md
     - 1Password Secrets Automation: provider/1password-automation.md

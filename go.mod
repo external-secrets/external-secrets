@@ -67,6 +67,7 @@ require (
 	github.com/akeylesslabs/akeyless-go/v3 v3.6.2
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.6
 	github.com/alibabacloud-go/kms-20160120/v3 v3.1.3
+	github.com/alibabacloud-go/oos-20190601/v3 v3.1.0
 	github.com/alibabacloud-go/openapi-util v0.1.0
 	github.com/alibabacloud-go/tea v1.2.2
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.5
