@@ -67,6 +67,7 @@ require (
 	github.com/akeylesslabs/akeyless-go/v3 v3.6.2
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.6
 	github.com/alibabacloud-go/kms-20160120/v3 v3.1.3
+	github.com/alibabacloud-go/oos-20190601/v3 v3.1.0
 	github.com/alibabacloud-go/openapi-util v0.1.0
 	github.com/alibabacloud-go/tea v1.2.2
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.5
@@ -108,7 +109,6 @@ require (
 	github.com/alibabacloud-go/darabonba-string v1.0.2 // indirect
 	github.com/alibabacloud-go/debug v1.0.0 // indirect
 	github.com/alibabacloud-go/endpoint-util v1.1.1 // indirect
-	github.com/alibabacloud-go/oos-20190601/v3 v3.1.0 // indirect
 	github.com/alibabacloud-go/tea-utils v1.4.5 // indirect
 	github.com/alibabacloud-go/tea-xml v1.1.3 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
