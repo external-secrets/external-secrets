@@ -20,7 +20,7 @@ Now, when creating our ExternalSecret resource, instead of using the data field,
 ```
 Here, "example" is the name of the external secret that will be created in our cluster.    
 Whereas, "secret-to-be-created" is the name of Kubernetes secrets that will be created.    
-Note: Since these secrets are namespace-based resources, so you can also explicitly specify the "namespace" under the "metadata" block of the above external secret file.    
+Note: Since these secrets are namespace-based resources, you can also explicitly specify the "namespace" under the "metadata" block of the above external secret file.    
 when we use, 
 
 ```
@@ -50,7 +50,7 @@ We can pass a few secrets as env variables as below:
 Here,    
 \<key1\> and \<key2> are the names of keys that will be created and passed as env variables.    
 \<secret-to-be-created\>: is the name of your Kubernetes secret created by you.    
-\<username\> and \<password>: is the particular key in the secrets manager whose value you want to pass.    
+\<username\> and \<surname>: is the particular key in the secrets manager whose value you want to pass.    
 To check both values we can run:
 ```
 kubectl get secret secret-to-be-created -n <namespace> -o jsonpath='{.data.username}' | base64 -d
