@@ -75,19 +75,17 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 
 func (c *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := c.GetSecret(ctx, ref)
-
 	if err != nil {
 		return nil, err
 	}
 
 	kv := make(map[string]string)
 	err = json.Unmarshal(data, &kv)
-
 	if err != nil {
 		return nil, fmt.Errorf(errUnmarshalSecret, err)
 	}
 
-	secretData := make(map[string][]byte)
+	secretData := make(map[string][]byte, len(kv))
 	for k, v := range kv {
 		secretData[k] = []byte(v)
 	}
