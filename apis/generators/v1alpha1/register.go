@@ -92,9 +92,18 @@ var (
 	VaultDynamicSecretGroupVersionKind = SchemeGroupVersion.WithKind(VaultDynamicSecretKind)
 )
 
+// GithubAccessToken type metadata.
+var (
+	GithubAccessTokenKind             = reflect.TypeOf(GithubAccessToken{}).Name()
+	GithubAccessTokenGroupKind        = schema.GroupKind{Group: Group, Kind: GithubAccessTokenKind}.String()
+	GithubAccessTokenKindAPIVersion   = GithubAccessTokenKind + "." + SchemeGroupVersion.String()
+	GithubAccessTokenGroupVersionKind = SchemeGroupVersion.WithKind(GithubAccessTokenKind)
+)
+
 func init() {
 	SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationToken{})
 	SchemeBuilder.Register(&GCRAccessToken{}, &GCRAccessTokenList{})
+	SchemeBuilder.Register(&GithubAccessToken{}, &GithubAccessTokenList{})
 	SchemeBuilder.Register(&ACRAccessToken{}, &ACRAccessTokenList{})
 	SchemeBuilder.Register(&Fake{}, &FakeList{})
 	SchemeBuilder.Register(&VaultDynamicSecret{}, &VaultDynamicSecretList{})
