@@ -68,6 +68,7 @@ type Reconciler struct {
 	CrdResources    []string
 	dnsName         string
 	CAName          string
+	CAChainName     string
 	CAOrganization  string
 	RequeueInterval time.Duration
 
@@ -431,6 +432,42 @@ func (r *Reconciler) CreateCACert(begin, end time.Time) (*KeyPairArtifacts, erro
 		return nil, err
 	}
 	der, err := x509.CreateCertificate(rand.Reader, templ, templ, key.Public(), key)
+	if err != nil {
+		return nil, err
+	}
+	certPEM, keyPEM, err := pemEncode(der, key)
+	if err != nil {
+		return nil, err
+	}
+	cert, err := x509.ParseCertificate(der)
+	if err != nil {
+		return nil, err
+	}
+
+	return &KeyPairArtifacts{Cert: cert, Key: key, CertPEM: certPEM, KeyPEM: keyPEM}, nil
+}
+
+func (r *Reconciler) CreateCAChain(ca *KeyPairArtifacts, begin, end time.Time) (*KeyPairArtifacts, error) {
+	templ := &x509.Certificate{
+		SerialNumber: big.NewInt(2),
+		Subject: pkix.Name{
+			CommonName:   r.CAChainName,
+			Organization: []string{r.CAOrganization},
+		},
+		DNSNames: []string{
+			r.CAChainName,
+		},
+		NotBefore:             begin,
+		NotAfter:              end,
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+	}
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, err
+	}
+	der, err := x509.CreateCertificate(rand.Reader, templ, ca.Cert, key.Public(), ca.Key)
 	if err != nil {
 		return nil, err
 	}
