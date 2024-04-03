@@ -37,6 +37,9 @@ const (
 	failedCreateServerCerts = "could not create server certificates:%v"
 	invalidCerts            = "generated certificates are invalid:%v,%v"
 	dnsName                 = "foobar"
+	tlscrt                  = "/tmp/tls"
+	tlskey                  = "/tmp/key"
+	cacrt                   = "/tmp/ca"
 )
 
 func newReconciler() Reconciler {
@@ -254,9 +257,9 @@ func TestCheckCerts(t *testing.T) {
 	if err != nil {
 		t.Errorf(failedCreateServerCerts, err)
 	}
-	os.WriteFile("/tmp/ca", caArtifacts.CertPEM, 0644)
-	os.WriteFile("/tmp/tls", certPEM, 0644)
-	os.WriteFile("/tmp/key", keyPEM, 0644)
+	os.WriteFile(cacrt, caArtifacts.CertPEM, 0644)
+	os.WriteFile(tlscrt, certPEM, 0644)
+	os.WriteFile(tlskey, keyPEM, 0644)
 	cert := CertInfo{
 		CertDir:  "/tmp",
 		CertName: "tls",
@@ -297,14 +300,14 @@ func TestCheckCertChain(t *testing.T) {
 	if err != nil {
 		t.Errorf(failedCreateServerCerts, err)
 	}
-	os.WriteFile("/tmp/ca", caArtifacts.CertPEM, 0644)
-	os.WriteFile("/tmp/tls", certPEM, 0644)
-	f, _ := os.OpenFile("/tmp/tls", os.O_APPEND|os.O_WRONLY, 0644)
+	os.WriteFile(cacrt, caArtifacts.CertPEM, 0644)
+	os.WriteFile(tlscrt, certPEM, 0644)
+	f, _ := os.OpenFile(tlscrt, os.O_APPEND|os.O_WRONLY, 0644)
 	defer f.Close()
 	if _, err = f.Write(chainArtifacts.CertPEM); err != nil {
 		t.Errorf(failedCreateCaChain, err)
 	}
-	os.WriteFile("/tmp/key", keyPEM, 0644)
+	os.WriteFile(tlskey, keyPEM, 0644)
 	cert := CertInfo{
 		CertDir:  "/tmp",
 		CertName: "tls",
