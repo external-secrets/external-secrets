@@ -79,8 +79,8 @@ var _ = BeforeSuite(func() {
 
 	leaderChan := make(chan struct{})
 	close(leaderChan)
-	rec := New(k8sClient, k8sManager.GetScheme(), leaderChan, log, time.Second*1,
-		"foo", "default", "foo", "default", []string{
+	rec := New(k8sClient, k8sManager.GetScheme(), leaderChan, log,
+		time.Second*1, true, "foo", "default", "foo", "default", []string{
 			"secretstores.test.io",
 		})
 	rec.SetupWithManager(k8sManager, controller.Options{})
