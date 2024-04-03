@@ -288,9 +288,17 @@ func ValidCert(caCert, cert, key []byte, dnsName string, at time.Time) (bool, er
 		return false, err
 	}
 
-	b, _ := pem.Decode(cert)
+	b, rest := pem.Decode(cert)
 	if b == nil {
 		return false, err
+	}
+	if len(rest) > 0 {
+		intermediate, _ := pem.Decode(rest)
+		inter, err := x509.ParseCertificate(intermediate.Bytes)
+		if err != nil {
+			return false, err
+		}
+		pool.AddCert(inter)
 	}
 
 	crt, err := x509.ParseCertificate(b.Bytes)
