@@ -153,7 +153,7 @@ func (r *Reconciler) ReadyCheck(_ *http.Request) error {
 	return r.checkEndpoints()
 }
 
-func (r Reconciler) checkCRDs() error {
+func (r *Reconciler) checkCRDs() error {
 	for _, res := range r.CrdResources {
 		r.readyStatusMapMu.Lock()
 		rdy := r.readyStatusMap[res]
@@ -165,7 +165,7 @@ func (r Reconciler) checkCRDs() error {
 	return nil
 }
 
-func (r Reconciler) checkEndpoints() error {
+func (r *Reconciler) checkEndpoints() error {
 	var eps corev1.Endpoints
 	err := r.Get(context.TODO(), types.NamespacedName{
 		Name:      r.SvcName,
