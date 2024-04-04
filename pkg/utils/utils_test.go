@@ -29,9 +29,12 @@ import (
 )
 
 const (
-	base64DecodedValue    string = "foo%_?bar"
-	base64EncodedValue    string = "Zm9vJV8/YmFy"
-	base64URLEncodedValue string = "Zm9vJV8_YmFy"
+	base64DecodedValue         string = "foo%_?bar"
+	base64EncodedValue         string = "Zm9vJV8/YmFy"
+	base64URLEncodedValue      string = "Zm9vJV8_YmFy"
+	keyWithEmojis              string = "😀foo😁bar😂baz😈bing"
+	keyWithInvalidChars        string = "some-array[0].entity"
+	keyWithEncodedInvalidChars string = "some-array_U005b_0_U005d_.entity"
 )
 
 func TestObjectHash(t *testing.T) {
@@ -213,7 +216,7 @@ func TestConvertKeys(t *testing.T) {
 			args: args{
 				strategy: esv1beta1.ExternalSecretConversionUnicode,
 				in: map[string][]byte{
-					"😀foo😁bar😂baz😈bing": []byte(`noop`),
+					keyWithEmojis: []byte(`noop`),
 				},
 			},
 			want: map[string][]byte{
@@ -253,11 +256,11 @@ func TestReverseKeys(t *testing.T) {
 				encodingStrategy: esv1beta1.ExternalSecretConversionUnicode,
 				decodingStrategy: esv1alpha1.PushSecretConversionReverseUnicode,
 				in: map[string][]byte{
-					"😀foo😁bar😂baz😈bing": []byte(`noop`),
+					keyWithEmojis: []byte(`noop`),
 				},
 			},
 			want: map[string][]byte{
-				"😀foo😁bar😂baz😈bing": []byte(`noop`),
+				keyWithEmojis: []byte(`noop`),
 			},
 		},
 		{
@@ -266,11 +269,11 @@ func TestReverseKeys(t *testing.T) {
 				encodingStrategy: esv1beta1.ExternalSecretConversionUnicode,
 				decodingStrategy: esv1alpha1.PushSecretConversionReverseUnicode,
 				in: map[string][]byte{
-					"some-array[0].entity": []byte(`noop`),
+					keyWithInvalidChars: []byte(`noop`),
 				},
 			},
 			want: map[string][]byte{
-				"some-array[0].entity": []byte(`noop`),
+				keyWithInvalidChars: []byte(`noop`),
 			},
 		},
 		{
@@ -279,11 +282,11 @@ func TestReverseKeys(t *testing.T) {
 				encodingStrategy: esv1beta1.ExternalSecretConversionUnicode,
 				decodingStrategy: esv1alpha1.PushSecretConversionNone,
 				in: map[string][]byte{
-					"some-array[0].entity": []byte(`noop`),
+					keyWithInvalidChars: []byte(`noop`),
 				},
 			},
 			want: map[string][]byte{
-				"some-array_U005b_0_U005d_.entity": []byte(`noop`),
+				keyWithEncodedInvalidChars: []byte(`noop`),
 			},
 		},
 	}
@@ -614,7 +617,7 @@ func TestRewrite(t *testing.T) {
 	}
 }
 
-func Test_reverse(t *testing.T) {
+func TestReverse(t *testing.T) {
 	type args struct {
 		strategy esv1alpha1.PushSecretConversionStrategy
 		in       string
@@ -628,17 +631,17 @@ func Test_reverse(t *testing.T) {
 			name: "do not change the key when using the None strategy",
 			args: args{
 				strategy: esv1alpha1.PushSecretConversionNone,
-				in:       "some-array_U005b_0_U005d_.entity",
+				in:       keyWithEncodedInvalidChars,
 			},
-			want: "some-array_U005b_0_U005d_.entity",
+			want: keyWithEncodedInvalidChars,
 		},
 		{
 			name: "reverse an unicode encoded key",
 			args: args{
 				strategy: esv1alpha1.PushSecretConversionReverseUnicode,
-				in:       "some-array_U005b_0_U005d_.entity",
+				in:       keyWithEncodedInvalidChars,
 			},
-			want: "some-array[0].entity",
+			want: keyWithInvalidChars,
 		},
 		{
 			name: "do not attempt to decode an invalid unicode representation",
