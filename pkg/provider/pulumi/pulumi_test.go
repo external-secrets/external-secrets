@@ -86,19 +86,17 @@ func TestGetSecretMap(t *testing.T) {
 	tests := []struct {
 		name  string
 		ref   esv1beta1.ExternalSecretDataRemoteRef
-		input func() (esc2.Value, error)
+		input string
 
 		want    map[string][]byte
 		wantErr bool
 	}{
 		{
 			name: "successful case",
-			input: func() (esc2.Value, error) {
-				return esc2.FromJSON(`{"foo": "bar", "foobar": 42, "bar": {"foo": "bar"}}`, false)
-			},
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key: "mysec",
 			},
+			input: `{"foo": "bar", "foobar": 42, "bar": {"foo": "bar"}}`,
 			want: map[string][]byte{
 				"foo":    []byte("bar"),
 				"foobar": []byte("42"),
@@ -110,9 +108,9 @@ func TestGetSecretMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := newTestClient(t, "", "", func(w http.ResponseWriter, r *http.Request) {
-				expected, err1 := tt.input()
+				esc2Input, err1 := esc2.FromJSON(tt.input, false)
 				require.NoError(t, err1)
-				err2 := json.NewEncoder(w).Encode(expected)
+				err2 := json.NewEncoder(w).Encode(esc2Input)
 				require.NoError(t, err2)
 			})
 			got, err := p.GetSecretMap(context.Background(), tt.ref)
