@@ -33,8 +33,13 @@ type ClusterExternalSecretSpec struct {
 	ExternalSecretMetadata ExternalSecretMetadata `json:"externalSecretMetadata,omitempty"`
 
 	// The labels to select by to find the Namespaces to create the ExternalSecrets in.
+	// Deprecated: Use NamespaceSelectors instead.
 	// +optional
 	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
+
+	// A list of labels to select by to find the Namespaces to create the ExternalSecrets in. The selectors are ORed.
+	// +optional
+	NamespaceSelectors []*metav1.LabelSelector `json:"namespaceSelectors,omitempty"`
 
 	// Choose namespaces by name. This field is ORed with anything that NamespaceSelector ends up choosing.
 	// +optional
