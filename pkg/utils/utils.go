@@ -33,6 +33,7 @@ import (
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/template/v2"
@@ -45,6 +46,7 @@ const (
 
 var (
 	errKeyNotFound = errors.New("key not found")
+	unicodeRegex   = regexp.MustCompile(`_U([0-9a-fA-F]{4,5})_`)
 )
 
 // JSONMarshal takes an interface and returns a new escaped and encoded byte slice.
@@ -235,6 +237,48 @@ func convert(strategy esv1beta1.ExternalSecretConversionStrategy, str string) st
 		}
 	}
 	return strings.Join(newName, "")
+}
+
+// ReverseKeys reverses a secret map into a valid key map as expected by push secrets.
+// Replaces the unicode encoded representation characters back to the actual unicode character depending on convert strategy.
+func ReverseKeys(strategy esv1alpha1.PushSecretConversionStrategy, in map[string][]byte) (map[string][]byte, error) {
+	out := make(map[string][]byte, len(in))
+	for k, v := range in {
+		key := reverse(strategy, k)
+		if _, exists := out[key]; exists {
+			return nil, fmt.Errorf("secret name collision during conversion: %s", key)
+		}
+		out[key] = v
+	}
+	return out, nil
+}
+
+func reverse(strategy esv1alpha1.PushSecretConversionStrategy, str string) string {
+	switch strategy {
+	case esv1alpha1.PushSecretConversionReverseUnicode:
+		matches := unicodeRegex.FindAllStringSubmatchIndex(str, -1)
+
+		for i := len(matches) - 1; i >= 0; i-- {
+			match := matches[i]
+			start := match[0]
+			end := match[1]
+			unicodeHex := str[match[2]:match[3]]
+
+			unicodeInt, err := strconv.ParseInt(unicodeHex, 16, 32)
+			if err != nil {
+				continue // Skip invalid unicode representations
+			}
+
+			unicodeChar := fmt.Sprintf("%c", unicodeInt)
+			str = str[:start] + unicodeChar + str[end:]
+		}
+
+		return str
+	case esv1alpha1.PushSecretConversionNone:
+		return str
+	default:
+		return str
+	}
 }
 
 // MergeStringMap performs a deep clone from src to dest.
