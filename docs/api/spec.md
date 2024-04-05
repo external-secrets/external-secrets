@@ -1315,7 +1315,22 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.
+Deprecated: Use NamespaceSelectors instead.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaceSelectors</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#*k8s.io/apimachinery/pkg/apis/meta/v1.labelselector--">
+[]*k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>A list of labels to select by to find the Namespaces to create the ExternalSecrets in. The selectors are ORed.</p>
 </td>
 </tr>
 <tr>
@@ -1488,7 +1503,22 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.
+Deprecated: Use NamespaceSelectors instead.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaceSelectors</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#*k8s.io/apimachinery/pkg/apis/meta/v1.labelselector--">
+[]*k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>A list of labels to select by to find the Namespaces to create the ExternalSecrets in. The selectors are ORed.</p>
 </td>
 </tr>
 <tr>
