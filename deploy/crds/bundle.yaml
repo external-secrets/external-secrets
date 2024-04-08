@@ -2761,6 +2761,7 @@ spec:
                         apiurl:
                           type: string
                         certificate:
+                          description: Auth contains a secretRef for credentials.
                           properties:
                             secretRef:
                               description: SecretRef references a key in a secret that will be used as value.
@@ -2784,6 +2785,7 @@ spec:
                               type: string
                           type: object
                         certificatekey:
+                          description: Auth contains a secretRef for credentials.
                           properties:
                             secretRef:
                               description: SecretRef references a key in a secret that will be used as value.
@@ -2807,6 +2809,7 @@ spec:
                               type: string
                           type: object
                         clientid:
+                          description: Auth contains a secretRef for credentials.
                           properties:
                             secretRef:
                               description: SecretRef references a key in a secret that will be used as value.
@@ -2830,6 +2833,7 @@ spec:
                               type: string
                           type: object
                         clientsecret:
+                          description: Auth contains a secretRef for credentials.
                           properties:
                             secretRef:
                               description: SecretRef references a key in a secret that will be used as value.
@@ -8135,6 +8139,7 @@ spec:
                         apiurl:
                           type: string
                         certificate:
+                          description: Auth contains a secretRef for credentials.
                           properties:
                             secretRef:
                               description: SecretRef references a key in a secret that will be used as value.
@@ -8158,6 +8163,7 @@ spec:
                               type: string
                           type: object
                         certificatekey:
+                          description: Auth contains a secretRef for credentials.
                           properties:
                             secretRef:
                               description: SecretRef references a key in a secret that will be used as value.
@@ -8181,6 +8187,7 @@ spec:
                               type: string
                           type: object
                         clientid:
+                          description: Auth contains a secretRef for credentials.
                           properties:
                             secretRef:
                               description: SecretRef references a key in a secret that will be used as value.
@@ -8204,6 +8211,7 @@ spec:
                               type: string
                           type: object
                         clientsecret:
+                          description: Auth contains a secretRef for credentials.
                           properties:
                             secretRef:
                               description: SecretRef references a key in a secret that will be used as value.

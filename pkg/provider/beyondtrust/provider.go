@@ -19,7 +19,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/BeyondTrust/go-client-library-passwordsafe/api/authentication"
@@ -28,8 +27,8 @@ import (
 	"github.com/BeyondTrust/go-client-library-passwordsafe/api/secrets"
 	"github.com/BeyondTrust/go-client-library-passwordsafe/api/utils"
 	backoff "github.com/cenkalti/backoff/v4"
-	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
 	client "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -37,12 +36,13 @@ import (
 )
 
 const (
-	errNilStore         = "nil store found"
-	errMissingStoreSpec = "store is missing spec"
-	errMissingProvider  = "storeSpec is missing provider"
-	errInvalidProvider  = "invalid provider spec. Missing field in store %s"
-	errInvalidHostURL   = "ivalid host URL"
-	errNoSuchKeyFmt     = "no such key in secret: %q"
+	errNilStore             = "nil store found"
+	errMissingStoreSpec     = "store is missing spec"
+	errMissingProvider      = "storeSpec is missing provider"
+	errInvalidProvider      = "invalid provider spec. Missing field in store %s"
+	errInvalidHostURL       = "ivalid host URL"
+	errNoSuchKeyFmt         = "no such key in secret: %q"
+	errInvalidRetrievalPath = "invalid retrieval path. Provide one path, separator and name"
 )
 
 var (
@@ -50,6 +50,7 @@ var (
 	errMissingSecretName         = errors.New("must specify a secret name")
 	errMissingSecretKey          = errors.New("must specify a secret key")
 	errSecretRefAndValueMissing  = errors.New("must specify either secret reference or direct value")
+	ESOLogger                    = ctrl.Log.WithName("provider").WithName("beyondtrust")
 )
 
 // this struct will hold the keys that the service returns.
@@ -161,6 +162,7 @@ func loadConfigSecret(ctx context.Context, ref *esv1beta1.BeyondTrustProviderSec
 		namespace = *ref.SecretRef.Namespace
 	}
 
+	ESOLogger.Info("using k8s secret", "name:", ref.SecretRef.Name, "namespace:", namespace)
 	objKey := client.ObjectKey{Namespace: namespace, Name: ref.SecretRef.Name}
 	secret := v1.Secret{}
 	err := kube.Get(ctx, objKey, &secret)
@@ -201,11 +203,7 @@ func (p *Provider) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFi
 // GetSecret reads the secret from the Express server and returns it. The controller uses the value here to
 // create the Kubernetes secret.
 func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	logger, _ := zap.NewDevelopment()
-	zapLogger := logging.NewZapLogger(logger)
-
-	secretData := strings.Split(ref.Key, "/")
-
+	logger := logging.NewLogrLogger(&ESOLogger)
 	apiURL := p.apiURL
 	clientID := p.clientID
 	clientSecret := p.clientSecret
@@ -216,24 +214,33 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretData
 	verifyCa := true
 	retryMaxElapsedTimeMinutes := 15
 	maxFileSecretSizeBytes := 5000000
+	managedAccountType := p.retrievaltype != "SECRET"
 
 	backoffDefinition := backoff.NewExponentialBackOff()
 	backoffDefinition.InitialInterval = 1 * time.Second
 	backoffDefinition.MaxElapsedTime = time.Duration(retryMaxElapsedTimeMinutes) * time.Second
 	backoffDefinition.RandomizationFactor = 0.5
 
+	retrievalPaths := utils.ValidatePaths([]string{ref.Key}, managedAccountType, separator, logger)
+
+	if len(retrievalPaths) != 1 {
+		return nil, fmt.Errorf(errInvalidRetrievalPath)
+	}
+
+	retrievalPath := retrievalPaths[0]
+
 	// validate inputs
-	errorsInInputs := utils.ValidateInputs(clientID, clientSecret, &apiURL, clientTimeOutInSeconds, &separator, verifyCa, zapLogger, certificate, certificateKey, &retryMaxElapsedTimeMinutes, &maxFileSecretSizeBytes)
+	errorsInInputs := utils.ValidateInputs(clientID, clientSecret, &apiURL, clientTimeOutInSeconds, &separator, verifyCa, logger, certificate, certificateKey, &retryMaxElapsedTimeMinutes, &maxFileSecretSizeBytes)
 
 	if errorsInInputs != nil {
 		return nil, fmt.Errorf("error: %w", errorsInInputs)
 	}
 
 	// creating a http client
-	httpClientObj, _ := utils.GetHttpClient(clientTimeOutInSeconds, verifyCa, certificate, certificateKey, zapLogger)
+	httpClientObj, _ := utils.GetHttpClient(clientTimeOutInSeconds, verifyCa, certificate, certificateKey, logger)
 
 	// instantiating authenticate obj, injecting httpClient object
-	authenticate, _ := authentication.Authenticate(*httpClientObj, backoffDefinition, apiURL, clientID, clientSecret, zapLogger, retryMaxElapsedTimeMinutes)
+	authenticate, _ := authentication.Authenticate(*httpClientObj, backoffDefinition, apiURL, clientID, clientSecret, logger, retryMaxElapsedTimeMinutes)
 
 	// authenticating
 	_, err := authenticate.GetPasswordSafeAuthentication()
@@ -248,12 +255,14 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretData
 	}
 
 	if p.retrievaltype == "SECRET" {
-		secretObj, _ := secrets.NewSecretObj(*authenticate, zapLogger, maxFileSecretSizeBytes)
-		returnSecret, _ = secretObj.GetSecret(secretData[0]+"/"+secretData[1], separator)
+		ESOLogger.Info("retrieve secrets safe value", "retrievalPath:", retrievalPath)
+		secretObj, _ := secrets.NewSecretObj(*authenticate, logger, maxFileSecretSizeBytes)
+		returnSecret, _ = secretObj.GetSecret(retrievalPath, separator)
 		secret.Value = returnSecret
 	} else {
-		manageAccountObj, _ := managed_account.NewManagedAccountObj(*authenticate, zapLogger)
-		returnSecret, _ := manageAccountObj.GetSecret(secretData[0]+"/"+secretData[1], separator)
+		ESOLogger.Info("retrieve managed account value", "retrievalPath:", retrievalPath)
+		manageAccountObj, _ := managed_account.NewManagedAccountObj(*authenticate, logger)
+		returnSecret, _ := manageAccountObj.GetSecret(retrievalPath, separator)
 		secret.Value = returnSecret
 	}
 
