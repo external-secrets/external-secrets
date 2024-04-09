@@ -27,6 +27,12 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
+var (
+	securityObjectID   = "id"
+	securityObjectName = "securityObjectName"
+	securityObjectUser = "user"
+)
+
 func newTestClient(t *testing.T, handler func(w http.ResponseWriter, r *http.Request)) *client {
 	const apiKey = "api-key"
 
@@ -56,13 +62,10 @@ type testSecurityObjectValue struct {
 
 func TestGetOpaqueSecurityObject(t *testing.T) {
 	ctx := context.Background()
-	securityObjectName := "securityObjectName"
 
 	securityObjectValue := toJSON(t, testSecurityObjectValue{
 		Property: "value",
 	})
-
-	securityObjectUser := "user"
 
 	securityObject := sdkms.Sobject{
 		Creator: sdkms.Principal{
@@ -103,14 +106,10 @@ func TestGetOpaqueSecurityObject(t *testing.T) {
 
 func TestGetSecretSecurityObject(t *testing.T) {
 	ctx := context.Background()
-	securityObjectName := "securityObjectName"
-	securityObjectID := "id"
 
 	securityObjectValue := toJSON(t, testSecurityObjectValue{
 		Property: "value",
 	})
-
-	securityObjectUser := "user"
 
 	securityObject := sdkms.Sobject{
 		Creator: sdkms.Principal{
@@ -148,5 +147,43 @@ func TestGetSecretSecurityObject(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, []byte(`value`), got)
+	})
+}
+
+func TestDataFromExtract(t *testing.T) {
+	ctx := context.Background()
+
+	securityObjectValue := toJSON(t, testSecurityObjectValue{
+		Property: "value",
+	})
+
+	securityObject := sdkms.Sobject{
+		Creator: sdkms.Principal{
+			User: &securityObjectUser,
+		},
+		Name:    &securityObjectName,
+		Kid:     &securityObjectID,
+		Value:   &securityObjectValue,
+		ObjType: sdkms.ObjectTypeSecret,
+	}
+
+	client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		err := json.NewEncoder(w).Encode(securityObject)
+		require.NoError(t, err)
+	})
+
+	t.Run("extract data from secret security object", func(t *testing.T) {
+		ref := esv1beta1.ExternalSecretDataRemoteRef{
+			Key: securityObjectName,
+		}
+
+		got, err := client.GetSecretMap(ctx, ref)
+
+		assert.NoError(t, err)
+
+		for k, v := range got {
+			assert.Equal(t, "property", k)
+			assert.Equal(t, []byte(`value`), v)
+		}
 	})
 }
