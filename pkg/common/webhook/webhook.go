@@ -203,8 +203,9 @@ func (w *Webhook) GetHTTPClient(provider *Spec) (*http.Client, error) {
 	}
 
 	tlsConf := &tls.Config{
-		RootCAs:    caCertPool,
-		MinVersion: tls.VersionTLS12,
+		RootCAs:       caCertPool,
+		MinVersion:    tls.VersionTLS12,
+		Renegotiation: tls.RenegotiateOnceAsClient,
 	}
 	client.Transport = &http.Transport{TLSClientConfig: tlsConf}
 	return client, nil
