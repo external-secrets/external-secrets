@@ -21,7 +21,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/BeyondTrust/go-client-library-passwordsafe/api/authentication"
+	auth "github.com/BeyondTrust/go-client-library-passwordsafe/api/authentication"
 	"github.com/BeyondTrust/go-client-library-passwordsafe/api/logging"
 	managed_account "github.com/BeyondTrust/go-client-library-passwordsafe/api/managed_account"
 	"github.com/BeyondTrust/go-client-library-passwordsafe/api/secrets"
@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esoClient "github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -61,13 +62,10 @@ type keyValue struct {
 
 // Provider is a Password Safe secrets provider implementing NewClient and ValidateStore for the esv1beta1.Provider interface.
 type Provider struct {
-	config         *esv1beta1.BeyondtrustProvider
-	apiURL         string
-	clientID       string
-	clientSecret   string
-	retrievaltype  string
-	certificate    string
-	certificatekey string
+	apiURL        string
+	retrievaltype string
+	authenticate  auth.AuthenticationObj
+	log           logging.LogrLogger
 }
 
 // Capabilities implements v1beta1.Provider.
@@ -96,9 +94,16 @@ func (*Provider) PushSecret(_ context.Context, _ *v1.Secret, _ esv1beta1.PushSec
 }
 
 // Validate implements v1beta1.SecretsClient.
-func (*Provider) Validate() (esv1beta1.ValidationResult, error) {
-	// TODO: we need to investigate method implementation
-	return esv1beta1.ValidationResultError, nil
+func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
+	timeout := 15 * time.Second
+	clientURL := p.apiURL
+
+	if err := esoClient.NetworkValidate(clientURL, timeout); err != nil {
+		ESOLogger.Error(err, "Network Validate", "clientURL:", clientURL)
+		return esv1beta1.ValidationResultError, err
+	}
+
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func (*Provider) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
@@ -108,6 +113,18 @@ func (*Provider) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef
 // NewClient this is where we initialize the SecretClient and return it for the controller to use.
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	config := store.GetSpec().Provider.Beyondtrust
+	logger := logging.NewLogrLogger(&ESOLogger)
+	apiURL := config.APIURL
+	certificate := ""
+	certificateKey := ""
+	clientTimeOutInSeconds := 45
+	verifyCa := true
+	retryMaxElapsedTimeMinutes := 15
+
+	backoffDefinition := backoff.NewExponentialBackOff()
+	backoffDefinition.InitialInterval = 1 * time.Second
+	backoffDefinition.MaxElapsedTime = time.Duration(retryMaxElapsedTimeMinutes) * time.Second
+	backoffDefinition.RandomizationFactor = 0.5
 
 	clientID, err := loadConfigSecret(ctx, config.Clientid, kube, namespace)
 	if err != nil {
@@ -119,8 +136,6 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return nil, err
 	}
 
-	certificate := ""
-	certificateKey := ""
 	if config.Certificate != nil && config.Certificatekey != nil {
 		loadedCertificate, err := loadConfigSecret(ctx, config.Certificate, kube, namespace)
 		if err != nil {
@@ -137,14 +152,17 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		certificateKey = loadedCertificateKey
 	}
 
+	// creating a http client
+	httpClientObj, _ := utils.GetHttpClient(clientTimeOutInSeconds, verifyCa, certificate, certificateKey, logger)
+
+	// instantiating authenticate obj, injecting httpClient object
+	authenticate, _ := auth.Authenticate(*httpClientObj, backoffDefinition, apiURL, clientID, clientSecret, logger, retryMaxElapsedTimeMinutes)
+
 	return &Provider{
-		config:         config,
-		apiURL:         config.APIURL,
-		clientID:       clientID,
-		clientSecret:   clientSecret,
-		retrievaltype:  config.Retrievaltype,
-		certificate:    certificate,
-		certificatekey: certificateKey,
+		apiURL:        config.APIURL,
+		retrievaltype: config.Retrievaltype,
+		authenticate:  *authenticate,
+		log:           *logger,
 	}, nil
 }
 
@@ -203,25 +221,11 @@ func (p *Provider) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFi
 // GetSecret reads the secret from the Express server and returns it. The controller uses the value here to
 // create the Kubernetes secret.
 func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	logger := logging.NewLogrLogger(&ESOLogger)
-	apiURL := p.apiURL
-	clientID := p.clientID
-	clientSecret := p.clientSecret
 	separator := "/"
-	certificate := ""
-	certificateKey := ""
-	clientTimeOutInSeconds := 5
-	verifyCa := true
-	retryMaxElapsedTimeMinutes := 15
 	maxFileSecretSizeBytes := 5000000
 	managedAccountType := p.retrievaltype != "SECRET"
 
-	backoffDefinition := backoff.NewExponentialBackOff()
-	backoffDefinition.InitialInterval = 1 * time.Second
-	backoffDefinition.MaxElapsedTime = time.Duration(retryMaxElapsedTimeMinutes) * time.Second
-	backoffDefinition.RandomizationFactor = 0.5
-
-	retrievalPaths := utils.ValidatePaths([]string{ref.Key}, managedAccountType, separator, logger)
+	retrievalPaths := utils.ValidatePaths([]string{ref.Key}, managedAccountType, separator, &p.log)
 
 	if len(retrievalPaths) != 1 {
 		return nil, fmt.Errorf(errInvalidRetrievalPath)
@@ -229,21 +233,7 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretData
 
 	retrievalPath := retrievalPaths[0]
 
-	// validate inputs
-	errorsInInputs := utils.ValidateInputs(clientID, clientSecret, &apiURL, clientTimeOutInSeconds, &separator, verifyCa, logger, certificate, certificateKey, &retryMaxElapsedTimeMinutes, &maxFileSecretSizeBytes)
-
-	if errorsInInputs != nil {
-		return nil, fmt.Errorf("error: %w", errorsInInputs)
-	}
-
-	// creating a http client
-	httpClientObj, _ := utils.GetHttpClient(clientTimeOutInSeconds, verifyCa, certificate, certificateKey, logger)
-
-	// instantiating authenticate obj, injecting httpClient object
-	authenticate, _ := authentication.Authenticate(*httpClientObj, backoffDefinition, apiURL, clientID, clientSecret, logger, retryMaxElapsedTimeMinutes)
-
-	// authenticating
-	_, err := authenticate.GetPasswordSafeAuthentication()
+	_, err := p.authenticate.GetPasswordSafeAuthentication()
 	if err != nil {
 		return nil, fmt.Errorf("error: %w", err)
 	}
@@ -256,14 +246,20 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretData
 
 	if p.retrievaltype == "SECRET" {
 		ESOLogger.Info("retrieve secrets safe value", "retrievalPath:", retrievalPath)
-		secretObj, _ := secrets.NewSecretObj(*authenticate, logger, maxFileSecretSizeBytes)
+		secretObj, _ := secrets.NewSecretObj(p.authenticate, &p.log, maxFileSecretSizeBytes)
 		returnSecret, _ = secretObj.GetSecret(retrievalPath, separator)
 		secret.Value = returnSecret
 	} else {
 		ESOLogger.Info("retrieve managed account value", "retrievalPath:", retrievalPath)
-		manageAccountObj, _ := managed_account.NewManagedAccountObj(*authenticate, logger)
+		manageAccountObj, _ := managed_account.NewManagedAccountObj(p.authenticate, &p.log)
 		returnSecret, _ := manageAccountObj.GetSecret(retrievalPath, separator)
 		secret.Value = returnSecret
+	}
+
+	// TODO: library should do the JoinPath("Auth/Signout") also defer body.Close() should be protected.
+	err = p.authenticate.SignOut(p.authenticate.ApiUrl.JoinPath("Auth/Signout").String())
+	if err != nil {
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	return []byte(secret.Value), nil
