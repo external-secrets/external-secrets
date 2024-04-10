@@ -44,6 +44,7 @@ const (
 	errInvalidHostURL       = "ivalid host URL"
 	errNoSuchKeyFmt         = "no such key in secret: %q"
 	errInvalidRetrievalPath = "invalid retrieval path. Provide one path, separator and name"
+	errNotImplemented       = "not implemented"
 )
 
 var (
@@ -80,17 +81,17 @@ func (*Provider) Close(_ context.Context) error {
 
 // DeleteSecret implements v1beta1.SecretsClient.
 func (*Provider) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	panic("unimplemented")
+	return fmt.Errorf(errNotImplemented)
 }
 
 // GetSecretMap implements v1beta1.SecretsClient.
 func (*Provider) GetSecretMap(_ context.Context, _ esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	panic("unimplemented")
+	return make(map[string][]byte), fmt.Errorf(errNotImplemented)
 }
 
 // PushSecret implements v1beta1.SecretsClient.
 func (*Provider) PushSecret(_ context.Context, _ *v1.Secret, _ esv1beta1.PushSecretData) error {
-	panic("unimplemented")
+	return fmt.Errorf(errNotImplemented)
 }
 
 // Validate implements v1beta1.SecretsClient.
@@ -107,7 +108,7 @@ func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
 }
 
 func (*Provider) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	panic("unimplemented")
+	return false, fmt.Errorf(errNotImplemented)
 }
 
 // NewClient this is where we initialize the SecretClient and return it for the controller to use.
@@ -218,7 +219,7 @@ func (p *Provider) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFi
 	return nil, fmt.Errorf("GetAllSecrets not implemented")
 }
 
-// GetSecret reads the secret from the Express server and returns it. The controller uses the value here to
+// GetSecret reads the secret from the Password Safe server and returns it. The controller uses the value here to
 // create the Kubernetes secret.
 func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	separator := "/"
