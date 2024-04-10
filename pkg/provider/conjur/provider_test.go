@@ -55,6 +55,19 @@ func makeValidRef(k string) *esv1beta1.ExternalSecretDataRemoteRef {
 	}
 }
 
+func makeValidFindRef(search string, tags map[string]string) *esv1beta1.ExternalSecretFind {
+	var name *esv1beta1.FindName
+	if search != "" {
+		name = &esv1beta1.FindName{
+			RegExp: search,
+		}
+	}
+	return &esv1beta1.ExternalSecretFind{
+		Name: name,
+		Tags: tags,
+	}
+}
+
 type ValidateStoreTestCase struct {
 	store *esv1beta1.SecretStore
 	err   error
@@ -254,6 +267,128 @@ func TestGetSecret(t *testing.T) {
 		secretString := string(secret)
 		if secretString != tc.want.value {
 			t.Errorf("\n%s\nconjur.GetSecret(...): want value %v got %v", tc.reason, tc.want.value, secretString)
+		}
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			runTest(t, name, tc)
+		})
+	}
+}
+
+func TestGetAllSecrets(t *testing.T) {
+	type args struct {
+		store     esv1beta1.GenericStore
+		kube      kclient.Client
+		corev1    typedcorev1.CoreV1Interface
+		namespace string
+		search    string
+		tags      map[string]string
+	}
+
+	type want struct {
+		err    error
+		values map[string][]byte
+	}
+
+	type testCase struct {
+		reason string
+		args   args
+		want   want
+	}
+
+	cases := map[string]testCase{
+		"SimpleSearchSingleResultSuccess": {
+			reason: "Should search for secrets successfully using a simple string.",
+			args: args{
+				store: makeAPIKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeAPIKeySecrets()...).Build(),
+				namespace: "default",
+				search:    "secret1",
+			},
+			want: want{
+				err: nil,
+				values: map[string][]byte{
+					"secret1": []byte("secret"),
+				},
+			},
+		},
+		"RegexSearchMultipleResultsSuccess": {
+			reason: "Should search for secrets successfully using a regex and return multiple results.",
+			args: args{
+				store: makeAPIKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeAPIKeySecrets()...).Build(),
+				namespace: "default",
+				search:    "^secret[1,2]$",
+			},
+			want: want{
+				err: nil,
+				values: map[string][]byte{
+					"secret1": []byte("secret"),
+					"secret2": []byte("secret"),
+				},
+			},
+		},
+		"RegexSearchInvalidRegexFailure": {
+			reason: "Should fail to search for secrets using an invalid regex.",
+			args: args{
+				store: makeAPIKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeAPIKeySecrets()...).Build(),
+				namespace: "default",
+				search:    "^secret[1,2", // Missing `]`
+			},
+			want: want{
+				err:    fmt.Errorf("could not compile find.name.regexp [%s]: %w", "^secret[1,2", fmt.Errorf("error parsing regexp: missing closing ]: `[1,2`")),
+				values: nil,
+			},
+		},
+		"SimpleSearchNoResultsSuccess": {
+			reason: "Should search for secrets successfully using a simple string and return no results.",
+			args: args{
+				store: makeAPIKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeAPIKeySecrets()...).Build(),
+				namespace: "default",
+				search:    "nonexistent",
+			},
+			want: want{
+				err:    nil,
+				values: map[string][]byte{},
+			},
+		},
+		"TagSearchSingleResultSuccess": {
+			reason: "Should search for secrets successfully using a tag.",
+			args: args{
+				store: makeAPIKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeAPIKeySecrets()...).Build(),
+				namespace: "default",
+				tags: map[string]string{
+					"conjur/kind": "password",
+				},
+			},
+			want: want{
+				err: nil,
+				values: map[string][]byte{
+					"secret2": []byte("secret"),
+				},
+			},
+		},
+	}
+
+	runTest := func(t *testing.T, _ string, tc testCase) {
+		provider, _ := newConjurProvider(context.Background(), tc.args.store, tc.args.kube, tc.args.namespace, tc.args.corev1, &ConjurMockAPIClient{})
+		ref := makeValidFindRef(tc.args.search, tc.args.tags)
+		secrets, err := provider.GetAllSecrets(context.Background(), *ref)
+		if diff := cmp.Diff(tc.want.err, err, EquateErrors()); diff != "" {
+			t.Errorf("\n%s\nconjur.GetAllSecrets(...): -want error, +got error:\n%s", tc.reason, diff)
+		}
+		if diff := cmp.Diff(tc.want.values, secrets); diff != "" {
+			t.Errorf("\n%s\nconjur.GetAllSecrets(...): -want, +got:\n%s", tc.reason, diff)
 		}
 	}
 

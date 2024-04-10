@@ -16,6 +16,10 @@ package fake
 
 import (
 	"errors"
+	"fmt"
+	"math/rand"
+
+	"github.com/cyberark/conjur-api-go/conjurapi"
 )
 
 type ConjurMockClient struct {
@@ -27,4 +31,86 @@ func (mc *ConjurMockClient) RetrieveSecret(secret string) (result []byte, err er
 		return nil, err
 	}
 	return []byte("secret"), nil
+}
+
+func (mc *ConjurMockClient) RetrieveBatchSecrets(variableIDs []string) (map[string][]byte, error) {
+	secrets := make(map[string][]byte)
+	for _, id := range variableIDs {
+		if id == "error" {
+			return nil, errors.New("error")
+		}
+		fullId := fmt.Sprintf("conjur:variable:%s", id)
+		secrets[fullId] = []byte("secret")
+	}
+	return secrets, nil
+}
+
+func (mc *ConjurMockClient) Resources(filter *conjurapi.ResourceFilter) (resources []map[string]interface{}, err error) {
+	if filter.Offset == 0 {
+		// First "page" of secrets: 2 static ones and 98 random ones
+		secrets := []map[string]interface{}{
+			{
+				"id": "conjur:variable:secret1",
+				"annotations": []interface{}{
+					map[string]interface{}{
+						"name":  "conjur/kind",
+						"value": "dummy",
+					},
+				},
+			},
+			{
+				"id":    "conjur:variable:secret2",
+				"owner": "conjur:policy:admin1",
+				"annotations": []interface{}{
+					map[string]interface{}{
+						"name":   "Description",
+						"policy": "conjur:policy:root",
+						"value":  "Lorem ipsum dolor sit amet",
+					},
+					map[string]interface{}{
+						"name":   "conjur/kind",
+						"policy": "conjur:policy:root",
+						"value":  "password",
+					},
+				},
+				"permissions": map[string]string{
+					"policy":    "conjur:policy:root",
+					"privilege": "update",
+					"role":      "conjur:group:admins",
+				},
+				"policy": "conjur:policy:root",
+			},
+		}
+		// Add 98 random secrets so we can simulate a full "page" of 100 secrets
+		secrets = append(secrets, generateRandomSecrets(98)...)
+		return secrets, nil
+	} else if filter.Offset == 100 {
+		// Second "page" of secrets: 100 random ones
+		return generateRandomSecrets(100), nil
+	}
+
+	// Add 50 random secrets so we can simulate a partial "page" of 50 secrets
+	return generateRandomSecrets(50), nil
+}
+
+func generateRandomSecrets(count int) []map[string]interface{} {
+	var secrets []map[string]interface{}
+	for i := 0; i < count; i++ {
+		randomNumber := rand.Intn(10000)
+		secrets = append(secrets, generateRandomSecret(randomNumber))
+	}
+	return secrets
+}
+
+func generateRandomSecret(num int) map[string]interface{} {
+	return map[string]interface{}{
+		"id": fmt.Sprintf("conjur:variable:random/var_%d", num),
+		"annotations": []map[string]interface{}{
+			{
+				"name":  "random_number",
+				"value": fmt.Sprintf("%d", num),
+			},
+		},
+		"policy": "conjur:policy:random",
+	}
 }

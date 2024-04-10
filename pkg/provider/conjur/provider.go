@@ -32,6 +32,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/provider/conjur/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
@@ -63,6 +64,14 @@ type Client struct {
 type Provider struct {
 	NewConjurProvider func(context context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, corev1 typedcorev1.CoreV1Interface, clientApi SecretsClientFactory) (esv1beta1.SecretsClient, error)
 }
+
+type conjurResource map[string]interface{}
+
+// resourceFilterFunc is a function that filters resources.
+// It takes a resource as input and returns the name of the resource if it should be included.
+// If the resource should not be included, it returns an empty string.
+// If an error occurs, it returns an empty string and the error.
+type resourceFilterFunc func(candidate conjurResource) (name string, err error)
 
 // NewClient creates a new Conjur client.
 func (c *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
@@ -161,13 +170,6 @@ func (p *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 	}
 }
 
-// GetAllSecrets returns all secrets from the provider.
-// NOT IMPLEMENTED.
-func (p *Client) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
-}
-
 // GetSecret returns a single secret from the provider.
 func (p *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	conjurClient, getConjurClientError := p.GetConjurClient(ctx)
@@ -180,6 +182,125 @@ func (p *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	}
 
 	return secretValue, nil
+}
+
+// GetAllSecrets gets multiple secrets from the provider and loads into a kubernetes secret.
+// First load all secrets from secretStore path configuration
+// Then, gets secrets from a matching name or matching custom_metadata.
+func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	if ref.Name != nil {
+		return c.findSecretsFromName(ctx, *ref.Name)
+	}
+	return c.findSecretsFromTags(ctx, ref.Tags)
+}
+
+func (c *Client) findSecretsFromName(ctx context.Context, ref esv1beta1.FindName) (map[string][]byte, error) {
+	matcher, err := find.New(ref)
+	if err != nil {
+		return nil, err
+	}
+
+	var resourceFilterFunc = func(candidate conjurResource) (string, error) {
+		name := trimConjurResourceName(candidate["id"].(string))
+		isMatch := matcher.MatchName(name)
+		if !isMatch {
+			return "", nil
+		}
+		return name, nil
+	}
+
+	return c.listSecrets(ctx, resourceFilterFunc)
+}
+
+func (c *Client) findSecretsFromTags(ctx context.Context, tags map[string]string) (map[string][]byte, error) {
+	var resourceFilterFunc = func(candidate conjurResource) (string, error) {
+		name := trimConjurResourceName(candidate["id"].(string))
+		annotations, ok := candidate["annotations"].([]interface{})
+		if !ok {
+			// No annotations, skip
+			return "", nil
+		}
+
+		formattedAnnotations, err := formatAnnotations(annotations)
+		if err != nil {
+			return "", err
+		}
+
+		// Check if all tags match
+		for tk, tv := range tags {
+			p, ok := formattedAnnotations[tk]
+			if !ok || p != tv {
+				return "", nil
+			}
+		}
+
+		return name, nil
+	}
+
+	return c.listSecrets(ctx, resourceFilterFunc)
+}
+
+func (c *Client) listSecrets(ctx context.Context, filterFunc resourceFilterFunc) (map[string][]byte, error) {
+	conjurClient, getConjurClientError := c.GetConjurClient(ctx)
+	if getConjurClientError != nil {
+		return nil, getConjurClientError
+	}
+
+	filteredResourceNames := []string{}
+
+	// Loop through all secrets in the Conjur account.
+	// Ideally this will be only a small list, but we need to handle pagination in the
+	// case that there are a lot of secrets. To limit load on Conjur and memory usage
+	// in ESO, we will only load 100 secrets at a time. We will then filter these secrets,
+	// discarding any that do not match the filterFunc. We will then repeat this process
+	// until we have loaded all secrets.
+	for offset := 0; ; offset += 100 {
+		resFilter := &conjurapi.ResourceFilter{
+			Kind:   "variable",
+			Limit:  100,
+			Offset: offset,
+		}
+		resources, err := conjurClient.Resources(resFilter)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, candidate := range resources {
+			name, err := filterFunc(candidate)
+			if err != nil {
+				return nil, err
+			}
+			if name != "" {
+				filteredResourceNames = append(filteredResourceNames, name)
+			}
+		}
+
+		// If we have less than 100 resources, we reached the last page
+		if len(resources) < 100 {
+			break
+		}
+	}
+
+	filteredResources, err := c.client.RetrieveBatchSecrets(filteredResourceNames)
+	if err != nil {
+		return nil, err
+	}
+
+	// Trim the resource names to just the last part of the ID
+	for k, v := range filteredResources {
+		delete(filteredResources, k)
+		filteredResources[trimConjurResourceName(k)] = v
+	}
+
+	return filteredResources, nil
+}
+
+// trimConjurResourceName trims the Conjur resource name to the last part of the ID.
+// For example, if the ID is "account:variable:secret", the function will return
+// "secret".
+func trimConjurResourceName(id string) string {
+	tokens := strings.SplitN(id, ":", 3)
+	return tokens[len(tokens)-1]
 }
 
 // PushSecret will write a single secret into the provider.
@@ -357,6 +478,22 @@ func (p *Client) getCA(ctx context.Context, provider *esv1beta1.ConjurProvider) 
 		return "", fmt.Errorf(errBadCertBundle, decodeErr)
 	}
 	return string(certBytes), nil
+}
+
+// Convert annotations from objects with "name", "policy", "value" keys (as returned by the Conjur API)
+// to a key/value map for easier comparison in code.
+func formatAnnotations(annotations []interface{}) (map[string]string, error) {
+	formattedAnnotations := make(map[string]string)
+	for _, annot := range annotations {
+		annot, ok := annot.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("could not parse annotation: %v", annot)
+		}
+		name := annot["name"].(string)
+		value := annot["value"].(string)
+		formattedAnnotations[name] = value
+	}
+	return formattedAnnotations, nil
 }
 
 func init() {
