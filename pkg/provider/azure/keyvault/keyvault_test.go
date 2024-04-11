@@ -62,6 +62,8 @@ type secretManagerTestCase struct {
 	expectedSecret string
 	// for testing secretmap
 	expectedData map[string][]byte
+
+	expectedExistence bool
 }
 
 func makeValidSecretManagerTestCase() *secretManagerTestCase {
@@ -1618,5 +1620,76 @@ func TestValidateStore(t *testing.T) {
 				t.Errorf(errStore, err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestAzureKeyVaultSecretExists(t *testing.T) {
+	unsupportedType := func(smtc *secretManagerTestCase) {
+		smtc.pushData = testingfake.PushSecretData{
+			RemoteKey: "yadayada/foo",
+		}
+		smtc.expectError = "secret type 'yadayada' is not supported"
+	}
+
+	secretFound := func(smtc *secretManagerTestCase) {
+		smtc.pushData = testingfake.PushSecretData{
+			RemoteKey: secretName,
+		}
+		smtc.secretOutput = keyvault.SecretBundle{
+			Tags: map[string]*string{
+				"managed-by": pointer.To("external-secrets"),
+			},
+			Value: pointer.To("foo"),
+		}
+		smtc.expectedExistence = true
+	}
+
+	secretFoundNoUsefulTags := func(smtc *secretManagerTestCase) {
+		smtc.pushData = testingfake.PushSecretData{
+			RemoteKey: secretName,
+		}
+		smtc.secretOutput = keyvault.SecretBundle{
+			Tags: map[string]*string{
+				"someTag": pointer.To("someUselessValue"),
+			},
+			Value: pointer.To("foo"),
+		}
+		smtc.expectedExistence = true
+	}
+
+	secretNotFound := func(smtc *secretManagerTestCase) {
+		smtc.pushData = testingfake.PushSecretData{
+			RemoteKey: secretName,
+		}
+		smtc.apiErr = autorest.DetailedError{StatusCode: 404, Method: "GET", Message: "Not Found"}
+		smtc.expectedExistence = false
+	}
+
+	testCases := []*secretManagerTestCase{
+		makeValidSecretManagerTestCaseCustom(unsupportedType),
+		makeValidSecretManagerTestCaseCustom(secretFound),
+		makeValidSecretManagerTestCaseCustom(secretFoundNoUsefulTags),
+		makeValidSecretManagerTestCaseCustom(secretNotFound),
+	}
+
+	sm := Azure{
+		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
+	}
+
+	for k, tc := range testCases {
+		sm.baseClient = tc.mockClient
+		exists, err := sm.SecretExists(context.Background(), tc.pushData)
+
+		if !utils.ErrorContains(err, tc.expectError) {
+			if err == nil {
+				t.Errorf("[%d] unexpected error: <nil>, expected: '%s'", k, tc.expectError)
+			} else {
+				t.Errorf("[%d] unexpected error: '%s', expected: '%s'", k, err.Error(), tc.expectError)
+			}
+		}
+
+		if exists != tc.expectedExistence {
+			t.Errorf("[%d] unexpected existence result: expected %t, got %t", k, tc.expectedExistence, exists)
+		}
 	}
 }
