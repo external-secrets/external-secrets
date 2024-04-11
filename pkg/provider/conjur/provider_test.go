@@ -399,6 +399,117 @@ func TestGetAllSecrets(t *testing.T) {
 	}
 }
 
+func TestGetSecretMap(t *testing.T) {
+	type args struct {
+		store     esv1beta1.GenericStore
+		kube      kclient.Client
+		corev1    typedcorev1.CoreV1Interface
+		namespace string
+		ref       *esv1beta1.ExternalSecretDataRemoteRef
+	}
+
+	type want struct {
+		err error
+		val map[string][]byte
+	}
+
+	type testCase struct {
+		reason string
+		args   args
+		want   want
+	}
+
+	cases := map[string]testCase{
+		"ReadJsonSecret": {
+			reason: "Should read a JSON key value secret.",
+			args: args{
+				store: makeAPIKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeAPIKeySecrets()...).Build(),
+				namespace: "default",
+				ref:       makeValidRef("json_map"),
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"key1": []byte("value1"),
+					"key2": []byte("value2"),
+				},
+			},
+		},
+		"ReadJsonSecretFailure": {
+			reason: "Should fail to read a non JSON secret",
+			args: args{
+				store: makeAPIKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeAPIKeySecrets()...).Build(),
+				namespace: "default",
+				ref:       makeValidRef("secret1"),
+			},
+			want: want{
+				err: fmt.Errorf("%w", fmt.Errorf("unable to unmarshal secret secret1: invalid character 's' looking for beginning of value")),
+				val: nil,
+			},
+		},
+		"ReadJsonSecretSpecificKey": {
+			reason: "Should read a specific key from a JSON secret.",
+			args: args{
+				store: makeAPIKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeAPIKeySecrets()...).Build(),
+				namespace: "default",
+				ref: &esv1beta1.ExternalSecretDataRemoteRef{
+					Key:      "json_nested",
+					Version:  "default",
+					Property: "key2",
+				},
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"key3": []byte("value3"),
+					"key4": []byte("value4"),
+				},
+			},
+		},
+		"ReadJsonSecretSpecificKeyNotFound": {
+			reason: "Should fail to read a nonexistent key from a JSON secret.",
+			args: args{
+				store: makeAPIKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeAPIKeySecrets()...).Build(),
+				namespace: "default",
+				ref: &esv1beta1.ExternalSecretDataRemoteRef{
+					Key:      "json_map",
+					Version:  "default",
+					Property: "key3",
+				},
+			},
+			want: want{
+				err: fmt.Errorf("%w", fmt.Errorf("error getting secret json_map: cannot find secret data for key: \"key3\"")),
+				val: nil,
+			},
+		},
+	}
+
+	runTest := func(t *testing.T, _ string, tc testCase) {
+		provider, _ := newConjurProvider(context.Background(), tc.args.store, tc.args.kube, tc.args.namespace, tc.args.corev1, &ConjurMockAPIClient{})
+		val, err := provider.GetSecretMap(context.Background(), *tc.args.ref)
+		if diff := cmp.Diff(tc.want.err, err, EquateErrors()); diff != "" {
+			t.Errorf("\n%s\nconjur.GetSecretMap(...): -want error, +got error:\n%s", tc.reason, diff)
+		}
+		if diff := cmp.Diff(tc.want.val, val); diff != "" {
+			t.Errorf("\n%s\nconjur.GetSecretMap(...): -want val, +got val:\n%s", tc.reason, diff)
+		}
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			runTest(t, name, tc)
+		})
+	}
+}
+
 func TestGetCA(t *testing.T) {
 	type args struct {
 		store     esv1beta1.GenericStore

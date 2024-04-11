@@ -23,6 +23,7 @@ import (
 
 	"github.com/cyberark/conjur-api-go/conjurapi"
 	"github.com/cyberark/conjur-api-go/conjurapi/authn"
+	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -48,6 +49,8 @@ var (
 
 	errUnableToFetchCAProviderCM     = "unable to fetch Server.CAProvider ConfigMap: %w"
 	errUnableToFetchCAProviderSecret = "unable to fetch Server.CAProvider Secret: %w"
+
+	errSecretKeyFmt = "cannot find secret data for key: %q"
 )
 
 // Client is a provider for Conjur.
@@ -181,7 +184,17 @@ func (p *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		return nil, err
 	}
 
-	return secretValue, nil
+	// If no property is specified, return the secret value as is
+	if ref.Property == "" {
+		return secretValue, nil
+	}
+
+	// If a property is specified, parse the secret value as JSON and return the property value
+	val := gjson.Get(string(secretValue), ref.Property)
+	if !val.Exists() {
+		return nil, fmt.Errorf(errSecretKeyFmt, ref.Property)
+	}
+	return []byte(val.String()), nil
 }
 
 // GetAllSecrets gets multiple secrets from the provider and loads into a kubernetes secret.

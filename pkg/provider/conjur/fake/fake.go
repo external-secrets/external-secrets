@@ -30,6 +30,12 @@ func (mc *ConjurMockClient) RetrieveSecret(secret string) (result []byte, err er
 		err = errors.New("error")
 		return nil, err
 	}
+	if secret == "json_map" {
+		return []byte(`{"key1":"value1","key2":"value2"}`), nil
+	}
+	if secret == "json_nested" {
+		return []byte(`{"key1":"value1","key2":{"key3":"value3","key4":"value4"}}`), nil
+	}
 	return []byte("secret"), nil
 }
 

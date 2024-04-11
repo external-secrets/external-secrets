@@ -40,6 +40,17 @@ var _ = Describe("[conjur]", Label("conjur"), func() {
 		framework.Compose(withTokenAuth, f, common.SyncWithoutTargetName, useApiKeyAuth),
 		framework.Compose(withTokenAuth, f, common.JSONDataFromSync, useApiKeyAuth),
 		framework.Compose(withTokenAuth, f, common.JSONDataFromRewrite, useApiKeyAuth),
+		framework.Compose(withTokenAuth, f, common.JSONDataWithProperty, useApiKeyAuth),
+		framework.Compose(withTokenAuth, f, common.JSONDataWithTemplate, useApiKeyAuth),
+		framework.Compose(withTokenAuth, f, common.DataPropertyDockerconfigJSON, useApiKeyAuth),
+		framework.Compose(withTokenAuth, f, common.JSONDataWithoutTargetName, useApiKeyAuth),
+		framework.Compose(withTokenAuth, f, common.DecodingPolicySync, useApiKeyAuth),
+		framework.Compose(withTokenAuth, f, common.JSONDataWithTemplateFromLiteral, useApiKeyAuth),
+		framework.Compose(withTokenAuth, f, common.TemplateFromConfigmaps, useApiKeyAuth),
+		framework.Compose(withTokenAuth, f, common.SSHKeySync, useApiKeyAuth),
+		framework.Compose(withTokenAuth, f, common.SSHKeySyncDataProperty, useApiKeyAuth),
+		framework.Compose(withTokenAuth, f, common.DockerJSONConfig, useApiKeyAuth),
+		framework.Compose(withTokenAuth, f, common.NestedJSONWithGJSON, useApiKeyAuth),
 		framework.Compose(withTokenAuth, f, common.SyncV1Alpha1, useApiKeyAuth),
 
 		// // use jwt k8s provider
