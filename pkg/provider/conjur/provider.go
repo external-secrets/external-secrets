@@ -17,14 +17,8 @@ package conjur
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"strings"
 
-	"github.com/cyberark/conjur-api-go/conjurapi"
-	"github.com/cyberark/conjur-api-go/conjurapi/authn"
-	"github.com/tidwall/gjson"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,52 +26,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/provider/conjur/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
-
-var (
-	errConjurClient     = "cannot setup new Conjur client: %w"
-	errBadCertBundle    = "caBundle failed to base64 decode: %w"
-	errBadServiceUser   = "could not get Auth.Apikey.UserRef: %w"
-	errBadServiceAPIKey = "could not get Auth.Apikey.ApiKeyRef: %w"
-
-	errGetKubeSATokenRequest = "cannot request Kubernetes service account token for service account %q: %w"
-
-	errUnableToFetchCAProviderCM     = "unable to fetch Server.CAProvider ConfigMap: %w"
-	errUnableToFetchCAProviderSecret = "unable to fetch Server.CAProvider Secret: %w"
-
-	errSecretKeyFmt = "cannot find secret data for key: %q"
-)
-
-// Client is a provider for Conjur.
-type Client struct {
-	StoreKind string
-	kube      client.Client
-	store     esv1beta1.GenericStore
-	namespace string
-	corev1    typedcorev1.CoreV1Interface
-	clientAPI SecretsClientFactory
-	client    SecretsClient
-}
 
 type Provider struct {
 	NewConjurProvider func(context context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, corev1 typedcorev1.CoreV1Interface, clientApi SecretsClientFactory) (esv1beta1.SecretsClient, error)
 }
 
-type conjurResource map[string]interface{}
-
-// resourceFilterFunc is a function that filters resources.
-// It takes a resource as input and returns the name of the resource if it should be included.
-// If the resource should not be included, it returns an empty string.
-// If an error occurs, it returns an empty string and the error.
-type resourceFilterFunc func(candidate conjurResource) (name string, err error)
-
 // NewClient creates a new Conjur client.
-func (c *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	// controller-runtime/client does not support TokenRequest or other subresource APIs
 	// so we need to construct our own client and use it to create a TokenRequest
 	restCfg, err := ctrlcfg.GetConfig()
@@ -89,283 +47,11 @@ func (c *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return nil, err
 	}
 
-	return c.NewConjurProvider(ctx, store, kube, namespace, clientset.CoreV1(), &ClientAPIImpl{})
-}
-
-func newConjurProvider(_ context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, corev1 typedcorev1.CoreV1Interface, clientAPI SecretsClientFactory) (esv1beta1.SecretsClient, error) {
-	return &Client{
-		StoreKind: store.GetObjectKind().GroupVersionKind().Kind,
-		store:     store,
-		kube:      kube,
-		namespace: namespace,
-		corev1:    corev1,
-		clientAPI: clientAPI,
-	}, nil
-}
-
-func (p *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
-	// if the client is initialized already, return it
-	if p.client != nil {
-		return p.client, nil
-	}
-
-	prov, err := util.GetConjurProvider(p.store)
-	if err != nil {
-		return nil, err
-	}
-
-	cert, getCertErr := p.getCA(ctx, prov)
-	if getCertErr != nil {
-		return nil, getCertErr
-	}
-
-	config := conjurapi.Config{
-		ApplianceURL: prov.URL,
-		SSLCert:      cert,
-	}
-
-	if prov.Auth.APIKey != nil {
-		config.Account = prov.Auth.APIKey.Account
-		conjUser, secErr := resolvers.SecretKeyRef(
-			ctx,
-			p.kube,
-			p.StoreKind,
-			p.namespace, prov.Auth.APIKey.UserRef)
-		if secErr != nil {
-			return nil, fmt.Errorf(errBadServiceUser, secErr)
-		}
-		conjAPIKey, secErr := resolvers.SecretKeyRef(
-			ctx,
-			p.kube,
-			p.StoreKind,
-			p.namespace,
-			prov.Auth.APIKey.APIKeyRef)
-		if secErr != nil {
-			return nil, fmt.Errorf(errBadServiceAPIKey, secErr)
-		}
-
-		conjur, newClientFromKeyError := p.clientAPI.NewClientFromKey(config,
-			authn.LoginPair{
-				Login:  conjUser,
-				APIKey: conjAPIKey,
-			},
-		)
-
-		if newClientFromKeyError != nil {
-			return nil, fmt.Errorf(errConjurClient, newClientFromKeyError)
-		}
-		p.client = conjur
-		return conjur, nil
-	} else if prov.Auth.Jwt != nil {
-		config.Account = prov.Auth.Jwt.Account
-
-		conjur, clientFromJwtError := p.newClientFromJwt(ctx, config, prov.Auth.Jwt)
-		if clientFromJwtError != nil {
-			return nil, fmt.Errorf(errConjurClient, clientFromJwtError)
-		}
-
-		p.client = conjur
-
-		return conjur, nil
-	} else {
-		// Should not happen because validate func should catch this
-		return nil, fmt.Errorf("no authentication method provided")
-	}
-}
-
-// GetSecret returns a single secret from the provider.
-func (p *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	conjurClient, getConjurClientError := p.GetConjurClient(ctx)
-	if getConjurClientError != nil {
-		return nil, getConjurClientError
-	}
-	secretValue, err := conjurClient.RetrieveSecret(ref.Key)
-	if err != nil {
-		return nil, err
-	}
-
-	// If no property is specified, return the secret value as is
-	if ref.Property == "" {
-		return secretValue, nil
-	}
-
-	// If a property is specified, parse the secret value as JSON and return the property value
-	val := gjson.Get(string(secretValue), ref.Property)
-	if !val.Exists() {
-		return nil, fmt.Errorf(errSecretKeyFmt, ref.Property)
-	}
-	return []byte(val.String()), nil
-}
-
-// GetAllSecrets gets multiple secrets from the provider and loads into a kubernetes secret.
-// First load all secrets from secretStore path configuration
-// Then, gets secrets from a matching name or matching custom_metadata.
-func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	if ref.Name != nil {
-		return c.findSecretsFromName(ctx, *ref.Name)
-	}
-	return c.findSecretsFromTags(ctx, ref.Tags)
-}
-
-func (c *Client) findSecretsFromName(ctx context.Context, ref esv1beta1.FindName) (map[string][]byte, error) {
-	matcher, err := find.New(ref)
-	if err != nil {
-		return nil, err
-	}
-
-	var resourceFilterFunc = func(candidate conjurResource) (string, error) {
-		name := trimConjurResourceName(candidate["id"].(string))
-		isMatch := matcher.MatchName(name)
-		if !isMatch {
-			return "", nil
-		}
-		return name, nil
-	}
-
-	return c.listSecrets(ctx, resourceFilterFunc)
-}
-
-func (c *Client) findSecretsFromTags(ctx context.Context, tags map[string]string) (map[string][]byte, error) {
-	var resourceFilterFunc = func(candidate conjurResource) (string, error) {
-		name := trimConjurResourceName(candidate["id"].(string))
-		annotations, ok := candidate["annotations"].([]interface{})
-		if !ok {
-			// No annotations, skip
-			return "", nil
-		}
-
-		formattedAnnotations, err := formatAnnotations(annotations)
-		if err != nil {
-			return "", err
-		}
-
-		// Check if all tags match
-		for tk, tv := range tags {
-			p, ok := formattedAnnotations[tk]
-			if !ok || p != tv {
-				return "", nil
-			}
-		}
-
-		return name, nil
-	}
-
-	return c.listSecrets(ctx, resourceFilterFunc)
-}
-
-func (c *Client) listSecrets(ctx context.Context, filterFunc resourceFilterFunc) (map[string][]byte, error) {
-	conjurClient, getConjurClientError := c.GetConjurClient(ctx)
-	if getConjurClientError != nil {
-		return nil, getConjurClientError
-	}
-
-	filteredResourceNames := []string{}
-
-	// Loop through all secrets in the Conjur account.
-	// Ideally this will be only a small list, but we need to handle pagination in the
-	// case that there are a lot of secrets. To limit load on Conjur and memory usage
-	// in ESO, we will only load 100 secrets at a time. We will then filter these secrets,
-	// discarding any that do not match the filterFunc. We will then repeat this process
-	// until we have loaded all secrets.
-	for offset := 0; ; offset += 100 {
-		resFilter := &conjurapi.ResourceFilter{
-			Kind:   "variable",
-			Limit:  100,
-			Offset: offset,
-		}
-		resources, err := conjurClient.Resources(resFilter)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, candidate := range resources {
-			name, err := filterFunc(candidate)
-			if err != nil {
-				return nil, err
-			}
-			if name != "" {
-				filteredResourceNames = append(filteredResourceNames, name)
-			}
-		}
-
-		// If we have less than 100 resources, we reached the last page
-		if len(resources) < 100 {
-			break
-		}
-	}
-
-	filteredResources, err := c.client.RetrieveBatchSecrets(filteredResourceNames)
-	if err != nil {
-		return nil, err
-	}
-
-	// Trim the resource names to just the last part of the ID
-	for k, v := range filteredResources {
-		delete(filteredResources, k)
-		filteredResources[trimConjurResourceName(k)] = v
-	}
-
-	return filteredResources, nil
-}
-
-// trimConjurResourceName trims the Conjur resource name to the last part of the ID.
-// For example, if the ID is "account:variable:secret", the function will return
-// "secret".
-func trimConjurResourceName(id string) string {
-	tokens := strings.SplitN(id, ":", 3)
-	return tokens[len(tokens)-1]
-}
-
-// PushSecret will write a single secret into the provider.
-func (p *Client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	// NOT IMPLEMENTED
-	return nil
-}
-
-func (p *Client) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	// NOT IMPLEMENTED
-	return nil
-}
-
-func (p *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf("not implemented")
-}
-
-// GetSecretMap returns multiple k/v pairs from the provider.
-func (p *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	// Gets a secret as normal, expecting secret value to be a json object
-	data, err := p.GetSecret(ctx, ref)
-	if err != nil {
-		return nil, fmt.Errorf("error getting secret %s: %w", ref.Key, err)
-	}
-
-	// Maps the json data to a string:string map
-	kv := make(map[string]string)
-	err = json.Unmarshal(data, &kv)
-	if err != nil {
-		return nil, fmt.Errorf("unable to unmarshal secret %s: %w", ref.Key, err)
-	}
-
-	// Converts values in K:V pairs into bytes, while leaving keys as strings
-	secretData := make(map[string][]byte)
-	for k, v := range kv {
-		secretData[k] = []byte(v)
-	}
-	return secretData, nil
-}
-
-// Close closes the provider.
-func (p *Client) Close(_ context.Context) error {
-	return nil
-}
-
-// Validate validates the provider.
-func (p *Client) Validate() (esv1beta1.ValidationResult, error) {
-	return esv1beta1.ValidationResultReady, nil
+	return p.NewConjurProvider(ctx, store, kube, namespace, clientset.CoreV1(), &ClientAPIImpl{})
 }
 
 // ValidateStore validates the store.
-func (c *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	prov, err := util.GetConjurProvider(store)
 	if err != nil {
 		return nil, err
@@ -423,90 +109,19 @@ func (c *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 }
 
 // Capabilities returns the provider Capabilities (Read, Write, ReadWrite).
-func (c *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
+func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
 }
 
-// configMapKeyRef returns the value of a key in a ConfigMap.
-func (p *Client) configMapKeyRef(ctx context.Context, cmRef *esmeta.SecretKeySelector) (string, error) {
-	configMap := &corev1.ConfigMap{}
-	ref := client.ObjectKey{
-		Namespace: p.namespace,
-		Name:      cmRef.Name,
-	}
-	if (p.StoreKind == esv1beta1.ClusterSecretStoreKind) &&
-		(cmRef.Namespace != nil) {
-		ref.Namespace = *cmRef.Namespace
-	}
-	err := p.kube.Get(ctx, ref, configMap)
-	if err != nil {
-		return "", err
-	}
-
-	keyBytes, ok := configMap.Data[cmRef.Key]
-	if !ok {
-		return "", err
-	}
-
-	valueStr := strings.TrimSpace(keyBytes)
-	return valueStr, nil
-}
-
-// getCA try retrieve the CA bundle from the provider CABundle or from the CAProvider.
-func (p *Client) getCA(ctx context.Context, provider *esv1beta1.ConjurProvider) (string, error) {
-	if provider.CAProvider != nil {
-		var ca string
-		var err error
-		switch provider.CAProvider.Type {
-		case esv1beta1.CAProviderTypeConfigMap:
-			keySelector := esmeta.SecretKeySelector{
-				Name:      provider.CAProvider.Name,
-				Namespace: provider.CAProvider.Namespace,
-				Key:       provider.CAProvider.Key,
-			}
-			ca, err = p.configMapKeyRef(ctx, &keySelector)
-			if err != nil {
-				return "", fmt.Errorf(errUnableToFetchCAProviderCM, err)
-			}
-		case esv1beta1.CAProviderTypeSecret:
-			keySelector := esmeta.SecretKeySelector{
-				Name:      provider.CAProvider.Name,
-				Namespace: provider.CAProvider.Namespace,
-				Key:       provider.CAProvider.Key,
-			}
-			ca, err = resolvers.SecretKeyRef(
-				ctx,
-				p.kube,
-				p.StoreKind,
-				p.namespace,
-				&keySelector)
-			if err != nil {
-				return "", fmt.Errorf(errUnableToFetchCAProviderSecret, err)
-			}
-		}
-		return ca, nil
-	}
-	certBytes, decodeErr := utils.Decode(esv1beta1.ExternalSecretDecodeBase64, []byte(provider.CABundle))
-	if decodeErr != nil {
-		return "", fmt.Errorf(errBadCertBundle, decodeErr)
-	}
-	return string(certBytes), nil
-}
-
-// Convert annotations from objects with "name", "policy", "value" keys (as returned by the Conjur API)
-// to a key/value map for easier comparison in code.
-func formatAnnotations(annotations []interface{}) (map[string]string, error) {
-	formattedAnnotations := make(map[string]string)
-	for _, annot := range annotations {
-		annot, ok := annot.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("could not parse annotation: %v", annot)
-		}
-		name := annot["name"].(string)
-		value := annot["value"].(string)
-		formattedAnnotations[name] = value
-	}
-	return formattedAnnotations, nil
+func newConjurProvider(_ context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, corev1 typedcorev1.CoreV1Interface, clientAPI SecretsClientFactory) (esv1beta1.SecretsClient, error) {
+	return &Client{
+		StoreKind: store.GetObjectKind().GroupVersionKind().Kind,
+		store:     store,
+		kube:      kube,
+		namespace: namespace,
+		corev1:    corev1,
+		clientAPI: clientAPI,
+	}, nil
 }
 
 func init() {

@@ -45,13 +45,14 @@ func (mc *ConjurMockClient) RetrieveBatchSecrets(variableIDs []string) (map[stri
 		if id == "error" {
 			return nil, errors.New("error")
 		}
-		fullId := fmt.Sprintf("conjur:variable:%s", id)
-		secrets[fullId] = []byte("secret")
+		fullID := fmt.Sprintf("conjur:variable:%s", id)
+		secrets[fullID] = []byte("secret")
 	}
 	return secrets, nil
 }
 
 func (mc *ConjurMockClient) Resources(filter *conjurapi.ResourceFilter) (resources []map[string]interface{}, err error) {
+	policyID := "conjur:policy:root"
 	if filter.Offset == 0 {
 		// First "page" of secrets: 2 static ones and 98 random ones
 		secrets := []map[string]interface{}{
@@ -70,21 +71,21 @@ func (mc *ConjurMockClient) Resources(filter *conjurapi.ResourceFilter) (resourc
 				"annotations": []interface{}{
 					map[string]interface{}{
 						"name":   "Description",
-						"policy": "conjur:policy:root",
+						"policy": policyID,
 						"value":  "Lorem ipsum dolor sit amet",
 					},
 					map[string]interface{}{
 						"name":   "conjur/kind",
-						"policy": "conjur:policy:root",
+						"policy": policyID,
 						"value":  "password",
 					},
 				},
 				"permissions": map[string]string{
-					"policy":    "conjur:policy:root",
+					"policy":    policyID,
 					"privilege": "update",
 					"role":      "conjur:group:admins",
 				},
-				"policy": "conjur:policy:root",
+				"policy": policyID,
 			},
 		}
 		// Add 98 random secrets so we can simulate a full "page" of 100 secrets
@@ -102,6 +103,7 @@ func (mc *ConjurMockClient) Resources(filter *conjurapi.ResourceFilter) (resourc
 func generateRandomSecrets(count int) []map[string]interface{} {
 	var secrets []map[string]interface{}
 	for i := 0; i < count; i++ {
+		//nolint:gosec
 		randomNumber := rand.Intn(10000)
 		secrets = append(secrets, generateRandomSecret(randomNumber))
 	}
