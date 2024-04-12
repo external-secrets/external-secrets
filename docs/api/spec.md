@@ -838,7 +838,21 @@ External Secrets meta/v1.SecretKeySelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>The Azure clientId of the service principle used for authentication.</p>
+<p>The Azure clientId of the service principle or managed identity used for authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tenantId</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The Azure tenantId of the managed identity used for authentication.</p>
 </td>
 </tr>
 <tr>
@@ -911,7 +925,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type.</p>
+<p>TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type. Optional for WorkloadIdentity.</p>
 </td>
 </tr>
 <tr>
@@ -941,7 +955,7 @@ AzureKVAuth
 </td>
 <td>
 <em>(Optional)</em>
-<p>Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type.</p>
+<p>Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type. Optional for WorkloadIdentity.</p>
 </td>
 </tr>
 <tr>
