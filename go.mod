@@ -63,6 +63,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.10.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.5.1
 	github.com/DelineaXPM/dsv-sdk-go/v2 v2.1.2
+	github.com/DelineaXPM/tss-sdk-go/v2 v2.0.0
 	github.com/Onboardbase/go-cryptojs-aes-decrypt v0.0.0-20230430095000-27c0d3a9016d
 	github.com/akeylesslabs/akeyless-go/v3 v3.6.2
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.6
