@@ -41,7 +41,7 @@ const (
 	errMissingStoreSpec     = "store is missing spec"
 	errMissingProvider      = "storeSpec is missing provider"
 	errInvalidProvider      = "invalid provider spec. Missing field in store %s"
-	errInvalidHostURL       = "ivalid host URL"
+	errInvalidHostURL       = "invalid host URL"
 	errNoSuchKeyFmt         = "no such key in secret: %q"
 	errInvalidRetrievalPath = "invalid retrieval path. Provide one path, separator and name"
 	errNotImplemented       = "not implemented"
@@ -53,6 +53,7 @@ var (
 	errMissingSecretKey          = errors.New("must specify a secret key")
 	errSecretRefAndValueMissing  = errors.New("must specify either secret reference or direct value")
 	ESOLogger                    = ctrl.Log.WithName("provider").WithName("beyondtrust")
+	maxFileSecretSizeBytes       = 5000000
 )
 
 // this struct will hold the keys that the service returns.
@@ -67,6 +68,7 @@ type Provider struct {
 	retrievaltype string
 	authenticate  auth.AuthenticationObj
 	log           logging.LogrLogger
+	separator     string
 }
 
 // Capabilities implements v1beta1.Provider.
@@ -119,8 +121,16 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	certificate := ""
 	certificateKey := ""
 	clientTimeOutInSeconds := 45
-	verifyCa := true
 	retryMaxElapsedTimeMinutes := 15
+	separator := "/"
+
+	if config.Separator != "" {
+		separator = config.Separator
+	}
+
+	if config.Clienttimeoutseconds != 0 {
+		clientTimeOutInSeconds = config.Clienttimeoutseconds
+	}
 
 	backoffDefinition := backoff.NewExponentialBackOff()
 	backoffDefinition.InitialInterval = 1 * time.Second
@@ -153,8 +163,15 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		certificateKey = loadedCertificateKey
 	}
 
+	// validate inputs
+	errorsInInputs := utils.ValidateInputs(clientID, clientSecret, &apiURL, clientTimeOutInSeconds, &separator, config.VerifyCA, logger, certificate, certificateKey, &retryMaxElapsedTimeMinutes, &maxFileSecretSizeBytes)
+
+	if errorsInInputs != nil {
+		return nil, fmt.Errorf("error: %w", errorsInInputs)
+	}
+
 	// creating a http client
-	httpClientObj, _ := utils.GetHttpClient(clientTimeOutInSeconds, verifyCa, certificate, certificateKey, logger)
+	httpClientObj, _ := utils.GetHttpClient(clientTimeOutInSeconds, config.VerifyCA, certificate, certificateKey, logger)
 
 	// instantiating authenticate obj, injecting httpClient object
 	authenticate, _ := auth.Authenticate(*httpClientObj, backoffDefinition, apiURL, clientID, clientSecret, logger, retryMaxElapsedTimeMinutes)
@@ -164,6 +181,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		retrievaltype: config.Retrievaltype,
 		authenticate:  *authenticate,
 		log:           *logger,
+		separator:     separator,
 	}, nil
 }
 
@@ -222,11 +240,9 @@ func (p *Provider) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFi
 // GetSecret reads the secret from the Password Safe server and returns it. The controller uses the value here to
 // create the Kubernetes secret.
 func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	separator := "/"
-	maxFileSecretSizeBytes := 5000000
 	managedAccountType := p.retrievaltype != "SECRET"
 
-	retrievalPaths := utils.ValidatePaths([]string{ref.Key}, managedAccountType, separator, &p.log)
+	retrievalPaths := utils.ValidatePaths([]string{ref.Key}, managedAccountType, p.separator, &p.log)
 
 	if len(retrievalPaths) != 1 {
 		return nil, fmt.Errorf(errInvalidRetrievalPath)
@@ -248,17 +264,16 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretData
 	if p.retrievaltype == "SECRET" {
 		ESOLogger.Info("retrieve secrets safe value", "retrievalPath:", retrievalPath)
 		secretObj, _ := secrets.NewSecretObj(p.authenticate, &p.log, maxFileSecretSizeBytes)
-		returnSecret, _ = secretObj.GetSecret(retrievalPath, separator)
+		returnSecret, _ = secretObj.GetSecret(retrievalPath, p.separator)
 		secret.Value = returnSecret
 	} else {
 		ESOLogger.Info("retrieve managed account value", "retrievalPath:", retrievalPath)
 		manageAccountObj, _ := managed_account.NewManagedAccountObj(p.authenticate, &p.log)
-		returnSecret, _ := manageAccountObj.GetSecret(retrievalPath, separator)
+		returnSecret, _ := manageAccountObj.GetSecret(retrievalPath, p.separator)
 		secret.Value = returnSecret
 	}
 
-	// TODO: library should do the JoinPath("Auth/Signout") also defer body.Close() should be protected.
-	err = p.authenticate.SignOut(p.authenticate.ApiUrl.JoinPath("Auth/Signout").String())
+	err = p.authenticate.SignOut()
 	if err != nil {
 		return nil, fmt.Errorf("error: %w", err)
 	}

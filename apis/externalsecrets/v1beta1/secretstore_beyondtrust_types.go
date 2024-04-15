@@ -30,10 +30,13 @@ type BeyondTrustProviderSecretRef struct {
 
 // Configures a store to sync secrets using BeyondTrust Password Safe.
 type BeyondtrustProvider struct {
-	APIURL         string                        `json:"apiurl"`
-	Clientid       *BeyondTrustProviderSecretRef `json:"clientid"`
-	Clientsecret   *BeyondTrustProviderSecretRef `json:"clientsecret"`
-	Certificate    *BeyondTrustProviderSecretRef `json:"certificate,omitempty"`
-	Certificatekey *BeyondTrustProviderSecretRef `json:"certificatekey,omitempty"`
-	Retrievaltype  string                        `json:"retrievaltype,omitempty"`
+	APIURL               string                        `json:"apiurl"`
+	Clientid             *BeyondTrustProviderSecretRef `json:"clientid"`
+	Clientsecret         *BeyondTrustProviderSecretRef `json:"clientsecret"`
+	Certificate          *BeyondTrustProviderSecretRef `json:"certificate,omitempty"`
+	Certificatekey       *BeyondTrustProviderSecretRef `json:"certificatekey,omitempty"`
+	Retrievaltype        string                        `json:"retrievaltype,omitempty"`
+	Separator            string                        `json:"separator,omitempty"`
+	VerifyCA             bool                          `json:"verifyca"`
+	Clienttimeoutseconds int                           `json:"clienttimeoutseconds,omitempty"`
 }

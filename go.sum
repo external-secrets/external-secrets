@@ -94,8 +94,8 @@ github.com/Azure/go-autorest/tracing v0.6.0/go.mod h1:+vhtPC754Xsa23ID7GlGsrdKBp
 github.com/AzureAD/microsoft-authentication-library-for-go v1.1.1/go.mod h1:wP83P5OoQ5p6ip3ScPr0BAq0BvuPAvacpEuSzyouqAI=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.2.2 h1:XHOnouVk1mxXfQidrMEnLlPk9UMeRtyBTnEFtxkV0kU=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.2.2/go.mod h1:wP83P5OoQ5p6ip3ScPr0BAq0BvuPAvacpEuSzyouqAI=
-github.com/BeyondTrust/go-client-library-passwordsafe v0.4.1 h1:OeJ9NAT40zhds1rWui5YDm5nOTwszAkt6KuNJEzIRl8=
-github.com/BeyondTrust/go-client-library-passwordsafe v0.4.1/go.mod h1:+bGsBVSWRgSu2++SGKm9aIVw8/YjVslU0Xc/eSRMaB4=
+github.com/BeyondTrust/go-client-library-passwordsafe v0.4.2 h1:ZiagvHHW9/MapAvkMIFAukJ28rXIwqWB+Ja39UI+QxY=
+github.com/BeyondTrust/go-client-library-passwordsafe v0.4.2/go.mod h1:+bGsBVSWRgSu2++SGKm9aIVw8/YjVslU0Xc/eSRMaB4=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/DelineaXPM/dsv-sdk-go/v2 v2.1.2 h1:cmX2QC9s5kPqmghWLLZP8YRFO1ZD/C59BpNH2ujP99w=

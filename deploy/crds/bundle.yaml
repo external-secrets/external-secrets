@@ -2856,12 +2856,19 @@ spec:
                               description: Value can be specified directly to set a value without using a secret.
                               type: string
                           type: object
+                        clienttimeoutseconds:
+                          type: integer
                         retrievaltype:
                           type: string
+                        separator:
+                          type: string
+                        verifyca:
+                          type: boolean
                       required:
                         - apiurl
                         - clientid
                         - clientsecret
+                        - verifyca
                       type: object
                     chef:
                       description: Chef configures this store to sync secrets with chef server
@@ -8234,12 +8241,19 @@ spec:
                               description: Value can be specified directly to set a value without using a secret.
                               type: string
                           type: object
+                        clienttimeoutseconds:
+                          type: integer
                         retrievaltype:
                           type: string
+                        separator:
+                          type: string
+                        verifyca:
+                          type: boolean
                       required:
                         - apiurl
                         - clientid
                         - clientsecret
+                        - verifyca
                       type: object
                     chef:
                       description: Chef configures this store to sync secrets with chef server
