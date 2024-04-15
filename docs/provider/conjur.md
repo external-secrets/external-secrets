@@ -106,6 +106,20 @@ Save the external secret file as: `conjur-external-secret.yaml`
 !!!Important
     Unless you are using a [ClusterSecretStore](../api/clustersecretstore.md), credentials must reside in the same namespace as the SecretStore.
 
+##### Find by Name and Find by Tag
+
+The Conjur provider also supports the Find by Name and Find by Tag ESO features. This means that
+you can use a regular expression or tags to dynamically fetch secrets from Conjur.
+
+```yaml
+{% include 'conjur-external-secret-find.yaml' %}
+```
+
+If you use these search feature, we strongly recommend that you limit the permissions of the Conjur host
+to only the secrets that it needs to access. Besides for being security best practice, this will
+also decrease the amount of resources that the Conjur provider needs to fetch from Conjur and decrease
+load on both the Conjur server and ESO.
+
 #### Step 3: Create the external secrets store
 
 ```shell
@@ -152,7 +166,7 @@ kubectl get secret -n external-secrets conjur -o jsonpath="{.data.secret00}"  | 
 
 ### License
 
-Copyright (c) 2023 CyberArk Software Ltd. All rights reserved.
+Copyright (c) 2023-2024 CyberArk Software Ltd. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
