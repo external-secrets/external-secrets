@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	auth "github.com/BeyondTrust/go-client-library-passwordsafe/api/authentication"
@@ -171,7 +172,11 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	}
 
 	// creating a http client
-	httpClientObj, _ := utils.GetHttpClient(clientTimeOutInSeconds, config.VerifyCA, certificate, certificateKey, logger)
+	httpClientObj, err := utils.GetHttpClient(clientTimeOutInSeconds, config.VerifyCA, certificate, certificateKey, logger)
+
+	if err != nil {
+		return nil, fmt.Errorf("error: %w", err)
+	}
 
 	// instantiating authenticate obj, injecting httpClient object
 	authenticate, _ := auth.Authenticate(*httpClientObj, backoffDefinition, apiURL, clientID, clientSecret, logger, retryMaxElapsedTimeMinutes)
@@ -240,7 +245,7 @@ func (p *Provider) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFi
 // GetSecret reads the secret from the Password Safe server and returns it. The controller uses the value here to
 // create the Kubernetes secret.
 func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	managedAccountType := p.retrievaltype != "SECRET"
+	managedAccountType := !strings.EqualFold(p.retrievaltype, "SECRET")
 
 	retrievalPaths := utils.ValidatePaths([]string{ref.Key}, managedAccountType, p.separator, &p.log)
 
@@ -261,7 +266,7 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretData
 		Value: "",
 	}
 
-	if p.retrievaltype == "SECRET" {
+	if strings.EqualFold(p.retrievaltype, "SECRET") {
 		ESOLogger.Info("retrieve secrets safe value", "retrievalPath:", retrievalPath)
 		secretObj, _ := secrets.NewSecretObj(p.authenticate, &p.log, maxFileSecretSizeBytes)
 		returnSecret, _ = secretObj.GetSecret(retrievalPath, p.separator)
