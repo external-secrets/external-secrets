@@ -31,6 +31,10 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
+const (
+	errNotImplemented = "not implemented"
+)
+
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1beta1.SecretsClient = &WebHook{}
 var _ esv1beta1.Provider = &Provider{}
@@ -101,18 +105,22 @@ func getProvider(store esv1beta1.GenericStore) (*webhook.Spec, error) {
 }
 
 func (w *WebHook) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf(errNotImplemented)
+}
+
+func (w *WebHook) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf(errNotImplemented)
 }
 
 // Not Implemented PushSecret.
 func (w *WebHook) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf(errNotImplemented)
 }
 
 // Empty GetAllSecrets.
 func (w *WebHook) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	return nil, fmt.Errorf(errNotImplemented)
 }
 
 func (w *WebHook) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {

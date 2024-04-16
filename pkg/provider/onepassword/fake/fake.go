@@ -123,7 +123,17 @@ func (mockClient *OnePasswordMockClient) GetItemsByTitle(itemUUID, vaultUUID str
 // CreateItem will call a validation function if set.
 func (mockClient *OnePasswordMockClient) CreateItem(i *onepassword.Item, s string) (*onepassword.Item, error) {
 	if mockClient.CreateItemValidateFunc != nil {
-		return mockClient.CreateItemValidateFunc(i, s)
+		item, err := mockClient.CreateItemValidateFunc(i, s)
+		if err == nil {
+			mockClient.MockItems[i.Vault.ID] = append(mockClient.MockItems[i.Vault.ID], *item)
+			if mockClient.MockItemFields[i.Vault.ID] == nil {
+				mockClient.MockItemFields[i.Vault.ID] = make(map[string][]*onepassword.ItemField)
+			}
+
+			mockClient.MockItemFields[i.Vault.ID][i.ID] = item.Fields
+		}
+
+		return item, err
 	}
 	return &onepassword.Item{}, nil
 }
@@ -131,7 +141,19 @@ func (mockClient *OnePasswordMockClient) CreateItem(i *onepassword.Item, s strin
 // UpdateItem will call a validation function if set.
 func (mockClient *OnePasswordMockClient) UpdateItem(i *onepassword.Item, s string) (*onepassword.Item, error) {
 	if mockClient.UpdateItemValidateFunc != nil {
-		return mockClient.UpdateItemValidateFunc(i, s)
+		updatedItem, err := mockClient.UpdateItemValidateFunc(i, s)
+
+		if err == nil {
+			for index, item := range mockClient.MockItems[i.Vault.ID] {
+				if item.ID == updatedItem.ID {
+					mockClient.MockItems[i.Vault.ID][index] = *updatedItem
+					mockClient.MockItemFields[i.Vault.ID][updatedItem.ID] = updatedItem.Fields
+					break
+				}
+			}
+		}
+
+		return updatedItem, err
 	}
 	return &onepassword.Item{}, nil
 }

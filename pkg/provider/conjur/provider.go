@@ -193,6 +193,10 @@ func (p *Client) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef
 	return nil
 }
 
+func (p *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
 // GetSecretMap returns multiple k/v pairs from the provider.
 func (p *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	// Gets a secret as normal, expecting secret value to be a json object

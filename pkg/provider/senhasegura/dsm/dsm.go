@@ -19,7 +19,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -80,6 +79,7 @@ var (
 	errInvalidResponseBody = errors.New("invalid HTTP response body received from senhasegura")
 	errInvalidHTTPCode     = errors.New("received invalid HTTP code from senhasegura")
 	errApplicationError    = errors.New("received application error from senhasegura")
+	errNotImplemented      = errors.New("not implemented")
 )
 
 /*
@@ -93,12 +93,16 @@ func New(isoSession *senhaseguraAuth.SenhaseguraIsoSession) (*DSM, error) {
 }
 
 func (dsm *DSM) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf("not implemented")
+	return errNotImplemented
+}
+
+func (dsm *DSM) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, errNotImplemented
 }
 
 // Not Implemented PushSecret.
 func (dsm *DSM) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return fmt.Errorf("not implemented")
+	return errNotImplemented
 }
 
 /*
@@ -165,7 +169,7 @@ TODO: GetAllSecrets functionality is to get secrets from either regexp-matching 
 https://github.com/external-secrets/external-secrets/pull/830#discussion_r858657107
 */
 func (dsm *DSM) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (secretData map[string][]byte, err error) {
-	return nil, fmt.Errorf("GetAllSecrets not implemented yet")
+	return nil, errNotImplemented
 }
 
 /*

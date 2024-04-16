@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "external-secrets.fullname" . }}-cert-controller
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ template "external-secrets.namespace" . }}
   labels:
     {{- include "external-secrets-cert-controller.labels" . | nindent 4 }}
   {{- with .Values.certController.deploymentAnnotations }}
@@ -51,9 +51,9 @@ spec:
           - certcontroller
           - --crd-requeue-interval={{ .Values.certController.requeueInterval }}
           - --service-name={{ include "external-secrets.fullname" . }}-webhook
-          - --service-namespace={{ .Release.Namespace }}
+          - --service-namespace={{ template "external-secrets.namespace" . }}
           - --secret-name={{ include "external-secrets.fullname" . }}-webhook
-          - --secret-namespace={{ .Release.Namespace }}
+          - --secret-namespace={{ template "external-secrets.namespace" . }}
           - --metrics-addr=:{{ .Values.certController.metrics.listen.port }}
           - --healthz-addr={{ .Values.certController.readinessProbe.address }}:{{ .Values.certController.readinessProbe.port }}
           {{ if not .Values.crds.createClusterSecretStore -}}
@@ -93,19 +93,19 @@ spec:
       volumes:
       {{- toYaml .Values.certController.extraVolumes | nindent 8 }}
       {{- end }}
-      {{- with .Values.certController.nodeSelector }}
+      {{- with .Values.certController.nodeSelector | default .Values.global.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.certController.affinity }}
+      {{- with .Values.certController.affinity | default .Values.global.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.certController.tolerations }}
+      {{- with .Values.certController.tolerations | default .Values.global.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.certController.topologySpreadConstraints }}
+      {{- with .Values.certController.topologySpreadConstraints | default .Values.global.topologySpreadConstraints }}
       topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
       {{- end }}

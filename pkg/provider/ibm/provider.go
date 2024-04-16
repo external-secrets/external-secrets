@@ -60,6 +60,7 @@ const (
 	errJSONSecretUnmarshal     = "unable to unmarshal secret: %w"
 	errJSONSecretMarshal       = "unable to marshal secret: %w"
 	errExtractingSecret        = "unable to extract the fetched secret %s of type %s while performing %s"
+	errNotImplemented          = "not implemented"
 )
 
 var contextTimeout = time.Minute * 2
@@ -97,18 +98,22 @@ func (c *client) setAuth(ctx context.Context) error {
 }
 
 func (ibm *providerIBM) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf(errNotImplemented)
+}
+
+func (ibm *providerIBM) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf(errNotImplemented)
 }
 
 // Not Implemented PushSecret.
 func (ibm *providerIBM) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf(errNotImplemented)
 }
 
 // Empty GetAllSecrets.
 func (ibm *providerIBM) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	return nil, fmt.Errorf(errNotImplemented)
 }
 
 func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
