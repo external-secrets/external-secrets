@@ -57,7 +57,7 @@ func NewGrpcConnection(
 		return nil, err
 	}
 
-	return grpc.Dial(serviceAPIEndpoint.Address,
+	return grpc.NewClient(serviceAPIEndpoint.Address,
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                time.Second * 30,
