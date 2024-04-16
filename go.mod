@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets
 
-go 1.21
+go 1.21.9
 
 require (
 	cloud.google.com/go/iam v1.1.7
@@ -62,7 +62,7 @@ require github.com/1Password/connect-sdk-go v1.5.3
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.11.1
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.5.1
-	github.com/BeyondTrust/go-client-library-passwordsafe v0.4.2
+	github.com/BeyondTrust/go-client-library-passwordsafe v0.5.0
 	github.com/DelineaXPM/dsv-sdk-go/v2 v2.1.2
 	github.com/Onboardbase/go-cryptojs-aes-decrypt v0.0.0-20230430095000-27c0d3a9016d
 	github.com/akeylesslabs/akeyless-go/v3 v3.6.2
