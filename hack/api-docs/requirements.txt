@@ -6,7 +6,7 @@ colorama==0.4.6
 csscompressor==0.9.5
 ghp-import==2.1.0
 htmlmin==0.1.12
-idna==3.6
+idna==3.7
 importlib-metadata==7.1.0
 importlib-resources==6.4.0
 Jinja2==3.1.3
