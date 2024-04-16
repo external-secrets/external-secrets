@@ -278,6 +278,8 @@ We support five different modes for authentication:
 [tlsCert](https://developer.hashicorp.com/vault/docs/auth/cert), each one comes with it's own
 trade-offs. Depending on the authentication method you need to adapt your environment.
 
+If you're using Vault namespaces, you can authenticate into one namespace and use the vault token against a different namespace, if desired.
+
 #### Token-based authentication
 
 A static token is stored in a `Kind=Secret` and is used to authenticate with vault.
@@ -458,6 +460,28 @@ spec:
       path: "secret"
       version: "v2"
       auth:
+        # ...
+```
+
+##### Authenticating into a different namespace
+
+In some situations your authentication backend may be in one namespace, and your secrets in another. You can authenticate into one namespace, and use that token against another, by setting `provider.vault.namespace` and `provider.vault.auth.namespace` to different values. If `provider.vault.auth.namespace` is unset but `provider.vault.namespace` is, it will default to the `provider.vault.namespace` value.
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: vault-backend
+spec:
+  provider:
+    vault:
+      server: "http://my.vault.server:8200"
+      # See https://www.vaultproject.io/docs/enterprise/namespaces
+      namespace: "app-team"
+      path: "secret"
+      version: "v2"
+      auth:
+        namespace: "kubernetes-team"
         # ...
 ```
 

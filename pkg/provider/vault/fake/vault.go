@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 
 	vault "github.com/hashicorp/vault/api"
 
@@ -155,6 +156,8 @@ type MockTokenFn func() string
 
 type MockClearTokenFn func()
 
+type MockNamespaceFn func() string
+
 type MockSetNamespaceFn func(namespace string)
 
 type MockAddHeaderFn func(key, value string)
@@ -188,10 +191,6 @@ func NewClearTokenFn() MockClearTokenFn {
 	return func() {}
 }
 
-func NewSetNamespaceFn() MockSetNamespaceFn {
-	return func(namespace string) {}
-}
-
 func NewAddHeaderFn() MockAddHeaderFn {
 	return func(key, value string) {}
 }
@@ -203,8 +202,12 @@ type VaultClient struct {
 	MockSetToken     MockSetTokenFn
 	MockToken        MockTokenFn
 	MockClearToken   MockClearTokenFn
+	MockNamespace    MockNamespaceFn
 	MockSetNamespace MockSetNamespaceFn
 	MockAddHeader    MockAddHeaderFn
+
+	namespace string
+	lock      sync.RWMutex
 }
 
 func (c *VaultClient) Logical() Logical {
@@ -253,8 +256,17 @@ func (c *VaultClient) ClearToken() {
 	c.MockClearToken()
 }
 
+func (c *VaultClient) Namespace() string {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	ns := c.namespace
+	return ns
+}
+
 func (c *VaultClient) SetNamespace(namespace string) {
-	c.MockSetNamespace(namespace)
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.namespace = namespace
 }
 
 func (c *VaultClient) AddHeader(key, value string) {
@@ -277,6 +289,7 @@ func ClientWithLoginMock(_ *vault.Config) (util.Client, error) {
 		AuthField:        cl.Auth(),
 		AuthTokenField:   cl.AuthToken(),
 		LogicalField:     cl.Logical(),
+		NamespaceFunc:    cl.Namespace,
 		SetNamespaceFunc: cl.SetNamespace,
 		AddHeaderFunc:    cl.AddHeader,
 	}, nil

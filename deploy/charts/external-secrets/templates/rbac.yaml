@@ -53,6 +53,7 @@ rules:
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
+    - "githubaccesstokens"
     - "passwords"
     - "vaultdynamicsecrets"
     verbs:
@@ -145,6 +146,7 @@ rules:
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
+    - "githubaccesstokens"
     - "passwords"
     - "vaultdynamicsecrets"
     verbs:
@@ -188,6 +190,7 @@ rules:
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
+    - "githubaccesstokens"
     - "passwords"
     - "vaultdynamicsecrets"
     verbs:

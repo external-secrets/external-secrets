@@ -1315,7 +1315,22 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.
+Deprecated: Use NamespaceSelectors instead.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaceSelectors</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#*k8s.io/apimachinery/pkg/apis/meta/v1.labelselector--">
+[]*k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>A list of labels to select by to find the Namespaces to create the ExternalSecrets in. The selectors are ORed.</p>
 </td>
 </tr>
 <tr>
@@ -1488,7 +1503,22 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.
+Deprecated: Use NamespaceSelectors instead.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaceSelectors</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#*k8s.io/apimachinery/pkg/apis/meta/v1.labelselector--">
+[]*k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>A list of labels to select by to find the Namespaces to create the ExternalSecrets in. The selectors are ORed.</p>
 </td>
 </tr>
 <tr>
@@ -6876,7 +6906,7 @@ resource is used as the app role secret.</p>
 <p>
 <p>VaultAuth is the configuration used to authenticate with a Vault server.
 Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code>, <code>userPass</code>, <code>jwt</code> or <code>cert</code>
-can be specified.</p>
+can be specified. A namespace to authenticate against can optionally be specified.</p>
 </p>
 <table>
 <thead>
@@ -6886,6 +6916,22 @@ can be specified.</p>
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Name of the vault namespace to authenticate to. This can be different than the namespace your secret is in.
+Namespaces is a set of features within Vault Enterprise that allows
+Vault environments to support Secure Multi-tenancy. e.g: &ldquo;ns1&rdquo;.
+More about namespaces can be found here <a href="https://www.vaultproject.io/docs/enterprise/namespaces">https://www.vaultproject.io/docs/enterprise/namespaces</a>
+This will default to Vault.Namespace field if set, or empty otherwise</p>
+</td>
+</tr>
 <tr>
 <td>
 <code>tokenSecretRef</code></br>
