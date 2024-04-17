@@ -56,6 +56,7 @@ rules:
     - "githubaccesstokens"
     - "passwords"
     - "vaultdynamicsecrets"
+    - "webhooks"
     verbs:
     - "get"
     - "list"
@@ -149,6 +150,7 @@ rules:
     - "githubaccesstokens"
     - "passwords"
     - "vaultdynamicsecrets"
+    - "webhooks"
     verbs:
       - "get"
       - "watch"
@@ -193,6 +195,7 @@ rules:
     - "githubaccesstokens"
     - "passwords"
     - "vaultdynamicsecrets"
+    - "webhooks"
     verbs:
       - "create"
       - "delete"
