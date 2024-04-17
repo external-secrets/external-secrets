@@ -28,17 +28,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
-	errPassboltStoreMissingAuth           = "missing: spec.provider.passbolt.auth"
-	errPassboltStoreMissingAuthPassword   = "missing: spec.provider.passbolt.auth.passwordSecretRef"
-	errPassboltStoreMissingAuthPrivateKey = "missing: spec.provider.passbolt.auth.privateKeySecretRef"
-	errPassboltStoreMissingHost           = "missing: spec.provider.passbolt.host"
-	errPassboltStoreHostURLMalformed      = "failed to parse Host Url"
-	errPassboltStoreHostSchemeNotHTTPS    = "host Url has to be https scheme"
-	errPassboltSecretPropertyInvalid      = "property must be one of name, username, uri, password or description"
+	errPassboltStoreMissingProvider                = "missing: spec.provider.passbolt"
+	errPassboltStoreMissingAuth                    = "missing: spec.provider.passbolt.auth"
+	errPassboltStoreMissingAuthPassword            = "missing: spec.provider.passbolt.auth.passwordSecretRef"
+	errPassboltStoreMissingAuthPrivateKey          = "missing: spec.provider.passbolt.auth.privateKeySecretRef"
+	errPassboltStoreMissingHost                    = "missing: spec.provider.passbolt.host"
+	errPassboltExternalSecretMissingFindNameRegExp = "missing: find.name.regexp"
+	errPassboltStoreHostSchemeNotHTTPS             = "host Url has to be https scheme"
+	errPassboltSecretPropertyInvalid               = "property must be one of name, username, uri, password or description"
+	errNotImplemented                              = "not implemented"
 )
 
 type ProviderPassbolt struct {
@@ -81,7 +84,6 @@ func (provider *ProviderPassbolt) NewClient(ctx context.Context, store esv1beta1
 		namespace,
 		config.Auth.PrivateKeySecretRef,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +98,7 @@ func (provider *ProviderPassbolt) NewClient(ctx context.Context, store esv1beta1
 }
 
 func (provider *ProviderPassbolt) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return true, nil
+	return false, fmt.Errorf(errNotImplemented)
 }
 
 func (provider *ProviderPassbolt) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
@@ -104,24 +106,24 @@ func (provider *ProviderPassbolt) GetSecret(ctx context.Context, ref esv1beta1.E
 		return nil, err
 	}
 
-	secret, err := getPassboltSecret(ctx, provider.client, ref.Key)
+	secret, err := provider.getPassboltSecret(ctx, ref.Key)
 	if err != nil {
 		return nil, err
 	}
 
 	if ref.Property == "" {
-		return json.Marshal(secret)
+		return utils.JSONMarshal(secret)
 	}
 
 	return secret.GetProp(ref.Property)
 }
 
 func (provider *ProviderPassbolt) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return nil
+	return fmt.Errorf(errNotImplemented)
 }
 
 func (provider *ProviderPassbolt) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return nil
+	return fmt.Errorf(errNotImplemented)
 }
 
 func (provider *ProviderPassbolt) Validate() (esv1beta1.ValidationResult, error) {
@@ -129,18 +131,14 @@ func (provider *ProviderPassbolt) Validate() (esv1beta1.ValidationResult, error)
 }
 
 func (provider *ProviderPassbolt) GetSecretMap(_ context.Context, _ esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	return nil, nil
+	return nil, fmt.Errorf(errNotImplemented)
 }
 
 func (provider *ProviderPassbolt) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	res := make(map[string][]byte)
 
-	if ref.Name == nil {
-		return res, nil
-	}
-
-	if ref.Name.RegExp == "" {
-		return res, nil
+	if ref.Name == nil || ref.Name.RegExp == "" {
+		return res, errors.New(errPassboltExternalSecretMissingFindNameRegExp)
 	}
 
 	if err := assureLoggedIn(ctx, provider.client); err != nil {
@@ -162,11 +160,11 @@ func (provider *ProviderPassbolt) GetAllSecrets(ctx context.Context, ref esv1bet
 			continue
 		}
 
-		secret, err := getPassboltSecret(ctx, provider.client, resource.ID)
+		secret, err := provider.getPassboltSecret(ctx, resource.ID)
 		if err != nil {
 			return nil, err
 		}
-		marshaled, err := json.Marshal(secret)
+		marshaled, err := utils.JSONMarshal(secret)
 		if err != nil {
 			return nil, err
 		}
@@ -183,7 +181,7 @@ func (provider *ProviderPassbolt) Close(ctx context.Context) error {
 func (provider *ProviderPassbolt) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	config := store.GetSpec().Provider.Passbolt
 	if config == nil {
-		return nil, errors.New("PassboltProviderMissing")
+		return nil, errors.New(errPassboltStoreMissingProvider)
 	}
 
 	if config.Auth == nil {
@@ -203,7 +201,7 @@ func (provider *ProviderPassbolt) ValidateStore(store esv1beta1.GenericStore) (a
 
 	host, err := url.Parse(config.Host)
 	if err != nil {
-		return nil, errors.New(errPassboltStoreHostURLMalformed)
+		return nil, err
 	}
 
 	if host.Scheme != "https" {
@@ -244,13 +242,13 @@ func (ps Secret) GetProp(key string) ([]byte, error) {
 	}
 }
 
-func getPassboltSecret(ctx context.Context, client Client, id string) (*Secret, error) {
-	resource, err := client.GetResource(ctx, id)
+func (provider *ProviderPassbolt) getPassboltSecret(ctx context.Context, id string) (*Secret, error) {
+	resource, err := provider.client.GetResource(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	secret, err := client.GetSecret(ctx, resource.ID)
+	secret, err := provider.client.GetSecret(ctx, resource.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -261,12 +259,12 @@ func getPassboltSecret(ctx context.Context, client Client, id string) (*Secret, 
 		Description: resource.Description,
 	}
 
-	raw, err := client.DecryptMessage(secret.Data)
+	raw, err := provider.client.DecryptMessage(secret.Data)
 	if err != nil {
 		return nil, err
 	}
 
-	resourceType, err := client.GetResourceType(ctx, resource.ResourceTypeID)
+	resourceType, err := provider.client.GetResourceType(ctx, resource.ResourceTypeID)
 	if err != nil {
 		return nil, err
 	}

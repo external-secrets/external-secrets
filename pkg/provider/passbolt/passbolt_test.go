@@ -173,9 +173,18 @@ func TestGetAllSecrets(t *testing.T) {
 			},
 		},
 		{
-			desc:     "no findName",
-			ref:      esv1beta1.ExternalSecretFind{},
-			expected: map[string][]byte{},
+			desc:        "missing find.name",
+			ref:         esv1beta1.ExternalSecretFind{},
+			expectedErr: errPassboltExternalSecretMissingFindNameRegExp,
+		},
+		{
+			desc: "empty find.name.regexp",
+			ref: esv1beta1.ExternalSecretFind{
+				Name: &esv1beta1.FindName{
+					RegExp: "",
+				},
+			},
+			expectedErr: errPassboltExternalSecretMissingFindNameRegExp,
 		},
 	}
 
@@ -261,4 +270,29 @@ func TestGetSecret(t *testing.T) {
 			g.Expect(string(out)).To(g.Equal(row.expValue))
 		})
 	}
+}
+
+func TestSecretExists(t *testing.T) {
+	p := &ProviderPassbolt{client: clientMock}
+	g.RegisterTestingT(t)
+	_, err := p.SecretExists(context.TODO(), nil)
+	g.Expect(err).To(g.BeEquivalentTo(fmt.Errorf(errNotImplemented)))
+}
+func TestPushSecret(t *testing.T) {
+	p := &ProviderPassbolt{client: clientMock}
+	g.RegisterTestingT(t)
+	err := p.PushSecret(context.TODO(), nil, nil)
+	g.Expect(err).To(g.BeEquivalentTo(fmt.Errorf(errNotImplemented)))
+}
+func TestDeleteSecret(t *testing.T) {
+	p := &ProviderPassbolt{client: clientMock}
+	g.RegisterTestingT(t)
+	err := p.DeleteSecret(context.TODO(), nil)
+	g.Expect(err).To(g.BeEquivalentTo(fmt.Errorf(errNotImplemented)))
+}
+func TestGetSecretMap(t *testing.T) {
+	p := &ProviderPassbolt{client: clientMock}
+	g.RegisterTestingT(t)
+	_, err := p.GetSecretMap(context.TODO(), esv1beta1.ExternalSecretDataRemoteRef{})
+	g.Expect(err).To(g.BeEquivalentTo(fmt.Errorf(errNotImplemented)))
 }
