@@ -973,6 +973,176 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.BeyondTrustProviderSecretRef">BeyondTrustProviderSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.BeyondtrustProvider">BeyondtrustProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Value can be specified directly to set a value without using a secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretRef references a key in a secret that will be used as value.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.BeyondtrustProvider">BeyondtrustProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>Configures a store to sync secrets using BeyondTrust Password Safe.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiurl</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Required - BeyondTrust Password Safe API URL. <a href="https://example.com:443/beyondtrust/api/public/V3">https://example.com:443/beyondtrust/api/public/V3</a>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientid</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BeyondTrustProviderSecretRef">
+BeyondTrustProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>Required - API OAuth Client ID.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientsecret</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BeyondTrustProviderSecretRef">
+BeyondTrustProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>Required - API OAuth Client Secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>certificate</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BeyondTrustProviderSecretRef">
+BeyondTrustProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>Content of the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>certificatekey</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BeyondTrustProviderSecretRef">
+BeyondTrustProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>Certificate private key (key.pem). For use when authenticating with an OAuth client Id</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>retrievaltype</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>separator</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>A character that separates the folder names.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>verifyca</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>Required - Indicates whether to verify the certificate authority on the Secrets Safe instance. Warning - false is insecure, instructs the BT provider not to verify the certificate authority.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clienttimeoutseconds</code></br>
+<em>
+int
+</em>
+</td>
+<td>
+<p>Timeout specifies a time limit for requests made by this Client. The timeout includes connection time, any redirects, and reading the response body. Defaults to 45 seconds.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.CAProvider">CAProvider
 </h3>
 <p>
@@ -5916,6 +6086,20 @@ PasswordDepotProvider
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>beyondtrust</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BeyondtrustProvider">
+BeyondtrustProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Beyondtrust configures this store to sync secrets using Password Safe provider.</p>
 </td>
 </tr>
 </tbody>
