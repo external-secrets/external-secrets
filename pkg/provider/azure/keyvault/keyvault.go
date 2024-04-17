@@ -310,8 +310,32 @@ func (a *Azure) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecret
 	}
 }
 
-func (a *Azure) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf("not implemented")
+func (a *Azure) SecretExists(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) (bool, error) {
+	objectType, secretName := getObjType(esv1beta1.ExternalSecretDataRemoteRef{Key: remoteRef.GetRemoteKey()})
+
+	var err error
+	switch objectType {
+	case defaultObjType:
+		_, err = a.baseClient.GetSecret(ctx, *a.provider.VaultURL, secretName, "")
+	case objectTypeCert:
+		_, err = a.baseClient.GetCertificate(ctx, *a.provider.VaultURL, secretName, "")
+	case objectTypeKey:
+		_, err = a.baseClient.GetKey(ctx, *a.provider.VaultURL, secretName, "")
+	default:
+		errMsg := fmt.Sprintf("secret type '%v' is not supported", objectType)
+		return false, errors.New(errMsg)
+	}
+
+	err = parseError(err)
+	if err != nil {
+		var noSecretErr esv1beta1.NoSecretError
+		if errors.As(err, &noSecretErr) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
 }
 
 func getCertificateFromValue(value []byte) (*x509.Certificate, error) {
