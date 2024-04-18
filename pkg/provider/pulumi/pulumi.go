@@ -79,7 +79,7 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 		return nil, fmt.Errorf(errGettingSecrets, ref.Key, err)
 	}
 
-	kv := make(map[string]json.RawMessage)
+	kv := make(map[string]interface{})
 	err = json.Unmarshal(data, &kv)
 	if err != nil {
 		return nil, fmt.Errorf(errUnmarshalSecret, err)
