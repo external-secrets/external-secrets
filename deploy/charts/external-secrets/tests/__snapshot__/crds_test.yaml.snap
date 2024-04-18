@@ -2017,10 +2017,10 @@ should match snapshot of default values:
                           description: AzureKV configures this store to sync secrets using Azure Key Vault provider
                           properties:
                             authSecretRef:
-                              description: Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type.
+                              description: Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type. Optional for WorkloadIdentity.
                               properties:
                                 clientId:
-                                  description: The Azure clientId of the service principle used for authentication.
+                                  description: The Azure clientId of the service principle or managed identity used for authentication.
                                   properties:
                                     key:
                                       description: |-
@@ -2038,6 +2038,23 @@ should match snapshot of default values:
                                   type: object
                                 clientSecret:
                                   description: The Azure ClientSecret of the service principle used for authentication.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                tenantId:
+                                  description: The Azure tenantId of the managed identity used for authentication.
                                   properties:
                                     key:
                                       description: |-
@@ -2107,7 +2124,7 @@ should match snapshot of default values:
                                 - name
                               type: object
                             tenantId:
-                              description: TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type.
+                              description: TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type. Optional for WorkloadIdentity.
                               type: string
                             vaultUrl:
                               description: Vault Url from which the secrets to be fetched from.
@@ -3044,6 +3061,60 @@ should match snapshot of default values:
                           required:
                             - region
                             - vault
+                          type: object
+                        passbolt:
+                          properties:
+                            auth:
+                              description: Auth defines the information necessary to authenticate against Passbolt Server
+                              properties:
+                                passwordSecretRef:
+                                  description: |-
+                                    A reference to a specific 'key' within a Secret resource,
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                privateKeySecretRef:
+                                  description: |-
+                                    A reference to a specific 'key' within a Secret resource,
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              required:
+                                - passwordSecretRef
+                                - privateKeySecretRef
+                              type: object
+                            host:
+                              description: Host defines the Passbolt Server to connect to
+                              type: string
+                          required:
+                            - auth
+                            - host
                           type: object
                         passworddepot:
                           description: Configures a store to sync secrets with a Password Depot instance.
