@@ -29,7 +29,7 @@ runs:
     - name: Install cosign
       uses: sigstore/cosign-installer@v2
       with:
-        cosign-release: v1.12.1
+        cosign-release: v1.13.6
 
     - name: Install Syft
       uses: anchore/sbom-action/download-syft@v0.7.0
@@ -57,7 +57,7 @@ runs:
     - name: Get docker image tag
       id: container_info
       shell: bash
-      run: echo "::set-output name=digest::$(crane digest ${{ inputs.image-name }}:${{ inputs.image-tag }})"
+      run: echo "digest=$(crane digest ${{ inputs.image-name }}:${{ inputs.image-tag }})" >> $GITHUB_OUTPUT
 
     - name: Sign image
       shell: bash
