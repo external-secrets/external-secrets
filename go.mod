@@ -82,6 +82,7 @@ require (
 	github.com/keeper-security/secrets-manager-go/core v1.6.2
 	github.com/lestrrat-go/jwx/v2 v2.0.21
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.8.1
+	github.com/passbolt/go-passbolt v0.7.0
 	github.com/pulumi/esc v0.8.3
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.26
 	github.com/sethvargo/go-password v0.2.0
@@ -96,6 +97,8 @@ require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
+	github.com/ProtonMail/go-mime v0.0.0-20230322103455-7d82a3887f2f // indirect
+	github.com/ProtonMail/gopenpgp/v2 v2.7.4 // indirect
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/alessio/shellescape v1.4.2 // indirect

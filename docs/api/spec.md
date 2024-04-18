@@ -5019,6 +5019,91 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.PassboltAuth">PassboltAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.PassboltProvider">PassboltProvider</a>)
+</p>
+<p>
+<p>Passbolt contains a secretRef for the passbolt credentials.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>passwordSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>privateKeySecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.PassboltProvider">PassboltProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.PassboltAuth">
+PassboltAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth defines the information necessary to authenticate against Passbolt Server</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>host</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Host defines the Passbolt Server to connect to</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.PasswordDepotAuth">PasswordDepotAuth
 </h3>
 <p>
@@ -5911,6 +5996,19 @@ FortanixProvider
 <em>
 <a href="#external-secrets.io/v1beta1.PasswordDepotProvider">
 PasswordDepotProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>passbolt</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.PassboltProvider">
+PassboltProvider
 </a>
 </em>
 </td>

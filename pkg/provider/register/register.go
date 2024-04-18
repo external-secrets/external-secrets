@@ -36,6 +36,7 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/onboardbase"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/onepassword"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/oracle"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/passbolt"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/passworddepot"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/pulumi"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/scaleway"
