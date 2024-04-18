@@ -1876,6 +1876,8 @@
       
         
       
+        
+      
     
     
       
@@ -2591,6 +2593,27 @@
   
   <span class="md-ellipsis">
     Delinea
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../passbolt/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Passbolt
   </span>
   
 
@@ -4230,6 +4253,37 @@ az<span class="w"> </span>keyvault<span class="w"> </span>set-policy<span class=
 <span class="w">      </span><span class="nt">vaultUrl</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://xx-xxxx-xx.vault.azure.net&quot;</span>
 <span class="w">      </span><span class="nt">serviceAccountRef</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">workload-identity-sa</span>
+</code></pre></div>
+<p>In case you don't have the clientId when deploying the SecretStore, such as when deploying a Helm chart that includes instructions for creating a <a href="https://github.com/Azure/azure-service-operator/blob/main/v2/samples/managedidentity/v1api20181130/v1api20181130_userassignedidentity.yaml">Managed Identity</a> using <a href="https://azure.github.io/azure-service-operator/">Azure Service Operator</a> next to the SecretStore definition, you may encounter an interpolation problem. Helm lacks dependency management, which means it can create an issue when the clientId is only known after everything is deployed. Although the Service Account can inject <code>clientId</code> and <code>tenantId</code> into a pod, it doesn't support secretKeyRef/configMapKeyRef. Therefore, you can deliver the clientId and tenantId directly, bypassing the Service Account.</p>
+<p>The following example demonstrates using the secretRef field to directly deliver the <code>clientId</code> and <code>tenantId</code> to the SecretStore while utilizing Workload Identity authentication.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ServiceAccount</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="c1"># this service account was created by azwi</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">workload-identity-sa</span>
+<span class="w">  </span><span class="nt">annotations</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">azure-store</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">azurekv</span><span class="p">:</span>
+<span class="w">      </span><span class="c1"># tenantId spec option #1</span>
+<span class="w">      </span><span class="nt">tenantId</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;5a02a20e-xxxx-xxxx-xxxx-0ad5b634c5d8&quot;</span>
+<span class="w">      </span><span class="nt">authType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">WorkloadIdentity</span>
+<span class="w">      </span><span class="nt">vaultUrl</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://xx-xxxx-xx.vault.azure.net&quot;</span>
+<span class="w">      </span><span class="nt">serviceAccountRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">workload-identity-sa</span>
+<span class="w">      </span><span class="nt">authSecretRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">clientId</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">umi-secret</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">clientId</span>
+<span class="w">        </span><span class="c1"># tenantId spec option #2</span>
+<span class="w">        </span><span class="nt">tenantId</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">umi-secret</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tenantId</span>
 </code></pre></div>
 <h3 id="update-secret-store">Update secret store</h3>
 <p>Be sure the <code>azurekv</code> provider is listed in the <code>Kind=SecretStore</code></p>
