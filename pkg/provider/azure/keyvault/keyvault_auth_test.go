@@ -76,6 +76,7 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 		saToken       = "FAKETOKEN"
 		saName        = "az-wi"
 		namespace     = "default"
+		secretName    = "mi-spec"
 	)
 
 	// create a temporary file to imitate
@@ -89,6 +90,7 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 	tokenFile := tf.Name()
 
 	authType := esv1beta1.AzureWorkloadIdentity
+
 	defaultProvider := &esv1beta1.AzureKVProvider{
 		VaultURL: &vaultURL,
 		AuthType: &authType,
@@ -136,7 +138,7 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 			},
 		},
 		{
-			name:     "missing sa annotations",
+			name:     "missing sa annotations, tenantID, and clientId/tenantId AuthSecretRef",
 			provider: defaultProvider,
 			k8sObjects: []client.Object{
 				&corev1.ServiceAccount{
@@ -147,10 +149,72 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 					},
 				},
 			},
-			expErr: "missing service account annotation: azure.workload.identity/client-id",
+			expErr: "missing clientID: either serviceAccountRef or service account annotation 'azure.workload.identity/client-id' is missing",
 		},
 		{
-			name:     "successful case",
+			name: "duplicated clientId",
+			provider: &esv1beta1.AzureKVProvider{
+				VaultURL: &vaultURL,
+				AuthType: &authType,
+				TenantID: pointer.To(tenantID),
+				ServiceAccountRef: &v1.ServiceAccountSelector{
+					Name: saName,
+				},
+				AuthSecretRef: &esv1beta1.AzureKVAuth{
+					ClientID: &v1.SecretKeySelector{Name: secretName, Namespace: pointer.To(namespace), Key: clientID},
+					TenantID: &v1.SecretKeySelector{Name: secretName, Namespace: pointer.To(namespace), Key: tenantID},
+				},
+			},
+			k8sObjects: []client.Object{
+				&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      saName,
+						Namespace: namespace,
+						Annotations: map[string]string{
+							AnnotationClientID: clientID,
+							AnnotationTenantID: tenantID,
+						},
+					},
+				},
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      secretName,
+						Namespace: namespace,
+					},
+					Data: map[string][]byte{
+						clientID: []byte("clientid"),
+						tenantID: []byte("tenantid"),
+					},
+				},
+			},
+			expErr: "multiple clientID found. Check secretRef and serviceAccountRef",
+		},
+		{
+			name: "duplicated tenantId",
+			provider: &esv1beta1.AzureKVProvider{
+				VaultURL: &vaultURL,
+				AuthType: &authType,
+				TenantID: pointer.To(tenantID),
+				ServiceAccountRef: &v1.ServiceAccountSelector{
+					Name: saName,
+				},
+			},
+			k8sObjects: []client.Object{
+				&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      saName,
+						Namespace: namespace,
+						Annotations: map[string]string{
+							AnnotationClientID: clientID,
+							AnnotationTenantID: tenantID,
+						},
+					},
+				},
+			},
+			expErr: "multiple tenantID found. Check secretRef, 'spec.provider.azurekv.tenantId', and serviceAccountRef",
+		},
+		{
+			name:     "successful case #1: ClientID, TenantID from ServiceAccountRef",
 			provider: defaultProvider,
 			k8sObjects: []client.Object{
 				&corev1.ServiceAccount{
@@ -161,6 +225,71 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 							AnnotationClientID: clientID,
 							AnnotationTenantID: tenantID,
 						},
+					},
+				},
+			},
+		},
+		{
+			name: "successful case #2: ClientID, TenantID from AuthSecretRef",
+			provider: &esv1beta1.AzureKVProvider{
+				VaultURL: &vaultURL,
+				AuthType: &authType,
+				ServiceAccountRef: &v1.ServiceAccountSelector{
+					Name: saName,
+				},
+				AuthSecretRef: &esv1beta1.AzureKVAuth{
+					ClientID: &v1.SecretKeySelector{Name: secretName, Namespace: pointer.To(namespace), Key: clientID},
+					TenantID: &v1.SecretKeySelector{Name: secretName, Namespace: pointer.To(namespace), Key: tenantID},
+				},
+			},
+			k8sObjects: []client.Object{
+				&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        saName,
+						Namespace:   namespace,
+						Annotations: map[string]string{},
+					},
+				},
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      secretName,
+						Namespace: namespace,
+					},
+					Data: map[string][]byte{
+						clientID: []byte("clientid"),
+						tenantID: []byte("tenantid"),
+					},
+				},
+			},
+		},
+		{
+			name: "successful case #3: ClientID from AuthSecretRef, TenantID from provider",
+			provider: &esv1beta1.AzureKVProvider{
+				VaultURL: &vaultURL,
+				AuthType: &authType,
+				TenantID: pointer.To(tenantID),
+				ServiceAccountRef: &v1.ServiceAccountSelector{
+					Name: saName,
+				},
+				AuthSecretRef: &esv1beta1.AzureKVAuth{
+					ClientID: &v1.SecretKeySelector{Name: secretName, Namespace: pointer.To(namespace), Key: clientID},
+				},
+			},
+			k8sObjects: []client.Object{
+				&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        saName,
+						Namespace:   namespace,
+						Annotations: map[string]string{},
+					},
+				},
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      secretName,
+						Namespace: namespace,
+					},
+					Data: map[string][]byte{
+						clientID: []byte("clientid"),
 					},
 				},
 			},

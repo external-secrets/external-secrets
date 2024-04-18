@@ -319,6 +319,11 @@ func (in *AzureKVAuth) DeepCopyInto(out *AzureKVAuth) {
 		*out = new(metav1.SecretKeySelector)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.TenantID != nil {
+		in, out := &in.TenantID, &out.TenantID
+		*out = new(metav1.SecretKeySelector)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.ClientSecret != nil {
 		in, out := &in.ClientSecret, &out.ClientSecret
 		*out = new(metav1.SecretKeySelector)
