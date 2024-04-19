@@ -54,6 +54,7 @@ The following table describes the stability level of each provider and who's res
 | [Conjur](https://external-secrets.io/latest/provider/conjur)                                               |   alpha   |                                                                                                                                 [@davidh-cyberark](https://github.com/davidh-cyberark/) |
 | [Delinea](https://external-secrets.io/latest/provider/delinea)                                             |   alpha   |                                                                                                                                     [@michaelsauter](https://github.com/michaelsauter/) |
 | [Pulumi ESC](https://external-secrets.io/latest/provider/pulumi)                                           |   alpha   |                                                                                                                                                  [@dirien](https://github.com/dirien) |
+| [Passbolt](https://external-secrets.io/latest/provider/passbolt)                                           |   alpha   |                                                                                                                                                   |
 
 ## Provider Feature Support
 
@@ -82,6 +83,7 @@ The following table show the support for features across different providers.
 | Conjur                    |              |              |                      |                         |        x         |             |                             |
 | Delinea                   |      x       |              |                      |                         |        x         |             |                             |
 | Pulumi ESC                |      x       |              |                      |                         |        x         |             |                             |
+| Passbolt                  |      x       |              |                      |                         |        x         |             |                             |
 
 ## Support Policy
 

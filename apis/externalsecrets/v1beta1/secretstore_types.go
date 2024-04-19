@@ -160,6 +160,9 @@ type SecretStoreProvider struct {
 
 	// +optional
 	PasswordDepot *PasswordDepotProvider `json:"passworddepot,omitempty"`
+
+	// +optional
+	Passbolt *PassboltProvider `json:"passbolt,omitempty"`
 }
 
 type CAProviderType string
