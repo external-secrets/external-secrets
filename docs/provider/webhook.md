@@ -117,7 +117,7 @@ spec:
       # Add CAs here for the TLS handshake
       caBundle: <base64 encoded cabundle>
       caProvider:
-        type: Secret or COnfigMap
+        type: Secret or ConfigMap
         name: <name of secret or configmap>
         namespace: <namespace> # Only used in ClusterSecretStores
         key: <key inside secret>
