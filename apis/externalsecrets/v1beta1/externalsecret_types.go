@@ -426,13 +426,11 @@ const (
 	// ConditionReasonSecretDeleted indicates that the secret has been deleted.
 	ConditionReasonSecretDeleted = "SecretDeleted"
 
-	ReasonInvalidStoreRef      = "InvalidStoreRef"
-	ReasonUnavailableStore     = "UnavailableStore"
-	ReasonProviderClientConfig = "InvalidProviderClientConfig"
-	ReasonUpdateFailed         = "UpdateFailed"
-	ReasonDeprecated           = "ParameterDeprecated"
-	ReasonUpdated              = "Updated"
-	ReasonDeleted              = "Deleted"
+	ReasonUpdateFailed = "UpdateFailed"
+	ReasonDeprecated   = "ParameterDeprecated"
+	ReasonCreated      = "Created"
+	ReasonUpdated      = "Updated"
+	ReasonDeleted      = "Deleted"
 )
 
 type ExternalSecretStatus struct {
