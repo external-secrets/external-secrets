@@ -34,7 +34,7 @@ var _ = Describe("[awsmanaged] IRSA via referenced service account", Label("aws"
 
 	// nolint
 	DescribeTable("sync secretsmanager secrets",
-		framework.TableFunc(f,
+		framework.TableFuncWithExternalSecret(f,
 			prov),
 		framework.Compose(awscommon.WithReferencedIRSA, f, common.SimpleDataSync, awscommon.UseClusterSecretStore),
 		framework.Compose(awscommon.WithReferencedIRSA, f, common.NestedJSONWithGJSON, awscommon.UseClusterSecretStore),
@@ -74,7 +74,7 @@ var _ = Describe("[awsmanaged] with mounted IRSA", Label("aws", "secretsmanager"
 
 	// nolint
 	DescribeTable("sync secretsmanager secrets",
-		framework.TableFunc(f,
+		framework.TableFuncWithExternalSecret(f,
 			prov),
 		framework.Compose(awscommon.WithMountedIRSA, f, common.SimpleDataSync, awscommon.UseMountedIRSAStore),
 		framework.Compose(awscommon.WithMountedIRSA, f, common.NestedJSONWithGJSON, awscommon.UseMountedIRSAStore),

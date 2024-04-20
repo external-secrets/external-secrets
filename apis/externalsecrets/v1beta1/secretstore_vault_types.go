@@ -61,6 +61,14 @@ type VaultProvider struct {
 	// +optional
 	CABundle []byte `json:"caBundle,omitempty"`
 
+	// The configuration used for client side related TLS communication, when the Vault server
+	// requires mutual authentication. Only used if the Server URL is using HTTPS protocol.
+	// This parameter is ignored for plain HTTP protocol connection.
+	// It's worth noting this configuration is different from the "TLS certificates auth method",
+	// which is available under the `auth.cert` section.
+	// +optional
+	ClientTLS VaultClientTLS `json:"tls,omitempty"`
+
 	// The provider for the CA bundle to use to validate Vault server certificate.
 	// +optional
 	CAProvider *CAProvider `json:"caProvider,omitempty"`
@@ -80,10 +88,32 @@ type VaultProvider struct {
 	ForwardInconsistent bool `json:"forwardInconsistent,omitempty"`
 }
 
+// VaultClientTLS is the configuration used for client side related TLS communication,
+// when the Vault server requires mutual authentication.
+type VaultClientTLS struct {
+	// CertSecretRef is a certificate added to the transport layer
+	// when communicating with the Vault server.
+	// If no key for the Secret is specified, external-secret will default to 'tls.crt'.
+	CertSecretRef *esmeta.SecretKeySelector `json:"certSecretRef,omitempty"`
+
+	// KeySecretRef to a key in a Secret resource containing client private key
+	// added to the transport layer when communicating with the Vault server.
+	// If no key for the Secret is specified, external-secret will default to 'tls.key'.
+	KeySecretRef *esmeta.SecretKeySelector `json:"keySecretRef,omitempty"`
+}
+
 // VaultAuth is the configuration used to authenticate with a Vault server.
 // Only one of `tokenSecretRef`, `appRole`,  `kubernetes`, `ldap`, `userPass`, `jwt` or `cert`
-// can be specified.
+// can be specified. A namespace to authenticate against can optionally be specified.
 type VaultAuth struct {
+	// Name of the vault namespace to authenticate to. This can be different than the namespace your secret is in.
+	// Namespaces is a set of features within Vault Enterprise that allows
+	// Vault environments to support Secure Multi-tenancy. e.g: "ns1".
+	// More about namespaces can be found here https://www.vaultproject.io/docs/enterprise/namespaces
+	// This will default to Vault.Namespace field if set, or empty otherwise
+	// +optional
+	Namespace *string `json:"namespace,omitempty"`
+
 	// TokenSecretRef authenticates with Vault by presenting a token.
 	// +optional
 	TokenSecretRef *esmeta.SecretKeySelector `json:"tokenSecretRef,omitempty"`

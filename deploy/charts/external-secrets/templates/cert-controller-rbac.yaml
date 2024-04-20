@@ -1,4 +1,4 @@
-{{- if and .Values.certController.create .Values.certController.rbac.create -}}
+{{- if and .Values.certController.create .Values.certController.rbac.create (not .Values.webhook.certManager.enabled) -}}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -73,6 +73,6 @@ roleRef:
   name: {{ include "external-secrets.fullname" . }}-cert-controller
 subjects:
   - name: {{ include "external-secrets-cert-controller.serviceAccountName" . }}
-    namespace: {{ .Release.Namespace | quote }}
+    namespace: {{ template "external-secrets.namespace" . }}
     kind: ServiceAccount
 {{- end }}

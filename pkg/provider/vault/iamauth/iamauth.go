@@ -40,7 +40,9 @@ import (
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	awsutil "github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 var (
@@ -54,14 +56,6 @@ const (
 
 	STSEndpointEnv                = "AWS_STS_ENDPOINT"
 	AWSWebIdentityTokenFileEnvVar = "AWS_WEB_IDENTITY_TOKEN_FILE"
-
-	errInvalidClusterStoreMissingAKIDNamespace = "invalid ClusterSecretStore: missing AWS AccessKeyID Namespace"
-	errInvalidClusterStoreMissingSAKNamespace  = "invalid ClusterSecretStore: missing AWS SecretAccessKey Namespace"
-	errFetchAKIDSecret                         = "could not fetch accessKeyID secret: %w"
-	errFetchSAKSecret                          = "could not fetch SecretAccessKey secret: %w"
-	errFetchSTSecret                           = "could not fetch SessionToken secret: %w"
-	errMissingSAK                              = "missing SecretAccessKey"
-	errMissingAKID                             = "missing AccessKeyID"
 )
 
 // DefaultJWTProvider returns a credentials.Provider that calls the AssumeRoleWithWebidentity
@@ -88,7 +82,7 @@ func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region st
 		Handlers:          handlers,
 	})
 	if err != nil {
-		return nil, err
+		return nil, awsutil.SanitizeErr(err)
 	}
 	tokenFetcher := &authTokenFetcher{
 		Namespace:      namespace,
@@ -232,58 +226,37 @@ func CredsFromControllerServiceAccount(ctx context.Context, saname, ns, region s
 // construct a aws.Credentials object
 // The namespace of the external secret is used if the ClusterSecretStore does not specify a namespace (referentAuth)
 // If the ClusterSecretStore defines a namespace it will take precedence.
-func CredsFromSecretRef(ctx context.Context, auth esv1beta1.VaultIamAuth, isClusterKind bool, kube kclient.Client, namespace string) (*credentials.Credentials, error) {
-	ke := kclient.ObjectKey{
-		Name:      auth.SecretRef.AccessKeyID.Name,
-		Namespace: namespace,
-	}
-	if isClusterKind && auth.SecretRef.AccessKeyID.Namespace != nil {
-		ke.Namespace = *auth.SecretRef.AccessKeyID.Namespace
-	}
-	akSecret := v1.Secret{}
-	err := kube.Get(ctx, ke, &akSecret)
+func CredsFromSecretRef(ctx context.Context, auth esv1beta1.VaultIamAuth, storeKind string, kube kclient.Client, namespace string) (*credentials.Credentials, error) {
+	akid, err := resolvers.SecretKeyRef(
+		ctx,
+		kube,
+		storeKind,
+		namespace,
+		&auth.SecretRef.AccessKeyID,
+	)
 	if err != nil {
-		return nil, fmt.Errorf(errFetchAKIDSecret, err)
+		return nil, err
 	}
-	ke = kclient.ObjectKey{
-		Name:      auth.SecretRef.SecretAccessKey.Name,
-		Namespace: namespace,
-	}
-	if isClusterKind && auth.SecretRef.SecretAccessKey.Namespace != nil {
-		ke.Namespace = *auth.SecretRef.SecretAccessKey.Namespace
-	}
-	sakSecret := v1.Secret{}
-	err = kube.Get(ctx, ke, &sakSecret)
+	sak, err := resolvers.SecretKeyRef(
+		ctx,
+		kube,
+		storeKind,
+		namespace,
+		&auth.SecretRef.SecretAccessKey,
+	)
 	if err != nil {
-		return nil, fmt.Errorf(errFetchSAKSecret, err)
-	}
-	sak := string(sakSecret.Data[auth.SecretRef.SecretAccessKey.Key])
-	aks := string(akSecret.Data[auth.SecretRef.AccessKeyID.Key])
-	if sak == "" {
-		return nil, fmt.Errorf(errMissingSAK)
-	}
-	if aks == "" {
-		return nil, fmt.Errorf(errMissingAKID)
+		return nil, err
 	}
 
-	var sessionToken string
-	if auth.SecretRef.SessionToken != nil {
-		ke = kclient.ObjectKey{
-			Name:      auth.SecretRef.SessionToken.Name,
-			Namespace: namespace,
-		}
-		if isClusterKind && auth.SecretRef.SessionToken.Namespace != nil {
-			ke.Namespace = *auth.SecretRef.SessionToken.Namespace
-		}
-		stSecret := v1.Secret{}
-		err = kube.Get(ctx, ke, &stSecret)
-		if err != nil {
-			return nil, fmt.Errorf(errFetchSTSecret, err)
-		}
-		sessionToken = string(stSecret.Data[auth.SecretRef.SessionToken.Key])
-	}
-
-	return credentials.NewStaticCredentials(aks, sak, sessionToken), err
+	// session token is optional
+	sessionToken, _ := resolvers.SecretKeyRef(
+		ctx,
+		kube,
+		storeKind,
+		namespace,
+		auth.SecretRef.SessionToken,
+	)
+	return credentials.NewStaticCredentials(akid, sak, sessionToken), err
 }
 
 type STSProvider func(*session.Session) stsiface.STSAPI

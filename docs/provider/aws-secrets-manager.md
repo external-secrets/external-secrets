@@ -100,6 +100,18 @@ Additional settings can be set at the `SecretStore` level to control the behavio
 {% include 'aws-sm-store-secretsmanager-config.yaml' %}
 ```
 
+#### Additional Metadata for PushSecret
+
+It's possible to configure AWS Secrets Manager to either push secrets in `binary` format or as plain `string`.
+
+To control this behaviour set the following provider metadata:
+
+```yaml
+{% include 'aws-sm-push-secret-with-metadata.yaml' %}
+```
+
+`secretPushFormat` takes two options. `binary` and `string`, where `binary` is the _default_.
+
 ### JSON Secret Values
 
 SecretsManager supports *simple* key/value pairs that are stored as json. If you use the API you can store more complex JSON objects. You can access nested values or arrays using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md):

@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package scaleway
 
 import (
@@ -23,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1alpha1"
+	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1beta1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
@@ -102,6 +103,10 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 }
 
 func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	if data.GetSecretKey() == "" {
+		return fmt.Errorf("pushing the whole secret is not yet implemented")
+	}
+
 	value := secret.Data[data.GetSecretKey()]
 	scwRef, err := decodeScwSecretRef(data.GetRemoteKey())
 	if err != nil {
@@ -259,6 +264,10 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecre
 	return nil
 }
 
+func (c *client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
 func (c *client) Validate() (esv1beta1.ValidationResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -331,7 +340,7 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 		}
 
 		totalFetched := uint64(*request.Page-1)*uint64(*request.PageSize) + uint64(len(response.Secrets))
-		done = totalFetched == uint64(response.TotalCount)
+		done = totalFetched == response.TotalCount
 
 		*request.Page++
 

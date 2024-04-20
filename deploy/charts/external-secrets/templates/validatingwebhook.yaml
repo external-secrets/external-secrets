@@ -10,7 +10,7 @@ metadata:
     {{- end }}
   {{- if and .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotations }}
   annotations:
-    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "external-secrets.fullname" . }}-webhook
+    cert-manager.io/inject-ca-from: {{ template "external-secrets.namespace" . }}/{{ include "external-secrets.fullname" . }}-webhook
   {{- end }}
 webhooks:
 - name: "validate.secretstore.external-secrets.io"
@@ -22,7 +22,7 @@ webhooks:
     scope:       "Namespaced"
   clientConfig:
     service:
-      namespace: {{ .Release.Namespace | quote }}
+      namespace: {{ template "external-secrets.namespace" . }}
       name: {{ include "external-secrets.fullname" . }}-webhook
       path: /validate-external-secrets-io-v1beta1-secretstore
   admissionReviewVersions: ["v1", "v1beta1"]
@@ -38,7 +38,7 @@ webhooks:
     scope:       "Cluster"
   clientConfig:
     service:
-      namespace: {{ .Release.Namespace | quote }}
+      namespace: {{ template "external-secrets.namespace" . }}
       name: {{ include "external-secrets.fullname" . }}-webhook
       path: /validate-external-secrets-io-v1beta1-clustersecretstore
   admissionReviewVersions: ["v1", "v1beta1"]
@@ -56,7 +56,7 @@ metadata:
     {{- end }}
   {{- if and .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotations }}
   annotations:
-    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "external-secrets.fullname" . }}-webhook
+    cert-manager.io/inject-ca-from: {{ template "external-secrets.namespace" . }}/{{ include "external-secrets.fullname" . }}-webhook
   {{- end }}
 webhooks:
 - name: "validate.externalsecret.external-secrets.io"
@@ -68,7 +68,7 @@ webhooks:
     scope:       "Namespaced"
   clientConfig:
     service:
-      namespace: {{ .Release.Namespace | quote }}
+      namespace: {{ template "external-secrets.namespace" . }}
       name: {{ include "external-secrets.fullname" . }}-webhook
       path: /validate-external-secrets-io-v1beta1-externalsecret
   admissionReviewVersions: ["v1", "v1beta1"]

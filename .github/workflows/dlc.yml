@@ -6,20 +6,23 @@ on:
       - "go.mod"
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+
 jobs:
   fossa-scan:
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout Code"
-        uses: actions/checkout@v4
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
 
       - name: "Run FOSSA Scan"
-        uses: fossas/fossa-action@main
+        uses: fossas/fossa-action@47ef11b1e1e3812e88dae436ccbd2d0cbd1adab0 # main
         with:
           api-key: ${{secrets.FOSSA_API_KEY}}
 
       - name: "Run FOSSA Test"
-        uses: fossas/fossa-action@main
+        uses: fossas/fossa-action@47ef11b1e1e3812e88dae436ccbd2d0cbd1adab0 # main
         with:
           api-key: ${{secrets.FOSSA_API_KEY}}
           run-tests: true

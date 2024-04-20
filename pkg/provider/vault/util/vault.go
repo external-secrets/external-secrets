@@ -46,49 +46,55 @@ type Client interface {
 	Auth() Auth
 	Logical() Logical
 	AuthToken() Token
+	Namespace() string
 	SetNamespace(namespace string)
 	AddHeader(key, value string)
 }
 
-type VClient struct {
+type VaultClient struct {
 	SetTokenFunc     func(v string)
 	TokenFunc        func() string
 	ClearTokenFunc   func()
 	AuthField        Auth
 	LogicalField     Logical
 	AuthTokenField   Token
+	NamespaceFunc    func() string
 	SetNamespaceFunc func(namespace string)
 	AddHeaderFunc    func(key, value string)
 }
 
-func (v VClient) AddHeader(key, value string) {
+func (v VaultClient) AddHeader(key, value string) {
 	v.AddHeaderFunc(key, value)
 }
 
-func (v VClient) SetNamespace(namespace string) {
+func (v VaultClient) Namespace() string {
+	return v.NamespaceFunc()
+}
+
+func (v VaultClient) SetNamespace(namespace string) {
 	v.SetNamespaceFunc(namespace)
 }
 
-func (v VClient) ClearToken() {
+func (v VaultClient) ClearToken() {
 	v.ClearTokenFunc()
 }
 
-func (v VClient) Token() string {
+func (v VaultClient) Token() string {
 	return v.TokenFunc()
 }
 
-func (v VClient) SetToken(token string) {
+func (v VaultClient) SetToken(token string) {
 	v.SetTokenFunc(token)
 }
 
-func (v VClient) Auth() Auth {
+func (v VaultClient) Auth() Auth {
 	return v.AuthField
 }
 
-func (v VClient) AuthToken() Token {
+func (v VaultClient) AuthToken() Token {
 	return v.AuthTokenField
 }
 
-func (v VClient) Logical() Logical {
+func (v VaultClient) Logical() Logical {
 	return v.LogicalField
 }

@@ -86,6 +86,8 @@ type SecretStoreProvider struct {
 	// +optional
 	Kubernetes *KubernetesProvider `json:"kubernetes,omitempty"`
 
+	PasswordDepot *PasswordDepotProvider `json:"passworddepot,omitempty"`
+
 	// Fake configures a store with static key/value pairs
 	// +optional
 	Fake *FakeProvider `json:"fake,omitempty"`

@@ -108,6 +108,7 @@ We support the following secret types of [IBM Secrets Manager](https://cloud.ibm
 * `arbitrary`
 * `username_password`
 * `iam_credentials`
+* `service_credentials`
 * `imported_cert`
 * `public_cert`
 * `private_cert`
@@ -135,13 +136,19 @@ The behavior for the different secret types is as following:
 * `remoteRef` retrieves an apikey from secrets manager and sets it for specified `secretKey`
 * `dataFrom` retrieves an apikey from secrets manager and sets it for the `apikey` Kubernetes secret key
 
+#### service_credentials
+* `remoteRef` retrieves the credentials object from secrets manager and sets it for specified `secretKey`
+* `dataFrom` retrieves the credential object as a map from secrets manager and sets appropriate key:value pairs in the resulting Kubernetes secret
+
 #### imported_cert, public_cert, and private_cert
 * `remoteRef` requires a `property` to be set for either `certificate`, `private_key` or `intermediate` to retrieve respective fields from the secrets manager secret and set in specified `secretKey`
 * `dataFrom` retrieves all `certificate`, `private_key` and `intermediate` fields from the secrets manager secret and sets appropriate key:value pairs in the resulting Kubernetes secret
 
 #### kv
 * An optional `property` field can be set to `remoteRef` to select requested key from the KV secret. If not set, the entire secret will be returned
-* `dataFrom` retrieves a string from secrets manager and tries to parse it as JSON object setting the key:values pairs in resulting Kubernetes secret if successful
+* `dataFrom` retrieves a string from secrets manager and tries to parse it as JSON object setting the key:values pairs in resulting Kubernetes secret if successful. It could be either used with the methods
+  * `Extract` to extract multiple key/value pairs from one secret (with optional `property` field being supported as well)
+  * `Find` to find secrets based on tags or regular expressions and allows finding multiple external secrets and map them into a single Kubernetes secret
 
 ```json
 {
@@ -168,10 +175,25 @@ data:
 - secretKey: key_all
   remoteRef:
     key: 'kv/aaaaa-bbbb-cccc-dddd-eeeeee'
+```
 
+```yaml
 dataFrom:
-  - key: 'kv/aaaaa-bbbb-cccc-dddd-eeeeee'
-    property: 'key3'
+  - extract:
+    key: 'kv/fffff-gggg-iiii-dddd-eeeeee' #mandatory
+    decodingStrategy: Base64 #optional
+
+```
+
+```yaml
+dataFrom:
+  - find:
+      name:  #matches any secret name ending in foo-bar
+        regexp: "key" #assumption that secrets are stored like /comp/key1, key2/trigger, and comp/trigger/keygen within the secret manager
+  - find:
+      tags: #matches any secrets with the following metadata labels
+        environment: "dev"
+        application: "BFF"
 ```
 
 results in
@@ -183,9 +205,22 @@ data:
   special_key: ... #special-content
   key_all: ... #{"key1":"val1","key2":"val2", ..."special.key":"special-content"}
 
-  # secrets from dataFrom
-  keyA: ... #valA
-  keyB: ... #valB
+  # secrets from dataFrom with extract method
+  keyA: ... #1st key-value pair from JSON object
+  keyB: ... #2nd key-value pair from JSON object
+  keyC: ... #3rd key-value pair from JSON object
+
+  # secrets from dataFrom with find regex method
+  _comp_key1: ... #secret value for /comp/key1
+  key2_trigger: ... #secret value for key2/trigger
+  _comp_trigger_keygen: ... #secret value for comp/trigger/keygen
+
+  # secrets from dataFrom with find tags method
+  bffA: ...
+  bffB: ...
+  bffC: ...
+
+
 ```
 
 ### Creating external secret
@@ -203,12 +238,6 @@ Alternatively, the secret name along with its secret group name can be specified
 {% include 'ibm-external-secret-by-name.yaml' %}
 ```
 
-Please note that the below mechanism to get the secret by name is deprecated and not supported.
-
-```yaml
-{% include 'ibm-external-secret-by-name-deprecated.yaml' %}
-```
-
 ### Getting the Kubernetes secret
 The operator will fetch the IBM Secret Manager secret and inject it as a `Kind=Secret`
 ```
@@ -218,7 +247,7 @@ kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath='{.data.tes
 ### Populating the Kubernetes secret with metadata from IBM Secrets Manager Provider
 ESO can add metadata while creating or updating a Kubernetes secret to be reflected in its labels or annotations. The metadata could be any of the fields that are supported and returned in the response by IBM Secrets Manager.
 
-In order for the user to opt-in to adding metadata to secret, an existing optional field `spec.dataFrom.extract.metadataPolicy` can be be set to `Fetch`, its default value being `None`. In addition to this, templating provided be ESO can be leveraged to specify the key-value pairs of the resultant secrets' labels and annotation.
+In order for the user to opt in to adding metadata to secret, an existing optional field `spec.dataFrom.extract.metadataPolicy` can be set to `Fetch`, its default value being `None`. In addition to this, templating provided be ESO can be leveraged to specify the key-value pairs of the resultant secrets' labels and annotation.
 
 In order for the required metadata to be populated in the Kubernetes secret, combination of below should be provided in the External Secrets resource:
 1. The required metadata should be specified under `template.metadata.labels` or `template.metadata.annotations`.
@@ -241,9 +270,8 @@ kind: Secret
 metadata:
   annotations:
     reconcile.external-secrets.io/data-hash: 02217008d13ed228e75cf6d26fe74324
-  creationTimestamp: "2023-05-04T08:41:24Z"
-  annotations:
-    secret_id: 1234
+    creationTimestamp: "2023-05-04T08:41:24Z"
+    secret_id: "1234"
     updated_at: 2023-05-04T08:57:19Z
   name: database-credentials
   namespace: external-secrets
@@ -254,7 +282,7 @@ metadata:
     kind: ExternalSecret
     name: database-credentials
     uid: c2a018e7-1ac3-421b-bd3b-d9497204f843
-  resourceVersion: "1803567"
-  uid: f5dff604-611b-4d41-9d65-b860c61a0b8d
+  #resourceVersion: "1803567" #immutable for a user
+  #uid: f5dff604-611b-4d41-9d65-b860c61a0b8d #immutable for a user
 type: Opaque
 ```

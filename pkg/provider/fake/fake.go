@@ -16,12 +16,14 @@ package fake
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
@@ -110,6 +112,11 @@ func (p *Provider) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteR
 	return nil
 }
 
+func (p *Provider) SecretExists(_ context.Context, ref esv1beta1.PushSecretRemoteRef) (bool, error) {
+	_, ok := p.config[ref.GetRemoteKey()]
+	return ok, nil
+}
+
 func (p *Provider) PushSecret(_ context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
 	value := secret.Data[data.GetSecretKey()]
 	currentData, ok := p.config[data.GetRemoteKey()]
@@ -120,10 +127,12 @@ func (p *Provider) PushSecret(_ context.Context, secret *corev1.Secret, data esv
 		}
 		return nil
 	}
+
 	if currentData.Origin != FakeSetSecret {
 		return fmt.Errorf("key already exists")
 	}
 	currentData.Value = string(value)
+
 	return nil
 }
 
@@ -182,12 +191,40 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretData
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (p *Provider) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	data, ok := p.config[mapKey(ref.Key, ref.Version)]
-	if !ok || data.Version != ref.Version || data.ValueMap == nil {
+func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	ddata, ok := p.config[mapKey(ref.Key, ref.Version)]
+	if !ok || ddata.Version != ref.Version {
 		return nil, esv1beta1.NoSecretErr
 	}
-	return convertMap(data.ValueMap), nil
+
+	// Due to backward compatibility valueMap will still be returned for now
+	if ddata.ValueMap != nil {
+		return convertMap(ddata.ValueMap), nil
+	}
+
+	data, err := p.GetSecret(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+
+	secretData := make(map[string][]byte)
+	kv := make(map[string]json.RawMessage)
+	err = json.Unmarshal(data, &kv)
+	if err != nil {
+		return nil, fmt.Errorf("unable to unmarshal secret: %w", err)
+	}
+
+	for k, v := range kv {
+		var strVal string
+		err = json.Unmarshal(v, &strVal)
+		if err == nil {
+			secretData[k] = []byte(strVal)
+		} else {
+			secretData[k] = v
+		}
+	}
+
+	return secretData, nil
 }
 
 func convertMap(in map[string]string) map[string][]byte {
@@ -206,20 +243,20 @@ func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) error {
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	prov := store.GetSpec().Provider.Fake
 	if prov == nil {
-		return nil
+		return nil, nil
 	}
 	for pos, data := range prov.Data {
 		if data.Key == "" {
-			return fmt.Errorf(errMissingKeyField, pos)
+			return nil, fmt.Errorf(errMissingKeyField, pos)
 		}
 		if data.Value == "" && data.ValueMap == nil {
-			return fmt.Errorf(errMissingValueField, pos)
+			return nil, fmt.Errorf(errMissingValueField, pos)
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func mapKey(key, version string) string {

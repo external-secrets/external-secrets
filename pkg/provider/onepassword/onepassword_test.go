@@ -11,21 +11,25 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package onepassword
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
 
 	"github.com/1Password/connect-sdk-go/onepassword"
+	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pointer "k8s.io/utils/ptr"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	fake "github.com/external-secrets/external-secrets/pkg/provider/onepassword/fake"
+	"github.com/external-secrets/external-secrets/pkg/provider/onepassword/fake"
 )
 
 const (
@@ -65,6 +69,8 @@ const (
 	getAllSecretsErrFormat    = "%s: onepassword.GetAllSecrets(...): -expected, +got:\n-%#v\n+%#v\n"
 	validateStoreErrFormat    = "%s: onepassword.validateStore(...): -expected, +got:\n-%#v\n+%#v\n"
 	findItemErrFormat         = "%s: onepassword.findItem(...): -expected, +got:\n-%#v\n+%#v\n"
+	errFromErrMsgF            = "%w: %s"
+	errDoesNotMatchMsgF       = "%s: error did not match: -expected, +got:\\n-%#v\\n+%#v\\n"
 )
 
 func TestFindItem(t *testing.T) {
@@ -187,7 +193,7 @@ func TestFindItem(t *testing.T) {
 				{
 					checkNote:    "no exist",
 					findItemName: "my-item-no-exist",
-					expectedErr:  fmt.Errorf(errKeyNotFound, fmt.Errorf("my-item-no-exist in: map[my-vault:1]")),
+					expectedErr:  fmt.Errorf("%w: my-item-no-exist in: map[my-vault:1]", ErrKeyNotFound),
 				},
 			},
 		},
@@ -208,7 +214,7 @@ func TestFindItem(t *testing.T) {
 				{
 					checkNote:    "multiple match",
 					findItemName: myItem,
-					expectedErr:  fmt.Errorf(errExpectedOneItem, fmt.Errorf("'my-item', got 2")),
+					expectedErr:  fmt.Errorf(errFromErrMsgF, ErrExpectedOneItem, "'my-item', got 2"),
 				},
 			},
 		},
@@ -781,7 +787,7 @@ func TestGetSecret(t *testing.T) {
 						Key:      myItem,
 						Property: key1,
 					},
-					expectedErr: fmt.Errorf(errExpectedOneField, fmt.Errorf("'key1' in 'my-item', got 2")),
+					expectedErr: fmt.Errorf(errFromErrMsgF, ErrExpectedOneField, "'key1' in 'my-item', got 2"),
 				},
 			},
 		},
@@ -948,7 +954,7 @@ func TestGetSecretMap(t *testing.T) {
 						Key: myItem,
 					},
 					expectedMap: nil,
-					expectedErr: fmt.Errorf(errExpectedOneField, fmt.Errorf("'key1' in 'my-item', got 2")),
+					expectedErr: fmt.Errorf(errFromErrMsgF, ErrExpectedOneField, "'key1' in 'my-item', got 2"),
 				},
 			},
 		},
@@ -1405,5 +1411,700 @@ func TestHasUniqueVaultNumbers(t *testing.T) {
 		if got != tc.expected {
 			t.Errorf("onepassword.hasUniqueVaultNumbers(...): -expected, +got:\n-%#v\n+%#v\n", tc.expected, got)
 		}
+	}
+}
+
+type fakeRef struct {
+	key       string
+	prop      string
+	secretKey string
+}
+
+func (f fakeRef) GetRemoteKey() string {
+	return f.key
+}
+
+func (f fakeRef) GetProperty() string {
+	return f.prop
+}
+
+func (f fakeRef) GetSecretKey() string {
+	return f.secretKey
+}
+
+func (f fakeRef) GetMetadata() *apiextensionsv1.JSON {
+	return nil
+}
+
+func validateItem(t *testing.T, expectedItem, actualItem *onepassword.Item) {
+	t.Helper()
+	if !reflect.DeepEqual(expectedItem, actualItem) {
+		t.Errorf("expected item %v, got %v", expectedItem, actualItem)
+	}
+}
+
+func TestProviderOnePasswordCreateItem(t *testing.T) {
+	type testCase struct {
+		vaults             map[string]int
+		expectedErr        error
+		setupNote          string
+		val                []byte
+		createValidateFunc func(*testing.T, *onepassword.Item, string) (*onepassword.Item, error)
+		ref                esv1beta1.PushSecretData
+	}
+	const vaultName = "vault1"
+
+	thridPartyErr := errors.New("third party error")
+
+	testCases := []testCase{
+		{
+			setupNote: "standard create",
+			val:       []byte("value"),
+			ref: fakeRef{
+				key:  "testing",
+				prop: "prop",
+			},
+			expectedErr: nil,
+			vaults: map[string]int{
+				vaultName: 1,
+			},
+			createValidateFunc: func(t *testing.T, item *onepassword.Item, s string) (*onepassword.Item, error) {
+				validateItem(t, &onepassword.Item{
+					Title:    "testing",
+					Category: onepassword.Server,
+					Vault: onepassword.ItemVault{
+						ID: vaultName,
+					},
+					Fields: []*onepassword.ItemField{
+						generateNewItemField("prop", "value"),
+					},
+				}, item)
+				return item, nil
+			},
+		},
+		{
+			setupNote: "standard create with no property",
+			val:       []byte("value2"),
+			ref: fakeRef{
+				key:  "testing2",
+				prop: "",
+			},
+			vaults: map[string]int{
+				vaultName: 2,
+			},
+			createValidateFunc: func(t *testing.T, item *onepassword.Item, s string) (*onepassword.Item, error) {
+				validateItem(t, &onepassword.Item{
+					Title:    "testing2",
+					Category: onepassword.Server,
+					Vault: onepassword.ItemVault{
+						ID: vaultName,
+					},
+					Fields: []*onepassword.ItemField{
+						generateNewItemField("password", "value2"),
+					},
+				}, item)
+				return item, nil
+			},
+		},
+		{
+			setupNote: "no vaults",
+			val:       []byte("value"),
+			ref: fakeRef{
+				key:  "testing",
+				prop: "prop",
+			},
+			vaults:      map[string]int{},
+			expectedErr: ErrNoVaults,
+			createValidateFunc: func(t *testing.T, item *onepassword.Item, s string) (*onepassword.Item, error) {
+				t.Errorf("onepassword.createItem(...): should not have been called")
+				return nil, nil
+			},
+		},
+		{
+			setupNote: "error on create",
+			val:       []byte("testing"),
+			ref: fakeRef{
+				key:  "another",
+				prop: "property",
+			},
+			vaults: map[string]int{
+				vaultName: 1,
+			},
+			expectedErr: thridPartyErr,
+			createValidateFunc: func(t *testing.T, item *onepassword.Item, s string) (*onepassword.Item, error) {
+				validateItem(t, &onepassword.Item{
+					Title:    "another",
+					Category: onepassword.Server,
+					Vault: onepassword.ItemVault{
+						ID: vaultName,
+					},
+					Fields: []*onepassword.ItemField{
+						generateNewItemField("property", "testing"),
+					},
+				}, item)
+				return nil, thridPartyErr
+			},
+		},
+	}
+	provider := &ProviderOnePassword{}
+	for _, tc := range testCases {
+		// setup
+		mockClient := fake.NewMockClient()
+		mockClient.CreateItemValidateFunc = func(item *onepassword.Item, s string) (*onepassword.Item, error) {
+			i, e := tc.createValidateFunc(t, item, s)
+			return i, e
+		}
+		provider.client = mockClient
+		provider.vaults = tc.vaults
+
+		err := provider.createItem(tc.val, tc.ref)
+		if !errors.Is(err, tc.expectedErr) {
+			t.Errorf(errDoesNotMatchMsgF, tc.setupNote, tc.expectedErr, err)
+		}
+	}
+}
+
+func TestProviderOnePasswordDeleteItem(t *testing.T) {
+	type testCase struct {
+		inputFields    []*onepassword.ItemField
+		fieldName      string
+		expectedErr    error
+		expectedFields []*onepassword.ItemField
+		setupNote      string
+	}
+
+	field1, field2, field3, field4 := "field1", "field2", "field3", "field4"
+	testCases := []testCase{
+		{
+			setupNote: "one field to remove",
+			inputFields: []*onepassword.ItemField{
+				{
+					ID:    field1,
+					Label: field1,
+					Type:  onepassword.FieldTypeAddress,
+				},
+				{
+					ID:    field2,
+					Label: field2,
+					Type:  onepassword.FieldTypeString,
+				},
+				{
+					ID:    field3,
+					Label: field3,
+					Type:  onepassword.FieldTypeConcealed,
+				},
+			},
+			fieldName: field2,
+			expectedFields: []*onepassword.ItemField{
+				{
+					ID:    field1,
+					Label: field1,
+					Type:  onepassword.FieldTypeAddress,
+				},
+				{
+					ID:    field3,
+					Label: field3,
+					Type:  onepassword.FieldTypeConcealed,
+				},
+			},
+		},
+		{
+			setupNote: "no fields to remove",
+			inputFields: []*onepassword.ItemField{
+				{
+					ID:    field1,
+					Label: field1,
+					Type:  onepassword.FieldTypeAddress,
+				},
+				{
+					ID:    field2,
+					Label: field2,
+					Type:  onepassword.FieldTypeString,
+				},
+				{
+					ID:    field3,
+					Label: field3,
+					Type:  onepassword.FieldTypeConcealed,
+				},
+			},
+			expectedErr: nil,
+			fieldName:   field4,
+			expectedFields: []*onepassword.ItemField{
+				{
+					ID:    field1,
+					Label: field1,
+					Type:  onepassword.FieldTypeAddress,
+				},
+				{
+					ID:    field2,
+					Label: field2,
+					Type:  onepassword.FieldTypeString,
+				},
+				{
+					ID:    field3,
+					Label: field3,
+					Type:  onepassword.FieldTypeConcealed,
+				},
+			},
+		},
+		{
+			setupNote: "multiple fields to remove",
+			inputFields: []*onepassword.ItemField{
+				{
+					ID:    field3,
+					Label: field3,
+					Type:  onepassword.FieldTypeConcealed,
+				},
+				{
+					ID:    field1,
+					Label: field1,
+					Type:  onepassword.FieldTypeAddress,
+				},
+				{
+					ID:    field3,
+					Label: field3,
+					Type:  onepassword.FieldTypeCreditCardType,
+				},
+				{
+					ID:    field2,
+					Label: field2,
+					Type:  onepassword.FieldTypeString,
+				},
+				{
+					ID:    field3,
+					Label: field3,
+					Type:  onepassword.FieldTypeGender,
+				},
+			},
+			fieldName:      field3,
+			expectedErr:    ErrExpectedOneField,
+			expectedFields: nil,
+		},
+	}
+
+	// run the tests
+	for _, tc := range testCases {
+		actualOutput, err := deleteField(tc.inputFields, tc.fieldName)
+		if len(actualOutput) != len(tc.expectedFields) {
+			t.Errorf("%s: length fields did not match: -expected, +got:\n-%#v\n+%#v\n", tc.setupNote, tc.expectedFields, actualOutput)
+			return
+		}
+		if !errors.Is(err, tc.expectedErr) {
+			t.Errorf(errDoesNotMatchMsgF, tc.setupNote, tc.expectedErr, err)
+		}
+		for i, check := range tc.expectedFields {
+			if len(actualOutput) <= i {
+				continue
+			}
+			if !reflect.DeepEqual(check, actualOutput[i]) {
+				t.Errorf("%s: fields at position %d did not match: -expected, +got:\n-%#v\n+%#v\n", tc.setupNote, i, check, actualOutput[i])
+			}
+		}
+	}
+}
+
+func TestUpdateFields(t *testing.T) {
+	type testCase struct {
+		inputFields    []*onepassword.ItemField
+		fieldName      string
+		newVal         string
+		expectedErr    error
+		expectedFields []*onepassword.ItemField
+		setupNote      string
+	}
+
+	field1, field2, field3, field4 := "field1", "field2", "field3", "field4"
+	testCases := []testCase{
+		{
+			setupNote: "one field to update",
+			inputFields: []*onepassword.ItemField{
+				{
+					ID:    field1,
+					Label: field1,
+					Value: value1,
+					Type:  onepassword.FieldTypeAddress,
+				},
+				{
+					ID:    field2,
+					Label: field2,
+					Value: value2,
+					Type:  onepassword.FieldTypeString,
+				},
+				{
+					ID:    field3,
+					Label: field3,
+					Value: value3,
+					Type:  onepassword.FieldTypeConcealed,
+				},
+			},
+			fieldName: field2,
+			newVal:    "testing",
+			expectedFields: []*onepassword.ItemField{
+				{
+					ID:    field1,
+					Label: field1,
+					Value: value1,
+					Type:  onepassword.FieldTypeAddress,
+				},
+				{
+					ID:    field2,
+					Label: field2,
+					Value: "testing",
+					Type:  onepassword.FieldTypeString,
+				},
+				{
+					ID:    field3,
+					Label: field3,
+					Value: value3,
+					Type:  onepassword.FieldTypeConcealed,
+				},
+			},
+		},
+		{
+			setupNote: "add field",
+			inputFields: []*onepassword.ItemField{
+				{
+					ID:    field1,
+					Value: value1,
+					Label: field1,
+					Type:  onepassword.FieldTypeAddress,
+				},
+				{
+					ID:    field2,
+					Label: field2,
+					Value: value2,
+					Type:  onepassword.FieldTypeString,
+				},
+			},
+			fieldName: field4,
+			newVal:    value4,
+			expectedFields: []*onepassword.ItemField{
+				{
+					ID:    field1,
+					Label: field1,
+					Value: value1,
+					Type:  onepassword.FieldTypeAddress,
+				},
+				{
+					ID:    field2,
+					Label: field2,
+					Value: value2,
+					Type:  onepassword.FieldTypeString,
+				},
+				{
+					Label: field4,
+					Value: value4,
+					Type:  onepassword.FieldTypeConcealed,
+				},
+			},
+		},
+		{
+			setupNote: "no changes",
+			inputFields: []*onepassword.ItemField{
+				{
+					ID:    field1,
+					Label: field1,
+					Value: value1,
+					Type:  onepassword.FieldTypeAddress,
+				},
+				{
+					ID:    field2,
+					Label: field2,
+					Value: value2,
+					Type:  onepassword.FieldTypeString,
+				},
+			},
+			fieldName:   field1,
+			newVal:      value1,
+			expectedErr: nil,
+			expectedFields: []*onepassword.ItemField{
+				{
+					ID:    field1,
+					Label: field1,
+					Value: value1,
+					Type:  onepassword.FieldTypeAddress,
+				},
+				{
+					ID:    field2,
+					Label: field2,
+					Value: value2,
+					Type:  onepassword.FieldTypeString,
+				},
+			},
+		},
+		{
+			setupNote: "multiple fields to remove",
+			inputFields: []*onepassword.ItemField{
+				{
+					ID:    field3,
+					Label: field3,
+					Value: value3,
+					Type:  onepassword.FieldTypeConcealed,
+				},
+				{
+					ID:    field1,
+					Label: field1,
+					Value: value1,
+					Type:  onepassword.FieldTypeAddress,
+				},
+				{
+					ID:    field3,
+					Label: field3,
+					Value: value3,
+					Type:  onepassword.FieldTypeCreditCardType,
+				},
+				{
+					ID:    field2,
+					Label: field2,
+					Value: value2,
+					Type:  onepassword.FieldTypeString,
+				},
+				{
+					ID:    field3,
+					Label: field3,
+					Value: value3,
+					Type:  onepassword.FieldTypeGender,
+				},
+			},
+			fieldName:      field3,
+			expectedErr:    ErrExpectedOneField,
+			expectedFields: nil,
+		},
+	}
+
+	// run the tests
+	for _, tc := range testCases {
+		actualOutput, err := updateFieldValue(tc.inputFields, tc.fieldName, tc.newVal)
+		if len(actualOutput) != len(tc.expectedFields) {
+			t.Errorf("%s: length fields did not match: -expected, +got:\n-%#v\n+%#v\n", tc.setupNote, tc.expectedFields, actualOutput)
+			return
+		}
+		if !errors.Is(err, tc.expectedErr) {
+			t.Errorf(errDoesNotMatchMsgF, tc.setupNote, tc.expectedErr, err)
+		}
+		for i, check := range tc.expectedFields {
+			if len(actualOutput) <= i {
+				continue
+			}
+			if !reflect.DeepEqual(check, actualOutput[i]) {
+				t.Errorf("%s: fields at position %d did not match: -expected, +got:\n-%#v\n+%#v\n", tc.setupNote, i, check, actualOutput[i])
+			}
+		}
+	}
+}
+
+func TestGenerateNewItemField(t *testing.T) {
+	field := generateNewItemField("property", "testing")
+	if !reflect.DeepEqual(field, &onepassword.ItemField{
+		Label: "property",
+		Type:  onepassword.FieldTypeConcealed,
+		Value: "testing",
+	}) {
+		t.Errorf("field did not match: -expected, +got:\n-%#v\n+%#v\n", &onepassword.ItemField{
+			Label: "property",
+			Type:  onepassword.FieldTypeConcealed,
+			Value: "testing",
+		}, field)
+	}
+}
+
+func TestProviderOnePasswordPushSecret(t *testing.T) {
+	// Most logic is tested in the createItem and updateField functions
+	// This test is just to make sure the correct functions are called.
+	// the correct values are passed to them, and errors are propagated
+	type testCase struct {
+		vaults              map[string]int
+		expectedErr         error
+		setupNote           string
+		existingItems       []onepassword.Item
+		val                 *corev1.Secret
+		existingItemsFields map[string][]*onepassword.ItemField
+		createValidateFunc  func(*onepassword.Item, string) (*onepassword.Item, error)
+		updateValidateFunc  func(*onepassword.Item, string) (*onepassword.Item, error)
+		ref                 fakeRef
+	}
+	var (
+		vaultName = "vault1"
+		vault     = onepassword.Vault{
+			ID: vaultName,
+		}
+	)
+	testCases := []testCase{
+		{
+			vaults: map[string]int{
+				vaultName: 1,
+			},
+			expectedErr: ErrExpectedOneItem,
+			setupNote:   "find item error",
+			existingItems: []onepassword.Item{
+				{
+					Title: key1,
+				}, {
+					Title: key1,
+				}, // can be empty, testing for error with length
+			},
+			ref: fakeRef{
+				key:       key1,
+				secretKey: key1,
+			},
+			val: &corev1.Secret{Data: map[string][]byte{key1: []byte("testing")}},
+		},
+		{
+			setupNote:   "create item error",
+			expectedErr: ErrNoVaults,
+			val:         &corev1.Secret{Data: map[string][]byte{key1: []byte("testing")}},
+			ref:         fakeRef{secretKey: key1},
+			vaults:      nil,
+		},
+		{
+			setupNote:   "key not in data",
+			expectedErr: ErrKeyNotFound,
+			val:         &corev1.Secret{Data: map[string][]byte{}},
+			ref:         fakeRef{secretKey: key1},
+			vaults:      nil,
+		},
+		{
+			setupNote:   "create item success",
+			expectedErr: nil,
+			val: &corev1.Secret{Data: map[string][]byte{
+				key1: []byte("testing"),
+			}},
+			ref: fakeRef{
+				key:       key1,
+				prop:      "prop",
+				secretKey: key1,
+			},
+			vaults: map[string]int{
+				vaultName: 1,
+			},
+			createValidateFunc: func(item *onepassword.Item, s string) (*onepassword.Item, error) {
+				validateItem(t, &onepassword.Item{
+					Title:    key1,
+					Category: onepassword.Server,
+					Vault: onepassword.ItemVault{
+						ID: vaultName,
+					},
+					Fields: []*onepassword.ItemField{
+						generateNewItemField("prop", "testing"),
+					},
+				}, item)
+				return item, nil
+			},
+		},
+		{
+			setupNote:   "update fields error",
+			expectedErr: ErrExpectedOneField,
+			val: &corev1.Secret{Data: map[string][]byte{
+				"key2": []byte("testing"),
+			}},
+			ref: fakeRef{
+				key:       key1,
+				prop:      "prop",
+				secretKey: "key2",
+			},
+			vaults: map[string]int{
+				vaultName: 1,
+			},
+			existingItemsFields: map[string][]*onepassword.ItemField{
+				key1: {
+					{
+						Label: "prop",
+					},
+					{
+						Label: "prop",
+					},
+				},
+			},
+			existingItems: []onepassword.Item{
+				{
+					Vault: onepassword.ItemVault{
+						ID: vaultName,
+					},
+					ID:    key1,
+					Title: key1,
+				},
+			},
+		},
+		{
+			setupNote:   "standard update",
+			expectedErr: nil,
+			val: &corev1.Secret{Data: map[string][]byte{
+				"key3": []byte("testing2"),
+			}},
+			ref: fakeRef{
+				key:       key1,
+				prop:      "",
+				secretKey: "key3",
+			},
+			vaults: map[string]int{
+				vaultName: 1,
+			},
+			existingItemsFields: map[string][]*onepassword.ItemField{
+				key1: {
+					{
+						Label: "not-prop",
+					},
+				},
+			},
+			updateValidateFunc: func(item *onepassword.Item, s string) (*onepassword.Item, error) {
+				expectedItem := &onepassword.Item{
+					Vault: onepassword.ItemVault{
+						ID: vaultName,
+					},
+					ID:    key1,
+					Title: key1,
+					Fields: []*onepassword.ItemField{
+						{
+							Label: "not-prop",
+						},
+						{
+							Label: "password",
+							Value: "testing2",
+							Type:  onepassword.FieldTypeConcealed,
+						},
+					},
+				}
+				validateItem(t, expectedItem, item)
+				return expectedItem, nil
+			},
+			existingItems: []onepassword.Item{
+				{
+					Vault: onepassword.ItemVault{
+						ID: vaultName,
+					},
+					ID:    key1,
+					Title: key1,
+				},
+			},
+		},
+	}
+	provider := &ProviderOnePassword{}
+	for _, tc := range testCases {
+		t.Run(tc.setupNote, func(t *testing.T) {
+			// setup
+			mockClient := fake.NewMockClient()
+			mockClient.MockVaults = map[string][]onepassword.Vault{
+				vaultName: {vault},
+			}
+			mockClient.MockItems = map[string][]onepassword.Item{
+				vaultName: tc.existingItems,
+			}
+			mockClient.MockItemFields = map[string]map[string][]*onepassword.ItemField{
+				vaultName: tc.existingItemsFields,
+			}
+			mockClient.CreateItemValidateFunc = func(item *onepassword.Item, s string) (*onepassword.Item, error) {
+				return tc.createValidateFunc(item, s)
+			}
+			mockClient.UpdateItemValidateFunc = func(item *onepassword.Item, s string) (*onepassword.Item, error) {
+				return tc.updateValidateFunc(item, s)
+			}
+			provider.client = mockClient
+			provider.vaults = tc.vaults
+
+			err := provider.PushSecret(context.Background(), tc.val, tc.ref)
+			if !errors.Is(err, tc.expectedErr) {
+				t.Errorf(errDoesNotMatchMsgF, tc.setupNote, tc.expectedErr, err)
+			}
+		})
 	}
 }

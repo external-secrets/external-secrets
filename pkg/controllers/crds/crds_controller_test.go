@@ -33,9 +33,13 @@ import (
 
 const (
 	failedCreateCaCerts     = "could not create ca certificates:%v"
+	failedCreateCaChain     = "could not create the intermediate certificates:%v"
 	failedCreateServerCerts = "could not create server certificates:%v"
 	invalidCerts            = "generated certificates are invalid:%v,%v"
 	dnsName                 = "foobar"
+	tlscrt                  = "/tmp/tls"
+	tlskey                  = "/tmp/key"
+	cacrt                   = "/tmp/ca"
 )
 
 func newReconciler() Reconciler {
@@ -253,9 +257,57 @@ func TestCheckCerts(t *testing.T) {
 	if err != nil {
 		t.Errorf(failedCreateServerCerts, err)
 	}
-	os.WriteFile("/tmp/ca", caArtifacts.CertPEM, 0644)
-	os.WriteFile("/tmp/tls", certPEM, 0644)
-	os.WriteFile("/tmp/key", keyPEM, 0644)
+	os.WriteFile(cacrt, caArtifacts.CertPEM, 0644)
+	os.WriteFile(tlscrt, certPEM, 0644)
+	os.WriteFile(tlskey, keyPEM, 0644)
+	cert := CertInfo{
+		CertDir:  "/tmp",
+		CertName: "tls",
+		CAName:   "ca",
+		KeyName:  "key",
+	}
+	err = CheckCerts(cert, rec.dnsName, time.Now())
+	if err != nil {
+		t.Errorf("error checking valid cert: %v", err)
+	}
+	err = CheckCerts(cert, rec.dnsName, time.Now().AddDate(-1, 0, 0))
+	if err == nil {
+		t.Error("expected failure due to expired certificate, got success")
+	}
+	err = CheckCerts(cert, "wrong", time.Now())
+	if err == nil {
+		t.Error("expected failure due to dns name got, success")
+	}
+	cert.CAName = "wrong"
+	err = CheckCerts(cert, rec.dnsName, time.Now())
+	if err == nil {
+		t.Error("expected failure due to wrong certificate name, got success")
+	}
+}
+
+func TestCheckCertChain(t *testing.T) {
+	rec := newReconciler()
+	rec.dnsName = dnsName
+	caArtifacts, err := rec.CreateCACert(time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2))
+	if err != nil {
+		t.Fatalf(failedCreateCaCerts, err)
+	}
+	chainArtifacts, err := rec.CreateCAChain(caArtifacts, time.Now().AddDate(0, 0, -1), time.Now().AddDate(0, 0, 2))
+	if err != nil {
+		t.Fatalf(failedCreateCaChain, err)
+	}
+	certPEM, keyPEM, err := rec.CreateCertPEM(chainArtifacts, time.Now(), time.Now().AddDate(0, 0, 1))
+	if err != nil {
+		t.Errorf(failedCreateServerCerts, err)
+	}
+	os.WriteFile(cacrt, caArtifacts.CertPEM, 0644)
+	os.WriteFile(tlscrt, certPEM, 0644)
+	f, _ := os.OpenFile(tlscrt, os.O_APPEND|os.O_WRONLY, 0644)
+	defer f.Close()
+	if _, err = f.Write(chainArtifacts.CertPEM); err != nil {
+		t.Errorf(failedCreateCaChain, err)
+	}
+	os.WriteFile(tlskey, keyPEM, 0644)
 	cert := CertInfo{
 		CertDir:  "/tmp",
 		CertName: "tls",

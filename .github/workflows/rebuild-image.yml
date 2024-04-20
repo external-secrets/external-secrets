@@ -8,6 +8,9 @@ on:
         required: true
         default: 'v0.6.1'
 
+permissions:
+  contents: read
+
 jobs:
   checkout:
     name: Checkout repo
@@ -17,7 +20,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.ref }}

@@ -1,31 +1,27 @@
-{{- if or .Values.prometheus.enabled .Values.metrics.service.enabled }}
+{{- if .Values.metrics.service.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "external-secrets.fullname" . }}-metrics
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ template "external-secrets.namespace" . }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
-  {{- if .Values.prometheus.enabled }}
-  annotations:
-    prometheus.io/path: "/metrics"
-    prometheus.io/scrape: "true"
-    prometheus.io/port: {{ .Values.prometheus.service.port | quote }}
-  {{- else }}
   {{- with .Values.metrics.service.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
-  {{- end }}
 spec:
   type: ClusterIP
+  {{- if .Values.service.ipFamilyPolicy }}
+  ipFamilyPolicy: {{ .Values.service.ipFamilyPolicy }}
+  {{- end }}
+  {{- if .Values.service.ipFamilies }}
+  ipFamilies: {{ .Values.service.ipFamilies | toYaml | nindent 2 }}
+  {{- end }}
   ports:
-    {{- if .Values.prometheus.enabled }}
-    - port: {{ .Values.prometheus.service.port }}
-    {{- else }}
     - port: {{ .Values.metrics.service.port }}
-    {{- end }}
       protocol: TCP
+      targetPort: metrics
       name: metrics
   selector:
     {{- include "external-secrets.selectorLabels" . | nindent 4 }}

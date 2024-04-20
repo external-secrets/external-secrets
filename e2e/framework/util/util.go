@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package util
 
 import (
@@ -99,6 +100,17 @@ func namespaceNotExist(c kubernetes.Interface, namespace string) wait.ConditionF
 // ExecCmd exec command on specific pod and wait the command's output.
 func ExecCmd(client kubernetes.Interface, config *restclient.Config, podName, namespace string,
 	command string) (string, error) {
+	return execCmd(client, config, podName, "", namespace, command)
+}
+
+// ExecCmdWithContainer exec command on specific container in a specific pod and wait the command's output.
+func ExecCmdWithContainer(client kubernetes.Interface, config *restclient.Config, podName, containerName, namespace string,
+	command string) (string, error) {
+	return execCmd(client, config, podName, containerName, namespace, command)
+}
+
+func execCmd(client kubernetes.Interface, config *restclient.Config, podName, containerName, namespace string,
+	command string) (string, error) {
 	cmd := []string{
 		"sh",
 		"-c",
@@ -108,11 +120,12 @@ func ExecCmd(client kubernetes.Interface, config *restclient.Config, podName, na
 	req := client.CoreV1().RESTClient().Post().Resource("pods").Name(podName).
 		Namespace(namespace).SubResource("exec")
 	option := &v1.PodExecOptions{
-		Command: cmd,
-		Stdin:   false,
-		Stdout:  true,
-		Stderr:  true,
-		TTY:     false,
+		Command:   cmd,
+		Container: containerName,
+		Stdin:     false,
+		Stdout:    true,
+		Stderr:    true,
+		TTY:       false,
 	}
 	req.VersionedParams(
 		option,
@@ -248,6 +261,10 @@ func UpdateKubeSA(baseName string, kubeClientSet kubernetes.Interface, ns string
 // UpdateKubeSA updates a new Kubernetes Service Account for a test.
 func GetKubeSA(baseName string, kubeClientSet kubernetes.Interface, ns string) (*v1.ServiceAccount, error) {
 	return kubeClientSet.CoreV1().ServiceAccounts(ns).Get(context.TODO(), baseName, metav1.GetOptions{})
+}
+
+func GetKubeSecret(client kubernetes.Interface, namespace, secretName string) (*v1.Secret, error) {
+	return client.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 }
 
 // NewConfig loads and returns the kubernetes credentials from the environment.

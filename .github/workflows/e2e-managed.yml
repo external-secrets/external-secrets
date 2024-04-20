@@ -3,8 +3,6 @@ on:
     types: [ok-to-test-managed-command]
 
 permissions:
-  id-token: write
-  checks: write
   contents: read
 
 env:
@@ -56,13 +54,17 @@ name: managed e2e tests
 jobs:
   run-e2e-managed:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      checks: write
+      contents: read
     if: github.event_name == 'repository_dispatch'
 
     steps:
 
     # Check out merge commit
     - name: Fork based /ok-to-test-managed checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
       with:
         ref: 'refs/pull/${{ env.GITHUB_PR_NUMBER }}/merge'
 
@@ -72,7 +74,7 @@ jobs:
     - uses: ./.github/actions/e2e-managed
 
     # set status=completed
-    - uses: actions/github-script@v6
+    - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
       if: ${{ always() }}
       env:
         number: ${{ env.GITHUB_PR_NUMBER }}

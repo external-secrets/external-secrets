@@ -12,6 +12,8 @@ theme:
     - navigation.indexes
     - navigation.expand
   custom_dir: ../../overrides
+  logo: pictures/eso-round-logo.svg
+  favicon: pictures/eso-round-logo.svg
 markdown_extensions:
   - attr_list
   - pymdownx.highlight
@@ -25,8 +27,8 @@ plugins:
   - macros:
       include_dir: docs/snippets
 copyright: |
-  &copy; 2023 The external-secrets Authors.<br/>
-  &copy; 2023 The Linux Foundation. All rights reserved.<br/><br/>
+  &copy; 2024 The external-secrets Authors.<br/>
+  &copy; 2024 The Linux Foundation. All rights reserved.<br/><br/>
   The Linux Foundation has registered trademarks and uses trademarks.<br/>
   For a list of trademarks of The Linux Foundation, please see our <a href="https://www.linuxfoundation.org/trademark-usage/">Trademark Usage page</a>.
 extra:
@@ -59,6 +61,7 @@ nav:
       - Vault Dynamic Secret: api/generator/vault.md
       - Password: api/generator/password.md
       - Fake: api/generator/fake.md
+      - Webhook: api/generator/webhook.md
     - Reference Docs:
       - API specification: api/spec.md
       - Controller Options: api/controller-options.md
@@ -77,6 +80,7 @@ nav:
       - Decoding Strategies: guides/decoding-strategy.md
       - Controller Classes: guides/controller-class.md
     - Generators: guides/generator.md
+    - Push Secrets: guides/pushsecrets.md
     - Operations:
       - Multi Tenancy: guides/multi-tenancy.md
       - Security Best Practices: guides/security-best-practices.md
@@ -88,6 +92,7 @@ nav:
     - AWS Secrets Manager: provider/aws-secrets-manager.md
     - AWS Parameter Store: provider/aws-parameter-store.md
     - Azure Key Vault: provider/azure-key-vault.md
+    - Chef: provider/chef.md
     - CyberArk Conjur: provider/conjur.md
     - Google Cloud Secret Manager: provider/google-secrets-manager.md
     - HashiCorp Vault: provider/hashicorp-vault.md
@@ -108,6 +113,9 @@ nav:
     - Cloak End 2 End Encrypted Secrets: provider/cloak.md
     - Scaleway: provider/scaleway.md
     - Delinea: provider/delinea.md
+    - Passbolt: provider/passbolt.md
+    - Pulumi ESC: provider/pulumi.md
+    - Onboardbase: provider/onboardbase.md
   - Examples:
     - FluxCD: examples/gitops-using-fluxcd.md
     - Anchore Engine: examples/anchore-engine-credentials.md
@@ -124,3 +132,27 @@ nav:
       - Talks: eso-talks.md
       - Demos: eso-demos.md
       - Blogs: eso-blogs.md
+    - AWS:
+      - Secrets Manager: provider-aws-secrets-manager.md
+      - Parameter Store: provider-aws-parameter-store.md
+    - Azure:
+      - Key Vault: provider-azure-key-vault.md
+    - Google:
+      - Secrets Manager: provider-google-secrets-manager.md
+    - IBM:
+      - Secrets Manager: provider-ibm-secrets-manager.md
+    - HashiCorp Vault: provider-hashicorp-vault.md
+    - Yandex:
+        - Lockbox: provider-yandex-lockbox.md
+    - Password Depot: provider-passworddepot.md
+    - Gitlab:
+      - Gitlab Project Variables: provider-gitlab-project-variables.md
+    - Oracle:
+      - Oracle Vault: provider-oracle-vault.md
+  - References:
+    - API specification: spec.md
+  - Contributing:
+    - Developer guide: contributing-devguide.md
+    - Contributing Process: contributing-process.md
+    - Code of Conduct: contributing-coc.md
+  - Deprecation Policy: deprecation-policy.md

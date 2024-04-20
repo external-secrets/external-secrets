@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package common
 
 import (
@@ -56,7 +57,7 @@ func NewGrpcConnection(
 		return nil, err
 	}
 
-	return grpc.Dial(serviceAPIEndpoint.Address,
+	return grpc.NewClient(serviceAPIEndpoint.Address,
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                time.Second * 30,

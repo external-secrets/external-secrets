@@ -25,20 +25,38 @@ import (
 	"net/url"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	tpl "text/template"
 	"time"
 	"unicode"
 
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	template "github.com/external-secrets/external-secrets/pkg/template/v2"
+	"github.com/external-secrets/external-secrets/pkg/template/v2"
 )
 
 const (
 	errParse   = "unable to parse transform template: %s"
 	errExecute = "unable to execute transform template: %s"
 )
+
+var (
+	errKeyNotFound = errors.New("key not found")
+	unicodeRegex   = regexp.MustCompile(`_U([0-9a-fA-F]{4,5})_`)
+)
+
+// JSONMarshal takes an interface and returns a new escaped and encoded byte slice.
+func JSONMarshal(t interface{}) ([]byte, error) {
+	buffer := &bytes.Buffer{}
+	encoder := json.NewEncoder(buffer)
+	encoder.SetEscapeHTML(false)
+	err := encoder.Encode(t)
+	return bytes.TrimRight(buffer.Bytes(), "\n"), err
+}
 
 // MergeByteMap merges map of byte slices.
 func MergeByteMap(dst, src map[string][]byte) map[string][]byte {
@@ -83,7 +101,7 @@ func RewriteRegexp(operation esv1beta1.ExternalSecretRewriteRegexp, in map[strin
 }
 
 // RewriteTransform applies string transformation on each secret key name to rewrite.
-func RewriteTransform(operation esv1beta1.ExtermalSecretRewriteTransform, in map[string][]byte) (map[string][]byte, error) {
+func RewriteTransform(operation esv1beta1.ExternalSecretRewriteTransform, in map[string][]byte) (map[string][]byte, error) {
 	out := make(map[string][]byte)
 	for key, value := range in {
 		data := map[string][]byte{
@@ -221,10 +239,92 @@ func convert(strategy esv1beta1.ExternalSecretConversionStrategy, str string) st
 	return strings.Join(newName, "")
 }
 
+// ReverseKeys reverses a secret map into a valid key map as expected by push secrets.
+// Replaces the unicode encoded representation characters back to the actual unicode character depending on convert strategy.
+func ReverseKeys(strategy esv1alpha1.PushSecretConversionStrategy, in map[string][]byte) (map[string][]byte, error) {
+	out := make(map[string][]byte, len(in))
+	for k, v := range in {
+		key := reverse(strategy, k)
+		if _, exists := out[key]; exists {
+			return nil, fmt.Errorf("secret name collision during conversion: %s", key)
+		}
+		out[key] = v
+	}
+	return out, nil
+}
+
+func reverse(strategy esv1alpha1.PushSecretConversionStrategy, str string) string {
+	switch strategy {
+	case esv1alpha1.PushSecretConversionReverseUnicode:
+		matches := unicodeRegex.FindAllStringSubmatchIndex(str, -1)
+
+		for i := len(matches) - 1; i >= 0; i-- {
+			match := matches[i]
+			start := match[0]
+			end := match[1]
+			unicodeHex := str[match[2]:match[3]]
+
+			unicodeInt, err := strconv.ParseInt(unicodeHex, 16, 32)
+			if err != nil {
+				continue // Skip invalid unicode representations
+			}
+
+			unicodeChar := fmt.Sprintf("%c", unicodeInt)
+			str = str[:start] + unicodeChar + str[end:]
+		}
+
+		return str
+	case esv1alpha1.PushSecretConversionNone:
+		return str
+	default:
+		return str
+	}
+}
+
 // MergeStringMap performs a deep clone from src to dest.
 func MergeStringMap(dest, src map[string]string) {
 	for k, v := range src {
 		dest[k] = v
+	}
+}
+
+var (
+	ErrUnexpectedKey = errors.New("unexpected key in data")
+	ErrSecretType    = errors.New("can not handle secret value with type")
+)
+
+func GetByteValueFromMap(data map[string]interface{}, key string) ([]byte, error) {
+	v, ok := data[key]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrUnexpectedKey, key)
+	}
+	return GetByteValue(v)
+}
+func GetByteValue(v interface{}) ([]byte, error) {
+	switch t := v.(type) {
+	case string:
+		return []byte(t), nil
+	case map[string]interface{}:
+		return json.Marshal(t)
+	case []string:
+		return []byte(strings.Join(t, "\n")), nil
+	case json.RawMessage:
+		return t, nil
+	case []byte:
+		return t, nil
+	// also covers int and float32 due to json.Marshal
+	case float64:
+		return []byte(strconv.FormatFloat(t, 'f', -1, 64)), nil
+	case json.Number:
+		return []byte(t.String()), nil
+	case []interface{}:
+		return json.Marshal(t)
+	case bool:
+		return []byte(strconv.FormatBool(t)), nil
+	case nil:
+		return []byte(nil), nil
+	default:
+		return nil, fmt.Errorf("%w: %T", ErrSecretType, t)
 	}
 }
 
@@ -364,4 +464,46 @@ func ConvertToType[T any](obj interface{}) (T, error) {
 	}
 
 	return v, nil
+}
+
+// FetchValueFromMetadata fetches a key from a metadata if it exists. It will recursively look in
+// embedded values as well. Must be a unique key, otherwise it will just return the first
+// occurrence.
+func FetchValueFromMetadata[T any](key string, data *apiextensionsv1.JSON, def T) (t T, _ error) {
+	if data == nil {
+		return def, nil
+	}
+
+	m := map[string]any{}
+	if err := json.Unmarshal(data.Raw, &m); err != nil {
+		return t, fmt.Errorf("failed to parse JSON raw data: %w", err)
+	}
+
+	v, err := dig[T](key, m)
+	if err != nil {
+		if errors.Is(err, errKeyNotFound) {
+			return def, nil
+		}
+	}
+
+	return v, nil
+}
+
+func dig[T any](key string, data map[string]any) (t T, _ error) {
+	if v, ok := data[key]; ok {
+		c, k := v.(T)
+		if !k {
+			return t, fmt.Errorf("failed to convert value to the desired type; was: %T", v)
+		}
+
+		return c, nil
+	}
+
+	for _, v := range data {
+		if ty, ok := v.(map[string]any); ok {
+			return dig[T](key, ty)
+		}
+	}
+
+	return t, errKeyNotFound
 }

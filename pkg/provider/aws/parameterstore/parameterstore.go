@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package parameterstore
 
 import (
@@ -35,6 +36,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -131,11 +133,29 @@ func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	return nil
 }
 
+func (pm *ParameterStore) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
 func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
 	parameterType := "String"
 	overwrite := true
 
-	value := secret.Data[data.GetSecretKey()]
+	var (
+		value []byte
+		err   error
+	)
+	key := data.GetSecretKey()
+
+	if key == "" {
+		value, err = utils.JSONMarshal(secret.Data)
+		if err != nil {
+			return fmt.Errorf("failed to serialize secret content as JSON: %w", err)
+		}
+	} else {
+		value = secret.Data[key]
+	}
+
 	stringValue := string(value)
 	secretName := data.GetRemoteKey()
 

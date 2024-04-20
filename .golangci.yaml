@@ -113,6 +113,12 @@ issues:
       linters:
         - goheader
 
+    # excluding deprecation check introduced on purpose in #2884
+    - path: pkg/provider/fake/fake.go
+      text: 'SA1019: data.ValueMap is deprecated: ValueMap is deprecated and is intended to be removed in the future, use the `value` field instead.'
+    - path: pkg/provider/fake/fake_test.go
+      text: 'SA1019: data.ValueMap is deprecated: ValueMap is deprecated and is intended to be removed in the future, use the `value` field instead.'
+
   # Maximum issues count per one linter. Set to 0 to disable. Default is 50.
   max-per-linter: 0
 

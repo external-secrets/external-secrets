@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package oracle
 
 import (
@@ -32,31 +33,31 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/vault"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
-	errOracleClient                          = "cannot setup new oracle client: %w"
-	errORACLECredSecretName                  = "invalid oracle SecretStore resource: missing oracle APIKey"
-	errUninitalizedOracleProvider            = "provider oracle is not initialized"
-	errInvalidClusterStoreMissingSKNamespace = "invalid ClusterStore, missing namespace"
-	errFetchSAKSecret                        = "could not fetch SecretAccessKey secret: %w"
-	errMissingPK                             = "missing PrivateKey"
-	errMissingUser                           = "missing User ID"
-	errMissingTenancy                        = "missing Tenancy ID"
-	errMissingRegion                         = "missing Region"
-	errMissingFingerprint                    = "missing Fingerprint"
-	errMissingVault                          = "missing Vault"
-	errJSONSecretUnmarshal                   = "unable to unmarshal secret: %w"
-	errMissingKey                            = "missing Key in secret: %s"
-	errUnexpectedContent                     = "unexpected secret bundle content"
+	errOracleClient               = "cannot setup new oracle client: %w"
+	errORACLECredSecretName       = "invalid oracle SecretStore resource: missing oracle APIKey"
+	errUninitalizedOracleProvider = "provider oracle is not initialized"
+	errFetchSAKSecret             = "could not fetch SecretAccessKey secret: %w"
+	errMissingPK                  = "missing PrivateKey"
+	errMissingUser                = "missing User ID"
+	errMissingTenancy             = "missing Tenancy ID"
+	errMissingRegion              = "missing Region"
+	errMissingFingerprint         = "missing Fingerprint"
+	errMissingVault               = "missing Vault"
+	errJSONSecretUnmarshal        = "unable to unmarshal secret: %w"
+	errMissingKey                 = "missing Key in secret: %s"
+	errUnexpectedContent          = "unexpected secret bundle content"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -95,6 +96,10 @@ const (
 )
 
 func (vms *VaultManagementService) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	if data.GetSecretKey() == "" {
+		return fmt.Errorf("pushing the whole secret is not yet implemented")
+	}
+
 	value := secret.Data[data.GetSecretKey()]
 	secretName := data.GetRemoteKey()
 	encodedValue := base64.StdEncoding.EncodeToString(value)
@@ -152,6 +157,10 @@ func (vms *VaultManagementService) DeleteSecret(ctx context.Context, remoteRef e
 	default:
 		return sanitizeOCISDKErr(err)
 	}
+}
+
+func (vms *VaultManagementService) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
 }
 
 func (vms *VaultManagementService) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
@@ -394,27 +403,17 @@ func getSecretData(ctx context.Context, kube kclient.Client, namespace, storeKin
 	if secretRef.Name == "" {
 		return "", fmt.Errorf(errORACLECredSecretName)
 	}
-
-	objectKey := types.NamespacedName{
-		Name:      secretRef.Name,
-		Namespace: namespace,
-	}
-
-	// only ClusterStore is allowed to set namespace (and then it's required)
-	if storeKind == esv1beta1.ClusterSecretStoreKind {
-		if secretRef.Namespace == nil {
-			return "", fmt.Errorf(errInvalidClusterStoreMissingSKNamespace)
-		}
-		objectKey.Namespace = *secretRef.Namespace
-	}
-
-	secret := corev1.Secret{}
-	err := kube.Get(ctx, objectKey, &secret)
+	secret, err := resolvers.SecretKeyRef(
+		ctx,
+		kube,
+		storeKind,
+		namespace,
+		&secretRef,
+	)
 	if err != nil {
 		return "", fmt.Errorf(errFetchSAKSecret, err)
 	}
-
-	return string(secret.Data[secretRef.Key]), nil
+	return secret, nil
 }
 
 func getUserAuthConfigurationProvider(ctx context.Context, kube kclient.Client, store *esv1beta1.OracleProvider, namespace, storeKind, region string) (common.ConfigurationProvider, error) {
@@ -484,71 +483,71 @@ func (vms *VaultManagementService) Validate() (esv1beta1.ValidationResult, error
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func (vms *VaultManagementService) ValidateStore(store esv1beta1.GenericStore) error {
+func (vms *VaultManagementService) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	oracleSpec := storeSpec.Provider.Oracle
 
 	vault := oracleSpec.Vault
 	if vault == "" {
-		return fmt.Errorf("vault cannot be empty")
+		return nil, fmt.Errorf("vault cannot be empty")
 	}
 
 	region := oracleSpec.Region
 	if region == "" {
-		return fmt.Errorf("region cannot be empty")
+		return nil, fmt.Errorf("region cannot be empty")
 	}
 
 	auth := oracleSpec.Auth
 	if auth == nil {
-		return nil
+		return nil, nil
 	}
 
 	user := oracleSpec.Auth.User
 	if user == "" {
-		return fmt.Errorf("user cannot be empty")
+		return nil, fmt.Errorf("user cannot be empty")
 	}
 
 	tenant := oracleSpec.Auth.Tenancy
 	if tenant == "" {
-		return fmt.Errorf("tenant cannot be empty")
+		return nil, fmt.Errorf("tenant cannot be empty")
 	}
 	privateKey := oracleSpec.Auth.SecretRef.PrivateKey
 
 	if privateKey.Name == "" {
-		return fmt.Errorf("privateKey.name cannot be empty")
+		return nil, fmt.Errorf("privateKey.name cannot be empty")
 	}
 
 	if privateKey.Key == "" {
-		return fmt.Errorf("privateKey.key cannot be empty")
+		return nil, fmt.Errorf("privateKey.key cannot be empty")
 	}
 
 	err := utils.ValidateSecretSelector(store, privateKey)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	fingerprint := oracleSpec.Auth.SecretRef.Fingerprint
 
 	if fingerprint.Name == "" {
-		return fmt.Errorf("fingerprint.name cannot be empty")
+		return nil, fmt.Errorf("fingerprint.name cannot be empty")
 	}
 
 	if fingerprint.Key == "" {
-		return fmt.Errorf("fingerprint.key cannot be empty")
+		return nil, fmt.Errorf("fingerprint.key cannot be empty")
 	}
 
 	err = utils.ValidateSecretSelector(store, fingerprint)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if oracleSpec.ServiceAccountRef != nil {
 		if err := utils.ValidateReferentServiceAccountSelector(store, *oracleSpec.ServiceAccountRef); err != nil {
-			return fmt.Errorf("invalid ServiceAccountRef: %w", err)
+			return nil, fmt.Errorf("invalid ServiceAccountRef: %w", err)
 		}
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (vms *VaultManagementService) getWorkloadIdentityProvider(store esv1beta1.GenericStore, serviceAcccountRef *esmeta.ServiceAccountSelector, region, namespace string) (configurationProvider common.ConfigurationProvider, err error) {

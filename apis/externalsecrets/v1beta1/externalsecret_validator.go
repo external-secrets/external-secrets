@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package v1beta1
 
 import (
@@ -71,5 +72,20 @@ func validateExternalSecret(obj runtime.Object) (admission.Warnings, error) {
 		}
 	}
 
+	errs = validateDuplicateKeys(es, errs)
 	return nil, errs
+}
+
+func validateDuplicateKeys(es *ExternalSecret, errs error) error {
+	if es.Spec.Target.DeletionPolicy == DeletionPolicyRetain {
+		seenKeys := make(map[string]struct{})
+		for _, data := range es.Spec.Data {
+			secretKey := data.SecretKey
+			if _, exists := seenKeys[secretKey]; exists {
+				errs = errors.Join(errs, fmt.Errorf("duplicate secretKey found: %s", secretKey))
+			}
+			seenKeys[secretKey] = struct{}{}
+		}
+	}
+	return errs
 }

@@ -53,8 +53,10 @@ rules:
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
+    - "githubaccesstokens"
     - "passwords"
     - "vaultdynamicsecrets"
+    - "webhooks"
     verbs:
     - "get"
     - "list"
@@ -145,8 +147,10 @@ rules:
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
+    - "githubaccesstokens"
     - "passwords"
     - "vaultdynamicsecrets"
+    - "webhooks"
     verbs:
       - "get"
       - "watch"
@@ -188,8 +192,10 @@ rules:
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
+    - "githubaccesstokens"
     - "passwords"
     - "vaultdynamicsecrets"
+    - "webhooks"
     verbs:
       - "create"
       - "delete"
@@ -220,14 +226,14 @@ roleRef:
   name: {{ include "external-secrets.fullname" . }}-controller
 subjects:
   - name: {{ include "external-secrets.serviceAccountName" . }}
-    namespace: {{ .Release.Namespace | quote }}
+    namespace: {{ template "external-secrets.namespace" . }}
     kind: ServiceAccount
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: {{ include "external-secrets.fullname" . }}-leaderelection
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ template "external-secrets.namespace" . }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
 rules:
@@ -261,7 +267,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: {{ include "external-secrets.fullname" . }}-leaderelection
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ template "external-secrets.namespace" . }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
 roleRef:
@@ -271,7 +277,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: {{ include "external-secrets.serviceAccountName" . }}
-    namespace: {{ .Release.Namespace | quote }}
+    namespace: {{ template "external-secrets.namespace" . }}
 {{- if .Values.rbac.servicebindings.create }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1

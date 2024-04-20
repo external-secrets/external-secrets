@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package addon
 
 import (
@@ -22,6 +23,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"k8s.io/apimachinery/pkg/types"
 	"math/big"
 	"net"
 	"net/http"
@@ -32,7 +34,7 @@ import (
 	vault "github.com/hashicorp/vault/api"
 
 	// nolint
-	ginkgo "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -40,11 +42,12 @@ import (
 )
 
 type Vault struct {
-	chart       *HelmChart
-	Namespace   string
-	PodName     string
-	VaultClient *vault.Client
-	VaultURL    string
+	chart        *HelmChart
+	Namespace    string
+	PodName      string
+	VaultClient  *vault.Client
+	VaultURL     string
+	VaultMtlsURL string
 
 	RootToken          string
 	VaultServerCA      []byte
@@ -99,6 +102,11 @@ func (l *Vault) Install() error {
 		return err
 	}
 
+	err = l.patchVaultService()
+	if err != nil {
+		return err
+	}
+
 	err = l.initVault()
 	if err != nil {
 		return err
@@ -110,6 +118,15 @@ func (l *Vault) Install() error {
 	}
 
 	return nil
+}
+
+func (l *Vault) patchVaultService() error {
+	serviceName := fmt.Sprintf("vault-%s", l.Namespace)
+	servicePatch := []byte(`[{"op": "add", "path": "/spec/ports/-", "value": { "name": "https-mtls", "port": 8210, "protocol": "TCP", "targetPort": 8210 }}]`)
+	clientSet := l.chart.config.KubeClientSet
+	_, err := clientSet.CoreV1().Services(l.Namespace).
+		Patch(context.Background(), serviceName, types.JSONPatchType, servicePatch, metav1.PatchOptions{})
+	return err
 }
 
 func (l *Vault) initVault() error {
@@ -226,6 +243,7 @@ func (l *Vault) initVault() error {
 	}
 	cfg := vault.DefaultConfig()
 	l.VaultURL = fmt.Sprintf("https://vault-%s.%s.svc.cluster.local:8200", l.Namespace, l.Namespace)
+	l.VaultMtlsURL = fmt.Sprintf("https://vault-%s.%s.svc.cluster.local:8210", l.Namespace, l.Namespace)
 	cfg.Address = l.VaultURL
 	cfg.HttpClient.Transport.(*http.Transport).TLSClientConfig.RootCAs = caCertPool
 	l.VaultClient, err = vault.NewClient(cfg)

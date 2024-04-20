@@ -13,10 +13,17 @@ limitations under the License.
 package vault
 
 import (
+	"context"
 	"fmt"
+	"time"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
@@ -25,14 +32,16 @@ import (
 )
 
 const (
-	withTokenAuth    = "with token auth"
-	withCertAuth     = "with cert auth"
-	withApprole      = "with approle auth"
-	withV1           = "with v1 provider"
-	withJWT          = "with jwt provider"
-	withJWTK8s       = "with jwt k8s provider"
-	withK8s          = "with kubernetes provider"
-	withReferentAuth = "with referent provider"
+	withTokenAuth           = "with token auth"
+	withTokenAuthAndMTLS    = "with token auth and mTLS"
+	withCertAuth            = "with cert auth"
+	withApprole             = "with approle auth"
+	withV1                  = "with v1 provider"
+	withJWT                 = "with jwt provider"
+	withJWTK8s              = "with jwt k8s provider"
+	withK8s                 = "with kubernetes provider"
+	withReferentAuth        = "with referent provider"
+	withReferentAuthAndMTLS = "with referent provider and mTLS"
 )
 
 var _ = Describe("[vault]", Label("vault"), func() {
@@ -40,7 +49,7 @@ var _ = Describe("[vault]", Label("vault"), func() {
 	prov := newVaultProvider(f)
 
 	DescribeTable("sync secrets",
-		framework.TableFunc(f, prov),
+		framework.TableFuncWithExternalSecret(f, prov),
 		// uses token auth
 		framework.Compose(withTokenAuth, f, common.FindByName, useTokenAuth),
 		framework.Compose(withTokenAuth, f, common.FindByNameAndRewrite, useTokenAuth),
@@ -114,8 +123,27 @@ var _ = Describe("[vault]", Label("vault"), func() {
 	)
 })
 
+var _ = Describe("[vault] with mTLS", Label("vault", "vault-mtls"), func() {
+	f := framework.New("eso-vault")
+	prov := newVaultProvider(f)
+
+	DescribeTable("sync secrets",
+		framework.TableFuncWithExternalSecret(f, prov),
+		// uses token auth
+		framework.Compose(withTokenAuthAndMTLS, f, common.FindByName, useMTLSAndTokenAuth),
+		// use referent auth
+		framework.Compose(withReferentAuthAndMTLS, f, common.JSONDataFromSync, useMTLSAndReferentAuth),
+		// vault-specific test cases
+		Entry("store without clientTLS configuration should not be valid", Label("vault-invalid-store"), testInvalidMtlsStore),
+	)
+})
+
 func useTokenAuth(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = tc.Framework.Namespace.Name
+}
+
+func useMTLSAndTokenAuth(tc *framework.TestCase) {
+	tc.ExternalSecret.Spec.SecretStoreRef.Name = tc.Framework.Namespace.Name + mtlsSuffix
 }
 
 func useCertAuth(tc *framework.TestCase) {
@@ -144,6 +172,11 @@ func useKubernetesProvider(tc *framework.TestCase) {
 
 func useReferentAuth(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = referentSecretStoreName(tc.Framework)
+	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esapi.ClusterSecretStoreKind
+}
+
+func useMTLSAndReferentAuth(tc *framework.TestCase) {
+	tc.ExternalSecret.Spec.SecretStoreRef.Name = referentSecretStoreName(tc.Framework) + mtlsSuffix
 	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esapi.ClusterSecretStoreKind
 }
 
@@ -238,4 +271,29 @@ func testDataFromJSONWithProperty(tc *framework.TestCase) {
 			},
 		},
 	}
+}
+
+func testInvalidMtlsStore(tc *framework.TestCase) {
+	tc.ExternalSecret = nil
+	tc.ExpectedSecret = nil
+
+	err := wait.PollUntilContextTimeout(context.Background(), time.Second*10, time.Minute, true, func(context context.Context) (bool, error) {
+		var ss esapi.SecretStore
+		err := tc.Framework.CRClient.Get(context, types.NamespacedName{
+			Namespace: tc.Framework.Namespace.Name,
+			Name:      tc.Framework.Namespace.Name + invalidMtlSuffix,
+		}, &ss)
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		if len(ss.Status.Conditions) == 0 {
+			return false, nil
+		}
+		Expect(string(ss.Status.Conditions[0].Type)).Should(Equal("Ready"))
+		Expect(string(ss.Status.Conditions[0].Status)).Should(Equal("False"))
+		Expect(ss.Status.Conditions[0].Reason).Should(Equal("ValidationFailed"))
+		Expect(ss.Status.Conditions[0].Message).Should(Equal("unable to validate store"))
+		return true, nil
+	})
+	Expect(err).ToNot(HaveOccurred())
 }

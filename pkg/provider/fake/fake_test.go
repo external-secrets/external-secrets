@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package fake
 
 import (
@@ -26,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
@@ -56,24 +58,24 @@ func TestValidateStore(t *testing.T) {
 		},
 	}
 	// empty data must not error
-	err := p.ValidateStore(store)
+	_, err := p.ValidateStore(store)
 	gomega.Expect(err).To(gomega.BeNil())
 	// missing key in data
 	data := esv1beta1.FakeProviderData{}
 	data.Version = "v1"
 	store.Spec.Provider.Fake.Data = []esv1beta1.FakeProviderData{data}
-	err = p.ValidateStore(store)
+	_, err = p.ValidateStore(store)
 	gomega.Expect(err).To(gomega.BeEquivalentTo(fmt.Errorf(errMissingKeyField, 0)))
 	// missing values in data
 	data.Key = "/foo"
 	store.Spec.Provider.Fake.Data = []esv1beta1.FakeProviderData{data}
-	err = p.ValidateStore(store)
+	_, err = p.ValidateStore(store)
 	gomega.Expect(err).To(gomega.BeEquivalentTo(fmt.Errorf(errMissingValueField, 0)))
 	// spec ok
 	data.Value = "bar"
 	data.ValueMap = map[string]string{"foo": "bar"}
 	store.Spec.Provider.Fake.Data = []esv1beta1.FakeProviderData{data}
-	err = p.ValidateStore(store)
+	_, err = p.ValidateStore(store)
 	gomega.Expect(err).To(gomega.BeNil())
 }
 func TestClose(t *testing.T) {
@@ -392,6 +394,62 @@ func TestSetSecret(t *testing.T) {
 	}
 }
 
+type secretExistsTestCase struct {
+	name      string
+	input     []esv1beta1.FakeProviderData
+	request   esv1alpha1.PushSecretRemoteRef
+	expExists bool
+}
+
+func TestSecretExists(t *testing.T) {
+	gomega.RegisterTestingT(t)
+	p := &Provider{}
+	tbl := []secretExistsTestCase{
+		{
+			name:  "return false, nil if no existing secret",
+			input: []esv1beta1.FakeProviderData{},
+			request: esv1alpha1.PushSecretRemoteRef{
+				RemoteKey: "/foo",
+			},
+			expExists: false,
+		},
+		{
+			name: "return true, nil if existing secret",
+			input: []esv1beta1.FakeProviderData{
+				{
+					Key:   "/foo",
+					Value: "bar",
+				},
+			},
+			request: esv1alpha1.PushSecretRemoteRef{
+				RemoteKey: "/foo",
+			},
+			expExists: true,
+		},
+	}
+
+	for i, row := range tbl {
+		t.Run(row.name, func(t *testing.T) {
+			cl, err := p.NewClient(context.Background(), &esv1beta1.SecretStore{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("secret-store-%v", i),
+				},
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						Fake: &esv1beta1.FakeProvider{
+							Data: row.input,
+						},
+					},
+				},
+			}, nil, "")
+			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+			exists, err := cl.SecretExists(context.TODO(), row.request)
+			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+			gomega.Expect(exists).To(gomega.Equal(row.expExists))
+		})
+	}
+}
+
 type testMapCase struct {
 	name     string
 	input    []esv1beta1.FakeProviderData
@@ -414,8 +472,84 @@ func TestGetSecretMap(t *testing.T) {
 			expErr: esv1beta1.NoSecretErr.Error(),
 		},
 		{
+			name: "get correct map from multiple versions by using Value only",
+			input: []esv1beta1.FakeProviderData{
+				{
+					Key:     "/bar",
+					Version: "v1",
+					Value:   `{"john":"doe"}`,
+				},
+			},
+			request: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:     "/bar",
+				Version: "v1",
+			},
+			expValue: map[string][]byte{
+				"john": []byte("doe"),
+			},
+		},
+		{
+			name: "get correct maps from multiple versions by using Value only",
+			input: []esv1beta1.FakeProviderData{
+				{
+					Key:     "/bar",
+					Version: "v3",
+					Value:   `{"john":"doe", "foo": "bar"}`,
+				},
+			},
+			request: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:     "/bar",
+				Version: "v3",
+			},
+			expValue: map[string][]byte{
+				"john": []byte("doe"),
+				"foo":  []byte("bar"),
+			},
+		},
+		{
+			name: "invalid marshal",
+			input: []esv1beta1.FakeProviderData{
+				{
+					Key:     "/bar",
+					Version: "v3",
+					Value:   `---------`,
+				},
+			},
+			request: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:     "/bar",
+				Version: "v3",
+			},
+			expErr: "unable to unmarshal secret: invalid character '-' in numeric literal",
+		},
+		{
+			name: "get correct value from ValueMap due to retrocompatibility",
+			input: []esv1beta1.FakeProviderData{
+				{
+					Key:     "/foo/bar",
+					Version: "v3",
+					ValueMap: map[string]string{
+						"john": "doe",
+						"baz":  "bang",
+					},
+				},
+			},
+			request: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:     "/foo/bar",
+				Version: "v3",
+			},
+			expValue: map[string][]byte{
+				"john": []byte("doe"),
+				"baz":  []byte("bang"),
+			},
+		},
+		{
 			name: "get correct value from multiple versions",
 			input: []esv1beta1.FakeProviderData{
+				{
+					Key:     "john",
+					Value:   "doe",
+					Version: "v2",
+				},
 				{
 					Key: "junk",
 					ValueMap: map[string]string{
@@ -467,7 +601,7 @@ func TestGetSecretMap(t *testing.T) {
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			out, err := cl.GetSecretMap(context.Background(), row.request)
 			if row.expErr != "" {
-				gomega.Expect(err).To(gomega.MatchError(row.expErr))
+				gomega.Expect(err).To(gomega.MatchError(gomega.ContainSubstring(row.expErr)))
 			} else {
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
 			}

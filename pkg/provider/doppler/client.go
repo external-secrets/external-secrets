@@ -23,26 +23,26 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	dClient "github.com/external-secrets/external-secrets/pkg/provider/doppler/client"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
 	customBaseURLEnvVar                                = "DOPPLER_BASE_URL"
 	verifyTLSOverrideEnvVar                            = "DOPPLER_VERIFY_TLS"
-	errGetSecret                                       = "could not get secret %s: %s"
-	errGetSecrets                                      = "could not get secrets %s"
+	errGetSecret                                       = "could not get secret %s: %w"
+	errGetSecrets                                      = "could not get secrets %w"
+	errDeleteSecrets                                   = "could not delete secrets %s: %w"
+	errPushSecrets                                     = "could not push secrets %s: %w"
 	errUnmarshalSecretMap                              = "unable to unmarshal secret %s: %w"
 	secretsDownloadFileKey                             = "DOPPLER_SECRETS_FILE"
 	errDopplerTokenSecretName                          = "missing auth.secretRef.dopplerToken.name"
 	errInvalidClusterStoreMissingDopplerTokenNamespace = "missing auth.secretRef.dopplerToken.namespace"
-	errFetchDopplerTokenSecret                         = "unable to find find DopplerToken secret: %w"
-	errMissingDopplerToken                             = "auth.secretRef.dopplerToken.key '%s' not found in secret '%s'"
 )
 
 type Client struct {
@@ -65,38 +65,20 @@ type SecretsClientInterface interface {
 	Authenticate() error
 	GetSecret(request dClient.SecretRequest) (*dClient.SecretResponse, error)
 	GetSecrets(request dClient.SecretsRequest) (*dClient.SecretsResponse, error)
+	UpdateSecrets(request dClient.UpdateSecretsRequest) error
 }
 
 func (c *Client) setAuth(ctx context.Context) error {
-	credentialsSecret := &corev1.Secret{}
-	credentialsSecretName := c.store.Auth.SecretRef.DopplerToken.Name
-	if credentialsSecretName == "" {
-		return fmt.Errorf(errDopplerTokenSecretName)
-	}
-	objectKey := types.NamespacedName{
-		Name:      credentialsSecretName,
-		Namespace: c.namespace,
-	}
-	// only ClusterStore is allowed to set namespace (and then it's required)
-	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
-		if c.store.Auth.SecretRef.DopplerToken.Namespace == nil {
-			return fmt.Errorf(errInvalidClusterStoreMissingDopplerTokenNamespace)
-		}
-		objectKey.Namespace = *c.store.Auth.SecretRef.DopplerToken.Namespace
-	}
-
-	err := c.kube.Get(ctx, objectKey, credentialsSecret)
+	token, err := resolvers.SecretKeyRef(
+		ctx,
+		c.kube,
+		c.storeKind,
+		c.namespace,
+		&c.store.Auth.SecretRef.DopplerToken)
 	if err != nil {
-		return fmt.Errorf(errFetchDopplerTokenSecret, err)
+		return err
 	}
-
-	dopplerToken := credentialsSecret.Data[c.store.Auth.SecretRef.DopplerToken.Key]
-	if (dopplerToken == nil) || (len(dopplerToken) == 0) {
-		return fmt.Errorf(errMissingDopplerToken, c.store.Auth.SecretRef.DopplerToken.Key, credentialsSecretName)
-	}
-
-	c.dopplerToken = string(dopplerToken)
-
+	c.dopplerToken = token
 	return nil
 }
 
@@ -115,12 +97,48 @@ func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func (c *Client) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf("not implemented")
+func (c *Client) DeleteSecret(_ context.Context, ref esv1beta1.PushSecretRemoteRef) error {
+	request := dClient.UpdateSecretsRequest{
+		ChangeRequests: []dClient.Change{
+			{
+				Name:         ref.GetRemoteKey(),
+				OriginalName: ref.GetRemoteKey(),
+				ShouldDelete: true,
+			},
+		},
+		Project: c.project,
+		Config:  c.config,
+	}
+
+	err := c.doppler.UpdateSecrets(request)
+	if err != nil {
+		return fmt.Errorf(errDeleteSecrets, ref.GetRemoteKey(), err)
+	}
+
+	return nil
 }
 
-func (c *Client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return fmt.Errorf("not implemented")
+func (c *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
+func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	value := secret.Data[data.GetSecretKey()]
+
+	request := dClient.UpdateSecretsRequest{
+		Secrets: dClient.Secrets{
+			data.GetRemoteKey(): string(value),
+		},
+		Project: c.project,
+		Config:  c.config,
+	}
+
+	err := c.doppler.UpdateSecrets(request)
+	if err != nil {
+		return fmt.Errorf(errPushSecrets, data.GetRemoteKey(), err)
+	}
+
+	return nil
 }
 
 func (c *Client) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {

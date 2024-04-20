@@ -18,6 +18,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 const (
@@ -39,6 +41,14 @@ type PushSecretStoreRef struct {
 	Kind string `json:"kind,omitempty"`
 }
 
+// +kubebuilder:validation:Enum=Replace;IfNotExists
+type PushSecretUpdatePolicy string
+
+const (
+	PushSecretUpdatePolicyReplace     PushSecretUpdatePolicy = "Replace"
+	PushSecretUpdatePolicyIfNotExists PushSecretUpdatePolicy = "IfNotExists"
+)
+
 // +kubebuilder:validation:Enum=Delete;None
 type PushSecretDeletionPolicy string
 
@@ -47,11 +57,23 @@ const (
 	PushSecretDeletionPolicyNone   PushSecretDeletionPolicy = "None"
 )
 
+// +kubebuilder:validation:Enum=None;ReverseUnicode
+type PushSecretConversionStrategy string
+
+const (
+	PushSecretConversionNone           PushSecretConversionStrategy = "None"
+	PushSecretConversionReverseUnicode PushSecretConversionStrategy = "ReverseUnicode"
+)
+
 // PushSecretSpec configures the behavior of the PushSecret.
 type PushSecretSpec struct {
 	// The Interval to which External Secrets will try to push a secret definition
 	RefreshInterval *metav1.Duration     `json:"refreshInterval,omitempty"`
 	SecretStoreRefs []PushSecretStoreRef `json:"secretStoreRefs"`
+	// UpdatePolicy to handle Secrets in the provider. Possible Values: "Replace/IfNotExists". Defaults to "Replace".
+	// +kubebuilder:default="Replace"
+	// +optional
+	UpdatePolicy PushSecretUpdatePolicy `json:"updatePolicy,omitempty"`
 	// Deletion Policy to handle Secrets in the provider. Possible Values: "Delete/None". Defaults to "None".
 	// +kubebuilder:default="None"
 	// +optional
@@ -60,6 +82,9 @@ type PushSecretSpec struct {
 	Selector PushSecretSelector `json:"selector"`
 	// Secret Data that should be pushed to providers
 	Data []PushSecretData `json:"data,omitempty"`
+	// Template defines a blueprint for the created Secret resource.
+	// +optional
+	Template *esv1beta1.ExternalSecretTemplate `json:"template,omitempty"`
 }
 
 type PushSecretSecret struct {
@@ -91,7 +116,8 @@ func (r PushSecretRemoteRef) GetProperty() string {
 
 type PushSecretMatch struct {
 	// Secret Key to be pushed
-	SecretKey string `json:"secretKey"`
+	// +optional
+	SecretKey string `json:"secretKey,omitempty"`
 	// Remote Refs to push to providers.
 	RemoteRef PushSecretRemoteRef `json:"remoteRef"`
 }
@@ -103,6 +129,10 @@ type PushSecretData struct {
 	// The structure of metadata is provider specific, please look it up in the provider documentation.
 	// +optional
 	Metadata *apiextensionsv1.JSON `json:"metadata,omitempty"`
+	// +optional
+	// Used to define a conversion Strategy for the secret keys
+	// +kubebuilder:default="None"
+	ConversionStrategy PushSecretConversionStrategy `json:"conversionStrategy,omitempty"`
 }
 
 func (d PushSecretData) GetMetadata() *apiextensionsv1.JSON {
@@ -142,6 +172,7 @@ type PushSecretStatusCondition struct {
 	// +optional
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 }
+
 type SyncedPushSecretsMap map[string]map[string]PushSecretData
 
 // PushSecretStatus indicates the history of the status of PushSecret.
@@ -153,7 +184,8 @@ type PushSecretStatus struct {
 
 	// SyncedResourceVersion keeps track of the last synced version.
 	SyncedResourceVersion string `json:"syncedResourceVersion,omitempty"`
-	// Synced Push Secrets for later deletion. Matches Secret Stores to PushSecretData that was stored to that secretStore.
+	// Synced PushSecrets, including secrets that already exist in provider.
+	// Matches secret stores to PushSecretData that was stored to that secret store.
 	// +optional
 	SyncedPushSecrets SyncedPushSecretsMap `json:"syncedPushSecrets,omitempty"`
 	// +optional

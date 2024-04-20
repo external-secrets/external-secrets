@@ -3,16 +3,11 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "external-secrets.fullname" . }}-webhook
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ template "external-secrets.namespace" . }}
   labels:
     {{- include "external-secrets-webhook.labels" . | nindent 4 }}
     external-secrets.io/component: webhook
-  {{- if .Values.webhook.prometheus.enabled}}
-  annotations:
-    prometheus.io/path: "/metrics"
-    prometheus.io/scrape: "true"
-    prometheus.io/port: {{ .Values.prometheus.service.port | quote }}
-  {{- else }}
+  {{- if .Values.webhook.metrics.service.enabled }}
   {{- with .Values.webhook.metrics.service.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -20,20 +15,21 @@ metadata:
   {{- end }}
 spec:
   type: ClusterIP
+  {{- if .Values.service.ipFamilyPolicy }}
+  ipFamilyPolicy: {{ .Values.service.ipFamilyPolicy }}
+  {{- end }}
+  {{- if .Values.service.ipFamilies }}
+  ipFamilies: {{ .Values.service.ipFamilies | toYaml | nindent 2 }}
+  {{- end }}
   ports:
   - port: 443
     targetPort: {{ .Values.webhook.port }}
     protocol: TCP
     name: webhook
-  {{- if or .Values.webhook.prometheus.enabled .Values.webhook.metrics.service.enabled }}
-  {{- if .Values.webhook.prometheus.enabled }}
-  - port: {{ .Values.webhook.prometheus.service.port }}
-    targetPort: {{ .Values.webhook.prometheus.service.port }}
-  {{- else }}
+  {{- if .Values.webhook.metrics.service.enabled }}
   - port: {{ .Values.webhook.metrics.service.port }}
-    targetPort: {{ .Values.webhook.metrics.service.port }}
-  {{- end }}
     protocol: TCP
+    targetPort: metrics
     name: metrics
   {{- end }}
   selector:

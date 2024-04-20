@@ -1,30 +1,27 @@
-{{- if or (and .Values.certController.create .Values.certController.prometheus.enabled) (and .Values.certController.create .Values.certController.metrics.service.enabled) }}
+{{- if and .Values.certController.create .Values.certController.metrics.service.enabled (not .Values.webhook.certManager.enabled) }}
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "external-secrets.fullname" . }}-cert-controller-metrics
+  namespace: {{ template "external-secrets.namespace" . }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
-  {{- if .Values.certController.prometheus.enabled }}
-  annotations:
-    prometheus.io/path: "/metrics"
-    prometheus.io/scrape: "true"
-    prometheus.io/port: {{ .Values.certController.prometheus.service.port | quote }}
-  {{- else }}
   {{- with .Values.metrics.service.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
-  {{- end }}
 spec:
   type: ClusterIP
-  ports:
-  {{- if .Values.certController.prometheus.enabled }}
-  - port: {{ .Values.certController.prometheus.service.port }}
-  {{- else }}
-  - port: {{ .Values.certController.metrics.service.port }}
+  {{- if .Values.service.ipFamilyPolicy }}
+  ipFamilyPolicy: {{ .Values.service.ipFamilyPolicy }}
   {{- end }}
+  {{- if .Values.service.ipFamilies }}
+  ipFamilies: {{ .Values.service.ipFamilies | toYaml | nindent 2 }}
+  {{- end }}
+  ports:
+  - port: {{ .Values.certController.metrics.service.port }}
     protocol: TCP
+    targetPort: metrics
     name: metrics
   selector:
     {{- include "external-secrets-cert-controller.selectorLabels" . | nindent 4 }}

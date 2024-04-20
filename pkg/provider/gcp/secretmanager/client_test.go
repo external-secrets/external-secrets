@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package secretmanager
 
 import (
@@ -1084,7 +1085,7 @@ func TestValidateStore(t *testing.T) {
 					},
 				},
 			}
-			if err := sm.ValidateStore(store); (err != nil) != tt.wantErr {
+			if _, err := sm.ValidateStore(store); (err != nil) != tt.wantErr {
 				t.Errorf("ProviderGCP.ValidateStore() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
