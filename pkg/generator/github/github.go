@@ -94,7 +94,7 @@ func (g *Generator) generate(
 	defer resp.Body.Close()
 
 	// git access token
-	var gat map[string]interface{}
+	var gat map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&gat); err != nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return nil, fmt.Errorf("error decoding response: %w", err)
 	}

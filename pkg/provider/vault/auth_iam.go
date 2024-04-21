@@ -115,8 +115,8 @@ func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1beta1
 
 		// let's fetch the namespace and serviceaccount from parsed jwt token
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			ns = claims["kubernetes.io"].(map[string]interface{})["namespace"].(string)
-			sa = claims["kubernetes.io"].(map[string]interface{})["serviceaccount"].(map[string]interface{})["name"].(string)
+			ns = claims["kubernetes.io"].(map[string]any)["namespace"].(string)
+			sa = claims["kubernetes.io"].(map[string]any)["serviceaccount"].(map[string]any)["name"].(string)
 		} else {
 			return fmt.Errorf(errPodInfoNotFoundOnToken, tokenFile, err)
 		}

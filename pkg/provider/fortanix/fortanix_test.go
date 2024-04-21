@@ -50,7 +50,7 @@ func newTestClient(t *testing.T, handler func(w http.ResponseWriter, r *http.Req
 	}
 }
 
-func toJSON(t *testing.T, v interface{}) []byte {
+func toJSON(t *testing.T, v any) []byte {
 	jsonBytes, err := json.Marshal(v)
 	assert.Nil(t, err)
 	return jsonBytes

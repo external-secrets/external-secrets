@@ -35,7 +35,7 @@ type Token interface {
 type Logical interface {
 	ReadWithDataWithContext(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error)
 	ListWithContext(ctx context.Context, path string) (*vault.Secret, error)
-	WriteWithContext(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error)
+	WriteWithContext(ctx context.Context, path string, data map[string]any) (*vault.Secret, error)
 	DeleteWithContext(ctx context.Context, path string) (*vault.Secret, error)
 }
 

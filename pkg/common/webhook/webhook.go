@@ -79,7 +79,7 @@ func (w *Webhook) GetSecretMap(ctx context.Context, provider *Spec, ref *esv1bet
 		return nil, err
 	}
 	// We always want json here, so just parse it out
-	jsondata := interface{}(nil)
+	jsondata := any(nil)
 	if err := json.Unmarshal(result, &jsondata); err != nil {
 		return nil, fmt.Errorf("failed to parse response json: %w", err)
 	}
@@ -100,7 +100,7 @@ func (w *Webhook) GetSecretMap(ctx context.Context, provider *Spec, ref *esv1bet
 		}
 	}
 	// Use the data as a key-value map
-	jsonvalue, ok := jsondata.(map[string]interface{})
+	jsonvalue, ok := jsondata.(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("failed to get response (wrong type: %T)", jsondata)
 	}

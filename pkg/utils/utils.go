@@ -50,7 +50,7 @@ var (
 )
 
 // JSONMarshal takes an interface and returns a new escaped and encoded byte slice.
-func JSONMarshal(t interface{}) ([]byte, error) {
+func JSONMarshal(t any) ([]byte, error) {
 	buffer := &bytes.Buffer{}
 	encoder := json.NewEncoder(buffer)
 	encoder.SetEscapeHTML(false)
@@ -293,18 +293,18 @@ var (
 	ErrSecretType    = errors.New("can not handle secret value with type")
 )
 
-func GetByteValueFromMap(data map[string]interface{}, key string) ([]byte, error) {
+func GetByteValueFromMap(data map[string]any, key string) ([]byte, error) {
 	v, ok := data[key]
 	if !ok {
 		return nil, fmt.Errorf("%w: %s", ErrUnexpectedKey, key)
 	}
 	return GetByteValue(v)
 }
-func GetByteValue(v interface{}) ([]byte, error) {
+func GetByteValue(v any) ([]byte, error) {
 	switch t := v.(type) {
 	case string:
 		return []byte(t), nil
-	case map[string]interface{}:
+	case map[string]any:
 		return json.Marshal(t)
 	case []string:
 		return []byte(strings.Join(t, "\n")), nil
@@ -317,7 +317,7 @@ func GetByteValue(v interface{}) ([]byte, error) {
 		return []byte(strconv.FormatFloat(t, 'f', -1, 64)), nil
 	case json.Number:
 		return []byte(t.String()), nil
-	case []interface{}:
+	case []any:
 		return json.Marshal(t)
 	case bool:
 		return []byte(strconv.FormatBool(t)), nil
@@ -329,7 +329,7 @@ func GetByteValue(v interface{}) ([]byte, error) {
 }
 
 // IsNil checks if an Interface is nil.
-func IsNil(i interface{}) bool {
+func IsNil(i any) bool {
 	if i == nil {
 		return true
 	}
@@ -343,7 +343,7 @@ func IsNil(i interface{}) bool {
 // ObjectHash calculates md5 sum of the data contained in the secret.
 //
 //nolint:gosec
-func ObjectHash(object interface{}) string {
+func ObjectHash(object any) string {
 	textualVersion := fmt.Sprintf("%+v", object)
 	return fmt.Sprintf("%x", md5.Sum([]byte(textualVersion)))
 }
@@ -451,7 +451,7 @@ func Ptr[T any](i T) *T {
 	return &i
 }
 
-func ConvertToType[T any](obj interface{}) (T, error) {
+func ConvertToType[T any](obj any) (T, error) {
 	var v T
 
 	data, err := json.Marshal(obj)

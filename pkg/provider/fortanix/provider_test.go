@@ -36,7 +36,7 @@ func pointer[T any](d T) *T {
 	return &d
 }
 
-func respondJSON(w http.ResponseWriter, data interface{}) {
+func respondJSON(w http.ResponseWriter, data any) {
 	w.Header().Set("Content-Type", "application/json")
 
 	json.NewEncoder(w).Encode(data)
