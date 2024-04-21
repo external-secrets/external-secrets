@@ -58,9 +58,17 @@ func validateExternalSecret(obj runtime.Object) (admission.Warnings, error) {
 	}
 
 	for _, ref := range es.Spec.DataFrom {
-		findOrExtract := ref.Find != nil || ref.Extract != nil
-		if findOrExtract && ref.SourceRef != nil && ref.SourceRef.GeneratorRef != nil {
-			errs = errors.Join(errs, fmt.Errorf("generator can not be used with find or extract"))
+		generatorRef := ref.SourceRef != nil && ref.SourceRef.GeneratorRef != nil
+		if (ref.Find != nil && (ref.Extract != nil || generatorRef)) || (ref.Extract != nil && (ref.Find != nil || generatorRef)) || (generatorRef && (ref.Find != nil || ref.Extract != nil)) {
+			errs = errors.Join(errs, fmt.Errorf("extract, find, or generatorRef cannot be set at the same time"))
+		}
+
+		if ref.Find == nil && ref.Extract == nil && ref.SourceRef == nil {
+			errs = errors.Join(errs, fmt.Errorf("either extract, find, or sourceRef must be set to dataFrom"))
+		}
+
+		if ref.SourceRef != nil && ref.SourceRef.GeneratorRef == nil && ref.SourceRef.SecretStoreRef == nil {
+			errs = errors.Join(errs, fmt.Errorf("generatorRef or storeRef must be set when using sourceRef in dataFrom"))
 		}
 	}
 
