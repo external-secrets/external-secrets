@@ -27,7 +27,7 @@ type SecretServerProviderRef struct {
 	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }
 
-// See https://github.com/DelineaXPM/dsv-sdk-go/blob/main/vault/vault.go.
+// See https://github.com/DelineaXPM/tss-sdk-go/blob/main/server/server.go.
 type SecretServerProvider struct {
 
 	// UserName is the secret server account userName.
