@@ -114,7 +114,7 @@ func (c *client) getSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRe
 	}
 	id, err := strconv.Atoi(ref.Key)
 	if err != nil {
-		return nil, errors.New("invalid string to integer conversion")
+		return nil, fmt.Errorf("get secret key = %+v ........ ", ref) //errors.New("invalid string to integer conversion")
 	}
 	return c.api.Secret(id)
 }
