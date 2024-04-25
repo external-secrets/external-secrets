@@ -161,7 +161,7 @@ func (s *secretsManagerClient) doAPICall(ctx context.Context,
 	return s.parseResponse(resp)
 }
 
-func (s *secretsManagerClient) parseResponse(resp *http.Response) (map[string]interface{}, error) {
+func (s *secretsManagerClient) parseResponse(resp *http.Response) (map[string]any, error) {
 	statusCode := utils.Ptr(resp.StatusCode)
 	if utils.Deref(util.Is4xx(statusCode)) || utils.Deref(util.Is5xx(statusCode)) {
 		return nil, s.parseErrorResponse(resp)
@@ -192,7 +192,7 @@ func (s *secretsManagerClient) parseErrorResponse(resp *http.Response) error {
 	}
 
 	errorMap["statusCode"] = utils.Ptr(resp.StatusCode)
-	err = tea.NewSDKError(map[string]interface{}{
+	err = tea.NewSDKError(map[string]any{
 		"code":               tea.ToString(defaultAny(errorMap["Code"], errorMap["code"])),
 		"message":            fmt.Sprintf("code: %s, %s", tea.ToString(resp.StatusCode), tea.ToString(defaultAny(errorMap["Message"], errorMap["message"]))),
 		"data":               errorMap,
@@ -222,7 +222,7 @@ type openAPIRequest struct {
 func newOpenAPIRequest(endpoint string,
 	action string,
 	method methodType,
-	request interface{},
+	request any,
 ) *openAPIRequest {
 	req := &openAPIRequest{
 		endpoint: endpoint,

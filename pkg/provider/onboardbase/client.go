@@ -150,7 +150,7 @@ func (c *Client) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRe
 
 	value := secret.Value
 
-	if len(ref.Property) > 0 {
+	if ref.Property != "" {
 		jsonRes := gjson.Get(secret.Value, ref.Property)
 		if !jsonRes.Exists() {
 			return nil, fmt.Errorf(errSecretKeyFmt, ref.Property, ref.Key)

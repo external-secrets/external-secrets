@@ -50,9 +50,9 @@ func NewConjur(namespace string) *Conjur {
 	return &Conjur{
 		dataKey: dataKey,
 		chart: &HelmChart{
-			Namespace:    namespace,
-			ReleaseName:  fmt.Sprintf("conjur-%s", namespace), // avoid cluster role collision
-			Chart:        fmt.Sprintf("%s/conjur-oss", repo),
+			Namespace:   namespace,
+			ReleaseName: fmt.Sprintf("conjur-%s", namespace), // avoid cluster role collision
+			Chart:       fmt.Sprintf("%s/conjur-oss", repo),
 			// Use latest version of Conjur OSS. To pin to a specific version, uncomment the following line.
 			// ChartVersion: "2.0.7",
 			Repo: ChartRepo{
@@ -220,7 +220,7 @@ func (l *Conjur) fetchJWKSandIssuer() (pubKeysJson string, issuer string, err er
 	if err != nil {
 		return "", "", fmt.Errorf("unable to fetch openid-configuration: %w", err)
 	}
-	var openidConfig map[string]interface{}
+	var openidConfig map[string]any
 	json.Unmarshal(res, &openidConfig)
 	issuer = openidConfig["issuer"].(string)
 
@@ -229,11 +229,11 @@ func (l *Conjur) fetchJWKSandIssuer() (pubKeysJson string, issuer string, err er
 	if err != nil {
 		return "", "", fmt.Errorf("unable to fetch jwks: %w", err)
 	}
-	var jwks map[string]interface{}
+	var jwks map[string]any
 	json.Unmarshal(jwksJson, &jwks)
 
 	// Create a JSON object with the jwks that can be used by Conjur
-	pubKeysObj := map[string]interface{}{
+	pubKeysObj := map[string]any{
 		"type":  "jwks",
 		"value": jwks,
 	}

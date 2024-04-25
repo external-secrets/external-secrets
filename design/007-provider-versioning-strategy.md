@@ -66,7 +66,7 @@ Fake Provider Basic Convert function (very similar to other ):
 ```go
 func (p *Provider) Convert(in esv1beta1.GenericStore) (client.Object, error) {
 	out := &prov.Fake{}
-	tmp := map[string]interface{}{
+	tmp := map[string]any{
 		"spec": in.GetSpec().Provider.Fake,
 	}
 	d, err := json.Marshal(tmp)

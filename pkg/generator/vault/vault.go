@@ -83,7 +83,7 @@ func (g *Generator) generate(ctx context.Context, c *provider.Provider, jsonSpec
 	} else if res.Spec.Method == "DELETE" {
 		result, err = cl.Logical().DeleteWithContext(ctx, res.Spec.Path)
 	} else {
-		params := make(map[string]interface{})
+		params := make(map[string]any)
 		if res.Spec.Parameters != nil {
 			err = json.Unmarshal(res.Spec.Parameters.Raw, &params)
 			if err != nil {
@@ -99,7 +99,7 @@ func (g *Generator) generate(ctx context.Context, c *provider.Provider, jsonSpec
 		return nil, fmt.Errorf(errGetSecret, fmt.Errorf("empty response from Vault"))
 	}
 
-	data := make(map[string]interface{})
+	data := make(map[string]any)
 	response := make(map[string][]byte)
 	if res.Spec.ResultType == genv1alpha1.VaultDynamicSecretResultTypeAuth {
 		authJSON, err := json.Marshal(result.Auth)
