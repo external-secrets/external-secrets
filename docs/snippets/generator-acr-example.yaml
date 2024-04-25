@@ -22,7 +22,7 @@ spec:
             "auths": {
               "myregistry.azurecr.io": {
                 "username": "{{ .username }}",
-                "identitytoken": "{{ .password }}",
+                "identitytoken": "{{ .password }}"
               }
             }
           }
