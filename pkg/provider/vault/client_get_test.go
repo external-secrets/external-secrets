@@ -34,16 +34,16 @@ import (
 
 func TestGetSecret(t *testing.T) {
 	errBoom := errors.New("boom")
-	secret := map[string]interface{}{
+	secret := map[string]any{
 		"access_key":    "access_key",
 		"access_secret": "access_secret",
 	}
-	secretWithNilVal := map[string]interface{}{
+	secretWithNilVal := map[string]any{
 		"access_key":    "access_key",
 		"access_secret": "access_secret",
 		"token":         nil,
 	}
-	secretWithNestedVal := map[string]interface{}{
+	secretWithNestedVal := map[string]any{
 		"access_key":    "access_key",
 		"access_secret": "access_secret",
 		"nested.bar":    "something different",
@@ -350,30 +350,30 @@ func TestGetSecret(t *testing.T) {
 
 func TestGetSecretMap(t *testing.T) {
 	errBoom := errors.New("boom")
-	secret := map[string]interface{}{
+	secret := map[string]any{
 		"access_key":    "access_key",
 		"access_secret": "access_secret",
 	}
-	secretWithSpecialCharacter := map[string]interface{}{
+	secretWithSpecialCharacter := map[string]any{
 		"access_key":    "acc<ess_&ke.,y",
 		"access_secret": "acce&?ss_s>ecret",
 	}
-	secretWithNilVal := map[string]interface{}{
+	secretWithNilVal := map[string]any{
 		"access_key":    "access_key",
 		"access_secret": "access_secret",
 		"token":         nil,
 	}
-	secretWithNestedVal := map[string]interface{}{
+	secretWithNestedVal := map[string]any{
 		"access_key":    "access_key",
 		"access_secret": "access_secret",
-		"nested": map[string]interface{}{
+		"nested": map[string]any{
 			"foo": map[string]string{
 				"oke":    "yup",
 				"mhkeih": "yada yada",
 			},
 		},
 	}
-	secretWithTypes := map[string]interface{}{
+	secretWithTypes := map[string]any{
 		"access_secret": "access_secret",
 		"f32":           float32(2.12),
 		"f64":           float64(2.1234534153423423),
@@ -421,7 +421,7 @@ func TestGetSecretMap(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vClient: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"data": secret,
 					}, nil),
 				},
@@ -455,7 +455,7 @@ func TestGetSecretMap(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vClient: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"data": secretWithSpecialCharacter,
 					}, nil),
 				},
@@ -490,7 +490,7 @@ func TestGetSecretMap(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vClient: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"data": secretWithNilVal}, nil),
 				},
 			},
@@ -508,7 +508,7 @@ func TestGetSecretMap(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vClient: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"data": secretWithTypes}, nil),
 				},
 			},
@@ -532,7 +532,7 @@ func TestGetSecretMap(t *testing.T) {
 					Property: "nested",
 				},
 				vClient: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"data": secretWithNestedVal}, nil),
 				},
 			},
@@ -551,7 +551,7 @@ func TestGetSecretMap(t *testing.T) {
 					Property: "nested.foo",
 				},
 				vClient: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"data": secretWithNestedVal}, nil),
 				},
 			},
@@ -697,10 +697,10 @@ func TestGetSecretPath(t *testing.T) {
 }
 
 func TestSecretExists(t *testing.T) {
-	secret := map[string]interface{}{
+	secret := map[string]any{
 		"foo": "bar",
 	}
-	secretWithNil := map[string]interface{}{
+	secretWithNil := map[string]any{
 		"hi": nil,
 	}
 	errNope := errors.New("nope")
@@ -751,7 +751,7 @@ func TestSecretExists(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vClient: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"data": secret,
 					}, nil),
 				},
@@ -795,7 +795,7 @@ func TestSecretExists(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vClient: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"data": secret,
 					}, nil),
 				},
@@ -825,7 +825,7 @@ func TestSecretExists(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vClient: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"data": secretWithNil,
 					}, nil),
 				},

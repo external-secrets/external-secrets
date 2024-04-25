@@ -41,11 +41,12 @@ import (
 	// Metrics.
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
+	"github.com/external-secrets/external-secrets/pkg/utils"
+
 	// Loading registered generators.
 	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -440,12 +441,12 @@ func (r *Reconciler) patchSecret(ctx context.Context, secret *v1.Secret, mutatio
 }
 
 func getManagedDataKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
-	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]interface{}) []string {
+	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]any) []string {
 		dataFields := fields["f:data"]
 		if dataFields == nil {
 			return nil
 		}
-		df, ok := dataFields.(map[string]interface{})
+		df, ok := dataFields.(map[string]any)
 		if !ok {
 			return nil
 		}
@@ -460,7 +461,7 @@ func getManagedDataKeys(secret *v1.Secret, fieldOwner string) ([]string, error) 
 func getManagedFieldKeys(
 	secret *v1.Secret,
 	fieldOwner string,
-	process func(fields map[string]interface{}) []string,
+	process func(fields map[string]any) []string,
 ) ([]string, error) {
 	fqdn := fmt.Sprintf(fieldOwnerTemplate, fieldOwner)
 	var keys []string
@@ -468,7 +469,7 @@ func getManagedFieldKeys(
 		if v.Manager != fqdn {
 			continue
 		}
-		fields := make(map[string]interface{})
+		fields := make(map[string]any)
 		err := json.Unmarshal(v.FieldsV1.Raw, &fields)
 		if err != nil {
 			return nil, fmt.Errorf("error unmarshaling managed fields: %w", err)
