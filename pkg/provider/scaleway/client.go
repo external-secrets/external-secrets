@@ -375,7 +375,7 @@ func (c *client) Close(context.Context) error {
 func (c *client) accessSecretVersion(ctx context.Context, secretRef *scwSecretRef, versionSpec string) ([]byte, error) {
 	// if we have a secret id and a revision number, we can avoid an extra GetSecret()
 
-	if secretRef.RefType == refTypeID && len(versionSpec) > 0 && '0' <= versionSpec[0] && versionSpec[0] <= '9' {
+	if secretRef.RefType == refTypeID && versionSpec != "" && '0' <= versionSpec[0] && versionSpec[0] <= '9' {
 		secretID := secretRef.Value
 
 		revision, err := strconv.ParseUint(versionSpec, 10, 32)

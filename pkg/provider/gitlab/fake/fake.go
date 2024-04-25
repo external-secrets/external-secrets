@@ -42,31 +42,31 @@ func keyFromGroupVariable(gv gitlab.GroupVariable) string {
 }
 
 type GitlabMockProjectsClient struct {
-	listProjectsGroups func(pid interface{}, opt *gitlab.ListProjectGroupOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectGroup, *gitlab.Response, error)
+	listProjectsGroups func(pid any, opt *gitlab.ListProjectGroupOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectGroup, *gitlab.Response, error)
 }
 
-func (mc *GitlabMockProjectsClient) ListProjectsGroups(pid interface{}, opt *gitlab.ListProjectGroupOptions, _ ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectGroup, *gitlab.Response, error) {
+func (mc *GitlabMockProjectsClient) ListProjectsGroups(pid any, opt *gitlab.ListProjectGroupOptions, _ ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectGroup, *gitlab.Response, error) {
 	return mc.listProjectsGroups(pid, opt, nil)
 }
 
 func (mc *GitlabMockProjectsClient) WithValue(output []*gitlab.ProjectGroup, response *gitlab.Response, err error) {
 	if mc != nil {
-		mc.listProjectsGroups = func(pid interface{}, opt *gitlab.ListProjectGroupOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectGroup, *gitlab.Response, error) {
+		mc.listProjectsGroups = func(pid any, opt *gitlab.ListProjectGroupOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectGroup, *gitlab.Response, error) {
 			return output, response, err
 		}
 	}
 }
 
 type GitlabMockProjectVariablesClient struct {
-	getVariable   func(pid interface{}, key string, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
-	listVariables func(pid interface{}, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectVariable, *gitlab.Response, error)
+	getVariable   func(pid any, key string, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
+	listVariables func(pid any, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectVariable, *gitlab.Response, error)
 }
 
-func (mc *GitlabMockProjectVariablesClient) GetVariable(pid interface{}, key string, _ *gitlab.GetProjectVariableOptions, _ ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error) {
+func (mc *GitlabMockProjectVariablesClient) GetVariable(pid any, key string, _ *gitlab.GetProjectVariableOptions, _ ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error) {
 	return mc.getVariable(pid, key, nil)
 }
 
-func (mc *GitlabMockProjectVariablesClient) ListVariables(pid interface{}, _ *gitlab.ListProjectVariablesOptions, _ ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectVariable, *gitlab.Response, error) {
+func (mc *GitlabMockProjectVariablesClient) ListVariables(pid any, _ *gitlab.ListProjectVariablesOptions, _ ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectVariable, *gitlab.Response, error) {
 	return mc.listVariables(pid)
 }
 
@@ -81,9 +81,9 @@ func (mc *GitlabMockProjectVariablesClient) WithValues(responses []APIResponse[[
 	}
 }
 
-func mockGetVariable[V GitVariable](keyExtractor extractKey[V], responses []APIResponse[[]*V]) func(interface{}, string, ...gitlab.RequestOptionFunc) (*V, *gitlab.Response, error) {
+func mockGetVariable[V GitVariable](keyExtractor extractKey[V], responses []APIResponse[[]*V]) func(any, string, ...gitlab.RequestOptionFunc) (*V, *gitlab.Response, error) {
 	getCount := -1
-	return func(pid interface{}, key string, options ...gitlab.RequestOptionFunc) (*V, *gitlab.Response, error) {
+	return func(pid any, key string, options ...gitlab.RequestOptionFunc) (*V, *gitlab.Response, error) {
 		getCount++
 		if getCount > len(responses)-1 {
 			return nil, make404APIResponse(), nil
@@ -101,9 +101,9 @@ func mockGetVariable[V GitVariable](keyExtractor extractKey[V], responses []APIR
 	}
 }
 
-func mockListVariable[V GitVariable](responses []APIResponse[[]*V]) func(interface{}, ...gitlab.RequestOptionFunc) ([]*V, *gitlab.Response, error) {
+func mockListVariable[V GitVariable](responses []APIResponse[[]*V]) func(any, ...gitlab.RequestOptionFunc) ([]*V, *gitlab.Response, error) {
 	listCount := -1
-	return func(pid interface{}, options ...gitlab.RequestOptionFunc) ([]*V, *gitlab.Response, error) {
+	return func(pid any, options ...gitlab.RequestOptionFunc) ([]*V, *gitlab.Response, error) {
 		listCount++
 		if listCount > len(responses)-1 {
 			return nil, makeAPIResponse(listCount, len(responses)), nil
@@ -131,25 +131,25 @@ func makeAPIResponse(page, pages int) *gitlab.Response {
 }
 
 type GitlabMockGroupVariablesClient struct {
-	getVariable   func(gid interface{}, key string, options ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error)
-	listVariables func(gid interface{}, options ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error)
+	getVariable   func(gid any, key string, options ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error)
+	listVariables func(gid any, options ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error)
 }
 
-func (mc *GitlabMockGroupVariablesClient) GetVariable(gid interface{}, key string, _ ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error) {
+func (mc *GitlabMockGroupVariablesClient) GetVariable(gid any, key string, _ ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error) {
 	return mc.getVariable(gid, key, nil)
 }
 
-func (mc *GitlabMockGroupVariablesClient) ListVariables(gid interface{}, _ *gitlab.ListGroupVariablesOptions, _ ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error) {
+func (mc *GitlabMockGroupVariablesClient) ListVariables(gid any, _ *gitlab.ListGroupVariablesOptions, _ ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error) {
 	return mc.listVariables(gid)
 }
 
 func (mc *GitlabMockGroupVariablesClient) WithValue(output *gitlab.GroupVariable, response *gitlab.Response, err error) {
 	if mc != nil {
-		mc.getVariable = func(gid interface{}, key string, options ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error) {
+		mc.getVariable = func(gid any, key string, options ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error) {
 			return output, response, err
 		}
 
-		mc.listVariables = func(gid interface{}, options ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error) {
+		mc.listVariables = func(gid any, options ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error) {
 			return []*gitlab.GroupVariable{output}, response, err
 		}
 	}

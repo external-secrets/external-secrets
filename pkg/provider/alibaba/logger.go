@@ -47,7 +47,7 @@ func newLogger() *logger {
 var _ retryablehttp.LeveledLogger = (*logger)(nil)
 var _ retryablehttp.Logger = (*logger)(nil)
 
-func (l *logger) WithField(key string, value interface{}) *logger {
+func (l *logger) WithField(key string, value any) *logger {
 	return l.WithFields(key, value)
 }
 
@@ -55,28 +55,28 @@ func (l *logger) WithError(err error) *logger {
 	return l.WithFields("error", err)
 }
 
-func (l *logger) WithFields(keysAndValues ...interface{}) *logger {
+func (l *logger) WithFields(keysAndValues ...any) *logger {
 	newLogger := *l
 	newLogger.Logger = l.Logger.WithValues(keysAndValues...)
 	return &newLogger
 }
 
-func (l *logger) Error(msg string, keysAndValues ...interface{}) {
+func (l *logger) Error(msg string, keysAndValues ...any) {
 	l.Logger.Error(nil, msg, keysAndValues...)
 }
 
-func (l *logger) Info(msg string, keysAndValues ...interface{}) {
+func (l *logger) Info(msg string, keysAndValues ...any) {
 	l.Logger.V(logLevelInfo.Level()).Info(msg, keysAndValues...)
 }
 
-func (l *logger) Debug(msg string, keysAndValues ...interface{}) {
+func (l *logger) Debug(msg string, keysAndValues ...any) {
 	l.Logger.V(logLevelDebug.Level()).Info(msg, keysAndValues...)
 }
 
-func (l *logger) Warn(msg string, keysAndValues ...interface{}) {
+func (l *logger) Warn(msg string, keysAndValues ...any) {
 	l.Logger.V(logLevelWarn.Level()).Info(msg, keysAndValues...)
 }
 
-func (l *logger) Printf(msg string, keysAndValues ...interface{}) {
+func (l *logger) Printf(msg string, keysAndValues ...any) {
 	l.Logger.Info(msg, keysAndValues...)
 }

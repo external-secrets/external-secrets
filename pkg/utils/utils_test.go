@@ -40,7 +40,7 @@ const (
 func TestObjectHash(t *testing.T) {
 	tests := []struct {
 		name  string
-		input interface{}
+		input any
 		want  string
 	}{
 		{
@@ -81,7 +81,7 @@ func TestObjectHash(t *testing.T) {
 func TestIsNil(t *testing.T) {
 	tbl := []struct {
 		name string
-		val  interface{}
+		val  any
 		exp  bool
 	}{
 		{
@@ -747,7 +747,7 @@ func TestFetchValueFromMetadata(t *testing.T) {
 
 func TestGetByteValue(t *testing.T) {
 	type args struct {
-		data interface{}
+		data any
 	}
 	type testCase struct {
 		name    string
@@ -765,9 +765,9 @@ func TestGetByteValue(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "map of interface{}",
+			name: "map of any",
 			args: args{
-				data: map[string]interface{}{
+				data: map[string]any{
 					"key": "value",
 				},
 			},
@@ -807,9 +807,9 @@ func TestGetByteValue(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "slice of interface{}",
+			name: "slice of any",
 			args: args{
-				data: []interface{}{"value1", "value2"},
+				data: []any{"value1", "value2"},
 			},
 			want:    []byte(`["value1","value2"]`),
 			wantErr: false,

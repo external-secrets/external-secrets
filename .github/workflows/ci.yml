@@ -9,8 +9,8 @@ on:
 
 env:
   # Common versions
-  GOLANGCI_VERSION: 'v1.54.2'
-  KUBERNETES_VERSION: '1.28.x'
+  GOLANGCI_VERSION: 'v1.57.2'
+  KUBERNETES_VERSION: '1.30.x'
 
   # Sonar
   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

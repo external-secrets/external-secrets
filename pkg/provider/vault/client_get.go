@@ -45,7 +45,7 @@ const (
 //  2. get a key from the secret.
 //     Nested values are supported by specifying a gjson expression
 func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	var data map[string]interface{}
+	var data map[string]any
 	var err error
 	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
 		if c.store.Version == esv1beta1.VaultKVStoreV1 {
@@ -59,7 +59,7 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 		if len(metadata) == 0 {
 			return nil, nil
 		}
-		data = make(map[string]interface{}, len(metadata))
+		data = make(map[string]any, len(metadata))
 		for k, v := range metadata {
 			data[k] = v
 		}
@@ -82,7 +82,7 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 		return nil, err
 	}
 
-	var secretData map[string]interface{}
+	var secretData map[string]any
 	err = json.Unmarshal(data, &secretData)
 	if err != nil {
 		return nil, err
@@ -117,7 +117,7 @@ func (c *client) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRemot
 	return value != nil, nil
 }
 
-func (c *client) readSecret(ctx context.Context, path, version string) (map[string]interface{}, error) {
+func (c *client) readSecret(ctx context.Context, path, version string) (map[string]any, error) {
 	dataPath := c.buildPath(path)
 
 	// path formated according to vault docs for v1 and v2 API
@@ -147,7 +147,7 @@ func (c *client) readSecret(ctx context.Context, path, version string) (map[stri
 		if dataInt == nil {
 			return nil, esv1beta1.NoSecretError{}
 		}
-		secretData, ok = dataInt.(map[string]interface{})
+		secretData, ok = dataInt.(map[string]any)
 		if !ok {
 			return nil, errors.New(errJSONUnmarshall)
 		}
@@ -156,7 +156,7 @@ func (c *client) readSecret(ctx context.Context, path, version string) (map[stri
 	return secretData, nil
 }
 
-func getSecretValue(data map[string]interface{}, property string) ([]byte, error) {
+func getSecretValue(data map[string]any, property string) ([]byte, error) {
 	if data == nil {
 		return nil, esv1beta1.NoSecretError{}
 	}
@@ -202,7 +202,7 @@ func (c *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 	if !ok {
 		return nil, nil
 	}
-	d, ok := t.(map[string]interface{})
+	d, ok := t.(map[string]any)
 	if !ok {
 		return metadata, nil
 	}

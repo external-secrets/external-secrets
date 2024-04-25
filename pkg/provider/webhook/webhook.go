@@ -142,7 +142,7 @@ func (w *WebHook) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDat
 		return nil, err
 	}
 	if resultJSONPath != "" {
-		jsondata := interface{}(nil)
+		jsondata := any(nil)
 		if err := json.Unmarshal(result, &jsondata); err != nil {
 			return nil, fmt.Errorf("failed to parse response json: %w", err)
 		}
@@ -156,7 +156,7 @@ func (w *WebHook) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDat
 	return result, nil
 }
 
-// tries to extract data from an interface{}
+// tries to extract data from an any
 // it is supposed to return a single value.
 func extractSecretData(jsondata any) ([]byte, error) {
 	switch val := jsondata.(type) {

@@ -48,12 +48,12 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	} else {
 		value = secret.Data[key]
 	}
-	label := map[string]interface{}{
+	label := map[string]any{
 		"custom_metadata": map[string]string{
 			"managed-by": "external-secrets",
 		},
 	}
-	secretVal := make(map[string]interface{})
+	secretVal := make(map[string]any)
 	path := c.buildPath(data.GetRemoteKey())
 	metaPath, err := c.buildMetadataPath(data.GetRemoteKey())
 	if err != nil {
@@ -124,7 +124,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		secretToPush["custom_metadata"] = label["custom_metadata"]
 	}
 	if c.store.Version == esv1beta1.VaultKVStoreV2 {
-		secretToPush = map[string]interface{}{
+		secretToPush = map[string]any{
 			"data": secretVal,
 		}
 	}
@@ -178,7 +178,7 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecre
 		if len(secretVal) > 0 {
 			secretToPush := secretVal
 			if c.store.Version == esv1beta1.VaultKVStoreV2 {
-				secretToPush = map[string]interface{}{
+				secretToPush = map[string]any{
 					"data": secretVal,
 				}
 			}

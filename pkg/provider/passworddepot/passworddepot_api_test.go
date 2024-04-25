@@ -271,7 +271,7 @@ func TestPasswortDepotApiGetSecret(t *testing.T) {
 	}
 }
 
-func createResponder(payload interface{}, withMarshal bool) func(*http.Request) (*http.Response, error) {
+func createResponder(payload any, withMarshal bool) func(*http.Request) (*http.Response, error) {
 	return func(req *http.Request) (*http.Response, error) {
 		var payloadBytes []byte
 		if withMarshal {
