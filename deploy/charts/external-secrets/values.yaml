@@ -498,3 +498,6 @@ dnsConfig: {}
 
 # -- Any extra pod spec on the deployment
 podSpecExtra: {}
+
+# -- Array of extra K8s manifests to deploy
+extraObjects: []
