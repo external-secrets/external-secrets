@@ -583,7 +583,7 @@ spec:
                     x-kubernetes-map-type: atomic
                   type: array
                 namespaces:
-                  description: Choose namespaces by name. This field is ORed with anything that NamespaceSelector ends up choosing.
+                  description: Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
                   items:
                     type: string
                   type: array
