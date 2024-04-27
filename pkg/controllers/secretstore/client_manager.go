@@ -121,7 +121,7 @@ func (m *Manager) Get(ctx context.Context, storeRef esv1beta1.SecretStoreRef, na
 		return nil, err
 	}
 	if !shouldProcess {
-		err = fmt.Errorf(errClusterStoreMismatch, store.GetName(), namespace)
+		return nil, fmt.Errorf(errClusterStoreMismatch, store.GetName(), namespace)
 	}
 
 	if m.enableFloodgate {
