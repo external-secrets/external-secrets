@@ -6,12 +6,12 @@ This section describes how to set up the Conjur provider for External Secrets Op
 
 Before installing the Conjur provider, you need:
 
-*   A running Conjur Server, with:
-    *   An accessible Conjur endpoint (for example: `https://myapi.example.com`).
-    *   Your configured Conjur authentication info (such as `hostid`, `apikey`, or JWT service ID). For more information on configuring Conjur, see [Policy statement reference](https://docs.cyberark.com/conjur-open-source/Latest/en/Content/Operations/Policy/policy-statement-ref.htm).
-    *   Support for your authentication method (`apikey` is supported by default, `jwt` requires additional configuration).
-    *   **Optional**: Conjur server certificate (see [below](#conjur-server-certificate)).
-*   A Kubernetes cluster with ESO installed.
+* A running Conjur Server, with:
+  * An accessible Conjur endpoint (for example: `https://myapi.example.com`).
+  * Your configured Conjur authentication info (such as `hostid`, `apikey`, or JWT service ID). For more information on configuring Conjur, see [Policy statement reference](https://docs.cyberark.com/conjur-open-source/Latest/en/Content/Operations/Policy/policy-statement-ref.htm).
+  * Support for your authentication method (`apikey` is supported by default, `jwt` requires additional configuration).
+  * **Optional**: Conjur server certificate (see [below](#conjur-server-certificate)).
+* A Kubernetes cluster with ESO installed.
 
 ### Conjur server certificate
 
@@ -21,11 +21,18 @@ If you set up your Conjur server with a self-signed certificate, we recommend th
 {% include 'conjur-ca-bundle.yaml' %}
 ```
 
-### External secret store with apiKey authentication
+### External secret store
+
+The Conjur provider is configured as an external secret store in ESO. The Conjur provider supports these two methods to authenticate to Conjur:
+
+* [`apikey`](#option-1-external-secret-store-with-apikey-authentication): uses a Conjur `hostid` and `apikey` to authenticate with Conjur
+* [`jwt`](#option-2-external-secret-store-with-jwt-authentication): uses a JWT to authenticate with Conjur
+
+#### Option 1: External secret store with apiKey authentication
 
 This method uses a Conjur `hostid` and `apikey` to authenticate with Conjur. It is the simplest method to set up and use because your Conjur instance requires no additional configuration.
 
-#### Step 1: Create an external secret store
+##### Step 1: Define an external secret store
 
 !!! Tip
     Save as the file as: `conjur-secret-store.yaml`
@@ -34,7 +41,7 @@ This method uses a Conjur `hostid` and `apikey` to authenticate with Conjur. It 
 {% include 'conjur-secret-store-apikey.yaml' %}
 ```
 
-#### Step 2: Create Kubernetes secrets
+##### Step 2: Create Kubernetes secrets for Conjur credentials
 
 To connect to the Conjur server, the **ESO Conjur provider** needs to retrieve the `apikey` credentials from K8s secrets.
 
@@ -54,19 +61,36 @@ kubectl -n external-secrets create secret generic conjur-creds --from-literal=ho
 !!! Note
     `conjur-creds` is the `name` defined in the `userRef` and `apikeyRef` fields of the `conjur-secret-store.yml` file.
 
-### External secret store with JWT authentication
+
+##### Step 3: Create the external secrets store
+
+!!! Important
+    Unless you are using a [ClusterSecretStore](../api/clustersecretstore.md), credentials must reside in the same namespace as the SecretStore.
+
+```shell
+# WARNING: creates the store in the "external-secrets" namespace, update the value as needed
+#
+kubectl apply -n external-secrets -f conjur-secret-store.yaml
+
+# WARNING: running the delete command will delete the secret store configuration
+#
+# If there is a need to delete the external secretstore
+# kubectl delete secretstore -n external-secrets conjur
+```
+
+#### Option 2: External secret store with JWT authentication
 
 This method uses JWT tokens to authenticate with Conjur. You can use the following methods to retrieve a JWT token for authentication:
 
--  JWT token from a referenced Kubernetes service account
--  JWT token stored in a Kubernetes secret
+* JWT token from a referenced Kubernetes service account
+* JWT token stored in a Kubernetes secret
 
-#### Step 1: Define an external secret store
+##### Step 1: Define an external secret store
 
 When you use JWT authentication, the following must be specified in the `SecretStore`:
 
-- `account` -  The name of the Conjur account
-- `serviceId` - The ID of the JWT Authenticator `WebService` configured in Conjur that is used to authenticate the JWT token
+* `account` -  The name of the Conjur account
+* `serviceId` - The ID of the JWT Authenticator `WebService` configured in Conjur that is used to authenticate the JWT token
 
 You can retrieve the JWT token from either a referenced service account or a Kubernetes secret.
 
@@ -93,20 +117,9 @@ You can use an external JWT issuer or the Kubernetes API server to create the to
 kubectl create token my-service-account --audience='https://conjur.company.com' --duration=3600s
 ```
 
-Save the secret store file as `conjur-secret-store.yaml` (the filename used in subsequent steps).
+Save the secret store file as `conjur-secret-store.yaml`.
 
-#### Step 2: Define an external secret
-
-Save the external secret file as: `conjur-external-secret.yaml`
-
-```yaml
-{% include 'conjur-external-secret.yaml' %}
-```
-
-!!!Important
-    Unless you are using a [ClusterSecretStore](../api/clustersecretstore.md), credentials must reside in the same namespace as the SecretStore.
-
-#### Step 3: Create the external secrets store
+##### Step 2: Create the external secrets store
 
 ```shell
 # WARNING: creates the store in the "external-secrets" namespace, update the value as needed
@@ -119,7 +132,32 @@ kubectl apply -n external-secrets -f conjur-secret-store.yaml
 # kubectl delete secretstore -n external-secrets conjur
 ```
 
-#### Step 4: Create the external secret
+### Define an external secret
+
+After you have configured the Conjur provider secret store, you can fetch secrets from Conjur.
+
+Here is an example of how to fetch a single secret from Conjur:
+
+```yaml
+{% include 'conjur-external-secret.yaml' %}
+```
+
+Save the external secret file as `conjur-external-secret.yaml`.
+
+#### Find by Name and Find by Tag
+
+The Conjur provider also supports the Find by Name and Find by Tag ESO features. This means that
+you can use a regular expression or tags to dynamically fetch multiple secrets from Conjur.
+
+```yaml
+{% include 'conjur-external-secret-find.yaml' %}
+```
+
+If you use these features, we strongly recommend that you limit the permissions of the Conjur host
+to only the secrets that it needs to access. This is more secure and it reduces the load on
+both the Conjur server and ESO.
+
+### Create the external secret
 
 ```shell
 # WARNING: creates the external-secret in the "external-secrets" namespace, update the value as needed
@@ -132,7 +170,7 @@ kubectl apply -n external-secrets -f conjur-external-secret.yaml
 # kubectl delete externalsecret -n external-secrets conjur
 ```
 
-#### Step 5: Get the K8s secret
+### Get the K8s secret
 
 * Log in to your Conjur server and verify that your secret exists
 * Review the value of your Kubernetes secret to verify that it contains the same value as the Conjur server
@@ -149,10 +187,9 @@ kubectl get secret -n external-secrets conjur -o jsonpath="{.data.secret00}"  | 
 * [Accelerator-K8s-External-Secrets repo](https://github.com/conjurdemos/Accelerator-K8s-External-Secrets)
 * [Configure Conjur JWT authentication](https://docs.cyberark.com/conjur-open-source/Latest/en/Content/Operations/Services/cjr-authn-jwt-guidelines.htm)
 
-
 ### License
 
-Copyright (c) 2023 CyberArk Software Ltd. All rights reserved.
+Copyright (c) 2023-2024 CyberArk Software Ltd. All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
