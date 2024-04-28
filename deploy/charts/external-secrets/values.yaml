@@ -114,6 +114,9 @@ extraArgs: {}
 ## -- Extra volumes to pass to pod.
 extraVolumes: []
 
+## -- Extra Kubernetes objects to deploy with the helm chart
+extraObjects: []
+
 ## -- Extra volumes to mount to the container.
 extraVolumeMounts: []
 
