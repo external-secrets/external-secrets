@@ -58,7 +58,7 @@ func pkcs12keyPass(pass, input string) (string, error) {
 	return string(pemData), nil
 }
 
-func parsePrivateKey(block []byte) (interface{}, error) {
+func parsePrivateKey(block []byte) (any, error) {
 	if k, err := x509.ParsePKCS1PrivateKey(block); err == nil {
 		return k, nil
 	}

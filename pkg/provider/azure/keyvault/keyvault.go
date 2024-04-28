@@ -369,7 +369,7 @@ func getCertificateFromValue(value []byte) (*x509.Certificate, error) {
 	return nil, fmt.Errorf("could not parse certificate value as PKCS#12, DER or PEM")
 }
 
-func getKeyFromValue(value []byte) (interface{}, error) {
+func getKeyFromValue(value []byte) (any, error) {
 	val := value
 	pemBlock, _ := pem.Decode(value)
 	// if a private key regular expression doesn't match, we should consider this key to be symmetric
@@ -553,7 +553,7 @@ func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretF
 	basicClient := a.baseClient
 	secretsMap := make(map[string][]byte)
 	checkTags := len(ref.Tags) > 0
-	checkName := ref.Name != nil && len(ref.Name.RegExp) > 0
+	checkName := ref.Name != nil && ref.Name.RegExp != ""
 
 	secretListIter, err := basicClient.GetSecretsComplete(ctx, *a.provider.VaultURL, nil)
 	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecrets, err)

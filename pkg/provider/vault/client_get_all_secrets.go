@@ -124,7 +124,7 @@ func (c *client) listSecrets(ctx context.Context, path string) ([]string, error)
 	if !ok {
 		return nil, nil
 	}
-	paths := t.([]interface{})
+	paths := t.([]any)
 	for _, p := range paths {
 		strPath := p.(string)
 		fullPath := path + strPath // because path always ends with a /

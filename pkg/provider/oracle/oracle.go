@@ -350,7 +350,7 @@ func (vms *VaultManagementService) getSecretBundleWithCode(ctx context.Context, 
 func getSecretBundleCode(err error) int {
 	if err != nil {
 		// If we got a 404 service error, try to create the secret.
-		//nolint:all
+
 		if serviceErr, ok := err.(common.ServiceError); ok && serviceErr.GetHTTPStatusCode() == 404 {
 			return SecretNotFound
 		}
@@ -593,7 +593,7 @@ func sanitizeOCISDKErr(err error) error {
 		return nil
 	}
 	// If we have a ServiceError from the OCI SDK, strip only the message from the verbose error
-	//nolint:all
+
 	if serviceError, ok := err.(common.ServiceErrorRichInfo); ok {
 		return fmt.Errorf("%s service failed to %s, HTTP status code %d: %s", serviceError.GetTargetService(), serviceError.GetOperationName(), serviceError.GetHTTPStatusCode(), serviceError.GetMessage())
 	}

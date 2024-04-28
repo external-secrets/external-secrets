@@ -49,13 +49,12 @@ func newConjurProvider(f *framework.Framework) *conjurProvider {
 		framework: f,
 	}
 	BeforeEach(prov.BeforeEach)
-	AfterEach(prov.AfterEach)
 	return prov
 }
 
 func (s *conjurProvider) CreateSecret(key string, val framework.SecretEntry) {
 	// Generate a policy file for the secret key
-	policy := createVariablePolicy(key, s.framework.Namespace.Name)
+	policy := createVariablePolicy(key, s.framework.Namespace.Name, val.Tags)
 
 	_, err := s.client.LoadPolicy(conjurapi.PolicyModePost, "root", strings.NewReader(policy))
 	Expect(err).ToNot(HaveOccurred())
@@ -82,31 +81,6 @@ func (s *conjurProvider) BeforeEach() {
 	s.CreateApiKeyStore(c, ns)
 	s.CreateJWTK8sStore(c, ns)
 	s.CreateJWTK8sHostIDStore(c, ns)
-}
-
-func (s *conjurProvider) AfterEach() {
-	// Print Conjur logs if the test failed
-	if !CurrentGinkgoTestDescription().Failed {
-		return
-	}
-
-	// Get logs from Conjur pod
-	ns := s.framework.Namespace.Name
-	pods, err := s.framework.KubeClientSet.CoreV1().Pods(ns).List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		GinkgoWriter.Printf("Error getting pods: %s\n", err)
-		return
-	}
-
-	for _, pod := range pods.Items {
-		if strings.Contains(pod.Name, "conjur-oss") {
-			logs, err := s.framework.KubeClientSet.CoreV1().Pods(ns).GetLogs(pod.Name, &v1.PodLogOptions{Container: "conjur-oss"}).DoRaw(context.Background())
-			if err != nil {
-				GinkgoWriter.Printf("Error getting logs from Conjur pod: %s\n", err)
-			}
-			GinkgoWriter.Printf("Conjur logs:\n%s\n", logs)
-		}
-	}
 }
 
 func makeStore(name, ns string, c *addon.Conjur) *esv1beta1.SecretStore {

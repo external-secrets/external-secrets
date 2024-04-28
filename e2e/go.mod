@@ -1,8 +1,6 @@
 module github.com/external-secrets/external-secrets-e2e
 
-go 1.21
-
-toolchain go1.21.3
+go 1.22.1
 
 replace github.com/external-secrets/external-secrets => ../
 
