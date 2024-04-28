@@ -154,3 +154,15 @@ Determine the image to use, including if using a flavour.
 {{ printf "%s:%s" .image.repository (.image.tag | default .chartAppVersion) }}
 {{- end }}
 {{- end }}
+
+
+{{/*
+Renders a complete tree, even values that contains template.
+*/}}
+{{- define "external-secrets.render" -}}
+  {{- if typeIs "string" .value }}
+    {{- tpl .value .context }}
+  {{ else }}
+    {{- tpl (.value | toYaml) .context }}
+  {{- end }}
+{{- end -}}
