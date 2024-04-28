@@ -34,10 +34,10 @@ import (
 const JwtLifespan = 600 // 10 minutes
 
 // getJWTToken retrieves a JWT token either using the TokenRequest API for a specified service account, or from a jwt stored in a k8s secret.
-func (p *Client) getJWTToken(ctx context.Context, conjurJWTConfig *esv1beta1.ConjurJWT) (string, error) {
+func (c *Client) getJWTToken(ctx context.Context, conjurJWTConfig *esv1beta1.ConjurJWT) (string, error) {
 	if conjurJWTConfig.ServiceAccountRef != nil {
 		// Should work for Kubernetes >=v1.22: fetch token via TokenRequest API
-		jwtToken, err := p.getJwtFromServiceAccountTokenRequest(ctx, *conjurJWTConfig.ServiceAccountRef, nil, JwtLifespan)
+		jwtToken, err := c.getJwtFromServiceAccountTokenRequest(ctx, *conjurJWTConfig.ServiceAccountRef, nil, JwtLifespan)
 		if err != nil {
 			return "", err
 		}
@@ -50,9 +50,9 @@ func (p *Client) getJWTToken(ctx context.Context, conjurJWTConfig *esv1beta1.Con
 		}
 		jwtToken, err := resolvers.SecretKeyRef(
 			ctx,
-			p.kube,
-			p.StoreKind,
-			p.namespace,
+			c.kube,
+			c.StoreKind,
+			c.namespace,
 			tokenRef)
 		if err != nil {
 			return "", err
@@ -63,25 +63,25 @@ func (p *Client) getJWTToken(ctx context.Context, conjurJWTConfig *esv1beta1.Con
 }
 
 // getJwtFromServiceAccountTokenRequest uses the TokenRequest API to get a JWT token for the given service account.
-func (p *Client) getJwtFromServiceAccountTokenRequest(ctx context.Context, serviceAccountRef esmeta.ServiceAccountSelector, additionalAud []string, expirationSeconds int64) (string, error) {
+func (c *Client) getJwtFromServiceAccountTokenRequest(ctx context.Context, serviceAccountRef esmeta.ServiceAccountSelector, additionalAud []string, expirationSeconds int64) (string, error) {
 	audiences := serviceAccountRef.Audiences
 	if len(additionalAud) > 0 {
 		audiences = append(audiences, additionalAud...)
 	}
 	tokenRequest := &authenticationv1.TokenRequest{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: p.namespace,
+			Namespace: c.namespace,
 		},
 		Spec: authenticationv1.TokenRequestSpec{
 			Audiences:         audiences,
 			ExpirationSeconds: &expirationSeconds,
 		},
 	}
-	if (p.StoreKind == esv1beta1.ClusterSecretStoreKind) &&
+	if (c.StoreKind == esv1beta1.ClusterSecretStoreKind) &&
 		(serviceAccountRef.Namespace != nil) {
 		tokenRequest.Namespace = *serviceAccountRef.Namespace
 	}
-	tokenResponse, err := p.corev1.ServiceAccounts(tokenRequest.Namespace).CreateToken(ctx, serviceAccountRef.Name, tokenRequest, metav1.CreateOptions{})
+	tokenResponse, err := c.corev1.ServiceAccounts(tokenRequest.Namespace).CreateToken(ctx, serviceAccountRef.Name, tokenRequest, metav1.CreateOptions{})
 	if err != nil {
 		return "", fmt.Errorf(errGetKubeSATokenRequest, serviceAccountRef.Name, err)
 	}
@@ -89,13 +89,13 @@ func (p *Client) getJwtFromServiceAccountTokenRequest(ctx context.Context, servi
 }
 
 // newClientFromJwt creates a new Conjur client using the given JWT Auth Config.
-func (p *Client) newClientFromJwt(ctx context.Context, config conjurapi.Config, jwtAuth *esv1beta1.ConjurJWT) (SecretsClient, error) {
-	jwtToken, getJWTError := p.getJWTToken(ctx, jwtAuth)
+func (c *Client) newClientFromJwt(ctx context.Context, config conjurapi.Config, jwtAuth *esv1beta1.ConjurJWT) (SecretsClient, error) {
+	jwtToken, getJWTError := c.getJWTToken(ctx, jwtAuth)
 	if getJWTError != nil {
 		return nil, getJWTError
 	}
 
-	client, clientError := p.clientAPI.NewClientFromJWT(config, jwtToken, jwtAuth.ServiceID, jwtAuth.HostID)
+	client, clientError := c.clientAPI.NewClientFromJWT(config, jwtToken, jwtAuth.ServiceID, jwtAuth.HostID)
 	if clientError != nil {
 		return nil, clientError
 	}
