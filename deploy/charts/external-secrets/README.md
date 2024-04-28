@@ -95,6 +95,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | extraArgs | object | `{}` |  |
 | extraContainers | list | `[]` |  |
 | extraEnv | list | `[]` |  |
+| extraObjects | list | `[]` | Extra Kubernetes manifests to deploy with the chart |
 | extraVolumeMounts | list | `[]` |  |
 | extraVolumes | list | `[]` |  |
 | fullnameOverride | string | `""` |  |
