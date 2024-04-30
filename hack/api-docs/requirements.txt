@@ -31,7 +31,7 @@ pymdown-extensions==10.8.1
 python-dateutil==2.9.0.post0
 PyYAML==6.0.1
 pyyaml_env_tag==0.1
-regex==2024.4.16
+regex==2024.4.28
 requests==2.31.0
 six==1.16.0
 termcolor==2.4.0
