@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: clusterexternalsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -519,11 +519,13 @@ spec:
                             items:
                               type: string
                             type: array
+                            x-kubernetes-list-type: atomic
                         required:
                           - key
                           - operator
                         type: object
                       type: array
+                      x-kubernetes-list-type: atomic
                     matchLabels:
                       additionalProperties:
                         type: string
@@ -566,11 +568,13 @@ spec:
                               items:
                                 type: string
                               type: array
+                              x-kubernetes-list-type: atomic
                           required:
                             - key
                             - operator
                           type: object
                         type: array
+                        x-kubernetes-list-type: atomic
                       matchLabels:
                         additionalProperties:
                           type: string
@@ -654,7 +658,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: clustersecretstores.external-secrets.io
 spec:
   group: external-secrets.io
@@ -2222,11 +2226,13 @@ spec:
                                   items:
                                     type: string
                                   type: array
+                                  x-kubernetes-list-type: atomic
                               required:
                                 - key
                                 - operator
                               type: object
                             type: array
+                            x-kubernetes-list-type: atomic
                           matchLabels:
                             additionalProperties:
                               type: string
@@ -4879,7 +4885,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: externalsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -5683,7 +5689,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: pushsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -5814,11 +5820,13 @@ spec:
                                   items:
                                     type: string
                                   type: array
+                                  x-kubernetes-list-type: atomic
                               required:
                                 - key
                                 - operator
                               type: object
                             type: array
+                            x-kubernetes-list-type: atomic
                           matchLabels:
                             additionalProperties:
                               type: string
@@ -6058,7 +6066,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: secretstores.external-secrets.io
 spec:
   group: external-secrets.io
@@ -7626,11 +7634,13 @@ spec:
                                   items:
                                     type: string
                                   type: array
+                                  x-kubernetes-list-type: atomic
                               required:
                                 - key
                                 - operator
                               type: object
                             type: array
+                            x-kubernetes-list-type: atomic
                           matchLabels:
                             additionalProperties:
                               type: string
@@ -10283,7 +10293,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: acraccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10478,7 +10488,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: ecrauthorizationtokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10644,7 +10654,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: fakes.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10719,7 +10729,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: gcraccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10846,7 +10856,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: githubaccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10947,7 +10957,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: passwords.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -11044,7 +11054,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: vaultdynamicsecrets.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -11735,7 +11745,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: webhooks.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
