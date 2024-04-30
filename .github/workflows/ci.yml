@@ -138,6 +138,7 @@ jobs:
     if: needs.detect-noop.outputs.noop != 'true'
     uses: ./.github/workflows/publish.yml
     permissions:
+      packages: write
       id-token: write
       contents: read
     strategy:
@@ -167,8 +168,8 @@ jobs:
       build-arch: ${{ matrix.build-arch }}
       ref: ${{ github.ref }}
     secrets:
-      GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
-      GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
-      # GHCR_USERNAME: ${{ github.actor }}
-      # GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+      # GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+      GHCR_USERNAME: ${{ github.actor }}
+      GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
