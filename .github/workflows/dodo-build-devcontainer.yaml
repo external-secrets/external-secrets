@@ -1,11 +1,11 @@
 name: Build DevContainer image
 on:
   workflow_dispatch:
-  # push:
-  #   branches:
-  #     - dodo
-  #   paths:
-  #     - ".devcontainer/**"
+  push:
+    branches:
+      - dodo
+    paths:
+      - ".devcontainer/**"
 
 jobs:
   push:
