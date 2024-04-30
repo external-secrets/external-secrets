@@ -2652,9 +2652,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#how-is-it-working" class="md-nav__link">
+  <a href="#how-does-it-work" class="md-nav__link">
     <span class="md-ellipsis">
-      How is it working ?
+      How does it work?
     </span>
   </a>
   
@@ -2672,7 +2672,7 @@
         <li class="md-nav__item">
   <a href="#deploy-bitwarden-credentials" class="md-nav__link">
     <span class="md-ellipsis">
-      Deploy Bitwarden Credentials
+      Deploy Bitwarden credentials
     </span>
   </a>
   
@@ -2688,18 +2688,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#deploy-clustersecretstore-or-secretstore" class="md-nav__link">
+  <a href="#deploy-clustersecretstores" class="md-nav__link">
     <span class="md-ellipsis">
-      Deploy ClusterSecretStore (Or SecretStore)
+      Deploy (Cluster)SecretStores
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-to-use-it" class="md-nav__link">
+  <a href="#usage" class="md-nav__link">
     <span class="md-ellipsis">
-      How to use it ?
+      Usage
     </span>
   </a>
   
@@ -3889,9 +3889,9 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#how-is-it-working" class="md-nav__link">
+  <a href="#how-does-it-work" class="md-nav__link">
     <span class="md-ellipsis">
-      How is it working ?
+      How does it work?
     </span>
   </a>
   
@@ -3909,7 +3909,7 @@
         <li class="md-nav__item">
   <a href="#deploy-bitwarden-credentials" class="md-nav__link">
     <span class="md-ellipsis">
-      Deploy Bitwarden Credentials
+      Deploy Bitwarden credentials
     </span>
   </a>
   
@@ -3925,18 +3925,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#deploy-clustersecretstore-or-secretstore" class="md-nav__link">
+  <a href="#deploy-clustersecretstores" class="md-nav__link">
     <span class="md-ellipsis">
-      Deploy ClusterSecretStore (Or SecretStore)
+      Deploy (Cluster)SecretStores
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#how-to-use-it" class="md-nav__link">
+  <a href="#usage" class="md-nav__link">
     <span class="md-ellipsis">
-      How to use it ?
+      Usage
     </span>
   </a>
   
@@ -3962,25 +3962,21 @@
 
 <h1 id="bitwarden-support-using-webhook-provider">Bitwarden support using webhook provider</h1>
 <p>Bitwarden is an integrated open source password management solution for individuals, teams, and business organizations.</p>
-<h2 id="how-is-it-working">How is it working ?</h2>
-<p>To make external-secret compatible with BitWarden, we need:</p>
+<h2 id="how-does-it-work">How does it work?</h2>
+<p>To make external-secrets compatible with Bitwarden, we need:</p>
 <ul>
-<li>External-Secret &gt;= 0.8.0</li>
-<li>To use the Webhook Provider</li>
-<li>2 (Cluster)SecretStores</li>
+<li>External Secrets Operator &gt;= 0.8.0</li>
+<li>Multiple (Cluster)SecretStores using the webhook provider</li>
 <li>BitWarden CLI image running <code>bw serve</code></li>
 </ul>
-<p>When you create a new external-secret object,
-External-Secret Webhook provider will do a query to the Bitwarden CLI pod,
-which is synced with the BitWarden server.</p>
+<p>When you create a new external-secret object, the External Secrets webhook provider will query the Bitwarden CLI pod that is synced with the Bitwarden server.</p>
 <h2 id="requirements">Requirements</h2>
 <ul>
-<li>Bitwarden account (it works also with VaultWarden)</li>
-<li>A Kubernetes secret which contains your BitWarden Credentials</li>
-<li>You need a Docker image with BitWarden CLI installed.
-  You could use <code>ghcr.io/charlesthomas/bitwarden-cli:2023.12.1</code> or build your own.</li>
+<li>Bitwarden account (it also works with Vaultwarden!)</li>
+<li>A Kubernetes secret which contains your Bitwarden credentials</li>
+<li>A Docker image running the Bitwarden CLI. You could use <code>ghcr.io/charlesthomas/bitwarden-cli:2023.12.1</code> or build your own.</li>
 </ul>
-<p>Here an example of Dockerfile use to build this image:
+<p>Here is an example of a Dockerfile used to build the image:
 <div class="highlight"><pre><span></span><code><span class="k">FROM</span><span class="w"> </span><span class="s">debian:sid</span>
 
 <span class="k">ENV</span><span class="w"> </span><span class="nv">BW_CLI_VERSION</span><span class="o">=</span><span class="m">2023</span>.12.1
@@ -3997,7 +3993,7 @@ which is synced with the BitWarden server.</p>
 
 <span class="k">CMD</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;/entrypoint.sh&quot;</span><span class="p">]</span>
 </code></pre></div></p>
-<p>And the content of <code>entrypoint.sh</code>
+<p>And the content of <code>entrypoint.sh</code>:
 <div class="highlight"><pre><span></span><code><span class="ch">#!/bin/bash</span>
 
 <span class="nb">set</span><span class="w"> </span>-e
@@ -4011,7 +4007,7 @@ bw<span class="w"> </span>unlock<span class="w"> </span>--check
 <span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;Running `bw server` on port 8087&#39;</span>
 bw<span class="w"> </span>serve<span class="w"> </span>--hostname<span class="w"> </span><span class="m">0</span>.0.0.0<span class="w"> </span><span class="c1">#--disable-origin-protection</span>
 </code></pre></div></p>
-<h2 id="deploy-bitwarden-credentials">Deploy Bitwarden Credentials</h2>
+<h2 id="deploy-bitwarden-credentials">Deploy Bitwarden credentials</h2>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
 <span class="nt">data</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">BW_HOST</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span>
@@ -4134,11 +4130,11 @@ bw<span class="w"> </span>serve<span class="w"> </span>--hostname<span class="w"
 <span class="w">            </span><span class="nt">app.kubernetes.io/name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
 </code></pre></div>
 <blockquote>
-<p>NOTE: Deploying a network policy is recommended since, there is no authentication to query the BitWarden CLI, which means that your secrets are exposed.</p>
-<p>NOTE: In this example the Liveness probe is quering /sync to ensure that the BitWarden CLI is able to connect to the server and also to sync secrets. (The secret sync is only every 2 minutes in this example)</p>
+<p>NOTE: Deploying a network policy is recommended since there is no authentication to query the Bitwarden CLI, which means that your secrets are exposed.</p>
+<p>NOTE: In this example the Liveness probe is querying /sync to ensure that the Bitwarden CLI is able to connect to the server and is also synchronised. (The secret sync is only every 2 minutes in this example)</p>
 </blockquote>
-<h2 id="deploy-clustersecretstore-or-secretstore">Deploy ClusterSecretStore (Or SecretStore)</h2>
-<p>Here the two ClusterSecretStore to deploy</p>
+<h2 id="deploy-clustersecretstores">Deploy (Cluster)SecretStores</h2>
+<p>There are four possible (Cluster)SecretStores to deploy, each can access different types of fields from an item in the Bitwarden vault. It is not required to deploy them all.</p>
 <div class="highlight"><pre><span></span><code><span class="nn">---</span>
 <span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
@@ -4174,27 +4170,49 @@ bw<span class="w"> </span>serve<span class="w"> </span>--hostname<span class="w"
 <span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://bitwarden-cli:8087/object/item/{{</span><span class="nv"> </span><span class="s">.remoteRef.key</span><span class="nv"> </span><span class="s">}}&quot;</span>
 <span class="w">      </span><span class="nt">result</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">jsonPath</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;$.data.notes&quot;</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-attachments</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">webhook</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://bitwarden-cli:8087/object/attachment/{{</span><span class="nv"> </span><span class="s">.remoteRef.property</span><span class="nv"> </span><span class="s">}}?itemid={{</span><span class="nv"> </span><span class="s">.remoteRef.key</span><span class="nv"> </span><span class="s">}}&quot;</span>
+<span class="w">      </span><span class="nt">result</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
 </code></pre></div>
-<h2 id="how-to-use-it">How to use it ?</h2>
+<h2 id="usage">Usage</h2>
+<p>(Cluster)SecretStores:</p>
 <ul>
-<li>If you need the <code>username</code> or the <code>password</code> of a secret, you have to use <code>bitwarden-login</code></li>
-<li>If you need a custom field of a secret, you have to use <code>bitwarden-fields</code></li>
-<li>If you need to use a Bitwarden Note for multiline strings (SSH keys, service account json files), you have to use <code>bitwarden-notes</code></li>
-<li>The <code>key</code> is the ID of a secret, which can be find in the URL with the <code>itemId</code> value:
-  <code>https://myvault.com/#/vault?itemId=........-....-....-....-............</code></li>
-<li>The <code>property</code> is the name of the field:</li>
+<li><code>bitwarden-login</code>: Use to get the <code>username</code> or <code>password</code> fields</li>
+<li><code>bitwarden-fields</code>: Use to get custom fields</li>
+<li><code>bitwarden-notes</code>: Use to get notes</li>
+<li><code>bitwarden-attachments</code>: Use to get attachments</li>
+</ul>
+<p>remoteRef:</p>
+<ul>
+<li>
+<p><code>key</code>: ID of a secret, which can be found in the URL <code>itemId</code> parameter:
+  <code>https://myvault.com/#/vault?type=login&amp;itemId=........-....-....-....-............</code>s</p>
+</li>
+<li>
+<p><code>property</code>: Name of the field to access</p>
+<ul>
 <li><code>username</code> for the username of a secret (<code>bitwarden-login</code> SecretStore)</li>
 <li><code>password</code> for the password of a secret (<code>bitwarden-login</code> SecretStore)</li>
 <li><code>name_of_the_custom_field</code> for any custom field (<code>bitwarden-fields</code> SecretStore)</li>
+<li><code>id_or_name_of_the_attachment</code> for any attachment (<code>bitwarden-attachment</code>, SecretStore)</li>
+</ul>
+</li>
 </ul>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-db-secrets</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-secrets</span>
 <span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">target</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-db-secrets</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-secrets</span>
 <span class="w">    </span><span class="nt">deletionPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Delete</span>
 <span class="w">    </span><span class="nt">template</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
@@ -4211,6 +4229,8 @@ bw<span class="w"> </span>serve<span class="w"> </span>--hostname<span class="w"
 <span class="w">          </span><span class="no">postgresql://{{ .username }}:{{ .password }}@my-postgresql:5432/mydb</span>
 <span class="w">        </span><span class="nt">service_account_key</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|-</span>
 <span class="w">          </span><span class="no">{{ .service_account_key }}</span>
+<span class="w">        </span><span class="nt">ssh_pub_key</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|-</span>
+<span class="w">          </span><span class="no">{{ .ssh_pub_key }}</span>
 <span class="w">  </span><span class="nt">data</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span>
 <span class="w">      </span><span class="nt">sourceRef</span><span class="p">:</span>
@@ -4251,6 +4271,14 @@ bw<span class="w"> </span>serve<span class="w"> </span>--hostname<span class="w"
 <span class="w">          </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w">  </span><span class="c1"># or SecretStore</span>
 <span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">service_account_key</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ssh_pub_key</span>
+<span class="w">      </span><span class="nt">sourceRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">storeRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bitwarden-attachments</span>
+<span class="w">          </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w">  </span><span class="c1"># or SecretStore</span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aaaabbbb-cccc-dddd-eeee-000011112222</span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">id_rsa.pub</span>
 </code></pre></div>
 
 
