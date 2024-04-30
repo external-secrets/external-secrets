@@ -8422,6 +8422,18 @@ string
 </tr>
 <tr>
 <td>
+<code>folderID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>If provided sets the ability to get secrets by its name in the specified folder</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>auth</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.YandexCertificateManagerAuth">
@@ -8538,6 +8550,18 @@ string
 <td>
 <em>(Optional)</em>
 <p>Yandex.Cloud API endpoint (e.g. &lsquo;api.cloud.yandex.net:443&rsquo;)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>folderID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>If provided sets the ability to get secrets by its name in the specified folder</p>
 </td>
 </tr>
 <tr>
