@@ -1,0 +1,152 @@
+name: Reusable workflow to run trivy scan
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        required: true
+        type: string
+      image-tag:
+        required: false
+        type: string
+      tag-suffix:
+        required: true
+        type: string
+      dockerfile:
+        required: true
+        type: string
+      ref:
+        required: false
+        default: main
+        type: string
+      build-args:
+        required: true
+        type: string
+      build-arch:
+        required: true
+        type: string
+      build-platform:
+        required: true
+        type: string
+    secrets:
+      GHCR_USERNAME:
+        required: true
+      GHCR_TOKEN:
+        required: true
+
+env:
+  IMAGE_NAME: ${{ inputs.image-name }}
+  TAG_SUFFIX: ${{ inputs.tag-suffix }}
+  ARCH: ${{ inputs.build-arch }}
+  DOCKERFILE: ${{ inputs.dockerfile }}
+  IS_FORK: ${{ secrets.GHCR_USERNAME == '' && 'true' || 'false' }}
+
+jobs:
+  build-publish:
+    name: Build and Publish
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.container_info.outputs.image-tag }}
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@68827325e0b33c7199eb31dd4e31fbe9023e06e3 # v3.0.0
+        with:
+          platforms: all
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@d70bba72b1f3fd22344832f00baa16ece964efeb # v3.3.0
+        with:
+          version: 'v0.4.2'
+          install: true
+
+      - name: Setup Go
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        id: setup-go
+        with:
+          go-version-file: "go.mod"
+
+      - name: Download Go modules
+        if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
+        run: go mod download
+
+      - name: Fetch History
+        shell: bash
+        run: git fetch --prune --unshallow
+
+      - name: Login to Docker
+        uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
+        if: env.IS_FORK == 'false'
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.GHCR_USERNAME }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Get docker image tag
+        id: container_info
+        shell: bash
+        env:
+          GITHUB_REF: ${{ github.ref }}
+        run: |
+          # rebuild-image
+          if [ "${{ inputs.image-tag }}" != "" ]; then
+            TAG="${{ inputs.image-tag }}${{ inputs.tag-suffix }}"
+          # main / release-x.y
+          elif [[ "$GITHUB_REF" == "refs/heads/main" || "$GITHUB_REF" =~ refs/heads/release-.*  ]]; then
+            TAG=${GITHUB_REF#refs/heads/}${{ inputs.tag-suffix }}
+          # Pull Request
+          else
+            TAG=$(make docker.tag)
+          fi
+          echo "image-tag=${TAG}" >> $GITHUB_OUTPUT
+
+      - name: Build & Publish Artifacts
+        if: env.IS_FORK == 'false'
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}
+          BUILD_ARGS: ${{ inputs.build-args }}
+          DOCKER_BUILD_ARGS: >-
+            --push
+            --platform ${{ inputs.build-platform }}
+        run: make docker.build
+
+      - name: Build & Publish Artifacts fork
+        if: env.IS_FORK == 'true'
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}
+          BUILD_ARGS: ${{ inputs.build-args }}
+          DOCKER_BUILD_ARGS: --load
+        run: make docker.build
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@d710430a6722f083d3b36b8339ff66b32f22ee55 # master
+        with:
+          image-ref: ${{ inputs.image-name }}:${{ steps.container_info.outputs.image-tag }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+  sign:
+    runs-on: ubuntu-latest
+    needs: build-publish
+    steps:
+      - name: Checkout
+        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
+      - name: Sign image
+        if: env.IS_FORK == 'false'
+        uses: ./.github/actions/sign
+        with:
+          image-name: ${{ inputs.image-name }}
+          image-tag: ${{ needs.build-publish.outputs.image-tag }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
