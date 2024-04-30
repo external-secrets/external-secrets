@@ -33,7 +33,6 @@ jobs:
             ghcr.io/${{ github.repository }}:latest,
             ghcr.io/${{ github.repository }}:${{ env.sha7 }}
           platforms: |
-            linux/arm64
             linux/amd64
       - name: Output image tags
         run: |
