@@ -621,7 +621,7 @@ func getSecretTag(tags map[string]*string, property string) ([]byte, error) {
 
 // Retrieves a property value if specified and the secret value if not.
 func getProperty(secret, property, key string) ([]byte, error) {
-	if property == "" {
+	if property == "" || property == "secret" { // Skip if property is empty or has the value "secret" (for yandex compatibility)
 		return []byte(secret), nil
 	}
 	res := gjson.Get(secret, property)
