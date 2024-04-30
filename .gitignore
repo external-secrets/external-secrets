@@ -12,6 +12,7 @@ cover.out
 /.vscode
 /.idea
 __debug_bin*
+.history
 
 # helm chart dependencies
 **/charts/*.tgz
