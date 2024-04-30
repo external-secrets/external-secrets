@@ -34,6 +34,10 @@ type YandexLockboxProvider struct {
 	// +optional
 	APIEndpoint string `json:"apiEndpoint,omitempty"`
 
+	// If provided sets the ability to get secrets by its name in the specified folder
+	// +optional
+	FolderID string `json:"folderID,omitempty"`
+
 	// Auth defines the information necessary to authenticate against Yandex Lockbox
 	Auth YandexLockboxAuth `json:"auth"`
 
