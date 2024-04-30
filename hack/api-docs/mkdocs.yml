@@ -73,8 +73,8 @@ nav:
       - Find Secrets by Name or Metadata: guides/getallsecrets.md
       - Rewriting Keys: guides/datafrom-rewrite.md
       - Advanced Templating:
-          v2: guides/templating.md
-          v1: guides/templating-v1.md
+        - v2: guides/templating.md
+        - v1: guides/templating-v1.md
       - Kubernetes Secret Types: guides/common-k8s-secret-types.md
       - "Lifecycle: ownership & deletion": guides/ownership-deletion-policy.md
       - Decoding Strategies: guides/decoding-strategy.md
