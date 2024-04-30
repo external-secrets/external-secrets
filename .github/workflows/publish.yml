@@ -106,7 +106,7 @@ jobs:
           echo "image-tag=${TAG}" >> $GITHUB_OUTPUT
 
       - name: Build & Publish Artifacts
-        if: env.IS_FORK == 'false'
+        # if: env.IS_FORK == 'false'
         shell: bash
         env:
           IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}
@@ -116,14 +116,14 @@ jobs:
             --platform ${{ inputs.build-platform }}
         run: make docker.build
 
-      - name: Build & Publish Artifacts fork
-        if: env.IS_FORK == 'true'
-        shell: bash
-        env:
-          IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}
-          BUILD_ARGS: ${{ inputs.build-args }}
-          DOCKER_BUILD_ARGS: --load
-        run: make docker.build
+      # - name: Build & Publish Artifacts fork
+      #   if: env.IS_FORK == 'true'
+      #   shell: bash
+      #   env:
+      #     IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}
+      #     BUILD_ARGS: ${{ inputs.build-args }}
+      #     DOCKER_BUILD_ARGS: --load
+      #   run: make docker.build
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@d710430a6722f083d3b36b8339ff66b32f22ee55 # master
