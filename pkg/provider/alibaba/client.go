@@ -123,29 +123,19 @@ func (s *secretsManagerClient) GetSecretValue(
 func (s *secretsManagerClient) doAPICall(ctx context.Context,
 	action string,
 	request any) (any, error) {
-	accessKeyID, err := s.config.Credential.GetAccessKeyId()
+	creds, err := s.config.Credential.GetCredential()
 	if err != nil {
-		return nil, fmt.Errorf("error getting AccessKeyId: %w", err)
-	}
-
-	accessKeySecret, err := s.config.Credential.GetAccessKeySecret()
-	if err != nil {
-		return nil, fmt.Errorf("error getting AccessKeySecret: %w", err)
-	}
-
-	securityToken, err := s.config.Credential.GetSecurityToken()
-	if err != nil {
-		return nil, fmt.Errorf("error getting SecurityToken: %w", err)
+		return nil, fmt.Errorf("could not get credentials: %w", err)
 	}
 
 	apiRequest := newOpenAPIRequest(s.endpoint, action, methodTypeGET, request)
-	apiRequest.query["AccessKeyId"] = accessKeyID
+	apiRequest.query["AccessKeyId"] = creds.AccessKeyId
 
-	if utils.Deref(securityToken) != "" {
-		apiRequest.query["SecurityToken"] = securityToken
+	if utils.Deref(creds.SecurityToken) != "" {
+		apiRequest.query["SecurityToken"] = creds.SecurityToken
 	}
 
-	apiRequest.query["Signature"] = openapiutil.GetRPCSignature(apiRequest.query, utils.Ptr(apiRequest.method.String()), accessKeySecret)
+	apiRequest.query["Signature"] = openapiutil.GetRPCSignature(apiRequest.query, utils.Ptr(apiRequest.method.String()), creds.AccessKeySecret)
 
 	httpReq, err := newHTTPRequestWithContext(ctx, apiRequest)
 	if err != nil {
