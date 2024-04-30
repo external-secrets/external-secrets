@@ -6,8 +6,7 @@ USER root
 ARG TARGETARCH
 
 # BASE
-RUN dnf install -y git jq make unzip && \
-  dnf clean all
+RUN apt update && apt install -y git jq make unzip
 
 # YQ
 RUN cd /tmp && \
