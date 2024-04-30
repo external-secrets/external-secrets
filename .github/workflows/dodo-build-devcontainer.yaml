@@ -1,11 +1,11 @@
 name: Build DevContainer image
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - dodo
-    paths:
-      - ".devcontainer/**"
+  # push:
+  #   branches:
+  #     - dodo
+  #   paths:
+  #     - ".devcontainer/**"
 
 jobs:
   push:
@@ -30,6 +30,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           file: ".devcontainer/Dockerfile"
+          push: true
           tags: >
             ghcr.io/${{ github.repository }}-devcontainer:latest,
             ghcr.io/${{ github.repository }}-devcontainer:${{ env.DEVCONTAINER_IMAGE_TAG }}
