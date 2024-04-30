@@ -1,0 +1,22 @@
+{
+	"name": "infra.k8s.external-secrets",
+	"image": "ghcr.io/dodopizza/infra.k8s.external-secrets-devcontainer:latest",
+	"runArgs": [
+		"--pull=always"
+	],
+	"mounts": [
+		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
+		"source=${env:HOME}${env:USERPROFILE}/.kube,target=/usr/local/share/kube-localhost,type=bind,readonly"
+	],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-azuretools.vscode-docker",
+				"ms-kubernetes-tools.vscode-kubernetes-tools"
+			],
+			"settings": {}
+		}
+	},
+	"remoteUser": "root",
+	"postAttachCommand": ".devcontainer/post-command.sh"
+}
