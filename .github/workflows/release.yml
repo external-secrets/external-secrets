@@ -7,10 +7,10 @@ on:
         description: 'version to release, e.g. v1.5.13'
         required: true
         default: 'v0.1.0'
-      source_ref:
-        description: 'source ref to publish from. E.g.: main or release-x.y'
-        required: true
-        default: 'main'
+      # source_ref:
+      #   description: 'source ref to publish from. E.g.: main or release-x.y'
+      #   required: true
+      #   default: 'main'
 
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository }}
@@ -21,33 +21,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-        with:
-          fetch-depth: 0
-          ref: ${{ github.event.inputs.source_ref }}
+      # - name: Checkout
+      #   uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      #   with:
+      #     fetch-depth: 0
+      #     ref: ${{ github.event.inputs.source_ref }}
 
       - name: Create Release
         uses: softprops/action-gh-release@9d7c94cfd0a1f3ed45544c887983e9fa900f0564 # v2.0.4
         with:
           tag_name: ${{ github.event.inputs.version }}
-          target_commitish: ${{ github.event.inputs.source_ref }}
-          generate_release_notes: true
+          target_commitish: ${{ github.ref_name }}
+          # generate_release_notes: true
           body: |
             Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}`
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Configure Git
-        run: |
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+      # - name: Configure Git
+      #   run: |
+      #     git config user.name "$GITHUB_ACTOR"
+      #     git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
-      - name: Update Docs
-        if: github.ref == 'refs/heads/dodo'
-        run: make docs.publish DOCS_VERSION=${{ github.event.inputs.version }} DOCS_ALIAS=latest
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      # - name: Update Docs
+      #   if: github.ref == 'refs/heads/dodo'
+      #   run: make docs.publish DOCS_VERSION=${{ github.event.inputs.version }} DOCS_ALIAS=latest
+      #   env:
+      #     GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
   promote:
     name: Promote Container Image
