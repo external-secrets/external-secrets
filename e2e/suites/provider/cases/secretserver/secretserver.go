@@ -2,7 +2,7 @@ package secretserver
 
 import (
 	"context"
-	"fmt"
+	_"fmt"
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -25,29 +25,30 @@ var _ = ginkgo.Describe("[secretserver]", ginkgo.Label("secretserver"), func() {
 		cfg, err := loadConfigFromEnv()
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-		provider.init(cfg)
+		provider.init(cfg, f)
 		createResources(context.Background(), f, cfg)
-
-		fmt.Printf("\n\n\nCONFIG HERE **************** %+v\n\n\n", cfg)
-
 	})
 
 	ginkgo.DescribeTable("sync secrets", framework.TableFuncWithExternalSecret(f, provider),
 
-		ginkgo.Entry(common.JSONDataWithProperty(f)),
 /*
-		ginkgo.Entry(common.JSONDataWithoutTargetName(f)),
+JSONDataFromSync
+JSONDataFromRewrite
+DecodingPolicySync
+*/
+
 		ginkgo.Entry(common.JSONDataWithTemplate(f)),
+		ginkgo.Entry(common.JSONDataWithProperty(f)),
+		ginkgo.Entry(common.JSONDataWithoutTargetName(f)),
 		ginkgo.Entry(common.JSONDataWithTemplateFromLiteral(f)),
 		ginkgo.Entry(common.TemplateFromConfigmaps(f)),
-		ginkgo.Entry(common.JSONDataFromSync(f)),
-		ginkgo.Entry(common.JSONDataFromRewrite(f)),
+		ginkgo.Entry(common.JSONDataFromSync(f)), // <--
+		ginkgo.Entry(common.JSONDataFromRewrite(f)), // <--
 		ginkgo.Entry(common.NestedJSONWithGJSON(f)),
 		ginkgo.Entry(common.DockerJSONConfig(f)),
 		ginkgo.Entry(common.DataPropertyDockerconfigJSON(f)),
 		ginkgo.Entry(common.SSHKeySyncDataProperty(f)),
-		ginkgo.Entry(common.DecodingPolicySync(f)),
-*/
+		ginkgo.Entry(common.DecodingPolicySync(f)), // <--
 	)
 })
 
@@ -93,7 +94,21 @@ func createResources(ctx context.Context, f *framework.Framework, cfg *config) {
 		},
 	}
 
-	fmt.Printf("SECRET SPEC ************************ %+v", secretStoreSpec)
 	err = f.CRClient.Create(ctx, &secretStoreSpec)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+/*
+	externalSecretData := []esv1beta1.ExternalSecretData{
+		{
+			SecretKey: "mysecret",
+			RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
+				Key: "1111",
+				Property: "Items.1.ItemValue",
+			},
+		},
+	}
+
+	err = f.CRClient.Create(ctx, &externalSecretData)
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+*/
 }
