@@ -3,8 +3,8 @@ name: Deploy Docs
 on:
   push:
     branches:
-      - main
-      - release-*
+      - dodo
+      # - release-*
 
 permissions:
   contents: read

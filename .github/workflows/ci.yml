@@ -5,7 +5,7 @@ on:
     branches:
       - dodo
       # - release-*
-  pull_request: {}
+  # pull_request: {}
 
 env:
   # Common versions
