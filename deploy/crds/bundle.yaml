@@ -1135,6 +1135,9 @@ spec:
                       required:
                         - vaultUrl
                       type: object
+                    doppler:
+                      description: Doppler
+                      type: object
                     fake:
                       description: Fake configures a store with static key/value pairs
                       properties:
@@ -6479,6 +6482,9 @@ spec:
                           type: string
                       required:
                         - vaultUrl
+                      type: object
+                    doppler:
+                      description: Doppler
                       type: object
                     fake:
                       description: Fake configures a store with static key/value pairs

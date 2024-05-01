@@ -91,7 +91,12 @@ type SecretStoreProvider struct {
 	// Fake configures a store with static key/value pairs
 	// +optional
 	Fake *FakeProvider `json:"fake,omitempty"`
+
+	// Doppler
+	// +optional
+	Doppler *Stub `json:"doppler,omitempty"`
 }
+type Stub struct{}
 
 type SecretStoreRetrySettings struct {
 	MaxRetries    *int32  `json:"maxRetries,omitempty"`
