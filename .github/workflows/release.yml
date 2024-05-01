@@ -35,8 +35,6 @@ jobs:
           generate_release_notes: true
           body: |
             Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}`
-            Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi`
-            Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi-boringssl`
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
@@ -58,8 +56,6 @@ jobs:
       matrix:
         include:
         - tag_suffix: "" # distroless image
-        - tag_suffix: "-ubi" # ubi image
-        - tag_suffix: "-ubi-boringssl" # ubi image
 
     permissions:
       id-token: write
