@@ -149,16 +149,16 @@ jobs:
           build-arch: "amd64 arm64 s390x"
           build-platform: "linux/amd64,linux/arm64,linux/s390x"
           tag-suffix: "" # distroless
-        - dockerfile: "Dockerfile.ubi"
-          build-args: "CGO_ENABLED=0"
-          build-arch: "amd64 arm64"
-          build-platform: "linux/amd64,linux/arm64"
-          tag-suffix: "-ubi"
-        - dockerfile: "Dockerfile.ubi"
-          build-args: "CGO_ENABLED=0 GOEXPERIMENT=boringcrypto"
-          build-arch: "amd64"
-          build-platform: "linux/amd64"
-          tag-suffix: "-ubi-boringssl"
+        # - dockerfile: "Dockerfile.ubi"
+        #   build-args: "CGO_ENABLED=0"
+        #   build-arch: "amd64 arm64"
+        #   build-platform: "linux/amd64,linux/arm64"
+        #   tag-suffix: "-ubi"
+        # - dockerfile: "Dockerfile.ubi"
+        #   build-args: "CGO_ENABLED=0 GOEXPERIMENT=boringcrypto"
+        #   build-arch: "amd64"
+        #   build-platform: "linux/amd64"
+        #   tag-suffix: "-ubi-boringssl"
     with:
       dockerfile: ${{ matrix.dockerfile }}
       tag-suffix: ${{ matrix.tag-suffix }}
