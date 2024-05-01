@@ -18,9 +18,9 @@ import (
 	"github.com/DelineaXPM/tss-sdk-go/v2/server"
 )
 
-// secretAPI represents the subset of the Delinea DevOps Secrets Vault API
-// which is supported by dsv-sdk-go/v2.
-// See https://dsv.secretsvaultcloud.com/api for full API documentation.
+// secretAPI represents the subset of the Secret Server API
+// which is supported by tss-sdk-go/v2.
 type secretAPI interface {
 	Secret(id int) (*server.Secret, error)
+	Secrets(searchText, field string) (*server.Secret, error)
 }

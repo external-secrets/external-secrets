@@ -45,7 +45,7 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	if err != nil {
 		return nil, err
 	}
-	// Return nil if secret value is null
+	// Return nil if secret contains no fields
 	if secret.Fields == nil {
 		return nil, nil
 	}
@@ -57,12 +57,18 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	if ref.Property == "" {
 		return jsonStr, nil
 	}
+	fmt.Printf("\n\n SEARCH SECRETS = %+v\n\n", ref)
 	// extract key from secret using gjson
-	val := gjson.Get(string(jsonStr), ref.Property)
+	val := gjson.Get(string(jsonStr), "Items.0.ItemValue")
 	if !val.Exists() {
 		return nil, esv1beta1.NoSecretError{}
 	}
-	return []byte(val.String()), nil
+	out := gjson.Get(val.String(), ref.Property)
+	if !val.Exists() {
+		return nil, esv1beta1.NoSecretError{}
+	}
+
+	return []byte(out.String()), nil
 }
 
 func (c *client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
@@ -81,24 +87,29 @@ func (c *client) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
-// GetSecret gets the full secret as json-encoded value.
 func (c *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	secret, err := c.getSecret(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
+	secretData := make(map[string]any)
 
-	secretData := make(map[string][]byte, len(secret.Fields))
-	for k, v := range secret.Fields {
-		secretData[fmt.Sprint(k)], err = utils.GetByteValue(v)
+	err = json.Unmarshal([]byte(secret.Fields[0].ItemValue), &secretData)
+	if err != nil {
+		return nil, err
+	}
+
+	data := make(map[string][]byte)
+	for k, v := range secretData {
+		data[fmt.Sprint(k)], err = utils.GetByteValue(v)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return secretData, nil
+	return data, nil
 }
 
-// GetAllSecrets lists secrets matching the given criteria and return their latest versions.
+// GetAllSecrets is not supported at this time..
 func (c *client) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, errors.New("getting all secrets is not supported by Delinea Secret Server at this time")
 }
@@ -114,7 +125,11 @@ func (c *client) getSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRe
 	}
 	id, err := strconv.Atoi(ref.Key)
 	if err != nil {
-		return nil, fmt.Errorf("get secret key = %+v ........ ", ref) //errors.New("invalid string to integer conversion")
+			s, err := c.api.Secrets(ref.Key, "Name")
+			if err != nil {
+				return nil, fmt.Errorf("unable to retrieve secrets named ", ref.Key)
+			}
+		return s, nil
 	}
 	return c.api.Secret(id)
 }
