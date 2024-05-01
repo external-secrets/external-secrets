@@ -84,13 +84,13 @@ func (c *grpcLockboxClient) GetSecretIDByName(ctx context.Context, iamToken, fol
 func (c *grpcLockboxClient) GetPayloadEntries(ctx context.Context, iamToken, folderID, secretID, versionID string) ([]*api.Payload_Entry, error) {
 	secretID_ := secretID
 
-	// If folderID is provided in SecretStore, we can try to get secret by its name
+	// If the folderID is provided in the SecretStore, we can attempt to retrieve the secret by its name
 	if folderID != "" {
 		var err error
 		secretID_, err = c.GetSecretIDByName(ctx, iamToken, folderID, secretID)
 		if err != nil {
 			if len(secretID) == 20 && strings.HasPrefix(secretID, "e6q") {
-				secretID_ = secretID // Another chance to get the secret by ID
+				secretID_ = secretID // Second chance to get the secret by ID
 			} else {
 				return nil, err
 			}

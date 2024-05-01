@@ -13,6 +13,7 @@ cover.out
 /.idea
 __debug_bin*
 .history
+localtest
 
 # helm chart dependencies
 **/charts/*.tgz
