@@ -98,7 +98,7 @@ jobs:
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@a917fd15b20e8b64b94d9158ad54cd6345335584 # v1.6.0
         if: |
-          github.ref == 'refs/heads/main' ||
+          github.ref == 'refs/heads/dodo' ||
           startsWith(github.ref, 'refs/heads/release-')
         env:
           ## Temporarily removing - This is making the release break

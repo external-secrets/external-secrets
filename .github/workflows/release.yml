@@ -46,7 +46,7 @@ jobs:
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
       - name: Update Docs
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/dodo'
         run: make docs.publish DOCS_VERSION=${{ github.event.inputs.version }} DOCS_ALIAS=latest
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
