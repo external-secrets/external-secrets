@@ -58,6 +58,7 @@ jobs:
         - tag_suffix: "" # distroless image
 
     permissions:
+      packages: write
       id-token: write
       contents: write
 
