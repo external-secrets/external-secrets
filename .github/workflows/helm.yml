@@ -3,7 +3,7 @@ name: Helm
 on:
   push:
     branches:
-      - main
+      - dodo
       - release-*
     paths:
       - 'deploy/charts/**'
