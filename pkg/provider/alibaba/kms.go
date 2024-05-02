@@ -250,7 +250,7 @@ func (kms *KeyManagementService) Close(_ context.Context) error {
 func (kms *KeyManagementService) Validate() (esv1beta1.ValidationResult, error) {
 	err := retry.Do(
 		func() error {
-			_, err := kms.Config.Credential.GetSecurityToken()
+			_, err := kms.Config.Credential.GetCredential()
 			if err != nil {
 				return err
 			}

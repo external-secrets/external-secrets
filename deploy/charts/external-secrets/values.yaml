@@ -3,6 +3,14 @@ global:
   tolerations: []
   topologySpreadConstraints: []
   affinity: {}
+  compatibility:
+    openshift:
+      # -- Manages the securityContext properties to make them compatible with OpenShift.
+      # Possible values:
+      # auto - Apply configurations if it is detected that OpenShift is the target platform.
+      # force - Always apply configurations.
+      # disabled - No modification applied.
+      adaptSecurityContext: auto
 
 replicaCount: 1
 
@@ -114,6 +122,9 @@ extraArgs: {}
 ## -- Extra volumes to pass to pod.
 extraVolumes: []
 
+## -- Extra Kubernetes objects to deploy with the helm chart
+extraObjects: []
+
 ## -- Extra volumes to mount to the container.
 extraVolumeMounts: []
 
@@ -128,7 +139,8 @@ podAnnotations: {}
 
 podLabels: {}
 
-podSecurityContext: {}
+podSecurityContext:
+  enabled: true
   # fsGroup: 2000
 
 securityContext:
@@ -136,6 +148,7 @@ securityContext:
   capabilities:
     drop:
       - ALL
+  enabled: true
   readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 1000
@@ -361,7 +374,8 @@ webhook:
 
   podLabels: {}
 
-  podSecurityContext: {}
+  podSecurityContext:
+    enabled: true
       # fsGroup: 2000
 
   securityContext:
@@ -369,6 +383,7 @@ webhook:
     capabilities:
       drop:
         - ALL
+    enabled: true
     readOnlyRootFilesystem: true
     runAsNonRoot: true
     runAsUser: 1000
@@ -474,7 +489,8 @@ certController:
 
   podLabels: {}
 
-  podSecurityContext: {}
+  podSecurityContext:
+    enabled: true
       # fsGroup: 2000
 
   securityContext:
@@ -482,6 +498,7 @@ certController:
     capabilities:
       drop:
         - ALL
+    enabled: true
     readOnlyRootFilesystem: true
     runAsNonRoot: true
     runAsUser: 1000

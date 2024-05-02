@@ -41,7 +41,7 @@ type ClusterExternalSecretSpec struct {
 	// +optional
 	NamespaceSelectors []*metav1.LabelSelector `json:"namespaceSelectors,omitempty"`
 
-	// Choose namespaces by name. This field is ORed with anything that NamespaceSelector ends up choosing.
+	// Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
 	// +optional
 	Namespaces []string `json:"namespaces,omitempty"`
 
