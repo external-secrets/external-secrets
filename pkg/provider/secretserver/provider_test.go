@@ -56,7 +56,7 @@ func TestDoesConfigDependOnNamespace(t *testing.T) {
 		},
 		"false when neither Username or Password reference a secret": {
 			cfg: esv1beta1.SecretServerProvider{
-				Username:     &esv1beta1.SecretServerProviderRef{SecretRef: nil},
+				Username: &esv1beta1.SecretServerProviderRef{SecretRef: nil},
 				Password: &esv1beta1.SecretServerProviderRef{SecretRef: nil},
 			},
 			want: false,
@@ -99,8 +99,8 @@ func TestValidateStore(t *testing.T) {
 		},
 		"invalid without serverURL": {
 			cfg: esv1beta1.SecretServerProvider{
-				Username:  validSecretRefUsingValue,
-				Password:  validSecretRefUsingValue,
+				Username: validSecretRefUsingValue,
+				Password: validSecretRefUsingValue,
 				/*ServerURL: testURL,*/
 			},
 			want: errEmptyServerURL,
@@ -171,7 +171,7 @@ func TestNewClient(t *testing.T) {
 	clientSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
 		Data: map[string][]byte{
-			userNameKey:     []byte(userNameValue),
+			userNameKey: []byte(userNameValue),
 			passwordKey: []byte(passwordValue),
 		},
 	}
@@ -183,7 +183,7 @@ func TestNewClient(t *testing.T) {
 	}
 
 	tests := map[string]struct {
-		store    esv1beta1.GenericStore     // leave nil for namespaced store
+		store    esv1beta1.GenericStore          // leave nil for namespaced store
 		provider *esv1beta1.SecretServerProvider // discarded when store is set
 		kube     kubeClient.Client
 		errCheck func(t *testing.T, err error)
@@ -209,8 +209,8 @@ func TestNewClient(t *testing.T) {
 		},
 		"dangling password ref": {
 			provider: &esv1beta1.SecretServerProvider{
-				Username:      validProvider.Username,
-				Password:     makeSecretRefUsingRef("typo", passwordKey),
+				Username:  validProvider.Username,
+				Password:  makeSecretRefUsingRef("typo", passwordKey),
 				ServerURL: validProvider.ServerURL,
 			},
 			kube: clientfake.NewClientBuilder().WithObjects(clientSecret).Build(),
@@ -220,8 +220,8 @@ func TestNewClient(t *testing.T) {
 		},
 		"dangling username ref": {
 			provider: &esv1beta1.SecretServerProvider{
-				Username:      makeSecretRefUsingRef("typo", userNameKey),
-				Password:     validProvider.Password,
+				Username:  makeSecretRefUsingRef("typo", userNameKey),
+				Password:  validProvider.Password,
 				ServerURL: validProvider.ServerURL,
 			},
 			kube: clientfake.NewClientBuilder().WithObjects(clientSecret).Build(),
@@ -231,8 +231,8 @@ func TestNewClient(t *testing.T) {
 		},
 		"secret ref without name": {
 			provider: &esv1beta1.SecretServerProvider{
-				Username:      makeSecretRefUsingRef("", userNameKey),
-				Password:     validProvider.Password,
+				Username:  makeSecretRefUsingRef("", userNameKey),
+				Password:  validProvider.Password,
 				ServerURL: validProvider.ServerURL,
 			},
 			kube: clientfake.NewClientBuilder().WithObjects(clientSecret).Build(),
@@ -242,8 +242,8 @@ func TestNewClient(t *testing.T) {
 		},
 		"secret ref without key": {
 			provider: &esv1beta1.SecretServerProvider{
-				Username:      validProvider.Password,
-				Password:     makeSecretRefUsingRef(clientSecret.Name, ""),
+				Username:  validProvider.Password,
+				Password:  makeSecretRefUsingRef(clientSecret.Name, ""),
 				ServerURL: validProvider.ServerURL,
 			},
 			kube: clientfake.NewClientBuilder().WithObjects(clientSecret).Build(),
@@ -253,8 +253,8 @@ func TestNewClient(t *testing.T) {
 		},
 		"secret ref with non-existent keys": {
 			provider: &esv1beta1.SecretServerProvider{
-				Username:      makeSecretRefUsingRef(clientSecret.Name, "typo"),
-				Password:     makeSecretRefUsingRef(clientSecret.Name, passwordKey),
+				Username:  makeSecretRefUsingRef(clientSecret.Name, "typo"),
+				Password:  makeSecretRefUsingRef(clientSecret.Name, passwordKey),
 				ServerURL: validProvider.ServerURL,
 			},
 			kube: clientfake.NewClientBuilder().WithObjects(clientSecret).Build(),
@@ -268,9 +268,9 @@ func TestNewClient(t *testing.T) {
 		},
 		"secret values": {
 			provider: &esv1beta1.SecretServerProvider{
-				Username:     makeSecretRefUsingValue(userNameValue),
-				Password:     makeSecretRefUsingValue(passwordValue),
-				ServerURL:    validProvider.ServerURL,
+				Username:  makeSecretRefUsingValue(userNameValue),
+				Password:  makeSecretRefUsingValue(passwordValue),
+				ServerURL: validProvider.ServerURL,
 			},
 			kube: clientfake.NewClientBuilder().WithObjects(clientSecret).Build(),
 		},
@@ -280,9 +280,9 @@ func TestNewClient(t *testing.T) {
 				Spec: esv1beta1.SecretStoreSpec{
 					Provider: &esv1beta1.SecretStoreProvider{
 						SecretServer: &esv1beta1.SecretServerProvider{
-							Username:     makeSecretRefUsingNamespacedRef(clientSecret.Namespace, clientSecret.Name, userNameKey),
-							Password:     makeSecretRefUsingNamespacedRef(clientSecret.Namespace, clientSecret.Name, passwordKey),
-							ServerURL:    validProvider.ServerURL,
+							Username:  makeSecretRefUsingNamespacedRef(clientSecret.Namespace, clientSecret.Name, userNameKey),
+							Password:  makeSecretRefUsingNamespacedRef(clientSecret.Namespace, clientSecret.Name, passwordKey),
+							ServerURL: validProvider.ServerURL,
 						},
 					},
 				},
@@ -312,8 +312,8 @@ func TestNewClient(t *testing.T) {
 				secretServerClient, ok := delineaClient.api.(*server.Server)
 				assert.True(t, ok)
 				assert.Equal(t, server.UserCredential{
-					Username:     userNameValue,
-					Password:     passwordValue,
+					Username: userNameValue,
+					Password: passwordValue,
 				}, secretServerClient.Configuration.Credentials)
 			} else {
 				assert.Nil(t, sc)
@@ -332,7 +332,6 @@ func makeSecretRefUsingNamespacedRef(namespace, name, key string) *esv1beta1.Sec
 func makeSecretRefUsingValue(val string) *esv1beta1.SecretServerProviderRef {
 	return &esv1beta1.SecretServerProviderRef{Value: val}
 }
-
 
 func makeSecretRefUsingRef(name, key string) *esv1beta1.SecretServerProviderRef {
 	return &esv1beta1.SecretServerProviderRef{
