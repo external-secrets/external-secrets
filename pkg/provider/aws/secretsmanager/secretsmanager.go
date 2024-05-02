@@ -212,8 +212,8 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	return err
 }
 
-func (sm *SecretsManager) SecretExists(ctx context.Context, PushSecretRef esv1beta1.PushSecretRemoteRef) (bool, error) {
-	secretName := PushSecretRef.GetRemoteKey()
+func (sm *SecretsManager) SecretExists(ctx context.Context, pushSecretRef esv1beta1.PushSecretRemoteRef) (bool, error) {
+	secretName := pushSecretRef.GetRemoteKey()
 	secretValue := awssm.GetSecretValueInput{
 		SecretId: &secretName,
 	}
