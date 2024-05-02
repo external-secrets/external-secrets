@@ -22,5 +22,5 @@ import (
 // which is supported by tss-sdk-go/v2.
 type secretAPI interface {
 	Secret(id int) (*server.Secret, error)
-	Secrets(searchText, field string) (*server.Secret, error)
+	Secrets(searchText, field string) ([]server.Secret, error)
 }

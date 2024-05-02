@@ -28,18 +28,17 @@ import (
 )
 
 var (
-	errEmptyUserName             = errors.New("username must not be empty")
-	errEmptyPassword             = errors.New("passWord must be set")
-	errEmptyServerURL            = errors.New("serverURL must be set")
-	errSecretRefAndValueConflict = errors.New("cannot specify both secret reference and value")
-	errSecretRefAndValueMissing  = errors.New("must specify either secret reference or direct value")
-	errMissingStore              = errors.New("missing store specification")
-	errInvalidSpec               = errors.New("invalid specification for secret server provider")
+	errEmptyUserName                 = errors.New("username must not be empty")
+	errEmptyPassword                 = errors.New("password must be set")
+	errEmptyServerURL                = errors.New("serverURL must be set")
+	errSecretRefAndValueConflict     = errors.New("cannot specify both secret reference and value")
+	errSecretRefAndValueMissing      = errors.New("must specify either secret reference or direct value")
+	errMissingStore                  = errors.New("missing store specification")
+	errInvalidSpec                   = errors.New("invalid specification for secret server provider")
 	errClusterStoreRequiresNamespace = errors.New("when using a ClusterSecretStore, namespaces must be explicitly set")
 	errMissingSecretName             = errors.New("must specify a secret name")
 
-	errMissingSecretID = errors.New("must specify a secret id")
-	errMissingSecretKey  = errors.New("must specify a secret key")
+	errMissingSecretKey = errors.New("must specify a secret key")
 )
 
 type Provider struct{}

@@ -30,13 +30,6 @@ var _ = ginkgo.Describe("[secretserver]", ginkgo.Label("secretserver"), func() {
 	})
 
 	ginkgo.DescribeTable("sync secrets", framework.TableFuncWithExternalSecret(f, provider),
-
-/*
-JSONDataFromSync
-JSONDataFromRewrite
-DecodingPolicySync
-*/
-
 		ginkgo.Entry(common.JSONDataWithTemplate(f)),
 		ginkgo.Entry(common.JSONDataWithProperty(f)),
 		ginkgo.Entry(common.JSONDataWithoutTargetName(f)),
@@ -96,19 +89,4 @@ func createResources(ctx context.Context, f *framework.Framework, cfg *config) {
 
 	err = f.CRClient.Create(ctx, &secretStoreSpec)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-
-/*
-	externalSecretData := []esv1beta1.ExternalSecretData{
-		{
-			SecretKey: "mysecret",
-			RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
-				Key: "1111",
-				Property: "Items.1.ItemValue",
-			},
-		},
-	}
-
-	err = f.CRClient.Create(ctx, &externalSecretData)
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-*/
 }
