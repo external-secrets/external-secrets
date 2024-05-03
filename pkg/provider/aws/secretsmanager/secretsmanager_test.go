@@ -1316,6 +1316,98 @@ func TestSecretsManagerValidate(t *testing.T) {
 		})
 	}
 }
+func TestSecretExists(t *testing.T) {
+
+	arn := "arn:aws:secretsmanager:us-east-1:702902267788:secret:foo-bar5-Robbgh"
+	defaultVersion := "00000000-0000-0000-0000-000000000002"
+
+	getSecretCorrectErr := awssm.ResourceNotFoundException{}
+
+	secretValueOutput := &awssm.GetSecretValueOutput{
+		ARN:       &arn,
+		VersionId: &defaultVersion,
+	}
+
+	blankSecretValueOutput := &awssm.GetSecretValueOutput{}
+	getSecretWrongErr := awssm.InvalidRequestException{}
+
+	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: "fake-secret-key", RemoteKey: "fake-key", Property: ""}
+
+	type args struct {
+		store          *esv1beta1.AWSProvider
+		client         fakesm.Client
+		pushSecretData fake.PushSecretData
+	}
+
+	type want struct {
+		err       error
+		wantError bool
+	}
+
+	tests := map[string]struct {
+		args args
+		want want
+	}{
+		"SecretExistsReturnsTrueForExistingSecret": {
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
+				},
+				pushSecretData: pushSecretDataWithoutProperty,
+			},
+			want: want{
+				err:       nil,
+				wantError: false,
+			},
+		},
+		"SecretExistsReturnsTrueForNonExistingSecret": {
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretCorrectErr),
+				},
+				pushSecretData: pushSecretDataWithoutProperty,
+			},
+			want: want{
+				err:       nil,
+				wantError: false,
+			},
+		},
+		"SecretExistsReturnsFalseForErroredSecret": {
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretWrongErr),
+				},
+				pushSecretData: pushSecretDataWithoutProperty,
+			},
+			want: want{
+				err:       &getSecretWrongErr,
+				wantError: true,
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			sm := &SecretsManager{
+				client: &tc.args.client,
+			}
+			got, err := sm.SecretExists(context.Background(), tc.args.pushSecretData)
+
+			if !tc.want.wantError {
+				assert.NoError(t, err)
+				assert.True(t, got)
+			}
+
+			if tc.want.wantError {
+				assert.False(t, got)
+				assert.Equal(t, tc.want.err, err)
+			}
+		})
+	}
+}
 
 // FakeCredProvider implements the AWS credentials.Provider interface
 // It is used to inject an error into the AWS session to cause a
