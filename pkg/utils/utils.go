@@ -507,3 +507,21 @@ func dig[T any](key string, data map[string]any) (t T, _ error) {
 
 	return t, errKeyNotFound
 }
+
+func CompareStringAndByteSlices(valueString *string, valueByte []byte) bool {
+	if valueString == nil {
+		return false
+	}
+	stringToByteSlice := []byte(*valueString)
+	if len(stringToByteSlice) != len(valueByte) {
+		return false
+	}
+
+	for sb := range valueByte {
+		if stringToByteSlice[sb] != valueByte[sb] {
+			return false
+		}
+	}
+
+	return true
+}
