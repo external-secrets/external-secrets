@@ -1317,7 +1317,6 @@ func TestSecretsManagerValidate(t *testing.T) {
 	}
 }
 func TestSecretExists(t *testing.T) {
-
 	arn := "arn:aws:secretsmanager:us-east-1:702902267788:secret:foo-bar5-Robbgh"
 	defaultVersion := "00000000-0000-0000-0000-000000000002"
 	secretValueOutput := &awssm.GetSecretValueOutput{
