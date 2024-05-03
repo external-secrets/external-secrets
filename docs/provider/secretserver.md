@@ -4,11 +4,18 @@ External Secrets Operator integrates with [Delinea Secret Server](https://docs.d
 
 ### Creating a SecretStore
 
-You need a username, password and a fully qualified Secret Server tenant URL to authenticate i.e. `https://yourTenantName.secretservercloud.com`.
+You need a username, password and a fully qualified Secret Server tenant URL to authenticate
+i.e. `https://yourTenantName.secretservercloud.com`.
 
-Both username and password can be specified either directly in the `SecretStore`, or by referencing a kubernetes secret.
+Both username and password can be specified either directly in your `SecretStore` yaml config, or by referencing a kubernetes secret.
 
-To acquire a username and password, refer to the  [user management](https://docs.delinea.com/online-help/secret-server/users/creating-users/index.htm) documentation.
+To acquire a username and password, refer to the  Secret Server [user management](https://docs.delinea.com/online-help/secret-server/users/creating-users/index.htm) documentation.
+
+Both `username` and `password` can either be specified directly via the `value` field (example below)
+>spec.provider.secretserver.username.value: "yourusername"<br />
+spec.provider.secretserver.password.value: "yourpassword" <br />
+
+Or you can reference a kubernetes secret (password example below).
 
 ```yaml
 apiVersion: external-secrets.io/v1beta1
@@ -18,23 +25,26 @@ metadata:
 spec:
   provider:
     secretserver:
-      serverURL: <SERVER_URL>
+      serverURL: "https://yourtenantname.secretservercloud.com"
       username:
-        value: <USERNAME>
+        value: "yourusername"
       password:
         secretRef:
-          name: <NAME_OF_KUBE_SECRET>
-          key: <KEY_IN_KUBE_SECRET>
+          name: <NAME_OF_K8S_SECRET>
+          key: <KEY_IN_K8S_SECRET>
 ```
-
-Both `username` and `password` can either be specified directly via the `value` field or can reference a kubernetes secret.
-
 
 ### Referencing Secrets
 
-Secrets must be referenced by ID. `Getting a specific version of a secret is not yet supported.`
+Secrets may be referenced by secret ID or secret name.
+>Please note if using the secret name
+the name field must not contain spaces or control characters.<br />
+If multiple secrets are found, *`only the first found secret will be returned`*.
 
-Note that because all Secret Server secrets are JSON objects, you must specify `remoteRef.property`. You can access nested values or arrays using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md).
+Please note: `Retreiving a specific version of a secret is not yet supported.`
+
+Note that because all Secret Server secrets are JSON objects, you must specify `remoteRef.property`.
+You can access nested values or arrays using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md).
 
 ```yaml
 apiVersion: external-secrets.io/v1beta1
@@ -50,18 +60,27 @@ spec:
       - secretKey: SecretServerValue #<KEY_IN_KUBE_SECRET>
         remoteRef:
           key: "52622" #<SECRET_ID>
-          property: "Items.0.ItemValue" #<GJSON_PROPERTY>
+          property: "Items.0.ItemValue" #<GJSON_PROPERTY> * an empty property will return the entire secret
 ```
 ### Example
-Using the json formatted secret below to retrieve the "ItemValue" for "FieldName" .. "Data"
+Using the json formatted secret below:
 
-spec.data.remoteRef.key = 52622 (id of the secret)
+>spec.data.remoteRef.key = 52622 (id of the secret)<br />
+spec.data.remoteRef.property = "user" (Items.0.ItemValue user attribute)<br />
+returns: marktwain@hannibal.com
 
-spec.data.remoteRef.property = Items.0.ItemValue (gjson path )
+>spec.data.remoteRef.key = "external-secret-testing" (name of the secret)<br />
+spec.data.remoteRef.property = "books.1" (Items.0.ItemValue books.1 attribute)<br />
+returns: huckleberryFinn
+
+>spec.data.remoteRef.key = "52622" (id of the secret)<br />
+spec.data.remoteRef.property = "" <br />
+returns: The entire secret in JSON format as displayed below
+
 
 ```JSON
 {
-  "Name": "external secret testing",
+  "Name": "external-secret-testing",
   "FolderID": 73,
   "ID": 52622,
   "SiteID": 1,
@@ -91,7 +110,7 @@ spec.data.remoteRef.property = Items.0.ItemValue (gjson path )
       "Slug": "data",
       "FieldDescription": "json text field",
       "Filename": "",
-      "ItemValue": "{\"key\":\"value\"}",
+      "ItemValue": "{ \"user\": \"marktwain@hannibal.com\", \"occupation\": \"author\",\"books\":[ \"tomSawyer\",\"huckleberryFinn\"] }",
       "IsFile": false,
       "IsNotes": false,
       "IsPassword": false
