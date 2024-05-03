@@ -57,7 +57,7 @@ spec:
         kind: SecretStore
         name: secret-server-store
     data:
-      - secretKey: SecretServerValue #<KEY_IN_KUBE_SECRET>
+      - secretKey: SecretServerValue #<SECRET_VALUE_RETURNED_HERE>
         remoteRef:
           key: "52622" #<SECRET_ID>
           property: "Items.0.ItemValue" #<GJSON_PROPERTY> * an empty property will return the entire secret
