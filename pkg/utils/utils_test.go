@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/oracle/oci-go-sdk/v65/vault"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -841,6 +842,64 @@ func TestGetByteValue(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetByteValue() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCompareStringAndByteSlices(t *testing.T) {
+	type args struct {
+		stringValue    *string
+		byteValueSlice []byte
+	}
+	type testCase struct {
+		name    string
+		args    args
+		want    bool
+		wantErr bool
+	}
+	tests := []testCase{
+		{
+			name: "same contents",
+			args: args{
+				stringValue:    aws.String("value"),
+				byteValueSlice: []byte("value"),
+			},
+			want:    true,
+			wantErr: true,
+		}, {
+			name: "different contents",
+			args: args{
+				stringValue:    aws.String("value89"),
+				byteValueSlice: []byte("value"),
+			},
+			want:    true,
+			wantErr: false,
+		}, {
+			name: "same contents with random",
+			args: args{
+				stringValue:    aws.String("value89!3#@212"),
+				byteValueSlice: []byte("value89!3#@212"),
+			},
+			want:    true,
+			wantErr: true,
+		}, {
+			name: "check Nil",
+			args: args{
+				stringValue:    nil,
+				byteValueSlice: []byte("value89!3#@212"),
+			},
+			want:    false,
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := CompareStringAndByteSlices(tt.args.stringValue, tt.args.byteValueSlice)
+			if got != tt.wantErr {
+				t.Errorf("CompareStringAndByteSlices() got = %v, want = %v", got, tt.wantErr)
+				return
 			}
 		})
 	}
