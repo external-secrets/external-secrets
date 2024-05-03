@@ -509,6 +509,9 @@ func dig[T any](key string, data map[string]any) (t T, _ error) {
 }
 
 func CompareStringAndByteSlices(valueString *string, valueByte []byte) bool {
+	if valueString == nil {
+		return false
+	}
 	stringToByteSlice := []byte(*valueString)
 	if len(stringToByteSlice) != len(valueByte) {
 		return false
