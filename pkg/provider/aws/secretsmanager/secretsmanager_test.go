@@ -1320,15 +1320,14 @@ func TestSecretExists(t *testing.T) {
 
 	arn := "arn:aws:secretsmanager:us-east-1:702902267788:secret:foo-bar5-Robbgh"
 	defaultVersion := "00000000-0000-0000-0000-000000000002"
-
-	getSecretCorrectErr := awssm.ResourceNotFoundException{}
-
 	secretValueOutput := &awssm.GetSecretValueOutput{
 		ARN:       &arn,
 		VersionId: &defaultVersion,
 	}
 
 	blankSecretValueOutput := &awssm.GetSecretValueOutput{}
+
+	getSecretCorrectErr := awssm.ResourceNotFoundException{}
 	getSecretWrongErr := awssm.InvalidRequestException{}
 
 	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: "fake-secret-key", RemoteKey: "fake-key", Property: ""}
@@ -1358,7 +1357,7 @@ func TestSecretExists(t *testing.T) {
 			},
 			want: want{
 				err:       nil,
-				wantError: false,
+				wantError: true,
 			},
 		},
 		"SecretExistsReturnsTrueForNonExistingSecret": {
@@ -1371,7 +1370,7 @@ func TestSecretExists(t *testing.T) {
 			},
 			want: want{
 				err:       nil,
-				wantError: false,
+				wantError: true,
 			},
 		},
 		"SecretExistsReturnsFalseForErroredSecret": {
@@ -1384,7 +1383,7 @@ func TestSecretExists(t *testing.T) {
 			},
 			want: want{
 				err:       &getSecretWrongErr,
-				wantError: true,
+				wantError: false,
 			},
 		},
 	}
@@ -1396,15 +1395,13 @@ func TestSecretExists(t *testing.T) {
 			}
 			got, err := sm.SecretExists(context.Background(), tc.args.pushSecretData)
 
-			if !tc.want.wantError {
-				assert.NoError(t, err)
-				assert.True(t, got)
-			}
-
-			if tc.want.wantError {
-				assert.False(t, got)
-				assert.Equal(t, tc.want.err, err)
-			}
+			assert.Equal(
+				t,
+				tc.want,
+				want{
+					err:       err,
+					wantError: got,
+				})
 		})
 	}
 }
