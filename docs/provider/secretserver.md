@@ -1,6 +1,6 @@
-## Delinea Secret Server
+# Delinea Secret Server
 
-External Secrets Operator integrates with [Delinea Secret Server](https://docs.delinea.com/online-help/secret-server/start.htm).
+External Secrets Operator integration with [Delinea Secret Server](https://docs.delinea.com/online-help/secret-server/start.htm).
 
 ### Creating a SecretStore
 
@@ -65,14 +65,17 @@ spec:
 ### Example
 Using the json formatted secret below:
 
+Lookup a single top level property using secret ID.
 >spec.data.remoteRef.key = 52622 (id of the secret)<br />
 spec.data.remoteRef.property = "user" (Items.0.ItemValue user attribute)<br />
 returns: marktwain@hannibal.com
 
+Lookup a nested property using secret name.
 >spec.data.remoteRef.key = "external-secret-testing" (name of the secret)<br />
 spec.data.remoteRef.property = "books.1" (Items.0.ItemValue books.1 attribute)<br />
 returns: huckleberryFinn
 
+Lookup by secret ID (secret name will work as well) and return the entire secret.
 >spec.data.remoteRef.key = "52622" (id of the secret)<br />
 spec.data.remoteRef.property = "" <br />
 returns: The entire secret in JSON format as displayed below
