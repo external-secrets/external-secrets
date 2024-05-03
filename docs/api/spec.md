@@ -5348,7 +5348,7 @@ External Secrets meta/v1.SecretKeySelector
 <a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
-<p>See <a href="https://github.com/DelineaXPM/dsv-sdk-go/blob/main/vault/vault.go">https://github.com/DelineaXPM/dsv-sdk-go/blob/main/vault/vault.go</a>.</p>
+<p>See <a href="https://github.com/DelineaXPM/tss-sdk-go/blob/main/server/server.go">https://github.com/DelineaXPM/tss-sdk-go/blob/main/server/server.go</a>.</p>
 </p>
 <table>
 <thead>
