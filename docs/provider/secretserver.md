@@ -41,7 +41,7 @@ Secrets may be referenced by secret ID or secret name.
 the name field must not contain spaces or control characters.<br />
 If multiple secrets are found, *`only the first found secret will be returned`*.
 
-Please note: `Retreiving a specific version of a secret is not yet supported.`
+Please note: `Retrieving a specific version of a secret is not yet supported.`
 
 Note that because all Secret Server secrets are JSON objects, you must specify `remoteRef.property`.
 You can access nested values or arrays using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md).
