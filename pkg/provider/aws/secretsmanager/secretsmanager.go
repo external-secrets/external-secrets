@@ -569,7 +569,7 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretI
 	if !isManagedByESO(data) {
 		return fmt.Errorf("secret not managed by external-secrets")
 	}
-	if awsSecret != nil && bytes.Equal(awsSecret.SecretBinary, value) {
+	if awsSecret != nil && bytes.Equal(awsSecret.SecretBinary, value) || utils.CompareStringAndByteSlices(awsSecret.SecretString, value) {
 		return nil
 	}
 
