@@ -883,6 +883,14 @@ func TestCompareStringAndByteSlices(t *testing.T) {
 			},
 			want:    true,
 			wantErr: true,
+		}, {
+			name: "check Nil",
+			args: args{
+				stringValue:    nil,
+				byteValueSlice: []byte("value89!3#@212"),
+			},
+			want:    false,
+			wantErr: false,
 		},
 	}
 
