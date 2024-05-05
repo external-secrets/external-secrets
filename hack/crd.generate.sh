@@ -15,6 +15,11 @@ go run sigs.k8s.io/controller-tools/cmd/controller-gen crd \
   paths="./apis/..." \
   output:crd:artifacts:config="${CRD_DIR}/bases"
 
+## Update resources list from kustomization.yaml
+ls "${CRD_DIR}"/bases | grep -v "kustomization.yaml" | jq -R -s -c 'split("\n")[:-1]' | yq -p=json - > kustomize-files.yaml
+yq -i '.resources = (load("kustomize-files.yaml"))' "${CRD_DIR}"/bases/kustomization.yaml
+rm kustomize-files.yaml
+
 # Remove extra header lines in generated CRDs
 # This is needed for building the helm chart
 for f in "${CRD_DIR}"/bases/*.yaml; do
