@@ -32,6 +32,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
@@ -464,6 +465,9 @@ func TestSetSecret(t *testing.T) {
 	}
 
 	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: secretKey, RemoteKey: "fake-key", Property: ""}
+	pushSecretDataWithMetadata := fake.PushSecretData{SecretKey: secretKey, RemoteKey: "fake-key", Property: "", Metadata: &apiextensionsv1.JSON{
+		Raw: []byte(`{"secretPushFormat": "string"}`),
+	}}
 	pushSecretDataWithProperty := fake.PushSecretData{SecretKey: secretKey, RemoteKey: "fake-key", Property: "other-fake-property"}
 
 	type args struct {
@@ -491,6 +495,22 @@ func TestSetSecret(t *testing.T) {
 					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretSucceedsWithExistingSecretAndStringFormat": {
+			reason: "a secret can be pushed to aws secrets manager when it already exists",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
+					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+				},
+				pushSecretData: pushSecretDataWithMetadata,
 			},
 			want: want{
 				err: nil,
@@ -1293,6 +1313,94 @@ func TestSecretsManagerValidate(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("SecretsManager.Validate() = %v, want %v", got, tt.want)
 			}
+		})
+	}
+}
+func TestSecretExists(t *testing.T) {
+	arn := "arn:aws:secretsmanager:us-east-1:702902267788:secret:foo-bar5-Robbgh"
+	defaultVersion := "00000000-0000-0000-0000-000000000002"
+	secretValueOutput := &awssm.GetSecretValueOutput{
+		ARN:       &arn,
+		VersionId: &defaultVersion,
+	}
+
+	blankSecretValueOutput := &awssm.GetSecretValueOutput{}
+
+	getSecretCorrectErr := awssm.ResourceNotFoundException{}
+	getSecretWrongErr := awssm.InvalidRequestException{}
+
+	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: "fake-secret-key", RemoteKey: "fake-key", Property: ""}
+
+	type args struct {
+		store          *esv1beta1.AWSProvider
+		client         fakesm.Client
+		pushSecretData fake.PushSecretData
+	}
+
+	type want struct {
+		err       error
+		wantError bool
+	}
+
+	tests := map[string]struct {
+		args args
+		want want
+	}{
+		"SecretExistsReturnsTrueForExistingSecret": {
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
+				},
+				pushSecretData: pushSecretDataWithoutProperty,
+			},
+			want: want{
+				err:       nil,
+				wantError: true,
+			},
+		},
+		"SecretExistsReturnsTrueForNonExistingSecret": {
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretCorrectErr),
+				},
+				pushSecretData: pushSecretDataWithoutProperty,
+			},
+			want: want{
+				err:       nil,
+				wantError: true,
+			},
+		},
+		"SecretExistsReturnsFalseForErroredSecret": {
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretWrongErr),
+				},
+				pushSecretData: pushSecretDataWithoutProperty,
+			},
+			want: want{
+				err:       &getSecretWrongErr,
+				wantError: false,
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			sm := &SecretsManager{
+				client: &tc.args.client,
+			}
+			got, err := sm.SecretExists(context.Background(), tc.args.pushSecretData)
+
+			assert.Equal(
+				t,
+				tc.want,
+				want{
+					err:       err,
+					wantError: got,
+				})
 		})
 	}
 }

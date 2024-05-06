@@ -15,26 +15,33 @@ limitations under the License.
 package utils
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
 	"time"
 
-	vault "github.com/oracle/oci-go-sdk/v65/vault"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/oracle/oci-go-sdk/v65/vault"
 	v1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 const (
-	base64DecodedValue    string = "foo%_?bar"
-	base64EncodedValue    string = "Zm9vJV8/YmFy"
-	base64URLEncodedValue string = "Zm9vJV8_YmFy"
+	base64DecodedValue         string = "foo%_?bar"
+	base64EncodedValue         string = "Zm9vJV8/YmFy"
+	base64URLEncodedValue      string = "Zm9vJV8_YmFy"
+	keyWithEmojis              string = "😀foo😁bar😂baz😈bing"
+	keyWithInvalidChars        string = "some-array[0].entity"
+	keyWithEncodedInvalidChars string = "some-array_U005b_0_U005d_.entity"
 )
 
 func TestObjectHash(t *testing.T) {
 	tests := []struct {
 		name  string
-		input interface{}
+		input any
 		want  string
 	}{
 		{
@@ -75,7 +82,7 @@ func TestObjectHash(t *testing.T) {
 func TestIsNil(t *testing.T) {
 	tbl := []struct {
 		name string
-		val  interface{}
+		val  any
 		exp  bool
 	}{
 		{
@@ -210,7 +217,7 @@ func TestConvertKeys(t *testing.T) {
 			args: args{
 				strategy: esv1beta1.ExternalSecretConversionUnicode,
 				in: map[string][]byte{
-					"😀foo😁bar😂baz😈bing": []byte(`noop`),
+					keyWithEmojis: []byte(`noop`),
 				},
 			},
 			want: map[string][]byte{
@@ -227,6 +234,77 @@ func TestConvertKeys(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("ConvertKeys() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestReverseKeys(t *testing.T) {
+	type args struct {
+		encodingStrategy esv1beta1.ExternalSecretConversionStrategy
+		decodingStrategy esv1alpha1.PushSecretConversionStrategy
+		in               map[string][]byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    map[string][]byte
+		wantErr bool
+	}{
+		{
+			name: "encoding and decoding strategy are selecting Unicode conversion and reverse unicode, so the in and want should match, this test covers Unicode characters beyond the Basic Multilingual Plane (BMP)",
+			args: args{
+				encodingStrategy: esv1beta1.ExternalSecretConversionUnicode,
+				decodingStrategy: esv1alpha1.PushSecretConversionReverseUnicode,
+				in: map[string][]byte{
+					keyWithEmojis: []byte(`noop`),
+				},
+			},
+			want: map[string][]byte{
+				keyWithEmojis: []byte(`noop`),
+			},
+		},
+		{
+			name: "encoding and decoding strategy are selecting Unicode conversion and reverse unicode, so the in and want should match, this test covers Unicode characters in the Basic Multilingual Plane (BMP)",
+			args: args{
+				encodingStrategy: esv1beta1.ExternalSecretConversionUnicode,
+				decodingStrategy: esv1alpha1.PushSecretConversionReverseUnicode,
+				in: map[string][]byte{
+					keyWithInvalidChars: []byte(`noop`),
+				},
+			},
+			want: map[string][]byte{
+				keyWithInvalidChars: []byte(`noop`),
+			},
+		},
+		{
+			name: "the encoding strategy is selecting Unicode conversion, but the decoding strategy is none, so we want an encoded representation of the content",
+			args: args{
+				encodingStrategy: esv1beta1.ExternalSecretConversionUnicode,
+				decodingStrategy: esv1alpha1.PushSecretConversionNone,
+				in: map[string][]byte{
+					keyWithInvalidChars: []byte(`noop`),
+				},
+			},
+			want: map[string][]byte{
+				keyWithEncodedInvalidChars: []byte(`noop`),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ConvertKeys(tt.args.encodingStrategy, tt.args.in)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ConvertKeys() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			got, err = ReverseKeys(tt.args.decodingStrategy, got)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ReverseKeys() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReverseKeys() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -535,6 +613,293 @@ func TestRewrite(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("RewriteMap() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestReverse(t *testing.T) {
+	type args struct {
+		strategy esv1alpha1.PushSecretConversionStrategy
+		in       string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "do not change the key when using the None strategy",
+			args: args{
+				strategy: esv1alpha1.PushSecretConversionNone,
+				in:       keyWithEncodedInvalidChars,
+			},
+			want: keyWithEncodedInvalidChars,
+		},
+		{
+			name: "reverse an unicode encoded key",
+			args: args{
+				strategy: esv1alpha1.PushSecretConversionReverseUnicode,
+				in:       keyWithEncodedInvalidChars,
+			},
+			want: keyWithInvalidChars,
+		},
+		{
+			name: "do not attempt to decode an invalid unicode representation",
+			args: args{
+				strategy: esv1alpha1.PushSecretConversionReverseUnicode,
+				in:       "_U0xxx_x_U005b_",
+			},
+			want: "_U0xxx_x[",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := reverse(tt.args.strategy, tt.args.in); got != tt.want {
+				t.Errorf("reverse() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFetchValueFromMetadata(t *testing.T) {
+	type args struct {
+		key  string
+		data *apiextensionsv1.JSON
+		def  any
+	}
+	type testCase struct {
+		name    string
+		args    args
+		wantT   any
+		wantErr bool
+	}
+	tests := []testCase{
+		{
+			name: "plain dig for an existing key",
+			args: args{
+				key: "key",
+				data: &apiextensionsv1.JSON{
+					Raw: []byte(
+						`{"key": "value"}`,
+					),
+				},
+				def: "def",
+			},
+			wantT:   "value",
+			wantErr: false,
+		},
+		{
+			name: "return default if key not found",
+			args: args{
+				key: "key2",
+				data: &apiextensionsv1.JSON{
+					Raw: []byte(
+						`{"key": "value"}`,
+					),
+				},
+				def: "def",
+			},
+			wantT:   "def",
+			wantErr: false,
+		},
+		{
+			name: "use a different type",
+			args: args{
+				key: "key",
+				data: &apiextensionsv1.JSON{
+					Raw: []byte(
+						`{"key": 123}`,
+					),
+				},
+				def: 1234,
+			},
+			wantT:   float64(123), // unmarshal is always float64
+			wantErr: false,
+		},
+		{
+			name: "digging deeper",
+			args: args{
+				key: "key2",
+				data: &apiextensionsv1.JSON{
+					Raw: []byte(
+						`{"key": {"key2": "value"}}`,
+					),
+				},
+				def: "",
+			},
+			wantT:   "value",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotT, err := FetchValueFromMetadata(tt.args.key, tt.args.data, tt.args.def)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("FetchValueFromMetadata() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotT, tt.wantT) {
+				t.Errorf("FetchValueFromMetadata() gotT = %v, want %v", gotT, tt.wantT)
+			}
+		})
+	}
+}
+
+func TestGetByteValue(t *testing.T) {
+	type args struct {
+		data any
+	}
+	type testCase struct {
+		name    string
+		args    args
+		want    []byte
+		wantErr bool
+	}
+	tests := []testCase{
+		{
+			name: "string",
+			args: args{
+				data: "value",
+			},
+			want:    []byte("value"),
+			wantErr: false,
+		},
+		{
+			name: "map of any",
+			args: args{
+				data: map[string]any{
+					"key": "value",
+				},
+			},
+			want:    []byte(`{"key":"value"}`),
+			wantErr: false,
+		},
+		{
+			name: "slice of string",
+			args: args{
+				data: []string{"value1", "value2"},
+			},
+			want:    []byte("value1\nvalue2"),
+			wantErr: false,
+		},
+		{
+			name: "json.RawMessage",
+			args: args{
+				data: json.RawMessage(`{"key":"value"}`),
+			},
+			want:    []byte(`{"key":"value"}`),
+			wantErr: false,
+		},
+		{
+			name: "float64",
+			args: args{
+				data: 123.45,
+			},
+			want:    []byte("123.45"),
+			wantErr: false,
+		},
+		{
+			name: "json.Number",
+			args: args{
+				data: json.Number("123.45"),
+			},
+			want:    []byte("123.45"),
+			wantErr: false,
+		},
+		{
+			name: "slice of any",
+			args: args{
+				data: []any{"value1", "value2"},
+			},
+			want:    []byte(`["value1","value2"]`),
+			wantErr: false,
+		},
+		{
+			name: "boolean",
+			args: args{
+				data: true,
+			},
+			want:    []byte("true"),
+			wantErr: false,
+		},
+		{
+			name: "nil",
+			args: args{
+				data: nil,
+			},
+			want:    []byte(nil),
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetByteValue(tt.args.data)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetByteValue() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetByteValue() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCompareStringAndByteSlices(t *testing.T) {
+	type args struct {
+		stringValue    *string
+		byteValueSlice []byte
+	}
+	type testCase struct {
+		name    string
+		args    args
+		want    bool
+		wantErr bool
+	}
+	tests := []testCase{
+		{
+			name: "same contents",
+			args: args{
+				stringValue:    aws.String("value"),
+				byteValueSlice: []byte("value"),
+			},
+			want:    true,
+			wantErr: true,
+		}, {
+			name: "different contents",
+			args: args{
+				stringValue:    aws.String("value89"),
+				byteValueSlice: []byte("value"),
+			},
+			want:    true,
+			wantErr: false,
+		}, {
+			name: "same contents with random",
+			args: args{
+				stringValue:    aws.String("value89!3#@212"),
+				byteValueSlice: []byte("value89!3#@212"),
+			},
+			want:    true,
+			wantErr: true,
+		}, {
+			name: "check Nil",
+			args: args{
+				stringValue:    nil,
+				byteValueSlice: []byte("value89!3#@212"),
+			},
+			want:    false,
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := CompareStringAndByteSlices(tt.args.stringValue, tt.args.byteValueSlice)
+			if got != tt.wantErr {
+				t.Errorf("CompareStringAndByteSlices() got = %v, want = %v", got, tt.wantErr)
+				return
 			}
 		})
 	}

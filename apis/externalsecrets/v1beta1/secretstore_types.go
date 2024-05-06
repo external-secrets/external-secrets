@@ -129,6 +129,10 @@ type SecretStoreProvider struct {
 	// +optional
 	Doppler *DopplerProvider `json:"doppler,omitempty"`
 
+	// Onboardbase configures this store to sync secrets using the Onboardbase provider
+	// +optional
+	Onboardbase *OnboardbaseProvider `json:"onboardbase,omitempty"`
+
 	// KeeperSecurity configures this store to sync secrets using the KeeperSecurity provider
 	// +optional
 	KeeperSecurity *KeeperSecurityProvider `json:"keepersecurity,omitempty"`
@@ -141,6 +145,24 @@ type SecretStoreProvider struct {
 	// https://docs.delinea.com/online-help/products/devops-secrets-vault/current
 	// +optional
 	Delinea *DelineaProvider `json:"delinea,omitempty"`
+
+	// Chef configures this store to sync secrets with chef server
+	// +optional
+	Chef *ChefProvider `json:"chef,omitempty"`
+
+	// Pulumi configures this store to sync secrets using the Pulumi provider
+	// +optional
+	Pulumi *PulumiProvider `json:"pulumi,omitempty"`
+
+	// Fortanix configures this store to sync secrets using the Fortanix provider
+	// +optional
+	Fortanix *FortanixProvider `json:"fortanix,omitempty"`
+
+	// +optional
+	PasswordDepot *PasswordDepotProvider `json:"passworddepot,omitempty"`
+
+	// +optional
+	Passbolt *PassboltProvider `json:"passbolt,omitempty"`
 }
 
 type CAProviderType string

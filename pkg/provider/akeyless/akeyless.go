@@ -44,7 +44,8 @@ import (
 )
 
 const (
-	defaultAPIUrl = "https://api.akeyless.io"
+	defaultAPIUrl     = "https://api.akeyless.io"
+	errNotImplemented = "not implemented"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -236,11 +237,15 @@ func (a *Akeyless) Validate() (esv1beta1.ValidationResult, error) {
 }
 
 func (a *Akeyless) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf(errNotImplemented)
 }
 
 func (a *Akeyless) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf(errNotImplemented)
+}
+
+func (a *Akeyless) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf(errNotImplemented)
 }
 
 // Implements store.Client.GetSecret Interface.

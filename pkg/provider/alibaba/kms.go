@@ -39,6 +39,7 @@ const (
 	errUninitalizedAlibabaProvider = "provider Alibaba is not initialized"
 	errFetchAccessKeyID            = "could not fetch AccessKeyID secret: %w"
 	errFetchAccessKeySecret        = "could not fetch AccessKeySecret secret: %w"
+	errNotImplemented              = "not implemented"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -56,17 +57,21 @@ type SMInterface interface {
 }
 
 func (kms *KeyManagementService) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf(errNotImplemented)
 }
 
 func (kms *KeyManagementService) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf(errNotImplemented)
+}
+
+func (kms *KeyManagementService) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf(errNotImplemented)
 }
 
 // Empty GetAllSecrets.
 func (kms *KeyManagementService) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	return nil, fmt.Errorf(errNotImplemented)
 }
 
 // GetSecret returns a single secret from the provider.
@@ -245,7 +250,7 @@ func (kms *KeyManagementService) Close(_ context.Context) error {
 func (kms *KeyManagementService) Validate() (esv1beta1.ValidationResult, error) {
 	err := retry.Do(
 		func() error {
-			_, err := kms.Config.Credential.GetSecurityToken()
+			_, err := kms.Config.Credential.GetCredential()
 			if err != nil {
 				return err
 			}

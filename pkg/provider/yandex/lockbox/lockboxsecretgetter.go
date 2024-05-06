@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package lockbox
 
 import (
@@ -42,7 +43,7 @@ func (g *lockboxSecretGetter) GetSecret(ctx context.Context, iamToken, resourceI
 	}
 
 	if property == "" {
-		keyToValue := make(map[string]interface{}, len(entries))
+		keyToValue := make(map[string]any, len(entries))
 		for _, entry := range entries {
 			value, err := getValueAsIs(entry)
 			if err != nil {
@@ -81,7 +82,7 @@ func (g *lockboxSecretGetter) GetSecretMap(ctx context.Context, iamToken, resour
 	return secretMap, nil
 }
 
-func getValueAsIs(entry *lockbox.Payload_Entry) (interface{}, error) {
+func getValueAsIs(entry *lockbox.Payload_Entry) (any, error) {
 	switch entry.Value.(type) {
 	case *lockbox.Payload_Entry_TextValue:
 		return entry.GetTextValue(), nil

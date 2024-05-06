@@ -117,9 +117,11 @@ spec:
       # Add CAs here for the TLS handshake
       caBundle: <base64 encoded cabundle>
       caProvider:
-        type: Secret or COnfigMap
+        type: Secret or ConfigMap
         name: <name of secret or configmap>
         namespace: <namespace> # Only used in ClusterSecretStores
         key: <key inside secret>
 ```
 
+### Webhook as generators
+You can also leverage webhooks as generators, following the same syntax. The only difference is that the webhook generator needs its source secrets to be labeled, as opposed to webhook secretstores. Please see the [generator-webhook](../api/generator/webhook.md) documentation for more information. 

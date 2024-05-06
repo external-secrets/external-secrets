@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package keepersecurity
 
 import (
@@ -71,14 +72,14 @@ type SecurityClient interface {
 }
 
 type Field struct {
-	Type  string        `json:"type"`
-	Value []interface{} `json:"value"`
+	Type  string `json:"type"`
+	Value []any  `json:"value"`
 }
 
 type CustomField struct {
-	Type  string        `json:"type"`
-	Label string        `json:"label"`
-	Value []interface{} `json:"value"`
+	Type  string `json:"type"`
+	Label string `json:"label"`
+	Value []any  `json:"value"`
 }
 
 type File struct {
@@ -209,6 +210,10 @@ func (c *Client) DeleteSecret(_ context.Context, remoteRef esv1beta1.PushSecretR
 	}
 
 	return nil
+}
+
+func (c *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
 }
 
 func (c *Client) buildSecretNameAndKey(remoteRef esv1beta1.PushSecretRemoteRef) ([]string, error) {
@@ -401,7 +406,7 @@ func (s *Secret) getItems(ref esv1beta1.ExternalSecretDataRemoteRef) (map[string
 	return secretData, nil
 }
 
-func getFieldValue(value []interface{}) []byte {
+func getFieldValue(value []any) []byte {
 	if len(value) < 1 {
 		return []byte{}
 	} else if len(value) == 1 {

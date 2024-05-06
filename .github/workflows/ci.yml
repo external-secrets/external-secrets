@@ -9,8 +9,8 @@ on:
 
 env:
   # Common versions
-  GOLANGCI_VERSION: 'v1.54.2'
-  KUBERNETES_VERSION: '1.28.x'
+  GOLANGCI_VERSION: 'v1.57.2'
+  KUBERNETES_VERSION: '1.30.x'
 
   # Sonar
   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -46,7 +46,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
       - name: Setup Go
         uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
@@ -59,7 +59,7 @@ jobs:
         run: go mod download
 
       - name: Lint
-        uses: golangci/golangci-lint-action@3a919529898de77ec3da873e3063ca4b10e7f5cc # v3.7.0
+        uses: golangci/golangci-lint-action@82d40c283aeb1f2b6595839195e95c2d6a49081b # v5.0.0
         with:
           version: ${{ env.GOLANGCI_VERSION }}
           skip-pkg-cache: true
@@ -72,7 +72,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
       - name: Setup Go
         uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
@@ -96,11 +96,11 @@ jobs:
   unit-tests:
     runs-on: ubuntu-latest
     needs: detect-noop
-    if: needs.detect-noop.outputs.noop != 'true' && github.ref != 'refs/heads/main'
+    if: needs.detect-noop.outputs.noop != 'true'
 
     steps:
       - name: Checkout
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
 
       - name: Fetch History
         run: git fetch --prune --unshallow
@@ -116,7 +116,7 @@ jobs:
         run: go mod download
 
       - name: Cache envtest binaries
-        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
           path: bin/k8s
           key: ${{ runner.os }}-envtest-${{env.KUBERNETES_VERSION}}
@@ -126,7 +126,9 @@ jobs:
           make test
 
       - name: Publish Unit Test Coverage
-        uses: codecov/codecov-action@4fe8c5f003fae66aa5ebb77cfd3e7bfbbda0b6b0 # v3.1.5
+        uses: codecov/codecov-action@84508663e988701840491b86de86b666e8a86bed # v4.3.0
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           flags: unittests
           file: ./cover.out

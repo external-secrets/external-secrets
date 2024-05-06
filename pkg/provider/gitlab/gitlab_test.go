@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package gitlab
 
 import (
@@ -362,7 +363,7 @@ func TestNewClient(t *testing.T) {
 	tassert.NotNil(t, secretClient)
 }
 
-func toJSON(t *testing.T, v interface{}) []byte {
+func toJSON(t *testing.T, v any) []byte {
 	jsonBytes, err := json.Marshal(v)
 	tassert.Nil(t, err)
 	return jsonBytes

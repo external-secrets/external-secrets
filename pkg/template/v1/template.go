@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package template
 
 import (
@@ -134,7 +135,7 @@ func jwkPublicKeyPem(jwkjson []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var rawkey interface{}
+	var rawkey any
 	err = k.Raw(&rawkey)
 	if err != nil {
 		return "", err
@@ -152,7 +153,7 @@ func jwkPrivateKeyPem(jwkjson []byte) (string, error) {
 		return "", err
 	}
 	var mpk []byte
-	var pk interface{}
+	var pk any
 	err = k.Raw(&pk)
 	if err != nil {
 		return "", err
@@ -201,8 +202,8 @@ func base64encode(in []byte) []byte {
 	return out
 }
 
-func fromJSON(in []byte) (interface{}, error) {
-	var out interface{}
+func fromJSON(in []byte) (any, error) {
+	var out any
 	err := json.Unmarshal(in, &out)
 	if err != nil {
 		return nil, fmt.Errorf(errUnmarshalJSON, err)
@@ -210,7 +211,7 @@ func fromJSON(in []byte) (interface{}, error) {
 	return out, nil
 }
 
-func toJSON(in interface{}) (string, error) {
+func toJSON(in any) (string, error) {
 	output, err := json.Marshal(in)
 	if err != nil {
 		return "", fmt.Errorf(errMarshalJSON, err)

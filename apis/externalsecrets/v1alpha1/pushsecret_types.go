@@ -41,6 +41,14 @@ type PushSecretStoreRef struct {
 	Kind string `json:"kind,omitempty"`
 }
 
+// +kubebuilder:validation:Enum=Replace;IfNotExists
+type PushSecretUpdatePolicy string
+
+const (
+	PushSecretUpdatePolicyReplace     PushSecretUpdatePolicy = "Replace"
+	PushSecretUpdatePolicyIfNotExists PushSecretUpdatePolicy = "IfNotExists"
+)
+
 // +kubebuilder:validation:Enum=Delete;None
 type PushSecretDeletionPolicy string
 
@@ -49,11 +57,23 @@ const (
 	PushSecretDeletionPolicyNone   PushSecretDeletionPolicy = "None"
 )
 
+// +kubebuilder:validation:Enum=None;ReverseUnicode
+type PushSecretConversionStrategy string
+
+const (
+	PushSecretConversionNone           PushSecretConversionStrategy = "None"
+	PushSecretConversionReverseUnicode PushSecretConversionStrategy = "ReverseUnicode"
+)
+
 // PushSecretSpec configures the behavior of the PushSecret.
 type PushSecretSpec struct {
 	// The Interval to which External Secrets will try to push a secret definition
 	RefreshInterval *metav1.Duration     `json:"refreshInterval,omitempty"`
 	SecretStoreRefs []PushSecretStoreRef `json:"secretStoreRefs"`
+	// UpdatePolicy to handle Secrets in the provider. Possible Values: "Replace/IfNotExists". Defaults to "Replace".
+	// +kubebuilder:default="Replace"
+	// +optional
+	UpdatePolicy PushSecretUpdatePolicy `json:"updatePolicy,omitempty"`
 	// Deletion Policy to handle Secrets in the provider. Possible Values: "Delete/None". Defaults to "None".
 	// +kubebuilder:default="None"
 	// +optional
@@ -109,6 +129,10 @@ type PushSecretData struct {
 	// The structure of metadata is provider specific, please look it up in the provider documentation.
 	// +optional
 	Metadata *apiextensionsv1.JSON `json:"metadata,omitempty"`
+	// +optional
+	// Used to define a conversion Strategy for the secret keys
+	// +kubebuilder:default="None"
+	ConversionStrategy PushSecretConversionStrategy `json:"conversionStrategy,omitempty"`
 }
 
 func (d PushSecretData) GetMetadata() *apiextensionsv1.JSON {
@@ -148,6 +172,7 @@ type PushSecretStatusCondition struct {
 	// +optional
 	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
 }
+
 type SyncedPushSecretsMap map[string]map[string]PushSecretData
 
 // PushSecretStatus indicates the history of the status of PushSecret.
@@ -159,7 +184,8 @@ type PushSecretStatus struct {
 
 	// SyncedResourceVersion keeps track of the last synced version.
 	SyncedResourceVersion string `json:"syncedResourceVersion,omitempty"`
-	// Synced Push Secrets for later deletion. Matches Secret Stores to PushSecretData that was stored to that secretStore.
+	// Synced PushSecrets, including secrets that already exist in provider.
+	// Matches secret stores to PushSecretData that was stored to that secret store.
 	// +optional
 	SyncedPushSecrets SyncedPushSecretsMap `json:"syncedPushSecrets,omitempty"`
 	// +optional

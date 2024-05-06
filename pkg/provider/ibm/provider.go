@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package ibm
 
 import (
@@ -59,6 +60,7 @@ const (
 	errJSONSecretUnmarshal     = "unable to unmarshal secret: %w"
 	errJSONSecretMarshal       = "unable to marshal secret: %w"
 	errExtractingSecret        = "unable to extract the fetched secret %s of type %s while performing %s"
+	errNotImplemented          = "not implemented"
 )
 
 var contextTimeout = time.Minute * 2
@@ -96,18 +98,22 @@ func (c *client) setAuth(ctx context.Context) error {
 }
 
 func (ibm *providerIBM) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf(errNotImplemented)
+}
+
+func (ibm *providerIBM) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf(errNotImplemented)
 }
 
 // Not Implemented PushSecret.
 func (ibm *providerIBM) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf(errNotImplemented)
 }
 
 // Empty GetAllSecrets.
 func (ibm *providerIBM) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	return nil, fmt.Errorf(errNotImplemented)
 }
 
 func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
@@ -503,7 +509,7 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 		if err != nil {
 			return nil, err
 		}
-		m := make(map[string]interface{})
+		m := make(map[string]any)
 		err = json.Unmarshal(secret, &m)
 		if err != nil {
 			return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
@@ -516,7 +522,7 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 	}
 }
 
-func byteArrayMap(secretData map[string]interface{}, secretMap map[string][]byte) map[string][]byte {
+func byteArrayMap(secretData map[string]any, secretMap map[string][]byte) map[string][]byte {
 	var err error
 	for k, v := range secretData {
 		secretMap[k], err = utils.GetByteValue(v)
@@ -688,15 +694,15 @@ func init() {
 }
 
 // populateSecretMap populates the secretMap with metadata information that is pulled from IBM provider.
-func populateSecretMap(secretMap map[string][]byte, secretDataMap map[string]interface{}) map[string][]byte {
+func populateSecretMap(secretMap map[string][]byte, secretDataMap map[string]any) map[string][]byte {
 	for key, value := range secretDataMap {
 		secretMap[key] = []byte(fmt.Sprintf("%v", value))
 	}
 	return secretMap
 }
 
-func formSecretMap(secretData interface{}) (map[string]interface{}, error) {
-	secretDataMap := make(map[string]interface{})
+func formSecretMap(secretData any) (map[string]any, error) {
+	secretDataMap := make(map[string]any)
 	data, err := json.Marshal(secretData)
 	if err != nil {
 		return nil, fmt.Errorf(errJSONSecretMarshal, err)

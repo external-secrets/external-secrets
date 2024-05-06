@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package log
 
 import (
@@ -18,6 +19,6 @@ import (
 )
 
 // Logf logs the format string to ginkgo stdout.
-func Logf(format string, args ...interface{}) {
+func Logf(format string, args ...any) {
 	ginkgo.GinkgoWriter.Printf(format+"\n", args...)
 }

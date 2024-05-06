@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package cmd
 
 import (
@@ -25,8 +26,6 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	// To allow using gcp auth.
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,6 +48,9 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/cssmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics"
 	"github.com/external-secrets/external-secrets/pkg/feature"
+
+	// To allow using gcp auth.
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
 var (

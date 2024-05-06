@@ -113,9 +113,9 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						fakeKey: fakeValue,
-						"custom_metadata": map[string]interface{}{
+						"custom_metadata": map[string]any{
 							managedBy: "another-secret-tool",
 						},
 					}, nil),
@@ -132,11 +132,11 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
-						"data": map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
+						"data": map[string]any{
 							fakeKey: fakeValue,
 						},
-						"custom_metadata": map[string]interface{}{
+						"custom_metadata": map[string]any{
 							managedBy: "another-secret-tool",
 						},
 					}, nil),
@@ -153,9 +153,9 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						fakeKey: fakeValue,
-						"custom_metadata": map[string]interface{}{
+						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
 					}, nil),
@@ -172,11 +172,11 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
-						"data": map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
+						"data": map[string]any{
 							fakeKey: fakeValue,
 						},
-						"custom_metadata": map[string]interface{}{
+						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
 					}, nil),
@@ -193,9 +193,9 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						fakeKey: fakeValue,
-						"custom_metadata": map[string]interface{}{
+						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
 					}, nil),
@@ -212,11 +212,11 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
-						"data": map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
+						"data": map[string]any{
 							fakeKey: fakeValue,
 						},
-						"custom_metadata": map[string]interface{}{
+						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
 					}, nil),
@@ -234,16 +234,16 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						fakeKey: fakeValue,
 						"foo":   "bar",
-						"custom_metadata": map[string]interface{}{
+						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
 					}, nil),
-					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]interface{}{
+					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]any{
 						"foo": "bar",
-						"custom_metadata": map[string]interface{}{
+						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						}}),
 					DeleteWithContextFn: fake.ExpectDeleteWithContextNoCall(),
@@ -259,16 +259,16 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
-						"data": map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
+						"data": map[string]any{
 							fakeKey: fakeValue,
 							"foo":   "bar",
 						},
-						"custom_metadata": map[string]interface{}{
+						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
 					}, nil),
-					WriteWithContextFn:  fake.ExpectWriteWithContextValue(map[string]interface{}{"data": map[string]interface{}{"foo": "bar"}}),
+					WriteWithContextFn:  fake.ExpectWriteWithContextValue(map[string]any{"data": map[string]any{"foo": "bar"}}),
 					DeleteWithContextFn: fake.ExpectDeleteWithContextNoCall(),
 				},
 			},
@@ -282,9 +282,9 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"foo": "bar",
-						"custom_metadata": map[string]interface{}{
+						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
 					}, nil),
@@ -302,11 +302,11 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
-						"data": map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
+						"data": map[string]any{
 							"foo": "bar",
 						},
-						"custom_metadata": map[string]interface{}{
+						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
 					}, nil),
@@ -362,6 +362,7 @@ func TestPushSecret(t *testing.T) {
 		want   want
 		data   *testingfake.PushSecretData
 		value  []byte
+		secret *corev1.Secret
 	}{
 		"SetSecretKV1": {
 			reason: "secret is successfully set, with no existing vault secret",
@@ -420,9 +421,9 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						fakeKey: fakeValue,
-						"custom_metadata": map[string]interface{}{
+						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
 					}, nil),
@@ -437,11 +438,11 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
-						"data": map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
+						"data": map[string]any{
 							fakeKey: fakeValue,
 						},
-						"custom_metadata": map[string]interface{}{
+						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
 					}, nil),
@@ -458,13 +459,13 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						fakeKey: fakeValue,
-						"custom_metadata": map[string]interface{}{
+						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
 					}, nil),
-					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]interface{}{
+					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]any{
 						fakeKey: fakeValue,
 						"custom_metadata": map[string]string{
 							managedBy: managedByESO,
@@ -484,15 +485,15 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
-						"data": map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
+						"data": map[string]any{
 							fakeKey: fakeValue,
 						},
-						"custom_metadata": map[string]interface{}{
+						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
 					}, nil),
-					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]interface{}{"data": map[string]interface{}{fakeKey: fakeValue, "foo": fakeValue}}),
+					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]any{"data": map[string]any{fakeKey: fakeValue, "foo": fakeValue}}),
 				},
 			},
 			want: want{
@@ -506,13 +507,13 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"foo": fakeValue,
-						"custom_metadata": map[string]interface{}{
+						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
 					}, nil),
-					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]interface{}{
+					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]any{
 						"foo": "new-value",
 						"custom_metadata": map[string]string{
 							managedBy: managedByESO,
@@ -531,15 +532,15 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
-						"data": map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
+						"data": map[string]any{
 							"foo": fakeValue,
 						},
-						"custom_metadata": map[string]interface{}{
+						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
 					}, nil),
-					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]interface{}{"data": map[string]interface{}{"foo": "new-value"}}),
+					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]any{"data": map[string]any{"foo": "new-value"}}),
 				},
 			},
 			want: want{
@@ -553,9 +554,9 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"foo": fakeValue,
-						"custom_metadata": map[string]interface{}{
+						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
 					}, nil),
@@ -573,11 +574,11 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
-						"data": map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
+						"data": map[string]any{
 							"foo": fakeValue,
 						},
-						"custom_metadata": map[string]interface{}{
+						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
 					}, nil),
@@ -617,9 +618,9 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						fakeKey: "fake-value2",
-						"custom_metadata": map[string]interface{}{
+						"custom_metadata": map[string]any{
 							managedBy: "not-external-secrets",
 						},
 					}, nil),
@@ -634,10 +635,10 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]interface{}{
-						"data": map[string]interface{}{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
+						"data": map[string]any{
 							fakeKey: "fake-value2",
-							"custom_metadata": map[string]interface{}{
+							"custom_metadata": map[string]any{
 								managedBy: "not-external-secrets",
 							},
 						},
@@ -646,6 +647,21 @@ func TestPushSecret(t *testing.T) {
 			},
 			want: want{
 				err: errors.New("secret not managed by external-secrets"),
+			},
+		},
+		"WholeSecretKV2": {
+			reason: "secret is successfully set, with no existing vault secret",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
+					WriteWithContextFn:        fake.ExpectWriteWithContextValue(map[string]any{"data": map[string]any{"key1": "value1", "key2": "value2"}}),
+				},
+			},
+			data:   &testingfake.PushSecretData{SecretKey: "", RemoteKey: "secret", Property: ""},
+			secret: &corev1.Secret{Data: map[string][]byte{"key1": []byte(`value1`), "key2": []byte(`value2`)}},
+			want: want{
+				err: nil,
 			},
 		},
 	}
@@ -660,11 +676,14 @@ func TestPushSecret(t *testing.T) {
 				logical: tc.args.vLogical,
 				store:   tc.args.store,
 			}
-			val := tc.value
-			if val == nil {
-				val = []byte(`{"fake-key":"fake-value"}`)
+			s := tc.secret
+			if s == nil {
+				val := tc.value
+				if val == nil {
+					val = []byte(`{"fake-key":"fake-value"}`)
+				}
+				s = &corev1.Secret{Data: map[string][]byte{secretKey: val}}
 			}
-			s := &corev1.Secret{Data: map[string][]byte{secretKey: val}}
 			err := client.PushSecret(context.Background(), s, data)
 
 			// Error nil XOR tc.want.err nil

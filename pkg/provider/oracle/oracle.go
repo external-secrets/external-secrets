@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package oracle
 
 import (
@@ -156,6 +157,10 @@ func (vms *VaultManagementService) DeleteSecret(ctx context.Context, remoteRef e
 	default:
 		return sanitizeOCISDKErr(err)
 	}
+}
+
+func (vms *VaultManagementService) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
 }
 
 func (vms *VaultManagementService) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
@@ -345,7 +350,7 @@ func (vms *VaultManagementService) getSecretBundleWithCode(ctx context.Context, 
 func getSecretBundleCode(err error) int {
 	if err != nil {
 		// If we got a 404 service error, try to create the secret.
-		//nolint:all
+
 		if serviceErr, ok := err.(common.ServiceError); ok && serviceErr.GetHTTPStatusCode() == 404 {
 			return SecretNotFound
 		}
@@ -588,7 +593,7 @@ func sanitizeOCISDKErr(err error) error {
 		return nil
 	}
 	// If we have a ServiceError from the OCI SDK, strip only the message from the verbose error
-	//nolint:all
+
 	if serviceError, ok := err.(common.ServiceErrorRichInfo); ok {
 		return fmt.Errorf("%s service failed to %s, HTTP status code %d: %s", serviceError.GetTargetService(), serviceError.GetOperationName(), serviceError.GetHTTPStatusCode(), serviceError.GetMessage())
 	}

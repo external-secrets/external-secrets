@@ -35,8 +35,10 @@ import (
 const (
 	customBaseURLEnvVar                                = "DOPPLER_BASE_URL"
 	verifyTLSOverrideEnvVar                            = "DOPPLER_VERIFY_TLS"
-	errGetSecret                                       = "could not get secret %s: %s"
-	errGetSecrets                                      = "could not get secrets %s"
+	errGetSecret                                       = "could not get secret %s: %w"
+	errGetSecrets                                      = "could not get secrets %w"
+	errDeleteSecrets                                   = "could not delete secrets %s: %w"
+	errPushSecrets                                     = "could not push secrets %s: %w"
 	errUnmarshalSecretMap                              = "unable to unmarshal secret %s: %w"
 	secretsDownloadFileKey                             = "DOPPLER_SECRETS_FILE"
 	errDopplerTokenSecretName                          = "missing auth.secretRef.dopplerToken.name"
@@ -63,6 +65,7 @@ type SecretsClientInterface interface {
 	Authenticate() error
 	GetSecret(request dClient.SecretRequest) (*dClient.SecretResponse, error)
 	GetSecrets(request dClient.SecretsRequest) (*dClient.SecretsResponse, error)
+	UpdateSecrets(request dClient.UpdateSecretsRequest) error
 }
 
 func (c *Client) setAuth(ctx context.Context) error {
@@ -94,12 +97,48 @@ func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
 }
 
-func (c *Client) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf("not implemented")
+func (c *Client) DeleteSecret(_ context.Context, ref esv1beta1.PushSecretRemoteRef) error {
+	request := dClient.UpdateSecretsRequest{
+		ChangeRequests: []dClient.Change{
+			{
+				Name:         ref.GetRemoteKey(),
+				OriginalName: ref.GetRemoteKey(),
+				ShouldDelete: true,
+			},
+		},
+		Project: c.project,
+		Config:  c.config,
+	}
+
+	err := c.doppler.UpdateSecrets(request)
+	if err != nil {
+		return fmt.Errorf(errDeleteSecrets, ref.GetRemoteKey(), err)
+	}
+
+	return nil
 }
 
-func (c *Client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return fmt.Errorf("not implemented")
+func (c *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
+func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	value := secret.Data[data.GetSecretKey()]
+
+	request := dClient.UpdateSecretsRequest{
+		Secrets: dClient.Secrets{
+			data.GetRemoteKey(): string(value),
+		},
+		Project: c.project,
+		Config:  c.config,
+	}
+
+	err := c.doppler.UpdateSecrets(request)
+	if err != nil {
+		return fmt.Errorf(errPushSecrets, data.GetRemoteKey(), err)
+	}
+
+	return nil
 }
 
 func (c *Client) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {

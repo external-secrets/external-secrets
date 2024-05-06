@@ -100,6 +100,10 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecre
 	return c.fullDelete(ctx, remoteRef.GetRemoteKey())
 }
 
+func (c *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, fmt.Errorf("not implemented")
+}
+
 func (c *Client) PushSecret(ctx context.Context, secret *v1.Secret, data esv1beta1.PushSecretData) error {
 	if data.GetProperty() == "" && data.GetSecretKey() != "" {
 		return fmt.Errorf("requires property in RemoteRef to push secret value if secret key is defined")
@@ -228,7 +232,7 @@ func getMapFromValues(property, jsonStr string) (map[string][]byte, error) {
 	val := gjson.Get(jsonStr, property)
 	if val.Exists() {
 		retMap := make(map[string][]byte)
-		var tmpMap map[string]interface{}
+		var tmpMap map[string]any
 		decoded, err := base64.StdEncoding.DecodeString(val.String())
 		if err != nil {
 			return nil, err

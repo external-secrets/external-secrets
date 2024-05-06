@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package onepassword
 
 import (
@@ -28,7 +29,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	fake "github.com/external-secrets/external-secrets/pkg/provider/onepassword/fake"
+	"github.com/external-secrets/external-secrets/pkg/provider/onepassword/fake"
 )
 
 const (
@@ -2046,7 +2047,7 @@ func TestProviderOnePasswordPushSecret(t *testing.T) {
 				},
 			},
 			updateValidateFunc: func(item *onepassword.Item, s string) (*onepassword.Item, error) {
-				validateItem(t, &onepassword.Item{
+				expectedItem := &onepassword.Item{
 					Vault: onepassword.ItemVault{
 						ID: vaultName,
 					},
@@ -2062,8 +2063,9 @@ func TestProviderOnePasswordPushSecret(t *testing.T) {
 							Type:  onepassword.FieldTypeConcealed,
 						},
 					},
-				}, item)
-				return nil, nil
+				}
+				validateItem(t, expectedItem, item)
+				return expectedItem, nil
 			},
 			existingItems: []onepassword.Item{
 				{

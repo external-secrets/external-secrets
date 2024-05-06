@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package template
 
 import (
@@ -23,7 +24,7 @@ import (
 // always return a string, even on marshal error (empty string).
 //
 // This is designed to be called from a template.
-func toYAML(v interface{}) string {
+func toYAML(v any) string {
 	data, err := yaml.Marshal(v)
 	if err != nil {
 		// Swallow errors inside of a template.
@@ -32,14 +33,14 @@ func toYAML(v interface{}) string {
 	return strings.TrimSuffix(string(data), "\n")
 }
 
-// fromYAML converts a YAML document into a map[string]interface{}.
+// fromYAML converts a YAML document into a map[string]any.
 //
 // This is not a general-purpose YAML parser, and will not parse all valid
 // YAML documents. Additionally, because its intended use is within templates
 // it tolerates errors. It will insert the returned error message string into
 // m["Error"] in the returned map.
-func fromYAML(str string) map[string]interface{} {
-	m := map[string]interface{}{}
+func fromYAML(str string) map[string]any {
+	m := map[string]any{}
 
 	if err := yaml.Unmarshal([]byte(str), &m); err != nil {
 		m["Error"] = err.Error()

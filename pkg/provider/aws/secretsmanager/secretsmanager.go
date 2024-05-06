@@ -40,6 +40,14 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
+	"github.com/external-secrets/external-secrets/pkg/utils"
+)
+
+// Declares metadata information for pushing secrets to AWS Secret Store.
+const (
+	SecretPushFormatKey    = "secretPushFormat"
+	SecretPushFormatString = "string"
+	SecretPushFormatBinary = "binary"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -204,6 +212,29 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	return err
 }
 
+func (sm *SecretsManager) SecretExists(ctx context.Context, pushSecretRef esv1beta1.PushSecretRemoteRef) (bool, error) {
+	secretName := pushSecretRef.GetRemoteKey()
+	secretValue := awssm.GetSecretValueInput{
+		SecretId: &secretName,
+	}
+	_, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
+	if err != nil {
+		return sm.handleSecretError(err)
+	}
+	return true, nil
+}
+
+func (sm *SecretsManager) handleSecretError(err error) (bool, error) {
+	var aerr awserr.Error
+	if ok := errors.As(err, &aerr); !ok {
+		return false, err
+	}
+	if aerr.Code() == awssm.ErrCodeResourceNotFoundException {
+		return true, nil
+	}
+	return false, err
+}
+
 func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret, psd esv1beta1.PushSecretData) error {
 	if psd.GetSecretKey() == "" {
 		return fmt.Errorf("pushing the whole secret is not yet implemented")
@@ -211,15 +242,6 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 
 	secretName := psd.GetRemoteKey()
 	value := secret.Data[psd.GetSecretKey()]
-	managedBy := managedBy
-	externalSecrets := externalSecrets
-	externalSecretsTag := []*awssm.Tag{
-		{
-			Key:   &managedBy,
-			Value: &externalSecrets,
-		},
-	}
-
 	secretValue := awssm.GetSecretValueInput{
 		SecretId: &secretName,
 	}
@@ -244,44 +266,15 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 		if ok := errors.As(err, &aerr); !ok {
 			return err
 		}
+
 		if aerr.Code() == awssm.ErrCodeResourceNotFoundException {
-			secretVersion := initialVersion
-			secretRequest := awssm.CreateSecretInput{
-				Name:               &secretName,
-				SecretBinary:       value,
-				Tags:               externalSecretsTag,
-				ClientRequestToken: &secretVersion,
-			}
-			_, err = sm.client.CreateSecretWithContext(ctx, &secretRequest)
-			metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMCreateSecret, err)
-			return err
+			return sm.createSecretWithContext(ctx, secretName, psd, value)
 		}
+
 		return err
-	}
-	data, err := sm.client.DescribeSecretWithContext(ctx, &secretInput)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDescribeSecret, err)
-	if err != nil {
-		return err
-	}
-	if !isManagedByESO(data) {
-		return fmt.Errorf("secret not managed by external-secrets")
-	}
-	if awsSecret != nil && bytes.Equal(awsSecret.SecretBinary, value) {
-		return nil
 	}
 
-	newVersionNumber, err := bumpVersionNumber(awsSecret.VersionId)
-	if err != nil {
-		return err
-	}
-	input := &awssm.PutSecretValueInput{
-		SecretId:           awsSecret.ARN,
-		SecretBinary:       value,
-		ClientRequestToken: newVersionNumber,
-	}
-	_, err = sm.client.PutSecretValueWithContext(ctx, input)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutSecretValue, err)
-	return err
+	return sm.putSecretValueWithContext(ctx, secretInput, awsSecret, psd, value)
 }
 
 func padOrTrim(b []byte) []byte {
@@ -557,4 +550,67 @@ func (sm *SecretsManager) Validate() (esv1beta1.ValidationResult, error) {
 
 func (sm *SecretsManager) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadWrite
+}
+
+func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretName string, psd esv1beta1.PushSecretData, value []byte) error {
+	secretPushFormat, err := utils.FetchValueFromMetadata(SecretPushFormatKey, psd.GetMetadata(), SecretPushFormatBinary)
+	if err != nil {
+		return fmt.Errorf("failed to parse metadata: %w", err)
+	}
+
+	input := &awssm.CreateSecretInput{
+		Name:         &secretName,
+		SecretBinary: value,
+		Tags: []*awssm.Tag{
+			{
+				Key:   utilpointer.To(managedBy),
+				Value: utilpointer.To(externalSecrets),
+			},
+		},
+		ClientRequestToken: utilpointer.To(initialVersion),
+	}
+	if secretPushFormat == SecretPushFormatString {
+		input.SetSecretBinary(nil).SetSecretString(string(value))
+	}
+
+	_, err = sm.client.CreateSecretWithContext(ctx, input)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMCreateSecret, err)
+
+	return err
+}
+
+func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretInput awssm.DescribeSecretInput, awsSecret *awssm.GetSecretValueOutput, psd esv1beta1.PushSecretData, value []byte) error {
+	data, err := sm.client.DescribeSecretWithContext(ctx, &secretInput)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDescribeSecret, err)
+	if err != nil {
+		return err
+	}
+	if !isManagedByESO(data) {
+		return fmt.Errorf("secret not managed by external-secrets")
+	}
+	if awsSecret != nil && bytes.Equal(awsSecret.SecretBinary, value) || utils.CompareStringAndByteSlices(awsSecret.SecretString, value) {
+		return nil
+	}
+
+	newVersionNumber, err := bumpVersionNumber(awsSecret.VersionId)
+	if err != nil {
+		return err
+	}
+	input := &awssm.PutSecretValueInput{
+		SecretId:           awsSecret.ARN,
+		SecretBinary:       value,
+		ClientRequestToken: newVersionNumber,
+	}
+	secretPushFormat, err := utils.FetchValueFromMetadata(SecretPushFormatKey, psd.GetMetadata(), SecretPushFormatBinary)
+	if err != nil {
+		return fmt.Errorf("failed to parse metadata: %w", err)
+	}
+	if secretPushFormat == SecretPushFormatString {
+		input.SetSecretBinary(nil).SetSecretString(string(value))
+	}
+
+	_, err = sm.client.PutSecretValueWithContext(ctx, input)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutSecretValue, err)
+
+	return err
 }

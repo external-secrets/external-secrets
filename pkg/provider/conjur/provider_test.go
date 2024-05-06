@@ -39,10 +39,13 @@ import (
 )
 
 var (
-	svcURL     = "https://example.com"
-	svcUser    = "user"
-	svcApikey  = "apikey"
-	svcAccount = "account1"
+	svcURL           = "https://example.com"
+	svcUser          = "user"
+	svcApikey        = "apikey"
+	svcAccount       = "account1"
+	jwtAuthenticator = "jwt-authenticator"
+	jwtAuthnService  = "jwt-auth-service"
+	jwtSecretName    = "jwt-secret"
 )
 
 func makeValidRef(k string) *esv1beta1.ExternalSecretDataRemoteRef {
@@ -52,74 +55,16 @@ func makeValidRef(k string) *esv1beta1.ExternalSecretDataRemoteRef {
 	}
 }
 
-type ValidateStoreTestCase struct {
-	store *esv1beta1.SecretStore
-	err   error
-}
-
-func TestValidateStore(t *testing.T) {
-	testCases := []ValidateStoreTestCase{
-		{
-			store: makeAPIKeySecretStore(svcURL, svcUser, svcApikey, svcAccount),
-			err:   nil,
-		},
-		{
-			store: makeAPIKeySecretStore("", svcUser, svcApikey, svcAccount),
-			err:   fmt.Errorf("conjur URL cannot be empty"),
-		},
-		{
-			store: makeAPIKeySecretStore(svcURL, "", svcApikey, svcAccount),
-			err:   fmt.Errorf("missing Auth.Apikey.UserRef"),
-		},
-		{
-			store: makeAPIKeySecretStore(svcURL, svcUser, "", svcAccount),
-			err:   fmt.Errorf("missing Auth.Apikey.ApiKeyRef"),
-		},
-		{
-			store: makeAPIKeySecretStore(svcURL, svcUser, svcApikey, ""),
-			err:   fmt.Errorf("missing Auth.ApiKey.Account"),
-		},
-
-		{
-			store: makeJWTSecretStore(svcURL, "conjur", "", "jwt-auth-service", "myconjuraccount"),
-			err:   nil,
-		},
-		{
-			store: makeJWTSecretStore(svcURL, "", "jwt-secret", "jwt-auth-service", "myconjuraccount"),
-			err:   nil,
-		},
-		{
-			store: makeJWTSecretStore(svcURL, "conjur", "", "jwt-auth-service", ""),
-			err:   fmt.Errorf("missing Auth.Jwt.Account"),
-		},
-		{
-			store: makeJWTSecretStore(svcURL, "conjur", "", "", "myconjuraccount"),
-			err:   fmt.Errorf("missing Auth.Jwt.ServiceID"),
-		},
-		{
-			store: makeJWTSecretStore("", "conjur", "", "jwt-auth-service", "myconjuraccount"),
-			err:   fmt.Errorf("conjur URL cannot be empty"),
-		},
-		{
-			store: makeJWTSecretStore(svcURL, "", "", "jwt-auth-service", "myconjuraccount"),
-			err:   fmt.Errorf("must specify Auth.Jwt.SecretRef or Auth.Jwt.ServiceAccountRef"),
-		},
-
-		{
-			store: makeNoAuthSecretStore(svcURL),
-			err:   fmt.Errorf("missing Auth.* configuration"),
-		},
-	}
-	c := Provider{}
-	for _, tc := range testCases {
-		_, err := c.ValidateStore(tc.store)
-		if tc.err != nil && err != nil && err.Error() != tc.err.Error() {
-			t.Errorf("test failed! want %v, got %v", tc.err, err)
-		} else if tc.err == nil && err != nil {
-			t.Errorf("want nil got err %v", err)
-		} else if tc.err != nil && err == nil {
-			t.Errorf("want err %v got nil", tc.err)
+func makeValidFindRef(search string, tags map[string]string) *esv1beta1.ExternalSecretFind {
+	var name *esv1beta1.FindName
+	if search != "" {
+		name = &esv1beta1.FindName{
+			RegExp: search,
 		}
+	}
+	return &esv1beta1.ExternalSecretFind{
+		Name: name,
+		Tags: tags,
 	}
 }
 
@@ -175,7 +120,22 @@ func TestGetSecret(t *testing.T) {
 		"JwtWithServiceAccountRefReadSecretSuccess": {
 			reason: "Should read a secret successfully using a JWT auth secret store that references a k8s service account.",
 			args: args{
-				store: makeJWTSecretStore(svcURL, "my-service-account", "", "jwt-authenticator", "myconjuraccount"),
+				store: makeJWTSecretStore(svcURL, svcAccount, "", jwtAuthenticator, "", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects().Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+				corev1:     utilfake.NewCreateTokenMock().WithToken(createFakeJwtToken(true)),
+			},
+			want: want{
+				err:   nil,
+				value: "secret",
+			},
+		},
+		"JwtWithServiceAccountRefWithHostIdReadSecretSuccess": {
+			reason: "Should read a secret successfully using a JWT auth secret store that references a k8s service account and uses a host ID.",
+			args: args{
+				store: makeJWTSecretStore(svcURL, svcAccount, "", jwtAuthenticator, "myhostid", "myconjuraccount"),
 				kube: clientfake.NewClientBuilder().
 					WithObjects().Build(),
 				namespace:  "default",
@@ -190,11 +150,11 @@ func TestGetSecret(t *testing.T) {
 		"JwtWithSecretRefReadSecretSuccess": {
 			reason: "Should read a secret successfully using an JWT auth secret store that references a k8s secret.",
 			args: args{
-				store: makeJWTSecretStore(svcURL, "", "jwt-secret", "jwt-authenticator", "myconjuraccount"),
+				store: makeJWTSecretStore(svcURL, "", jwtSecretName, jwtAuthenticator, "", "myconjuraccount"),
 				kube: clientfake.NewClientBuilder().
 					WithObjects(&corev1.Secret{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      "jwt-secret",
+							Name:      jwtSecretName,
 							Namespace: "default",
 						},
 						Data: map[string][]byte{
@@ -212,7 +172,7 @@ func TestGetSecret(t *testing.T) {
 		"JwtWithCABundleSuccess": {
 			reason: "Should read a secret successfully using a JWT auth secret store that references a k8s service account.",
 			args: args{
-				store: makeJWTSecretStore(svcURL, "my-service-account", "", "jwt-authenticator", "myconjuraccount"),
+				store: makeJWTSecretStore(svcURL, svcAccount, "", jwtAuthenticator, "", "myconjuraccount"),
 				kube: clientfake.NewClientBuilder().
 					WithObjects().Build(),
 				namespace:  "default",
@@ -236,6 +196,239 @@ func TestGetSecret(t *testing.T) {
 		secretString := string(secret)
 		if secretString != tc.want.value {
 			t.Errorf("\n%s\nconjur.GetSecret(...): want value %v got %v", tc.reason, tc.want.value, secretString)
+		}
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			runTest(t, name, tc)
+		})
+	}
+}
+
+func TestGetAllSecrets(t *testing.T) {
+	type args struct {
+		store     esv1beta1.GenericStore
+		kube      kclient.Client
+		corev1    typedcorev1.CoreV1Interface
+		namespace string
+		search    string
+		tags      map[string]string
+	}
+
+	type want struct {
+		err    error
+		values map[string][]byte
+	}
+
+	type testCase struct {
+		reason string
+		args   args
+		want   want
+	}
+
+	cases := map[string]testCase{
+		"SimpleSearchSingleResultSuccess": {
+			reason: "Should search for secrets successfully using a simple string.",
+			args: args{
+				store: makeAPIKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeAPIKeySecrets()...).Build(),
+				namespace: "default",
+				search:    "secret1",
+			},
+			want: want{
+				err: nil,
+				values: map[string][]byte{
+					"secret1": []byte("secret"),
+				},
+			},
+		},
+		"RegexSearchMultipleResultsSuccess": {
+			reason: "Should search for secrets successfully using a regex and return multiple results.",
+			args: args{
+				store: makeAPIKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeAPIKeySecrets()...).Build(),
+				namespace: "default",
+				search:    "^secret[1,2]$",
+			},
+			want: want{
+				err: nil,
+				values: map[string][]byte{
+					"secret1": []byte("secret"),
+					"secret2": []byte("secret"),
+				},
+			},
+		},
+		"RegexSearchInvalidRegexFailure": {
+			reason: "Should fail to search for secrets using an invalid regex.",
+			args: args{
+				store: makeAPIKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeAPIKeySecrets()...).Build(),
+				namespace: "default",
+				search:    "^secret[1,2", // Missing `]`
+			},
+			want: want{
+				err:    fmt.Errorf("could not compile find.name.regexp [%s]: %w", "^secret[1,2", fmt.Errorf("error parsing regexp: missing closing ]: `[1,2`")),
+				values: nil,
+			},
+		},
+		"SimpleSearchNoResultsSuccess": {
+			reason: "Should search for secrets successfully using a simple string and return no results.",
+			args: args{
+				store: makeAPIKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeAPIKeySecrets()...).Build(),
+				namespace: "default",
+				search:    "nonexistent",
+			},
+			want: want{
+				err:    nil,
+				values: map[string][]byte{},
+			},
+		},
+		"TagSearchSingleResultSuccess": {
+			reason: "Should search for secrets successfully using a tag.",
+			args: args{
+				store: makeAPIKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeAPIKeySecrets()...).Build(),
+				namespace: "default",
+				tags: map[string]string{
+					"conjur/kind": "password",
+				},
+			},
+			want: want{
+				err: nil,
+				values: map[string][]byte{
+					"secret2": []byte("secret"),
+				},
+			},
+		},
+	}
+
+	runTest := func(t *testing.T, _ string, tc testCase) {
+		provider, _ := newConjurProvider(context.Background(), tc.args.store, tc.args.kube, tc.args.namespace, tc.args.corev1, &ConjurMockAPIClient{})
+		ref := makeValidFindRef(tc.args.search, tc.args.tags)
+		secrets, err := provider.GetAllSecrets(context.Background(), *ref)
+		if diff := cmp.Diff(tc.want.err, err, EquateErrors()); diff != "" {
+			t.Errorf("\n%s\nconjur.GetAllSecrets(...): -want error, +got error:\n%s", tc.reason, diff)
+		}
+		if diff := cmp.Diff(tc.want.values, secrets); diff != "" {
+			t.Errorf("\n%s\nconjur.GetAllSecrets(...): -want, +got:\n%s", tc.reason, diff)
+		}
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			runTest(t, name, tc)
+		})
+	}
+}
+
+func TestGetSecretMap(t *testing.T) {
+	type args struct {
+		store     esv1beta1.GenericStore
+		kube      kclient.Client
+		corev1    typedcorev1.CoreV1Interface
+		namespace string
+		ref       *esv1beta1.ExternalSecretDataRemoteRef
+	}
+
+	type want struct {
+		err error
+		val map[string][]byte
+	}
+
+	type testCase struct {
+		reason string
+		args   args
+		want   want
+	}
+
+	cases := map[string]testCase{
+		"ReadJsonSecret": {
+			reason: "Should read a JSON key value secret.",
+			args: args{
+				store: makeAPIKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeAPIKeySecrets()...).Build(),
+				namespace: "default",
+				ref:       makeValidRef("json_map"),
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"key1": []byte("value1"),
+					"key2": []byte("value2"),
+				},
+			},
+		},
+		"ReadJsonSecretFailure": {
+			reason: "Should fail to read a non JSON secret",
+			args: args{
+				store: makeAPIKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeAPIKeySecrets()...).Build(),
+				namespace: "default",
+				ref:       makeValidRef("secret1"),
+			},
+			want: want{
+				err: fmt.Errorf("%w", fmt.Errorf("unable to unmarshal secret secret1: invalid character 's' looking for beginning of value")),
+				val: nil,
+			},
+		},
+		"ReadJsonSecretSpecificKey": {
+			reason: "Should read a specific key from a JSON secret.",
+			args: args{
+				store: makeAPIKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeAPIKeySecrets()...).Build(),
+				namespace: "default",
+				ref: &esv1beta1.ExternalSecretDataRemoteRef{
+					Key:      "json_nested",
+					Version:  "default",
+					Property: "key2",
+				},
+			},
+			want: want{
+				err: nil,
+				val: map[string][]byte{
+					"key3": []byte("value3"),
+					"key4": []byte("value4"),
+				},
+			},
+		},
+		"ReadJsonSecretSpecificKeyNotFound": {
+			reason: "Should fail to read a nonexistent key from a JSON secret.",
+			args: args{
+				store: makeAPIKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeAPIKeySecrets()...).Build(),
+				namespace: "default",
+				ref: &esv1beta1.ExternalSecretDataRemoteRef{
+					Key:      "json_map",
+					Version:  "default",
+					Property: "key3",
+				},
+			},
+			want: want{
+				err: fmt.Errorf("%w", fmt.Errorf("error getting secret json_map: cannot find secret data for key: \"key3\"")),
+				val: nil,
+			},
+		},
+	}
+
+	runTest := func(t *testing.T, _ string, tc testCase) {
+		provider, _ := newConjurProvider(context.Background(), tc.args.store, tc.args.kube, tc.args.namespace, tc.args.corev1, &ConjurMockAPIClient{})
+		val, err := provider.GetSecretMap(context.Background(), *tc.args.ref)
+		if diff := cmp.Diff(tc.want.err, err, EquateErrors()); diff != "" {
+			t.Errorf("\n%s\nconjur.GetSecretMap(...): -want error, +got error:\n%s", tc.reason, diff)
+		}
+		if diff := cmp.Diff(tc.want.val, val); diff != "" {
+			t.Errorf("\n%s\nconjur.GetSecretMap(...): -want val, +got val:\n%s", tc.reason, diff)
 		}
 	}
 
@@ -364,7 +557,7 @@ func makeAPIKeySecretStore(svcURL, svcUser, svcApikey, svcAccount string) *esv1b
 	return store
 }
 
-func makeJWTSecretStore(svcURL, serviceAccountName, secretName, jwtServiceID, conjurAccount string) *esv1beta1.SecretStore {
+func makeJWTSecretStore(svcURL, serviceAccountName, secretName, jwtServiceID, jwtHostID, conjurAccount string) *esv1beta1.SecretStore {
 	serviceAccountRef := &esmeta.ServiceAccountSelector{
 		Name:      serviceAccountName,
 		Audiences: []string{"conjur"},
@@ -392,6 +585,7 @@ func makeJWTSecretStore(svcURL, serviceAccountName, secretName, jwtServiceID, co
 							ServiceID:         jwtServiceID,
 							ServiceAccountRef: serviceAccountRef,
 							SecretRef:         secretRef,
+							HostID:            jwtHostID,
 						},
 					},
 				},
@@ -402,7 +596,7 @@ func makeJWTSecretStore(svcURL, serviceAccountName, secretName, jwtServiceID, co
 }
 
 func makeStoreWithCA(caSource, caData string) *esv1beta1.SecretStore {
-	store := makeJWTSecretStore(svcURL, "conjur", "", "jwt-auth-service", "myconjuraccount")
+	store := makeJWTSecretStore(svcURL, "conjur", "", jwtAuthnService, "", "myconjuraccount")
 	if caSource == "secret" {
 		store.Spec.Provider.Conjur.CAProvider = &esv1beta1.CAProvider{
 			Type: esv1beta1.CAProviderTypeSecret,
@@ -502,7 +696,7 @@ func (c *ConjurMockAPIClient) NewClientFromKey(_ conjurapi.Config, _ authn.Login
 	return &fake.ConjurMockClient{}, nil
 }
 
-func (c *ConjurMockAPIClient) NewClientFromJWT(_ conjurapi.Config, _, _ string) (SecretsClient, error) {
+func (c *ConjurMockAPIClient) NewClientFromJWT(_ conjurapi.Config, _, _, _ string) (SecretsClient, error) {
 	return &fake.ConjurMockClient{}, nil
 }
 

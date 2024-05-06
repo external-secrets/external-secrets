@@ -11,15 +11,18 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package template
 
 import (
 	"bytes"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 
 	"golang.org/x/crypto/pkcs12"
+	gopkcs12 "software.sslmate.com/src/go-pkcs12"
 )
 
 func pkcs12keyPass(pass, input string) (string, error) {
@@ -55,7 +58,7 @@ func pkcs12keyPass(pass, input string) (string, error) {
 	return string(pemData), nil
 }
 
-func parsePrivateKey(block []byte) (interface{}, error) {
+func parsePrivateKey(block []byte) (any, error) {
 	if k, err := x509.ParsePKCS1PrivateKey(block); err == nil {
 		return k, nil
 	}
@@ -106,4 +109,30 @@ func pkcs12certPass(pass, input string) (string, error) {
 
 func pkcs12cert(input string) (string, error) {
 	return pkcs12certPass("", input)
+}
+
+func pemToPkcs12(cert, key string) (string, error) {
+	return pemToPkcs12Pass(cert, key, "")
+}
+
+func pemToPkcs12Pass(cert, key, pass string) (string, error) {
+	certPem, _ := pem.Decode([]byte(cert))
+	keyPem, _ := pem.Decode([]byte(key))
+
+	parsedCert, err := x509.ParseCertificate(certPem.Bytes)
+	if err != nil {
+		return "", err
+	}
+
+	parsedKey, err := parsePrivateKey(keyPem.Bytes)
+	if err != nil {
+		return "", err
+	}
+
+	pfx, err := gopkcs12.Modern.Encode(parsedKey, parsedCert, nil, pass)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(pfx), nil
 }

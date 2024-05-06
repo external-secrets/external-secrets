@@ -1,3 +1,17 @@
+global:
+  nodeSelector: {}
+  tolerations: []
+  topologySpreadConstraints: []
+  affinity: {}
+  compatibility:
+    openshift:
+      # -- Manages the securityContext properties to make them compatible with OpenShift.
+      # Possible values:
+      # auto - Apply configurations if it is detected that OpenShift is the target platform.
+      # force - Always apply configurations.
+      # disabled - No modification applied.
+      adaptSecurityContext: auto
+
 replicaCount: 1
 
 # -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
@@ -31,6 +45,7 @@ crds:
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
+namespaceOverride: ""
 
 # -- Additional labels added to all helm chart resources.
 commonLabels: {}
@@ -71,6 +86,12 @@ createOperator: true
 # a time.
 concurrent: 1
 
+service:
+  # -- Set the ip family policy to configure dual-stack see [Configure dual-stack](https://kubernetes.io/docs/concepts/services-networking/dual-stack/#services)
+  ipFamilyPolicy: ""
+  # -- Sets the families that should be supported and the order in which they should be applied to ClusterIP as well. Can be IPv4 and/or IPv6.
+  ipFamilies: []
+
 serviceAccount:
   # -- Specifies whether a service account should be created.
   create: true
@@ -101,6 +122,9 @@ extraArgs: {}
 ## -- Extra volumes to pass to pod.
 extraVolumes: []
 
+## -- Extra Kubernetes objects to deploy with the helm chart
+extraObjects: []
+
 ## -- Extra volumes to mount to the container.
 extraVolumeMounts: []
 
@@ -115,7 +139,8 @@ podAnnotations: {}
 
 podLabels: {}
 
-podSecurityContext: {}
+podSecurityContext:
+  enabled: true
   # fsGroup: 2000
 
 securityContext:
@@ -123,6 +148,7 @@ securityContext:
   capabilities:
     drop:
       - ALL
+  enabled: true
   readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 1000
@@ -348,7 +374,8 @@ webhook:
 
   podLabels: {}
 
-  podSecurityContext: {}
+  podSecurityContext:
+    enabled: true
       # fsGroup: 2000
 
   securityContext:
@@ -356,6 +383,7 @@ webhook:
     capabilities:
       drop:
         - ALL
+    enabled: true
     readOnlyRootFilesystem: true
     runAsNonRoot: true
     runAsUser: 1000
@@ -461,7 +489,8 @@ certController:
 
   podLabels: {}
 
-  podSecurityContext: {}
+  podSecurityContext:
+    enabled: true
       # fsGroup: 2000
 
   securityContext:
@@ -469,6 +498,7 @@ certController:
     capabilities:
       drop:
         - ALL
+    enabled: true
     readOnlyRootFilesystem: true
     runAsNonRoot: true
     runAsUser: 1000
