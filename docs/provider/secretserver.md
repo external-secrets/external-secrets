@@ -62,20 +62,23 @@ spec:
           key: "52622" #<SECRET_ID>
           property: "Items.0.ItemValue" #<GJSON_PROPERTY> * an empty property will return the entire secret
 ```
-### Example
+### Examples
 Using the json formatted secret below:
 
-Lookup a single top level property using secret ID.
+- Lookup a single top level property using secret ID.
+
 >spec.data.remoteRef.key = 52622 (id of the secret)<br />
 spec.data.remoteRef.property = "user" (Items.0.ItemValue user attribute)<br />
 returns: marktwain@hannibal.com
 
-Lookup a nested property using secret name.
+- Lookup a nested property using secret name.
+
 >spec.data.remoteRef.key = "external-secret-testing" (name of the secret)<br />
 spec.data.remoteRef.property = "books.1" (Items.0.ItemValue books.1 attribute)<br />
 returns: huckleberryFinn
 
-Lookup by secret ID (secret name will work as well) and return the entire secret.
+- Lookup by secret ID (*secret name will work as well*) and return the entire secret.
+
 >spec.data.remoteRef.key = "52622" (id of the secret)<br />
 spec.data.remoteRef.property = "" <br />
 returns: The entire secret in JSON format as displayed below
