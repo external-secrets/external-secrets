@@ -45,6 +45,10 @@ After installation, you need to get the installation ID to authenticate API requ
 {% include 'generator-github-example.yaml' %}
 ```
 
+```yaml
+{% include 'generator-github-example-basicauth.yaml' %}
+```
+
 ### Notes
 - Ensure that all sensitive data such as private keys and IDs are securely handled and stored.
 - Adjust the permissions and configurations according to your specific requirements and security policies.
