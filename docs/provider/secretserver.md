@@ -43,7 +43,8 @@ If multiple secrets are found, *`only the first found secret will be returned`*.
 
 Please note: `Retrieving a specific version of a secret is not yet supported.`
 
-Note that because all Secret Server secrets are JSON objects, you must specify `remoteRef.property`.
+Note that because all Secret Server secrets are JSON objects, you must specify the `remoteRef.property`
+in your ExternalSecret configuration.<br />
 You can access nested values or arrays using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md).
 
 ```yaml
@@ -60,8 +61,14 @@ spec:
       - secretKey: SecretServerValue #<SECRET_VALUE_RETURNED_HERE>
         remoteRef:
           key: "52622" #<SECRET_ID>
-          property: "Items.0.ItemValue" #<GJSON_PROPERTY> * an empty property will return the entire secret
+          property: "array.0.value" #<GJSON_PROPERTY> * an empty property will return the entire secret
 ```
+
+### Preparing your secret
+You can either retrieve your entire secret or you can use a JSON formatted string
+stored in your secret located at Items[0].ItemValue to retrieve a specific value.<br />
+See example JSON secret below.
+
 ### Examples
 Using the json formatted secret below:
 
@@ -116,7 +123,7 @@ returns: The entire secret in JSON format as displayed below
       "Slug": "data",
       "FieldDescription": "json text field",
       "Filename": "",
-      "ItemValue": "{ \"user\": \"marktwain@hannibal.com\", \"occupation\": \"author\",\"books\":[ \"tomSawyer\",\"huckleberryFinn\"] }",
+      "ItemValue": "{ \"user\": \"marktwain@hannibal.com\", \"occupation\": \"author\",\"books\":[ \"tomSawyer\",\"huckleberryFinn\",\"Pudd'nhead Wilson\"] }",
       "IsFile": false,
       "IsNotes": false,
       "IsPassword": false

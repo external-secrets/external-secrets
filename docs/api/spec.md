@@ -5368,7 +5368,7 @@ SecretServerProviderRef
 </em>
 </td>
 <td>
-<p>UserName is the secret server account userName.</p>
+<p>Username is the secret server account username.</p>
 </td>
 </tr>
 <tr>
@@ -5381,7 +5381,7 @@ SecretServerProviderRef
 </em>
 </td>
 <td>
-<p>PassWord is the secret server account passWord.</p>
+<p>Password is the secret server account password.</p>
 </td>
 </tr>
 <tr>
