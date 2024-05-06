@@ -30,11 +30,11 @@ type SecretServerProviderRef struct {
 // See https://github.com/DelineaXPM/tss-sdk-go/blob/main/server/server.go.
 type SecretServerProvider struct {
 
-	// UserName is the secret server account userName.
+	// Username is the secret server account username.
 	// +required
 	Username *SecretServerProviderRef `json:"username"`
 
-	// PassWord is the secret server account passWord.
+	// Password is the secret server account password.
 	// +required
 	Password *SecretServerProviderRef `json:"password"`
 
