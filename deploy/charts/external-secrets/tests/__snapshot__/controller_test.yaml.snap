@@ -49,5 +49,6 @@ should match snapshot of default values:
                 runAsUser: 1000
                 seccompProfile:
                   type: RuntimeDefault
+          dnsPolicy: ClusterFirst
           hostNetwork: false
           serviceAccountName: RELEASE-NAME-external-secrets
