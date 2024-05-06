@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"strconv"
 	"strings"
 
@@ -181,7 +182,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 		return err
 	}
 
-	if !mapEqual(gcpSecret.Annotations, annotations) || !mapEqual(gcpSecret.Labels, labels) {
+	if !maps.Equal(gcpSecret.Annotations, annotations) || !maps.Equal(gcpSecret.Labels, labels) {
 		_, err = c.smClient.UpdateSecret(ctx, &secretmanagerpb.UpdateSecretRequest{
 			Secret: &secretmanagerpb.Secret{
 				Name:        gcpSecret.Name,
@@ -547,18 +548,4 @@ func getDataByProperty(data []byte, property string) gjson.Result {
 		}
 	}
 	return gjson.Get(payload, property)
-}
-
-func mapEqual(m1, m2 map[string]string) bool {
-	if len(m1) != len(m2) {
-		return false
-	}
-
-	for k1, v1 := range m1 {
-		if v2, ok := m2[k1]; !ok || v1 != v2 {
-			return false
-		}
-	}
-
-	return true
 }
