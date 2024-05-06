@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"strings"
 	"time"
 
@@ -36,6 +37,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	// Metrics.
@@ -72,6 +77,8 @@ const (
 	errPolicyMergeMutate    = "unable to mutate secret %s: %w"
 	errPolicyMergePatch     = "unable to patch secret %s: %w"
 )
+
+const externalSecretSecretNameKey = ".spec.target.name"
 
 // Reconciler reconciles a ExternalSecret object.
 type Reconciler struct {
@@ -628,9 +635,70 @@ func (r *Reconciler) computeDataHashAnnotation(existing, secret *v1.Secret) stri
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 	r.recorder = mgr.GetEventRecorderFor("external-secrets")
 
+	// Index .Spec.Target.Name to reconcile ExternalSecrets effectively when secrets have changed
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &esv1beta1.ExternalSecret{}, externalSecretSecretNameKey, func(obj client.Object) []string {
+		es := obj.(*esv1beta1.ExternalSecret)
+
+		if name := es.Spec.Target.Name; name != "" {
+			return []string{name}
+		}
+		return []string{es.Name}
+	}); err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
 		For(&esv1beta1.ExternalSecret{}).
-		Owns(&v1.Secret{}, builder.OnlyMetadata).
+		// Cannot use Owns since the controller does not set owner reference when creation policy is not Owner
+		Watches(
+			&v1.Secret{},
+			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSecret),
+			builder.WithPredicates(predicate.Funcs{
+				CreateFunc: func(event.TypedCreateEvent[client.Object]) bool {
+					return true
+				},
+				DeleteFunc: func(event.TypedDeleteEvent[client.Object]) bool {
+					return true
+				},
+				UpdateFunc: func(e event.TypedUpdateEvent[client.Object]) bool {
+					if !maps.Equal(e.ObjectNew.GetAnnotations(), e.ObjectOld.GetAnnotations()) {
+						return true
+					}
+					if !maps.Equal(e.ObjectNew.GetLabels(), e.ObjectOld.GetLabels()) {
+						return true
+					}
+					if e.ObjectNew.GetLabels()[esv1beta1.AnnotationDataHash] != "" && e.ObjectOld.GetLabels()[esv1beta1.AnnotationDataHash] != "" {
+						return e.ObjectNew.GetLabels()[esv1beta1.AnnotationDataHash] != e.ObjectOld.GetLabels()[esv1beta1.AnnotationDataHash]
+					}
+					return e.ObjectNew.GetResourceVersion() != e.ObjectOld.GetResourceVersion()
+				},
+			}),
+			builder.OnlyMetadata,
+		).
 		Complete(r)
+}
+
+func (r *Reconciler) findObjectsForSecret(ctx context.Context, secret client.Object) []reconcile.Request {
+	var externalSecrets esv1beta1.ExternalSecretList
+	err := r.List(
+		ctx,
+		&externalSecrets,
+		client.InNamespace(secret.GetNamespace()),
+		client.MatchingFields{externalSecretSecretNameKey: secret.GetName()},
+	)
+	if err != nil {
+		return []reconcile.Request{}
+	}
+
+	requests := make([]reconcile.Request, len(externalSecrets.Items))
+	for i := range externalSecrets.Items {
+		requests[i] = reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      externalSecrets.Items[i].GetName(),
+				Namespace: externalSecrets.Items[i].GetNamespace(),
+			},
+		}
+	}
+	return requests
 }
