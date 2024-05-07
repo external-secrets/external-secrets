@@ -104,7 +104,8 @@ Only one `templateFrom` entry can be set if its type is `target: Manifest`.
 * tests: 
   * controller unit tests for `target.manifest` behavior and `target.template.target` behavior
   * controller regression tests for `target.manifest` and `target.template.target` focused on different `creationPolicy` and `deletionPolicy`
-  * e2e test for `target.manifest` targetting a ConfigMap (first class support for ArgoCD and Flux)
+  * e2e test for `target.manifest` targeting a ConfigMap (first class support for ArgoCD and Flux)
+  * e2e test for `target.manifest` targeting a custom resource
 
 * the API changes need to be documented
     * API/CRD spec inline documentation
