@@ -57,6 +57,14 @@ const (
 	PushSecretDeletionPolicyNone   PushSecretDeletionPolicy = "None"
 )
 
+// +kubebuilder:validation:Enum=None;ReverseUnicode
+type PushSecretConversionStrategy string
+
+const (
+	PushSecretConversionNone           PushSecretConversionStrategy = "None"
+	PushSecretConversionReverseUnicode PushSecretConversionStrategy = "ReverseUnicode"
+)
+
 // PushSecretSpec configures the behavior of the PushSecret.
 type PushSecretSpec struct {
 	// The Interval to which External Secrets will try to push a secret definition
@@ -121,6 +129,10 @@ type PushSecretData struct {
 	// The structure of metadata is provider specific, please look it up in the provider documentation.
 	// +optional
 	Metadata *apiextensionsv1.JSON `json:"metadata,omitempty"`
+	// +optional
+	// Used to define a conversion Strategy for the secret keys
+	// +kubebuilder:default="None"
+	ConversionStrategy PushSecretConversionStrategy `json:"conversionStrategy,omitempty"`
 }
 
 func (d PushSecretData) GetMetadata() *apiextensionsv1.JSON {

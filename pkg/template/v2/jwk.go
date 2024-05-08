@@ -25,7 +25,7 @@ func jwkPublicKeyPem(jwkjson string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var rawkey interface{}
+	var rawkey any
 	err = k.Raw(&rawkey)
 	if err != nil {
 		return "", err
@@ -43,7 +43,7 @@ func jwkPrivateKeyPem(jwkjson string) (string, error) {
 		return "", err
 	}
 	var mpk []byte
-	var pk interface{}
+	var pk any
 	err = k.Raw(&pk)
 	if err != nil {
 		return "", err

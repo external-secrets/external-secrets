@@ -29,6 +29,7 @@ import (
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics"
+
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
 )

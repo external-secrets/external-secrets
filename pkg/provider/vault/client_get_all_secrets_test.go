@@ -35,84 +35,84 @@ func TestGetAllSecrets(t *testing.T) {
 	path2Bytes := []byte("{\"access_key\":\"path2\",\"access_secret\":\"path2\"}")
 	tagBytes := []byte("{\"access_key\":\"unfetched\",\"access_secret\":\"unfetched\"}")
 	path := "path"
-	secret := map[string]interface{}{
-		"secret1": map[string]interface{}{
-			"metadata": map[string]interface{}{
-				"custom_metadata": map[string]interface{}{
+	secret := map[string]any{
+		"secret1": map[string]any{
+			"metadata": map[string]any{
+				"custom_metadata": map[string]any{
 					"foo": "bar",
 				},
 			},
-			"data": map[string]interface{}{
+			"data": map[string]any{
 				"access_key":    "access_key",
 				"access_secret": "access_secret",
 			},
 		},
-		"secret2": map[string]interface{}{
-			"metadata": map[string]interface{}{
-				"custom_metadata": map[string]interface{}{
+		"secret2": map[string]any{
+			"metadata": map[string]any{
+				"custom_metadata": map[string]any{
 					"foo": "baz",
 				},
 			},
-			"data": map[string]interface{}{
+			"data": map[string]any{
 				"access_key":    "access_key2",
 				"access_secret": "access_secret2",
 			},
 		},
-		"secret3": map[string]interface{}{
-			"metadata": map[string]interface{}{
-				"custom_metadata": map[string]interface{}{
+		"secret3": map[string]any{
+			"metadata": map[string]any{
+				"custom_metadata": map[string]any{
 					"foo": "baz",
 				},
 			},
 			"data": nil,
 		},
-		"tag": map[string]interface{}{
-			"metadata": map[string]interface{}{
-				"custom_metadata": map[string]interface{}{
+		"tag": map[string]any{
+			"metadata": map[string]any{
+				"custom_metadata": map[string]any{
 					"foo": "baz",
 				},
 			},
-			"data": map[string]interface{}{
+			"data": map[string]any{
 				"access_key":    "unfetched",
 				"access_secret": "unfetched",
 			},
 		},
-		"path/1": map[string]interface{}{
-			"metadata": map[string]interface{}{
-				"custom_metadata": map[string]interface{}{
+		"path/1": map[string]any{
+			"metadata": map[string]any{
+				"custom_metadata": map[string]any{
 					"foo": "path",
 				},
 			},
-			"data": map[string]interface{}{
+			"data": map[string]any{
 				"access_key":    "path1",
 				"access_secret": "path1",
 			},
 		},
-		"path/2": map[string]interface{}{
-			"metadata": map[string]interface{}{
-				"custom_metadata": map[string]interface{}{
+		"path/2": map[string]any{
+			"metadata": map[string]any{
+				"custom_metadata": map[string]any{
 					"foo": "path",
 				},
 			},
-			"data": map[string]interface{}{
+			"data": map[string]any{
 				"access_key":    "path2",
 				"access_secret": "path2",
 			},
 		},
-		"default": map[string]interface{}{
-			"data": map[string]interface{}{
+		"default": map[string]any{
+			"data": map[string]any{
 				"empty": "true",
 			},
-			"metadata": map[string]interface{}{
-				"keys": []interface{}{"secret1", "secret2", "secret3", "tag", "path/"},
+			"metadata": map[string]any{
+				"keys": []any{"secret1", "secret2", "secret3", "tag", "path/"},
 			},
 		},
-		"path/": map[string]interface{}{
-			"data": map[string]interface{}{
+		"path/": map[string]any{
+			"data": map[string]any{
 				"empty": "true",
 			},
-			"metadata": map[string]interface{}{
-				"keys": []interface{}{"1", "2"},
+			"metadata": map[string]any{
+				"keys": []any{"1", "2"},
 			},
 		},
 	}
@@ -260,7 +260,7 @@ func TestGetAllSecrets(t *testing.T) {
 	}
 }
 
-func newListWithContextFn(secrets map[string]interface{}) func(ctx context.Context, path string) (*vault.Secret, error) {
+func newListWithContextFn(secrets map[string]any) func(ctx context.Context, path string) (*vault.Secret, error) {
 	return func(ctx context.Context, path string) (*vault.Secret, error) {
 		path = strings.TrimPrefix(path, "secret/metadata/")
 		if path == "" {
@@ -270,10 +270,10 @@ func newListWithContextFn(secrets map[string]interface{}) func(ctx context.Conte
 		if !ok {
 			return nil, errors.New("Secret not found")
 		}
-		meta := data.(map[string]interface{})
-		ans := meta["metadata"].(map[string]interface{})
+		meta := data.(map[string]any)
+		ans := meta["metadata"].(map[string]any)
 		secret := &vault.Secret{
-			Data: map[string]interface{}{
+			Data: map[string]any{
 				"keys": ans["keys"],
 			},
 		}
@@ -281,7 +281,7 @@ func newListWithContextFn(secrets map[string]interface{}) func(ctx context.Conte
 	}
 }
 
-func newReadtWithContextFn(secrets map[string]interface{}) func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
+func newReadtWithContextFn(secrets map[string]any) func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
 	return func(ctx context.Context, path string, d map[string][]string) (*vault.Secret, error) {
 		path = strings.TrimPrefix(path, "secret/data/")
 		path = strings.TrimPrefix(path, "secret/metadata/")
@@ -292,9 +292,9 @@ func newReadtWithContextFn(secrets map[string]interface{}) func(ctx context.Cont
 		if !ok {
 			return nil, errors.New("Secret not found")
 		}
-		meta := data.(map[string]interface{})
-		metadata := meta["metadata"].(map[string]interface{})
-		content := map[string]interface{}{
+		meta := data.(map[string]any)
+		metadata := meta["metadata"].(map[string]any)
+		content := map[string]any{
 			"data":            meta["data"],
 			"custom_metadata": metadata["custom_metadata"],
 		}

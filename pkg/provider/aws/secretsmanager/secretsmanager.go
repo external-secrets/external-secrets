@@ -212,8 +212,27 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	return err
 }
 
-func (sm *SecretsManager) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf("not implemented")
+func (sm *SecretsManager) SecretExists(ctx context.Context, pushSecretRef esv1beta1.PushSecretRemoteRef) (bool, error) {
+	secretName := pushSecretRef.GetRemoteKey()
+	secretValue := awssm.GetSecretValueInput{
+		SecretId: &secretName,
+	}
+	_, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
+	if err != nil {
+		return sm.handleSecretError(err)
+	}
+	return true, nil
+}
+
+func (sm *SecretsManager) handleSecretError(err error) (bool, error) {
+	var aerr awserr.Error
+	if ok := errors.As(err, &aerr); !ok {
+		return false, err
+	}
+	if aerr.Code() == awssm.ErrCodeResourceNotFoundException {
+		return true, nil
+	}
+	return false, err
 }
 
 func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret, psd esv1beta1.PushSecretData) error {
@@ -569,7 +588,7 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretI
 	if !isManagedByESO(data) {
 		return fmt.Errorf("secret not managed by external-secrets")
 	}
-	if awsSecret != nil && bytes.Equal(awsSecret.SecretBinary, value) {
+	if awsSecret != nil && bytes.Equal(awsSecret.SecretBinary, value) || utils.CompareStringAndByteSlices(awsSecret.SecretString, value) {
 		return nil
 	}
 

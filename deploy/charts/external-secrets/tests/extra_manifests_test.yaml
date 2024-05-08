@@ -1,0 +1,15 @@
+suite: test adding extra kubernetes objects
+templates:
+  - extra-manifests.yaml
+tests:
+  - it: should load extra manifests
+    set:
+      extraObjects:
+      - apiVersion: v1
+        kind: ServiceAccount
+        metadata:
+          name: random
+    asserts:
+      - equal:
+          path: kind
+          value: ServiceAccount

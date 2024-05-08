@@ -48,7 +48,7 @@ func TestProvider(t *testing.T) {
 	tbl := []struct {
 		test    string
 		store   esv1beta1.GenericStore
-		expType interface{}
+		expType any
 		expErr  bool
 	}{
 		{

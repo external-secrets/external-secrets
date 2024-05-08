@@ -57,7 +57,7 @@ func (mc *ChefMockClient) Get(name string) (user chef.User, err error) {
 func (mc *ChefMockClient) WithItem(_, _ string, _ error) {
 	if mc != nil {
 		mc.getItem = func(dataBagName, databagItemName string) (item chef.DataBagItem, err error) {
-			ret := make(map[string]interface{})
+			ret := make(map[string]any)
 			switch {
 			case dataBagName == DatabagName && databagItemName == "item01":
 				jsonstring := `{"id":"` + dataBagName + `-` + databagItemName + `","some_key":"fe7f29ede349519a1","some_password":"dolphin_123zc","some_username":"testuser"}`

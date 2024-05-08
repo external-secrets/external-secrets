@@ -202,22 +202,22 @@ func (mockClient *OnePasswordMockClient) DownloadFile(_ *onepassword.File, _ str
 }
 
 // LoadStructFromItemByUUID unused fake.
-func (mockClient *OnePasswordMockClient) LoadStructFromItemByUUID(_ interface{}, _, _ string) error {
+func (mockClient *OnePasswordMockClient) LoadStructFromItemByUUID(_ any, _, _ string) error {
 	return nil
 }
 
 // LoadStructFromItemByTitle unused fake.
-func (mockClient *OnePasswordMockClient) LoadStructFromItemByTitle(_ interface{}, _, _ string) error {
+func (mockClient *OnePasswordMockClient) LoadStructFromItemByTitle(_ any, _, _ string) error {
 	return nil
 }
 
 // LoadStructFromItem unused fake.
-func (mockClient *OnePasswordMockClient) LoadStructFromItem(_ interface{}, _, _ string) error {
+func (mockClient *OnePasswordMockClient) LoadStructFromItem(_ any, _, _ string) error {
 	return nil
 }
 
 // LoadStructunused fake.
-func (mockClient *OnePasswordMockClient) LoadStruct(_ interface{}) error {
+func (mockClient *OnePasswordMockClient) LoadStruct(_ any) error {
 	return nil
 }
 

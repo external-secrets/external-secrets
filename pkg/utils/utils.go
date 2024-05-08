@@ -33,6 +33,7 @@ import (
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/template/v2"
@@ -45,10 +46,11 @@ const (
 
 var (
 	errKeyNotFound = errors.New("key not found")
+	unicodeRegex   = regexp.MustCompile(`_U([0-9a-fA-F]{4,5})_`)
 )
 
 // JSONMarshal takes an interface and returns a new escaped and encoded byte slice.
-func JSONMarshal(t interface{}) ([]byte, error) {
+func JSONMarshal(t any) ([]byte, error) {
 	buffer := &bytes.Buffer{}
 	encoder := json.NewEncoder(buffer)
 	encoder.SetEscapeHTML(false)
@@ -237,6 +239,48 @@ func convert(strategy esv1beta1.ExternalSecretConversionStrategy, str string) st
 	return strings.Join(newName, "")
 }
 
+// ReverseKeys reverses a secret map into a valid key map as expected by push secrets.
+// Replaces the unicode encoded representation characters back to the actual unicode character depending on convert strategy.
+func ReverseKeys(strategy esv1alpha1.PushSecretConversionStrategy, in map[string][]byte) (map[string][]byte, error) {
+	out := make(map[string][]byte, len(in))
+	for k, v := range in {
+		key := reverse(strategy, k)
+		if _, exists := out[key]; exists {
+			return nil, fmt.Errorf("secret name collision during conversion: %s", key)
+		}
+		out[key] = v
+	}
+	return out, nil
+}
+
+func reverse(strategy esv1alpha1.PushSecretConversionStrategy, str string) string {
+	switch strategy {
+	case esv1alpha1.PushSecretConversionReverseUnicode:
+		matches := unicodeRegex.FindAllStringSubmatchIndex(str, -1)
+
+		for i := len(matches) - 1; i >= 0; i-- {
+			match := matches[i]
+			start := match[0]
+			end := match[1]
+			unicodeHex := str[match[2]:match[3]]
+
+			unicodeInt, err := strconv.ParseInt(unicodeHex, 16, 32)
+			if err != nil {
+				continue // Skip invalid unicode representations
+			}
+
+			unicodeChar := fmt.Sprintf("%c", unicodeInt)
+			str = str[:start] + unicodeChar + str[end:]
+		}
+
+		return str
+	case esv1alpha1.PushSecretConversionNone:
+		return str
+	default:
+		return str
+	}
+}
+
 // MergeStringMap performs a deep clone from src to dest.
 func MergeStringMap(dest, src map[string]string) {
 	for k, v := range src {
@@ -249,18 +293,18 @@ var (
 	ErrSecretType    = errors.New("can not handle secret value with type")
 )
 
-func GetByteValueFromMap(data map[string]interface{}, key string) ([]byte, error) {
+func GetByteValueFromMap(data map[string]any, key string) ([]byte, error) {
 	v, ok := data[key]
 	if !ok {
 		return nil, fmt.Errorf("%w: %s", ErrUnexpectedKey, key)
 	}
 	return GetByteValue(v)
 }
-func GetByteValue(v interface{}) ([]byte, error) {
+func GetByteValue(v any) ([]byte, error) {
 	switch t := v.(type) {
 	case string:
 		return []byte(t), nil
-	case map[string]interface{}:
+	case map[string]any:
 		return json.Marshal(t)
 	case []string:
 		return []byte(strings.Join(t, "\n")), nil
@@ -273,7 +317,7 @@ func GetByteValue(v interface{}) ([]byte, error) {
 		return []byte(strconv.FormatFloat(t, 'f', -1, 64)), nil
 	case json.Number:
 		return []byte(t.String()), nil
-	case []interface{}:
+	case []any:
 		return json.Marshal(t)
 	case bool:
 		return []byte(strconv.FormatBool(t)), nil
@@ -285,7 +329,7 @@ func GetByteValue(v interface{}) ([]byte, error) {
 }
 
 // IsNil checks if an Interface is nil.
-func IsNil(i interface{}) bool {
+func IsNil(i any) bool {
 	if i == nil {
 		return true
 	}
@@ -299,7 +343,7 @@ func IsNil(i interface{}) bool {
 // ObjectHash calculates md5 sum of the data contained in the secret.
 //
 //nolint:gosec
-func ObjectHash(object interface{}) string {
+func ObjectHash(object any) string {
 	textualVersion := fmt.Sprintf("%+v", object)
 	return fmt.Sprintf("%x", md5.Sum([]byte(textualVersion)))
 }
@@ -407,7 +451,7 @@ func Ptr[T any](i T) *T {
 	return &i
 }
 
-func ConvertToType[T any](obj interface{}) (T, error) {
+func ConvertToType[T any](obj any) (T, error) {
 	var v T
 
 	data, err := json.Marshal(obj)
@@ -462,4 +506,22 @@ func dig[T any](key string, data map[string]any) (t T, _ error) {
 	}
 
 	return t, errKeyNotFound
+}
+
+func CompareStringAndByteSlices(valueString *string, valueByte []byte) bool {
+	if valueString == nil {
+		return false
+	}
+	stringToByteSlice := []byte(*valueString)
+	if len(stringToByteSlice) != len(valueByte) {
+		return false
+	}
+
+	for sb := range valueByte {
+		if stringToByteSlice[sb] != valueByte[sb] {
+			return false
+		}
+	}
+
+	return true
 }

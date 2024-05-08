@@ -32,7 +32,7 @@ func (p *secretStoreProvider) init(cfg *config) {
 }
 
 func (p *secretStoreProvider) CreateSecret(key string, val framework.SecretEntry) {
-	var data map[string]interface{}
+	var data map[string]any
 	err := json.Unmarshal([]byte(val.Value), &data)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	_, err = p.api.CreateSecret(key, &vault.SecretCreateRequest{

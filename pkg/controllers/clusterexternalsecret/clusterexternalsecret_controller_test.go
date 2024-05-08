@@ -21,8 +21,6 @@ import (
 	"sort"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -31,6 +29,9 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 func init() {
@@ -670,7 +671,86 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 				return []esv1beta1.ExternalSecret{}
 			},
 		}),
-		Entry("Should be ready if namespace is selected via the namespace selector", testCase{
+		Entry("Should be ready if namespace is selected via the namespace selectors", testCase{
+			namespaces: []v1.Namespace{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "namespace1",
+						Labels: map[string]string{
+							"key": "value1",
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "namespace2",
+						Labels: map[string]string{
+							"key": "value2",
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "namespace3",
+						Labels: map[string]string{
+							"key": "value3",
+						},
+					},
+				},
+			},
+			clusterExternalSecret: func(namespaces []v1.Namespace) esv1beta1.ClusterExternalSecret {
+				ces := defaultClusterExternalSecret()
+				ces.Spec.NamespaceSelectors = []*metav1.LabelSelector{
+					{
+						MatchLabels: map[string]string{"key": "value1"},
+					},
+					{
+						MatchLabels: map[string]string{"key": "value2"},
+					},
+				}
+				return *ces
+			},
+			expectedClusterExternalSecret: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) esv1beta1.ClusterExternalSecret {
+				return esv1beta1.ClusterExternalSecret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: created.Name,
+					},
+					Spec: created.Spec,
+					Status: esv1beta1.ClusterExternalSecretStatus{
+						ExternalSecretName: created.Name,
+						ProvisionedNamespaces: []string{
+							"namespace1",
+							"namespace2",
+						},
+						Conditions: []esv1beta1.ClusterExternalSecretStatusCondition{
+							{
+								Type:   esv1beta1.ClusterExternalSecretReady,
+								Status: v1.ConditionTrue,
+							},
+						},
+					},
+				}
+			},
+			expectedExternalSecrets: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) []esv1beta1.ExternalSecret {
+				return []esv1beta1.ExternalSecret{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "namespace1",
+							Name:      created.Name,
+						},
+						Spec: created.Spec.ExternalSecretSpec,
+					},
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "namespace2",
+							Name:      created.Name,
+						},
+						Spec: created.Spec.ExternalSecretSpec,
+					},
+				}
+			},
+		}),
+		Entry("Should be ready if namespace is selected via namespaces", testCase{
 			namespaces: []v1.Namespace{
 				{
 					ObjectMeta: metav1.ObjectMeta{

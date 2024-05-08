@@ -23,9 +23,10 @@ import (
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
-	_ "github.com/external-secrets/external-secrets/pkg/provider/register" // Loading registered providers.
 	"github.com/external-secrets/external-secrets/pkg/template"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+
+	_ "github.com/external-secrets/external-secrets/pkg/provider/register" // Loading registered providers.
 )
 
 const (
