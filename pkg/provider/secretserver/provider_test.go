@@ -16,6 +16,7 @@ package secretserver
 
 import (
 	"context"
+	"math/rand"
 	"testing"
 
 	"github.com/DelineaXPM/tss-sdk-go/v2/server"
@@ -166,7 +167,7 @@ func TestNewClient(t *testing.T) {
 	userNameKey := "username"
 	userNameValue := "foo"
 	passwordKey := "password"
-	passwordValue := "bar"
+	passwordValue := generateRandomString()
 
 	clientSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
@@ -337,4 +338,14 @@ func makeSecretRefUsingRef(name, key string) *esv1beta1.SecretServerProviderRef 
 	return &esv1beta1.SecretServerProviderRef{
 		SecretRef: &v1.SecretKeySelector{Name: name, Key: key},
 	}
+}
+
+func generateRandomString() string {
+	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+	b := make([]rune, 10)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+
+	return string(b)
 }
