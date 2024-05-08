@@ -42,8 +42,8 @@ We provide a bunch of convenience functions that help you transform your secrets
 | jwkPrivateKeyPem | takes an json-serialized JWK as `[]byte` and returns an PEM block of type `PRIVATE KEY` that contains the private key in PKCS #8 format ([see here](https://golang.org/pkg/crypto/x509/#MarshalPKCS8PrivateKey)) for details | `[]byte`                         | `string`      |
 | base64decode   | decodes the provided bytes as base64                                       | `[]byte`                         | `[]byte`      |
 | base64encode   | encodes the provided bytes as base64                                       | `[]byte`                         | `[]byte`      |
-| fromJSON       | parses the bytes as JSON so you can access individual properties           | `[]byte`                         | `interface{}` |
-| toJSON         | encodes the provided object as json string                                 | `interface{}`                    | `string`      |
+| fromJSON       | parses the bytes as JSON so you can access individual properties           | `[]byte`                         | `any` |
+| toJSON         | encodes the provided object as json string                                 | `any`                    | `string`      |
 | toString       | converts bytes to string                                                   | `[]byte`                         | `string`      |
 | toBytes        | converts string to bytes                                                   | `string`                         | `[]byte`      |
 | upper          | converts all characters to their upper case                                | `string`                         | `string`      |

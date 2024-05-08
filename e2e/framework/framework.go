@@ -112,8 +112,8 @@ func Compose(descAppend string, f *Framework, fn func(f *Framework) (string, fun
 	desc, cfn := fn(f)
 	tweaks = append([]func(*TestCase){cfn}, tweaks...)
 
-	// need to convert []func to []interface{}
-	ifs := make([]interface{}, len(tweaks))
+	// need to convert []func to []any
+	ifs := make([]any, len(tweaks))
 	for i := 0; i < len(tweaks); i++ {
 		ifs[i] = tweaks[i]
 	}

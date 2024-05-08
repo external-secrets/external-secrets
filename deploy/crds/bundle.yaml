@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: clusterexternalsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -491,7 +491,9 @@ spec:
                       type: object
                   type: object
                 namespaceSelector:
-                  description: The labels to select by to find the Namespaces to create the ExternalSecrets in.
+                  description: |-
+                    The labels to select by to find the Namespaces to create the ExternalSecrets in.
+                    Deprecated: Use NamespaceSelectors instead.
                   properties:
                     matchExpressions:
                       description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
@@ -517,11 +519,13 @@ spec:
                             items:
                               type: string
                             type: array
+                            x-kubernetes-list-type: atomic
                         required:
                           - key
                           - operator
                         type: object
                       type: array
+                      x-kubernetes-list-type: atomic
                     matchLabels:
                       additionalProperties:
                         type: string
@@ -532,8 +536,58 @@ spec:
                       type: object
                   type: object
                   x-kubernetes-map-type: atomic
+                namespaceSelectors:
+                  description: A list of labels to select by to find the Namespaces to create the ExternalSecrets in. The selectors are ORed.
+                  items:
+                    description: |-
+                      A label selector is a label query over a set of resources. The result of matchLabels and
+                      matchExpressions are ANDed. An empty label selector matches all objects. A null
+                      label selector matches no objects.
+                    properties:
+                      matchExpressions:
+                        description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                        items:
+                          description: |-
+                            A label selector requirement is a selector that contains values, a key, and an operator that
+                            relates the key and values.
+                          properties:
+                            key:
+                              description: key is the label key that the selector applies to.
+                              type: string
+                            operator:
+                              description: |-
+                                operator represents a key's relationship to a set of values.
+                                Valid operators are In, NotIn, Exists and DoesNotExist.
+                              type: string
+                            values:
+                              description: |-
+                                values is an array of string values. If the operator is In or NotIn,
+                                the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                the values array must be empty. This array is replaced during a strategic
+                                merge patch.
+                              items:
+                                type: string
+                              type: array
+                              x-kubernetes-list-type: atomic
+                          required:
+                            - key
+                            - operator
+                          type: object
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                          map is equivalent to an element of matchExpressions, whose key field is "key", the
+                          operator is "In", and the values array contains only "value". The requirements are ANDed.
+                        type: object
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  type: array
                 namespaces:
-                  description: Choose namespaces by name. This field is ORed with anything that NamespaceSelector ends up choosing.
+                  description: Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
                   items:
                     type: string
                   type: array
@@ -604,7 +658,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: clustersecretstores.external-secrets.io
 spec:
   group: external-secrets.io
@@ -2172,11 +2226,13 @@ spec:
                                   items:
                                     type: string
                                   type: array
+                                  x-kubernetes-list-type: atomic
                               required:
                                 - key
                                 - operator
                               type: object
                             type: array
+                            x-kubernetes-list-type: atomic
                           matchLabels:
                             additionalProperties:
                               type: string
@@ -2607,10 +2663,10 @@ spec:
                       description: AzureKV configures this store to sync secrets using Azure Key Vault provider
                       properties:
                         authSecretRef:
-                          description: Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type.
+                          description: Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type. Optional for WorkloadIdentity.
                           properties:
                             clientId:
-                              description: The Azure clientId of the service principle used for authentication.
+                              description: The Azure clientId of the service principle or managed identity used for authentication.
                               properties:
                                 key:
                                   description: |-
@@ -2628,6 +2684,23 @@ spec:
                               type: object
                             clientSecret:
                               description: The Azure ClientSecret of the service principle used for authentication.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                            tenantId:
+                              description: The Azure tenantId of the managed identity used for authentication.
                               properties:
                                 key:
                                   description: |-
@@ -2697,7 +2770,7 @@ spec:
                             - name
                           type: object
                         tenantId:
-                          description: TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type.
+                          description: TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type. Optional for WorkloadIdentity.
                           type: string
                         vaultUrl:
                           description: Vault Url from which the secrets to be fetched from.
@@ -3634,6 +3707,60 @@ spec:
                       required:
                         - region
                         - vault
+                      type: object
+                    passbolt:
+                      properties:
+                        auth:
+                          description: Auth defines the information necessary to authenticate against Passbolt Server
+                          properties:
+                            passwordSecretRef:
+                              description: |-
+                                A reference to a specific 'key' within a Secret resource,
+                                In some instances, `key` is a required field.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                            privateKeySecretRef:
+                              description: |-
+                                A reference to a specific 'key' within a Secret resource,
+                                In some instances, `key` is a required field.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                          required:
+                            - passwordSecretRef
+                            - privateKeySecretRef
+                          type: object
+                        host:
+                          description: Host defines the Passbolt Server to connect to
+                          type: string
+                      required:
+                        - auth
+                        - host
                       type: object
                     passworddepot:
                       description: Configures a store to sync secrets with a Password Depot instance.
@@ -4758,7 +4885,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: externalsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -5562,7 +5689,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: pushsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -5610,6 +5737,13 @@ spec:
                   description: Secret Data that should be pushed to providers
                   items:
                     properties:
+                      conversionStrategy:
+                        default: None
+                        description: Used to define a conversion Strategy for the secret keys
+                        enum:
+                          - None
+                          - ReverseUnicode
+                        type: string
                       match:
                         description: Match a given Secret Key to be pushed to the provider.
                         properties:
@@ -5686,11 +5820,13 @@ spec:
                                   items:
                                     type: string
                                   type: array
+                                  x-kubernetes-list-type: atomic
                               required:
                                 - key
                                 - operator
                               type: object
                             type: array
+                            x-kubernetes-list-type: atomic
                           matchLabels:
                             additionalProperties:
                               type: string
@@ -5865,6 +6001,13 @@ spec:
                   additionalProperties:
                     additionalProperties:
                       properties:
+                        conversionStrategy:
+                          default: None
+                          description: Used to define a conversion Strategy for the secret keys
+                          enum:
+                            - None
+                            - ReverseUnicode
+                          type: string
                         match:
                           description: Match a given Secret Key to be pushed to the provider.
                           properties:
@@ -5923,7 +6066,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: secretstores.external-secrets.io
 spec:
   group: external-secrets.io
@@ -7491,11 +7634,13 @@ spec:
                                   items:
                                     type: string
                                   type: array
+                                  x-kubernetes-list-type: atomic
                               required:
                                 - key
                                 - operator
                               type: object
                             type: array
+                            x-kubernetes-list-type: atomic
                           matchLabels:
                             additionalProperties:
                               type: string
@@ -7926,10 +8071,10 @@ spec:
                       description: AzureKV configures this store to sync secrets using Azure Key Vault provider
                       properties:
                         authSecretRef:
-                          description: Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type.
+                          description: Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type. Optional for WorkloadIdentity.
                           properties:
                             clientId:
-                              description: The Azure clientId of the service principle used for authentication.
+                              description: The Azure clientId of the service principle or managed identity used for authentication.
                               properties:
                                 key:
                                   description: |-
@@ -7947,6 +8092,23 @@ spec:
                               type: object
                             clientSecret:
                               description: The Azure ClientSecret of the service principle used for authentication.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                            tenantId:
+                              description: The Azure tenantId of the managed identity used for authentication.
                               properties:
                                 key:
                                   description: |-
@@ -8016,7 +8178,7 @@ spec:
                             - name
                           type: object
                         tenantId:
-                          description: TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type.
+                          description: TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type. Optional for WorkloadIdentity.
                           type: string
                         vaultUrl:
                           description: Vault Url from which the secrets to be fetched from.
@@ -8953,6 +9115,60 @@ spec:
                       required:
                         - region
                         - vault
+                      type: object
+                    passbolt:
+                      properties:
+                        auth:
+                          description: Auth defines the information necessary to authenticate against Passbolt Server
+                          properties:
+                            passwordSecretRef:
+                              description: |-
+                                A reference to a specific 'key' within a Secret resource,
+                                In some instances, `key` is a required field.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                            privateKeySecretRef:
+                              description: |-
+                                A reference to a specific 'key' within a Secret resource,
+                                In some instances, `key` is a required field.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                          required:
+                            - passwordSecretRef
+                            - privateKeySecretRef
+                          type: object
+                        host:
+                          description: Host defines the Passbolt Server to connect to
+                          type: string
+                      required:
+                        - auth
+                        - host
                       type: object
                     passworddepot:
                       description: Configures a store to sync secrets with a Password Depot instance.
@@ -10077,7 +10293,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: acraccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10272,7 +10488,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: ecrauthorizationtokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10438,7 +10654,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: fakes.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10513,7 +10729,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: gcraccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10640,7 +10856,108 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
+  name: githubaccesstokens.generators.external-secrets.io
+spec:
+  group: generators.external-secrets.io
+  names:
+    categories:
+      - githubaccesstoken
+    kind: GithubAccessToken
+    listKind: GithubAccessTokenList
+    plural: githubaccesstokens
+    shortNames:
+      - githubaccesstoken
+    singular: githubaccesstoken
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: GithubAccessToken generates ghs_ accessToken
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                appID:
+                  type: string
+                auth:
+                  description: Auth configures how ESO authenticates with a Github instance.
+                  properties:
+                    privatKey:
+                      properties:
+                        secretRef:
+                          description: |-
+                            A reference to a specific 'key' within a Secret resource,
+                            In some instances, `key` is a required field.
+                          properties:
+                            key:
+                              description: |-
+                                The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                defaulted, in others it may be required.
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                to the namespace of the referent.
+                              type: string
+                          type: object
+                      required:
+                        - secretRef
+                      type: object
+                  required:
+                    - privatKey
+                  type: object
+                installID:
+                  type: string
+                url:
+                  description: URL configures the Github instance URL. Defaults to https://github.com/.
+                  type: string
+              required:
+                - appID
+                - auth
+                - installID
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+  conversion:
+    strategy: Webhook
+    webhook:
+      conversionReviewVersions:
+        - v1
+      clientConfig:
+        service:
+          name: kubernetes
+          namespace: default
+          path: /convert
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: passwords.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10737,7 +11054,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: vaultdynamicsecrets.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -11428,7 +11745,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: webhooks.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io

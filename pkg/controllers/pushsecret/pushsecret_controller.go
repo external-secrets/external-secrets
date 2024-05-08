@@ -38,6 +38,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/provider/util/locks"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -47,6 +48,7 @@ const (
 	errGetClusterSecretStore = "could not get ClusterSecretStore %q, %w"
 	errSetSecretFailed       = "could not write remote ref %v to target secretstore %v: %v"
 	errFailedSetSecret       = "set secret failed: %v"
+	errConvert               = "could not apply conversion strategy to keys: %v"
 	pushSecretFinalizer      = "pushsecret.externalsecrets.io/finalizer"
 )
 
@@ -289,11 +291,17 @@ func (r *Reconciler) handlePushSecretDataForStore(ctx context.Context, ps esapi.
 		Name: storeName,
 		Kind: refKind,
 	}
+	originalSecretData := secret.Data
 	secretClient, err := mgr.Get(ctx, storeRef, ps.GetNamespace(), nil)
 	if err != nil {
 		return out, fmt.Errorf("could not get secrets client for store %v: %w", storeName, err)
 	}
 	for _, data := range ps.Spec.Data {
+		secretData, err := utils.ReverseKeys(data.ConversionStrategy, originalSecretData)
+		if err != nil {
+			return nil, fmt.Errorf(errConvert, err)
+		}
+		secret.Data = secretData
 		key := data.GetSecretKey()
 		if !secretKeyExists(key, secret) {
 			return out, fmt.Errorf("secret key %v does not exist", key)

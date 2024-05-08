@@ -444,10 +444,10 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// bad case: private_cert type without property
 	badSecretPrivateCert := funcSetCertSecretTest(privateCert, "bad case: private_cert type without property", sm.Secret_SecretType_PrivateCert, false)
 
-	secretDataKV := make(map[string]interface{})
+	secretDataKV := make(map[string]any)
 	secretDataKV["key1"] = "val1"
 
-	secretDataKVComplex := make(map[string]interface{})
+	secretDataKVComplex := make(map[string]any)
 	secretKVComplex := `{"key1":"val1","key2":"val2","key3":"val3","keyC":{"keyC1":"valC1","keyC2":"valC2"},"special.log":"file-content"}`
 	json.Unmarshal([]byte(secretKVComplex), &secretDataKVComplex)
 
@@ -599,10 +599,10 @@ func TestGetSecretMap(t *testing.T) {
 	secretIntermediate := "intermediate_value"
 	timeValue := "0001-01-01T00:00:00.000Z"
 
-	secretComplex := map[string]interface{}{
+	secretComplex := map[string]any{
 		"key1": "val1",
 		"key2": "val2",
-		"keyC": map[string]interface{}{
+		"keyC": map[string]any{
 			"keyC1": map[string]string{
 				"keyA": "valA",
 				"keyB": "valB",

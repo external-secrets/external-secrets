@@ -72,14 +72,14 @@ type SecurityClient interface {
 }
 
 type Field struct {
-	Type  string        `json:"type"`
-	Value []interface{} `json:"value"`
+	Type  string `json:"type"`
+	Value []any  `json:"value"`
 }
 
 type CustomField struct {
-	Type  string        `json:"type"`
-	Label string        `json:"label"`
-	Value []interface{} `json:"value"`
+	Type  string `json:"type"`
+	Label string `json:"label"`
+	Value []any  `json:"value"`
 }
 
 type File struct {
@@ -406,7 +406,7 @@ func (s *Secret) getItems(ref esv1beta1.ExternalSecretDataRemoteRef) (map[string
 	return secretData, nil
 }
 
-func getFieldValue(value []interface{}) []byte {
+func getFieldValue(value []any) []byte {
 	if len(value) < 1 {
 		return []byte{}
 	} else if len(value) == 1 {

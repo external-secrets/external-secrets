@@ -3,7 +3,12 @@ run:
 
 linters-settings:
   gci:
-    local-prefixes: github.com/external-secrets/external-secrets
+    sections:
+      - "standard"
+      - "default"
+      - "prefix(github.com/external-secrets/external-secrets)"
+      - "blank"
+      - "dot"
   goconst:
     min-len: 3
     min-occurrences: 3
@@ -68,7 +73,6 @@ linters:
     - nakedret
     - nolintlint
     - prealloc
-    - revive
     - staticcheck
     - stylecheck
     - typecheck
@@ -76,9 +80,6 @@ linters:
     - unparam
     - unused
     - whitespace
-
-service:
-  golangci-lint-version: 1.33.x
 
 issues:
   # Excluding configuration per-path and per-linter

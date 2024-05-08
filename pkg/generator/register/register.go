@@ -12,7 +12,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//nolint:revive
 package register
 
 // packages imported here are registered to the controller schema.
@@ -22,6 +21,7 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/generator/ecr"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/fake"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/gcr"
+	_ "github.com/external-secrets/external-secrets/pkg/generator/github"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/password"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/vault"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/webhook"

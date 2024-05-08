@@ -2,27 +2,23 @@
 
 Bitwarden is an integrated open source password management solution for individuals, teams, and business organizations.
 
-## How is it working ?
+## How does it work?
 
-To make external-secret compatible with BitWarden, we need:
+To make external-secrets compatible with Bitwarden, we need:
 
-* External-Secret >= 0.8.0
-* To use the Webhook Provider
-* 2 (Cluster)SecretStores
+* External Secrets Operator >= 0.8.0
+* Multiple (Cluster)SecretStores using the webhook provider
 * BitWarden CLI image running `bw serve`
 
-When you create a new external-secret object,
-External-Secret Webhook provider will do a query to the Bitwarden CLI pod,
-which is synced with the BitWarden server.
+When you create a new external-secret object, the External Secrets webhook provider will query the Bitwarden CLI pod that is synced with the Bitwarden server.
 
 ## Requirements
 
-* Bitwarden account (it works also with VaultWarden)
-* A Kubernetes secret which contains your BitWarden Credentials
-* You need a Docker image with BitWarden CLI installed.
-  You could use `ghcr.io/charlesthomas/bitwarden-cli:2023.12.1` or build your own.
+* Bitwarden account (it also works with Vaultwarden!)
+* A Kubernetes secret which contains your Bitwarden credentials
+* A Docker image running the Bitwarden CLI. You could use `ghcr.io/charlesthomas/bitwarden-cli:2023.12.1` or build your own.
 
-Here an example of Dockerfile use to build this image:
+Here is an example of a Dockerfile used to build the image:
 ```dockerfile
 FROM debian:sid
 
@@ -41,7 +37,7 @@ COPY entrypoint.sh /
 CMD ["/entrypoint.sh"]
 ```
 
-And the content of `entrypoint.sh`
+And the content of `entrypoint.sh`:
 ```bash
 #!/bin/bash
 
@@ -57,8 +53,7 @@ echo 'Running `bw server` on port 8087'
 bw serve --hostname 0.0.0.0 #--disable-origin-protection
 ```
 
-
-## Deploy Bitwarden Credentials
+## Deploy Bitwarden credentials
 
 ```yaml
 {% include 'bitwarden-cli-secrets.yaml' %}
@@ -70,30 +65,37 @@ bw serve --hostname 0.0.0.0 #--disable-origin-protection
 {% include 'bitwarden-cli-deployment.yaml' %}
 ```
 
-> NOTE: Deploying a network policy is recommended since, there is no authentication to query the BitWarden CLI, which means that your secrets are exposed.
+> NOTE: Deploying a network policy is recommended since there is no authentication to query the Bitwarden CLI, which means that your secrets are exposed.
 
-> NOTE: In this example the Liveness probe is quering /sync to ensure that the BitWarden CLI is able to connect to the server and also to sync secrets. (The secret sync is only every 2 minutes in this example)
+> NOTE: In this example the Liveness probe is querying /sync to ensure that the Bitwarden CLI is able to connect to the server and is also synchronised. (The secret sync is only every 2 minutes in this example)
 
-## Deploy ClusterSecretStore (Or SecretStore)
+## Deploy (Cluster)SecretStores
 
-Here the two ClusterSecretStore to deploy
+There are four possible (Cluster)SecretStores to deploy, each can access different types of fields from an item in the Bitwarden vault. It is not required to deploy them all.
 
 ```yaml
 {% include 'bitwarden-secret-store.yaml' %}
 ```
 
+## Usage
 
-## How to use it ?
+(Cluster)SecretStores:
 
-* If you need the `username` or the `password` of a secret, you have to use `bitwarden-login`
-* If you need a custom field of a secret, you have to use `bitwarden-fields`
-* If you need to use a Bitwarden Note for multiline strings (SSH keys, service account json files), you have to use `bitwarden-notes`
-* The `key` is the ID of a secret, which can be find in the URL with the `itemId` value:
-  `https://myvault.com/#/vault?itemId=........-....-....-....-............`
-* The `property` is the name of the field:
-  * `username` for the username of a secret (`bitwarden-login` SecretStore)
-  * `password` for the password of a secret (`bitwarden-login` SecretStore)
-  * `name_of_the_custom_field` for any custom field (`bitwarden-fields` SecretStore)
+* `bitwarden-login`: Use to get the `username` or `password` fields
+* `bitwarden-fields`: Use to get custom fields
+* `bitwarden-notes`: Use to get notes
+* `bitwarden-attachments`: Use to get attachments
+
+remoteRef:
+
+* `key`: ID of a secret, which can be found in the URL `itemId` parameter:
+  `https://myvault.com/#/vault?type=login&itemId=........-....-....-....-............`s
+
+* `property`: Name of the field to access
+    * `username` for the username of a secret (`bitwarden-login` SecretStore)
+    * `password` for the password of a secret (`bitwarden-login` SecretStore)
+    * `name_of_the_custom_field` for any custom field (`bitwarden-fields` SecretStore)
+    * `id_or_name_of_the_attachment` for any attachment (`bitwarden-attachment`, SecretStore)
 
 ```yaml
 {% include 'bitwarden-secret.yaml' %}

@@ -53,8 +53,10 @@ rules:
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
+    - "githubaccesstokens"
     - "passwords"
     - "vaultdynamicsecrets"
+    - "webhooks"
     verbs:
     - "get"
     - "list"
@@ -145,8 +147,10 @@ rules:
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
+    - "githubaccesstokens"
     - "passwords"
     - "vaultdynamicsecrets"
+    - "webhooks"
     verbs:
       - "get"
       - "watch"
@@ -188,8 +192,10 @@ rules:
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
+    - "githubaccesstokens"
     - "passwords"
     - "vaultdynamicsecrets"
+    - "webhooks"
     verbs:
       - "create"
       - "delete"

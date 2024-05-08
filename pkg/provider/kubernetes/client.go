@@ -232,7 +232,7 @@ func getMapFromValues(property, jsonStr string) (map[string][]byte, error) {
 	val := gjson.Get(jsonStr, property)
 	if val.Exists() {
 		retMap := make(map[string][]byte)
-		var tmpMap map[string]interface{}
+		var tmpMap map[string]any
 		decoded, err := base64.StdEncoding.DecodeString(val.String())
 		if err != nil {
 			return nil, err

@@ -509,7 +509,7 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 		if err != nil {
 			return nil, err
 		}
-		m := make(map[string]interface{})
+		m := make(map[string]any)
 		err = json.Unmarshal(secret, &m)
 		if err != nil {
 			return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
@@ -522,7 +522,7 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSe
 	}
 }
 
-func byteArrayMap(secretData map[string]interface{}, secretMap map[string][]byte) map[string][]byte {
+func byteArrayMap(secretData map[string]any, secretMap map[string][]byte) map[string][]byte {
 	var err error
 	for k, v := range secretData {
 		secretMap[k], err = utils.GetByteValue(v)
@@ -694,15 +694,15 @@ func init() {
 }
 
 // populateSecretMap populates the secretMap with metadata information that is pulled from IBM provider.
-func populateSecretMap(secretMap map[string][]byte, secretDataMap map[string]interface{}) map[string][]byte {
+func populateSecretMap(secretMap map[string][]byte, secretDataMap map[string]any) map[string][]byte {
 	for key, value := range secretDataMap {
 		secretMap[key] = []byte(fmt.Sprintf("%v", value))
 	}
 	return secretMap
 }
 
-func formSecretMap(secretData interface{}) (map[string]interface{}, error) {
-	secretDataMap := make(map[string]interface{})
+func formSecretMap(secretData any) (map[string]any, error) {
+	secretDataMap := make(map[string]any)
 	data, err := json.Marshal(secretData)
 	if err != nil {
 		return nil, fmt.Errorf(errJSONSecretMarshal, err)

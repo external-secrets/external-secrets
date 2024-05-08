@@ -56,7 +56,6 @@ const (
 	errGetCES               = "could not get ClusterExternalSecret"
 	errPatchStatus          = "unable to patch status"
 	errConvertLabelSelector = "unable to convert labelselector"
-	errNamespaces           = "could not get namespaces from selector"
 	errGetExistingES        = "could not get existing ExternalSecret"
 	errNamespacesFailed     = "one or more namespaces failed"
 )
@@ -96,47 +95,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		refreshInt = clusterExternalSecret.Spec.RefreshInterval.Duration
 	}
 
-	namespaceList := v1.NamespaceList{}
-
-	if clusterExternalSecret.Spec.NamespaceSelector != nil {
-		labelSelector, err := metav1.LabelSelectorAsSelector(clusterExternalSecret.Spec.NamespaceSelector)
-		if err != nil {
-			log.Error(err, errConvertLabelSelector)
-			return ctrl.Result{}, err
-		}
-
-		err = r.List(ctx, &namespaceList, &client.ListOptions{LabelSelector: labelSelector})
-		if err != nil {
-			log.Error(err, errNamespaces)
-			return ctrl.Result{}, err
-		}
-	}
-
-	if len(clusterExternalSecret.Spec.Namespaces) > 0 {
-		var additionalNamespace []v1.Namespace
-
-		for _, ns := range clusterExternalSecret.Spec.Namespaces {
-			namespace := &v1.Namespace{}
-			if err = r.Get(ctx, types.NamespacedName{Name: ns}, namespace); err != nil {
-				if apierrors.IsNotFound(err) {
-					continue
-				}
-
-				log.Error(err, errNamespaces)
-				return ctrl.Result{}, err
-			}
-
-			additionalNamespace = append(additionalNamespace, *namespace)
-		}
-
-		namespaceList.Items = append(namespaceList.Items, additionalNamespace...)
-	}
-
 	esName := clusterExternalSecret.Spec.ExternalSecretName
 	if esName == "" {
 		esName = clusterExternalSecret.ObjectMeta.Name
 	}
-
 	if prevName := clusterExternalSecret.Status.ExternalSecretName; prevName != esName {
 		// ExternalSecretName has changed, so remove the old ones
 		for _, ns := range clusterExternalSecret.Status.ProvisionedNamespaces {
@@ -146,13 +108,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			}
 		}
 	}
-
 	clusterExternalSecret.Status.ExternalSecretName = esName
 
-	failedNamespaces := r.deleteOutdatedExternalSecrets(ctx, namespaceList, esName, clusterExternalSecret.Name, clusterExternalSecret.Status.ProvisionedNamespaces)
+	namespaces, err := r.getTargetNamespaces(ctx, &clusterExternalSecret)
+	if err != nil {
+		log.Error(err, "failed to get target Namespaces")
+		return ctrl.Result{}, err
+	}
+
+	failedNamespaces := r.deleteOutdatedExternalSecrets(ctx, namespaces, esName, clusterExternalSecret.Name, clusterExternalSecret.Status.ProvisionedNamespaces)
 
 	provisionedNamespaces := []string{}
-	for _, namespace := range namespaceList.Items {
+	for _, namespace := range namespaces {
 		var existingES esv1beta1.ExternalSecret
 		err = r.Get(ctx, types.NamespacedName{
 			Name:      esName,
@@ -186,6 +153,46 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	clusterExternalSecret.Status.ProvisionedNamespaces = provisionedNamespaces
 
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
+}
+
+func (r *Reconciler) getTargetNamespaces(ctx context.Context, ces *esv1beta1.ClusterExternalSecret) ([]v1.Namespace, error) {
+	selectors := []*metav1.LabelSelector{}
+	if s := ces.Spec.NamespaceSelector; s != nil {
+		selectors = append(selectors, s)
+	}
+	for _, ns := range ces.Spec.Namespaces {
+		selectors = append(selectors, &metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"kubernetes.io/metadata.name": ns,
+			},
+		})
+	}
+	selectors = append(selectors, ces.Spec.NamespaceSelectors...)
+
+	var namespaces []v1.Namespace
+	namespaceSet := make(map[string]struct{})
+	for _, selector := range selectors {
+		labelSelector, err := metav1.LabelSelectorAsSelector(selector)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert label selector %s: %w", selector, err)
+		}
+
+		var nl v1.NamespaceList
+		err = r.List(ctx, &nl, &client.ListOptions{LabelSelector: labelSelector})
+		if err != nil {
+			return nil, fmt.Errorf("failed to list namespaces by label selector %s: %w", selector, err)
+		}
+
+		for _, n := range nl.Items {
+			if _, exist := namespaceSet[n.Name]; exist {
+				continue
+			}
+			namespaceSet[n.Name] = struct{}{}
+			namespaces = append(namespaces, n)
+		}
+	}
+
+	return namespaces, nil
 }
 
 func (r *Reconciler) createOrUpdateExternalSecret(ctx context.Context, clusterExternalSecret *esv1beta1.ClusterExternalSecret, namespace v1.Namespace, esName string, esMetadata esv1beta1.ExternalSecretMetadata) error {
@@ -247,10 +254,10 @@ func (r *Reconciler) deferPatch(ctx context.Context, log logr.Logger, clusterExt
 	}
 }
 
-func (r *Reconciler) deleteOutdatedExternalSecrets(ctx context.Context, namespaceList v1.NamespaceList, esName, cesName string, provisionedNamespaces []string) map[string]error {
+func (r *Reconciler) deleteOutdatedExternalSecrets(ctx context.Context, namespaces []v1.Namespace, esName, cesName string, provisionedNamespaces []string) map[string]error {
 	failedNamespaces := map[string]error{}
 	// Loop through existing namespaces first to make sure they still have our labels
-	for _, namespace := range getRemovedNamespaces(namespaceList, provisionedNamespaces) {
+	for _, namespace := range getRemovedNamespaces(namespaces, provisionedNamespaces) {
 		err := r.deleteExternalSecret(ctx, esName, cesName, namespace)
 		if err != nil {
 			r.Log.Error(err, "unable to delete external secret")
@@ -266,10 +273,10 @@ func isExternalSecretOwnedBy(es *esv1beta1.ExternalSecret, cesName string) bool 
 	return owner != nil && owner.APIVersion == esv1beta1.SchemeGroupVersion.String() && owner.Kind == esv1beta1.ClusterExtSecretKind && owner.Name == cesName
 }
 
-func getRemovedNamespaces(currentNSs v1.NamespaceList, provisionedNSs []string) []string {
+func getRemovedNamespaces(currentNSs []v1.Namespace, provisionedNSs []string) []string {
 	currentNSSet := map[string]struct{}{}
-	for i := range currentNSs.Items {
-		currentNSSet[currentNSs.Items[i].Name] = struct{}{}
+	for _, currentNs := range currentNSs {
+		currentNSSet[currentNs.Name] = struct{}{}
 	}
 
 	var removedNSs []string
@@ -321,11 +328,18 @@ func (r *Reconciler) findObjectsForNamespace(ctx context.Context, namespace clie
 	var requests []reconcile.Request
 	for i := range clusterExternalSecrets.Items {
 		clusterExternalSecret := &clusterExternalSecrets.Items[i]
-		if clusterExternalSecret.Spec.NamespaceSelector != nil {
-			labelSelector, err := metav1.LabelSelectorAsSelector(clusterExternalSecret.Spec.NamespaceSelector)
+		var selectors []*metav1.LabelSelector
+		if s := clusterExternalSecret.Spec.NamespaceSelector; s != nil {
+			selectors = append(selectors, s)
+		}
+		selectors = append(selectors, clusterExternalSecret.Spec.NamespaceSelectors...)
+
+		var selected bool
+		for _, selector := range selectors {
+			labelSelector, err := metav1.LabelSelectorAsSelector(selector)
 			if err != nil {
 				r.Log.Error(err, errConvertLabelSelector)
-				return []reconcile.Request{}
+				continue
 			}
 
 			if labelSelector.Matches(labels.Set(namespace.GetLabels())) {
@@ -335,22 +349,24 @@ func (r *Reconciler) findObjectsForNamespace(ctx context.Context, namespace clie
 						Namespace: clusterExternalSecret.GetNamespace(),
 					},
 				})
-
-				// Prevent the object from being added twice if it happens to be listed
-				// by Namespaces selector as well.
-				continue
+				selected = true
+				break
 			}
 		}
 
-		if len(clusterExternalSecret.Spec.Namespaces) > 0 {
-			if slices.Contains(clusterExternalSecret.Spec.Namespaces, namespace.GetName()) {
-				requests = append(requests, reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      clusterExternalSecret.GetName(),
-						Namespace: clusterExternalSecret.GetNamespace(),
-					},
-				})
-			}
+		// Prevent the object from being added twice if it happens to be listed
+		// by Namespaces selector as well.
+		if selected {
+			continue
+		}
+
+		if slices.Contains(clusterExternalSecret.Spec.Namespaces, namespace.GetName()) {
+			requests = append(requests, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      clusterExternalSecret.GetName(),
+					Namespace: clusterExternalSecret.GetNamespace(),
+				},
+			})
 		}
 	}
 

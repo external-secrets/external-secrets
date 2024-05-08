@@ -20,9 +20,9 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	"golang.org/x/exp/slices"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -61,7 +61,7 @@ type clientVal struct {
 	store  esv1beta1.GenericStore
 }
 
-// New constructs a new manager with defaults.
+// NewManager constructs a new manager with defaults.
 func NewManager(ctrlClient client.Client, controllerClass string, enableFloodgate bool) *Manager {
 	log := ctrl.Log.WithName("clientmanager")
 	return &Manager{
@@ -117,12 +117,13 @@ func (m *Manager) Get(ctx context.Context, storeRef esv1beta1.SecretStoreRef, na
 	}
 	// when using ClusterSecretStore, validate the ClusterSecretStore namespace conditions
 	shouldProcess, err := m.shouldProcessSecret(store, namespace)
-	if err != nil || !shouldProcess {
-		if err == nil && !shouldProcess {
-			err = fmt.Errorf(errClusterStoreMismatch, store.GetName(), namespace)
-		}
+	if err != nil {
 		return nil, err
 	}
+	if !shouldProcess {
+		return nil, fmt.Errorf(errClusterStoreMismatch, store.GetName(), namespace)
+	}
+
 	if m.enableFloodgate {
 		err := assertStoreIsUsable(store)
 		if err != nil {
@@ -155,7 +156,7 @@ func (m *Manager) getStoredClient(ctx context.Context, storeProvider esv1beta1.P
 	m.log.V(1).Info("cleaning up client",
 		"provider", fmt.Sprintf("%T", storeProvider),
 		"store", storeName)
-	// if we have a client but it points to a different store
+	// if we have a client, but it points to a different store
 	// we must clean it up
 	val.client.Close(ctx)
 	delete(m.clientMap, idx)
@@ -216,29 +217,32 @@ func (m *Manager) shouldProcessSecret(store esv1beta1.GenericStore, ns string) (
 		return true, nil
 	}
 
-	namespaceList := &v1.NamespaceList{}
+	namespace := v1.Namespace{}
+	if err := m.client.Get(context.Background(), client.ObjectKey{Name: ns}, &namespace); err != nil {
+		return false, fmt.Errorf("failed to get a namespace %q: %w", ns, err)
+	}
 
+	nsLabels := labels.Set(namespace.GetLabels())
 	for _, condition := range store.GetSpec().Conditions {
+		var labelSelectors []*metav1.LabelSelector
 		if condition.NamespaceSelector != nil {
-			namespaceSelector, err := metav1.LabelSelectorAsSelector(condition.NamespaceSelector)
-			if err != nil {
-				return false, err
-			}
-
-			if err := m.client.List(context.Background(), namespaceList, client.MatchingLabelsSelector{Selector: namespaceSelector}); err != nil {
-				return false, err
-			}
-
-			for _, namespace := range namespaceList.Items {
-				if namespace.GetName() == ns {
-					return true, nil // namespace matches the labelselector
-				}
-			}
+			labelSelectors = append(labelSelectors, condition.NamespaceSelector)
+		}
+		for _, n := range condition.Namespaces {
+			labelSelectors = append(labelSelectors, &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"kubernetes.io/metadata.name": n,
+				},
+			})
 		}
 
-		if condition.Namespaces != nil {
-			if slices.Contains(condition.Namespaces, ns) {
-				return true, nil // namespace in the namespaces list
+		for _, ls := range labelSelectors {
+			selector, err := metav1.LabelSelectorAsSelector(ls)
+			if err != nil {
+				return false, fmt.Errorf("failed to convert label selector into selector %v: %w", ls, err)
+			}
+			if selector.Matches(nsLabels) {
+				return true, nil
 			}
 		}
 	}

@@ -72,7 +72,7 @@ func (c *client) requestTokenWithJwtAuth(ctx context.Context, jwtAuth *esv1beta1
 		return err
 	}
 
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"role": role,
 		"jwt":  jwt,
 	}
