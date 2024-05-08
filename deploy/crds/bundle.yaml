@@ -2665,6 +2665,23 @@ spec:
                         authSecretRef:
                           description: Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type. Optional for WorkloadIdentity.
                           properties:
+                            clientCertificate:
+                              description: The Azure ClientCertificate of the service principle used for authentication.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
                             clientId:
                               description: The Azure clientId of the service principle or managed identity used for authentication.
                               properties:
@@ -8010,6 +8027,23 @@ spec:
                         authSecretRef:
                           description: Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type. Optional for WorkloadIdentity.
                           properties:
+                            clientCertificate:
+                              description: The Azure ClientCertificate of the service principle used for authentication.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
                             clientId:
                               description: The Azure clientId of the service principle or managed identity used for authentication.
                               properties:
