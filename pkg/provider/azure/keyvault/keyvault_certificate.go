@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 
 	"github.com/Azure/go-autorest/autorest"
@@ -70,6 +71,14 @@ func loadCertificateFromBytes(certificateBytes []byte) (*x509.Certificate, *rsa.
 			}
 		}
 		certificateBytes = rest
+	}
+
+	if cert == nil {
+		return nil, nil, errors.New("no certificate found in PEM file")
+	}
+
+	if privateKey == nil {
+		return nil, nil, errors.New("no private key found in PEM file")
 	}
 
 	return cert, privateKey, nil
