@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"maps"
 	"strings"
 	"time"
 
@@ -37,7 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -654,26 +652,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 		Watches(
 			&v1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSecret),
-			builder.WithPredicates(predicate.Funcs{
-				CreateFunc: func(event.TypedCreateEvent[client.Object]) bool {
-					return true
-				},
-				DeleteFunc: func(event.TypedDeleteEvent[client.Object]) bool {
-					return true
-				},
-				UpdateFunc: func(e event.TypedUpdateEvent[client.Object]) bool {
-					if !maps.Equal(e.ObjectNew.GetAnnotations(), e.ObjectOld.GetAnnotations()) {
-						return true
-					}
-					if !maps.Equal(e.ObjectNew.GetLabels(), e.ObjectOld.GetLabels()) {
-						return true
-					}
-					if e.ObjectNew.GetLabels()[esv1beta1.AnnotationDataHash] != "" && e.ObjectOld.GetLabels()[esv1beta1.AnnotationDataHash] != "" {
-						return e.ObjectNew.GetLabels()[esv1beta1.AnnotationDataHash] != e.ObjectOld.GetLabels()[esv1beta1.AnnotationDataHash]
-					}
-					return e.ObjectNew.GetResourceVersion() != e.ObjectOld.GetResourceVersion()
-				},
-			}),
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 			builder.OnlyMetadata,
 		).
 		Complete(r)
