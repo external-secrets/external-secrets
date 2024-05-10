@@ -515,6 +515,11 @@ func TestExecute(t *testing.T) {
 	}
 }
 
+func TestExecuteSecretWithoutDataKey(t *testing.T) {
+	sec := &corev1.Secret{}
+	assert.NoError(t, Execute(map[string][]byte{"foo": []byte("bar")}, nil, esapi.TemplateScopeValues, esapi.TemplateTargetData, sec))
+}
+
 func TestExecuteInvalidTemplateScope(t *testing.T) {
 	sec := &corev1.Secret{}
 	err := Execute(map[string][]byte{"foo": []byte("bar")}, nil, "invalid", esapi.TemplateTargetData, sec)
