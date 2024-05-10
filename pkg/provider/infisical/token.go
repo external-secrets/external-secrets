@@ -1,3 +1,17 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or impliec.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package infisical
 
 import (
@@ -19,14 +33,14 @@ type MachineTokenManager struct {
 
 	accessToken  string
 	clientSecret string
-	clientId     string
+	clientID     string
 
 	apiClient api.InfisicalApis
 }
 
-func NewMachineTokenManger(apiClient api.InfisicalApis, clientId string, clientSecret string) *MachineTokenManager {
+func NewMachineTokenManger(apiClient api.InfisicalApis, clientID, clientSecret string) *MachineTokenManager {
 	token := &MachineTokenManager{
-		clientId:     clientId,
+		clientID:     clientID,
 		clientSecret: clientSecret,
 		apiClient:    apiClient,
 	}
@@ -42,9 +56,9 @@ func (t *MachineTokenManager) StartLifeCycle() error {
 	return nil
 }
 
-func (t *MachineTokenManager) HandleTokenLifecycle() error {
-	// this is skip doing things in first iteration
-	// the refresh part is not needed to trigger at first because access token is just received as on top
+func (t *MachineTokenManager) HandleTokenLifecycle() {
+	// this is skip doing things in first iteration.
+	// the refresh part is not needed to trigger at first because access token is just received as on top.
 	init := false
 	for {
 		accessTokenMaxTTLExpiresInTime := t.accessTokenFetchedTime.Add(t.accessTokenMaxTTL - (5 * time.Second))
@@ -54,24 +68,22 @@ func (t *MachineTokenManager) HandleTokenLifecycle() error {
 			accessTokenRefreshedTime = t.accessTokenFetchedTime
 		}
 
-		nextAccessTokenExpiresInTime := accessTokenRefreshedTime.Add(t.accessTokenTTL - (5 * time.Second))
-
 		if time.Now().After(accessTokenMaxTTLExpiresInTime) {
 			Logger.Info("Infisical Authentication: machine identity access token has reached max ttl, attempting to re authenticate...")
 			err := t.FetchNewAccessToken()
 			if err != nil {
 				Logger.Error(err, "Infisical Authentication: unable to authenticate universal auth. Will retry in 30 seconds")
 
-				// wait a bit before trying again
+				// wait a bit before trying again.
 				time.Sleep((30 * time.Second))
 				continue
 			}
-		} else if init == true {
+		} else if init {
 			err := t.RefreshAccessToken()
 			if err != nil {
 				Logger.Error(err, "Infisical Authentication: unable to refresh universal auth token because %v. Will retry in 30 seconds")
 
-				// wait a bit before trying again
+				// wait a bit before trying again.
 				time.Sleep((30 * time.Second))
 				continue
 			}
@@ -83,12 +95,12 @@ func (t *MachineTokenManager) HandleTokenLifecycle() error {
 			accessTokenRefreshedTime = t.accessTokenRefreshedTime
 		}
 
-		nextAccessTokenExpiresInTime = accessTokenRefreshedTime.Add(t.accessTokenTTL - (5 * time.Second))
+		nextAccessTokenExpiresInTime := accessTokenRefreshedTime.Add(t.accessTokenTTL - (5 * time.Second))
 		accessTokenMaxTTLExpiresInTime = t.accessTokenFetchedTime.Add(t.accessTokenMaxTTL - (5 * time.Second))
 
 		if nextAccessTokenExpiresInTime.After(accessTokenMaxTTLExpiresInTime) {
-			// case: Refreshed so close that the next refresh would occur beyond max ttl (this is because currently, token renew tries to add +access-token-ttl amount of time)
-			// example: access token ttl is 11 sec and max ttl is 30 sec. So it will start with 11 seconds, then 22 seconds but the next time you call refresh it would try to extend it to 33 but max ttl only allows 30, so the token will be valid until 30 before we need to reauth
+			// case: Refreshed so close that the next refresh would occur beyond max ttl (this is because currently, token renew tries to add +access-token-ttl amount of time).
+			// example: access token ttl is 11 sec and max ttl is 30 sec. So it will start with 11 seconds, then 22 seconds but the next time you call refresh it would try to extend it to 33 but max ttl only allows 30, so the token will be valid until 30 before we need to reauth.
 			time.Sleep(t.accessTokenTTL - nextAccessTokenExpiresInTime.Sub(accessTokenMaxTTLExpiresInTime))
 		} else {
 			time.Sleep(t.accessTokenTTL - (5 * time.Second))
@@ -113,10 +125,10 @@ func (t *MachineTokenManager) RefreshAccessToken() error {
 	return nil
 }
 
-// Fetches a new access token using client credentials
+// Fetches a new access token using client credentials.
 func (t *MachineTokenManager) FetchNewAccessToken() error {
 	loginResponse, err := t.apiClient.MachineIdentityLoginViaUniversalAuth(api.MachineIdentityUniversalAuthLoginRequest{
-		ClientId:     t.clientId,
+		ClientID:     t.clientID,
 		ClientSecret: t.clientSecret,
 	})
 	if err != nil {
@@ -137,7 +149,7 @@ func (t *MachineTokenManager) FetchNewAccessToken() error {
 	return nil
 }
 
-func (t *MachineTokenManager) SetAccessToken(token string, accessTokenTTL time.Duration, accessTokenMaxTTL time.Duration) {
+func (t *MachineTokenManager) SetAccessToken(token string, accessTokenTTL, accessTokenMaxTTL time.Duration) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 
@@ -151,7 +163,7 @@ func (t *MachineTokenManager) GetAccessToken() (string, error) {
 	defer t.mutex.Unlock()
 
 	if t.accessToken == "" {
-		return "", errors.New("Missing access token")
+		return "", errors.New("missing access token")
 	}
 
 	return t.accessToken, nil

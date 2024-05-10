@@ -20,7 +20,7 @@ import (
 
 type UniversalAuthCredentials struct {
 	// +kubebuilder:validation:Required
-	ClientId esmeta.SecretKeySelector `json:"clientId"`
+	ClientID esmeta.SecretKeySelector `json:"clientId"`
 	// +kubebuilder:validation:Required
 	ClientSecret esmeta.SecretKeySelector `json:"clientSecret"`
 }

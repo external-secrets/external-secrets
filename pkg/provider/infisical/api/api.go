@@ -1,3 +1,16 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or impliec.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package api
 
 import (
@@ -30,17 +43,17 @@ type TokenManager interface {
 	GetAccessToken() (string, error)
 }
 
-const USER_AGENT_NAME = "k8-external-secrets-operator"
+const UserAgentName = "k8-external-secrets-operator"
 const errJSONSecretUnmarshal = "unable to unmarshal secret: %w"
 
-func NewApiClient(baseURL string) (*InfisicalClient, error) {
-	baseParsedUrl, err := url.Parse(baseURL)
+func NewAPIClient(baseURL string) (*InfisicalClient, error) {
+	baseParsedURL, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, err
 	}
 
 	api := &InfisicalClient{
-		BaseURL: baseParsedUrl,
+		BaseURL: baseParsedURL,
 		client:  &http.Client{},
 	}
 
@@ -55,14 +68,14 @@ func (a *InfisicalClient) resolveEndpoint(path string) string {
 	return a.BaseURL.ResolveReference(&url.URL{Path: path}).String()
 }
 
-func (api *InfisicalClient) do(r *http.Request) (*http.Response, error) {
-	if accessToken, err := api.tokenManager.GetAccessToken(); err == nil {
+func (a *InfisicalClient) do(r *http.Request) (*http.Response, error) {
+	if accessToken, err := a.tokenManager.GetAccessToken(); err == nil {
 		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 	}
-	r.Header.Add("User-Agent", USER_AGENT_NAME)
+	r.Header.Add("User-Agent", UserAgentName)
 	r.Header.Add("Content-Type", "application/json")
 
-	return api.client.Do(r)
+	return a.client.Do(r)
 }
 
 func (a *InfisicalClient) RefreshMachineIdentityAccessToken(data MachineIdentityUniversalAuthRefreshRequest) (*MachineIdentityDetailsResponse, error) {
@@ -78,7 +91,7 @@ func (a *InfisicalClient) RefreshMachineIdentityAccessToken(data MachineIdentity
 		return nil, err
 	}
 
-	rawRes, err := a.do(refreshTokenReq)
+	rawRes, err := a.do(refreshTokenReq) //nolint:bodyclose // linters bug
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +117,7 @@ func (a *InfisicalClient) MachineIdentityLoginViaUniversalAuth(data MachineIdent
 		return nil, err
 	}
 
-	rawRes, err := a.do(req)
+	rawRes, err := a.do(req) //nolint:bodyclose // linters bug
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +147,7 @@ func (a *InfisicalClient) GetSecretsV3(data GetSecretsV3Request) (map[string]str
 		return nil, err
 	}
 
-	rawRes, err := a.do(req)
+	rawRes, err := a.do(req) //nolint:bodyclose // linters bug
 	if err != nil {
 		return nil, err
 	}
@@ -174,12 +187,12 @@ func (a *InfisicalClient) GetSecretByKeyV3(data GetSecretByKeyV3Request) (string
 		return "", err
 	}
 
-	rawRes, err := a.do(req)
+	rawRes, err := a.do(req) //nolint:bodyclose // linters bug
 	if err != nil {
 		return "", err
 	}
 	if rawRes.StatusCode == 400 {
-		var errRes InfisicalApiErrorResponse
+		var errRes InfisicalAPIErrorResponse
 		err = ReadAndUnmarshal(rawRes, &errRes)
 		if err != nil {
 			return "", fmt.Errorf(errJSONSecretUnmarshal, err)

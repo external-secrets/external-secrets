@@ -166,7 +166,7 @@ type SecretStoreProvider struct {
 
 	// Infisical configures this store to sync secrets using the Infisical provider
 	// +optional
-	Infisical *InfisicalProvider`json:"infisical,omitempty"`
+	Infisical *InfisicalProvider `json:"infisical,omitempty"`
 }
 
 type CAProviderType string

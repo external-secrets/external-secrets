@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 
+	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -27,7 +28,6 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider/infisical/constants"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var (
@@ -63,19 +63,19 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	storeSpec := store.GetSpec()
 
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Infisical == nil {
-		return nil, errors.New("Invalid infisical store")
+		return nil, errors.New("invalid infisical store")
 	}
 
 	infisicalSpec := storeSpec.Provider.Infisical
 
-	apiClient, err := api.NewApiClient(infisicalSpec.HostAPI)
+	apiClient, err := api.NewAPIClient(infisicalSpec.HostAPI)
 	if err != nil {
 		return nil, err
 	}
 
 	if infisicalSpec.Auth.Type == constants.UniversalAuth {
 		universalAuthCredentials := infisicalSpec.Auth.UniversalAuthCredentials
-		clientId, err := GetSecretData(ctx, store, kube, namespace, universalAuthCredentials.ClientId)
+		clientID, err := GetSecretData(ctx, store, kube, namespace, universalAuthCredentials.ClientID)
 		if err != nil {
 			return nil, err
 		}
@@ -85,7 +85,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 			return nil, err
 		}
 
-		tokenManager := NewMachineTokenManger(apiClient, clientId, clientSecret)
+		tokenManager := NewMachineTokenManger(apiClient, clientID, clientSecret)
 		apiClient.SetTokenManager(tokenManager)
 
 		if err := tokenManager.StartLifeCycle(); err != nil {
@@ -102,7 +102,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		}, nil
 	}
 
-	return &Provider{}, errors.New("Authentication method not found")
+	return &Provider{}, errors.New("authentication method not found")
 }
 
 func GetSecretData(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string, secret esmeta.SecretKeySelector) (string, error) {
@@ -131,11 +131,11 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 
 	if infisicalStoreSpec.Auth.Type == constants.UniversalAuth {
 		uaCredential := infisicalStoreSpec.Auth.UniversalAuthCredentials
-		err := utils.ValidateSecretSelector(store, uaCredential.ClientId)
+		err := utils.ValidateSecretSelector(store, uaCredential.ClientID)
 		if err != nil {
 			return nil, err
 		}
-		if uaCredential.ClientId.Key == "" || uaCredential.ClientSecret.Key == "" {
+		if uaCredential.ClientID.Key == "" || uaCredential.ClientSecret.Key == "" {
 			return nil, errors.New("universalAuthCredentials.clientId and universalAuthCredentials.clientSecret cannot be empty")
 		}
 	}
