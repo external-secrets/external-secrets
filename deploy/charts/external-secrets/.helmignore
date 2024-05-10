@@ -28,3 +28,4 @@ templates/crds/README.md
 ci/
 tests/
 README.md.gotmpl
+.helmignore
