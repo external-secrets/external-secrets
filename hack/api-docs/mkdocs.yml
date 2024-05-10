@@ -39,12 +39,12 @@ extra:
     property: G-QP38TD8K7V
 nav:
   - Introduction:
-    - Introduction: index.md
-    - Overview: introduction/overview.md
-    - Getting started: introduction/getting-started.md
-    - FAQ: introduction/faq.md
-    - Stability and Support: introduction/stability-support.md
-    - Deprecation Policy: introduction/deprecation-policy.md
+      - Introduction: index.md
+      - Overview: introduction/overview.md
+      - Getting started: introduction/getting-started.md
+      - FAQ: introduction/faq.md
+      - Stability and Support: introduction/stability-support.md
+      - Deprecation Policy: introduction/deprecation-policy.md
   - API:
     - Components: api/components.md
     - Core Resources:
@@ -68,72 +68,73 @@ nav:
       - Controller Options: api/controller-options.md
       - Metrics: api/metrics.md
   - Guides:
-    - Introduction: guides/introduction.md
-    - External Secrets:
-      - Extract structured data: guides/all-keys-one-secret.md
-      - Find Secrets by Name or Metadata: guides/getallsecrets.md
-      - Rewriting Keys: guides/datafrom-rewrite.md
-      - Advanced Templating:
-        - v2: guides/templating.md
-        - v1: guides/templating-v1.md
-      - Kubernetes Secret Types: guides/common-k8s-secret-types.md
-      - "Lifecycle: ownership & deletion": guides/ownership-deletion-policy.md
-      - Decoding Strategies: guides/decoding-strategy.md
-      - Controller Classes: guides/controller-class.md
-    - Generators: guides/generator.md
-    - Push Secrets: guides/pushsecrets.md
-    - Operations:
-      - Multi Tenancy: guides/multi-tenancy.md
-      - Security Best Practices: guides/security-best-practices.md
-      - Threat Model: guides/threat-model.md
-      - Upgrading to v1beta1: guides/v1beta1.md
-      - Using Latest Image: guides/using-latest-image.md
-      - Disable Cluster Features: guides/disable-cluster-features.md
+      - Introduction: guides/introduction.md
+      - External Secrets:
+          - Extract structured data: guides/all-keys-one-secret.md
+          - Find Secrets by Name or Metadata: guides/getallsecrets.md
+          - Rewriting Keys: guides/datafrom-rewrite.md
+          - Advanced Templating:
+              - v2: guides/templating.md
+              - v1: guides/templating-v1.md
+          - Kubernetes Secret Types: guides/common-k8s-secret-types.md
+          - "Lifecycle: ownership & deletion": guides/ownership-deletion-policy.md
+          - Decoding Strategies: guides/decoding-strategy.md
+          - Controller Classes: guides/controller-class.md
+      - Generators: guides/generator.md
+      - Push Secrets: guides/pushsecrets.md
+      - Operations:
+          - Multi Tenancy: guides/multi-tenancy.md
+          - Security Best Practices: guides/security-best-practices.md
+          - Threat Model: guides/threat-model.md
+          - Upgrading to v1beta1: guides/v1beta1.md
+          - Using Latest Image: guides/using-latest-image.md
+          - Disable Cluster Features: guides/disable-cluster-features.md
   - Provider:
-    - AWS Secrets Manager: provider/aws-secrets-manager.md
-    - AWS Parameter Store: provider/aws-parameter-store.md
-    - Azure Key Vault: provider/azure-key-vault.md
-    - Chef: provider/chef.md
-    - CyberArk Conjur: provider/conjur.md
-    - Google Cloud Secret Manager: provider/google-secrets-manager.md
-    - HashiCorp Vault: provider/hashicorp-vault.md
-    - Kubernetes: provider/kubernetes.md
-    - IBM Secrets Manager: provider/ibm-secrets-manager.md
-    - Akeyless: provider/akeyless.md
-    - Yandex Certificate Manager: provider/yandex-certificate-manager.md
-    - Yandex Lockbox: provider/yandex-lockbox.md
-    - Alibaba Cloud: provider/alibaba.md
-    - GitLab Variables: provider/gitlab-variables.md
-    - Oracle Vault: provider/oracle-vault.md
-    - 1Password Secrets Automation: provider/1password-automation.md
-    - Webhook: provider/webhook.md
-    - Fake: provider/fake.md
-    - senhasegura DevOps Secrets Management (DSM): provider/senhasegura-dsm.md
-    - Doppler: provider/doppler.md
-    - Keeper Security: provider/keeper-security.md
-    - Cloak End 2 End Encrypted Secrets: provider/cloak.md
-    - Scaleway: provider/scaleway.md
-    - Delinea: provider/delinea.md
-    - Passbolt: provider/passbolt.md
-    - Pulumi ESC: provider/pulumi.md
-    - Onboardbase: provider/onboardbase.md
-    - Password Depot: provider-passworddepot.md
-    - Fortanix: provider/fortanix.md
+      - AWS Secrets Manager: provider/aws-secrets-manager.md
+      - AWS Parameter Store: provider/aws-parameter-store.md
+      - Azure Key Vault: provider/azure-key-vault.md
+      - Chef: provider/chef.md
+      - CyberArk Conjur: provider/conjur.md
+      - Google Cloud Secret Manager: provider/google-secrets-manager.md
+      - HashiCorp Vault: provider/hashicorp-vault.md
+      - Kubernetes: provider/kubernetes.md
+      - IBM Secrets Manager: provider/ibm-secrets-manager.md
+      - Akeyless: provider/akeyless.md
+      - Yandex Certificate Manager: provider/yandex-certificate-manager.md
+      - Yandex Lockbox: provider/yandex-lockbox.md
+      - Alibaba Cloud: provider/alibaba.md
+      - GitLab Variables: provider/gitlab-variables.md
+      - Oracle Vault: provider/oracle-vault.md
+      - 1Password Secrets Automation: provider/1password-automation.md
+      - Webhook: provider/webhook.md
+      - Fake: provider/fake.md
+      - senhasegura DevOps Secrets Management (DSM): provider/senhasegura-dsm.md
+      - Doppler: provider/doppler.md
+      - Keeper Security: provider/keeper-security.md
+      - Cloak End 2 End Encrypted Secrets: provider/cloak.md
+      - Scaleway: provider/scaleway.md
+      - Delinea: provider/delinea.md
+      - Passbolt: provider/passbolt.md
+      - Pulumi ESC: provider/pulumi.md
+      - Onboardbase: provider/onboardbase.md
+      - Password Depot: provider-passworddepot.md
+      - Fortanix: provider/fortanix.md
+      - Infisical: provider/infisical.md
   - Examples:
-    - FluxCD: examples/gitops-using-fluxcd.md
-    - Anchore Engine: examples/anchore-engine-credentials.md
-    - Jenkins: examples/jenkins-kubernetes-credentials.md
-    - BitWarden: examples/bitwarden.md
+      - FluxCD: examples/gitops-using-fluxcd.md
+      - Anchore Engine: examples/anchore-engine-credentials.md
+      - Jenkins: examples/jenkins-kubernetes-credentials.md
+      - BitWarden: examples/bitwarden.md
   - Community:
-    - Contributing:
-      - Developer guide: contributing/devguide.md
-      - Contributing Process: contributing/process.md
-      - Release Process: contributing/release.md
-      - Code of Conduct: contributing/coc.md
-      - Roadmap: contributing/roadmap.md
-    - External Resources:
-      - Talks: eso-talks.md
-      - Demos: eso-demos.md
-      - Blogs: eso-blogs.md
+      - Contributing:
+          - Developer guide: contributing/devguide.md
+          - Contributing Process: contributing/process.md
+          - Release Process: contributing/release.md
+          - Code of Conduct: contributing/coc.md
+          - Roadmap: contributing/roadmap.md
+      - External Resources:
+          - Talks: eso-talks.md
+          - Demos: eso-demos.md
+          - Blogs: eso-blogs.md
   - References:
-    - API specification: spec.md
+      - API specification: spec.md
