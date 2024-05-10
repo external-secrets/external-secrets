@@ -155,8 +155,6 @@ Determine the image to use, including if using a flavour.
 {{- end }}
 {{- end }}
 
-<<<<<<< HEAD
-
 {{/*
 Renders a complete tree, even values that contains template.
 */}}
@@ -167,8 +165,8 @@ Renders a complete tree, even values that contains template.
     {{- tpl (.value | toYaml) .context }}
   {{- end }}
 {{- end -}}
-=======
-{{/* 
+
+{{/*
 Return true if the OpenShift is the detected platform
 Usage:
 {{- include "external-secrets.isOpenShift" . -}}
@@ -198,4 +196,3 @@ Render the securityContext based on the provided securityContext
 {{- end -}}
 {{- omit $adaptedContext "enabled" | toYaml -}}
 {{- end -}}
->>>>>>> 2218c78b (Methods for managing securityContext and OpenShift support)
