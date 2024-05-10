@@ -1,21 +1,21 @@
 ![Infisical k8s Diagram](../pictures/external-secrets-operator.png)
 
-Sync secrets from [Infisical](www.infisical.com) to your Kubernetes cluster using External Secrets Operator.
+Sync secrets from [Infisical](https://www.infisical.com) to your Kubernetes cluster using External Secrets Operator.
 
 ## Authentication
-In order for the operator to fetch secrets from Infisical, it needs to first authenticate with Infisical. 
+In order for the operator to fetch secrets from Infisical, it needs to first authenticate with Infisical.
 
 To authenticate, you can use [Universal Auth](https://infisical.com/docs/documentation/platform/identities/universal-auth) from [Machine identities](https://infisical.com/docs/documentation/platform/identities/machine-identities).
 
 Follow the [guide here](https://infisical.com/docs/documentation/platform/identities/universal-auth) to learn how to create and obtain a pair of Client Secret and Client ID.
 
 !!! Note
-    Support for Native Kubernetes auth will be released soon, eliminating the need to supply initial token to the cluster. 
+    Support for Native Kubernetes auth will be released soon, eliminating the need to supply initial token to the cluster.
 
 
 ## Storing Your Machine Identity Secrets
 
-Once you have generated a pair of `Client ID` and `Client Secret`, you will need to store these credentials in your cluster as a Kubernetes secret. 
+Once you have generated a pair of `Client ID` and `Client Secret`, you will need to store these credentials in your cluster as a Kubernetes secret.
 
 !!! note inline end
     Remember to replace with your own Machine Identity credentials.
