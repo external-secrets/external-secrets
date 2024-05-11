@@ -110,6 +110,7 @@ spec:
         {{- if .Values.extraContainers }}
           {{ toYaml .Values.extraContainers | nindent 8}}
         {{- end }}
+      dnsPolicy: {{ .Values.dnsPolicy }}
       {{- if .Values.dnsConfig }}
       dnsConfig:
           {{- toYaml .Values.dnsConfig | nindent 8 }}

@@ -510,6 +510,9 @@ certController:
       #   cpu: 10m
       #   memory: 32Mi
 
+# -- Specifies `dnsPolicy` to deployment
+dnsPolicy: ClusterFirst
+
 # -- Specifies `dnsOptions` to deployment
 dnsConfig: {}
 

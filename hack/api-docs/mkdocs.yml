@@ -62,6 +62,7 @@ nav:
       - Password: api/generator/password.md
       - Fake: api/generator/fake.md
       - Webhook: api/generator/webhook.md
+      - Github: api/generator/github.md
     - Reference Docs:
       - API specification: api/spec.md
       - Controller Options: api/controller-options.md
