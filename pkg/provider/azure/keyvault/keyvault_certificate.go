@@ -1,3 +1,16 @@
+// /*
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// */
 package keyvault
 
 import (
@@ -32,7 +45,7 @@ func NewClientInMemoryCertificateConfig(clientID string, certificate []byte, ten
 	}
 }
 
-// ServicePrincipalToken creates a adal.ServicePrincipalToken from client certificate using the certificate byte slice
+// ServicePrincipalToken creates a adal.ServicePrincipalToken from client certificate using the certificate byte slice.
 func (ccc ClientInMemoryCertificateConfig) ServicePrincipalToken() (*adal.ServicePrincipalToken, error) {
 	oauthConfig, err := adal.NewOAuthConfig(ccc.AADEndpoint, ccc.TenantID)
 	if err != nil {
@@ -42,7 +55,7 @@ func (ccc ClientInMemoryCertificateConfig) ServicePrincipalToken() (*adal.Servic
 	certificate, rsaPrivateKey, err := loadCertificateFromBytes(ccc.Certificate)
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode certificate: %v", err)
+		return nil, fmt.Errorf("failed to decode certificate: %w", err)
 	}
 	return adal.NewServicePrincipalTokenFromCertificate(*oauthConfig, ccc.ClientID, certificate, rsaPrivateKey, ccc.Resource)
 }
@@ -63,7 +76,6 @@ func loadCertificateFromBytes(certificateBytes []byte) (*x509.Certificate, *rsa.
 			if err != nil {
 				return nil, nil, fmt.Errorf("failed to parse PEM certificate: %w", err)
 			}
-
 		} else {
 			privateKey, err = parsePrivateKey(block.Bytes)
 			if err != nil {
@@ -93,17 +105,17 @@ func parsePrivateKey(der []byte) (*rsa.PrivateKey, error) {
 		case *rsa.PrivateKey:
 			return key, nil
 		default:
-			return nil, fmt.Errorf("found unknown private key type in PKCS#8 wrapping")
+			return nil, errors.New("found unknown private key type in PKCS#8 wrapping")
 		}
 	}
-	return nil, fmt.Errorf("failed to parse private key")
+	return nil, errors.New("failed to parse private key")
 }
 
-// Implementation of the AuthorizerConfig interface
+// Implementation of the AuthorizerConfig interface.
 func (ccc ClientInMemoryCertificateConfig) Authorizer() (autorest.Authorizer, error) {
 	spToken, err := ccc.ServicePrincipalToken()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get oauth token from certificate auth: %v", err)
+		return nil, fmt.Errorf("failed to get oauth token from certificate auth: %w", err)
 	}
 	return autorest.NewBearerAuthorizer(spToken), nil
 }

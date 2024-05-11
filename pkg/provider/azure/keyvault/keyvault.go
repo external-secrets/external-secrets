@@ -78,7 +78,7 @@ const (
 	errMissingClientIDSecret    = "missing accessKeyID/secretAccessKey in store config"
 	errInvalidClientCredentials = "both clientSecret and clientCredentials set"
 	errMultipleClientID         = "multiple clientID found. Check secretRef and serviceAccountRef"
-	errMultipleTenantID         = "multiple tenantID found. Check secretRef, 'spec.provider.azurekv.tenantId', and serviceAccountRef"
+	errMultipleTenantID         = "multiple tenantID found. Check secretRef, 'spec.provider.azurekv.tenantID', and serviceAccountRef"
 	errFindSecret               = "could not find secret %s/%s: %w"
 	errFindDataKey              = "no data for %q in secret '%s/%s'"
 
@@ -222,12 +222,6 @@ func (a *Azure) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings,
 				return nil, fmt.Errorf(errInvalidSecRefClientSecret, err)
 			}
 		}
-		// if p.AuthSecretRef.ClientCertificate != nil {
-		// 	path := p.AuthSecretRef.ClientCertificate.Path
-		// 	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-		// 		return nil, fmt.Errorf(errInvalidSecRefClientCertificate, err)
-		// 	}
-		// }
 	}
 	if p.ServiceAccountRef != nil {
 		if err := utils.ValidateReferentServiceAccountSelector(store, *p.ServiceAccountRef); err != nil {
@@ -885,7 +879,7 @@ func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider
 			}
 		}
 	}
-	// Check if spec.provider.azurekv.tenantId is set
+	// Check if spec.provider.azurekv.tenantID is set
 	if tenantID == "" && a.provider.TenantID != nil {
 		tenantID = *a.provider.TenantID
 	}
@@ -993,11 +987,18 @@ func (a *Azure) authorizerForServicePrincipal(ctx context.Context) (autorest.Aut
 	if a.provider.AuthSecretRef.ClientSecret != nil && a.provider.AuthSecretRef.ClientCertificate != nil {
 		return nil, fmt.Errorf(errInvalidClientCredentials)
 	}
+
+	return a.getAuthorizerFromCredentials(ctx)
+}
+
+func (a *Azure) getAuthorizerFromCredentials(ctx context.Context) (autorest.Authorizer, error) {
 	clientID, err := resolvers.SecretKeyRef(
 		ctx,
 		a.crClient,
 		a.store.GetKind(),
-		a.namespace, a.provider.AuthSecretRef.ClientID)
+		a.namespace, a.provider.AuthSecretRef.ClientID,
+	)
+
 	if err != nil {
 		return nil, err
 	}
@@ -1041,15 +1042,15 @@ func (a *Azure) authorizerForServicePrincipal(ctx context.Context) (autorest.Aut
 	}
 }
 
-func getAuthorizerForClientSecret(clientId, clientSecret, tenantId string, environmentType esv1beta1.AzureEnvironmentType) (autorest.Authorizer, error) {
-	clientCredentialsConfig := kvauth.NewClientCredentialsConfig(clientId, clientSecret, tenantId)
+func getAuthorizerForClientSecret(clientID, clientSecret, tenantID string, environmentType esv1beta1.AzureEnvironmentType) (autorest.Authorizer, error) {
+	clientCredentialsConfig := kvauth.NewClientCredentialsConfig(clientID, clientSecret, tenantID)
 	clientCredentialsConfig.Resource = kvResourceForProviderConfig(environmentType)
 	clientCredentialsConfig.AADEndpoint = AadEndpointForType(environmentType)
 	return clientCredentialsConfig.Authorizer()
 }
 
-func getAuthorizerForClientCertificate(clientId string, certificateBytes []byte, tenantId string, environmentType esv1beta1.AzureEnvironmentType) (autorest.Authorizer, error) {
-	clientCertificateConfig := NewClientInMemoryCertificateConfig(clientId, certificateBytes, tenantId)
+func getAuthorizerForClientCertificate(clientID string, certificateBytes []byte, tenantID string, environmentType esv1beta1.AzureEnvironmentType) (autorest.Authorizer, error) {
+	clientCertificateConfig := NewClientInMemoryCertificateConfig(clientID, certificateBytes, tenantID)
 	clientCertificateConfig.Resource = kvResourceForProviderConfig(environmentType)
 	clientCertificateConfig.AADEndpoint = AadEndpointForType(environmentType)
 	return clientCertificateConfig.Authorizer()
