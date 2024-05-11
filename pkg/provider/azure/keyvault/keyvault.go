@@ -78,7 +78,7 @@ const (
 	errMissingClientIDSecret    = "missing accessKeyID/secretAccessKey in store config"
 	errInvalidClientCredentials = "both clientSecret and clientCredentials set"
 	errMultipleClientID         = "multiple clientID found. Check secretRef and serviceAccountRef"
-	errMultipleTenantID         = "multiple tenantID found. Check secretRef, 'spec.provider.azurekv.tenantID', and serviceAccountRef"
+	errMultipleTenantID         = "multiple tenantID found. Check secretRef, 'spec.provider.azurekv.tenantId', and serviceAccountRef"
 	errFindSecret               = "could not find secret %s/%s: %w"
 	errFindDataKey              = "no data for %q in secret '%s/%s'"
 
