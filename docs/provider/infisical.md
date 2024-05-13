@@ -9,10 +9,6 @@ To authenticate, you can use [Universal Auth](https://infisical.com/docs/documen
 
 Follow the [guide here](https://infisical.com/docs/documentation/platform/identities/universal-auth) to learn how to create and obtain a pair of Client Secret and Client ID.
 
-!!! Note
-    Support for Native Kubernetes auth will be released soon, eliminating the need to supply initial token to the cluster.
-
-
 ## Storing Your Machine Identity Secrets
 
 Once you have generated a pair of `Client ID` and `Client Secret`, you will need to store these credentials in your cluster as a Kubernetes secret.
