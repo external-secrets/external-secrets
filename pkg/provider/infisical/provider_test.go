@@ -22,7 +22,6 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esv1meta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/provider/infisical/constants"
 	"github.com/external-secrets/external-secrets/pkg/provider/infisical/fake"
 )
 
@@ -77,9 +76,7 @@ func makeSecretStore(projectSlug, environment, secretPath string, fn ...storeMod
 		Spec: esv1beta1.SecretStoreSpec{
 			Provider: &esv1beta1.SecretStoreProvider{
 				Infisical: &esv1beta1.InfisicalProvider{
-					Auth: &esv1beta1.InfisicalAuth{
-						Type: constants.UniversalAuth,
-					},
+					Auth: esv1beta1.InfisicalAuth{},
 					SecretsScope: esv1beta1.MachineIdentityScopeInWorkspace{
 						SecretsPath:     secretPath,
 						EnvironmentSlug: environment,
