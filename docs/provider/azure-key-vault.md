@@ -34,7 +34,7 @@ az keyvault set-policy --name kv-name-with-certs --object-id "$KUBELET_IDENTITY_
 
 #### Service Principal key authentication
 
-A service Principal client and Secret is created and the JSON keyfile is stored in a `Kind=Secret`. The `ClientID` and `ClientSecret` should be configured for the secret. This service principal should have proper access rights to the keyvault to be managed by the operator
+A service Principal client and Secret is created and the JSON keyfile is stored in a `Kind=Secret`. The `ClientID` and `ClientSecret` or `ClientCertificate` (in PEM format) should be configured for the secret. This service principal should have proper access rights to the keyvault to be managed by the operator.
 
 #### Managed Identity authentication
 

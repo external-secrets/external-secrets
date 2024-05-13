@@ -869,6 +869,20 @@ External Secrets meta/v1.SecretKeySelector
 <p>The Azure ClientSecret of the service principle used for authentication.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>clientCertificate</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The Azure ClientCertificate of the service principle used for authentication.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.AzureKVProvider">AzureKVProvider
