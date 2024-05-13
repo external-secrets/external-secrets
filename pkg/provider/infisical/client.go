@@ -30,8 +30,9 @@ import (
 )
 
 var (
-	errNotImplemented   = errors.New("not implemented")
-	errPropertyNotFound = "property %s does not exist in secret %s"
+	errNotImplemented     = errors.New("not implemented")
+	errPropertyNotFound   = "property %s does not exist in secret %s"
+	errTagsNotImplemented = errors.New("find by tags not supported")
 )
 
 func getPropertyValue(jsonData string, propertyName string, keyName string) ([]byte, error) {
@@ -95,6 +96,10 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 
 // GetAllSecrets returns multiple k/v pairs from the provider.
 func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	if ref.Tags != nil {
+		return nil, errTagsNotImplemented
+	}
+
 	secrets, err := p.apiClient.GetSecretsV3(api.GetSecretsV3Request{
 		EnvironmentSlug: p.apiScope.EnvironmentSlug,
 		ProjectSlug:     p.apiScope.ProjectSlug,
@@ -110,7 +115,7 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 	}
 	if ref.Name == nil && ref.Path == nil {
 		return secretMap, nil
-	}
+}
 
 	var matcher *find.Matcher
 	if ref.Name != nil {
