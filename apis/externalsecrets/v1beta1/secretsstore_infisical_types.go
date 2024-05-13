@@ -26,11 +26,8 @@ type UniversalAuthCredentials struct {
 }
 
 type InfisicalAuth struct {
-	// Type of machine identity authentication with Infisical
-	// +kubebuilder:validation:Enum=universal-auth
-	Type string `json:"type"`
 	// +optional
-	UniversalAuthCredentials UniversalAuthCredentials `json:"universalAuthCredentials"`
+	UniversalAuthCredentials *UniversalAuthCredentials `json:"universalAuthCredentials"`
 }
 
 type MachineIdentityScopeInWorkspace struct {
@@ -46,7 +43,8 @@ type MachineIdentityScopeInWorkspace struct {
 // InfisicalProvider configures a store to sync secrets using the Infisical provider.
 type InfisicalProvider struct {
 	// Auth configures how the Operator authenticates with the Infisical API
-	Auth *InfisicalAuth `json:"auth"`
+	// +kubebuilder:validation:Required
+	Auth InfisicalAuth `json:"auth"`
 	// +kubebuilder:validation:Required
 	SecretsScope MachineIdentityScopeInWorkspace `json:"secretsScope"`
 	// +kubebuilder:default="https://app.infisical.com/api"

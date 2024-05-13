@@ -73,7 +73,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return nil, err
 	}
 
-	if infisicalSpec.Auth.Type == constants.UniversalAuth {
+	if infisicalSpec.Auth.UniversalAuthCredentials != nil {
 		universalAuthCredentials := infisicalSpec.Auth.UniversalAuthCredentials
 		clientID, err := GetSecretData(ctx, store, kube, namespace, universalAuthCredentials.ClientID)
 		if err != nil {
@@ -124,12 +124,15 @@ func GetSecretData(ctx context.Context, store esv1beta1.GenericStore, kube kclie
 func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	infisicalStoreSpec := storeSpec.Provider.Infisical
+	if infisicalStoreSpec == nil {
+		return nil, errors.New("invalid infisical store")
+	}
 
 	if infisicalStoreSpec.SecretsScope.EnvironmentSlug == "" || infisicalStoreSpec.SecretsScope.ProjectSlug == "" {
 		return nil, errors.New("secretsScope.projectSlug and secretsScope.environmentSlug cannot be empty")
 	}
 
-	if infisicalStoreSpec.Auth.Type == constants.UniversalAuth {
+	if infisicalStoreSpec.Auth.UniversalAuthCredentials != nil {
 		uaCredential := infisicalStoreSpec.Auth.UniversalAuthCredentials
 		err := utils.ValidateSecretSelector(store, uaCredential.ClientID)
 		if err != nil {
