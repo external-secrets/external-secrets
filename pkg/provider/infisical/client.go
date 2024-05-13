@@ -16,7 +16,9 @@ package infisical
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -24,9 +26,21 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/provider/infisical/api"
+	"github.com/tidwall/gjson"
 )
 
-var errNotImplemented = errors.New("not implemented")
+var (
+	errNotImplemented   = errors.New("not implemented")
+	errPropertyNotFound = "property %s does not exist in secret %s"
+)
+
+func getPropertyValue(jsonData string, propertyName string, keyName string) ([]byte, error) {
+	result := gjson.Get(jsonData, propertyName)
+	if !result.Exists() {
+		return nil, fmt.Errorf(errPropertyNotFound, propertyName, keyName)
+	}
+	return []byte(result.Str), nil
+}
 
 // if GetSecret returns an error with type NoSecretError.
 // then the secret entry will be deleted depending on the deletionPolicy.
@@ -42,25 +56,41 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 		return nil, err
 	}
 
+	if ref.Property != "" {
+		propertyValue, err := getPropertyValue(secret, ref.Property, ref.Key)
+		if err != nil {
+			return nil, err
+		}
+
+		return propertyValue, nil
+	}
+
 	return []byte(secret), nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
 func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	secrets, err := p.apiClient.GetSecretsV3(api.GetSecretsV3Request{
-		EnvironmentSlug: p.apiScope.EnvironmentSlug,
-		ProjectSlug:     p.apiScope.ProjectSlug,
-		SecretPath:      p.apiScope.SecretPath,
-	})
+	secret, err := p.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
 
-	secretMap := make(map[string][]byte)
-	for key, value := range secrets {
-		secretMap[key] = []byte(value)
+	kv := make(map[string]json.RawMessage)
+	err = json.Unmarshal(secret, &kv)
+	if err != nil {
+		return nil, fmt.Errorf("unable to unmarshal secret %s: %w", ref.Key, err)
 	}
-	return secretMap, nil
+	secretData := make(map[string][]byte)
+	for k, v := range kv {
+		var strVal string
+		err = json.Unmarshal(v, &strVal)
+		if err == nil {
+			secretData[k] = []byte(strVal)
+		} else {
+			secretData[k] = v
+		}
+	}
+	return secretData, nil
 }
 
 // GetAllSecrets returns multiple k/v pairs from the provider.
