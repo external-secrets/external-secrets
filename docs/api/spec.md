@@ -4390,17 +4390,6 @@ string
 <tbody>
 <tr>
 <td>
-<code>type</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Type of machine identity authentication with Infisical</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>universalAuthCredentials</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.UniversalAuthCredentials">
