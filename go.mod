@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets
 
-go 1.22.1
+go 1.22.3
 
 require (
 	cloud.google.com/go/iam v1.1.8
