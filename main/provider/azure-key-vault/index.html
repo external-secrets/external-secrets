@@ -3470,7 +3470,7 @@
 az<span class="w"> </span>keyvault<span class="w"> </span>set-policy<span class="w"> </span>--name<span class="w"> </span>kv-name-with-certs<span class="w"> </span>--object-id<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$KUBELET_IDENTITY_OBJECT_ID</span><span class="s2">&quot;</span><span class="w"> </span>--certificate-permissions<span class="w"> </span>get<span class="w"> </span>--secret-permissions<span class="w"> </span>get
 </code></pre></div>
 <h4 id="service-principal-key-authentication">Service Principal key authentication</h4>
-<p>A service Principal client and Secret is created and the JSON keyfile is stored in a <code>Kind=Secret</code>. The <code>ClientID</code> and <code>ClientSecret</code> should be configured for the secret. This service principal should have proper access rights to the keyvault to be managed by the operator</p>
+<p>A service Principal client and Secret is created and the JSON keyfile is stored in a <code>Kind=Secret</code>. The <code>ClientID</code> and <code>ClientSecret</code> or <code>ClientCertificate</code> (in PEM format) should be configured for the secret. This service principal should have proper access rights to the keyvault to be managed by the operator.</p>
 <h4 id="managed-identity-authentication">Managed Identity authentication</h4>
 <p>A Managed Identity should be created in Azure, and that Identity should have proper rights to the keyvault to be managed by the operator.</p>
 <p>Use <a href="https://azure.github.io/aad-pod-identity/docs/">aad-pod-identity</a> to assign the identity to external-secrets operator. To add the selector to external-secrets operator, use <code>podLabels</code> in your values.yaml in case of Helm installation of external-secrets.</p>
