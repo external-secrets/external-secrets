@@ -75,12 +75,12 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 
 	if infisicalSpec.Auth.UniversalAuthCredentials != nil {
 		universalAuthCredentials := infisicalSpec.Auth.UniversalAuthCredentials
-		clientID, err := GetSecretData(ctx, store, kube, namespace, universalAuthCredentials.ClientID)
+		clientID, err := GetStoreSecretData(ctx, store, kube, namespace, universalAuthCredentials.ClientID)
 		if err != nil {
 			return nil, err
 		}
 
-		clientSecret, err := GetSecretData(ctx, store, kube, namespace, universalAuthCredentials.ClientSecret)
+		clientSecret, err := GetStoreSecretData(ctx, store, kube, namespace, universalAuthCredentials.ClientSecret)
 		if err != nil {
 			return nil, err
 		}
@@ -105,7 +105,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return &Provider{}, errors.New("authentication method not found")
 }
 
-func GetSecretData(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string, secret esmeta.SecretKeySelector) (string, error) {
+func GetStoreSecretData(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string, secret esmeta.SecretKeySelector) (string, error) {
 	secretRef := esmeta.SecretKeySelector{
 		Name: secret.Name,
 		Key:  secret.Key,
@@ -134,10 +134,17 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 
 	if infisicalStoreSpec.Auth.UniversalAuthCredentials != nil {
 		uaCredential := infisicalStoreSpec.Auth.UniversalAuthCredentials
-		err := utils.ValidateSecretSelector(store, uaCredential.ClientID)
+		// to validate reference authentication
+		err := utils.ValidateReferentSecretSelector(store, uaCredential.ClientID)
 		if err != nil {
 			return nil, err
 		}
+
+		err = utils.ValidateReferentSecretSelector(store, uaCredential.ClientSecret)
+		if err != nil {
+			return nil, err
+		}
+
 		if uaCredential.ClientID.Key == "" || uaCredential.ClientSecret.Key == "" {
 			return nil, errors.New("universalAuthCredentials.clientId and universalAuthCredentials.clientSecret cannot be empty")
 		}
