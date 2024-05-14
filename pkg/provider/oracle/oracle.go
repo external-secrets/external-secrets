@@ -96,13 +96,22 @@ const (
 )
 
 func (vms *VaultManagementService) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
-	if data.GetSecretKey() == "" {
-		return fmt.Errorf("pushing the whole secret is not yet implemented")
-	}
-
-	value := secret.Data[data.GetSecretKey()]
+	secretData := map[string]string{}
+	value := []byte{}
 	secretName := data.GetRemoteKey()
-	encodedValue := base64.StdEncoding.EncodeToString(value)
+	if data.GetSecretKey() == "" {
+		for k, v := range secret.Data {
+			secretData[k] = string(v)
+		}
+	} else {
+		value = secret.Data[data.GetSecretKey()]
+		secretData = map[string]string{secretName: string(value)}
+	}
+	json, err := json.Marshal(secretData)
+	if err != nil {
+		return fmt.Errorf("unable to create json %v from value: %v", value, secretData)
+	}
+	encodedValue := base64.StdEncoding.EncodeToString(json)
 	sec, action, err := vms.getSecretBundleWithCode(ctx, secretName)
 	switch action {
 	case SecretNotFound:
@@ -342,6 +351,7 @@ func (vms *VaultManagementService) getSecretBundleWithCode(ctx context.Context, 
 		SecretName: &secretName,
 		VaultId:    &vms.vault,
 	})
+	// fmt.Printf("getSecretBundleWithCode: %v: %v: %v", secretName, vms.vault, resp)
 	// Get a PushSecret action depending on the ListSecrets response.
 	action := getSecretBundleCode(err)
 	return resp, action, err
