@@ -607,6 +607,25 @@ func TestOracleVaultPushSecret(t *testing.T) {
 			},
 			"created",
 		},
+		"create a json secret if not exists": {
+			&VaultManagementService{
+				encryptionKey: encryptionKey,
+				Client: &fakeoracle.OracleMockClient{
+					SecretBundles: map[string]secrets.SecretBundle{
+						s2id: s2bundle,
+					},
+				},
+				VaultClient: &fakeoracle.OracleMockVaultClient{},
+			},
+			testingfake.PushSecretData{
+				SecretKey: testSecretKey,
+				RemoteKey: s1id,
+			},
+			func(vms *VaultManagementService) bool {
+				return vms.VaultClient.(*fakeoracle.OracleMockVaultClient).CreatedCount == 1
+			},
+			"{'key-a':'secret-a', 'key-b': 'secret-b'}",
+		},
 		"update a secret if exists": {
 			&VaultManagementService{
 				encryptionKey: encryptionKey,
