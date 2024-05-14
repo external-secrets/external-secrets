@@ -116,7 +116,7 @@ func pemToPkcs12(cert, key string) (string, error) {
 }
 
 func pemToPkcs12Pass(cert, key, pass string) (string, error) {
-	certPem, _ := pem.Decode([]byte(cert))
+	certPem, rest := pem.Decode([]byte(cert))
 	keyPem, _ := pem.Decode([]byte(key))
 
 	parsedCert, err := x509.ParseCertificate(certPem.Bytes)
@@ -124,12 +124,25 @@ func pemToPkcs12Pass(cert, key, pass string) (string, error) {
 		return "", err
 	}
 
+	caCerts := make([]*x509.Certificate, 0)
+	for len(rest) > 0 {
+		caPem, restBytes := pem.Decode(rest)
+		rest = restBytes
+
+		caCert, err := x509.ParseCertificate(caPem.Bytes)
+		if err != nil {
+			return "", err
+		}
+
+		caCerts = append(caCerts, caCert)
+	}
+
 	parsedKey, err := parsePrivateKey(keyPem.Bytes)
 	if err != nil {
 		return "", err
 	}
 
-	pfx, err := gopkcs12.Modern.Encode(parsedKey, parsedCert, nil, pass)
+	pfx, err := gopkcs12.Modern.Encode(parsedKey, parsedCert, caCerts, pass)
 	if err != nil {
 		return "", err
 	}
