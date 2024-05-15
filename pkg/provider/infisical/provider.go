@@ -17,6 +17,7 @@ package infisical
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -85,11 +86,8 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 			return nil, err
 		}
 
-		tokenManager := NewMachineTokenManger(apiClient, clientID, clientSecret)
-		apiClient.SetTokenManager(tokenManager)
-
-		if err := tokenManager.StartLifeCycle(); err != nil {
-			return nil, err
+		if err := apiClient.SetTokenViaMachineIdentity(clientID, clientSecret); err != nil {
+			return nil, fmt.Errorf("failed to authenticate via universal auth %w", err)
 		}
 
 		return &Provider{
@@ -103,6 +101,13 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	}
 
 	return &Provider{}, errors.New("authentication method not found")
+}
+
+func (p *Provider) Close(ctx context.Context) error {
+	if err := p.apiClient.RevokeAccessToken(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func GetStoreSecretData(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string, secret esmeta.SecretKeySelector) (string, error) {

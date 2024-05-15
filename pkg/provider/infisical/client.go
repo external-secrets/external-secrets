@@ -115,7 +115,7 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 	}
 	if ref.Name == nil && ref.Path == nil {
 		return secretMap, nil
-}
+	}
 
 	var matcher *find.Matcher
 	if ref.Name != nil {
@@ -140,6 +140,17 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 // and is able to retrieve secrets from the provider.
 // If the validation result is unknown it will be ignored.
 func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
+	// try to fetch the secrets to ensure provided credentials has access to read secrets
+	_, err := p.apiClient.GetSecretsV3(api.GetSecretsV3Request{
+		EnvironmentSlug: p.apiScope.EnvironmentSlug,
+		ProjectSlug:     p.apiScope.ProjectSlug,
+		SecretPath:      p.apiScope.SecretPath,
+	})
+
+	if err != nil {
+		return esv1beta1.ValidationResultError, fmt.Errorf("Cannot read secrets with provided project scope project:%s environment:%s secret-path:%s, %w", p.apiScope.ProjectSlug, p.apiScope.EnvironmentSlug, p.apiScope.SecretPath, err)
+	}
+
 	return esv1beta1.ValidationResultReady, nil
 }
 
@@ -156,8 +167,4 @@ func (p *Provider) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSec
 // SecretExists checks if a secret is already present in the provider at the given location.
 func (p *Provider) SecretExists(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) (bool, error) {
 	return false, errNotImplemented
-}
-
-func (p *Provider) Close(ctx context.Context) error {
-	return nil
 }

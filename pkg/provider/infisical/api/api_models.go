@@ -30,6 +30,14 @@ type MachineIdentityUniversalAuthLoginRequest struct {
 	ClientSecret string `json:"clientSecret"`
 }
 
+type RevokeMachineIdentityAccessTokenRequest struct {
+	AccessToken string `json:"accessToken"`
+}
+
+type RevokeMachineIdentityAccessTokenResponse struct {
+	Message string `json:"message"`
+}
+
 type GetSecretByKeyV3Request struct {
 	EnvironmentSlug string `json:"environment"`
 	ProjectSlug     string `json:"workspaceSlug"`

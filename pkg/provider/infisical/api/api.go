@@ -27,20 +27,16 @@ import (
 )
 
 type InfisicalClient struct {
-	BaseURL      *url.URL
-	client       *http.Client
-	tokenManager TokenManager
+	BaseURL *url.URL
+	client  *http.Client
+	token   string
 }
 
 type InfisicalApis interface {
-	RefreshMachineIdentityAccessToken(data MachineIdentityUniversalAuthRefreshRequest) (*MachineIdentityDetailsResponse, error)
 	MachineIdentityLoginViaUniversalAuth(data MachineIdentityUniversalAuthLoginRequest) (*MachineIdentityDetailsResponse, error)
 	GetSecretsV3(data GetSecretsV3Request) (map[string]string, error)
 	GetSecretByKeyV3(data GetSecretByKeyV3Request) (string, error)
-}
-
-type TokenManager interface {
-	GetAccessToken() (string, error)
+	RevokeAccessToken() error
 }
 
 const UserAgentName = "k8-external-secrets-operator"
@@ -60,8 +56,31 @@ func NewAPIClient(baseURL string) (*InfisicalClient, error) {
 	return api, nil
 }
 
-func (a *InfisicalClient) SetTokenManager(tk TokenManager) {
-	a.tokenManager = tk
+func (a *InfisicalClient) SetTokenViaMachineIdentity(clientID string, clientSecret string) error {
+	if a.token == "" {
+		loginResponse, err := a.MachineIdentityLoginViaUniversalAuth(MachineIdentityUniversalAuthLoginRequest{
+			ClientID:     clientID,
+			ClientSecret: clientSecret,
+		})
+		if err != nil {
+			return err
+		}
+
+		a.token = loginResponse.AccessToken
+	}
+	return nil
+}
+
+func (a *InfisicalClient) RevokeAccessToken() error {
+	if a.token != "" {
+		_, err := a.RevokeMachineIdentityAccessToken(RevokeMachineIdentityAccessTokenRequest{AccessToken: a.token})
+		if err != nil {
+			return err
+		}
+
+		a.token = ""
+	}
+	return nil
 }
 
 func (a *InfisicalClient) resolveEndpoint(path string) string {
@@ -69,39 +88,13 @@ func (a *InfisicalClient) resolveEndpoint(path string) string {
 }
 
 func (a *InfisicalClient) do(r *http.Request) (*http.Response, error) {
-	if accessToken, err := a.tokenManager.GetAccessToken(); err == nil {
-		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+	if a.token != "" {
+		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", a.token))
 	}
 	r.Header.Add("User-Agent", UserAgentName)
 	r.Header.Add("Content-Type", "application/json")
 
 	return a.client.Do(r)
-}
-
-func (a *InfisicalClient) RefreshMachineIdentityAccessToken(data MachineIdentityUniversalAuthRefreshRequest) (*MachineIdentityDetailsResponse, error) {
-	endpointURL := a.resolveEndpoint("api/v1/auth/token/renew")
-	body, err := MarhalReqBody(data)
-	if err != nil {
-		return nil, err
-	}
-
-	refreshTokenReq, err := http.NewRequest(http.MethodPost, endpointURL, body)
-	metrics.ObserveAPICall(constants.ProviderName, "RefreshMachineIdentityAccessToken", err)
-	if err != nil {
-		return nil, err
-	}
-
-	rawRes, err := a.do(refreshTokenReq) //nolint:bodyclose // linters bug
-	if err != nil {
-		return nil, err
-	}
-
-	var res MachineIdentityDetailsResponse
-	err = ReadAndUnmarshal(rawRes, &res)
-	if err != nil {
-		return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
-	}
-	return &res, nil
 }
 
 func (a *InfisicalClient) MachineIdentityLoginViaUniversalAuth(data MachineIdentityUniversalAuthLoginRequest) (*MachineIdentityDetailsResponse, error) {
@@ -123,6 +116,32 @@ func (a *InfisicalClient) MachineIdentityLoginViaUniversalAuth(data MachineIdent
 	}
 
 	var res MachineIdentityDetailsResponse
+	err = ReadAndUnmarshal(rawRes, &res)
+	if err != nil {
+		return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
+	}
+	return &res, nil
+}
+
+func (a *InfisicalClient) RevokeMachineIdentityAccessToken(data RevokeMachineIdentityAccessTokenRequest) (*RevokeMachineIdentityAccessTokenResponse, error) {
+	endpointURL := a.resolveEndpoint("api/v1/auth/token/revoke")
+	body, err := MarhalReqBody(data)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, endpointURL, body)
+	metrics.ObserveAPICall(constants.ProviderName, "RevokeMachineIdentityAccessToken", err)
+	if err != nil {
+		return nil, err
+	}
+
+	rawRes, err := a.do(req) //nolint:bodyclose // linters bug
+	if err != nil {
+		return nil, err
+	}
+
+	var res RevokeMachineIdentityAccessTokenResponse
 	err = ReadAndUnmarshal(rawRes, &res)
 	if err != nil {
 		return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
