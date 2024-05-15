@@ -56,7 +56,7 @@ func NewAPIClient(baseURL string) (*InfisicalClient, error) {
 	return api, nil
 }
 
-func (a *InfisicalClient) SetTokenViaMachineIdentity(clientID string, clientSecret string) error {
+func (a *InfisicalClient) SetTokenViaMachineIdentity(clientID, clientSecret string) error {
 	if a.token == "" {
 		loginResponse, err := a.MachineIdentityLoginViaUniversalAuth(MachineIdentityUniversalAuthLoginRequest{
 			ClientID:     clientID,

@@ -21,12 +21,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/provider/infisical/api"
-	"github.com/tidwall/gjson"
 )
 
 var (
@@ -35,7 +35,7 @@ var (
 	errTagsNotImplemented = errors.New("find by tags not supported")
 )
 
-func getPropertyValue(jsonData string, propertyName string, keyName string) ([]byte, error) {
+func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
 	result := gjson.Get(jsonData, propertyName)
 	if !result.Exists() {
 		return nil, fmt.Errorf(errPropertyNotFound, propertyName, keyName)
@@ -148,7 +148,7 @@ func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
 	})
 
 	if err != nil {
-		return esv1beta1.ValidationResultError, fmt.Errorf("Cannot read secrets with provided project scope project:%s environment:%s secret-path:%s, %w", p.apiScope.ProjectSlug, p.apiScope.EnvironmentSlug, p.apiScope.SecretPath, err)
+		return esv1beta1.ValidationResultError, fmt.Errorf("cannot read secrets with provided project scope project:%s environment:%s secret-path:%s, %w", p.apiScope.ProjectSlug, p.apiScope.EnvironmentSlug, p.apiScope.SecretPath, err)
 	}
 
 	return esv1beta1.ValidationResultReady, nil
