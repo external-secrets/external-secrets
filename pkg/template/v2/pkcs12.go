@@ -116,8 +116,22 @@ func pemToPkcs12(cert, key string) (string, error) {
 }
 
 func pemToPkcs12Pass(cert, key, pass string) (string, error) {
+	certPem, _ := pem.Decode([]byte(cert))
+
+	parsedCert, err := x509.ParseCertificate(certPem.Bytes)
+	if err != nil {
+		return "", err
+	}
+
+	return certsToPkcs12(parsedCert, key, nil, pass)
+}
+
+func fullPemToPkcs12(cert, key string) (string, error) {
+	return fullPemToPkcs12Pass(cert, key, "")
+}
+
+func fullPemToPkcs12Pass(cert, key, pass string) (string, error) {
 	certPem, rest := pem.Decode([]byte(cert))
-	keyPem, _ := pem.Decode([]byte(key))
 
 	parsedCert, err := x509.ParseCertificate(certPem.Bytes)
 	if err != nil {
@@ -137,12 +151,17 @@ func pemToPkcs12Pass(cert, key, pass string) (string, error) {
 		caCerts = append(caCerts, caCert)
 	}
 
+	return certsToPkcs12(parsedCert, key, caCerts, pass)
+}
+
+func certsToPkcs12(cert *x509.Certificate, key string, caCerts []*x509.Certificate, password string) (string, error) {
+	keyPem, _ := pem.Decode([]byte(key))
 	parsedKey, err := parsePrivateKey(keyPem.Bytes)
 	if err != nil {
 		return "", err
 	}
 
-	pfx, err := gopkcs12.Modern.Encode(parsedKey, parsedCert, caCerts, pass)
+	pfx, err := gopkcs12.Modern.Encode(parsedKey, cert, caCerts, password)
 	if err != nil {
 		return "", err
 	}
