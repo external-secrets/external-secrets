@@ -185,6 +185,10 @@ type SecretStoreProvider struct {
 	// Infisical configures this store to sync secrets using the Infisical provider
 	// +optional
 	Infisical *InfisicalProvider `json:"infisical,omitempty"`
+
+	// CloudruSM configures this store to sync secrets using the Cloud.ru Secret Manager provider
+	// +optional
+	CloudruSM *CloudruSMProvider `json:"cloudrusm,omitempty"`
 }
 
 type CAProviderType string

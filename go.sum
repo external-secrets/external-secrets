@@ -253,6 +253,10 @@ github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDk
 github.com/cloudflare/circl v1.3.3/go.mod h1:5XYMA4rFBvNIrhs50XuiBJ15vF2pZn4nnUKZrLbUZFA=
 github.com/cloudflare/circl v1.3.9 h1:QFrlgFYf2Qpi8bSpVPK1HBvWpx16v/1TZivyo7pGuBE=
 github.com/cloudflare/circl v1.3.9/go.mod h1:PDRU+oXvdD7KCtgKxW95M5Z8BpSCJXQORiZFnBQS5QU=
+github.com/cloudru-tech/iam-sdk v1.0.4 h1:qnGMhft3FnknCj6F+vTSbwznqJDDCAG6hWRe6IcCyVM=
+github.com/cloudru-tech/iam-sdk v1.0.4/go.mod h1:V7O/EJJrIAHk1WEXclh7A/p0yQiaFIoPeIfJoc0O61w=
+github.com/cloudru-tech/secret-manager-sdk v1.0.1 h1:ZHQW2RpFxkfZohgsmpj2o+bm6GvbUWlyIL4Bd2XAQOE=
+github.com/cloudru-tech/secret-manager-sdk v1.0.1/go.mod h1:UdfVRiOlWjb/QZ8HhbotzyklPU2+ddeemKl2BXuL3oQ=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
 github.com/cncf/udpa/go v0.0.0-20200629203442-efcf912fb354/go.mod h1:WmhPx2Nbnhtbo57+VJT5O0JRkEi1Wbu0z5j0R8u5Hbk=
 github.com/cncf/udpa/go v0.0.0-20201120205902-5459f2c99403/go.mod h1:WmhPx2Nbnhtbo57+VJT5O0JRkEi1Wbu0z5j0R8u5Hbk=
