@@ -3375,7 +3375,8 @@
 
 
 <h1 id="advanced-templating-v2">Advanced Templating v2</h1>
-<p>With External Secrets Operator you can transform the data from the external secret provider before it is stored as <code>Kind=Secret</code>. You can do this with the <code>Spec.Target.Template</code>. Each data value is interpreted as a <a href="https://golang.org/pkg/text/template/">golang template</a>.</p>
+<p>With External Secrets Operator you can transform the data from the external secret provider before it is stored as <code>Kind=Secret</code>. You can do this with the <code>Spec.Target.Template</code>.</p>
+<p>Each data value is interpreted as a <a href="https://golang.org/pkg/text/template/">Go template</a>. Please note that referencing a non-existing key in the template will raise an error, instead of being suppressed.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Consider using camelcase when defining  <strong>.'spec.data.secretkey'</strong>, example: serviceAccountToken</p>
