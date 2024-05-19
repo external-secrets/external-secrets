@@ -27,14 +27,16 @@ import (
 )
 
 type MockSMClient struct {
-	accessSecretFn func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
-	ListSecretsFn  func(ctx context.Context, req *secretmanagerpb.ListSecretsRequest, opts ...gax.CallOption) *secretmanager.SecretIterator
-	AddSecretFn    func(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error)
-	createSecretFn func(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
-	updateSecretFn func(ctx context.Context, req *secretmanagerpb.UpdateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
-	closeFn        func() error
-	GetSecretFn    func(ctx context.Context, req *secretmanagerpb.GetSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
-	DeleteSecretFn func(ctx context.Context, req *secretmanagerpb.DeleteSecretRequest, opts ...gax.CallOption) error
+	accessSecretFn          func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error)
+	ListSecretsFn           func(ctx context.Context, req *secretmanagerpb.ListSecretsRequest, opts ...gax.CallOption) *secretmanager.SecretIterator
+	AddSecretFn             func(ctx context.Context, req *secretmanagerpb.AddSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.SecretVersion, error)
+	createSecretFn          func(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
+	CreateSecretCalledWithN map[int]*secretmanagerpb.CreateSecretRequest
+	createSecretCallN       int
+	updateSecretFn          func(ctx context.Context, req *secretmanagerpb.UpdateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
+	closeFn                 func() error
+	GetSecretFn             func(ctx context.Context, req *secretmanagerpb.GetSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
+	DeleteSecretFn          func(ctx context.Context, req *secretmanagerpb.DeleteSecretRequest, opts ...gax.CallOption) error
 }
 
 type AccessSecretVersionMockReturn struct {
@@ -98,6 +100,12 @@ func (mc *MockSMClient) NewAddSecretVersionFn(mock AddSecretVersionMockReturn) {
 }
 
 func (mc *MockSMClient) CreateSecret(ctx context.Context, req *secretmanagerpb.CreateSecretRequest, _ ...gax.CallOption) (*secretmanagerpb.Secret, error) {
+	if mc.CreateSecretCalledWithN == nil {
+		mc.CreateSecretCalledWithN = make(map[int]*secretmanagerpb.CreateSecretRequest)
+	}
+	mc.CreateSecretCalledWithN[mc.createSecretCallN] = req
+	mc.createSecretCallN++
+
 	return mc.createSecretFn(ctx, req)
 }
 
