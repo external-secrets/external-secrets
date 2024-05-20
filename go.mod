@@ -10,14 +10,14 @@ require (
 	github.com/Azure/go-autorest/autorest/adal v0.9.23
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.12
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.2.2
-	github.com/IBM/go-sdk-core/v5 v5.17.2
+	github.com/IBM/go-sdk-core/v5 v5.17.3
 	github.com/IBM/secrets-manager-go-sdk/v2 v2.0.4
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/PaesslerAG/jsonpath v0.1.1
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.5
-	github.com/aws/aws-sdk-go v1.53.0
+	github.com/aws/aws-sdk-go v1.53.5
 	github.com/go-logr/logr v1.4.1
 	github.com/go-test/deep v1.0.4 // indirect
 	github.com/google/go-cmp v0.6.0
@@ -30,7 +30,7 @@ require (
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/onsi/ginkgo/v2 v2.17.3
 	github.com/onsi/gomega v1.33.1
-	github.com/oracle/oci-go-sdk/v65 v65.65.1
+	github.com/oracle/oci-go-sdk/v65 v65.65.2
 	github.com/prometheus/client_golang v1.19.1
 	github.com/prometheus/client_model v0.6.1
 	github.com/spf13/cobra v1.8.0
@@ -43,15 +43,15 @@ require (
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.23.0
 	golang.org/x/oauth2 v0.20.0
-	google.golang.org/api v0.180.0
-	google.golang.org/genproto v0.0.0-20240509183442-62759503f434
-	google.golang.org/grpc v1.63.2
+	google.golang.org/api v0.181.0
+	google.golang.org/genproto v0.0.0-20240515191416-fc5f0ca64291
+	google.golang.org/grpc v1.64.0
 	gopkg.in/yaml.v3 v3.0.1
 	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
-	k8s.io/api v0.30.0
-	k8s.io/apiextensions-apiserver v0.30.0
-	k8s.io/apimachinery v0.30.0
-	k8s.io/client-go v0.30.0
+	k8s.io/api v0.30.1
+	k8s.io/apiextensions-apiserver v0.30.1
+	k8s.io/apimachinery v0.30.1
+	k8s.io/client-go v0.30.1
 	k8s.io/utils v0.0.0-20240502163921-fe8a2dddb1d0
 	sigs.k8s.io/controller-runtime v0.18.2
 	sigs.k8s.io/controller-tools v0.15.0
@@ -65,7 +65,7 @@ require (
 	github.com/DelineaXPM/dsv-sdk-go/v2 v2.1.2
 	github.com/Onboardbase/go-cryptojs-aes-decrypt v0.0.0-20230430095000-27c0d3a9016d
 	github.com/akeylesslabs/akeyless-go/v3 v3.6.3
-	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.6
+	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.7
 	github.com/alibabacloud-go/kms-20160120/v3 v3.2.0
 	github.com/alibabacloud-go/openapi-util v0.1.0
 	github.com/alibabacloud-go/tea v1.2.2
@@ -93,7 +93,7 @@ require (
 )
 
 require (
-	cloud.google.com/go/auth v0.4.1 // indirect
+	cloud.google.com/go/auth v0.4.2 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.2 // indirect
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	dario.cat/mergo v1.0.0 // indirect
@@ -130,7 +130,7 @@ require (
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.5.0 // indirect
 	github.com/go-git/go-git/v5 v5.12.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.0.1 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-playground/validator/v10 v10.20.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
@@ -158,7 +158,7 @@ require (
 	github.com/pgavlin/fx v0.1.6 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pulumi/appdash v0.0.0-20231130102222-75f619a67231 // indirect
-	github.com/pulumi/pulumi/sdk/v3 v3.116.0 // indirect
+	github.com/pulumi/pulumi/sdk/v3 v3.116.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06 // indirect
@@ -179,8 +179,8 @@ require (
 	go.opentelemetry.io/otel/metric v1.26.0 // indirect
 	go.opentelemetry.io/otel/trace v1.26.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240509183442-62759503f434 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240509183442-62759503f434 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240515191416-fc5f0ca64291 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240515191416-fc5f0ca64291 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20240430033511-f0e62f92d13f // indirect
 	lukechampine.com/frand v1.4.2 // indirect
@@ -208,7 +208,7 @@ require (
 	github.com/emicklei/go-restful/v3 v3.12.0 // indirect
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.9.0 // indirect
-	github.com/fatih/color v1.16.0 // indirect
+	github.com/fatih/color v1.17.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-chef/chef v0.29.0
@@ -266,7 +266,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/common v0.53.0 // indirect
-	github.com/prometheus/procfs v0.14.0 // indirect
+	github.com/prometheus/procfs v0.15.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect

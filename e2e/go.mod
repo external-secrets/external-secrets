@@ -44,7 +44,7 @@ require (
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.5
 	github.com/akeylesslabs/akeyless-go/v3 v3.6.3
 	github.com/aliyun/alibaba-cloud-sdk-go v1.62.271
-	github.com/aws/aws-sdk-go v1.53.0
+	github.com/aws/aws-sdk-go v1.53.5
 	github.com/cyberark/conjur-api-go v0.11.4
 	github.com/external-secrets/external-secrets v0.0.0
 	github.com/fluxcd/helm-controller/api v0.37.2
@@ -54,14 +54,14 @@ require (
 	github.com/hashicorp/vault/api v1.13.0
 	github.com/onsi/ginkgo/v2 v2.17.3
 	github.com/onsi/gomega v1.33.1
-	github.com/oracle/oci-go-sdk/v65 v65.65.1
+	github.com/oracle/oci-go-sdk/v65 v65.65.2
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.26
 	github.com/xanzy/go-gitlab v0.105.0
 	golang.org/x/oauth2 v0.20.0
-	google.golang.org/api v0.180.0
-	k8s.io/api v0.30.0
-	k8s.io/apiextensions-apiserver v0.30.0
-	k8s.io/apimachinery v0.30.0
+	google.golang.org/api v0.181.0
+	k8s.io/api v0.30.1
+	k8s.io/apiextensions-apiserver v0.30.1
+	k8s.io/apimachinery v0.30.1
 	k8s.io/client-go v1.5.2
 	k8s.io/utils v0.0.0-20240502163921-fe8a2dddb1d0
 	sigs.k8s.io/controller-runtime v0.18.2
@@ -70,7 +70,7 @@ require (
 )
 
 require (
-	cloud.google.com/go/auth v0.4.1 // indirect
+	cloud.google.com/go/auth v0.4.2 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.2 // indirect
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	cloud.google.com/go/iam v1.1.8 // indirect
@@ -104,7 +104,7 @@ require (
 	github.com/fluxcd/pkg/apis/acl v0.1.0 // indirect
 	github.com/fluxcd/pkg/apis/kustomize v1.2.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.0.1 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
@@ -165,7 +165,7 @@ require (
 	github.com/prometheus/client_golang v1.19.1 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.53.0 // indirect
-	github.com/prometheus/procfs v0.14.0 // indirect
+	github.com/prometheus/procfs v0.15.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
@@ -194,10 +194,10 @@ require (
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.21.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
-	google.golang.org/genproto v0.0.0-20240509183442-62759503f434 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240509183442-62759503f434 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240509183442-62759503f434 // indirect
-	google.golang.org/grpc v1.63.2 // indirect
+	google.golang.org/genproto v0.0.0-20240515191416-fc5f0ca64291 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240515191416-fc5f0ca64291 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240515191416-fc5f0ca64291 // indirect
+	google.golang.org/grpc v1.64.0 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
