@@ -102,10 +102,10 @@ var (
 
 // Uuid type metadata.
 var (
-	UuidKind             = reflect.TypeOf(Uuid{}).Name()
-	UuidGroupKind        = schema.GroupKind{Group: Group, Kind: UuidKind}.String()
-	UuidKindAPIVersion   = UuidKind + "." + SchemeGroupVersion.String()
-	UuidGroupVersionKind = SchemeGroupVersion.WithKind(UuidKind)
+	UUIDKind             = reflect.TypeOf(UUID{}).Name()
+	UUIDGroupKind        = schema.GroupKind{Group: Group, Kind: UUIDKind}.String()
+	UUIDKindAPIVersion   = UUIDKind + "." + SchemeGroupVersion.String()
+	UUIDGroupVersionKind = SchemeGroupVersion.WithKind(UUIDKind)
 )
 
 func init() {

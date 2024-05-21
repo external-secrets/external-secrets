@@ -11808,8 +11808,8 @@ spec:
   names:
     categories:
       - password
-    kind: Uuid
-    listKind: UuidList
+    kind: UUID
+    listKind: UUIDList
     plural: uuids
     shortNames:
       - password
@@ -11842,7 +11842,7 @@ spec:
             metadata:
               type: object
             spec:
-              description: UuidSpec controls the behavior of the uuid generator.
+              description: UUIDSpec controls the behavior of the uuid generator.
               type: object
           type: object
       served: true
