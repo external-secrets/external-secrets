@@ -19,7 +19,6 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -44,9 +43,6 @@ func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ 
 }
 
 func (g *Generator) generate(jsonSpec *apiextensions.JSON, uuidGen generateFunc) (map[string][]byte, error) {
-	// if jsonSpec == nil {
-	// 	return nil, fmt.Errorf(errNoSpec)
-	// }
 	uuid, err := uuidGen()
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate UUID: %w", err)
@@ -62,5 +58,5 @@ func generateUUID() (string, error) {
 }
 
 func init() {
-	genv1alpha1.Register(genv1alpha1.UuidKind, &Generator{})
+	genv1alpha1.Register(genv1alpha1.UUIDKind, &Generator{})
 }
