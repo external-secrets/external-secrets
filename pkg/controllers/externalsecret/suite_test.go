@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"go.uber.org/zap/zapcore"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -80,6 +81,11 @@ var _ = BeforeSuite(func() {
 		Metrics: server.Options{
 			BindAddress: "0", // avoid port collision when testing
 		},
+		Client: client.Options{
+			Cache: &client.CacheOptions{
+				DisableFor: []client.Object{&v1.Secret{}, &v1.ConfigMap{}},
+			},
+		},
 	})
 	Expect(err).ToNot(HaveOccurred())
 
@@ -90,7 +96,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&Reconciler{
-		Client:                    k8sClient,
+		Client:                    k8sManager.GetClient(),
 		RestConfig:                cfg,
 		Scheme:                    k8sManager.GetScheme(),
 		Log:                       ctrl.Log.WithName("controllers").WithName("ExternalSecrets"),

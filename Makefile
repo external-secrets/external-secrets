@@ -5,7 +5,7 @@ SHELL         := /bin/bash
 MAKEFLAGS     += --warn-undefined-variables
 .SHELLFLAGS   := -euo pipefail -c
 
-ARCH ?= amd64 arm64
+ARCH ?= amd64 arm64 ppc64le
 BUILD_ARGS ?= CGO_ENABLED=0
 DOCKER_BUILD_ARGS ?=
 DOCKERFILE ?= Dockerfile
