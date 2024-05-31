@@ -46,6 +46,10 @@ func (r *Reconciler) applyTemplate(ctx context.Context, ps *v1alpha1.PushSecret,
 		return nil
 	}
 
+	if secret.Data == nil {
+		secret.Data = make(map[string][]byte)
+	}
+
 	if err := setMetadata(secret, ps); err != nil {
 		return err
 	}
