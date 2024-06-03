@@ -72,10 +72,19 @@ func init() {
 func applyToTarget(k, val string, target esapi.TemplateTarget, secret *corev1.Secret) {
 	switch target {
 	case esapi.TemplateTargetAnnotations:
+		if secret.Annotations == nil {
+			secret.Annotations = make(map[string]string)
+		}
 		secret.Annotations[k] = val
 	case esapi.TemplateTargetLabels:
+		if secret.Labels == nil {
+			secret.Labels = make(map[string]string)
+		}
 		secret.Labels[k] = val
 	case esapi.TemplateTargetData:
+		if secret.Data == nil {
+			secret.Data = make(map[string][]byte)
+		}
 		secret.Data[k] = []byte(val)
 	default:
 	}
