@@ -523,6 +523,85 @@ func TestExecute(t *testing.T) {
 	}
 }
 
+func TestScopeValuesWithSecretFieldsNil(t *testing.T) {
+	tbl := []struct {
+		name               string
+		tpl                map[string][]byte
+		target             esapi.TemplateTarget
+		data               map[string][]byte
+		expectedData       map[string][]byte
+		expectedStringData map[string]string
+		expErr             string
+	}{
+		{
+			name:   "test empty",
+			tpl:    map[string][]byte{},
+			target: esapi.TemplateTargetData,
+			data:   nil,
+		},
+		{
+			name:   "test byte",
+			tpl:    map[string][]byte{"foo": []byte("bar")},
+			target: esapi.TemplateTargetData,
+			data: map[string][]byte{
+				"key":   []byte("foo"),
+				"value": []byte("bar"),
+			},
+			expectedData: map[string][]byte{
+				"foo": []byte("bar"),
+			},
+		},
+		{
+			name:   "test Annotations",
+			tpl:    map[string][]byte{"foo": []byte("bar")},
+			target: esapi.TemplateTargetAnnotations,
+			data: map[string][]byte{
+				"key":   []byte("foo"),
+				"value": []byte("bar"),
+			},
+			expectedStringData: map[string]string{
+				"foo": "bar",
+			},
+		},
+		{
+			name:   "test Labels",
+			tpl:    map[string][]byte{"foo": []byte("bar")},
+			target: esapi.TemplateTargetLabels,
+			data: map[string][]byte{
+				"key":   []byte("foo"),
+				"value": []byte("bar"),
+			},
+			expectedStringData: map[string]string{
+				"foo": "bar",
+			},
+		},
+	}
+	for i := range tbl {
+		row := tbl[i]
+		t.Run(row.name, func(t *testing.T) {
+			sec := &corev1.Secret{}
+			err := Execute(row.tpl, row.data, esapi.TemplateScopeValues, row.target, sec)
+			if !ErrorContains(err, row.expErr) {
+				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
+			}
+			switch row.target {
+			case esapi.TemplateTargetData:
+				if row.expectedData != nil {
+					assert.EqualValues(t, row.expectedData, sec.Data)
+				}
+			case esapi.TemplateTargetLabels:
+				if row.expectedStringData != nil {
+					assert.EqualValues(t, row.expectedStringData, sec.Labels)
+				}
+			case esapi.TemplateTargetAnnotations:
+				if row.expectedStringData != nil {
+					assert.EqualValues(t, row.expectedStringData, sec.Annotations)
+				}
+			}
+		})
+	}
+}
+
 func TestExecuteInvalidTemplateScope(t *testing.T) {
 	sec := &corev1.Secret{}
 	err := Execute(map[string][]byte{"foo": []byte("bar")}, nil, "invalid", esapi.TemplateTargetData, sec)
