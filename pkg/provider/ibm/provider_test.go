@@ -188,7 +188,7 @@ func TestValidateStore(t *testing.T) {
 	_, err = p.ValidateStore(store)
 	if err == nil {
 		t.Errorf(errExpectedErr)
-	} else if err.Error() != "namespace not allowed with namespaced SecretStore" {
+	} else if err.Error() != "namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore" {
 		t.Errorf("KeySelector test failed: expected namespace not allowed, got %v", err)
 	}
 
