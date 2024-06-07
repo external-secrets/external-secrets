@@ -3920,6 +3920,17 @@ string
 <p>ProjectID project where secret is located</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>location</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Location optionally defines a location for a secret</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.GCPWorkloadIdentity">GCPWorkloadIdentity
