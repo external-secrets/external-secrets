@@ -247,10 +247,15 @@ func (m *Manager) shouldProcessSecret(store esv1beta1.GenericStore, ns string) (
 			}
 		}
 
-		if condition.NamespacesRegex != nil {
-			match, err := matchStringInList(condition.NamespacesRegex, ns)
-			if match || err != nil {
-				return true, err
+		for _, reg := range condition.NamespacesRegexes {
+			match, err := regexp.MatchString(reg, ns)
+			if err != nil {
+				// Should not happen since store validation already verified the regexes.
+				return false, fmt.Errorf("failed to compile regex %v: %w", reg, err)
+			}
+
+			if match {
+				return true, nil
 			}
 		}
 	}
@@ -268,17 +273,4 @@ func assertStoreIsUsable(store esv1beta1.GenericStore) error {
 		return fmt.Errorf(errSecretStoreNotReady, store.GetName())
 	}
 	return nil
-}
-
-func matchStringInList(list []string, item string) (bool, error) {
-	for _, ll := range list {
-		if item == ll {
-			return true, nil
-		}
-		match, err := regexp.MatchString(ll, item)
-		if match || err != nil {
-			return match, err
-		}
-	}
-	return false, nil
 }

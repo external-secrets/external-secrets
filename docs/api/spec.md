@@ -1861,18 +1861,20 @@ Kubernetes meta/v1.LabelSelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Choose namespaces by name</p>
 </td>
 </tr>
 <tr>
 <td>
-<code>namespacesRegex</code></br>
+<code>namespacesRegexes</code></br>
 <em>
 []string
 </em>
 </td>
 <td>
-<p>Choose namespaces by name using glob matching</p>
+<em>(Optional)</em>
+<p>Choose namespaces by using regex matching</p>
 </td>
 </tr>
 </tbody>
