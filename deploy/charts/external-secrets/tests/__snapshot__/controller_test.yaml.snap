@@ -32,6 +32,8 @@ should match snapshot of default values:
             - args:
                 - --concurrent=1
                 - --metrics-addr=:8080
+                - --loglevel=info
+                - --zap-time-encoding=epoch
               image: ghcr.io/external-secrets/external-secrets:v0.9.19
               imagePullPolicy: IfNotPresent
               name: external-secrets
