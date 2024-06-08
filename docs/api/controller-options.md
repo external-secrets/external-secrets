@@ -42,7 +42,7 @@ The core controller is invoked without a subcommand and can be configured with t
 | `--healthz-addr`           | string   | :8081                    | The address the health endpoint binds to.                                                                             |
 | `--help`                   |          |                          | help for certcontroller                                                                                               |
 | `--loglevel`               | string   | info                     | loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal                                               |
-| `--zap-time-encoding`                                  | string   | epoch                          | loglevel to use, one of: epoch, millis, nano, iso8601, rfc3339, rfc3339nano                                                                                            |
+| `--zap-time-encoding`                                  | string   | epoch                          | time encoding to use, one of: epoch, millis, nano, iso8601, rfc3339, rfc3339nano                                                                                            |
 | `--metrics-addr`           | string   | :8080                    | The address the metric endpoint binds to.                                                                             |
 | `--secret-name`            | string   | external-secrets-webhook | Secret to store certs for webhook                                                                                     |
 | `--secret-namespace`       | string   | default                  | namespace of the secret to store certs                                                                                |
