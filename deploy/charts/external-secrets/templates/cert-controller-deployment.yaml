@@ -60,6 +60,8 @@ spec:
           - --secret-namespace={{ template "external-secrets.namespace" . }}
           - --metrics-addr=:{{ .Values.certController.metrics.listen.port }}
           - --healthz-addr={{ .Values.certController.readinessProbe.address }}:{{ .Values.certController.readinessProbe.port }}
+          - --loglevel={{ .Values.certController.log.level }}
+          - --zap-time-encoding={{ .Values.certController.log.timeEncoding }}
           {{ if not .Values.crds.createClusterSecretStore -}}
           - --crd-names=externalsecrets.external-secrets.io
           - --crd-names=secretstores.external-secrets.io
