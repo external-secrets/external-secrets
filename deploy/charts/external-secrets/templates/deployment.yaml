@@ -92,7 +92,7 @@ spec:
           {{- end }}
           - --metrics-addr=:{{ .Values.metrics.listen.port }}
           - --loglevel={{ .Values.log.level }}
-          - --zap-time-encoding={{ .Values.log.encoding }}  
+          - --zap-time-encoding={{ .Values.log.timeEncoding }}
           ports:
             - containerPort: {{ .Values.metrics.listen.port }}
               protocol: TCP

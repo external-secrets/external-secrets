@@ -88,7 +88,7 @@ concurrent: 1
 # -- Specifices Log Params to the Webhook
 log:
   level: info
-  encoding: epoch
+  timeEncoding: epoch
 service:
   # -- Set the ip family policy to configure dual-stack see [Configure dual-stack](https://kubernetes.io/docs/concepts/services-networking/dual-stack/#services)
   ipFamilyPolicy: ""
@@ -246,7 +246,7 @@ webhook:
   # -- Specifices Log Params to the Webhook
   log:
     level: info
-    encoding: epoch
+    timeEncoding: epoch
   # -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
   revisionHistoryLimit: 10
 
@@ -409,7 +409,7 @@ certController:
   # -- Specifices Log Params to the Webhook
   log:
     level: info
-    encoding: epoch
+    timeEncoding: epoch
   # -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
   revisionHistoryLimit: 10
 
