@@ -83,6 +83,18 @@ type SecretsManager struct {
 	RecoveryWindowInDays int64 `json:"recoveryWindowInDays,omitempty"`
 }
 
+// ParameterStore defines how the provider behaves when interacting with AWS
+// ParameterStore. Some of these settings are only applicable to controlling how
+// secrets are pushed through PushSecret
+type ParameterStore struct {
+	// Parameter Type. Allowed values: "String", "SecureString" or "StringList"
+	// +kubebuilder:default=String
+	Type string `json:"type,omnitempty"`
+	// Only used in case of Type being 'SecureString'
+	// +optional
+	KeyID string `json:"keyID,omnitempty"`
+}
+
 type Tag struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
@@ -120,6 +132,10 @@ type AWSProvider struct {
 	// SecretsManager defines how the provider behaves when interacting with AWS SecretsManager
 	// +optional
 	SecretsManager *SecretsManager `json:"secretsManager,omitempty"`
+
+	// ParameterStore defines how the provider behaves when interacting with AWS ParameterStore
+	// +optional
+	ParameterStore *ParameterStore `json:"parameterStore,omitempty"`
 
 	// AWS STS assume role transitive session tags. Required when multiple rules are used with the provider
 	// +optional

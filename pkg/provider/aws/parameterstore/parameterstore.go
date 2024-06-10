@@ -51,6 +51,7 @@ var (
 type ParameterStore struct {
 	sess         *session.Session
 	client       PMInterface
+	config       *esv1beta1.ParameterStore
 	referentAuth bool
 }
 
@@ -71,11 +72,12 @@ const (
 )
 
 // New constructs a ParameterStore Provider that is specific to a store.
-func New(sess *session.Session, cfg *aws.Config, referentAuth bool) (*ParameterStore, error) {
+func New(sess *session.Session, cfg *aws.Config, parameterStoreCfg *esv1beta1.ParameterStore, referentAuth bool) (*ParameterStore, error) {
 	return &ParameterStore{
 		sess:         sess,
 		referentAuth: referentAuth,
 		client:       ssm.New(sess, cfg),
+		config:       parameterStoreCfg,
 	}, nil
 }
 
@@ -138,7 +140,14 @@ func (pm *ParameterStore) SecretExists(_ context.Context, _ esv1beta1.PushSecret
 }
 
 func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
-	parameterType := "String"
+	var parameterType string
+
+	if pm.config != nil && pm.config.Type == "" {
+		parameterType = "String"
+	}
+	if pm.config != nil && pm.config.Type != "" {
+		parameterType = pm.config.Type
+	}
 	overwrite := true
 
 	var (
@@ -164,6 +173,12 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 		Value:     &stringValue,
 		Type:      &parameterType,
 		Overwrite: &overwrite,
+	}
+
+	if pm.config != nil {
+		if pm.config.Type == "SecureString" && pm.config.KeyID != "" {
+			secretRequest.KeyId = &pm.config.KeyID
+		}
 	}
 
 	secretValue := ssm.GetParameterInput{

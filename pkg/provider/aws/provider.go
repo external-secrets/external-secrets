@@ -43,11 +43,12 @@ var _ esv1beta1.Provider = &Provider{}
 type Provider struct{}
 
 const (
-	errUnableCreateSession    = "unable to create session: %w"
-	errUnknownProviderService = "unknown AWS Provider Service: %s"
-	errRegionNotFound         = "region not found: %s"
-	errInitAWSProvider        = "unable to initialize aws provider: %s"
-	errInvalidSecretsManager  = "invalid SecretsManager settings: %s"
+	errUnableCreateSession       = "unable to create session: %w"
+	errUnknownProviderService    = "unknown AWS Provider Service: %s"
+	errRegionNotFound            = "region not found: %s"
+	errInitAWSProvider           = "unable to initialize aws provider: %s"
+	errInvalidSecretsManager     = "invalid SecretsManager settings: %s"
+	errInvalidParameterStoreType = "invalid ParameterStore type: %s"
 )
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
@@ -70,6 +71,11 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 		return nil, err
 	}
 	err = validateSecretsManagerConfig(prov)
+	if err != nil {
+		return nil, err
+	}
+
+	err = validateParameterStoreConfig(prov)
 	if err != nil {
 		return nil, err
 	}
@@ -135,6 +141,37 @@ func validateSecretsManagerConfig(prov *esv1beta1.AWSProvider) error {
 	})
 }
 
+func validateParameterStoreConfig(prov *esv1beta1.AWSProvider) error {
+	if prov.ParameterStore == nil {
+		return nil
+	}
+
+	// Validate if the SecretStore for ParameterStore contains the correct.
+	// Reference: https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html
+	list := []string{"", "String", "StringList", "SecureString"}
+
+	inputType := prov.ParameterStore.Type
+
+	isInputTypeValid := false
+
+	for _, item := range list {
+		if item == inputType {
+			isInputTypeValid = true
+			break
+		}
+	}
+
+	if isInputTypeValid {
+		return nil
+	}
+
+	if !isInputTypeValid {
+		return fmt.Errorf(errInvalidParameterStoreType, prov.ParameterStore.Type)
+	}
+
+	return nil
+}
+
 func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, assumeRoler awsauth.STSProvider) (esv1beta1.SecretsClient, error) {
 	prov, err := util.GetAWSProvider(store)
 	if err != nil {
@@ -156,7 +193,7 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 		case esv1beta1.AWSServiceSecretsManager:
 			return secretsmanager.New(sess, cfg, prov.SecretsManager, true)
 		case esv1beta1.AWSServiceParameterStore:
-			return parameterstore.New(sess, cfg, true)
+			return parameterstore.New(sess, cfg, prov.ParameterStore, true)
 		}
 		return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 	}
@@ -195,7 +232,7 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 	case esv1beta1.AWSServiceSecretsManager:
 		return secretsmanager.New(sess, cfg, prov.SecretsManager, false)
 	case esv1beta1.AWSServiceParameterStore:
-		return parameterstore.New(sess, cfg, false)
+		return parameterstore.New(sess, cfg, prov.ParameterStore, false)
 	}
 	return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 }
