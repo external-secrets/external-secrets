@@ -207,15 +207,15 @@ func TestValidateStore(t *testing.T) {
 			err:   fmt.Errorf("secretsScope.projectSlug and secretsScope.environmentSlug cannot be empty"),
 		},
 		{
-			store: makeSecretStore("first-project", "dev", "/", withClientID("universal-auth", "some-random-id", nil)),
+			store: makeSecretStore(apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath, withClientID("universal-auth", "some-random-id", nil)),
 			err:   fmt.Errorf("universalAuthCredentials.clientId and universalAuthCredentials.clientSecret cannot be empty"),
 		},
 		{
-			store: makeSecretStore("first-project", "dev", "/", withClientSecret("universal-auth", "some-random-id", nil)),
+			store: makeSecretStore(apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath, withClientSecret("universal-auth", "some-random-id", nil)),
 			err:   fmt.Errorf("universalAuthCredentials.clientId and universalAuthCredentials.clientSecret cannot be empty"),
 		},
 		{
-			store: makeSecretStore("first-project", "dev", "/", withClientID("universal-auth", "some-random-id", nil), withClientSecret("universal-auth", "some-random-id", nil)),
+			store: makeSecretStore(apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath, withClientID("universal-auth", "some-random-id", nil), withClientSecret("universal-auth", "some-random-id", nil)),
 			err:   nil,
 		},
 	}
