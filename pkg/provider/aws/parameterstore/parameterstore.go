@@ -39,6 +39,16 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
+// Declares metadata information for pushing secrets to AWS Parameter Store.
+const (
+	PushSecretType                 = "parameterStoreType"
+	ParameterStoreTypeString       = "String"
+	ParameterStoreTypeStringList   = "StringList"
+	ParameterStoreTypeSecureString = "SecureString"
+	ParameterStoreKeyID            = "parameterStoreKeyID"
+	PushSecretKeyID                = "keyID"
+)
+
 // https://github.com/external-secrets/external-secrets/issues/644
 var (
 	_               esv1beta1.SecretsClient = &ParameterStore{}
@@ -138,13 +148,27 @@ func (pm *ParameterStore) SecretExists(_ context.Context, _ esv1beta1.PushSecret
 }
 
 func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
-	parameterType := "String"
-	overwrite := true
-
 	var (
 		value []byte
 		err   error
 	)
+
+	parameterTypeFormat, err := utils.FetchValueFromMetadata(PushSecretType, data.GetMetadata(), ParameterStoreTypeString)
+	if err != nil {
+		return fmt.Errorf("failed to parse metadata: %w", err)
+	}
+
+	parameterKeyIDFormat, err := utils.FetchValueFromMetadata(ParameterStoreKeyID, data.GetMetadata(), PushSecretKeyID)
+	if err != nil {
+		return fmt.Errorf("failed to parse metadata: %w", err)
+	}
+
+	if parameterKeyIDFormat == "keyID" || parameterKeyIDFormat == "" {
+		parameterKeyIDFormat = "alias/aws/ssm"
+	}
+
+	overwrite := true
+
 	key := data.GetSecretKey()
 
 	if key == "" {
@@ -162,8 +186,12 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 	secretRequest := ssm.PutParameterInput{
 		Name:      &secretName,
 		Value:     &stringValue,
-		Type:      &parameterType,
+		Type:      &parameterTypeFormat,
 		Overwrite: &overwrite,
+	}
+
+	if parameterTypeFormat == "SecureString" {
+		secretRequest.KeyId = &parameterKeyIDFormat
 	}
 
 	secretValue := ssm.GetParameterInput{
