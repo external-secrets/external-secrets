@@ -116,7 +116,7 @@ func (a *InfisicalClient) MachineIdentityLoginViaUniversalAuth(data MachineIdent
 		return nil, err
 	}
 
-	rawRes, err := a.do(req) 
+	rawRes, err := a.do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func (a *InfisicalClient) RevokeMachineIdentityAccessToken(data RevokeMachineIde
 		return nil, err
 	}
 
-	rawRes, err := a.do(req) 
+	rawRes, err := a.do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ func (a *InfisicalClient) GetSecretsV3(data GetSecretsV3Request) (map[string]str
 	q.Add("expandSecretReferences", "true")
 	req.URL.RawQuery = q.Encode()
 
-	rawRes, err := a.do(req) 
+	rawRes, err := a.do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -212,7 +212,7 @@ func (a *InfisicalClient) GetSecretByKeyV3(data GetSecretByKeyV3Request) (string
 	q.Add("include_imports", "true")
 	req.URL.RawQuery = q.Encode()
 
-	rawRes, err := a.do(req) 
+	rawRes, err := a.do(req)
 	if err != nil {
 		return "", err
 	}

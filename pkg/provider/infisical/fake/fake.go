@@ -14,12 +14,20 @@ limitations under the License.
 package fake
 
 import (
+	"errors"
 	"time"
 
 	"github.com/external-secrets/external-secrets/pkg/provider/infisical/api"
 )
 
-type MockInfisicalClient struct{}
+var (
+	ErrMissingMockImplementation = errors.New("missing mock implmentation")
+)
+
+type MockInfisicalClient struct {
+	MockedGetSecretV3      func(data api.GetSecretsV3Request) (map[string]string, error)
+	MockedGetSecretByKeyV3 func(data api.GetSecretByKeyV3Request) (string, error)
+}
 
 func (a *MockInfisicalClient) MachineIdentityLoginViaUniversalAuth(data api.MachineIdentityUniversalAuthLoginRequest) (*api.MachineIdentityDetailsResponse, error) {
 	return &api.MachineIdentityDetailsResponse{
@@ -31,13 +39,18 @@ func (a *MockInfisicalClient) MachineIdentityLoginViaUniversalAuth(data api.Mach
 }
 
 func (a *MockInfisicalClient) GetSecretsV3(data api.GetSecretsV3Request) (map[string]string, error) {
-	return map[string]string{
-		"key": "value",
-	}, nil
+	if a.MockedGetSecretV3 == nil {
+		return nil, ErrMissingMockImplementation
+	}
+
+	return a.MockedGetSecretV3(data)
 }
 
 func (a *MockInfisicalClient) GetSecretByKeyV3(data api.GetSecretByKeyV3Request) (string, error) {
-	return "value", nil
+	if a.MockedGetSecretByKeyV3 == nil {
+		return "", ErrMissingMockImplementation
+	}
+	return a.MockedGetSecretByKeyV3(data)
 }
 
 func (a *MockInfisicalClient) RevokeAccessToken() error {

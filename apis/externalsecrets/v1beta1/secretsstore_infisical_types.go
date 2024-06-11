@@ -27,7 +27,7 @@ type UniversalAuthCredentials struct {
 
 type InfisicalAuth struct {
 	// +optional
-	UniversalAuthCredentials *UniversalAuthCredentials `json:"universalAuthCredentials"`
+	UniversalAuthCredentials *UniversalAuthCredentials `json:"universalAuthCredentials,omitempty"`
 }
 
 type MachineIdentityScopeInWorkspace struct {

@@ -16,58 +16,137 @@ package infisical
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esv1meta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/provider/infisical/api"
 	"github.com/external-secrets/external-secrets/pkg/provider/infisical/fake"
 )
 
 type storeModifier func(*esv1beta1.SecretStore) *esv1beta1.SecretStore
 
+var apiScope = InfisicalClientScope{
+	SecretPath:      "/",
+	ProjectSlug:     "first-project",
+	EnvironmentSlug: "dev",
+}
+
+type TestCases struct {
+	Name           string
+	MockClient     *fake.MockInfisicalClient
+	PropertyAccess string
+	Error          error
+	Output         any
+}
+
 func TestGetSecret(t *testing.T) {
-	p := &Provider{
-		apiClient: &fake.MockInfisicalClient{},
-		apiScope: &InfisicalClientScope{
-			SecretPath:      "/",
-			ProjectSlug:     "first-project",
-			EnvironmentSlug: "dev",
+	testCases := []TestCases{
+		{
+			Name: "Get_valid_key",
+			MockClient: &fake.MockInfisicalClient{
+				MockedGetSecretByKeyV3: func(data api.GetSecretByKeyV3Request) (string, error) {
+					return "value", nil
+				},
+			},
+			Error:  nil,
+			Output: []byte("value"),
+		},
+		{
+			Name: "Get_property_key",
+			MockClient: &fake.MockInfisicalClient{
+				MockedGetSecretByKeyV3: func(data api.GetSecretByKeyV3Request) (string, error) {
+					return `{"key":"value"}`, nil
+				},
+			},
+			Error:  nil,
+			Output: []byte("value"),
+		},
+		{
+			Name: "Key_not_found",
+			MockClient: &fake.MockInfisicalClient{
+				MockedGetSecretByKeyV3: func(data api.GetSecretByKeyV3Request) (string, error) {
+					// from server
+					return "", errors.New("Secret not found")
+				},
+			},
+			Error:  errors.New("Secret not found"),
+			Output: "",
 		},
 	}
 
-	secret, err := p.GetSecret(context.Background(), esv1beta1.ExternalSecretDataRemoteRef{
-		Key: "key",
-	})
-	if err != nil {
-		t.Errorf("unexpected error: %s", err)
-	}
-	if err == nil && !reflect.DeepEqual(string(secret), "value") {
-		t.Errorf("unexpected secret data: expected %#v, got %#v", "value", string(secret))
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			p := &Provider{
+				apiClient: tc.MockClient,
+				apiScope:  &apiScope,
+			}
+			var property string
+			if tc.Name == "Get_property_key" {
+				property = "key"
+			}
+
+			output, err := p.GetSecret(context.Background(), esv1beta1.ExternalSecretDataRemoteRef{
+				Key:      "key",
+				Property: property,
+			})
+
+			if tc.Error == nil {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.Output, output)
+			} else {
+				assert.ErrorAs(t, err, &tc.Error)
+			}
+		})
 	}
 }
 
 func TestGetSecretMap(t *testing.T) {
-	p := &Provider{
-		apiClient: &fake.MockInfisicalClient{},
-		apiScope: &InfisicalClientScope{
-			SecretPath:      "/",
-			ProjectSlug:     "first-project",
-			EnvironmentSlug: "dev",
+	testCases := []TestCases{
+		{
+			Name: "Get_valid_key_map",
+			MockClient: &fake.MockInfisicalClient{
+				MockedGetSecretByKeyV3: func(data api.GetSecretByKeyV3Request) (string, error) {
+					return `{"key":"value"}`, nil
+				},
+			},
+			Error: nil,
+			Output: map[string][]byte{
+				"key": []byte("value"),
+			},
+		},
+		{
+			Name: "Get_invalid_map",
+			MockClient: &fake.MockInfisicalClient{
+				MockedGetSecretByKeyV3: func(data api.GetSecretByKeyV3Request) (string, error) {
+					return ``, nil
+				},
+			},
+			Error:  errors.New("unexpected end of JSON input"),
+			Output: nil,
 		},
 	}
 
-	secret, err := p.GetSecretMap(context.Background(), esv1beta1.ExternalSecretDataRemoteRef{
-		Key: "key",
-	})
-	if err != nil {
-		t.Errorf("unexpected error: %s", err)
-	}
-	if err == nil && !reflect.DeepEqual(secret, map[string][]byte{
-		"key": []byte("value"),
-	}) {
-		t.Errorf("unexpected secret data map: expected %#v, got %#v", map[string][]byte{"key": []byte("value")}, secret)
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			p := &Provider{
+				apiClient: tc.MockClient,
+				apiScope:  &apiScope,
+			}
+			output, err := p.GetSecretMap(context.Background(), esv1beta1.ExternalSecretDataRemoteRef{
+				Key: "key",
+			})
+			if tc.Error == nil {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.Output, output)
+			} else {
+				assert.ErrorAs(t, err, &tc.Error)
+			}
+		})
 	}
 }
 
@@ -76,7 +155,9 @@ func makeSecretStore(projectSlug, environment, secretPath string, fn ...storeMod
 		Spec: esv1beta1.SecretStoreSpec{
 			Provider: &esv1beta1.SecretStoreProvider{
 				Infisical: &esv1beta1.InfisicalProvider{
-					Auth: esv1beta1.InfisicalAuth{},
+					Auth: esv1beta1.InfisicalAuth{
+						UniversalAuthCredentials: &esv1beta1.UniversalAuthCredentials{},
+					},
 					SecretsScope: esv1beta1.MachineIdentityScopeInWorkspace{
 						SecretsPath:     secretPath,
 						EnvironmentSlug: environment,
