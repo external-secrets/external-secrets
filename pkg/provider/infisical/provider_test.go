@@ -17,10 +17,10 @@ package infisical
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esv1meta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -196,41 +196,43 @@ func withClientSecret(name, key string, namespace *string) storeModifier {
 }
 
 type ValidateStoreTestCase struct {
-	store *esv1beta1.SecretStore
-	err   error
+	store       *esv1beta1.SecretStore
+	assertError func(t *testing.T, err error)
 }
 
 func TestValidateStore(t *testing.T) {
 	const randomID = "some-random-id"
 	const authType = "universal-auth"
+	var authCredMissingErr = errors.New("universalAuthCredentials.clientId and universalAuthCredentials.clientSecret cannot be empty")
+	var authScopeMissingErr = errors.New("secretsScope.projectSlug and secretsScope.environmentSlug cannot be empty")
 
 	testCases := []ValidateStoreTestCase{
 		{
 			store: makeSecretStore("", "", ""),
-			err:   fmt.Errorf("secretsScope.projectSlug and secretsScope.environmentSlug cannot be empty"),
+			assertError: func(t *testing.T, err error) {
+				require.ErrorAs(t, err, &authScopeMissingErr)
+			},
 		},
 		{
 			store: makeSecretStore(apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath, withClientID(authType, randomID, nil)),
-			err:   fmt.Errorf("universalAuthCredentials.clientId and universalAuthCredentials.clientSecret cannot be empty"),
+			assertError: func(t *testing.T, err error) {
+				require.ErrorAs(t, err, &authCredMissingErr)
+			},
 		},
 		{
 			store: makeSecretStore(apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath, withClientSecret(authType, randomID, nil)),
-			err:   fmt.Errorf("universalAuthCredentials.clientId and universalAuthCredentials.clientSecret cannot be empty"),
+			assertError: func(t *testing.T, err error) {
+				require.ErrorAs(t, err, &authCredMissingErr)
+			},
 		},
 		{
-			store: makeSecretStore(apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath, withClientID(authType, randomID, nil), withClientSecret(authType, randomID, nil)),
-			err:   nil,
+			store:       makeSecretStore(apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath, withClientID(authType, randomID, nil), withClientSecret(authType, randomID, nil)),
+			assertError: func(t *testing.T, err error) { require.NoError(t, err) },
 		},
 	}
 	p := Provider{}
 	for _, tc := range testCases {
 		_, err := p.ValidateStore(tc.store)
-		if tc.err != nil && err != nil && err.Error() != tc.err.Error() {
-			t.Errorf("test failed! want %v, got %v", tc.err, err)
-		} else if tc.err == nil && err != nil {
-			t.Errorf("want nil got err %v", err)
-		} else if tc.err != nil && err == nil {
-			t.Errorf("want err %v got nil", tc.err)
-		}
+		tc.assertError(t, err)
 	}
 }
