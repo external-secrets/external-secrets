@@ -201,21 +201,24 @@ type ValidateStoreTestCase struct {
 }
 
 func TestValidateStore(t *testing.T) {
+	const randomID = "some-random-id"
+	const authType = "universal-auth"
+
 	testCases := []ValidateStoreTestCase{
 		{
 			store: makeSecretStore("", "", ""),
 			err:   fmt.Errorf("secretsScope.projectSlug and secretsScope.environmentSlug cannot be empty"),
 		},
 		{
-			store: makeSecretStore(apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath, withClientID("universal-auth", "some-random-id", nil)),
+			store: makeSecretStore(apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath, withClientID(authType, randomID, nil)),
 			err:   fmt.Errorf("universalAuthCredentials.clientId and universalAuthCredentials.clientSecret cannot be empty"),
 		},
 		{
-			store: makeSecretStore(apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath, withClientSecret("universal-auth", "some-random-id", nil)),
+			store: makeSecretStore(apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath, withClientSecret(authType, randomID, nil)),
 			err:   fmt.Errorf("universalAuthCredentials.clientId and universalAuthCredentials.clientSecret cannot be empty"),
 		},
 		{
-			store: makeSecretStore(apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath, withClientID("universal-auth", "some-random-id", nil), withClientSecret("universal-auth", "some-random-id", nil)),
+			store: makeSecretStore(apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath, withClientID(authType, randomID, nil), withClientSecret(authType, randomID, nil)),
 			err:   nil,
 		},
 	}
