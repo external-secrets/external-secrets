@@ -33,7 +33,7 @@ type InfisicalAuth struct {
 type MachineIdentityScopeInWorkspace struct {
 	// +kubebuilder:default="/"
 	// +optional
-	SecretsPath string `json:"secretsPath"`
+	SecretsPath string `json:"secretsPath,omitempty"`
 	// +kubebuilder:validation:Required
 	EnvironmentSlug string `json:"environmentSlug"`
 	// +kubebuilder:validation:Required
@@ -49,5 +49,5 @@ type InfisicalProvider struct {
 	SecretsScope MachineIdentityScopeInWorkspace `json:"secretsScope"`
 	// +kubebuilder:default="https://app.infisical.com/api"
 	// +optional
-	HostAPI string `json:"hostAPI"`
+	HostAPI string `json:"hostAPI,omitempty"`
 }

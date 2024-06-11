@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or impliec.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package api
 
 import (
@@ -20,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
@@ -50,36 +52,40 @@ func NewAPIClient(baseURL string) (*InfisicalClient, error) {
 
 	api := &InfisicalClient{
 		BaseURL: baseParsedURL,
-		client:  &http.Client{},
+		client: &http.Client{
+			Timeout: time.Second * 15,
+		},
 	}
 
 	return api, nil
 }
 
 func (a *InfisicalClient) SetTokenViaMachineIdentity(clientID, clientSecret string) error {
-	if a.token == "" {
-		loginResponse, err := a.MachineIdentityLoginViaUniversalAuth(MachineIdentityUniversalAuthLoginRequest{
-			ClientID:     clientID,
-			ClientSecret: clientSecret,
-		})
-		if err != nil {
-			return err
-		}
-
-		a.token = loginResponse.AccessToken
+	if a.token != "" {
+		return nil
 	}
+
+	loginResponse, err := a.MachineIdentityLoginViaUniversalAuth(MachineIdentityUniversalAuthLoginRequest{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+	})
+	if err != nil {
+		return err
+	}
+
+	a.token = loginResponse.AccessToken
 	return nil
 }
 
 func (a *InfisicalClient) RevokeAccessToken() error {
-	if a.token != "" {
-		_, err := a.RevokeMachineIdentityAccessToken(RevokeMachineIdentityAccessTokenRequest{AccessToken: a.token})
-		if err != nil {
-			return err
-		}
-
-		a.token = ""
+	if a.token == "" {
+		return nil
 	}
+	if _, err := a.RevokeMachineIdentityAccessToken(RevokeMachineIdentityAccessTokenRequest{AccessToken: a.token}); err != nil {
+		return err
+	}
+
+	a.token = ""
 	return nil
 }
 
@@ -89,7 +95,7 @@ func (a *InfisicalClient) resolveEndpoint(path string) string {
 
 func (a *InfisicalClient) do(r *http.Request) (*http.Response, error) {
 	if a.token != "" {
-		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", a.token))
+		r.Header.Add("Authorization", "Bearer "+a.token)
 	}
 	r.Header.Add("User-Agent", UserAgentName)
 	r.Header.Add("Content-Type", "application/json")
@@ -99,7 +105,7 @@ func (a *InfisicalClient) do(r *http.Request) (*http.Response, error) {
 
 func (a *InfisicalClient) MachineIdentityLoginViaUniversalAuth(data MachineIdentityUniversalAuthLoginRequest) (*MachineIdentityDetailsResponse, error) {
 	endpointURL := a.resolveEndpoint("api/v1/auth/universal-auth/login")
-	body, err := MarhalReqBody(data)
+	body, err := MarshalReqBody(data)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +116,7 @@ func (a *InfisicalClient) MachineIdentityLoginViaUniversalAuth(data MachineIdent
 		return nil, err
 	}
 
-	rawRes, err := a.do(req) //nolint:bodyclose // linters bug
+	rawRes, err := a.do(req) 
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +131,7 @@ func (a *InfisicalClient) MachineIdentityLoginViaUniversalAuth(data MachineIdent
 
 func (a *InfisicalClient) RevokeMachineIdentityAccessToken(data RevokeMachineIdentityAccessTokenRequest) (*RevokeMachineIdentityAccessTokenResponse, error) {
 	endpointURL := a.resolveEndpoint("api/v1/auth/token/revoke")
-	body, err := MarhalReqBody(data)
+	body, err := MarshalReqBody(data)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +142,7 @@ func (a *InfisicalClient) RevokeMachineIdentityAccessToken(data RevokeMachineIde
 		return nil, err
 	}
 
-	rawRes, err := a.do(req) //nolint:bodyclose // linters bug
+	rawRes, err := a.do(req) 
 	if err != nil {
 		return nil, err
 	}
@@ -153,6 +159,11 @@ func (a *InfisicalClient) GetSecretsV3(data GetSecretsV3Request) (map[string]str
 	endpointURL := a.resolveEndpoint("api/v3/secrets/raw")
 
 	req, err := http.NewRequest(http.MethodGet, endpointURL, http.NoBody)
+	metrics.ObserveAPICall(constants.ProviderName, "GetSecretsV3", err)
+	if err != nil {
+		return nil, err
+	}
+
 	q := req.URL.Query()
 	q.Add("workspaceSlug", data.ProjectSlug)
 	q.Add("environment", data.EnvironmentSlug)
@@ -161,12 +172,7 @@ func (a *InfisicalClient) GetSecretsV3(data GetSecretsV3Request) (map[string]str
 	q.Add("expandSecretReferences", "true")
 	req.URL.RawQuery = q.Encode()
 
-	metrics.ObserveAPICall(constants.ProviderName, "GetSecretsV3", err)
-	if err != nil {
-		return nil, err
-	}
-
-	rawRes, err := a.do(req) //nolint:bodyclose // linters bug
+	rawRes, err := a.do(req) 
 	if err != nil {
 		return nil, err
 	}
@@ -194,6 +200,11 @@ func (a *InfisicalClient) GetSecretByKeyV3(data GetSecretByKeyV3Request) (string
 	endpointURL := a.resolveEndpoint(fmt.Sprintf("api/v3/secrets/raw/%s", data.SecretKey))
 
 	req, err := http.NewRequest(http.MethodGet, endpointURL, http.NoBody)
+	metrics.ObserveAPICall(constants.ProviderName, "GetSecretByKeyV3", err)
+	if err != nil {
+		return "", err
+	}
+
 	q := req.URL.Query()
 	q.Add("workspaceSlug", data.ProjectSlug)
 	q.Add("environment", data.EnvironmentSlug)
@@ -201,12 +212,7 @@ func (a *InfisicalClient) GetSecretByKeyV3(data GetSecretByKeyV3Request) (string
 	q.Add("include_imports", "true")
 	req.URL.RawQuery = q.Encode()
 
-	metrics.ObserveAPICall(constants.ProviderName, "GetSecretByKeyV3", err)
-	if err != nil {
-		return "", err
-	}
-
-	rawRes, err := a.do(req) //nolint:bodyclose // linters bug
+	rawRes, err := a.do(req) 
 	if err != nil {
 		return "", err
 	}
@@ -232,7 +238,7 @@ func (a *InfisicalClient) GetSecretByKeyV3(data GetSecretByKeyV3Request) (string
 	return res.Secret.SecretValue, nil
 }
 
-func MarhalReqBody(data any) (*bytes.Reader, error) {
+func MarshalReqBody(data any) (*bytes.Reader, error) {
 	body, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
@@ -242,11 +248,7 @@ func MarhalReqBody(data any) (*bytes.Reader, error) {
 
 func ReadAndUnmarshal(resp *http.Response, target any) error {
 	var buf bytes.Buffer
-	defer func() {
-		if resp.Body != nil {
-			resp.Body.Close()
-		}
-	}()
+	defer resp.Body.Close()
 	_, err := buf.ReadFrom(resp.Body)
 	if err != nil {
 		return err
