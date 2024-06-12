@@ -1868,6 +1868,8 @@
       
         
       
+        
+      
     
     
       
@@ -2802,6 +2804,27 @@
   
   <span class="md-ellipsis">
     Fortanix
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../infisical/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Infisical
   </span>
   
 
@@ -4100,7 +4123,7 @@ set of AWS Programmatic access credentials stored in a <code>Kind=Secret</code> 
 <h4 id="tls-certificates-authentication">TLS certificates authentication</h4>
 <p><a href="https://developer.hashicorp.com/vault/docs/auth/cert">TLS certificates auth method</a>  allows authentication using SSL/TLS client certificates which are either signed by a CA or self-signed. SSL/TLS client certificates are defined as having an ExtKeyUsage extension with the usage set to either ClientAuth or Any.</p>
 <h3 id="mutual-authentication-mtls">Mutual authentication (mTLS)</h3>
-<p>Under specific compliance requirements, the Vault server can be set up to enforce mutual authentication from clients across all APIs by configuring the server with <code>tls_require_and_verify_client_cert = true</code>. This configuration differs fundamentally from the <a href="#TLS-certificates-authentication">TLS certificates auth method</a>. While the TLS certificates auth method allows the issuance of a Vault token through the <code>/v1/auth/cert/login</code> API, the mTLS configuration solely focuses on TLS transport layer authentication and lacks any authorization-related capabilities. It's important to note that the Vault token must still be included in the request, following any of the supported authentication methods mentioned earlier.</p>
+<p>Under specific compliance requirements, the Vault server can be set up to enforce mutual authentication from clients across all APIs by configuring the server with <code>tls_require_and_verify_client_cert = true</code>. This configuration differs fundamentally from the <a href="#tls-certificates-authentication">TLS certificates auth method</a>. While the TLS certificates auth method allows the issuance of a Vault token through the <code>/v1/auth/cert/login</code> API, the mTLS configuration solely focuses on TLS transport layer authentication and lacks any authorization-related capabilities. It's important to note that the Vault token must still be included in the request, following any of the supported authentication methods mentioned earlier.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
