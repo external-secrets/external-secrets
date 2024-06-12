@@ -17,6 +17,7 @@ package device42
 import (
 	"context"
 	"fmt"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -127,8 +128,14 @@ func (p *Device42) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteR
 	return false, fmt.Errorf(errNotImplemented)
 }
 
-func (p *Device42) Validate() (esv1beta1.ValidationResult, error) {
-	return 0, nil
+func (w *Device42) Validate() (esv1beta1.ValidationResult, error) {
+	timeout := 15 * time.Second
+	url := fmt.Sprintf("https://%s:%s", w.client.(*API).baseURL, w.client.(*API).hostPort)
+
+	if err := utils.NetworkValidate(url, timeout); err != nil {
+		return esv1beta1.ValidationResultError, err
+	}
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func (p *Device42) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
