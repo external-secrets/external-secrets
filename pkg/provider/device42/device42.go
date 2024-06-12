@@ -128,9 +128,9 @@ func (p *Device42) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteR
 	return false, fmt.Errorf(errNotImplemented)
 }
 
-func (w *Device42) Validate() (esv1beta1.ValidationResult, error) {
+func (p *Device42) Validate() (esv1beta1.ValidationResult, error) {
 	timeout := 15 * time.Second
-	url := fmt.Sprintf("https://%s:%s", w.client.(*API).baseURL, w.client.(*API).hostPort)
+	url := fmt.Sprintf("https://%s:%s", p.client.(*API).baseURL, p.client.(*API).hostPort)
 
 	if err := utils.NetworkValidate(url, timeout); err != nil {
 		return esv1beta1.ValidationResultError, err
