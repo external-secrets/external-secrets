@@ -50,7 +50,7 @@ var (
 	fakeProvider   *fake.Client
 	metric         dto.Metric
 	metricDuration dto.Metric
-	timeout        = time.Second * 20
+	timeout        = time.Second * 10
 	interval       = time.Millisecond * 250
 )
 

@@ -163,6 +163,10 @@ type SecretStoreProvider struct {
 
 	// +optional
 	Passbolt *PassboltProvider `json:"passbolt,omitempty"`
+
+	// Infisical configures this store to sync secrets using the Infisical provider
+	// +optional
+	Infisical *InfisicalProvider `json:"infisical,omitempty"`
 }
 
 type CAProviderType string

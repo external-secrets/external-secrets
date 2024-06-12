@@ -3920,6 +3920,17 @@ string
 <p>ProjectID project where secret is located</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>location</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Location optionally defines a location for a secret</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.GCPWorkloadIdentity">GCPWorkloadIdentity
@@ -4361,6 +4372,92 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.InfisicalAuth">InfisicalAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.InfisicalProvider">InfisicalProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>universalAuthCredentials</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.UniversalAuthCredentials">
+UniversalAuthCredentials
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.InfisicalProvider">InfisicalProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>InfisicalProvider configures a store to sync secrets using the Infisical provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.InfisicalAuth">
+InfisicalAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how the Operator authenticates with the Infisical API</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretsScope</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.MachineIdentityScopeInWorkspace">
+MachineIdentityScopeInWorkspace
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostAPI</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.KeeperSecurityProvider">KeeperSecurityProvider
 </h3>
 <p>
@@ -4571,6 +4668,55 @@ CAProvider
 <td>
 <em>(Optional)</em>
 <p>see: <a href="https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider">https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.MachineIdentityScopeInWorkspace">MachineIdentityScopeInWorkspace
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.InfisicalProvider">InfisicalProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretsPath</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>environmentSlug</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>projectSlug</code></br>
+<em>
+string
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -6044,6 +6190,20 @@ PassboltProvider
 <em>(Optional)</em>
 </td>
 </tr>
+<tr>
+<td>
+<code>infisical</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.InfisicalProvider">
+InfisicalProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Infisical configures this store to sync secrets using the Infisical provider</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.SecretStoreRef">SecretStoreRef
@@ -6910,6 +7070,48 @@ TemplateScope
 <tr>
 <td>
 <code>bearerToken</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.UniversalAuthCredentials">UniversalAuthCredentials
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.InfisicalAuth">InfisicalAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>clientId</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientSecret</code></br>
 <em>
 <a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
 External Secrets meta/v1.SecretKeySelector

@@ -2588,6 +2588,9 @@ should match snapshot of default values:
                                     - serviceAccountRef
                                   type: object
                               type: object
+                            location:
+                              description: Location optionally defines a location for a secret
+                              type: string
                             projectID:
                               description: ProjectID project where secret is located
                               type: string
