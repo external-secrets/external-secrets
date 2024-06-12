@@ -6297,8 +6297,6 @@ PassboltProvider
 </tr>
 <tr>
 <td>
-<tr>
-<td>
 <code>device42</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.Device42Provider">

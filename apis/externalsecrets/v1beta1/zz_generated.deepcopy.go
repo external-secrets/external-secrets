@@ -2405,13 +2405,11 @@ func (in *SecretStoreProvider) DeepCopyInto(out *SecretStoreProvider) {
 		*out = new(PassboltProvider)
 		(*in).DeepCopyInto(*out)
 	}
-
 	if in.Device42 != nil {
 		in, out := &in.Device42, &out.Device42
 		*out = new(Device42Provider)
 		(*in).DeepCopyInto(*out)
 	}
-
 	if in.Infisical != nil {
 		in, out := &in.Infisical, &out.Infisical
 		*out = new(InfisicalProvider)
