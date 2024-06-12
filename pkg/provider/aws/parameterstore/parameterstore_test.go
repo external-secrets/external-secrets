@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -306,8 +307,9 @@ func TestPushSecret(t *testing.T) {
 	}
 
 	type args struct {
-		store  *esv1beta1.AWSProvider
-		client fakeps.Client
+		store    *esv1beta1.AWSProvider
+		metadata *apiextensionsv1.JSON
+		client   fakeps.Client
 	}
 
 	type want struct {
@@ -424,11 +426,73 @@ func TestPushSecret(t *testing.T) {
 				err: nil,
 			},
 		},
+		"SetSecretWithValidMetadata": {
+			reason: "test push secret with valid parameterStoreType metadata",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`
+					{
+						"parameterStoreType": "SecureString", 
+						"parameterStoreKeyID": "arn:aws:kms:sa-east-1:00000000000:key/bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"
+					}
+					`),
+				},
+				client: fakeps.Client{
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(sameGetParameterOutput, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretWithValidMetadataListString": {
+			reason: "test push secret with valid parameterStoreType metadata and unused parameterStoreKeyID",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{"parameterStoreType": "StringList", "parameterStoreKeyID": "alias/aws/ssm"}`),
+				},
+				client: fakeps.Client{
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(sameGetParameterOutput, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretWithInvalidMetadata": {
+			reason: "test push secret with invalid metadata structure",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{ fakeMetadataKey: "" }`),
+				},
+				client: fakeps.Client{
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(sameGetParameterOutput, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+				},
+			},
+			want: want{
+				err: fmt.Errorf("failed to parse metadata: failed to parse JSON raw data: invalid character 'f' looking for beginning of object key string"),
+			},
+		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			psd := fake.PushSecretData{SecretKey: fakeSecretKey, RemoteKey: "fake-key"}
+			if tc.args.metadata != nil {
+				psd.Metadata = tc.args.metadata
+			}
 			ps := ParameterStore{
 				client: &tc.args.client,
 			}
