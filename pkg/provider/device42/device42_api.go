@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
@@ -71,7 +72,6 @@ func NewAPI(ctx context.Context, baseURL, username, password, hostPort string) *
 
 func (api *API) doAuthenticatedRequest(r *http.Request) (*http.Response, error) {
 	r.SetBasicAuth(api.username, api.password)
-	r = r.WithContext(api.context)
 	return api.client.Do(r)
 }
 
@@ -96,8 +96,9 @@ func ReadAndUnmarshal(resp *http.Response, target any) error {
 func (api *API) GetSecret(secretID string) (D42Password, error) {
 	// https://api.device42.com/#!/Passwords/getPassword
 	endpointURL := fmt.Sprintf("https://%s:%s/api/1.0/passwords/?id=%s&plain_text=yes", api.baseURL, api.hostPort, secretID)
-
-	readSecretRequest, err := http.NewRequest("GET", endpointURL, http.NoBody)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+	readSecretRequest, err := http.NewRequestWithContext(ctx, "GET", endpointURL, http.NoBody)
 	if err != nil {
 		return D42Password{}, fmt.Errorf("error: creating secrets request: %w", err)
 	}
