@@ -42,7 +42,6 @@ type API struct {
 	hostPort string
 	password string
 	username string
-	context  context.Context
 }
 
 type D42PasswordResponse struct {
@@ -54,13 +53,12 @@ type D42Password struct {
 	ID       int    `json:"id"`
 }
 
-func NewAPI(ctx context.Context, baseURL, username, password, hostPort string) *API {
+func NewAPI(baseURL, username, password, hostPort string) *API {
 	api := &API{
 		baseURL:  baseURL,
 		hostPort: hostPort,
 		username: username,
 		password: password,
-		context:  ctx,
 	}
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12},

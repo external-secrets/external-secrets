@@ -119,7 +119,7 @@ func (p *Device42) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return nil, err
 	}
 	// Create a new client using credentials and options
-	p.client = NewAPI(ctx, storeSpecDevice42.Host, username, password, "443")
+	p.client = NewAPI(storeSpecDevice42.Host, username, password, "443")
 
 	return p, nil
 }

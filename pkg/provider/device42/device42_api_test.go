@@ -15,7 +15,6 @@ package device42
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/http"
 	"reflect"
@@ -84,7 +83,6 @@ func TestDevice42ApiGetSecret(t *testing.T) {
 				client: &fakedevice42.MockClient{
 					FuncStack: tt.fields.funcStack,
 				},
-				context:  context.Background(),
 				baseURL:  "localhost",
 				hostPort: "8714",
 				password: "test",
