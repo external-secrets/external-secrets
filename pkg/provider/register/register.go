@@ -24,6 +24,7 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/chef"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/conjur"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/delinea"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/device42"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/doppler"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/fake"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/fortanix"
