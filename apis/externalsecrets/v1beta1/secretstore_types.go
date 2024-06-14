@@ -169,6 +169,10 @@ type SecretStoreProvider struct {
 	// +optional
 	Passbolt *PassboltProvider `json:"passbolt,omitempty"`
 
+	// Device42 configures this store to sync secrets using the Device42 provider
+	// +optional
+	Device42 *Device42Provider `json:"device42,omitempty"`
+
 	// Infisical configures this store to sync secrets using the Infisical provider
 	// +optional
 	Infisical *InfisicalProvider `json:"infisical,omitempty"`

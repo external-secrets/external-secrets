@@ -95,6 +95,7 @@ nav:
       - Azure Key Vault: provider/azure-key-vault.md
       - Chef: provider/chef.md
       - CyberArk Conjur: provider/conjur.md
+      - Device42: provider/device42.md
       - Google Cloud Secret Manager: provider/google-secrets-manager.md
       - HashiCorp Vault: provider/hashicorp-vault.md
       - Kubernetes: provider/kubernetes.md
