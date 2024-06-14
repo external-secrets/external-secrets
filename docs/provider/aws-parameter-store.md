@@ -113,6 +113,10 @@ Optionally, it is possible to configure additional options for the parameter suc
 
 `parameterStoreKeyID` takes a KMS Key `$ID` or `$ARN` (in case a key source is created in another account) as a string, where `alias/aws/ssm` is the _default_. This property is only used if `parameterStoreType` is set as `SecureString`.
 
+`parameterStoreTier` takes two options. `Standard` or `Advanced`, where `Standard` is the _default_.
+
+`parameterStorePolicies` takes a list of parameter policies. This property is only used if `parameterStoreTier` is set as `Advanced`. To have access to all options regarding policies please use the following official guide: [Assigning parameter policies](https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-policies.html)
+
 #### Check successful secret sync
 
 To be able to check that the secret has been succesfully synced you can run the following command:

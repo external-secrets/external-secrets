@@ -39,16 +39,6 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
-// Declares metadata information for pushing secrets to AWS Parameter Store.
-const (
-	PushSecretType                 = "parameterStoreType"
-	ParameterStoreTypeString       = "String"
-	ParameterStoreTypeStringList   = "StringList"
-	ParameterStoreTypeSecureString = "SecureString"
-	ParameterStoreKeyID            = "parameterStoreKeyID"
-	PushSecretKeyID                = "keyID"
-)
-
 // https://github.com/external-secrets/external-secrets/issues/644
 var (
 	_               esv1beta1.SecretsClient = &ParameterStore{}
@@ -62,6 +52,27 @@ type ParameterStore struct {
 	sess         *session.Session
 	client       PMInterface
 	referentAuth bool
+}
+
+// ParameterStoreMetadata will store any `data.metadata` for PushSecrets.
+type ParameterStoreMetadata struct {
+	ParameterTier     string                 `json:"parameterStoreTier"`
+	ParameterType     string                 `json:"parameterStoreType"`
+	ParameterKeyID    string                 `json:"parameterStoreKeyID"`
+	ParameterPolicies []ParameterStorePolicy `json:"parameterStorePolicies"`
+}
+
+type ParameterStorePolicy struct {
+	PolicyType       string                        `yaml:"type" json:"Type"`
+	PolicyVersion    string                        `yaml:"version" json:"Version"`
+	PolicyAttributes ParameterStorePolicyAttribute `yaml:"attributes" json:"Attributes"`
+}
+
+type ParameterStorePolicyAttribute struct {
+	Timestamp string `yaml:"timestamp,omitempty" json:"Timestamp"`
+	Before    string `yaml:"before" json:"Before"`
+	After     string `yaml:"after" json:"After"`
+	Unit      string `yaml:"unit" json:"Unit"`
 }
 
 // PMInterface is a subset of the parameterstore api.
@@ -153,18 +164,25 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 		err   error
 	)
 
-	parameterTypeFormat, err := utils.FetchValueFromMetadata(PushSecretType, data.GetMetadata(), ParameterStoreTypeString)
-	if err != nil {
-		return fmt.Errorf("failed to parse metadata: %w", err)
+	var m ParameterStoreMetadata
+	metadata := data.GetMetadata()
+	if metadata != nil {
+		if err := json.Unmarshal(metadata.Raw, &m); err != nil {
+			return fmt.Errorf("failed to unmarshal metadata: %w", err)
+		}
 	}
 
-	parameterKeyIDFormat, err := utils.FetchValueFromMetadata(ParameterStoreKeyID, data.GetMetadata(), PushSecretKeyID)
-	if err != nil {
-		return fmt.Errorf("failed to parse metadata: %w", err)
+	// set default metadata if not given
+	if m.ParameterTier == "" {
+		m.ParameterTier = "Standard"
 	}
 
-	if parameterKeyIDFormat == "keyID" || parameterKeyIDFormat == "" {
-		parameterKeyIDFormat = "alias/aws/ssm"
+	if m.ParameterType == "" {
+		m.ParameterType = "String"
+	}
+
+	if m.ParameterKeyID == "" {
+		m.ParameterKeyID = "alias/aws/ssm"
 	}
 
 	overwrite := true
@@ -186,12 +204,22 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 	secretRequest := ssm.PutParameterInput{
 		Name:      &secretName,
 		Value:     &stringValue,
-		Type:      &parameterTypeFormat,
+		Type:      &m.ParameterType,
 		Overwrite: &overwrite,
 	}
 
-	if parameterTypeFormat == "SecureString" {
-		secretRequest.KeyId = &parameterKeyIDFormat
+	if m.ParameterType == "SecureString" {
+		secretRequest.KeyId = &m.ParameterKeyID
+	}
+
+	if m.ParameterTier == "Advanced" {
+		secretRequest.Tier = &m.ParameterTier
+		// AWS ParameterStore's policies require a JSON input as String
+		policiesBytes, err := json.Marshal(&m.ParameterPolicies)
+		if err != nil {
+			return fmt.Errorf("failed to marshal parameter's policy: %w", err)
+		}
+		secretRequest.Policies = aws.String(string(policiesBytes))
 	}
 
 	secretValue := ssm.GetParameterInput{
