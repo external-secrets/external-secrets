@@ -29,6 +29,7 @@ type Client struct {
 	GetParameterWithContextFn        GetParameterWithContextFn
 	GetParametersByPathWithContextFn GetParametersByPathWithContextFn
 	PutParameterWithContextFn        PutParameterWithContextFn
+	PutParameterWithContextCalledN   int
 	DeleteParameterWithContextFn     DeleteParameterWithContextFn
 	DescribeParametersWithContextFn  DescribeParametersWithContextFn
 	ListTagsForResourceWithContextFn ListTagsForResourceWithContextFn
@@ -86,6 +87,7 @@ func NewDescribeParametersWithContextFn(output *ssm.DescribeParametersOutput, er
 }
 
 func (sm *Client) PutParameterWithContext(ctx aws.Context, input *ssm.PutParameterInput, options ...request.Option) (*ssm.PutParameterOutput, error) {
+	sm.PutParameterWithContextCalledN++
 	return sm.PutParameterWithContextFn(ctx, input, options...)
 }
 
