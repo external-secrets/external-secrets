@@ -46,7 +46,7 @@ const (
 var _ esv1beta1.SecretsClient = &client{}
 
 func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	x, _, err := c.escClient.OpenEnvironment(ctx, c.organization, c.environment, 5*time.Minute)
+	x, _, err := c.escClient.OpenEnvironment(ctx, c.organization, c.environment, "", 5*time.Minute)
 	if err != nil {
 		return nil, err
 	}
