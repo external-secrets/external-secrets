@@ -2,6 +2,8 @@ module github.com/external-secrets/external-secrets
 
 go 1.22.3
 
+replace github.com/Masterminds/sprig/v3 => github.com/external-secrets/sprig/v3 v3.3.0
+
 require (
 	cloud.google.com/go/iam v1.1.8
 	cloud.google.com/go/secretmanager v1.13.1

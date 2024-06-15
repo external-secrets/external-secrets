@@ -2,7 +2,10 @@ module github.com/external-secrets/external-secrets-e2e
 
 go 1.22.3
 
-replace github.com/external-secrets/external-secrets => ../
+replace (
+	github.com/Masterminds/sprig/v3 => github.com/external-secrets/sprig/v3 v3.3.0
+	github.com/external-secrets/external-secrets => ../
+)
 
 replace (
 	github.com/external-secrets/external-secrets v0.0.0 => ../
@@ -74,6 +77,7 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.2 // indirect
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	cloud.google.com/go/iam v1.1.8 // indirect
+	dario.cat/mergo v1.0.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.12.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.5.2 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.9.0 // indirect
