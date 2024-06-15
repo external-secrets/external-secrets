@@ -9,12 +9,6 @@ resource "google_project_iam_member" "secretadmin" {
   member  = "serviceAccount:${google_service_account.default.email}"
 }
 
-resource "google_project_iam_member" "service_account_token_creator" {
-  project = var.project_id
-  role    = "roles/iam.serviceAccountTokenCreator"
-  member  = "serviceAccount:${google_service_account.default.email}"
-}
-
 resource "google_service_account_iam_member" "pod_identity" {
   role               = "roles/iam.workloadIdentityUser"
   member             = "serviceAccount:${var.project_id}.svc.id.goog[default/${var.GCP_KSA_NAME}]"
