@@ -25,6 +25,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -239,7 +241,7 @@ func TestDeleteSecret(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			ref := fake.PushSecretData{RemoteKey: "fake-key"}
+			ref := fake.PushSecretData{RemoteKey: remoteKey}
 			ps := ParameterStore{
 				client: &tc.args.client,
 			}
@@ -262,6 +264,9 @@ func TestDeleteSecret(t *testing.T) {
 		})
 	}
 }
+
+const remoteKey = "fake-key"
+
 func TestPushSecret(t *testing.T) {
 	invalidParameters := errors.New(ssm.ErrCodeInvalidParameters)
 	alreadyExistsError := errors.New(ssm.ErrCodeAlreadyExistsException)
@@ -489,7 +494,7 @@ func TestPushSecret(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			psd := fake.PushSecretData{SecretKey: fakeSecretKey, RemoteKey: "fake-key"}
+			psd := fake.PushSecretData{SecretKey: fakeSecretKey, RemoteKey: remoteKey}
 			if tc.args.metadata != nil {
 				psd.Metadata = tc.args.metadata
 			}
@@ -511,6 +516,48 @@ func TestPushSecret(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPushSecretCalledOnlyOnce(t *testing.T) {
+	fakeSecretKey := "fakeSecretKey"
+	fakeValue := "fakeValue"
+	fakeSecret := &corev1.Secret{
+		Data: map[string][]byte{
+			fakeSecretKey: []byte(fakeValue),
+		},
+	}
+
+	managedByESO := ssm.Tag{
+		Key:   &managedBy,
+		Value: &externalSecrets,
+	}
+
+	putParameterOutput := &ssm.PutParameterOutput{}
+	validGetParameterOutput := &ssm.GetParameterOutput{
+		Parameter: &ssm.Parameter{
+			Value: &fakeValue,
+		},
+	}
+	describeParameterOutput := &ssm.DescribeParametersOutput{}
+	validListTagsForResourceOutput := &ssm.ListTagsForResourceOutput{
+		TagList: []*ssm.Tag{&managedByESO},
+	}
+
+	client := fakeps.Client{
+		PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+		GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(validGetParameterOutput, nil),
+		DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+		ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+	}
+
+	psd := fake.PushSecretData{SecretKey: fakeSecretKey, RemoteKey: remoteKey}
+	ps := ParameterStore{
+		client: &client,
+	}
+
+	require.NoError(t, ps.PushSecret(context.TODO(), fakeSecret, psd))
+
+	assert.Equal(t, 0, client.PutParameterWithContextCalledN)
 }
 
 // test the ssm<->aws interface

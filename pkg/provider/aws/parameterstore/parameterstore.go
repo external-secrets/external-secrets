@@ -41,12 +41,10 @@ import (
 
 // Declares metadata information for pushing secrets to AWS Parameter Store.
 const (
-	PushSecretType                 = "parameterStoreType"
-	ParameterStoreTypeString       = "String"
-	ParameterStoreTypeStringList   = "StringList"
-	ParameterStoreTypeSecureString = "SecureString"
-	ParameterStoreKeyID            = "parameterStoreKeyID"
-	PushSecretKeyID                = "keyID"
+	PushSecretType  = "parameterStoreType"
+	StoreTypeString = "String"
+	StoreKeyID      = "parameterStoreKeyID"
+	PushSecretKeyID = "keyID"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -153,12 +151,12 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 		err   error
 	)
 
-	parameterTypeFormat, err := utils.FetchValueFromMetadata(PushSecretType, data.GetMetadata(), ParameterStoreTypeString)
+	parameterTypeFormat, err := utils.FetchValueFromMetadata(PushSecretType, data.GetMetadata(), StoreTypeString)
 	if err != nil {
 		return fmt.Errorf("failed to parse metadata: %w", err)
 	}
 
-	parameterKeyIDFormat, err := utils.FetchValueFromMetadata(ParameterStoreKeyID, data.GetMetadata(), PushSecretKeyID)
+	parameterKeyIDFormat, err := utils.FetchValueFromMetadata(StoreKeyID, data.GetMetadata(), PushSecretKeyID)
 	if err != nil {
 		return fmt.Errorf("failed to parse metadata: %w", err)
 	}
@@ -208,7 +206,6 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 
 	// If we have a valid parameter returned to us, check its tags
 	if existing != nil && existing.Parameter != nil {
-		fmt.Println("The existing value contains data:", existing.String())
 		tags, err := pm.getTagsByName(ctx, existing)
 		if err != nil {
 			return fmt.Errorf("error getting the existing tags for the parameter %v: %w", secretName, err)
