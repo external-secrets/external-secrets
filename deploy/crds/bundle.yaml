@@ -10966,7 +10966,7 @@ spec:
                 auth:
                   description: Auth configures how ESO authenticates with a Github instance.
                   properties:
-                    privatKey:
+                    privateKey:
                       properties:
                         secretRef:
                           description: |-
@@ -10991,7 +10991,7 @@ spec:
                         - secretRef
                       type: object
                   required:
-                    - privatKey
+                    - privateKey
                   type: object
                 installID:
                   type: string
