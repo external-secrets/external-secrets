@@ -67,9 +67,17 @@ var (
 	PushSecretGroupVersionKind = SchemeGroupVersion.WithKind(PushSecretKind)
 )
 
+var (
+	WorkflowKind             = reflect.TypeOf(Workflow{}).Name()
+	WorkflowGroupKind        = schema.GroupKind{Group: Group, Kind: WorkflowKind}.String()
+	WorkflowKindAPIVersion   = WorkflowKind + "." + SchemeGroupVersion.String()
+	WorkflowGroupVersionKind = SchemeGroupVersion.WithKind(WorkflowKind)
+)
+
 func init() {
 	SchemeBuilder.Register(&ExternalSecret{}, &ExternalSecretList{})
 	SchemeBuilder.Register(&SecretStore{}, &SecretStoreList{})
 	SchemeBuilder.Register(&ClusterSecretStore{}, &ClusterSecretStoreList{})
 	SchemeBuilder.Register(&PushSecret{}, &PushSecretList{})
+	SchemeBuilder.Register(&Workflow{}, &WorkflowList{})
 }

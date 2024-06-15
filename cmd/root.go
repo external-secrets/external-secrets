@@ -47,6 +47,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/cssmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/workflow"
 	"github.com/external-secrets/external-secrets/pkg/feature"
 
 	// To allow using gcp auth.
@@ -220,6 +221,15 @@ var rootCmd = &cobra.Command{
 				setupLog.Error(err, errCreateController, "controller", "PushSecret")
 				os.Exit(1)
 			}
+		}
+		if err = (&workflow.Reconciler{
+			Client:          mgr.GetClient(),
+			Log:             ctrl.Log.WithName("controllers").WithName("Workflow"),
+			Scheme:          mgr.GetScheme(),
+			RequeueInterval: time.Hour,
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, errCreateController, "controller", "Workflow")
+			os.Exit(1)
 		}
 		if enableClusterExternalSecretReconciler {
 			cesmetrics.SetUpMetrics()

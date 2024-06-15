@@ -1,0 +1,163 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: my-store
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default
+  name: eso-store-role
+rules:
+- apiGroups: [""]
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - selfsubjectrulesreviews
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: my-store
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: eso-store-role
+subjects:
+- kind: ServiceAccount
+  name: my-store
+  namespace: default
+---
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: kubernetes
+spec:
+  provider:
+    kubernetes:
+      remoteNamespace: default
+      server:
+        url: https://localhost:44245
+        caProvider:
+          type: ConfigMap
+          name: kube-root-ca.crt
+          key: ca.crt
+      auth:
+        serviceAccount:
+          name: "my-store"
+---
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: aws-parameterstore
+spec:
+  provider:
+    aws:
+      service: ParameterStore
+      region: eu-central-1
+---
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: aws-secrets-manager
+spec:
+  provider:
+    aws:
+      region: eu-central-1
+      service: SecretsManager
+---
+apiVersion: external-secrets.io/v1alpha1
+kind: Workflow
+metadata:
+  name: "backend-secrets-with-config"
+spec:
+  workflows:
+  
+  # 1: fetch the database credentials from AWS Secrets Manager
+  - name: "db_credentials"
+
+    # steps are executed in order
+    steps:
+    - name: "fetch-mysql-credentials"
+      pull:
+        source:
+          storeRef:
+            name: "aws-secrets-manager"
+        dataFrom:
+        - extract:
+            key: "app-creds"
+        data:
+        - secretKey: "color"
+          remoteRef:
+            metadataPolicy: Fetch
+            key: "app-creds"
+            property: "color"
+    
+    - name: "encode_db_credentials"
+      template:
+        data:
+          color: "{{ .workflow.data.color }}"
+          encodedAppCreds: mysql://{{ .workflow.data.foo }}:{{ .workflow.data.baz }}@db.mycorp:3306/{{ .workflow.data.color }}
+  
+  # 2. fetch the configuration from SSM     
+  - name: "ami_config"
+    steps:
+    - name: "fetch-config"
+      pull:
+        source:
+          storeRef:
+            name: "aws-parameterstore"
+        data:
+        - secretKey: "ami"
+          remoteRef:
+            key: "/aws/service/eks/optimized-ami/1.29/amazon-linux-2/recommended/image_id"
+  
+  # 3. aggregate the secrets
+  - name: "aggregate"
+    steps:
+    - name: "aggregate-secrets"
+      # takes inputs from previous workflows
+      # inputs
+      template:
+        metadata:
+          labels:
+            color: "{{ .workflows.db_credentials.data.color }}"
+        data:
+          credentials: "{{ .workflows.db_credentials.data.encodedAppCreds }}"
+          ami: "{{ .workflows.ami_config.data.ami }}"
+    
+    # Note: A workflow always starts a new output map which aggregates values over the steps in a workflow.
+    # 
+    # For that reason, the "push" step needs a preceding step to have a value for the secret
+    # which is about to be pushed.
+    - name: "push-secrets"
+      push:
+        destination:
+          storeRef:
+            name: "kubernetes"
+            # TODO: support pushing to multiple stores with matchLabels
+            # TODO: allow Kubernetes provider (CSS) to push to multiple namespaces
+        data:
+        - match:
+            # TODO: support accessing previous workflow outputs
+            secretKey: "credentials"
+            remoteRef:
+              remoteKey: "app-credentials"
+              property: "credentials"
+        - match:
+            secretKey: "ami"
+            remoteRef:
+              remoteKey: "app-credentials"
+              property: "ami"
+  

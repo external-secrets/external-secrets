@@ -10218,6 +10218,532 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  name: workflows.external-secrets.io
+spec:
+  group: external-secrets.io
+  names:
+    categories:
+      - workflows
+    kind: Workflow
+    listKind: WorkflowList
+    plural: workflows
+    singular: workflow
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .metadata.creationTimestamp
+          name: AGE
+          type: date
+        - jsonPath: .status.conditions[?(@.type=="Ready")].reason
+          name: Status
+          type: string
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                refreshInterval:
+                  default: 1h
+                  description: |-
+                    RefreshInterval is the amount of time before the workflow is being reconciled.
+                    Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+                    May be set to zero to fetch and create it once. Defaults to 1h.
+                  type: string
+                workflows:
+                  description: Workflows are a list of workflows that are being executed in order.
+                  items:
+                    properties:
+                      name:
+                        description: |-
+                          Name of the workflow.
+                          It will be used as the index in the workflows data map.
+                        maxLength: 63
+                        minLength: 1
+                        type: string
+                      steps:
+                        description: Steps of the workflow, they are executed in order.
+                        items:
+                          properties:
+                            manifests:
+                              description: |-
+                                Manifests allows you to apply manifests to the cluster. The manifests are applied in order.
+                                The manifests can be templated and have access to the workflow data map.
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: Name of the workflow step.
+                              type: string
+                            pull:
+                              description: |-
+                                Pull allows you to fetch secrets from a SecretStore.
+                                The secret data will be stored in the workflow data map.
+                              properties:
+                                data:
+                                  description: Data allows you to fetch specific data from the secret.
+                                  items:
+                                    description: ExternalSecretData defines the connection between the Kubernetes Secret key (spec.data.<key>) and the Provider data.
+                                    properties:
+                                      remoteRef:
+                                        description: |-
+                                          RemoteRef points to the remote secret and defines
+                                          which secret (version/property/..) to fetch.
+                                        properties:
+                                          conversionStrategy:
+                                            default: Default
+                                            description: Used to define a conversion Strategy
+                                            enum:
+                                              - Default
+                                              - Unicode
+                                            type: string
+                                          decodingStrategy:
+                                            default: None
+                                            description: Used to define a decoding Strategy
+                                            enum:
+                                              - Auto
+                                              - Base64
+                                              - Base64URL
+                                              - None
+                                            type: string
+                                          key:
+                                            description: Key is the key used in the Provider, mandatory
+                                            type: string
+                                          metadataPolicy:
+                                            default: None
+                                            description: Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
+                                            enum:
+                                              - None
+                                              - Fetch
+                                            type: string
+                                          property:
+                                            description: Used to select a specific property of the Provider value (if a map), if supported
+                                            type: string
+                                          version:
+                                            description: Used to select a specific version of the Provider value, if supported
+                                            type: string
+                                        required:
+                                          - key
+                                        type: object
+                                      secretKey:
+                                        description: |-
+                                          SecretKey defines the key in which the controller stores
+                                          the value. This is the key in the Kind=Secret
+                                        type: string
+                                      sourceRef:
+                                        description: |-
+                                          SourceRef allows you to override the source
+                                          from which the value will pulled from.
+                                        maxProperties: 1
+                                        properties:
+                                          generatorRef:
+                                            description: |-
+                                              GeneratorRef points to a generator custom resource.
+
+
+                                              Deprecated: The generatorRef is not implemented in .data[].
+                                              this will be removed with v1.
+                                            properties:
+                                              apiVersion:
+                                                default: generators.external-secrets.io/v1alpha1
+                                                description: Specify the apiVersion of the generator resource
+                                                type: string
+                                              kind:
+                                                description: Specify the Kind of the resource, e.g. Password, ACRAccessToken etc.
+                                                type: string
+                                              name:
+                                                description: Specify the name of the generator resource
+                                                type: string
+                                            required:
+                                              - kind
+                                              - name
+                                            type: object
+                                          storeRef:
+                                            description: SecretStoreRef defines which SecretStore to fetch the ExternalSecret data.
+                                            properties:
+                                              kind:
+                                                description: |-
+                                                  Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                                                  Defaults to `SecretStore`
+                                                type: string
+                                              name:
+                                                description: Name of the SecretStore resource
+                                                type: string
+                                            required:
+                                              - name
+                                            type: object
+                                        type: object
+                                    required:
+                                      - remoteRef
+                                      - secretKey
+                                    type: object
+                                  type: array
+                                dataFrom:
+                                  description: DataFrom allows you to find multiple secrets in a store or extract structured data from a secret.
+                                  items:
+                                    properties:
+                                      extract:
+                                        description: |-
+                                          Used to extract multiple key/value pairs from one secret
+                                          Note: Extract does not support sourceRef.Generator or sourceRef.GeneratorRef.
+                                        properties:
+                                          conversionStrategy:
+                                            default: Default
+                                            description: Used to define a conversion Strategy
+                                            enum:
+                                              - Default
+                                              - Unicode
+                                            type: string
+                                          decodingStrategy:
+                                            default: None
+                                            description: Used to define a decoding Strategy
+                                            enum:
+                                              - Auto
+                                              - Base64
+                                              - Base64URL
+                                              - None
+                                            type: string
+                                          key:
+                                            description: Key is the key used in the Provider, mandatory
+                                            type: string
+                                          metadataPolicy:
+                                            default: None
+                                            description: Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
+                                            enum:
+                                              - None
+                                              - Fetch
+                                            type: string
+                                          property:
+                                            description: Used to select a specific property of the Provider value (if a map), if supported
+                                            type: string
+                                          version:
+                                            description: Used to select a specific version of the Provider value, if supported
+                                            type: string
+                                        required:
+                                          - key
+                                        type: object
+                                      find:
+                                        description: |-
+                                          Used to find secrets based on tags or regular expressions
+                                          Note: Find does not support sourceRef.Generator or sourceRef.GeneratorRef.
+                                        properties:
+                                          conversionStrategy:
+                                            default: Default
+                                            description: Used to define a conversion Strategy
+                                            enum:
+                                              - Default
+                                              - Unicode
+                                            type: string
+                                          decodingStrategy:
+                                            default: None
+                                            description: Used to define a decoding Strategy
+                                            enum:
+                                              - Auto
+                                              - Base64
+                                              - Base64URL
+                                              - None
+                                            type: string
+                                          name:
+                                            description: Finds secrets based on the name.
+                                            properties:
+                                              regexp:
+                                                description: Finds secrets base
+                                                type: string
+                                            type: object
+                                          path:
+                                            description: A root path to start the find operations.
+                                            type: string
+                                          tags:
+                                            additionalProperties:
+                                              type: string
+                                            description: Find secrets based on tags.
+                                            type: object
+                                        type: object
+                                      rewrite:
+                                        description: |-
+                                          Used to rewrite secret Keys after getting them from the secret Provider
+                                          Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
+                                        items:
+                                          properties:
+                                            regexp:
+                                              description: |-
+                                                Used to rewrite with regular expressions.
+                                                The resulting key will be the output of a regexp.ReplaceAll operation.
+                                              properties:
+                                                source:
+                                                  description: Used to define the regular expression of a re.Compiler.
+                                                  type: string
+                                                target:
+                                                  description: Used to define the target pattern of a ReplaceAll operation.
+                                                  type: string
+                                              required:
+                                                - source
+                                                - target
+                                              type: object
+                                            transform:
+                                              description: |-
+                                                Used to apply string transformation on the secrets.
+                                                The resulting key will be the output of the template applied by the operation.
+                                              properties:
+                                                template:
+                                                  description: |-
+                                                    Used to define the template to apply on the secret name.
+                                                    `.value ` will specify the secret name in the template.
+                                                  type: string
+                                              required:
+                                                - template
+                                              type: object
+                                          type: object
+                                        type: array
+                                      sourceRef:
+                                        description: |-
+                                          SourceRef points to a store or generator
+                                          which contains secret values ready to use.
+                                          Use this in combination with Extract or Find pull values out of
+                                          a specific SecretStore.
+                                          When sourceRef points to a generator Extract or Find is not supported.
+                                          The generator returns a static map of values
+                                        maxProperties: 1
+                                        properties:
+                                          generatorRef:
+                                            description: GeneratorRef points to a generator custom resource.
+                                            properties:
+                                              apiVersion:
+                                                default: generators.external-secrets.io/v1alpha1
+                                                description: Specify the apiVersion of the generator resource
+                                                type: string
+                                              kind:
+                                                description: Specify the Kind of the resource, e.g. Password, ACRAccessToken etc.
+                                                type: string
+                                              name:
+                                                description: Specify the name of the generator resource
+                                                type: string
+                                            required:
+                                              - kind
+                                              - name
+                                            type: object
+                                          storeRef:
+                                            description: SecretStoreRef defines which SecretStore to fetch the ExternalSecret data.
+                                            properties:
+                                              kind:
+                                                description: |-
+                                                  Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                                                  Defaults to `SecretStore`
+                                                type: string
+                                              name:
+                                                description: Name of the SecretStore resource
+                                                type: string
+                                            required:
+                                              - name
+                                            type: object
+                                        type: object
+                                    type: object
+                                  type: array
+                                source:
+                                  description: Source allows you to fetch secrets from a SecretStore.
+                                  maxProperties: 1
+                                  properties:
+                                    generatorRef:
+                                      description: |-
+                                        GeneratorRef points to a generator custom resource.
+
+
+                                        Deprecated: The generatorRef is not implemented in .data[].
+                                        this will be removed with v1.
+                                      properties:
+                                        apiVersion:
+                                          default: generators.external-secrets.io/v1alpha1
+                                          description: Specify the apiVersion of the generator resource
+                                          type: string
+                                        kind:
+                                          description: Specify the Kind of the resource, e.g. Password, ACRAccessToken etc.
+                                          type: string
+                                        name:
+                                          description: Specify the name of the generator resource
+                                          type: string
+                                      required:
+                                        - kind
+                                        - name
+                                      type: object
+                                    storeRef:
+                                      description: SecretStoreRef defines which SecretStore to fetch the ExternalSecret data.
+                                      properties:
+                                        kind:
+                                          description: |-
+                                            Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                                            Defaults to `SecretStore`
+                                          type: string
+                                        name:
+                                          description: Name of the SecretStore resource
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                  type: object
+                              required:
+                                - source
+                              type: object
+                            push:
+                              description: |-
+                                Push allows you to push secrets to a SecretStore.
+                                The secret data will be read from the workflow data map.
+                              properties:
+                                data:
+                                  items:
+                                    properties:
+                                      conversionStrategy:
+                                        default: None
+                                        description: Used to define a conversion Strategy for the secret keys
+                                        enum:
+                                          - None
+                                          - ReverseUnicode
+                                        type: string
+                                      match:
+                                        description: Match a given Secret Key to be pushed to the provider.
+                                        properties:
+                                          remoteRef:
+                                            description: Remote Refs to push to providers.
+                                            properties:
+                                              property:
+                                                description: Name of the property in the resulting secret
+                                                type: string
+                                              remoteKey:
+                                                description: Name of the resulting provider secret.
+                                                type: string
+                                            required:
+                                              - remoteKey
+                                            type: object
+                                          secretKey:
+                                            description: Secret Key to be pushed
+                                            type: string
+                                        required:
+                                          - remoteRef
+                                        type: object
+                                      metadata:
+                                        description: |-
+                                          Metadata is metadata attached to the secret.
+                                          The structure of metadata is provider specific, please look it up in the provider documentation.
+                                        x-kubernetes-preserve-unknown-fields: true
+                                    required:
+                                      - match
+                                    type: object
+                                  type: array
+                                destination:
+                                  description: |-
+                                    DestinationRef allows you to override the SecretStore destination
+                                    where the secret will be pushed to.
+                                  maxProperties: 1
+                                  properties:
+                                    storeRef:
+                                      description: SecretStoreRef defines which SecretStore to fetch the ExternalSecret data.
+                                      properties:
+                                        kind:
+                                          description: |-
+                                            Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                                            Defaults to `SecretStore`
+                                          type: string
+                                        name:
+                                          description: Name of the SecretStore resource
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                  type: object
+                              type: object
+                            template:
+                              description: |-
+                                Template allows you to compose data from the workflow.
+                                The result will be stored in the workflow data map.
+                              properties:
+                                data:
+                                  additionalProperties:
+                                    type: string
+                                  description: |-
+                                    Data allows you to compose data from the workflow. It is stored in the workflow data map.
+                                    Previous data can be accessed from the workflow data map.
+                                  type: object
+                                metadata:
+                                  description: Metadata allows you to set metadata on the workflow data map.
+                                  properties:
+                                    annotations:
+                                      additionalProperties:
+                                        type: string
+                                      type: object
+                                    labels:
+                                      additionalProperties:
+                                        type: string
+                                      type: object
+                                  type: object
+                              type: object
+                          required:
+                            - name
+                          type: object
+                        type: array
+                    required:
+                      - name
+                    type: object
+                  type: array
+              type: object
+            status:
+              properties:
+                conditions:
+                  items:
+                    properties:
+                      lastTransitionTime:
+                        format: date-time
+                        type: string
+                      message:
+                        type: string
+                      reason:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        type: string
+                    required:
+                      - status
+                      - type
+                    type: object
+                  type: array
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+  conversion:
+    strategy: Webhook
+    webhook:
+      conversionReviewVersions:
+        - v1
+      clientConfig:
+        service:
+          name: kubernetes
+          namespace: default
+          path: /convert
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: acraccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
