@@ -35,6 +35,7 @@ type FakeSpec struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
+// +kubebuilder:metadata:labels="external-secrets.io/component=controller"
 // +kubebuilder:resource:scope=Namespaced,categories={fake},shortName=fake
 type Fake struct {
 	metav1.TypeMeta   `json:",inline"`
