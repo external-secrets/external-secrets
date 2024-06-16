@@ -25,6 +25,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	pointer "k8s.io/utils/ptr"
 
+	"github.com/external-secrets/external-secrets/pkg/constants"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -126,7 +128,7 @@ var _ = Describe("ValidatingWebhookConfig reconcile", Ordered, func() {
 	}
 
 	IgnoreNoMatch := func(tc *testCase) {
-		delete(tc.vwc.ObjectMeta.Labels, wellKnownLabelKey)
+		delete(tc.vwc.ObjectMeta.Labels, constants.WellKnownLabelKey)
 		tc.assert = func() {
 			Consistently(func() bool {
 				var vwc admissionregistration.ValidatingWebhookConfiguration
@@ -232,7 +234,7 @@ func makeValidatingWebhookConfig() *admissionregistration.ValidatingWebhookConfi
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "name-shouldnt-matter",
 			Labels: map[string]string{
-				wellKnownLabelKey: wellKnownLabelValue,
+				constants.WellKnownLabelKey: constants.WellKnownLabelValueWebhook,
 			},
 		},
 		Webhooks: []admissionregistration.ValidatingWebhook{

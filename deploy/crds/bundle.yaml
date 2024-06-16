@@ -3,6 +3,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: clusterexternalsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -659,6 +661,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: clustersecretstores.external-secrets.io
 spec:
   group: external-secrets.io
@@ -4950,6 +4954,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: externalsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -6141,6 +6147,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: secretstores.external-secrets.io
 spec:
   group: external-secrets.io
@@ -10432,6 +10440,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: acraccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10627,6 +10637,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: ecrauthorizationtokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10793,6 +10805,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: fakes.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10868,6 +10882,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: gcraccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10995,6 +11011,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: githubaccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -11096,6 +11114,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: passwords.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -11193,6 +11213,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: vaultdynamicsecrets.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -11884,6 +11906,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: webhooks.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io

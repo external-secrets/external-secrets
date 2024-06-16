@@ -33,6 +33,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+
+	"github.com/external-secrets/external-secrets/pkg/constants"
 )
 
 type Reconciler struct {
@@ -75,9 +77,6 @@ func New(k8sClient client.Client, scheme *runtime.Scheme, leaderChan <-chan stru
 }
 
 const (
-	wellKnownLabelKey   = "external-secrets.io/component"
-	wellKnownLabelValue = "webhook"
-
 	ReasonUpdateFailed   = "UpdateFailed"
 	errWebhookNotReady   = "webhook not ready"
 	errSubsetsNotReady   = "subsets not ready"
@@ -98,8 +97,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	if cfg.Labels[wellKnownLabelKey] != wellKnownLabelValue {
-		log.Info("ignoring webhook due to missing labels", wellKnownLabelKey, wellKnownLabelValue)
+	if cfg.Labels[constants.WellKnownLabelKey] != constants.WellKnownLabelValueWebhook {
+		log.Info("ignoring webhook due to missing labels", constants.WellKnownLabelKey, constants.WellKnownLabelValueWebhook)
 		return ctrl.Result{}, nil
 	}
 

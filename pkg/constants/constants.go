@@ -97,4 +97,8 @@ const (
 
 	StatusError   = "error"
 	StatusSuccess = "success"
+
+	WellKnownLabelKey             = "external-secrets.io/component"
+	WellKnownLabelValueController = "controller"
+	WellKnownLabelValueWebhook    = "webhook"
 )
