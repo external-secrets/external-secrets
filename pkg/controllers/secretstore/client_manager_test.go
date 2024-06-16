@@ -328,7 +328,7 @@ func TestShouldProcessSecret(t *testing.T) {
 			name: "processes a regex condition",
 			conditions: []esv1beta1.ClusterSecretStoreCondition{
 				{
-					NamespacesRegexes: []string{`test-*`},
+					NamespaceRegexes: []string{`test-*`},
 				},
 			},
 			namespace: &corev1.Namespace{
@@ -342,7 +342,7 @@ func TestShouldProcessSecret(t *testing.T) {
 			name: "process multiple regexes",
 			conditions: []esv1beta1.ClusterSecretStoreCondition{
 				{
-					NamespacesRegexes: []string{`nope`, `test-*`},
+					NamespaceRegexes: []string{`nope`, `test-*`},
 				},
 			},
 			namespace: &corev1.Namespace{
@@ -356,7 +356,7 @@ func TestShouldProcessSecret(t *testing.T) {
 			name: "shouldn't process if nothing matches",
 			conditions: []esv1beta1.ClusterSecretStoreCondition{
 				{
-					NamespacesRegexes: []string{`nope`},
+					NamespaceRegexes: []string{`nope`},
 				},
 			},
 			namespace: &corev1.Namespace{

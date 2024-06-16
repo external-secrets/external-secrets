@@ -2199,6 +2199,11 @@ spec:
                       ClusterSecretStoreCondition describes a condition by which to choose namespaces to process ExternalSecrets in
                       for a ClusterSecretStore instance.
                     properties:
+                      namespaceRegexes:
+                        description: Choose namespaces by using regex matching
+                        items:
+                          type: string
+                        type: array
                       namespaceSelector:
                         description: Choose namespace using a labelSelector
                         properties:
@@ -2245,11 +2250,6 @@ spec:
                         x-kubernetes-map-type: atomic
                       namespaces:
                         description: Choose namespaces by name
-                        items:
-                          type: string
-                        type: array
-                      namespacesRegexes:
-                        description: Choose namespaces by using regex matching
                         items:
                           type: string
                         type: array
@@ -7579,6 +7579,11 @@ spec:
                       ClusterSecretStoreCondition describes a condition by which to choose namespaces to process ExternalSecrets in
                       for a ClusterSecretStore instance.
                     properties:
+                      namespaceRegexes:
+                        description: Choose namespaces by using regex matching
+                        items:
+                          type: string
+                        type: array
                       namespaceSelector:
                         description: Choose namespace using a labelSelector
                         properties:
@@ -7625,11 +7630,6 @@ spec:
                         x-kubernetes-map-type: atomic
                       namespaces:
                         description: Choose namespaces by name
-                        items:
-                          type: string
-                        type: array
-                      namespacesRegexes:
-                        description: Choose namespaces by using regex matching
                         items:
                           type: string
                         type: array

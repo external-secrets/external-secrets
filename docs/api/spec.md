@@ -1867,7 +1867,7 @@ Kubernetes meta/v1.LabelSelector
 </tr>
 <tr>
 <td>
-<code>namespacesRegexes</code></br>
+<code>namespaceRegexes</code></br>
 <em>
 []string
 </em>

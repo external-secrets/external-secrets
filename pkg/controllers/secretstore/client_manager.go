@@ -247,7 +247,7 @@ func (m *Manager) shouldProcessSecret(store esv1beta1.GenericStore, ns string) (
 			}
 		}
 
-		for _, reg := range condition.NamespacesRegexes {
+		for _, reg := range condition.NamespaceRegexes {
 			match, err := regexp.MatchString(reg, ns)
 			if err != nil {
 				// Should not happen since store validation already verified the regexes.

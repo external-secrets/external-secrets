@@ -44,7 +44,7 @@ func TestValidateSecretStore(t *testing.T) {
 				Spec: SecretStoreSpec{
 					Conditions: []ClusterSecretStoreCondition{
 						{
-							NamespacesRegexes: []string{`.*`},
+							NamespaceRegexes: []string{`.*`},
 						},
 					},
 					Provider: &SecretStoreProvider{
@@ -67,7 +67,7 @@ func TestValidateSecretStore(t *testing.T) {
 				Spec: SecretStoreSpec{
 					Conditions: []ClusterSecretStoreCondition{
 						{
-							NamespacesRegexes: []string{`\1`},
+							NamespaceRegexes: []string{`\1`},
 						},
 					},
 					Provider: &SecretStoreProvider{
@@ -90,7 +90,7 @@ func TestValidateSecretStore(t *testing.T) {
 				Spec: SecretStoreSpec{
 					Conditions: []ClusterSecretStoreCondition{
 						{
-							NamespacesRegexes: []string{`\1`, `\2`},
+							NamespaceRegexes: []string{`\1`, `\2`},
 						},
 					},
 					Provider: &SecretStoreProvider{

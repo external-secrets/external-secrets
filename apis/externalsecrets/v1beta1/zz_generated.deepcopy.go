@@ -682,8 +682,8 @@ func (in *ClusterSecretStoreCondition) DeepCopyInto(out *ClusterSecretStoreCondi
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.NamespacesRegexes != nil {
-		in, out := &in.NamespacesRegexes, &out.NamespacesRegexes
+	if in.NamespaceRegexes != nil {
+		in, out := &in.NamespaceRegexes, &out.NamespaceRegexes
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}

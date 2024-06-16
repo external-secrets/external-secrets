@@ -71,7 +71,7 @@ func validateStore(store GenericStore) (admission.Warnings, error) {
 func validateConditions(store GenericStore) error {
 	var errs error
 	for ci, condition := range store.GetSpec().Conditions {
-		for ri, r := range condition.NamespacesRegexes {
+		for ri, r := range condition.NamespaceRegexes {
 			if _, err := regexp.Compile(r); err != nil {
 				errs = errors.Join(errs, fmt.Errorf("failed to compile %dth namespace regex in %dth condition: %w", ri, ci, err))
 			}
