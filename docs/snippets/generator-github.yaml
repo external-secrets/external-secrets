@@ -14,7 +14,7 @@ spec:
   installID: "00000000" # (5)
   url: "" # (Default https://api.github.com.)
   auth:
-    privatKey:
+    privateKey:
       secretRef:
         name: github-app-pem # (2)
         key: key
