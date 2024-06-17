@@ -212,8 +212,13 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 		Overwrite: &overwrite,
 	}
 
+	secretValue := ssm.GetParameterInput{
+		Name: &secretName,
+	}
+
 	if m.ParameterStore.Type == "SecureString" {
 		secretRequest.KeyId = &m.ParameterStore.KeyID
+		secretValue.WithDecryption = aws.Bool(true)
 	}
 
 	if m.ParameterStore.Tier == "Advanced" {
@@ -224,10 +229,6 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 			return fmt.Errorf("failed to marshal parameter's policy: %w", err)
 		}
 		secretRequest.Policies = aws.String(string(policiesBytes))
-	}
-
-	secretValue := ssm.GetParameterInput{
-		Name: &secretName,
 	}
 
 	existing, err := pm.client.GetParameterWithContext(ctx, &secretValue)
