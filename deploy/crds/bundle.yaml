@@ -3,6 +3,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: clusterexternalsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -659,6 +661,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: clustersecretstores.external-secrets.io
 spec:
   group: external-secrets.io
@@ -3056,6 +3060,42 @@ spec:
                         - clientSecret
                         - tenant
                       type: object
+                    device42:
+                      description: Device42 configures this store to sync secrets using the Device42 provider
+                      properties:
+                        auth:
+                          description: Auth configures how secret-manager authenticates with a Device42 instance.
+                          properties:
+                            secretRef:
+                              properties:
+                                credentials:
+                                  description: Username / Password is used for authentication.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        host:
+                          description: URL configures the Device42 instance URL.
+                          type: string
+                      required:
+                        - auth
+                        - host
+                      type: object
                     doppler:
                       description: Doppler configures this store to sync secrets using the Doppler provider
                       properties:
@@ -4914,6 +4954,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: externalsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -6105,6 +6147,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: secretstores.external-secrets.io
 spec:
   group: external-secrets.io
@@ -8502,6 +8546,42 @@ spec:
                         - clientSecret
                         - tenant
                       type: object
+                    device42:
+                      description: Device42 configures this store to sync secrets using the Device42 provider
+                      properties:
+                        auth:
+                          description: Auth configures how secret-manager authenticates with a Device42 instance.
+                          properties:
+                            secretRef:
+                              properties:
+                                credentials:
+                                  description: Username / Password is used for authentication.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        host:
+                          description: URL configures the Device42 instance URL.
+                          type: string
+                      required:
+                        - auth
+                        - host
+                      type: object
                     doppler:
                       description: Doppler configures this store to sync secrets using the Doppler provider
                       properties:
@@ -10360,6 +10440,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: acraccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10555,6 +10637,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: ecrauthorizationtokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10721,6 +10805,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: fakes.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10796,6 +10882,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: gcraccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10923,6 +11011,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: githubaccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -11024,6 +11114,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: passwords.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -11121,6 +11213,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: vaultdynamicsecrets.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -11812,6 +11906,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: webhooks.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io

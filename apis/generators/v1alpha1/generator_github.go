@@ -41,6 +41,7 @@ type GithubSecretRef struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
+// +kubebuilder:metadata:labels="external-secrets.io/component=controller"
 // +kubebuilder:resource:scope=Namespaced,categories={githubaccesstoken},shortName=githubaccesstoken
 type GithubAccessToken struct {
 	metav1.TypeMeta   `json:",inline"`
