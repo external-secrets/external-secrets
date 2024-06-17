@@ -438,27 +438,29 @@ func TestPushSecret(t *testing.T) {
 				metadata: &apiextensionsv1.JSON{
 					Raw: []byte(`
 					{
-						"parameterStoreType": "SecureString", 
-						"parameterStoreKeyID": "arn:aws:kms:sa-east-1:00000000000:key/bb123123-b2b0-4f60-ac3a-44a13f0e6b6c",
-						"parameterStoreTier": "Advanced",
-						"parameterStorePolicies": [
-							{
-								"type": "Expiration",
-								"version": "1.0",
-								"attributes": {
-									"timestamp": "2024-12-02T21:34:33.000Z"
-								}
-							},
-							{
-								"type": "ExpirationNotification",
-								"version": "1.0",
-								"attributes": {
-									"before": "2",
-									"unit": "Days"
-								}
-							}
-						]
-					}
+						"parameterStore": {
+								"type": "SecureString",
+								"keyID": "arn:aws:kms:sa-east-1:00000000000:key/bb123123-b2b0-4f60-ac3a-44a13f0e6b6c",
+								"tier": "Advanced",
+								"policies": [
+										{
+												"type": "Expiration",
+												"version": "1.0",
+												"attributes": {
+														"timestamp": "2024-12-02T21:34:33.000Z"
+												}
+										},
+										{
+												"type": "ExpirationNotification",
+												"version": "1.0",
+												"attributes": {
+														"before": "2",
+														"unit": "Days"
+												}
+										}
+								]
+						}
+				}
 					`),
 				},
 				client: fakeps.Client{
