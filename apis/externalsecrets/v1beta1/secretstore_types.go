@@ -50,7 +50,12 @@ type ClusterSecretStoreCondition struct {
 	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
 
 	// Choose namespaces by name
+	// +optional
 	Namespaces []string `json:"namespaces,omitempty"`
+
+	// Choose namespaces by using regex matching
+	// +optional
+	NamespaceRegexes []string `json:"namespaceRegexes,omitempty"`
 }
 
 // SecretStoreProvider contains the provider-specific configuration.
