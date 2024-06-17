@@ -54,18 +54,22 @@ type ParameterStore struct {
 	referentAuth bool
 }
 
+type PushSecretMetadata struct {
+	ParameterStore ParameterStoreMetadata `json:"parameterStore"`
+}
+
 // ParameterStoreMetadata will store any `data.metadata` for PushSecrets.
 type ParameterStoreMetadata struct {
-	ParameterTier     string                 `json:"parameterStoreTier"`
-	ParameterType     string                 `json:"parameterStoreType"`
-	ParameterKeyID    string                 `json:"parameterStoreKeyID"`
-	ParameterPolicies []ParameterStorePolicy `json:"parameterStorePolicies"`
+	Tier     string                 `json:"tier"`
+	Type     string                 `json:"type"`
+	KeyID    string                 `json:"keyID"`
+	Policies []ParameterStorePolicy `json:"policies"`
 }
 
 type ParameterStorePolicy struct {
-	PolicyType       string                        `yaml:"type" json:"Type"`
-	PolicyVersion    string                        `yaml:"version" json:"Version"`
-	PolicyAttributes ParameterStorePolicyAttribute `yaml:"attributes" json:"Attributes"`
+	Type       string                        `yaml:"type" json:"Type"`
+	Version    string                        `yaml:"version" json:"Version"`
+	Attributes ParameterStorePolicyAttribute `yaml:"attributes" json:"Attributes"`
 }
 
 type ParameterStorePolicyAttribute struct {
@@ -164,7 +168,7 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 		err   error
 	)
 
-	var m ParameterStoreMetadata
+	var m PushSecretMetadata
 	metadata := data.GetMetadata()
 	if metadata != nil {
 		if err := json.Unmarshal(metadata.Raw, &m); err != nil {
@@ -173,16 +177,16 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 	}
 
 	// set default metadata if not given
-	if m.ParameterTier == "" {
-		m.ParameterTier = "Standard"
+	if m.ParameterStore.Tier == "" {
+		m.ParameterStore.Tier = "Standard"
 	}
 
-	if m.ParameterType == "" {
-		m.ParameterType = "String"
+	if m.ParameterStore.Type == "" {
+		m.ParameterStore.Type = "String"
 	}
 
-	if m.ParameterKeyID == "" {
-		m.ParameterKeyID = "alias/aws/ssm"
+	if m.ParameterStore.KeyID == "" {
+		m.ParameterStore.KeyID = "alias/aws/ssm"
 	}
 
 	overwrite := true
@@ -204,18 +208,18 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 	secretRequest := ssm.PutParameterInput{
 		Name:      &secretName,
 		Value:     &stringValue,
-		Type:      &m.ParameterType,
+		Type:      &m.ParameterStore.Type,
 		Overwrite: &overwrite,
 	}
 
-	if m.ParameterType == "SecureString" {
-		secretRequest.KeyId = &m.ParameterKeyID
+	if m.ParameterStore.Type == "SecureString" {
+		secretRequest.KeyId = &m.ParameterStore.KeyID
 	}
 
-	if m.ParameterTier == "Advanced" {
-		secretRequest.Tier = &m.ParameterTier
+	if m.ParameterStore.Tier == "Advanced" {
+		secretRequest.Tier = &m.ParameterStore.Tier
 		// AWS ParameterStore's policies require a JSON input as String
-		policiesBytes, err := json.Marshal(&m.ParameterPolicies)
+		policiesBytes, err := json.Marshal(&m.ParameterStore.Policies)
 		if err != nil {
 			return fmt.Errorf("failed to marshal parameter's policy: %w", err)
 		}
