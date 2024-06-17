@@ -3361,7 +3361,7 @@
 
 <span class="w">  </span><span class="c1"># Conditions about namespaces in which the ClusterSecretStore is usable for ExternalSecrets</span>
 <span class="w">  </span><span class="nt">conditions</span><span class="p">:</span>
-<span class="w">    </span><span class="c1"># Options are namespaceSelector, or namespaces</span>
+<span class="w">    </span><span class="c1"># Options are namespaceSelector, namespaces or namespacesRegex</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespaceSelector</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">matchLabels</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">my.namespace.io/some-label</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;value&quot;</span><span class="w"> </span><span class="c1"># Only namespaces with that label will work</span>
@@ -3369,6 +3369,11 @@
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespaces</span><span class="p">:</span>
 <span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;namespace-a&quot;</span>
 <span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;namespace-b&quot;</span>
+
+<span class="w">    </span><span class="c1"># Namespace regex is helpful for namespace naming convention or when an external tool auto generate namespaces with prefix</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespacesRegex</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;namespace-a-.*&quot;</span><span class="w"> </span><span class="c1"># All namespaces prefixed by namespace-a- will work</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;namespace-b-.*&quot;</span><span class="w"> </span><span class="c1"># All namespaces prefixed by namespace-b- will work</span>
 
 <span class="w">    </span><span class="c1"># conditions needs only one of the conditions to meet for the CSS to be usable in the namespace.</span>
 
