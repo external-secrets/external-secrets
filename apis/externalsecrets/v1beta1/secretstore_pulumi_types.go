@@ -20,7 +20,7 @@ import (
 
 type PulumiProvider struct {
 	// APIURL is the URL of the Pulumi API.
-	// +kubebuilder:default="https://api.pulumi.com"
+	// +kubebuilder:default="https://api.pulumi.com/api/preview"
 	APIURL string `json:"apiUrl,omitempty"`
 
 	// AccessToken is the access tokens to sign in to the Pulumi Cloud Console.
