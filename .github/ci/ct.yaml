@@ -1,5 +1,6 @@
 chart-dirs:
   - deploy/charts
 helm-extra-args: "--timeout=5m"
+helm-extra-set-args: "--set image.tag=main --set webhook.image.tag=main --set certController.image.tag=main"
 check-version-increment: false
 target-branch: main
