@@ -17,6 +17,7 @@ package secretstore
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -242,6 +243,18 @@ func (m *Manager) shouldProcessSecret(store esv1beta1.GenericStore, ns string) (
 				return false, fmt.Errorf("failed to convert label selector into selector %v: %w", ls, err)
 			}
 			if selector.Matches(nsLabels) {
+				return true, nil
+			}
+		}
+
+		for _, reg := range condition.NamespaceRegexes {
+			match, err := regexp.MatchString(reg, ns)
+			if err != nil {
+				// Should not happen since store validation already verified the regexes.
+				return false, fmt.Errorf("failed to compile regex %v: %w", reg, err)
+			}
+
+			if match {
 				return true, nil
 			}
 		}
