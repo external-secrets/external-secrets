@@ -55,15 +55,15 @@ type ParameterStore struct {
 }
 
 type PushSecretMetadata struct {
-	ParameterStore ParameterStoreMetadata `json:"parameterStore"`
+	ParameterStore ParameterStoreMetadata `yaml:"parameterStore"`
 }
 
 // ParameterStoreMetadata will store any `data.metadata` for PushSecrets.
 type ParameterStoreMetadata struct {
-	Tier     string                 `json:"tier"`
-	Type     string                 `json:"type"`
-	KeyID    string                 `json:"keyID"`
-	Policies []ParameterStorePolicy `json:"policies"`
+	Tier     string                 `yaml:"tier"`
+	Type     string                 `yaml:"type"`
+	KeyID    string                 `yaml:"keyID"`
+	Policies []ParameterStorePolicy `yaml:"policies"`
 }
 
 type ParameterStorePolicy struct {

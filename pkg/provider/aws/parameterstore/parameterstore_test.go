@@ -513,7 +513,7 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
 				metadata: &apiextensionsv1.JSON{
-					Raw: []byte(`{ "parameterStorePolicies": ["foo"] }`),
+					Raw: []byte(`{"parameterStore": []}`),
 				},
 				client: fakeps.Client{
 					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
@@ -523,7 +523,7 @@ func TestPushSecret(t *testing.T) {
 				},
 			},
 			want: want{
-				err: fmt.Errorf("failed to unmarshal metadata: json: cannot unmarshal string into Go struct field ParameterStoreMetadata.parameterStorePolicies of type parameterstore.ParameterStorePolicy"),
+				err: fmt.Errorf("failed to unmarshal metadata: json: cannot unmarshal array into Go struct field PushSecretMetadata.ParameterStore of type parameterstore.ParameterStoreMetadata"),
 			},
 		},
 	}
