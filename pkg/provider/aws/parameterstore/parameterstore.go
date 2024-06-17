@@ -213,12 +213,12 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 	}
 
 	secretValue := ssm.GetParameterInput{
-		Name: &secretName,
+		Name:           &secretName,
+		WithDecryption: aws.Bool(true),
 	}
 
 	if m.ParameterStore.Type == "SecureString" {
 		secretRequest.KeyId = &m.ParameterStore.KeyID
-		secretValue.WithDecryption = aws.Bool(true)
 	}
 
 	if m.ParameterStore.Tier == "Advanced" {
