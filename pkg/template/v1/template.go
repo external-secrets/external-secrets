@@ -26,8 +26,8 @@ import (
 
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/youmark/pkcs8"
-	"golang.org/x/crypto/pkcs12"
 	corev1 "k8s.io/api/core/v1"
+	"software.sslmate.com/src/go-pkcs12"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
