@@ -16,10 +16,12 @@ package vault
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	vault "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -161,6 +163,47 @@ func TestSetAuthNamespace(t *testing.T) {
 
 			if diff := cmp.Diff(tc.args.expected, actual, cmpopts.EquateComparable()); diff != "" {
 				t.Errorf("\n%s\nvault.useAuthNamepsace(...): -want namespace, +got namespace:\n%s", tc.reason, diff)
+			}
+		})
+	}
+}
+
+func TestCheckTokenErrors(t *testing.T) {
+	cases := map[string]struct {
+		message string
+		secret  *vault.Secret
+		err     error
+	}{
+		"SuccessWithNoData": {
+			message: "should not cache if token lookup returned no data",
+			secret:  &vault.Secret{},
+			err:     nil,
+		},
+		"Error": {
+			message: "should not cache if token lookup errored",
+			secret:  nil,
+			err:     errors.New(""),
+		},
+		// This happens when a token is expired and the Vault server returns:
+		// {"errors":["permission denied"]}
+		"NoDataNorError": {
+			message: "should not cache if token lookup returned no data nor error",
+			secret:  nil,
+			err:     nil,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			token := fake.Token{
+				LookupSelfWithContextFn: func(ctx context.Context) (*vault.Secret, error) {
+					return tc.secret, tc.err
+				},
+			}
+
+			cached, _ := checkToken(context.Background(), token)
+			if cached {
+				t.Errorf("%v", tc.message)
 			}
 		})
 	}
