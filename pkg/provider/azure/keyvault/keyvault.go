@@ -35,7 +35,6 @@ import (
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/tidwall/gjson"
-	"golang.org/x/crypto/pkcs12"
 	"golang.org/x/crypto/sha3"
 	authv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -47,6 +46,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	gopkcs12 "software.sslmate.com/src/go-pkcs12"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
@@ -345,7 +345,7 @@ func (a *Azure) SecretExists(ctx context.Context, remoteRef esv1beta1.PushSecret
 
 func getCertificateFromValue(value []byte) (*x509.Certificate, error) {
 	// 1st: try decode pkcs12
-	_, localCert, err := pkcs12.Decode(value, "")
+	_, localCert, err := gopkcs12.Decode(value, "")
 	if err == nil {
 		return localCert, nil
 	}
