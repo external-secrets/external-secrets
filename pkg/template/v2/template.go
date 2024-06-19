@@ -59,6 +59,7 @@ const (
 	errParsePrivKey         = "unable to parse private key type"
 
 	pemTypeCertificate = "CERTIFICATE"
+	pemTypeKey         = "PRIVATE KEY"
 )
 
 func init() {
