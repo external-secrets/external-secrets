@@ -46,8 +46,8 @@ const (
 // we don't need to push again.
 func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
 	spec := p.store.GetSpec()
-	if spec == nil {
-		return fmt.Errorf("store does not have a spec")
+	if spec == nil || spec.Provider == nil {
+		return fmt.Errorf("store does not have a provider")
 	}
 
 	if data.GetSecretKey() == "" {
@@ -161,8 +161,8 @@ func (p *Provider) DeleteSecret(ctx context.Context, ref esv1beta1.PushSecretRem
 	}
 
 	spec := p.store.GetSpec()
-	if spec == nil {
-		return fmt.Errorf("store does not have a spec")
+	if spec == nil || spec.Provider == nil {
+		return fmt.Errorf("store does not have a provider")
 	}
 
 	secret, err := p.findSecretByRef(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: ref.GetRemoteKey(), Property: ref.GetProperty()})
@@ -267,8 +267,8 @@ func (p *Provider) getCABundle(provider *esv1beta1.BitwardenSecretsManagerProvid
 
 func (p *Provider) findSecretByRef(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (*SecretResponse, error) {
 	spec := p.store.GetSpec()
-	if spec == nil {
-		return nil, fmt.Errorf("store does not have a spec")
+	if spec == nil || spec.Provider == nil {
+		return nil, fmt.Errorf("store does not have a provider")
 	}
 
 	// ListAll Secrets for an organization. If the key matches our key, we GetSecret that and do a compare.
