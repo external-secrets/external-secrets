@@ -1093,6 +1093,17 @@ can be performed.</p>
 </tr>
 <tr>
 <td>
+<code>organizationID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>OrganizationID determines which organization this store manages.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>auth</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerAuth">

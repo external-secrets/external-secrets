@@ -2849,9 +2849,13 @@ spec:
                           type: string
                         identityURL:
                           type: string
+                        organizationID:
+                          description: OrganizationID determines which organization this store manages.
+                          type: string
                       required:
                         - auth
                         - caBundle
+                        - organizationID
                       type: object
                     chef:
                       description: Chef configures this store to sync secrets with chef server
@@ -8389,9 +8393,13 @@ spec:
                           type: string
                         identityURL:
                           type: string
+                        organizationID:
+                          description: OrganizationID determines which organization this store manages.
+                          type: string
                       required:
                         - auth
                         - caBundle
+                        - organizationID
                       type: object
                     chef:
                       description: Chef configures this store to sync secrets with chef server
