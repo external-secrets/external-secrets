@@ -9,7 +9,7 @@ if str(local("command -v " + kubectl_cmd + " || true", quiet = True)) == "":
 # set defaults
 settings = {
     "debug": {
-        "enabled": True,
+        "enabled": False,
     },
 }
 
