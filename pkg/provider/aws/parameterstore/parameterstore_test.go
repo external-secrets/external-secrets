@@ -25,7 +25,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -238,7 +241,7 @@ func TestDeleteSecret(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			ref := fake.PushSecretData{RemoteKey: "fake-key"}
+			ref := fake.PushSecretData{RemoteKey: remoteKey}
 			ps := ParameterStore{
 				client: &tc.args.client,
 			}
@@ -261,6 +264,9 @@ func TestDeleteSecret(t *testing.T) {
 		})
 	}
 }
+
+const remoteKey = "fake-key"
+
 func TestPushSecret(t *testing.T) {
 	invalidParameters := errors.New(ssm.ErrCodeInvalidParameters)
 	alreadyExistsError := errors.New(ssm.ErrCodeAlreadyExistsException)
@@ -306,8 +312,9 @@ func TestPushSecret(t *testing.T) {
 	}
 
 	type args struct {
-		store  *esv1beta1.AWSProvider
-		client fakeps.Client
+		store    *esv1beta1.AWSProvider
+		metadata *apiextensionsv1.JSON
+		client   fakeps.Client
 	}
 
 	type want struct {
@@ -424,11 +431,73 @@ func TestPushSecret(t *testing.T) {
 				err: nil,
 			},
 		},
+		"SetSecretWithValidMetadata": {
+			reason: "test push secret with valid parameterStoreType metadata",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`
+					{
+						"parameterStoreType": "SecureString", 
+						"parameterStoreKeyID": "arn:aws:kms:sa-east-1:00000000000:key/bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"
+					}
+					`),
+				},
+				client: fakeps.Client{
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(sameGetParameterOutput, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretWithValidMetadataListString": {
+			reason: "test push secret with valid parameterStoreType metadata and unused parameterStoreKeyID",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{"parameterStoreType": "StringList", "parameterStoreKeyID": "alias/aws/ssm"}`),
+				},
+				client: fakeps.Client{
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(sameGetParameterOutput, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretWithInvalidMetadata": {
+			reason: "test push secret with invalid metadata structure",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{ fakeMetadataKey: "" }`),
+				},
+				client: fakeps.Client{
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(sameGetParameterOutput, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+				},
+			},
+			want: want{
+				err: fmt.Errorf("failed to parse metadata: failed to parse JSON raw data: invalid character 'f' looking for beginning of object key string"),
+			},
+		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			psd := fake.PushSecretData{SecretKey: fakeSecretKey, RemoteKey: "fake-key"}
+			psd := fake.PushSecretData{SecretKey: fakeSecretKey, RemoteKey: remoteKey}
+			if tc.args.metadata != nil {
+				psd.Metadata = tc.args.metadata
+			}
 			ps := ParameterStore{
 				client: &tc.args.client,
 			}
@@ -447,6 +516,48 @@ func TestPushSecret(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPushSecretCalledOnlyOnce(t *testing.T) {
+	fakeSecretKey := "fakeSecretKey"
+	fakeValue := "fakeValue"
+	fakeSecret := &corev1.Secret{
+		Data: map[string][]byte{
+			fakeSecretKey: []byte(fakeValue),
+		},
+	}
+
+	managedByESO := ssm.Tag{
+		Key:   &managedBy,
+		Value: &externalSecrets,
+	}
+
+	putParameterOutput := &ssm.PutParameterOutput{}
+	validGetParameterOutput := &ssm.GetParameterOutput{
+		Parameter: &ssm.Parameter{
+			Value: &fakeValue,
+		},
+	}
+	describeParameterOutput := &ssm.DescribeParametersOutput{}
+	validListTagsForResourceOutput := &ssm.ListTagsForResourceOutput{
+		TagList: []*ssm.Tag{&managedByESO},
+	}
+
+	client := fakeps.Client{
+		PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+		GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(validGetParameterOutput, nil),
+		DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+		ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+	}
+
+	psd := fake.PushSecretData{SecretKey: fakeSecretKey, RemoteKey: remoteKey}
+	ps := ParameterStore{
+		client: &client,
+	}
+
+	require.NoError(t, ps.PushSecret(context.TODO(), fakeSecret, psd))
+
+	assert.Equal(t, 0, client.PutParameterWithContextCalledN)
 }
 
 // test the ssm<->aws interface

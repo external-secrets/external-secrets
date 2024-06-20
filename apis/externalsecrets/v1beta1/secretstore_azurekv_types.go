@@ -99,4 +99,8 @@ type AzureKVAuth struct {
 	// The Azure ClientSecret of the service principle used for authentication.
 	// +optional
 	ClientSecret *smmeta.SecretKeySelector `json:"clientSecret,omitempty"`
+
+	// The Azure ClientCertificate of the service principle used for authentication.
+	// +optional
+	ClientCertificate *smmeta.SecretKeySelector `json:"clientCertificate,omitempty"`
 }

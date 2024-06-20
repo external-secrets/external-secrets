@@ -364,7 +364,7 @@ set of AWS Programmatic access credentials stored in a `Kind=Secret` and referen
 
 ### Mutual authentication (mTLS)
 
-Under specific compliance requirements, the Vault server can be set up to enforce mutual authentication from clients across all APIs by configuring the server with `tls_require_and_verify_client_cert = true`. This configuration differs fundamentally from the [TLS certificates auth method](#TLS-certificates-authentication). While the TLS certificates auth method allows the issuance of a Vault token through the `/v1/auth/cert/login` API, the mTLS configuration solely focuses on TLS transport layer authentication and lacks any authorization-related capabilities. It's important to note that the Vault token must still be included in the request, following any of the supported authentication methods mentioned earlier.
+Under specific compliance requirements, the Vault server can be set up to enforce mutual authentication from clients across all APIs by configuring the server with `tls_require_and_verify_client_cert = true`. This configuration differs fundamentally from the [TLS certificates auth method](#tls-certificates-authentication). While the TLS certificates auth method allows the issuance of a Vault token through the `/v1/auth/cert/login` API, the mTLS configuration solely focuses on TLS transport layer authentication and lacks any authorization-related capabilities. It's important to note that the Vault token must still be included in the request, following any of the supported authentication methods mentioned earlier.
 
 ```yaml
 {% include 'vault-mtls-store.yaml' %}

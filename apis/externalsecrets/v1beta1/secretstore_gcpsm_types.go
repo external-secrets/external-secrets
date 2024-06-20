@@ -46,4 +46,7 @@ type GCPSMProvider struct {
 
 	// ProjectID project where secret is located
 	ProjectID string `json:"projectID,omitempty"`
+
+	// Location optionally defines a location for a secret
+	Location string `json:"location,omitempty"`
 }

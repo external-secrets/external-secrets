@@ -3,6 +3,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: clusterexternalsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -659,6 +661,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: clustersecretstores.external-secrets.io
 spec:
   group: external-secrets.io
@@ -2199,6 +2203,11 @@ spec:
                       ClusterSecretStoreCondition describes a condition by which to choose namespaces to process ExternalSecrets in
                       for a ClusterSecretStore instance.
                     properties:
+                      namespaceRegexes:
+                        description: Choose namespaces by using regex matching
+                        items:
+                          type: string
+                        type: array
                       namespaceSelector:
                         description: Choose namespace using a labelSelector
                         properties:
@@ -2665,6 +2674,23 @@ spec:
                         authSecretRef:
                           description: Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type. Optional for WorkloadIdentity.
                           properties:
+                            clientCertificate:
+                              description: The Azure ClientCertificate of the service principle used for authentication.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
                             clientId:
                               description: The Azure clientId of the service principle or managed identity used for authentication.
                               properties:
@@ -3039,6 +3065,42 @@ spec:
                         - clientSecret
                         - tenant
                       type: object
+                    device42:
+                      description: Device42 configures this store to sync secrets using the Device42 provider
+                      properties:
+                        auth:
+                          description: Auth configures how secret-manager authenticates with a Device42 instance.
+                          properties:
+                            secretRef:
+                              properties:
+                                credentials:
+                                  description: Username / Password is used for authentication.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        host:
+                          description: URL configures the Device42 instance URL.
+                          type: string
+                      required:
+                        - auth
+                        - host
+                      type: object
                     doppler:
                       description: Doppler configures this store to sync secrets using the Doppler provider
                       properties:
@@ -3215,6 +3277,9 @@ spec:
                                 - serviceAccountRef
                               type: object
                           type: object
+                        location:
+                          description: Location optionally defines a location for a secret
+                          type: string
                         projectID:
                           description: ProjectID project where secret is located
                           type: string
@@ -3316,6 +3381,77 @@ spec:
                           type: string
                       required:
                         - auth
+                      type: object
+                    infisical:
+                      description: Infisical configures this store to sync secrets using the Infisical provider
+                      properties:
+                        auth:
+                          description: Auth configures how the Operator authenticates with the Infisical API
+                          properties:
+                            universalAuthCredentials:
+                              properties:
+                                clientId:
+                                  description: |-
+                                    A reference to a specific 'key' within a Secret resource,
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                clientSecret:
+                                  description: |-
+                                    A reference to a specific 'key' within a Secret resource,
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              required:
+                                - clientId
+                                - clientSecret
+                              type: object
+                          type: object
+                        hostAPI:
+                          default: https://app.infisical.com/api
+                          type: string
+                        secretsScope:
+                          properties:
+                            environmentSlug:
+                              type: string
+                            projectSlug:
+                              type: string
+                            secretsPath:
+                              default: /
+                              type: string
+                          required:
+                            - environmentSlug
+                            - projectSlug
+                          type: object
+                      required:
+                        - auth
+                        - secretsScope
                       type: object
                     keepersecurity:
                       description: KeeperSecurity configures this store to sync secrets using the KeeperSecurity provider
@@ -4886,6 +5022,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: externalsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -5126,10 +5264,15 @@ spec:
                   description: Binding represents a servicebinding.io Provisioned Service reference to the secret
                   properties:
                     name:
+                      default: ""
                       description: |-
                         Name of the referent.
-                        More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        This field is effectively required, but due to backwards compatibility is
+                        allowed to be empty. Instances of this type with an empty value here are
+                        almost certainly wrong.
                         TODO: Add other useful fields. apiVersion, kind, uid?
+                        More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                       type: string
                   type: object
                   x-kubernetes-map-type: atomic
@@ -5632,10 +5775,15 @@ spec:
                   description: Binding represents a servicebinding.io Provisioned Service reference to the secret
                   properties:
                     name:
+                      default: ""
                       description: |-
                         Name of the referent.
-                        More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        This field is effectively required, but due to backwards compatibility is
+                        allowed to be empty. Instances of this type with an empty value here are
+                        almost certainly wrong.
                         TODO: Add other useful fields. apiVersion, kind, uid?
+                        More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                       type: string
                   type: object
                   x-kubernetes-map-type: atomic
@@ -6067,6 +6215,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: secretstores.external-secrets.io
 spec:
   group: external-secrets.io
@@ -7607,6 +7757,11 @@ spec:
                       ClusterSecretStoreCondition describes a condition by which to choose namespaces to process ExternalSecrets in
                       for a ClusterSecretStore instance.
                     properties:
+                      namespaceRegexes:
+                        description: Choose namespaces by using regex matching
+                        items:
+                          type: string
+                        type: array
                       namespaceSelector:
                         description: Choose namespace using a labelSelector
                         properties:
@@ -8073,6 +8228,23 @@ spec:
                         authSecretRef:
                           description: Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type. Optional for WorkloadIdentity.
                           properties:
+                            clientCertificate:
+                              description: The Azure ClientCertificate of the service principle used for authentication.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
                             clientId:
                               description: The Azure clientId of the service principle or managed identity used for authentication.
                               properties:
@@ -8447,6 +8619,42 @@ spec:
                         - clientSecret
                         - tenant
                       type: object
+                    device42:
+                      description: Device42 configures this store to sync secrets using the Device42 provider
+                      properties:
+                        auth:
+                          description: Auth configures how secret-manager authenticates with a Device42 instance.
+                          properties:
+                            secretRef:
+                              properties:
+                                credentials:
+                                  description: Username / Password is used for authentication.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              type: object
+                          required:
+                            - secretRef
+                          type: object
+                        host:
+                          description: URL configures the Device42 instance URL.
+                          type: string
+                      required:
+                        - auth
+                        - host
+                      type: object
                     doppler:
                       description: Doppler configures this store to sync secrets using the Doppler provider
                       properties:
@@ -8623,6 +8831,9 @@ spec:
                                 - serviceAccountRef
                               type: object
                           type: object
+                        location:
+                          description: Location optionally defines a location for a secret
+                          type: string
                         projectID:
                           description: ProjectID project where secret is located
                           type: string
@@ -8724,6 +8935,77 @@ spec:
                           type: string
                       required:
                         - auth
+                      type: object
+                    infisical:
+                      description: Infisical configures this store to sync secrets using the Infisical provider
+                      properties:
+                        auth:
+                          description: Auth configures how the Operator authenticates with the Infisical API
+                          properties:
+                            universalAuthCredentials:
+                              properties:
+                                clientId:
+                                  description: |-
+                                    A reference to a specific 'key' within a Secret resource,
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                clientSecret:
+                                  description: |-
+                                    A reference to a specific 'key' within a Secret resource,
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                              required:
+                                - clientId
+                                - clientSecret
+                              type: object
+                          type: object
+                        hostAPI:
+                          default: https://app.infisical.com/api
+                          type: string
+                        secretsScope:
+                          properties:
+                            environmentSlug:
+                              type: string
+                            projectSlug:
+                              type: string
+                            secretsPath:
+                              default: /
+                              type: string
+                          required:
+                            - environmentSlug
+                            - projectSlug
+                          type: object
+                      required:
+                        - auth
+                        - secretsScope
                       type: object
                     keepersecurity:
                       description: KeeperSecurity configures this store to sync secrets using the KeeperSecurity provider
@@ -10294,6 +10576,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: acraccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10489,6 +10773,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: ecrauthorizationtokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10655,6 +10941,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: fakes.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10730,6 +11018,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: gcraccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10857,6 +11147,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: githubaccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -10900,7 +11192,7 @@ spec:
                 auth:
                   description: Auth configures how ESO authenticates with a Github instance.
                   properties:
-                    privatKey:
+                    privateKey:
                       properties:
                         secretRef:
                           description: |-
@@ -10925,7 +11217,7 @@ spec:
                         - secretRef
                       type: object
                   required:
-                    - privatKey
+                    - privateKey
                   type: object
                 installID:
                   type: string
@@ -10958,6 +11250,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: passwords.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -11055,6 +11349,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: vaultdynamicsecrets.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -11746,6 +12042,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+  labels:
+    external-secrets.io/component: controller
   name: webhooks.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io

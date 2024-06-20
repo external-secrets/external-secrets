@@ -44,7 +44,7 @@ var _ = Describe("SecretStore reconcile", func() {
 		Expect(k8sClient.Delete(context.Background(), test.store)).ToNot(HaveOccurred())
 	})
 
-	// a invalid provider config should be reflected
+	// an invalid provider config should be reflected
 	// in the store status condition
 	invalidProvider := func(tc *testCase) {
 		tc.assert = func() {

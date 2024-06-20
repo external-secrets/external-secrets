@@ -59,6 +59,8 @@ spec:
           - --check-interval={{ .Values.webhook.certCheckInterval }}
           - --metrics-addr=:{{ .Values.webhook.metrics.listen.port }}
           - --healthz-addr={{ .Values.webhook.readinessProbe.address }}:{{ .Values.webhook.readinessProbe.port }}
+          - --loglevel={{ .Values.webhook.log.level }}
+          - --zap-time-encoding={{ .Values.webhook.log.timeEncoding }}
           {{- if .Values.webhook.lookaheadInterval }}
           - --lookahead-interval={{ .Values.webhook.lookaheadInterval }}
           {{- end }}

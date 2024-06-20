@@ -64,6 +64,7 @@ var (
 	enableLeaderElection                  bool
 	enableSecretsCache                    bool
 	enableConfigMapsCache                 bool
+	enablePartialCache                    bool
 	concurrent                            int
 	port                                  int
 	clientQPS                             float32

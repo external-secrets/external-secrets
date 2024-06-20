@@ -152,6 +152,26 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 			return err
 		}
 
+		var replication = &secretmanagerpb.Replication{
+			Replication: &secretmanagerpb.Replication_Automatic_{
+				Automatic: &secretmanagerpb.Replication_Automatic{},
+			},
+		}
+
+		if c.store.Location != "" {
+			replication = &secretmanagerpb.Replication{
+				Replication: &secretmanagerpb.Replication_UserManaged_{
+					UserManaged: &secretmanagerpb.Replication_UserManaged{
+						Replicas: []*secretmanagerpb.Replication_UserManaged_Replica{
+							{
+								Location: c.store.Location,
+							},
+						},
+					},
+				},
+			}
+		}
+
 		gcpSecret, err = c.smClient.CreateSecret(ctx, &secretmanagerpb.CreateSecretRequest{
 			Parent:   fmt.Sprintf("projects/%s", c.store.ProjectID),
 			SecretId: pushSecretData.GetRemoteKey(),
@@ -159,11 +179,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 				Labels: map[string]string{
 					managedByKey: managedByValue,
 				},
-				Replication: &secretmanagerpb.Replication{
-					Replication: &secretmanagerpb.Replication_Automatic_{
-						Automatic: &secretmanagerpb.Replication_Automatic{},
-					},
-				},
+				Replication: replication,
 			},
 		})
 		metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMCreateSecret, err)
@@ -183,13 +199,29 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 	}
 
 	if !maps.Equal(gcpSecret.Annotations, annotations) || !maps.Equal(gcpSecret.Labels, labels) {
+		scrt := &secretmanagerpb.Secret{
+			Name:        gcpSecret.Name,
+			Etag:        gcpSecret.Etag,
+			Labels:      labels,
+			Annotations: annotations,
+		}
+
+		if c.store.Location != "" {
+			scrt.Replication = &secretmanagerpb.Replication{
+				Replication: &secretmanagerpb.Replication_UserManaged_{
+					UserManaged: &secretmanagerpb.Replication_UserManaged{
+						Replicas: []*secretmanagerpb.Replication_UserManaged_Replica{
+							{
+								Location: c.store.Location,
+							},
+						},
+					},
+				},
+			}
+		}
+
 		_, err = c.smClient.UpdateSecret(ctx, &secretmanagerpb.UpdateSecretRequest{
-			Secret: &secretmanagerpb.Secret{
-				Name:        gcpSecret.Name,
-				Etag:        gcpSecret.Etag,
-				Labels:      labels,
-				Annotations: annotations,
-			},
+			Secret: scrt,
 			UpdateMask: &field_mask.FieldMask{
 				Paths: []string{"labels", "annotations"},
 			},

@@ -73,6 +73,9 @@ func GetProvider(s GenericStore) (Provider, error) {
 	}
 	spec := s.GetSpec()
 	if spec == nil {
+		// Note, this condition can never be reached, because
+		// the Spec is not a pointer in Kubernetes. It will
+		// always exist.
 		return nil, fmt.Errorf("no spec found in %#v", s)
 	}
 	storeName, err := getProviderName(spec.Provider)

@@ -2,7 +2,7 @@
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
-  name: github-auth-temaplate
+  name: github-auth-template
 spec:
   dataFrom:
   - sourceRef:
@@ -21,6 +21,6 @@ spec:
       data:
         username: "token"
         password: "{{ .token }}"
-    name: github-auth-temaplate
+    name: github-auth-template
 
 {% endraw %}

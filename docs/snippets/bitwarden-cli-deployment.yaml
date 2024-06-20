@@ -54,7 +54,7 @@ spec:
                 - --post-data=''
             initialDelaySeconds: 20
             failureThreshold: 3
-            timeoutSeconds: 1
+            timeoutSeconds: 10
             periodSeconds: 120
           readinessProbe:
             tcpSocket:

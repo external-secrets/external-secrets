@@ -85,7 +85,10 @@ createOperator: true
 # -- Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at
 # a time.
 concurrent: 1
-
+# -- Specifices Log Params to the Webhook
+log:
+  level: info
+  timeEncoding: epoch
 service:
   # -- Set the ip family policy to configure dual-stack see [Configure dual-stack](https://kubernetes.io/docs/concepts/services-networking/dual-stack/#services)
   ipFamilyPolicy: ""
@@ -240,7 +243,10 @@ webhook:
   # -- Specifices the lookaheadInterval for certificate validity
   lookaheadInterval: ""
   replicaCount: 1
-
+  # -- Specifices Log Params to the Webhook
+  log:
+    level: info
+    timeEncoding: epoch
   # -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
   revisionHistoryLimit: 10
 
@@ -400,7 +406,10 @@ certController:
   create: true
   requeueInterval: "5m"
   replicaCount: 1
-
+  # -- Specifices Log Params to the Webhook
+  log:
+    level: info
+    timeEncoding: epoch
   # -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
   revisionHistoryLimit: 10
 
