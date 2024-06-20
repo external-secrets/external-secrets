@@ -138,6 +138,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			}
 		}
 	case esapi.PushSecretDeletionPolicyNone:
+		if controllerutil.ContainsFinalizer(&ps, pushSecretFinalizer) {
+			controllerutil.RemoveFinalizer(&ps, pushSecretFinalizer)
+			if err := r.Client.Update(ctx, &ps, &client.UpdateOptions{}); err != nil {
+				return ctrl.Result{}, fmt.Errorf("could not update finalizers: %w", err)
+			}
+		}
 	default:
 	}
 
