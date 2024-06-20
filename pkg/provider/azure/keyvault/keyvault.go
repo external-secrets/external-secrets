@@ -354,6 +354,8 @@ func getCertificateFromValue(value []byte) (*x509.Certificate, error) {
 	localCert, err = x509.ParseCertificate(value)
 	if err == nil {
 		return localCert, nil
+	} else {
+		return nil, fmt.Errorf("could not parse certificate value as PKCS#12 or DER: %v", err)
 	}
 
 	// 3nd: parse PEM blocks
