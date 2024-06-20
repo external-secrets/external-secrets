@@ -88,7 +88,7 @@ func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 }
 
 // ValidateStore validates the store.
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *Provider) ValidateStore(_ esv1beta1.GenericStore) (admission.Warnings, error) {
 	return nil, nil
 }
 
