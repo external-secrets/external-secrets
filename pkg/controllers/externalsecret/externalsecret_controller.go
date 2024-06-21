@@ -130,6 +130,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
+	// See https://github.com/external-secrets/external-secrets/issues/3604
+	// We fetch the ExternalSecret resource above, however the status subresource is inconsistent.
+	// We have to explicitly fetch it, otherwise it may be missing and will cause
+	// unexpected side effects.
+	err = r.SubResource("status").Get(ctx, &externalSecret, &externalSecret)
+	if err != nil {
+		log.Error(err, "failed to get status subresource")
+		return ctrl.Result{}, err
+	}
+
 	timeSinceLastRefresh := 0 * time.Second
 	if !externalSecret.Status.RefreshTime.IsZero() {
 		timeSinceLastRefresh = time.Since(externalSecret.Status.RefreshTime.Time)
