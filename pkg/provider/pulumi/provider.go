@@ -19,7 +19,7 @@ import (
 	"errors"
 	"fmt"
 
-	esc "github.com/pulumi/esc/cmd/esc/cli/client"
+	esc "github.com/pulumi/esc-sdk/sdk/go"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -57,9 +57,18 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	if err != nil {
 		return nil, err
 	}
-	escClient := esc.New("external-secrets-operator", cfg.APIURL, accessToken, false)
+	configuration := esc.NewConfiguration()
+	configuration.UserAgent = "external-secrets-operator"
+	configuration.Servers = esc.ServerConfigurations{
+		esc.ServerConfiguration{
+			URL: cfg.APIURL,
+		},
+	}
+	authCtx := esc.NewAuthContext(accessToken)
+	escClient := esc.NewClient(configuration)
 	return &client{
-		escClient:    escClient,
+		escClient:    *escClient,
+		authCtx:      authCtx,
 		environment:  cfg.Environment,
 		organization: cfg.Organization,
 	}, nil
@@ -91,7 +100,7 @@ func getConfig(store esv1beta1.GenericStore) (*esv1beta1.PulumiProvider, error) 
 	cfg := spec.Provider.Pulumi
 
 	if cfg.APIURL == "" {
-		cfg.APIURL = "https://api.pulumi.com"
+		cfg.APIURL = "https://api.pulumi.com/api/preview"
 	}
 
 	if cfg.Organization == "" {

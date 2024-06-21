@@ -21,8 +21,7 @@ import (
 	"reflect"
 	"testing"
 
-	esc2 "github.com/pulumi/esc"
-	esc "github.com/pulumi/esc/cmd/esc/cli/client"
+	esc "github.com/pulumi/esc-sdk/sdk/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -30,7 +29,6 @@ import (
 )
 
 func newTestClient(t *testing.T, _, _ string, handler func(w http.ResponseWriter, r *http.Request)) *client {
-	const userAgent = "test-user-agent"
 	const token = "test-token"
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -38,9 +36,17 @@ func newTestClient(t *testing.T, _, _ string, handler func(w http.ResponseWriter
 		handler(w, r)
 	}))
 	t.Cleanup(server.Close)
-
+	configuration := esc.NewConfiguration()
+	configuration.UserAgent = "external-secrets-operator"
+	configuration.Servers = esc.ServerConfigurations{
+		esc.ServerConfiguration{
+			URL: server.URL,
+		},
+	}
+	_ = esc.NewAuthContext(token)
+	escClient := esc.NewClient(configuration)
 	return &client{
-		escClient:    esc.New(userAgent, server.URL, token, true),
+		escClient:    *escClient,
 		organization: "foo",
 		environment:  "bar",
 	}
@@ -48,7 +54,7 @@ func newTestClient(t *testing.T, _, _ string, handler func(w http.ResponseWriter
 
 func TestGetSecret(t *testing.T) {
 	ctx := context.Background()
-	expected := esc2.NewValue("world")
+	expected := esc.NewValue("world", esc.Trace{})
 
 	client := newTestClient(t, http.MethodGet, "/api/preview/environments/foo/bar/open/session", func(w http.ResponseWriter, r *http.Request) {
 		err := json.NewEncoder(w).Encode(expected)
@@ -132,9 +138,7 @@ func TestGetSecretMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := newTestClient(t, http.MethodGet, "/api/preview/environments/foo/bar/open/session", func(w http.ResponseWriter, r *http.Request) {
-				esc2Input, err1 := esc2.FromJSON(tt.input, false)
-				require.NoError(t, err1)
-				err2 := json.NewEncoder(w).Encode(esc2Input)
+				err2 := json.NewEncoder(w).Encode(tt.input)
 				require.NoError(t, err2)
 			})
 			got, err := p.GetSecretMap(context.Background(), tt.ref)

@@ -26,7 +26,7 @@ spec:
           key: <KEY_IN_KUBE_SECRET>
 ```
 
-If required, the API URL (`apiUrl`) can be customized as well. If not specified, the default value is `https://api.pulumi.com`.
+If required, the API URL (`apiUrl`) can be customized as well. If not specified, the default value is `https://api.pulumi.com/api/preview`.
 
 ### Referencing Secrets
 
@@ -71,3 +71,31 @@ spec:
 * root.array["*"].field
 
 See [Pulumi's documentation](https://www.pulumi.com/docs/concepts/options/ignorechanges/) for more information.
+
+### PushSecrets
+
+With the latest release of Pulumi ESC, secrets can be pushed to the Pulumi service. This can be done by creating a `PushSecrets` object.
+
+Here is a basic example of how to define a `PushSecret` object:
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: push-secret-example
+spec:
+  refreshInterval: 10s
+  selector:
+    secret:
+      name: <NAME_OF_KUBE_SECRET>
+  secretStoreRefs:
+  - kind: ClusterSecretStore
+    name: secret-store
+  data:
+  - match:
+      secretKey: <KEY_IN_KUBE_SECRET>
+      remoteRef:
+        remoteKey: <PULUMI_PATH_SYNTAX>
+```
+
+This will then push the secret to the Pulumi service. If the secret already exists, it will be updated.

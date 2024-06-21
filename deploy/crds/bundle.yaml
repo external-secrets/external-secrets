@@ -3963,7 +3963,7 @@ spec:
                               type: object
                           type: object
                         apiUrl:
-                          default: https://api.pulumi.com
+                          default: https://api.pulumi.com/api/preview
                           description: APIURL is the URL of the Pulumi API.
                           type: string
                         environment:
@@ -9454,7 +9454,7 @@ spec:
                               type: object
                           type: object
                         apiUrl:
-                          default: https://api.pulumi.com
+                          default: https://api.pulumi.com/api/preview
                           description: APIURL is the URL of the Pulumi API.
                           type: string
                         environment:
