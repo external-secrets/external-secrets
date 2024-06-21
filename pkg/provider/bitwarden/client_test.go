@@ -16,16 +16,10 @@ package bitwarden
 
 import (
 	"context"
-	"encoding/json"
-	"io"
-	"net/http"
-	"net/http/httptest"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -34,12 +28,15 @@ import (
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
-func XTestProvider_DeleteSecret(t *testing.T) {
+var projectID = "projectID"
+
+func TestProviderDeleteSecret(t *testing.T) {
 	type fields struct {
-		kube               client.Client
-		namespace          string
-		store              v1beta1.GenericStore
-		bitwardenSdkClient *SdkClient
+		kube       client.Client
+		namespace  string
+		store      v1beta1.GenericStore
+		mock       func(c *FakeClient)
+		assertMock func(t *testing.T, c *FakeClient)
 	}
 	type args struct {
 		ctx context.Context
@@ -52,8 +49,25 @@ func XTestProvider_DeleteSecret(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "delete secret is successfully",
-			wantErr: true,
+			name: "delete secret is successfully with UUID",
+			fields: fields{
+				namespace: "default",
+				store: &v1beta1.SecretStore{
+					Spec: v1beta1.SecretStoreSpec{
+						Provider: &v1beta1.SecretStoreProvider{
+							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+								OrganizationID: "orgid",
+							},
+						},
+					},
+				},
+				mock: func(c *FakeClient) {
+					c.DeleteSecretReturnsOnCallN(0, &SecretsDeleteResponse{})
+				},
+				assertMock: func(t *testing.T, c *FakeClient) {
+					assert.Equal(t, 1, c.deleteSecretCalledN)
+				},
+			},
 			args: args{
 				ctx: context.TODO(),
 				ref: v1alpha1.PushSecretRemoteRef{
@@ -61,33 +75,131 @@ func XTestProvider_DeleteSecret(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "delete secret by name",
+			fields: fields{
+				namespace: "default",
+				store: &v1beta1.SecretStore{
+					Spec: v1beta1.SecretStoreSpec{
+						Provider: &v1beta1.SecretStoreProvider{
+							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+								OrganizationID: "orgid",
+							},
+						},
+					},
+				},
+				mock: func(c *FakeClient) {
+					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
+						Data: []SecretIdentifierResponse{
+							{
+								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+								Key:            "this-is-a-name",
+								OrganizationID: "orgid",
+							},
+						},
+					})
+
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						Key:            "key",
+						Note:           "note",
+						OrganizationID: "org",
+						Value:          "value",
+						ProjectID:      &projectID,
+					})
+					c.DeleteSecretReturnsOnCallN(0, &SecretsDeleteResponse{})
+				},
+				assertMock: func(t *testing.T, c *FakeClient) {
+					assert.Equal(t, 1, c.deleteSecretCalledN)
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				ref: v1alpha1.PushSecretRemoteRef{
+					RemoteKey: "d8f29773-3019-4973-9bbc-66327d077fe2",
+				},
+			},
+		},
+		{
+			name: "delete secret by name will not delete if something doesn't match",
+			fields: fields{
+				namespace: "default",
+				store: &v1beta1.SecretStore{
+					Spec: v1beta1.SecretStoreSpec{
+						Provider: &v1beta1.SecretStoreProvider{
+							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+								OrganizationID: "orgid",
+							},
+						},
+					},
+				},
+				mock: func(c *FakeClient) {
+					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
+						Data: []SecretIdentifierResponse{
+							{
+								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+								Key:            "this-is-a-name",
+								OrganizationID: "orgid",
+							},
+						},
+					})
+
+					projectID := "another-project"
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						Key:            "this-is-a-name",
+						Note:           "note",
+						OrganizationID: "orgid",
+						Value:          "value",
+						ProjectID:      &projectID,
+					})
+				},
+				assertMock: func(t *testing.T, c *FakeClient) {
+					assert.Equal(t, 0, c.deleteSecretCalledN)
+				},
+			},
+			wantErr: true, // no secret found
+			args: args{
+				ctx: context.TODO(),
+				ref: v1alpha1.PushSecretRemoteRef{
+					RemoteKey: "this-is-a-name",
+					Property:  projectID,
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			fakeClient := &FakeClient{}
+			tt.fields.mock(fakeClient)
+
 			p := &Provider{
 				kube:               tt.fields.kube,
 				namespace:          tt.fields.namespace,
 				store:              tt.fields.store,
-				bitwardenSdkClient: tt.fields.bitwardenSdkClient,
+				bitwardenSdkClient: fakeClient,
 			}
 			if err := p.DeleteSecret(tt.args.ctx, tt.args.ref); (err != nil) != tt.wantErr {
 				t.Errorf("DeleteSecret() error = %v, wantErr %v", err, tt.wantErr)
 			}
+
+			tt.fields.assertMock(t, fakeClient)
 		})
 	}
 }
 
-func XTestProvider_GetAllSecrets(t *testing.T) {
+func TestProviderGetAllSecrets(t *testing.T) {
 	type fields struct {
-		kube               client.Client
-		namespace          string
-		store              v1beta1.GenericStore
-		bitwardenSdkClient *SdkClient
+		kube      client.Client
+		namespace string
+		store     v1beta1.GenericStore
+		mock      func(c *FakeClient)
 	}
 	type args struct {
 		ctx context.Context
 		ref v1beta1.ExternalSecretFind
 	}
+	orgID := "orgid"
 	tests := []struct {
 		name    string
 		fields  fields
@@ -95,15 +207,69 @@ func XTestProvider_GetAllSecrets(t *testing.T) {
 		want    map[string][]byte
 		wantErr bool
 	}{
-		{},
+		{
+			name: "get all secrets",
+			fields: fields{
+				namespace: "default",
+				store: &v1beta1.SecretStore{
+					Spec: v1beta1.SecretStoreSpec{
+						Provider: &v1beta1.SecretStoreProvider{
+							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+								OrganizationID: "orgid",
+							},
+						},
+					},
+				},
+				mock: func(c *FakeClient) {
+					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
+						Data: []SecretIdentifierResponse{
+							{
+								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+								Key:            "key1",
+								OrganizationID: "orgid",
+							},
+							{
+								ID:             "7c0d21ec-10d9-4972-bdf8-ec52df99cc86",
+								Key:            "key2",
+								OrganizationID: "orgid",
+							},
+						},
+					})
+
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:    "d8f29773-3019-4973-9bbc-66327d077fe2",
+						Key:   "key1",
+						Value: "value1",
+					})
+					c.GetSecretReturnsOnCallN(1, &SecretResponse{
+						ID:    "7c0d21ec-10d9-4972-bdf8-ec52df99cc86",
+						Key:   "key2",
+						Value: "value2",
+					})
+				},
+			},
+			args: args{
+				ctx: context.TODO(),
+				ref: v1beta1.ExternalSecretFind{
+					Path: &orgID,
+				},
+			},
+			want: map[string][]byte{
+				"d8f29773-3019-4973-9bbc-66327d077fe2": []byte("value1"),
+				"7c0d21ec-10d9-4972-bdf8-ec52df99cc86": []byte("value2"),
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			fakeClient := &FakeClient{}
+			tt.fields.mock(fakeClient)
+
 			p := &Provider{
 				kube:               tt.fields.kube,
 				namespace:          tt.fields.namespace,
 				store:              tt.fields.store,
-				bitwardenSdkClient: tt.fields.bitwardenSdkClient,
+				bitwardenSdkClient: fakeClient,
 			}
 			got, err := p.GetAllSecrets(tt.args.ctx, tt.args.ref)
 			if (err != nil) != tt.wantErr {
@@ -117,12 +283,12 @@ func XTestProvider_GetAllSecrets(t *testing.T) {
 	}
 }
 
-func TestProvider_GetSecret(t *testing.T) {
+func TestProviderGetSecret(t *testing.T) {
 	type fields struct {
-		kube               func() client.Client
-		namespace          string
-		store              v1beta1.GenericStore
-		bitwardenSdkClient func(t *testing.T) (*SdkClient, func())
+		kube      func() client.Client
+		namespace string
+		store     v1beta1.GenericStore
+		mock      func(c *FakeClient)
 	}
 	type args struct {
 		ctx context.Context
@@ -143,28 +309,14 @@ func TestProvider_GetSecret(t *testing.T) {
 				},
 				namespace: "default",
 				store:     &v1beta1.SecretStore{},
-				bitwardenSdkClient: func(t *testing.T) (*SdkClient, func()) {
-					server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						content, _ := io.ReadAll(r.Body)
-						assert.Equal(t, string(content), `{"id":"d8f29773-3019-4973-9bbc-66327d077fe2"}`)
-						resp := &SecretResponse{
-							ID:             "id",
-							Key:            "key",
-							Note:           "note",
-							OrganizationID: "org",
-							Value:          "value",
-						}
-						data, _ := json.Marshal(resp)
-						w.Write(data)
-					}))
-
-					return &SdkClient{
-						apiURL:                server.URL,
-						identityURL:           server.URL,
-						token:                 "token",
-						bitwardenSdkServerURL: server.URL,
-						client:                server.Client(),
-					}, server.Close
+				mock: func(c *FakeClient) {
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             "id",
+						Key:            "key",
+						Note:           "note",
+						OrganizationID: "org",
+						Value:          "value",
+					})
 				},
 			},
 			args: args{
@@ -191,49 +343,32 @@ func TestProvider_GetSecret(t *testing.T) {
 						},
 					},
 				},
-				bitwardenSdkClient: func(t *testing.T) (*SdkClient, func()) {
-					server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						if strings.Contains(r.URL.String(), "rest/api/1/secrets") {
-							resp := &SecretIdentifiersResponse{
-								Data: []SecretIdentifierResponse{
-									{
-										ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-										Key:            "this-is-a-name",
-										OrganizationID: "orgid",
-									},
-								},
-							}
-							data, _ := json.Marshal(resp)
-							w.Write(data)
-						} else {
-							projectID := "projectID"
-							resp := &SecretResponse{
+				mock: func(c *FakeClient) {
+					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
+						Data: []SecretIdentifierResponse{
+							{
 								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-								Key:            "key",
-								Note:           "note",
-								OrganizationID: "org",
-								Value:          "value",
-								ProjectID:      &projectID,
-							}
-							data, _ := json.Marshal(resp)
-							w.Write(data)
-						}
-					}))
+								Key:            "this-is-a-name",
+								OrganizationID: "orgid",
+							},
+						},
+					})
 
-					return &SdkClient{
-						apiURL:                server.URL,
-						identityURL:           server.URL,
-						token:                 "token",
-						bitwardenSdkServerURL: server.URL,
-						client:                server.Client(),
-					}, server.Close
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						Key:            "key",
+						Note:           "note",
+						OrganizationID: "org",
+						Value:          "value",
+						ProjectID:      &projectID,
+					})
 				},
 			},
 			args: args{
 				ctx: context.Background(),
 				ref: v1beta1.ExternalSecretDataRemoteRef{
 					Key:      "this-is-a-name",
-					Property: "projectID",
+					Property: projectID,
 				},
 			},
 			want: []byte("value"),
@@ -241,14 +376,14 @@ func TestProvider_GetSecret(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sdkClient, serverClose := tt.fields.bitwardenSdkClient(t)
-			defer serverClose()
+			fakeClient := &FakeClient{}
+			tt.fields.mock(fakeClient)
 
 			p := &Provider{
 				kube:               tt.fields.kube(),
 				namespace:          tt.fields.namespace,
 				store:              tt.fields.store,
-				bitwardenSdkClient: sdkClient,
+				bitwardenSdkClient: fakeClient,
 			}
 			got, err := p.GetSecret(tt.args.ctx, tt.args.ref)
 			if (err != nil) != tt.wantErr {
@@ -262,12 +397,13 @@ func TestProvider_GetSecret(t *testing.T) {
 	}
 }
 
-func TestProvider_PushSecret(t *testing.T) {
+func TestProviderPushSecret(t *testing.T) {
 	type fields struct {
-		kube               func() client.Client
-		namespace          string
-		store              v1beta1.GenericStore
-		bitwardenSdkClient func(t *testing.T) (*SdkClient, func())
+		kube       func() client.Client
+		namespace  string
+		store      v1beta1.GenericStore
+		mock       func(c *FakeClient)
+		assertMock func(t *testing.T, c *FakeClient)
 	}
 	type args struct {
 		ctx    context.Context
@@ -294,7 +430,7 @@ func TestProvider_PushSecret(t *testing.T) {
 						SecretKey: "key",
 						RemoteRef: v1alpha1.PushSecretRemoteRef{
 							RemoteKey: "this-is-a-name",
-							Property:  "projectID",
+							Property:  projectID,
 						},
 					},
 				},
@@ -313,58 +449,36 @@ func TestProvider_PushSecret(t *testing.T) {
 						},
 					},
 				},
-				bitwardenSdkClient: func(t *testing.T) (*SdkClient, func()) {
-					server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						switch {
-						case strings.Contains(r.URL.String(), "rest/api/1/secrets"):
-							resp := &SecretIdentifiersResponse{
-								Data: []SecretIdentifierResponse{
-									{
-										ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-										Key:            "this-is-a-name",
-										OrganizationID: "orgid",
-									},
-								},
-							}
-							data, _ := json.Marshal(resp)
-							w.Write(data)
-						case strings.Contains(r.URL.String(), "rest/api/1/secret") && r.Method == http.MethodGet:
-							projectID := "projectID"
-							resp := &SecretResponse{
+				mock: func(c *FakeClient) {
+					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
+						Data: []SecretIdentifierResponse{
+							{
 								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-								Key:            "no-match", // if this is this-is-a-name it would match
-								Note:           "",
-								OrganizationID: "orgid",
-								Value:          "value",
-								ProjectID:      &projectID,
-							}
-							data, _ := json.Marshal(resp)
-							w.Write(data)
-						case strings.Contains(r.URL.String(), "rest/api/1/secret") && r.Method == http.MethodPost:
-							body := &SecretCreateRequest{}
-							decoder := json.NewDecoder(r.Body)
-							require.NoError(t, decoder.Decode(body))
-
-							assert.Equal(t, &SecretCreateRequest{
 								Key:            "this-is-a-name",
-								Note:           "",
 								OrganizationID: "orgid",
-								ProjectIDS:     []string{"projectID"},
-								Value:          "value",
-							}, body)
-
-							// write something back so we don't fail on Create.
-							w.Write([]byte(`{}`))
-						}
-					}))
-
-					return &SdkClient{
-						apiURL:                server.URL,
-						identityURL:           server.URL,
-						token:                 "token",
-						bitwardenSdkServerURL: server.URL,
-						client:                server.Client(),
-					}, server.Close
+							},
+						},
+					})
+					projectID := projectID
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						Key:            "no-match", // if this is this-is-a-name it would match
+						Note:           "",
+						OrganizationID: "orgid",
+						Value:          "value",
+						ProjectID:      &projectID,
+					})
+					c.CreateSecretReturnsOnCallN(0, &SecretResponse{})
+				},
+				assertMock: func(t *testing.T, c *FakeClient) {
+					cargs := c.createSecretCallArguments[0]
+					assert.Equal(t, cargs, SecretCreateRequest{
+						Key:            "this-is-a-name",
+						Note:           "",
+						OrganizationID: "orgid",
+						ProjectIDS:     []string{projectID},
+						Value:          "value",
+					})
 				},
 			},
 		},
@@ -382,7 +496,7 @@ func TestProvider_PushSecret(t *testing.T) {
 						SecretKey: "key",
 						RemoteRef: v1alpha1.PushSecretRemoteRef{
 							RemoteKey: "this-is-a-name",
-							Property:  "projectID",
+							Property:  projectID,
 						},
 					},
 				},
@@ -401,90 +515,132 @@ func TestProvider_PushSecret(t *testing.T) {
 						},
 					},
 				},
-				bitwardenSdkClient: func(t *testing.T) (*SdkClient, func()) {
-					server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						switch {
-						case strings.Contains(r.URL.String(), "rest/api/1/secrets"):
-							resp := &SecretIdentifiersResponse{
-								Data: []SecretIdentifierResponse{
-									{
-										ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-										Key:            "this-is-a-name",
-										OrganizationID: "orgid",
-									},
-								},
-							}
-							data, _ := json.Marshal(resp)
-							w.Write(data)
-						case strings.Contains(r.URL.String(), "rest/api/1/secret") && r.Method == http.MethodGet:
-							projectID := "projectID"
-							resp := &SecretResponse{
+				mock: func(c *FakeClient) {
+					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
+						Data: []SecretIdentifierResponse{
+							{
 								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
 								Key:            "this-is-a-name",
-								Note:           "",
 								OrganizationID: "orgid",
-								Value:          "value",
-								ProjectID:      &projectID,
-							}
-							data, _ := json.Marshal(resp)
-							w.Write(data)
-						case strings.Contains(r.URL.String(), "rest/api/1/secret") && r.Method == http.MethodPut:
-							body := &SecretCreateRequest{}
-							decoder := json.NewDecoder(r.Body)
-							require.NoError(t, decoder.Decode(body))
-
-							assert.Equal(t, &SecretCreateRequest{
+							},
+						},
+					})
+					projectID := projectID
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						Key:            "this-is-a-name",
+						Note:           "",
+						OrganizationID: "orgid",
+						Value:          "value",
+						ProjectID:      &projectID,
+					})
+					c.UpdateSecretReturnsOnCallN(0, &SecretResponse{})
+				},
+				assertMock: func(t *testing.T, c *FakeClient) {
+					pargs := c.updateSecretCallArguments[0]
+					assert.Equal(t, pargs, SecretPutRequest{
+						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						Key:            "this-is-a-name",
+						Note:           "",
+						OrganizationID: "orgid",
+						ProjectIDS:     []string{projectID},
+						Value:          "new-value",
+					})
+				},
+			},
+		},
+		{
+			name: "push secret will not push if the same secret already exists",
+			args: args{
+				ctx: context.Background(),
+				secret: &corev1.Secret{
+					Data: map[string][]byte{
+						"key": []byte("value"),
+					},
+				},
+				data: v1alpha1.PushSecretData{
+					Match: v1alpha1.PushSecretMatch{
+						SecretKey: "key",
+						RemoteRef: v1alpha1.PushSecretRemoteRef{
+							RemoteKey: "this-is-a-name",
+							Property:  projectID,
+						},
+					},
+				},
+			},
+			fields: fields{
+				kube: func() client.Client {
+					return fake.NewFakeClient()
+				},
+				namespace: "default",
+				store: &v1beta1.SecretStore{
+					Spec: v1beta1.SecretStoreSpec{
+						Provider: &v1beta1.SecretStoreProvider{
+							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+								OrganizationID: "orgid",
+							},
+						},
+					},
+				},
+				mock: func(c *FakeClient) {
+					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
+						Data: []SecretIdentifierResponse{
+							{
+								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
 								Key:            "this-is-a-name",
-								Note:           "",
 								OrganizationID: "orgid",
-								ProjectIDS:     []string{"projectID"},
-								Value:          "new-value",
-							}, body)
-
-							// write something back so we don't fail on Create.
-							w.Write([]byte(`{}`))
-						}
-					}))
-
-					return &SdkClient{
-						apiURL:                server.URL,
-						identityURL:           server.URL,
-						token:                 "token",
-						bitwardenSdkServerURL: server.URL,
-						client:                server.Client(),
-					}, server.Close
+							},
+						},
+					})
+					projectID := projectID
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						Key:            "this-is-a-name",
+						OrganizationID: "orgid",
+						Value:          "value",
+						ProjectID:      &projectID,
+					})
+					c.UpdateSecretReturnsOnCallN(0, &SecretResponse{})
+				},
+				assertMock: func(t *testing.T, c *FakeClient) {
+					assert.Equal(t, 0, c.createSecretCalledN)
+					assert.Equal(t, 0, c.updateSecretCalledN)
 				},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sdkClient, cancel := tt.fields.bitwardenSdkClient(t)
-			defer cancel()
+			fakeClient := &FakeClient{}
+			tt.fields.mock(fakeClient)
+
 			p := &Provider{
 				kube:               tt.fields.kube(),
 				namespace:          tt.fields.namespace,
 				store:              tt.fields.store,
-				bitwardenSdkClient: sdkClient,
+				bitwardenSdkClient: fakeClient,
 			}
 
 			if err := p.PushSecret(tt.args.ctx, tt.args.secret, tt.args.data); (err != nil) != tt.wantErr {
 				t.Errorf("PushSecret() error = %v, wantErr %v", err, tt.wantErr)
 			}
+
+			tt.fields.assertMock(t, fakeClient)
 		})
 	}
 }
 
-func XTestProvider_SecretExists(t *testing.T) {
+func TestProviderSecretExists(t *testing.T) {
 	type fields struct {
-		kube               client.Client
-		namespace          string
-		store              v1beta1.GenericStore
-		bitwardenSdkClient *SdkClient
+		kube       client.Client
+		namespace  string
+		store      v1beta1.GenericStore
+		mock       func(c *FakeClient)
+		assertMock func(t *testing.T, c *FakeClient)
 	}
 	type args struct {
 		ctx context.Context
-		ref v1beta1.PushSecretRemoteRef
+		ref v1alpha1.PushSecretData
 	}
 	tests := []struct {
 		name    string
@@ -493,15 +649,170 @@ func XTestProvider_SecretExists(t *testing.T) {
 		want    bool
 		wantErr bool
 	}{
-		{},
+		{
+			name: "secret exists",
+			fields: fields{
+				store: &v1beta1.SecretStore{
+					Spec: v1beta1.SecretStoreSpec{
+						Provider: &v1beta1.SecretStoreProvider{
+							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+								OrganizationID: "orgid",
+							},
+						},
+					},
+				},
+				mock: func(c *FakeClient) {
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{})
+				},
+				assertMock: func(t *testing.T, c *FakeClient) {
+					assert.Equal(t, 0, c.listSecretsCalledN)
+				},
+			},
+			args: args{
+				ctx: nil,
+				ref: v1alpha1.PushSecretData{
+					Match: v1alpha1.PushSecretMatch{
+						RemoteRef: v1alpha1.PushSecretRemoteRef{
+							RemoteKey: "d8f29773-3019-4973-9bbc-66327d077fe2",
+						},
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "secret exists by name",
+			fields: fields{
+				store: &v1beta1.SecretStore{
+					Spec: v1beta1.SecretStoreSpec{
+						Provider: &v1beta1.SecretStoreProvider{
+							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+								OrganizationID: "orgid",
+							},
+						},
+					},
+				},
+				mock: func(c *FakeClient) {
+					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
+						Data: []SecretIdentifierResponse{
+							{
+								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+								Key:            "name",
+								OrganizationID: "orgid",
+							},
+						},
+					})
+					projectID := projectID
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						Key:            "name",
+						OrganizationID: "orgid",
+						Value:          "value",
+						ProjectID:      &projectID,
+					})
+				},
+			},
+			args: args{
+				ctx: nil,
+				ref: v1alpha1.PushSecretData{
+					Match: v1alpha1.PushSecretMatch{
+						RemoteRef: v1alpha1.PushSecretRemoteRef{
+							RemoteKey: "name",
+							Property:  projectID,
+						},
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "secret not found by name",
+			fields: fields{
+				store: &v1beta1.SecretStore{
+					Spec: v1beta1.SecretStoreSpec{
+						Provider: &v1beta1.SecretStoreProvider{
+							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+								OrganizationID: "orgid",
+							},
+						},
+					},
+				},
+				mock: func(c *FakeClient) {
+					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
+						Data: []SecretIdentifierResponse{
+							{
+								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+								Key:            "name",
+								OrganizationID: "orgid",
+							},
+						},
+					})
+					projectID := "different-project"
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						Key:            "name",
+						OrganizationID: "orgid",
+						Value:          "value",
+						ProjectID:      &projectID,
+					})
+				},
+			},
+			args: args{
+				ctx: nil,
+				ref: v1alpha1.PushSecretData{
+					Match: v1alpha1.PushSecretMatch{
+						RemoteRef: v1alpha1.PushSecretRemoteRef{
+							RemoteKey: "name",
+							Property:  projectID,
+						},
+					},
+				},
+			},
+			want:    false,
+			wantErr: true, // secret not found
+		},
+		{
+			name: "property must be defined to look up by name",
+			fields: fields{
+				store: &v1beta1.SecretStore{
+					Spec: v1beta1.SecretStoreSpec{
+						Provider: &v1beta1.SecretStoreProvider{
+							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+								OrganizationID: "orgid",
+							},
+						},
+					},
+				},
+				mock: func(c *FakeClient) {
+				},
+				assertMock: func(t *testing.T, c *FakeClient) {
+					assert.Equal(t, 0, c.listSecretsCalledN)
+				},
+			},
+			args: args{
+				ctx: nil,
+				ref: v1alpha1.PushSecretData{
+					Match: v1alpha1.PushSecretMatch{
+						RemoteRef: v1alpha1.PushSecretRemoteRef{
+							RemoteKey: "name",
+						},
+					},
+				},
+			},
+			want:    false,
+			wantErr: true, // property is missing
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			fakeClient := &FakeClient{}
+			tt.fields.mock(fakeClient)
+
 			p := &Provider{
 				kube:               tt.fields.kube,
 				namespace:          tt.fields.namespace,
 				store:              tt.fields.store,
-				bitwardenSdkClient: tt.fields.bitwardenSdkClient,
+				bitwardenSdkClient: fakeClient,
 			}
 			got, err := p.SecretExists(tt.args.ctx, tt.args.ref)
 			if (err != nil) != tt.wantErr {

@@ -33,7 +33,7 @@ type Provider struct {
 	kube               client.Client
 	namespace          string
 	store              esv1beta1.GenericStore
-	bitwardenSdkClient *SdkClient
+	bitwardenSdkClient Client
 }
 
 func init() {

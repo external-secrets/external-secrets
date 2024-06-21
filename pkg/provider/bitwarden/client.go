@@ -202,6 +202,10 @@ func (p *Provider) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRem
 		return true, nil
 	}
 
+	if ref.GetProperty() == "" {
+		return false, fmt.Errorf("property must be defined on secret exists if none UUID is being used")
+	}
+
 	_, err := p.findSecretByRef(ctx, esv1beta1.ExternalSecretDataRemoteRef{
 		Key:      ref.GetRemoteKey(),
 		Property: ref.GetProperty(),
@@ -297,6 +301,10 @@ func (p *Provider) findSecretByRef(ctx context.Context, ref esv1beta1.ExternalSe
 			// such secret.
 			remoteSecret = sec
 		}
+	}
+
+	if remoteSecret == nil {
+		return nil, fmt.Errorf("no secret found for project id %s and name %s", ref.Property, ref.Key)
 	}
 
 	return remoteSecret, nil

@@ -81,6 +81,15 @@ type SecretPutRequest struct {
 	Value      string   `json:"value"`
 }
 
+// Client for the bitwarden SDK.
+type Client interface {
+	GetSecret(ctx context.Context, id string) (*SecretResponse, error)
+	DeleteSecret(ctx context.Context, ids []string) (*SecretsDeleteResponse, error)
+	CreateSecret(ctx context.Context, secret SecretCreateRequest) (*SecretResponse, error)
+	UpdateSecret(ctx context.Context, secret SecretPutRequest) (*SecretResponse, error)
+	ListSecrets(ctx context.Context, organizationID string) (*SecretIdentifiersResponse, error)
+}
+
 // SdkClient creates a client to talk to the bitwarden SDK server.
 type SdkClient struct {
 	apiURL                string
