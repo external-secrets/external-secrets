@@ -2204,12 +2204,16 @@ should match snapshot of default values:
                             identityURL:
                               type: string
                             organizationID:
-                              description: OrganizationID determines which organization this store manages.
+                              description: OrganizationID determines which organization this secret store manages.
+                              type: string
+                            projectID:
+                              description: ProjectID determines which project this secret store manages.
                               type: string
                           required:
                             - auth
                             - caBundle
                             - organizationID
+                            - projectID
                           type: object
                         chef:
                           description: Chef configures this store to sync secrets with chef server

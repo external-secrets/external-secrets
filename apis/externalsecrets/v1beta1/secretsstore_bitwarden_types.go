@@ -25,8 +25,10 @@ type BitwardenSecretsManagerProvider struct {
 	// can be performed.
 	// +required
 	CABundle string `json:"caBundle"`
-	// OrganizationID determines which organization this store manages.
+	// OrganizationID determines which organization this secret store manages.
 	OrganizationID string `json:"organizationID"`
+	// ProjectID determines which project this secret store manages.
+	ProjectID string `json:"projectID"`
 	// Auth configures how secret-manager authenticates with a bitwarden machine account instance.
 	// Make sure that the token being used has permissions on the given secret.
 	Auth BitwardenSecretsManagerAuth `json:"auth"`

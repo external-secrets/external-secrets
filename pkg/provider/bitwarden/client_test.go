@@ -57,6 +57,7 @@ func TestProviderDeleteSecret(t *testing.T) {
 						Provider: &v1beta1.SecretStoreProvider{
 							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
+								ProjectID:      projectID,
 							},
 						},
 					},
@@ -84,6 +85,7 @@ func TestProviderDeleteSecret(t *testing.T) {
 						Provider: &v1beta1.SecretStoreProvider{
 							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
+								ProjectID:      projectID,
 							},
 						},
 					},
@@ -129,6 +131,7 @@ func TestProviderDeleteSecret(t *testing.T) {
 						Provider: &v1beta1.SecretStoreProvider{
 							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
+								ProjectID:      projectID,
 							},
 						},
 					},
@@ -162,8 +165,7 @@ func TestProviderDeleteSecret(t *testing.T) {
 			args: args{
 				ctx: context.TODO(),
 				ref: v1alpha1.PushSecretRemoteRef{
-					RemoteKey: "d8f29773-3019-4973-9bbc-66327d077fe2/this-is-a-name",
-					Property:  projectID,
+					RemoteKey: "this-is-a-name",
 				},
 			},
 		},
@@ -215,6 +217,7 @@ func TestProviderGetAllSecrets(t *testing.T) {
 						Provider: &v1beta1.SecretStoreProvider{
 							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
+								ProjectID:      projectID,
 							},
 						},
 					},
@@ -336,6 +339,7 @@ func TestProviderGetSecret(t *testing.T) {
 						Provider: &v1beta1.SecretStoreProvider{
 							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
+								ProjectID:      projectID,
 							},
 						},
 					},
@@ -364,7 +368,7 @@ func TestProviderGetSecret(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				ref: v1beta1.ExternalSecretDataRemoteRef{
-					Key: projectID + "/this-is-a-name",
+					Key: "this-is-a-name",
 				},
 			},
 			want: []byte("value"),
@@ -425,7 +429,7 @@ func TestProviderPushSecret(t *testing.T) {
 					Match: v1alpha1.PushSecretMatch{
 						SecretKey: "key",
 						RemoteRef: v1alpha1.PushSecretRemoteRef{
-							RemoteKey: projectID + "/this-is-a-name",
+							RemoteKey: "this-is-a-name",
 						},
 					},
 				},
@@ -440,6 +444,7 @@ func TestProviderPushSecret(t *testing.T) {
 						Provider: &v1beta1.SecretStoreProvider{
 							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
+								ProjectID:      projectID,
 							},
 						},
 					},
@@ -454,7 +459,6 @@ func TestProviderPushSecret(t *testing.T) {
 							},
 						},
 					})
-					projectID := projectID
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
 						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
 						Key:            "no-match", // if this is this-is-a-name it would match
@@ -490,7 +494,7 @@ func TestProviderPushSecret(t *testing.T) {
 					Match: v1alpha1.PushSecretMatch{
 						SecretKey: "key",
 						RemoteRef: v1alpha1.PushSecretRemoteRef{
-							RemoteKey: projectID + "/this-is-a-name",
+							RemoteKey: "this-is-a-name",
 						},
 					},
 				},
@@ -505,6 +509,7 @@ func TestProviderPushSecret(t *testing.T) {
 						Provider: &v1beta1.SecretStoreProvider{
 							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
+								ProjectID:      projectID,
 							},
 						},
 					},
@@ -555,7 +560,7 @@ func TestProviderPushSecret(t *testing.T) {
 					Match: v1alpha1.PushSecretMatch{
 						SecretKey: "key",
 						RemoteRef: v1alpha1.PushSecretRemoteRef{
-							RemoteKey: projectID + "/this-is-a-name",
+							RemoteKey: "this-is-a-name",
 						},
 					},
 				},
@@ -570,6 +575,7 @@ func TestProviderPushSecret(t *testing.T) {
 						Provider: &v1beta1.SecretStoreProvider{
 							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
+								ProjectID:      projectID,
 							},
 						},
 					},
@@ -648,6 +654,7 @@ func TestProviderSecretExists(t *testing.T) {
 						Provider: &v1beta1.SecretStoreProvider{
 							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
+								ProjectID:      projectID,
 							},
 						},
 					},
@@ -679,6 +686,7 @@ func TestProviderSecretExists(t *testing.T) {
 						Provider: &v1beta1.SecretStoreProvider{
 							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
+								ProjectID:      projectID,
 							},
 						},
 					},
@@ -707,7 +715,7 @@ func TestProviderSecretExists(t *testing.T) {
 				ref: v1alpha1.PushSecretData{
 					Match: v1alpha1.PushSecretMatch{
 						RemoteRef: v1alpha1.PushSecretRemoteRef{
-							RemoteKey: projectID + "/name",
+							RemoteKey: "name",
 						},
 					},
 				},
@@ -722,6 +730,7 @@ func TestProviderSecretExists(t *testing.T) {
 						Provider: &v1beta1.SecretStoreProvider{
 							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
+								ProjectID:      projectID,
 							},
 						},
 					},
@@ -751,7 +760,7 @@ func TestProviderSecretExists(t *testing.T) {
 				ref: v1alpha1.PushSecretData{
 					Match: v1alpha1.PushSecretMatch{
 						RemoteRef: v1alpha1.PushSecretRemoteRef{
-							RemoteKey: projectID + "/name",
+							RemoteKey: "name",
 						},
 					},
 				},
@@ -767,6 +776,7 @@ func TestProviderSecretExists(t *testing.T) {
 						Provider: &v1beta1.SecretStoreProvider{
 							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
+								ProjectID:      projectID,
 							},
 						},
 					},

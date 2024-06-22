@@ -48,7 +48,8 @@ The api url and identity url are optional. The secret should contain the token f
 Make sure that the machine account has Read-Write access to the Project that the secrets are in.
 
 !!! note inline end
-A secret store is organization dependent. Meaning a 1 store == 1 organization.
+A secret store is organization/project dependent. Meaning a 1 store == 1 organization/project. This is so that we ensure
+that no other project's secrets can be modified accidentally _or_ intentionally.
 
 ### External Secrets
 
@@ -99,7 +100,6 @@ spec:
   - secretKey: test
     remoteRef:
       key: "secret-name"
-      property: project-id
 ```
 
 ### Push Secret

@@ -1099,7 +1099,18 @@ string
 </em>
 </td>
 <td>
-<p>OrganizationID determines which organization this store manages.</p>
+<p>OrganizationID determines which organization this secret store manages.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>projectID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ProjectID determines which project this secret store manages.</p>
 </td>
 </tr>
 <tr>
