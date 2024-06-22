@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/kube-openapi/pkg/validation/strfmt"
@@ -58,8 +59,9 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data e
 		return fmt.Errorf("remote key must be defined")
 	}
 
-	if data.GetProperty() == "" {
-		return fmt.Errorf("property must be defined on secret to determine which project the secret should be pushed to")
+	projectID, key, err := p.ParseKey(data.GetRemoteKey())
+	if err != nil {
+		return fmt.Errorf("failed to parse remote key: %w", err)
 	}
 
 	value, ok := secret.Data[data.GetSecretKey()]
@@ -79,7 +81,7 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data e
 	}
 
 	for _, d := range remoteSecrets.Data {
-		if d.Key != data.GetRemoteKey() {
+		if d.Key != key {
 			continue
 		}
 
@@ -89,25 +91,25 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data e
 		}
 
 		// If all pushed data matches, we won't push this secret.
-		if sec.Key == data.GetRemoteKey() &&
+		if sec.Key == key &&
 			sec.Value == string(value) &&
 			sec.Note == note &&
 			sec.ProjectID != nil &&
-			*sec.ProjectID == data.GetProperty() {
+			*sec.ProjectID == projectID {
 			// we have a complete match, skip pushing.
 			return nil
-		} else if sec.Key == data.GetRemoteKey() &&
+		} else if sec.Key == key &&
 			sec.Value != string(value) &&
 			sec.Note == note &&
 			sec.ProjectID != nil &&
-			*sec.ProjectID == data.GetProperty() {
+			*sec.ProjectID == projectID {
 			// only the value is different, update the existing secret.
 			_, err = p.bitwardenSdkClient.UpdateSecret(ctx, SecretPutRequest{
 				ID:             sec.ID,
-				Key:            data.GetRemoteKey(),
+				Key:            key,
 				Note:           note,
 				OrganizationID: spec.Provider.BitwardenSecretsManager.OrganizationID,
-				ProjectIDS:     []string{data.GetProperty()},
+				ProjectIDS:     []string{projectID},
 				Value:          string(value),
 			})
 
@@ -117,10 +119,10 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data e
 
 	// no matching secret found, let's create it
 	_, err = p.bitwardenSdkClient.CreateSecret(ctx, SecretCreateRequest{
-		Key:            data.GetRemoteKey(),
+		Key:            key,
 		Note:           note,
 		OrganizationID: spec.Provider.BitwardenSecretsManager.OrganizationID,
-		ProjectIDS:     []string{data.GetProperty()},
+		ProjectIDS:     []string{projectID},
 		Value:          string(value),
 	})
 
@@ -138,11 +140,12 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 		return []byte(resp.Value), nil
 	}
 
-	if ref.Property == "" {
-		return nil, fmt.Errorf("property must be defined if lookup by name")
+	projectID, key, err := p.ParseKey(ref.Key)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse remote key: %w", err)
 	}
 
-	secret, err := p.findSecretByRef(ctx, ref)
+	secret, err := p.findSecretByRef(ctx, key, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("error getting secret: %w", err)
 	}
@@ -156,8 +159,9 @@ func (p *Provider) DeleteSecret(ctx context.Context, ref esv1beta1.PushSecretRem
 		return p.deleteSecret(ctx, ref.GetRemoteKey())
 	}
 
-	if ref.GetProperty() == "" {
-		return fmt.Errorf("property must be defined on secret to delete")
+	projectID, key, err := p.ParseKey(ref.GetRemoteKey())
+	if err != nil {
+		return fmt.Errorf("failed to parse remote key: %w", err)
 	}
 
 	spec := p.store.GetSpec()
@@ -165,7 +169,7 @@ func (p *Provider) DeleteSecret(ctx context.Context, ref esv1beta1.PushSecretRem
 		return fmt.Errorf("store does not have a provider")
 	}
 
-	secret, err := p.findSecretByRef(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: ref.GetRemoteKey(), Property: ref.GetProperty()})
+	secret, err := p.findSecretByRef(ctx, key, projectID)
 	if err != nil {
 		return fmt.Errorf("error getting secret: %w", err)
 	}
@@ -202,16 +206,12 @@ func (p *Provider) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRem
 		return true, nil
 	}
 
-	if ref.GetProperty() == "" {
-		return false, fmt.Errorf("property must be defined on secret exists if none UUID is being used")
+	projectID, key, err := p.ParseKey(ref.GetRemoteKey())
+	if err != nil {
+		return false, fmt.Errorf("failed to parse remote key: %w", err)
 	}
 
-	_, err := p.findSecretByRef(ctx, esv1beta1.ExternalSecretDataRemoteRef{
-		Key:      ref.GetRemoteKey(),
-		Property: ref.GetProperty(),
-	})
-
-	if err != nil {
+	if _, err = p.findSecretByRef(ctx, key, projectID); err != nil {
 		return false, fmt.Errorf("error getting secret: %w", err)
 	}
 
@@ -226,12 +226,13 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 // GetAllSecrets gets multiple secrets from the provider and loads into a kubernetes secret.
 // First load all secrets from secretStore path configuration
 // Then, gets secrets from a matching name or matching custom_metadata.
-func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	if ref.Path == nil {
-		return nil, fmt.Errorf("GetAllSecrets() requires a path for organization id")
+func (p *Provider) GetAllSecrets(ctx context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+	spec := p.store.GetSpec()
+	if spec == nil {
+		return nil, fmt.Errorf("store does not have a provider")
 	}
 
-	secrets, err := p.bitwardenSdkClient.ListSecrets(ctx, *ref.Path)
+	secrets, err := p.bitwardenSdkClient.ListSecrets(ctx, spec.Provider.BitwardenSecretsManager.OrganizationID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get all secrets: %w", err)
 	}
@@ -259,6 +260,22 @@ func (p *Provider) Close(_ context.Context) error {
 	return nil
 }
 
+// ParseKey returns the {projectID} and the {name} of the secret to push.
+func (p *Provider) ParseKey(key string) (string, string, error) {
+	split := strings.Split(key, "/")
+	if len(split) != 2 {
+		return "", "", fmt.Errorf("invalid key format, should be {projectID}/{name}, got: %s", key)
+	}
+
+	projectID := split[0]
+
+	if !strfmt.IsUUID(projectID) {
+		return "", "", fmt.Errorf("invalid project id: %s; should be a UUID", projectID)
+	}
+
+	return split[0], split[1], nil
+}
+
 // getCABundle try retrieve the CA bundle from the provider CABundle.
 func (p *Provider) getCABundle(provider *esv1beta1.BitwardenSecretsManagerProvider) ([]byte, error) {
 	certBytes, decodeErr := utils.Decode(esv1beta1.ExternalSecretDecodeBase64, []byte(provider.CABundle))
@@ -269,7 +286,7 @@ func (p *Provider) getCABundle(provider *esv1beta1.BitwardenSecretsManagerProvid
 	return certBytes, nil
 }
 
-func (p *Provider) findSecretByRef(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (*SecretResponse, error) {
+func (p *Provider) findSecretByRef(ctx context.Context, key, projectID string) (*SecretResponse, error) {
 	spec := p.store.GetSpec()
 	if spec == nil || spec.Provider == nil {
 		return nil, fmt.Errorf("store does not have a provider")
@@ -283,7 +300,7 @@ func (p *Provider) findSecretByRef(ctx context.Context, ref esv1beta1.ExternalSe
 
 	var remoteSecret *SecretResponse
 	for _, d := range secrets.Data {
-		if d.Key != ref.Key {
+		if d.Key != key {
 			continue
 		}
 
@@ -292,9 +309,9 @@ func (p *Provider) findSecretByRef(ctx context.Context, ref esv1beta1.ExternalSe
 			return nil, fmt.Errorf("failed to get secret: %w", err)
 		}
 
-		if sec.ProjectID != nil && *sec.ProjectID == ref.Property {
+		if sec.ProjectID != nil && *sec.ProjectID == projectID {
 			if remoteSecret != nil {
-				return nil, fmt.Errorf("more than one secret found for project %s with key %s", ref.Property, ref.Key)
+				return nil, fmt.Errorf("more than one secret found for project %s with key %s", projectID, key)
 			}
 
 			// We don't break here because we WANT TO MAKE SURE that there is ONLY ONE
@@ -304,7 +321,7 @@ func (p *Provider) findSecretByRef(ctx context.Context, ref esv1beta1.ExternalSe
 	}
 
 	if remoteSecret == nil {
-		return nil, fmt.Errorf("no secret found for project id %s and name %s", ref.Property, ref.Key)
+		return nil, fmt.Errorf("no secret found for project id %s and name %s", projectID, key)
 	}
 
 	return remoteSecret, nil

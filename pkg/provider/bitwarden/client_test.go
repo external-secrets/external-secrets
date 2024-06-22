@@ -28,7 +28,7 @@ import (
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
-var projectID = "projectID"
+var projectID = "e8fc8f9c-2208-446e-9e89-9bc358f39b47"
 
 func TestProviderDeleteSecret(t *testing.T) {
 	type fields struct {
@@ -162,7 +162,7 @@ func TestProviderDeleteSecret(t *testing.T) {
 			args: args{
 				ctx: context.TODO(),
 				ref: v1alpha1.PushSecretRemoteRef{
-					RemoteKey: "this-is-a-name",
+					RemoteKey: "d8f29773-3019-4973-9bbc-66327d077fe2/this-is-a-name",
 					Property:  projectID,
 				},
 			},
@@ -199,7 +199,6 @@ func TestProviderGetAllSecrets(t *testing.T) {
 		ctx context.Context
 		ref v1beta1.ExternalSecretFind
 	}
-	orgID := "orgid"
 	tests := []struct {
 		name    string
 		fields  fields
@@ -250,9 +249,7 @@ func TestProviderGetAllSecrets(t *testing.T) {
 			},
 			args: args{
 				ctx: context.TODO(),
-				ref: v1beta1.ExternalSecretFind{
-					Path: &orgID,
-				},
+				ref: v1beta1.ExternalSecretFind{},
 			},
 			want: map[string][]byte{
 				"d8f29773-3019-4973-9bbc-66327d077fe2": []byte("value1"),
@@ -367,8 +364,7 @@ func TestProviderGetSecret(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				ref: v1beta1.ExternalSecretDataRemoteRef{
-					Key:      "this-is-a-name",
-					Property: projectID,
+					Key: projectID + "/this-is-a-name",
 				},
 			},
 			want: []byte("value"),
@@ -429,8 +425,7 @@ func TestProviderPushSecret(t *testing.T) {
 					Match: v1alpha1.PushSecretMatch{
 						SecretKey: "key",
 						RemoteRef: v1alpha1.PushSecretRemoteRef{
-							RemoteKey: "this-is-a-name",
-							Property:  projectID,
+							RemoteKey: projectID + "/this-is-a-name",
 						},
 					},
 				},
@@ -495,8 +490,7 @@ func TestProviderPushSecret(t *testing.T) {
 					Match: v1alpha1.PushSecretMatch{
 						SecretKey: "key",
 						RemoteRef: v1alpha1.PushSecretRemoteRef{
-							RemoteKey: "this-is-a-name",
-							Property:  projectID,
+							RemoteKey: projectID + "/this-is-a-name",
 						},
 					},
 				},
@@ -525,7 +519,6 @@ func TestProviderPushSecret(t *testing.T) {
 							},
 						},
 					})
-					projectID := projectID
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
 						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
 						Key:            "this-is-a-name",
@@ -562,8 +555,7 @@ func TestProviderPushSecret(t *testing.T) {
 					Match: v1alpha1.PushSecretMatch{
 						SecretKey: "key",
 						RemoteRef: v1alpha1.PushSecretRemoteRef{
-							RemoteKey: "this-is-a-name",
-							Property:  projectID,
+							RemoteKey: projectID + "/this-is-a-name",
 						},
 					},
 				},
@@ -592,7 +584,6 @@ func TestProviderPushSecret(t *testing.T) {
 							},
 						},
 					})
-					projectID := projectID
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
 						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
 						Key:            "this-is-a-name",
@@ -702,7 +693,6 @@ func TestProviderSecretExists(t *testing.T) {
 							},
 						},
 					})
-					projectID := projectID
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
 						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
 						Key:            "name",
@@ -717,8 +707,7 @@ func TestProviderSecretExists(t *testing.T) {
 				ref: v1alpha1.PushSecretData{
 					Match: v1alpha1.PushSecretMatch{
 						RemoteRef: v1alpha1.PushSecretRemoteRef{
-							RemoteKey: "name",
-							Property:  projectID,
+							RemoteKey: projectID + "/name",
 						},
 					},
 				},
@@ -747,13 +736,13 @@ func TestProviderSecretExists(t *testing.T) {
 							},
 						},
 					})
-					projectID := "different-project"
+					projectIDDifferent := "different-project"
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
 						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
 						Key:            "name",
 						OrganizationID: "orgid",
 						Value:          "value",
-						ProjectID:      &projectID,
+						ProjectID:      &projectIDDifferent,
 					})
 				},
 			},
@@ -762,8 +751,7 @@ func TestProviderSecretExists(t *testing.T) {
 				ref: v1alpha1.PushSecretData{
 					Match: v1alpha1.PushSecretMatch{
 						RemoteRef: v1alpha1.PushSecretRemoteRef{
-							RemoteKey: "name",
-							Property:  projectID,
+							RemoteKey: projectID + "/name",
 						},
 					},
 				},
@@ -772,7 +760,7 @@ func TestProviderSecretExists(t *testing.T) {
 			wantErr: true, // secret not found
 		},
 		{
-			name: "property must be defined to look up by name",
+			name: "invalid name format should error",
 			fields: fields{
 				store: &v1beta1.SecretStore{
 					Spec: v1beta1.SecretStoreSpec{
@@ -800,7 +788,7 @@ func TestProviderSecretExists(t *testing.T) {
 				},
 			},
 			want:    false,
-			wantErr: true, // property is missing
+			wantErr: true, // invalid remote key format
 		},
 	}
 	for _, tt := range tests {
