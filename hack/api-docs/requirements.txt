@@ -36,7 +36,7 @@ requests==2.32.3
 six==1.16.0
 termcolor==2.4.0
 tornado==6.4.1
-urllib3==2.2.1
+urllib3==2.2.2
 verspec==0.1.0
 watchdog==4.0.1
 zipp==3.19.2
