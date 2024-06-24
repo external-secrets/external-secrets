@@ -51,7 +51,7 @@ if settings.get('debug').get('enabled'):
 
 local_resource(
     'external-secret-binary',
-    "CGO_ENABLED=0 GOOS=linux go build -gcflags '{gcflags}' -v -o bin/external-secrets ./".format(gcflags=gcflags),
+    "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -gcflags '{gcflags}' -v -o bin/external-secrets ./".format(gcflags=gcflags),
     deps = [
         "main.go",
         "go.mod",
