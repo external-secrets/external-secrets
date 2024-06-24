@@ -176,6 +176,11 @@ type SecretStoreProvider struct {
 	// Infisical configures this store to sync secrets using the Infisical provider
 	// +optional
 	Infisical *InfisicalProvider `json:"infisical,omitempty"`
+
+	// Beyondtrust configures this store to sync secrets using Password Safe provider.
+	// +optional
+	Beyondtrust *BeyondtrustProvider `json:"beyondtrust,omitempty"`
+
 }
 
 type CAProviderType string
