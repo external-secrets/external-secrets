@@ -2804,6 +2804,126 @@ spec:
                       required:
                         - vaultUrl
                       type: object
+                    beyondtrust:
+                      description: Beyondtrust configures this store to sync secrets using Password Safe provider.
+                      properties:
+                        apiurl:
+                          description: Required - BeyondTrust Password Safe API URL. https://example.com:443/beyondtrust/api/public/V3.
+                          type: string
+                        certificate:
+                          description: Content of the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.
+                          properties:
+                            secretRef:
+                              description: SecretRef references a key in a secret that will be used as value.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                            value:
+                              description: Value can be specified directly to set a value without using a secret.
+                              type: string
+                          type: object
+                        certificatekey:
+                          description: Certificate private key (key.pem). For use when authenticating with an OAuth client Id
+                          properties:
+                            secretRef:
+                              description: SecretRef references a key in a secret that will be used as value.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                            value:
+                              description: Value can be specified directly to set a value without using a secret.
+                              type: string
+                          type: object
+                        clientid:
+                          description: Required - API OAuth Client ID.
+                          properties:
+                            secretRef:
+                              description: SecretRef references a key in a secret that will be used as value.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                            value:
+                              description: Value can be specified directly to set a value without using a secret.
+                              type: string
+                          type: object
+                        clientsecret:
+                          description: Required - API OAuth Client Secret.
+                          properties:
+                            secretRef:
+                              description: SecretRef references a key in a secret that will be used as value.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                            value:
+                              description: Value can be specified directly to set a value without using a secret.
+                              type: string
+                          type: object
+                        clienttimeoutseconds:
+                          description: Timeout specifies a time limit for requests made by this Client. The timeout includes connection time, any redirects, and reading the response body. Defaults to 45 seconds.
+                          type: integer
+                        retrievaltype:
+                          description: The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.
+                          type: string
+                        separator:
+                          description: A character that separates the folder names.
+                          type: string
+                        verifyca:
+                          description: Required - Indicates whether to verify the certificate authority on the Secrets Safe instance. Warning - false is insecure, instructs the BT provider not to verify the certificate authority.
+                          type: boolean
+                      required:
+                        - apiurl
+                        - clientid
+                        - clientsecret
+                        - verifyca
+                      type: object
                     chef:
                       description: Chef configures this store to sync secrets with chef server
                       properties:
@@ -8294,6 +8414,126 @@ spec:
                           type: string
                       required:
                         - vaultUrl
+                      type: object
+                    beyondtrust:
+                      description: Beyondtrust configures this store to sync secrets using Password Safe provider.
+                      properties:
+                        apiurl:
+                          description: Required - BeyondTrust Password Safe API URL. https://example.com:443/beyondtrust/api/public/V3.
+                          type: string
+                        certificate:
+                          description: Content of the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.
+                          properties:
+                            secretRef:
+                              description: SecretRef references a key in a secret that will be used as value.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                            value:
+                              description: Value can be specified directly to set a value without using a secret.
+                              type: string
+                          type: object
+                        certificatekey:
+                          description: Certificate private key (key.pem). For use when authenticating with an OAuth client Id
+                          properties:
+                            secretRef:
+                              description: SecretRef references a key in a secret that will be used as value.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                            value:
+                              description: Value can be specified directly to set a value without using a secret.
+                              type: string
+                          type: object
+                        clientid:
+                          description: Required - API OAuth Client ID.
+                          properties:
+                            secretRef:
+                              description: SecretRef references a key in a secret that will be used as value.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                            value:
+                              description: Value can be specified directly to set a value without using a secret.
+                              type: string
+                          type: object
+                        clientsecret:
+                          description: Required - API OAuth Client Secret.
+                          properties:
+                            secretRef:
+                              description: SecretRef references a key in a secret that will be used as value.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                            value:
+                              description: Value can be specified directly to set a value without using a secret.
+                              type: string
+                          type: object
+                        clienttimeoutseconds:
+                          description: Timeout specifies a time limit for requests made by this Client. The timeout includes connection time, any redirects, and reading the response body. Defaults to 45 seconds.
+                          type: integer
+                        retrievaltype:
+                          description: The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.
+                          type: string
+                        separator:
+                          description: A character that separates the folder names.
+                          type: string
+                        verifyca:
+                          description: Required - Indicates whether to verify the certificate authority on the Secrets Safe instance. Warning - false is insecure, instructs the BT provider not to verify the certificate authority.
+                          type: boolean
+                      required:
+                        - apiurl
+                        - clientid
+                        - clientsecret
+                        - verifyca
                       type: object
                     chef:
                       description: Chef configures this store to sync secrets with chef server
