@@ -3294,8 +3294,8 @@ The token is generated for a particular ACR registry defined in <code>spec.regis
 <li>managed identity</li>
 <li>workload identity</li>
 </ul>
-<p>The generated token will inherit the permissions from the assigned policy. I.e. when you assign a read-only policy all generated tokens will be read-only. 
-You <strong>must</strong> <a href="https://learn.microsoft.com/en-us/azure/role-based-access-control/role-assignments-steps">assign a Azure RBAC role</a>, such as <code>AcrPush</code> or <code>AcrPull</code> to the service principal in order to be able to authenticate with the Azure container registry API. </p>
+<p>The generated token will inherit the permissions from the assigned policy. I.e. when you assign a read-only policy all generated tokens will be read-only.
+You <strong>must</strong> <a href="https://learn.microsoft.com/en-us/azure/role-based-access-control/role-assignments-steps">assign a Azure RBAC role</a>, such as <code>AcrPush</code> or <code>AcrPull</code> to the service principal or managed identity in order to be able to authenticate with the Azure container registry API.</p>
 <p>You can scope tokens to a particular repository using <code>spec.scope</code>.</p>
 <h2 id="scope">Scope</h2>
 <p>First, an Azure Active Directory access token is obtained with the desired authentication method.
@@ -3306,7 +3306,7 @@ If <code>spec.scope</code> if it is defined it obtains an ACR access token. If  
 <li>refresh tokens can are scoped to whatever policy is attached to the identity that creates the acr refresh token</li>
 </ul>
 <p>The Scope grammar is defined in the <a href="https://docs.docker.com/registry/spec/auth/scope/">Docker Registry spec</a>.
-Note: You <strong>can not</strong> use a wildcards in the scope parameter, you can match exactly one repository and defined multiple actions like <code>pull</code> or <code>push</code>.</p>
+Note: You <strong>can not</strong> use wildcards in the scope parameter -- you can match exactly one repository and can define multiple actions like <code>pull</code> or <code>push</code>.</p>
 <p>Example scopes:</p>
 <div class="highlight"><pre><span></span><code>repository:my-repository:pull,push
 repository:my-repository:pull
@@ -3376,7 +3376,7 @@ repository:my-repository:pull
 <span class="w">            </span><span class="no">&quot;auths&quot;: {</span>
 <span class="w">              </span><span class="no">&quot;myregistry.azurecr.io&quot;: {</span>
 <span class="w">                </span><span class="no">&quot;username&quot;: &quot;{{ .username }}&quot;,</span>
-<span class="w">                </span><span class="no">&quot;identitytoken&quot;: &quot;{{ .password }}&quot;</span>
+<span class="w">                </span><span class="no">&quot;password&quot;: &quot;{{ .password }}&quot;</span>
 <span class="w">              </span><span class="no">}</span>
 <span class="w">            </span><span class="no">}</span>
 <span class="w">          </span><span class="no">}</span>
