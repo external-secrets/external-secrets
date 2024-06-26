@@ -359,7 +359,7 @@ func ErrorContains(out error, want string) bool {
 }
 
 var (
-	errNamespaceNotAllowed = errors.New("namespace not allowed with namespaced SecretStore")
+	errNamespaceNotAllowed = errors.New("namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore")
 	errRequireNamespace    = errors.New("cluster scope requires namespace")
 )
 
@@ -371,7 +371,7 @@ func ValidateSecretSelector(store esv1beta1.GenericStore, ref esmeta.SecretKeySe
 	if clusterScope && ref.Namespace == nil {
 		return errRequireNamespace
 	}
-	if !clusterScope && ref.Namespace != nil {
+	if !clusterScope && ref.Namespace != nil && *ref.Namespace != store.GetNamespace() {
 		return errNamespaceNotAllowed
 	}
 	return nil
@@ -383,7 +383,7 @@ func ValidateSecretSelector(store esv1beta1.GenericStore, ref esmeta.SecretKeySe
 // support referent auth.
 func ValidateReferentSecretSelector(store esv1beta1.GenericStore, ref esmeta.SecretKeySelector) error {
 	clusterScope := store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind
-	if !clusterScope && ref.Namespace != nil {
+	if !clusterScope && ref.Namespace != nil && *ref.Namespace != store.GetNamespace() {
 		return errNamespaceNotAllowed
 	}
 	return nil
@@ -397,7 +397,7 @@ func ValidateServiceAccountSelector(store esv1beta1.GenericStore, ref esmeta.Ser
 	if clusterScope && ref.Namespace == nil {
 		return errRequireNamespace
 	}
-	if !clusterScope && ref.Namespace != nil {
+	if !clusterScope && ref.Namespace != nil && *ref.Namespace != store.GetNamespace() {
 		return errNamespaceNotAllowed
 	}
 	return nil
@@ -409,7 +409,7 @@ func ValidateServiceAccountSelector(store esv1beta1.GenericStore, ref esmeta.Ser
 // support referent auth.
 func ValidateReferentServiceAccountSelector(store esv1beta1.GenericStore, ref esmeta.ServiceAccountSelector) error {
 	clusterScope := store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind
-	if !clusterScope && ref.Namespace != nil {
+	if !clusterScope && ref.Namespace != nil && *ref.Namespace != store.GetNamespace() {
 		return errNamespaceNotAllowed
 	}
 	return nil

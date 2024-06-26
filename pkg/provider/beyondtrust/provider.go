@@ -27,10 +27,11 @@ import (
 	managed_account "github.com/BeyondTrust/go-client-library-passwordsafe/api/managed_account"
 	"github.com/BeyondTrust/go-client-library-passwordsafe/api/secrets"
 	"github.com/BeyondTrust/go-client-library-passwordsafe/api/utils"
-	backoff "github.com/cenkalti/backoff/v4"
+	"github.com/cenkalti/backoff/v4"
 	v1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
-	client "sigs.k8s.io/controller-runtime/pkg/client"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -140,32 +141,46 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 
 	clientID, err := loadConfigSecret(ctx, config.Clientid, kube, namespace)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	clientSecret, err := loadConfigSecret(ctx, config.Clientsecret, kube, namespace)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error: %w", err)
 	}
 
 	if config.Certificate != nil && config.Certificatekey != nil {
 		loadedCertificate, err := loadConfigSecret(ctx, config.Certificate, kube, namespace)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error: %w", err)
 		}
 
 		certificate = loadedCertificate
 
 		loadedCertificateKey, err := loadConfigSecret(ctx, config.Certificatekey, kube, namespace)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error: %w", err)
 		}
 
 		certificateKey = loadedCertificateKey
 	}
 
-	// validate inputs
-	errorsInInputs := utils.ValidateInputs(clientID, clientSecret, &apiURL, clientTimeOutInSeconds, &separator, config.VerifyCA, logger, certificate, certificateKey, &retryMaxElapsedTimeMinutes, &maxFileSecretSizeBytes)
+	// Create an instance of ValidationParams
+	params := utils.ValidationParams{
+		ClientID:                   clientID,
+		ClientSecret:               clientSecret,
+		ApiUrl:                     &apiURL,
+		ClientTimeOutInSeconds:     clientTimeOutInSeconds,
+		Separator:                  &separator,
+		VerifyCa:                   config.VerifyCA,
+		Logger:                     logger,
+		Certificate:                certificate,
+		CertificateKey:             certificateKey,
+		RetryMaxElapsedTimeMinutes: &retryMaxElapsedTimeMinutes,
+		MaxFileSecretSizeBytes:     &maxFileSecretSizeBytes,
+	}
+
+	errorsInInputs := utils.ValidateInputs(params)
 
 	if errorsInInputs != nil {
 		return nil, fmt.Errorf("error: %w", errorsInInputs)
@@ -260,27 +275,37 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretData
 		return nil, fmt.Errorf("error: %w", err)
 	}
 
-	var returnSecret string
 	secret := keyValue{
 		Key:   "secret",
 		Value: "",
 	}
 
-	if strings.EqualFold(p.retrievaltype, "SECRET") {
-		ESOLogger.Info("retrieve secrets safe value", "retrievalPath:", retrievalPath)
-		secretObj, _ := secrets.NewSecretObj(p.authenticate, &p.log, maxFileSecretSizeBytes)
-		returnSecret, _ = secretObj.GetSecret(retrievalPath, p.separator)
-		secret.Value = returnSecret
-	} else {
+	if managedAccountType {
+		var returnSecret string
 		ESOLogger.Info("retrieve managed account value", "retrievalPath:", retrievalPath)
 		manageAccountObj, _ := managed_account.NewManagedAccountObj(p.authenticate, &p.log)
-		returnSecret, _ := manageAccountObj.GetSecret(retrievalPath, p.separator)
+		returnSecret, err := manageAccountObj.GetSecret(retrievalPath, p.separator)
+		if err != nil {
+			err = p.authenticate.SignOut()
+			if err != nil {
+				return nil, fmt.Errorf("error: %w", err)
+			}
+			return nil, fmt.Errorf("error: %w", err)
+		}
 		secret.Value = returnSecret
-	}
-
-	err = p.authenticate.SignOut()
-	if err != nil {
-		return nil, fmt.Errorf("error: %w", err)
+	} else {
+		var returnSecret string
+		ESOLogger.Info("retrieve secrets safe value", "retrievalPath:", retrievalPath)
+		secretObj, _ := secrets.NewSecretObj(p.authenticate, &p.log, maxFileSecretSizeBytes)
+		returnSecret, err := secretObj.GetSecret(retrievalPath, p.separator)
+		if err != nil {
+			err = p.authenticate.SignOut()
+			if err != nil {
+				return nil, fmt.Errorf("error: %w", err)
+			}
+			return nil, fmt.Errorf("error: %w", err)
+		}
+		secret.Value = returnSecret
 	}
 
 	return []byte(secret.Value), nil

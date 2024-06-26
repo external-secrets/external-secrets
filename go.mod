@@ -74,6 +74,7 @@ require (
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.5
 	github.com/aliyun/credentials-go v1.3.4
 	github.com/avast/retry-go/v4 v4.6.0
+	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/cyberark/conjur-api-go v0.12.0
 	github.com/fortanix/sdkms-client-go v0.4.0
 	github.com/go-openapi/strfmt v0.23.0
@@ -100,6 +101,7 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.2 // indirect
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	dario.cat/mergo v1.0.0 // indirect
+	github.com/BeyondTrust/go-client-library-passwordsafe v0.6.0 // indirect
 	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect

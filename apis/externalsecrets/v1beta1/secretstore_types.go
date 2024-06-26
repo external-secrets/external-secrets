@@ -184,7 +184,6 @@ type SecretStoreProvider struct {
 	// Beyondtrust configures this store to sync secrets using Password Safe provider.
 	// +optional
 	Beyondtrust *BeyondtrustProvider `json:"beyondtrust,omitempty"`
-
 }
 
 type CAProviderType string

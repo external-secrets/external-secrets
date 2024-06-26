@@ -6526,6 +6526,20 @@ InfisicalProvider
 <p>Infisical configures this store to sync secrets using the Infisical provider</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>beyondtrust</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BeyondtrustProvider">
+BeyondtrustProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Beyondtrust configures this store to sync secrets using Password Safe provider.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.SecretStoreRef">SecretStoreRef
