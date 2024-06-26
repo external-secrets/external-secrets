@@ -3,7 +3,8 @@ hide:
   - toc
 ---
 
-This page lists the status, timeline and policy for currently supported ESO releases and its providers. Please also see our [deprecation policy](deprecation-policy.md) that describes API versioning, deprecation and API surface.
+This page lists the status, timeline and policy for currently supported ESO releases and its providers. Please also see
+our [deprecation policy](deprecation-policy.md) that describes API versioning, deprecation and API surface.
 
 ## Supported Versions
 
@@ -18,7 +19,7 @@ We want to cover the following cases:
 - backport bug fixes on demand
 
 | ESO Version | Kubernetes Version | Release Date | End of Life    |
-| ----------- | ------------------ | ------------ | -------------- |
+|-------------|--------------------|--------------|----------------|
 | 0.9.x       | 1.19 → 1.30        | Jun 22, 2023 | Release of 1.1 |
 | 0.8.x       | 1.19 → 1.28        | Mar 16, 2023 | Release of 1.0 |
 | 0.7.x       | 1.19 → 1.26        | Dec 11, 2022 | Jun 22, 2023   |
@@ -32,7 +33,7 @@ We want to cover the following cases:
 The following table describes the stability level of each provider and who's responsible.
 
 | Provider                                                                                                   | Stability |                                                                                                                                                                              Maintainer |
-|------------------------------------------------------------------------------------------------------------| :-------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+|------------------------------------------------------------------------------------------------------------|:---------:|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 | [AWS Secrets Manager](https://external-secrets.io/latest/provider/aws-secrets-manager/)                    |  stable   |                                                                                                                                 [external-secrets](https://github.com/external-secrets) |
 | [AWS Parameter Store](https://external-secrets.io/latest/provider/aws-parameter-store/)                    |  stable   |                                                                                                                                 [external-secrets](https://github.com/external-secrets) |
 | [Hashicorp Vault](https://external-secrets.io/latest/provider/hashicorp-vault/)                            |  stable   |                                                                                                                                 [external-secrets](https://github.com/external-secrets) |
@@ -51,21 +52,22 @@ The following table describes the stability level of each provider and who's res
 | [Doppler SecretOps Platform](https://external-secrets.io/latest/provider/doppler)                          |   alpha   |                                                                                         [@ryan-blunden](https://github.com/ryan-blunden/) [@nmanoogian](https://github.com/nmanoogian/) |
 | [Keeper Security](https://www.keepersecurity.com/)                                                         |   alpha   |                                                                                                                                              [@ppodevlab](https://github.com/ppodevlab) |
 | [Scaleway](https://external-secrets.io/latest/provider/scaleway)                                           |   alpha   |                                                                                                                                                   [@azert9](https://github.com/azert9/) |
-| [Conjur](https://external-secrets.io/latest/provider/conjur)                                               |   stable   |                                                                                                                                 [@davidh-cyberark](https://github.com/davidh-cyberark/) [@szh](https://github.com/szh) |
+| [Conjur](https://external-secrets.io/latest/provider/conjur)                                               |  stable   |                                                                                                  [@davidh-cyberark](https://github.com/davidh-cyberark/) [@szh](https://github.com/szh) |
 | [Delinea](https://external-secrets.io/latest/provider/delinea)                                             |   alpha   |                                                                                                                                     [@michaelsauter](https://github.com/michaelsauter/) |
-| [SecretServer](https://external-secrets.io/latest/provider/secretserver)                                   |   alpha   |                                                                                                                                     [@billhamilton](https://github.com/pacificcode/) |
-| [Pulumi ESC](https://external-secrets.io/latest/provider/pulumi)                                           |   alpha   |                                                                                                                                                  [@dirien](https://github.com/dirien) |
-| [Passbolt](https://external-secrets.io/latest/provider/passbolt)                                           |   alpha   |                                                                                                                                                   |
-| [Infisical](https://external-secrets.io/latest/provider/infisical)                                         |   alpha   | [@akhilmhdh](https://github.com/akhilmhdh)                                                                                       |
-| [Device42](https://external-secrets.io/latest/provider/device42)                                           |   alpha   |                                                                                                                                                   |
-| [Bitwarden Secrets Manager](https://external-secrets.io/latest/provider/bitwarden-secrets-manager)         |   alpha   |                                                                                                                                                   |
+| [SecretServer](https://external-secrets.io/latest/provider/secretserver)                                   |   alpha   |                                                                                                                                        [@billhamilton](https://github.com/pacificcode/) |
+| [Pulumi ESC](https://external-secrets.io/latest/provider/pulumi)                                           |   alpha   |                                                                                                                                                    [@dirien](https://github.com/dirien) |
+| [Passbolt](https://external-secrets.io/latest/provider/passbolt)                                           |   alpha   |                                                                                                                                                                                         |
+| [Infisical](https://external-secrets.io/latest/provider/infisical)                                         |   alpha   |                                                                                                                                              [@akhilmhdh](https://github.com/akhilmhdh) |
+| [Device42](https://external-secrets.io/latest/provider/device42)                                           |   alpha   |                                                                                                                                                                                         |
+| [Bitwarden Secrets Manager](https://external-secrets.io/latest/provider/bitwarden-secrets-manager)         |   alpha   |                                                                                                                                                                                         |
+| [Cloud.ru](https://external-secrets.io/latest/provider/cloudru)                                            |   alpha   |                                                                                                                                              [@default23](https://github.com/default23) |
 
 ## Provider Feature Support
 
 The following table show the support for features across different providers.
 
 | Provider                  | find by name | find by tags | metadataPolicy Fetch | referent authentication | store validation | push secret | DeletionPolicy Merge/Delete |
-|---------------------------|:------------:| :----------: | :------------------: | :---------------------: | :--------------: |:-----------:|:---------------------------:|
+|---------------------------|:------------:|:------------:|:--------------------:|:-----------------------:|:----------------:|:-----------:|:---------------------------:|
 | AWS Secrets Manager       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | AWS Parameter Store       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Hashicorp Vault           |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
@@ -92,6 +94,7 @@ The following table show the support for features across different providers.
 | Infisical                 |      x       |              |                      |            x            |        x         |             |                             |
 | Device42                  |              |              |                      |                         |        x         |             |                             |
 | Bitwarden Secrets Manager |      x       |              |                      |                         |        x         |      x      |              x              |
+| Cloud.ru                  |      x       |      x       |                      |            x            |        x         |             |                             |
 
 ## Support Policy
 
@@ -99,11 +102,13 @@ We provide technical support and security / bug fixes for the above listed versi
 
 ### Technical support
 
-We provide assistance for deploying/upgrading etc. on a best-effort basis. You can request support through the following channels:
+We provide assistance for deploying/upgrading etc. on a best-effort basis. You can request support through the following
+channels:
 
 - [Kubernetes Slack
   #external-secrets](https://kubernetes.slack.com/messages/external-secrets)
 - GitHub [Issues](https://github.com/external-secrets/external-secrets/issues)
 - GitHub [Discussions](https://github.com/external-secrets/external-secrets/discussions)
 
-Even though we have active maintainers and people assigned to this project, we kindly ask for patience when asking for support. We will try to get to priority issues as fast as possible, but there may be some delays.
+Even though we have active maintainers and people assigned to this project, we kindly ask for patience when asking for
+support. We will try to get to priority issues as fast as possible, but there may be some delays.
