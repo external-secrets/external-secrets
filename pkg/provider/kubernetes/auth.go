@@ -37,7 +37,13 @@ const (
 )
 
 func (c *Client) setAuth(ctx context.Context) error {
-	err := c.setCA(ctx)
+	var err error
+	if c.store.AuthRef != nil {
+		c.KubeConfig, err = c.fetchSecretKey(ctx, *c.store.AuthRef)
+		return err
+	}
+
+	err = c.setCA(ctx)
 	if err != nil {
 		return err
 	}

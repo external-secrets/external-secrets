@@ -24,6 +24,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
+	clcmd "k8s.io/client-go/tools/clientcmd"
+	clcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
@@ -78,6 +80,7 @@ type Client struct {
 	Key         []byte
 	CA          []byte
 	BearerToken []byte
+	KubeConfig  []byte
 }
 
 func init() {
@@ -127,15 +130,25 @@ func (p *Provider) newClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return nil, err
 	}
 
-	config := &rest.Config{
-		Host:        client.store.Server.URL,
-		BearerToken: string(client.BearerToken),
-		TLSClientConfig: rest.TLSClientConfig{
-			Insecure: false,
-			CertData: client.Certificate,
-			KeyData:  client.Key,
-			CAData:   client.CA,
-		},
+	var config *rest.Config
+	if len(client.KubeConfig) > 0 {
+		var err error
+		if config, err = clcmd.BuildConfigFromKubeconfigGetter("", func() (*clcmdapi.Config, error) {
+			return clcmd.Load(client.KubeConfig)
+		}); err != nil {
+			return nil, fmt.Errorf("failed to create kube config - %w", err)
+		}
+	} else {
+		config = &rest.Config{
+			Host:        client.store.Server.URL,
+			BearerToken: string(client.BearerToken),
+			TLSClientConfig: rest.TLSClientConfig{
+				Insecure: false,
+				CertData: client.Certificate,
+				KeyData:  client.Key,
+				CAData:   client.CA,
+			},
+		}
 	}
 
 	userClientset, err := kubernetes.NewForConfig(config)
