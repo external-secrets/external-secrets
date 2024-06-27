@@ -50,6 +50,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	ctrlerrors "github.com/external-secrets/external-secrets/pkg/controllers/errors"
 	// Metrics.
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
@@ -308,6 +309,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			return
 		}
 
+		// If the namespace is deleted during this run of the reconciliation loop, then there's
+		// nothing to update.
+		if apierrors.IsNotFound(updateErr) {
+			return
+		}
+
 		// for other errors, log and update the `err` variable if there is no error already
 		// so the reconciler will requeue the request
 		log.Error(updateErr, logErrorUpdateESStatus)
@@ -507,7 +514,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			return ctrl.Result{}, nil
 		}
 
-		r.markAsFailed(msgErrorUpdateSecret, err, externalSecret, syncCallsError.With(resourceLabels))
+		if ctrlerrors.IsNamespaceGone(err) {
+			err = nil
+		} else {
+			r.markAsFailed(msgErrorUpdateSecret, err, externalSecret, syncCallsError.With(resourceLabels))
+		}
 		return ctrl.Result{}, err
 	}
 

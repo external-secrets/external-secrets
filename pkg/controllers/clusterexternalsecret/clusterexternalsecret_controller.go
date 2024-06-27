@@ -42,6 +42,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
+	ctrlerrors "github.com/external-secrets/external-secrets/pkg/controllers/errors"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 )
 
@@ -153,8 +154,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 
 		if err := r.createOrUpdateExternalSecret(ctx, &clusterExternalSecret, namespace, esName, clusterExternalSecret.Spec.ExternalSecretMetadata); err != nil {
-			log.Error(err, "failed to create or update external secret")
-			failedNamespaces[namespace.Name] = err
+			if !ctrlerrors.IsNamespaceGone(err) {
+				log.Error(err, "failed to create or update external secret")
+				failedNamespaces[namespace.Name] = err
+			}
 			continue
 		}
 
