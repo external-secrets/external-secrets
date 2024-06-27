@@ -156,9 +156,11 @@ spec:
 - a little bit of boilerplate to chew through
 
 
-What would we do with the existing implementations?
+### What would we do with the existing implementations?
 
-We should keep them as a backward compatible measure for the `v1alpha1` stage and remove them with the `v1beta1` release.
+We should keep them as a backward compatible measure for the `v1alpha1` stage and remove them with the `v1beta1` release. We can remove them from the documentation right away and only document the "new" scheme. The old scheme is still accessible through the version switch in the docs. This allows us to slowly direct users to the new scheme.
+
+With a PushSecret `v1beta1` we can consider removing those APIs.
 
 
 ## Alternatives
