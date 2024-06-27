@@ -71,6 +71,8 @@ on the contributor and the reviewer. We will eventually have to align the struct
 
 I would propose to wrap the unstructured metadata in a Kubernetes *alike* resource containing an `apiVersion`, `kind` and `spec`. 
 
+#### 1. Kubernetes Provider Example
+
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
 kind: PushSecret
@@ -93,6 +95,56 @@ spec:
             color: red
           annotations:
             yes: please
+```
+
+#### 2. AWS Secrets Manager Example
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: pushsecret-example
+spec:
+  # ...
+  data:
+    - match:
+        secretKey: key1
+        remoteRef:
+          remoteKey: test1
+      metadata:
+        apiVersion: secretsmanager.aws.external-secrets.io/v1alpha1
+        kind: PushSecretMetadata
+        spec:
+          secretFormat: binary # string
+```
+
+#### 3. AWS Parameter Store Example
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: pushsecret-example
+spec:
+  # ...
+  data:
+    - match:
+        secretKey: key1
+        remoteRef:
+          remoteKey: test1
+      metadata:
+        apiVersion: parameterstore.aws.external-secrets.io/v1alpha1
+        kind: PushSecretMetadata
+        spec:
+          tier: "Advanced"
+          type: "StringList"
+          keyID: "arn:..."
+          policies: 
+            - type: "ExpirationNotification"
+              version: "1.0"
+              attributes: 
+                before: "15"
+                unit: "Days"
 ```
 
 **PROS**
