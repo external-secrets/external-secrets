@@ -2,7 +2,6 @@ package secretserver
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/DelineaXPM/tss-sdk-go/v2/server"
 	"github.com/external-secrets/external-secrets-e2e/framework"
