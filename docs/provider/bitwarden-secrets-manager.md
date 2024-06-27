@@ -4,7 +4,7 @@ This section describes how to set up the Bitwarden Secrets Manager provider for 
 
 ### Prerequisites
 
-In order for the bitwarden provider to work, we need a second service. This service is the [Bitwarden SDK Server](https://github.com/external-secrets/bitwarden-sdk-server). 
+In order for the bitwarden provider to work, we need a second service. This service is the [Bitwarden SDK Server](https://github.com/external-secrets/bitwarden-sdk-server).
 The Bitwarden SDK is Rust based and requires CGO enabled. In order to not restrict the capabilities of ESO, and the image
 size ( the bitwarden Rust SDK libraries are over 150MB in size ) it has been decided to create a soft wrapper
 around the SDK that runs as a separate service providing ESO with a light REST API to pull secrets through.
@@ -82,8 +82,8 @@ To find a secret using its name, we need a bit more information. Mainly, these a
 
 - if name is a UUID get the secret
 - if name is NOT a UUID Property is mandatory that defines the projectID to look for
-- if name + projectId + organizationId matches, we return that secret
-- if more than one name exists for the same projectId within the same organization we error
+- if name + projectID + organizationID matches, we return that secret
+- if more than one name exists for the same projectID within the same organization we error
 
 ```yaml
 apiVersion: external-secrets.io/v1beta1
@@ -108,7 +108,6 @@ Pushing a secret is also implemented. Pushing a secret requires even more restri
 allows creating the same secret with the same key multiple times. In order to avoid overwriting, or potentially, returning
 the wrong secret, we restrict push secret with the following rules:
 
-- property == projectID which is mandatory field for PushSecret
 - name, projectID, organizationID and value AND NOTE equal, we won't push it again.
 - name, projectID, organizationID and ONLY the value does not equal ( INCLUDING THE NOTE ) we update
 - any of the above isn't true, we create the secret ( this means that it will create a secret in a separate project )
@@ -132,5 +131,5 @@ spec:
         remoteRef:
           remoteKey: remote-key-name # Remote reference (where the secret is going to be pushed)
       metadata:
-        note: "Note of the secret to add." 
+        note: "Note of the secret to add."
 ```
