@@ -55,9 +55,9 @@ func TestDeleteSecret(t *testing.T) {
 		"DeleteSecretNoOpKV1": {
 			reason: "delete secret is a no-op if v1 secret does not exist",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, "", nil),
 					WriteWithContextFn:        fake.ExpectWriteWithContextNoCall(),
 					DeleteWithContextFn:       fake.ExpectDeleteWithContextNoCall(),
 				},
@@ -69,9 +69,9 @@ func TestDeleteSecret(t *testing.T) {
 		"DeleteSecretNoOpKV2": {
 			reason: "delete secret is a no-op if v2 secret does not exist",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, "", nil),
 					WriteWithContextFn:        fake.ExpectWriteWithContextNoCall(),
 					DeleteWithContextFn:       fake.ExpectDeleteWithContextNoCall(),
 				},
@@ -83,9 +83,9 @@ func TestDeleteSecret(t *testing.T) {
 		"DeleteSecretFailIfErrorKV1": {
 			reason: "delete v1 secret fails if error occurs",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("failed to read")),
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, "", fmt.Errorf("failed to read")),
 					WriteWithContextFn:        fake.ExpectWriteWithContextNoCall(),
 					DeleteWithContextFn:       fake.ExpectDeleteWithContextNoCall(),
 				},
@@ -97,9 +97,9 @@ func TestDeleteSecret(t *testing.T) {
 		"DeleteSecretFailIfErrorKV2": {
 			reason: "delete v2 secret fails if error occurs",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("failed to read")),
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, "", fmt.Errorf("failed to read")),
 					WriteWithContextFn:        fake.ExpectWriteWithContextNoCall(),
 					DeleteWithContextFn:       fake.ExpectDeleteWithContextNoCall(),
 				},
@@ -111,16 +111,16 @@ func TestDeleteSecret(t *testing.T) {
 		"DeleteSecretNotManagedKV1": {
 			reason: "delete v1 secret when not managed by ESO",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						fakeKey: fakeValue,
 						"custom_metadata": map[string]any{
 							managedBy: "another-secret-tool",
 						},
-					}, nil),
+					}, "", nil),
 					WriteWithContextFn:  fake.ExpectWriteWithContextNoCall(),
-					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, nil),
+					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, "", nil),
 				},
 			},
 			want: want{
@@ -130,7 +130,7 @@ func TestDeleteSecret(t *testing.T) {
 		"DeleteSecretNotManagedKV2": {
 			reason: "delete v2 secret when not managed by eso",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"data": map[string]any{
@@ -139,9 +139,9 @@ func TestDeleteSecret(t *testing.T) {
 						"custom_metadata": map[string]any{
 							managedBy: "another-secret-tool",
 						},
-					}, nil),
+					}, "", nil),
 					WriteWithContextFn:  fake.ExpectWriteWithContextNoCall(),
-					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, nil),
+					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, "", nil),
 				},
 			},
 			want: want{
@@ -151,16 +151,16 @@ func TestDeleteSecret(t *testing.T) {
 		"DeleteSecretSuccessKV1": {
 			reason: "delete secret succeeds if secret is managed by ESO and exists in vault v1",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						fakeKey: fakeValue,
 						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
-					}, nil),
+					}, "", nil),
 					WriteWithContextFn:  fake.ExpectWriteWithContextNoCall(),
-					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, nil),
+					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, "", nil),
 				},
 			},
 			want: want{
@@ -170,7 +170,7 @@ func TestDeleteSecret(t *testing.T) {
 		"DeleteSecretSuccessKV2": {
 			reason: "delete secret succeeds if secret is managed by ESO and exists in vault v2",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"data": map[string]any{
@@ -179,9 +179,9 @@ func TestDeleteSecret(t *testing.T) {
 						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
-					}, nil),
+					}, "", nil),
 					WriteWithContextFn:  fake.ExpectWriteWithContextNoCall(),
-					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, nil),
+					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, "", nil),
 				},
 			},
 			want: want{
@@ -191,16 +191,16 @@ func TestDeleteSecret(t *testing.T) {
 		"DeleteSecretErrorKV1": {
 			reason: "delete secret fails if error occurs v1",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						fakeKey: fakeValue,
 						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
-					}, nil),
+					}, "", nil),
 					WriteWithContextFn:  fake.ExpectWriteWithContextNoCall(),
-					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, fmt.Errorf("failed to delete")),
+					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, "", fmt.Errorf("failed to delete")),
 				},
 			},
 			want: want{
@@ -210,7 +210,7 @@ func TestDeleteSecret(t *testing.T) {
 		"DeleteSecretErrorKV2": {
 			reason: "delete secret fails if error occurs v2",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"data": map[string]any{
@@ -219,9 +219,9 @@ func TestDeleteSecret(t *testing.T) {
 						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
-					}, nil),
+					}, "", nil),
 					WriteWithContextFn:  fake.ExpectWriteWithContextNoCall(),
-					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, fmt.Errorf("failed to delete")),
+					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, "", fmt.Errorf("failed to delete")),
 				},
 			},
 			want: want{
@@ -232,7 +232,7 @@ func TestDeleteSecret(t *testing.T) {
 			reason: "Secret should only be updated if Property is set v1",
 			ref:    &testingfake.PushSecretData{RemoteKey: "secret", Property: fakeKey},
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						fakeKey: fakeValue,
@@ -240,7 +240,7 @@ func TestDeleteSecret(t *testing.T) {
 						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
-					}, nil),
+					}, "", nil),
 					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]any{
 						"foo": "bar",
 						"custom_metadata": map[string]any{
@@ -257,7 +257,7 @@ func TestDeleteSecret(t *testing.T) {
 			reason: "Secret should only be updated if Property is set v2",
 			ref:    &testingfake.PushSecretData{RemoteKey: "secret", Property: fakeKey},
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"data": map[string]any{
@@ -267,7 +267,7 @@ func TestDeleteSecret(t *testing.T) {
 						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
-					}, nil),
+					}, "", nil),
 					WriteWithContextFn:  fake.ExpectWriteWithContextValue(map[string]any{"data": map[string]any{"foo": "bar"}}),
 					DeleteWithContextFn: fake.ExpectDeleteWithContextNoCall(),
 				},
@@ -280,16 +280,16 @@ func TestDeleteSecret(t *testing.T) {
 			reason: "Secret should only be deleted if no other properties are set v1",
 			ref:    &testingfake.PushSecretData{RemoteKey: "secret", Property: "foo"},
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"foo": "bar",
 						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
-					}, nil),
+					}, "", nil),
 					WriteWithContextFn:  fake.ExpectWriteWithContextNoCall(),
-					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, nil),
+					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, "", nil),
 				},
 			},
 			want: want{
@@ -300,7 +300,7 @@ func TestDeleteSecret(t *testing.T) {
 			reason: "Secret should only be deleted if no other properties are set v2",
 			ref:    &testingfake.PushSecretData{RemoteKey: "secret", Property: "foo"},
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"data": map[string]any{
@@ -309,9 +309,9 @@ func TestDeleteSecret(t *testing.T) {
 						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
-					}, nil),
+					}, "", nil),
 					WriteWithContextFn:  fake.ExpectWriteWithContextNoCall(),
-					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, nil),
+					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, "", nil),
 				},
 			},
 			want: want{
@@ -351,6 +351,7 @@ func TestPushSecret(t *testing.T) {
 	type args struct {
 		store    *esv1beta1.VaultProvider
 		vLogical util.Logical
+		ns       string
 	}
 
 	type want struct {
@@ -367,23 +368,51 @@ func TestPushSecret(t *testing.T) {
 		"SetSecretKV1": {
 			reason: "secret is successfully set, with no existing vault secret",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
-					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, nil),
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, "", nil),
+					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, "", nil),
 				},
 			},
 			want: want{
 				err: nil,
 			},
 		},
+		"SetSecretKV1 with namespace": {
+			reason: "secret is successfully set, with no existing vault secret",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1, "test-namespace").Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, "test-namespace", nil),
+					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, "test-namespace", nil),
+				},
+				ns: "test-namespace",
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretKV1 with different namespace should error": {
+			reason: "secret is successfully set, with no existing vault secret",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1, "test-namespace").Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, "test-namespace", nil),
+					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, "test-namespace", nil),
+				},
+				ns: "different-namespace",
+			},
+			want: want{
+				err: fmt.Errorf("path does not contain namespace"),
+			},
+		},
 		"SetSecretKV2": {
 			reason: "secret is successfully set, with no existing vault secret",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
-					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, nil),
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, "", nil),
+					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, "", nil),
 				},
 			},
 			want: want{
@@ -393,10 +422,10 @@ func TestPushSecret(t *testing.T) {
 		"SetSecretWithWriteErrorKV1": {
 			reason: "secret cannot be pushed if write fails",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
-					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, noPermission),
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, "", nil),
+					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, "", noPermission),
 				},
 			},
 			want: want{
@@ -406,10 +435,10 @@ func TestPushSecret(t *testing.T) {
 		"SetSecretWithWriteErrorKV2": {
 			reason: "secret cannot be pushed if write fails",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
-					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, noPermission),
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, "", nil),
+					WriteWithContextFn:        fake.NewWriteWithContextFn(nil, "", noPermission),
 				},
 			},
 			want: want{
@@ -419,14 +448,14 @@ func TestPushSecret(t *testing.T) {
 		"SetSecretEqualsPushSecretV1": {
 			reason: "vault secret kv equals secret to push kv",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						fakeKey: fakeValue,
 						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
-					}, nil),
+					}, "", nil),
 				},
 			},
 			want: want{
@@ -436,7 +465,7 @@ func TestPushSecret(t *testing.T) {
 		"SetSecretEqualsPushSecretV2": {
 			reason: "vault secret kv equals secret to push kv",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"data": map[string]any{
@@ -445,7 +474,7 @@ func TestPushSecret(t *testing.T) {
 						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
-					}, nil),
+					}, "", nil),
 				},
 			},
 			want: want{
@@ -457,14 +486,14 @@ func TestPushSecret(t *testing.T) {
 			value:  []byte(fakeValue),
 			data:   &testingfake.PushSecretData{SecretKey: secretKey, RemoteKey: "secret", Property: "foo"},
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						fakeKey: fakeValue,
 						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
-					}, nil),
+					}, "", nil),
 					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]any{
 						fakeKey: fakeValue,
 						"custom_metadata": map[string]string{
@@ -483,7 +512,7 @@ func TestPushSecret(t *testing.T) {
 			value:  []byte(fakeValue),
 			data:   &testingfake.PushSecretData{SecretKey: secretKey, RemoteKey: "secret", Property: "foo"},
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"data": map[string]any{
@@ -492,7 +521,7 @@ func TestPushSecret(t *testing.T) {
 						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
-					}, nil),
+					}, "", nil),
 					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]any{"data": map[string]any{fakeKey: fakeValue, "foo": fakeValue}}),
 				},
 			},
@@ -505,14 +534,14 @@ func TestPushSecret(t *testing.T) {
 			value:  []byte("new-value"),
 			data:   &testingfake.PushSecretData{SecretKey: secretKey, RemoteKey: "secret", Property: "foo"},
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"foo": fakeValue,
 						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
-					}, nil),
+					}, "", nil),
 					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]any{
 						"foo": "new-value",
 						"custom_metadata": map[string]string{
@@ -530,7 +559,7 @@ func TestPushSecret(t *testing.T) {
 			value:  []byte("new-value"),
 			data:   &testingfake.PushSecretData{SecretKey: secretKey, RemoteKey: "secret", Property: "foo"},
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"data": map[string]any{
@@ -539,7 +568,7 @@ func TestPushSecret(t *testing.T) {
 						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
-					}, nil),
+					}, "", nil),
 					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]any{"data": map[string]any{"foo": "new-value"}}),
 				},
 			},
@@ -552,14 +581,14 @@ func TestPushSecret(t *testing.T) {
 			value:  []byte(fakeValue),
 			data:   &testingfake.PushSecretData{SecretKey: secretKey, RemoteKey: "secret", Property: "foo"},
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"foo": fakeValue,
 						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
-					}, nil),
+					}, "", nil),
 					WriteWithContextFn: fake.ExpectWriteWithContextNoCall(),
 				},
 			},
@@ -572,7 +601,7 @@ func TestPushSecret(t *testing.T) {
 			value:  []byte(fakeValue),
 			data:   &testingfake.PushSecretData{SecretKey: secretKey, RemoteKey: "secret", Property: "foo"},
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"data": map[string]any{
@@ -581,7 +610,7 @@ func TestPushSecret(t *testing.T) {
 						"custom_metadata": map[string]any{
 							managedBy: managedByESO,
 						},
-					}, nil),
+					}, "", nil),
 					WriteWithContextFn: fake.ExpectWriteWithContextNoCall(),
 				},
 			},
@@ -592,9 +621,9 @@ func TestPushSecret(t *testing.T) {
 		"SetSecretErrorReadingSecretKV1": {
 			reason: "error occurs if secret cannot be read",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, noPermission),
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, "", noPermission),
 				},
 			},
 			want: want{
@@ -604,9 +633,9 @@ func TestPushSecret(t *testing.T) {
 		"SetSecretErrorReadingSecretKV2": {
 			reason: "error occurs if secret cannot be read",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, noPermission),
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, "", noPermission),
 				},
 			},
 			want: want{
@@ -616,14 +645,14 @@ func TestPushSecret(t *testing.T) {
 		"SetSecretNotManagedByESOV1": {
 			reason: "a secret not managed by ESO cannot be updated",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						fakeKey: "fake-value2",
 						"custom_metadata": map[string]any{
 							managedBy: "not-external-secrets",
 						},
-					}, nil),
+					}, "", nil),
 				},
 			},
 			want: want{
@@ -633,7 +662,7 @@ func TestPushSecret(t *testing.T) {
 		"SetSecretNotManagedByESOV2": {
 			reason: "a secret not managed by ESO cannot be updated",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
 						"data": map[string]any{
@@ -642,7 +671,7 @@ func TestPushSecret(t *testing.T) {
 								managedBy: "not-external-secrets",
 							},
 						},
-					}, nil),
+					}, "", nil),
 				},
 			},
 			want: want{
@@ -652,9 +681,9 @@ func TestPushSecret(t *testing.T) {
 		"WholeSecretKV2": {
 			reason: "secret is successfully set, with no existing vault secret",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "").Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, "", nil),
 					WriteWithContextFn:        fake.ExpectWriteWithContextValue(map[string]any{"data": map[string]any{"key1": "value1", "key2": "value2"}}),
 				},
 			},
@@ -673,8 +702,9 @@ func TestPushSecret(t *testing.T) {
 				data = *tc.data
 			}
 			client := &client{
-				logical: tc.args.vLogical,
-				store:   tc.args.store,
+				namespace: tc.args.ns,
+				logical:   tc.args.vLogical,
+				store:     tc.args.store,
 			}
 			s := tc.secret
 			if s == nil {
