@@ -20,7 +20,7 @@ func loadConfigFromEnv() (*config, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfg.password, err = getEnv("SECRETSERVER_PASSWD")
+	cfg.password, err = getEnv("SECRETSERVER_PASSWORD")
 	if err != nil {
 		return nil, err
 	}
