@@ -16,15 +16,15 @@ func loadConfigFromEnv() (*config, error) {
 	var err error
 
 	// Required settings
-	cfg.username, err = getEnv("SECRETSERVER_USERNAME")
+	cfg.username, err = getEnv("USERNAME")
 	if err != nil {
 		return nil, err
 	}
-	cfg.password, err = getEnv("SECRETSERVER_PASSWD")
+	cfg.password, err = getEnv("PASSWORD")
 	if err != nil {
 		return nil, err
 	}
-	cfg.serverURL, err = getEnv("SECRETSERVER_URL")
+	cfg.serverURL, err = getEnv("URL")
 	if err != nil {
 		return nil, err
 	}
