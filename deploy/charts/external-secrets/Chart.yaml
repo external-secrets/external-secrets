@@ -13,3 +13,9 @@ icon: https://raw.githubusercontent.com/external-secrets/external-secrets/main/a
 maintainers:
   - name: mcavoyk
     email: kellinmcavoy@gmail.com
+
+dependencies:
+  - name: bitwarden-sdk-server
+    version: v0.1.4
+    repository: oci://ghcr.io/external-secrets/charts
+    condition: bitwarden-sdk-server.enabled
