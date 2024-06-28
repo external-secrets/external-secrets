@@ -57,13 +57,14 @@ The following table describes the stability level of each provider and who's res
 | [Passbolt](https://external-secrets.io/latest/provider/passbolt)                                           |   alpha   |                                                                                                                                                   |
 | [Infisical](https://external-secrets.io/latest/provider/infisical)                                         |   alpha   | [@akhilmhdh](https://github.com/akhilmhdh)                                                                                       |
 | [Device42](https://external-secrets.io/latest/provider/device42)                                           |   alpha   |                                                                                                                                                   |
+| [Bitwarden Secrets Manager](https://external-secrets.io/latest/provider/bitwarden-secrets-manager)         |   alpha   |                                                                                                                                                   |
 
 ## Provider Feature Support
 
 The following table show the support for features across different providers.
 
 | Provider                  | find by name | find by tags | metadataPolicy Fetch | referent authentication | store validation | push secret | DeletionPolicy Merge/Delete |
-| ------------------------- | :----------: | :----------: | :------------------: | :---------------------: | :--------------: | :---------: | :-------------------------: |
+|---------------------------|:------------:| :----------: | :------------------: | :---------------------: | :--------------: |:-----------:|:---------------------------:|
 | AWS Secrets Manager       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | AWS Parameter Store       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Hashicorp Vault           |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
@@ -88,6 +89,7 @@ The following table show the support for features across different providers.
 | Passbolt                  |      x       |              |                      |                         |        x         |             |                             |
 | Infisical                 |      x       |              |                      |            x            |        x         |             |                             |
 | Device42                  |              |              |                      |                         |        x         |             |                             |
+| Bitwarden Secrets Manager |      x       |              |                      |                         |        x         |      x      |              x              |
 
 ## Support Policy
 

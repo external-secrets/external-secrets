@@ -74,6 +74,10 @@ type SecretStoreProvider struct {
 	// +optional
 	Akeyless *AkeylessProvider `json:"akeyless,omitempty"`
 
+	// BitwardenSecretsManager configures this store to sync secrets using BitwardenSecretsManager provider
+	// +optional
+	BitwardenSecretsManager *BitwardenSecretsManagerProvider `json:"bitwardensecretsmanager,omitempty"`
+
 	// Vault configures this store to sync secrets using Hashi provider
 	// +optional
 	Vault *VaultProvider `json:"vault,omitempty"`
