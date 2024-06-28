@@ -146,6 +146,7 @@ run: generate ## Run app locally (without a k8s cluster)
 
 manifests: helm.generate ## Generate manifests from helm chart
 	mkdir -p $(OUTPUT_DIR)/deploy/manifests
+	helm dependency build $(HELM_DIR)
 	helm template external-secrets $(HELM_DIR) -f deploy/manifests/helm-values.yaml > $(OUTPUT_DIR)/deploy/manifests/external-secrets.yaml
 
 crds.install: generate ## Install CRDs into a cluster. This is for convenience

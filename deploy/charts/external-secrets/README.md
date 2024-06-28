@@ -35,6 +35,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` |  |
+| bitwarden-sdk-server.enabled | bool | `false` |  |
 | certController.affinity | object | `{}` |  |
 | certController.create | bool | `true` | Specifies whether a certificate controller deployment be created. |
 | certController.deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
@@ -108,7 +109,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | global.tolerations | list | `[]` |  |
 | global.topologySpreadConstraints | list | `[]` |  |
 | hostNetwork | bool | `false` | Run the controller on the host network |
-| image.flavour | string | `""` | The flavour of tag you want to use There are different image flavours available, like distroless and ubi. Please see GitHub release notes for image tags for these flavors. By default the distroless image is used. |
+| image.flavour | string | `""` | The flavour of tag you want to use There are different image flavours available, like distroless and ubi. Please see GitHub release notes for image tags for these flavors. By default, the distroless image is used. |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
 | image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |

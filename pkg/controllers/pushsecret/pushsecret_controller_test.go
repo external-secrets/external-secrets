@@ -494,6 +494,60 @@ var _ = Describe("PushSecret controller", func() {
 			return true
 		}
 	}
+
+	// if PushSecret's DeletionPolicy is cleared, it should delete successfully
+	syncChangePolicyAndDeleteSuccessfully := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		tc.pushsecret = &v1alpha1.PushSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      PushSecretName,
+				Namespace: PushSecretNamespace,
+			},
+			Spec: v1alpha1.PushSecretSpec{
+				DeletionPolicy: v1alpha1.PushSecretDeletionPolicyDelete,
+				SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
+					{
+						Name: PushSecretStore,
+						Kind: "SecretStore",
+					},
+				},
+				Selector: v1alpha1.PushSecretSelector{
+					Secret: v1alpha1.PushSecretSecret{
+						Name: SecretName,
+					},
+				},
+				Data: []v1alpha1.PushSecretData{
+					{
+						Match: v1alpha1.PushSecretMatch{
+							SecretKey: defaultKey,
+							RemoteRef: v1alpha1.PushSecretRemoteRef{
+								RemoteKey: defaultPath,
+							},
+						},
+					},
+				},
+			},
+		}
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			ps.Spec.DeletionPolicy = v1alpha1.PushSecretDeletionPolicyNone
+			updatedPS := &v1alpha1.PushSecret{}
+			Expect(k8sClient.Update(context.Background(), ps, &client.UpdateOptions{})).Should(Succeed())
+			Expect(k8sClient.Delete(context.Background(), ps, &client.DeleteOptions{})).Should(Succeed())
+			Eventually(func() bool {
+				psKey := types.NamespacedName{Name: PushSecretName, Namespace: PushSecretNamespace}
+				By("checking if Get PushSecret returns not found")
+				err := k8sClient.Get(context.Background(), psKey, updatedPS)
+				if err != nil && client.IgnoreNotFound(err) == nil {
+					return true
+				}
+				return false
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+
 	failDelete := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
 			return nil
@@ -1007,6 +1061,7 @@ var _ = Describe("PushSecret controller", func() {
 		Entry("should sync with template", syncSuccessfullyWithTemplate),
 		Entry("should sync with conversion strategy", syncSuccessfullyWithConversionStrategy),
 		Entry("should delete if DeletionPolicy=Delete", syncAndDeleteSuccessfully),
+		Entry("should delete after DeletionPolicy changed from Delete to None", syncChangePolicyAndDeleteSuccessfully),
 		Entry("should track deletion tasks if Delete fails", failDelete),
 		Entry("should track deleted stores if Delete fails", failDeleteStore),
 		Entry("should delete all secrets if SecretStore changes", deleteWholeStore),
