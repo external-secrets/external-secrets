@@ -1001,6 +1001,166 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.BitwardenSecretsManagerAuth">BitwardenSecretsManagerAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider</a>)
+</p>
+<p>
+<p>BitwardenSecretsManagerAuth contains the ref to the secret that contains the machine account token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerSecretRef">
+BitwardenSecretsManagerSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>BitwardenSecretsManagerProvider configures a store to sync secrets with a Bitwarden Secrets Manager instance.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiURL</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>identityURL</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>bitwardenServerSDKURL</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Base64 encoded certificate for the bitwarden server sdk. The sdk MUST run with HTTPS to make sure no MITM attack
+can be performed.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>organizationID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>OrganizationID determines which organization this secret store manages.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>projectID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ProjectID determines which project this secret store manages.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerAuth">
+BitwardenSecretsManagerAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how secret-manager authenticates with a bitwarden machine account instance.
+Make sure that the token being used has permissions on the given secret.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.BitwardenSecretsManagerSecretRef">BitwardenSecretsManagerSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerAuth">BitwardenSecretsManagerAuth</a>)
+</p>
+<p>
+<p>BitwardenSecretsManagerSecretRef contains the credential ref to the bitwarden instance.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>credentials</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>AccessToken used for the bitwarden instance.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.CAProvider">CAProvider
 </h3>
 <p>
@@ -5971,6 +6131,20 @@ AkeylessProvider
 <td>
 <em>(Optional)</em>
 <p>Akeyless configures this store to sync secrets using Akeyless Vault provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>bitwardensecretsmanager</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerProvider">
+BitwardenSecretsManagerProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>BitwardenSecretsManager configures this store to sync secrets using BitwardenSecretsManager provider</p>
 </td>
 </tr>
 <tr>
