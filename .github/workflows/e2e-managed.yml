@@ -64,7 +64,7 @@ jobs:
 
     # Check out merge commit
     - name: Fork based /ok-to-test-managed checkout
-      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       with:
         ref: 'refs/pull/${{ env.GITHUB_PR_NUMBER }}/merge'
 

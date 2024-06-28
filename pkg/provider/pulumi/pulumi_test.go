@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
 	esc2 "github.com/pulumi/esc"
@@ -76,6 +77,73 @@ func TestGetSecret(t *testing.T) {
 				assert.Nil(t, got)
 				assert.ErrorIs(t, err, tc.err)
 				assert.Equal(t, tc.err, err)
+			}
+		})
+	}
+}
+
+func TestGetSecretMap(t *testing.T) {
+	tests := []struct {
+		name  string
+		ref   esv1beta1.ExternalSecretDataRemoteRef
+		input string
+
+		want    map[string][]byte
+		wantErr bool
+	}{
+		{
+			name: "successful case (basic types)",
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key: "mysec",
+			},
+			input: `{"foo": "bar", "foobar": 42, "bar": true}`,
+			want: map[string][]byte{
+				"foo":    []byte("bar"),
+				"foobar": []byte("42"),
+				"bar":    []byte(`true`),
+			},
+			wantErr: false,
+		},
+		{
+			name: "successful case (nested)",
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key: "mysec",
+			},
+			input: `{"foo": {"foobar": 42}, "bar": {"foo": "bar"}}`,
+			want: map[string][]byte{
+				"foo": []byte(`{"foobar":42}`),
+				"bar": []byte(`{"foo":"bar"}`),
+			},
+			wantErr: false,
+		},
+		{
+			name: "successful case (basic + nested)",
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key: "mysec",
+			},
+			input: `{"foo": "bar", "bar": {"foo": {"bar": false}}}`,
+			want: map[string][]byte{
+				"foo": []byte(`bar`),
+				"bar": []byte(`{"foo":{"bar":false}}`),
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := newTestClient(t, http.MethodGet, "/api/preview/environments/foo/bar/open/session", func(w http.ResponseWriter, r *http.Request) {
+				esc2Input, err1 := esc2.FromJSON(tt.input, false)
+				require.NoError(t, err1)
+				err2 := json.NewEncoder(w).Encode(esc2Input)
+				require.NoError(t, err2)
+			})
+			got, err := p.GetSecretMap(context.Background(), tt.ref)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ProviderPulumi.GetSecretMap() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ProviderPulumi.GetSecretMap() get = %v, want %v", got, tt.want)
 			}
 		})
 	}

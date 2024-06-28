@@ -42,6 +42,10 @@ const (
 // setAuth gets a new token using the configured mechanism.
 // If there's already a valid token, does nothing.
 func (c *client) setAuth(ctx context.Context, cfg *vault.Config) error {
+	// Switch to auth namespace if different from the provider namespace
+	restoreNamespace := c.useAuthNamespace(ctx)
+	defer restoreNamespace()
+
 	tokenExists := false
 	var err error
 	if c.client.Token() != "" {
@@ -143,6 +147,11 @@ func checkToken(ctx context.Context, token util.Token) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	// LookupSelfWithContext() calls ParseSecret(), which has several places
+	// that return no data and no error, including when a token is expired.
+	if resp == nil {
+		return false, fmt.Errorf("no response nor error for token lookup")
+	}
 	t, ok := resp.Data["type"]
 	if !ok {
 		return false, fmt.Errorf("could not assert token type")
@@ -168,4 +177,28 @@ func revokeTokenIfValid(ctx context.Context, client util.Client) error {
 		client.ClearToken()
 	}
 	return nil
+}
+
+func (c *client) useAuthNamespace(_ context.Context) func() {
+	ns := ""
+	if c.store.Namespace != nil {
+		ns = *c.store.Namespace
+	}
+
+	if c.store.Auth.Namespace != nil {
+		// Different Auth Vault Namespace than Secret Vault Namespace
+		// Switch namespaces then switch back at the end
+		if c.store.Auth.Namespace != nil && *c.store.Auth.Namespace != ns {
+			c.log.V(1).Info("Using namespace=%s for the vault login", *c.store.Auth.Namespace)
+			c.client.SetNamespace(*c.store.Auth.Namespace)
+			// use this as a defer to reset the namespace
+			return func() {
+				c.log.V(1).Info("Restoring client namespace to namespace=%s", ns)
+				c.client.SetNamespace(ns)
+			}
+		}
+	}
+
+	// no-op
+	return func() {}
 }

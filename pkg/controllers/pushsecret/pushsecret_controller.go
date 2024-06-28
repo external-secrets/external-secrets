@@ -38,6 +38,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/provider/util/locks"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -47,6 +48,8 @@ const (
 	errGetClusterSecretStore = "could not get ClusterSecretStore %q, %w"
 	errSetSecretFailed       = "could not write remote ref %v to target secretstore %v: %v"
 	errFailedSetSecret       = "set secret failed: %v"
+	errConvert               = "could not apply conversion strategy to keys: %v"
+	errUnmanagedStores       = "PushSecret %q has no managed stores to push to"
 	pushSecretFinalizer      = "pushsecret.externalsecrets.io/finalizer"
 )
 
@@ -135,6 +138,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			}
 		}
 	case esapi.PushSecretDeletionPolicyNone:
+		if controllerutil.ContainsFinalizer(&ps, pushSecretFinalizer) {
+			controllerutil.RemoveFinalizer(&ps, pushSecretFinalizer)
+			if err := r.Client.Update(ctx, &ps, &client.UpdateOptions{}); err != nil {
+				return ctrl.Result{}, fmt.Errorf("could not update finalizers: %w", err)
+			}
+		}
 	default:
 	}
 
@@ -153,6 +162,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	if err := r.applyTemplate(ctx, &ps, secret); err != nil {
 		return ctrl.Result{}, err
+	}
+
+	secretStores, err = removeUnmanagedStores(ctx, req.Namespace, r, secretStores)
+	if err != nil {
+		r.markAsFailed(err.Error(), &ps, nil)
+		return ctrl.Result{}, err
+	}
+	// if no stores are managed by this controller
+	if len(secretStores) == 0 {
+		return ctrl.Result{}, nil
 	}
 
 	syncedSecrets, err := r.PushSecretToProviders(ctx, secretStores, ps, secret, mgr)
@@ -289,11 +308,17 @@ func (r *Reconciler) handlePushSecretDataForStore(ctx context.Context, ps esapi.
 		Name: storeName,
 		Kind: refKind,
 	}
+	originalSecretData := secret.Data
 	secretClient, err := mgr.Get(ctx, storeRef, ps.GetNamespace(), nil)
 	if err != nil {
 		return out, fmt.Errorf("could not get secrets client for store %v: %w", storeName, err)
 	}
 	for _, data := range ps.Spec.Data {
+		secretData, err := utils.ReverseKeys(data.ConversionStrategy, originalSecretData)
+		if err != nil {
+			return nil, fmt.Errorf(errConvert, err)
+		}
+		secret.Data = secretData
 		key := data.GetSecretKey()
 		if !secretKeyExists(key, secret) {
 			return out, fmt.Errorf("secret key %v does not exist", key)
@@ -456,4 +481,33 @@ func statusRef(ref v1beta1.PushSecretData) string {
 		return ref.GetRemoteKey() + "/" + ref.GetProperty()
 	}
 	return ref.GetRemoteKey()
+}
+
+// removeUnmanagedStores iterates over all SecretStore references and evaluates the controllerClass property.
+// Returns a map containing only managed stores.
+func removeUnmanagedStores(ctx context.Context, namespace string, r *Reconciler, ss map[esapi.PushSecretStoreRef]v1beta1.GenericStore) (map[esapi.PushSecretStoreRef]v1beta1.GenericStore, error) {
+	for ref := range ss {
+		var store v1beta1.GenericStore
+		switch ref.Kind {
+		case v1beta1.SecretStoreKind:
+			store = &v1beta1.SecretStore{}
+		case v1beta1.ClusterSecretStoreKind:
+			store = &v1beta1.ClusterSecretStore{}
+			namespace = ""
+		}
+		err := r.Client.Get(ctx, types.NamespacedName{
+			Name:      ref.Name,
+			Namespace: namespace,
+		}, store)
+
+		if err != nil {
+			return ss, err
+		}
+
+		class := store.GetSpec().Controller
+		if class != "" && class != r.ControllerClass {
+			delete(ss, ref)
+		}
+	}
+	return ss, nil
 }

@@ -151,12 +151,12 @@ func (p *Parser) MergeMap(tplMap map[string]string, target esv1beta1.TemplateTar
 }
 
 func GetManagedAnnotationKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
-	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]interface{}) []string {
+	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]any) []string {
 		metadataFields, exists := fields["f:metadata"]
 		if !exists {
 			return nil
 		}
-		mf, ok := metadataFields.(map[string]interface{})
+		mf, ok := metadataFields.(map[string]any)
 		if !ok {
 			return nil
 		}
@@ -164,7 +164,7 @@ func GetManagedAnnotationKeys(secret *v1.Secret, fieldOwner string) ([]string, e
 		if !exists {
 			return nil
 		}
-		af, ok := annotationFields.(map[string]interface{})
+		af, ok := annotationFields.(map[string]any)
 		if !ok {
 			return nil
 		}
@@ -177,12 +177,12 @@ func GetManagedAnnotationKeys(secret *v1.Secret, fieldOwner string) ([]string, e
 }
 
 func GetManagedLabelKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
-	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]interface{}) []string {
+	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]any) []string {
 		metadataFields, exists := fields["f:metadata"]
 		if !exists {
 			return nil
 		}
-		mf, ok := metadataFields.(map[string]interface{})
+		mf, ok := metadataFields.(map[string]any)
 		if !ok {
 			return nil
 		}
@@ -190,7 +190,7 @@ func GetManagedLabelKeys(secret *v1.Secret, fieldOwner string) ([]string, error)
 		if !exists {
 			return nil
 		}
-		lf, ok := labelFields.(map[string]interface{})
+		lf, ok := labelFields.(map[string]any)
 		if !ok {
 			return nil
 		}
@@ -205,7 +205,7 @@ func GetManagedLabelKeys(secret *v1.Secret, fieldOwner string) ([]string, error)
 func getManagedFieldKeys(
 	secret *v1.Secret,
 	fieldOwner string,
-	process func(fields map[string]interface{}) []string,
+	process func(fields map[string]any) []string,
 ) ([]string, error) {
 	fqdn := fmt.Sprintf(fieldOwnerTemplate, fieldOwner)
 	var keys []string
@@ -213,7 +213,7 @@ func getManagedFieldKeys(
 		if v.Manager != fqdn {
 			continue
 		}
-		fields := make(map[string]interface{})
+		fields := make(map[string]any)
 		err := json.Unmarshal(v.FieldsV1.Raw, &fields)
 		if err != nil {
 			return nil, fmt.Errorf("error unmarshaling managed fields: %w", err)

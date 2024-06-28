@@ -838,7 +838,21 @@ External Secrets meta/v1.SecretKeySelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>The Azure clientId of the service principle used for authentication.</p>
+<p>The Azure clientId of the service principle or managed identity used for authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tenantId</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The Azure tenantId of the managed identity used for authentication.</p>
 </td>
 </tr>
 <tr>
@@ -853,6 +867,20 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <em>(Optional)</em>
 <p>The Azure ClientSecret of the service principle used for authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientCertificate</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The Azure ClientCertificate of the service principle used for authentication.</p>
 </td>
 </tr>
 </tbody>
@@ -911,7 +939,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type.</p>
+<p>TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type. Optional for WorkloadIdentity.</p>
 </td>
 </tr>
 <tr>
@@ -941,7 +969,7 @@ AzureKVAuth
 </td>
 <td>
 <em>(Optional)</em>
-<p>Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type.</p>
+<p>Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type. Optional for WorkloadIdentity.</p>
 </td>
 </tr>
 <tr>
@@ -969,6 +997,166 @@ string
 <td>
 <em>(Optional)</em>
 <p>If multiple Managed Identity is assigned to the pod, you can select the one to be used</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.BitwardenSecretsManagerAuth">BitwardenSecretsManagerAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider</a>)
+</p>
+<p>
+<p>BitwardenSecretsManagerAuth contains the ref to the secret that contains the machine account token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerSecretRef">
+BitwardenSecretsManagerSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>BitwardenSecretsManagerProvider configures a store to sync secrets with a Bitwarden Secrets Manager instance.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiURL</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>identityURL</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>bitwardenServerSDKURL</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Base64 encoded certificate for the bitwarden server sdk. The sdk MUST run with HTTPS to make sure no MITM attack
+can be performed.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>organizationID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>OrganizationID determines which organization this secret store manages.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>projectID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ProjectID determines which project this secret store manages.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerAuth">
+BitwardenSecretsManagerAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how secret-manager authenticates with a bitwarden machine account instance.
+Make sure that the token being used has permissions on the given secret.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.BitwardenSecretsManagerSecretRef">BitwardenSecretsManagerSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerAuth">BitwardenSecretsManagerAuth</a>)
+</p>
+<p>
+<p>BitwardenSecretsManagerSecretRef contains the credential ref to the bitwarden instance.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>credentials</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>AccessToken used for the bitwarden instance.</p>
 </td>
 </tr>
 </tbody>
@@ -1315,7 +1503,22 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.
+Deprecated: Use NamespaceSelectors instead.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaceSelectors</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#*k8s.io/apimachinery/pkg/apis/meta/v1.labelselector--">
+[]*k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>A list of labels to select by to find the Namespaces to create the ExternalSecrets in. The selectors are ORed.</p>
 </td>
 </tr>
 <tr>
@@ -1327,7 +1530,7 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelector ends up choosing.</p>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.</p>
 </td>
 </tr>
 <tr>
@@ -1488,7 +1691,22 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.</p>
+<p>The labels to select by to find the Namespaces to create the ExternalSecrets in.
+Deprecated: Use NamespaceSelectors instead.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaceSelectors</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#*k8s.io/apimachinery/pkg/apis/meta/v1.labelselector--">
+[]*k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>A list of labels to select by to find the Namespaces to create the ExternalSecrets in. The selectors are ORed.</p>
 </td>
 </tr>
 <tr>
@@ -1500,7 +1718,7 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelector ends up choosing.</p>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.</p>
 </td>
 </tr>
 <tr>
@@ -1803,7 +2021,20 @@ Kubernetes meta/v1.LabelSelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Choose namespaces by name</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaceRegexes</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Choose namespaces by using regex matching</p>
 </td>
 </tr>
 </tbody>
@@ -2172,6 +2403,111 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <em>(Optional)</em>
 <p>SecretRef references a key in a secret that will be used as value.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.Device42Auth">Device42Auth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.Device42Provider">Device42Provider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.Device42SecretRef">
+Device42SecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.Device42Provider">Device42Provider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>Device42Provider configures a store to sync secrets with a Device42 instance.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>host</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>URL configures the Device42 instance URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.Device42Auth">
+Device42Auth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how secret-manager authenticates with a Device42 instance.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.Device42SecretRef">Device42SecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.Device42Auth">Device42Auth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>credentials</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Username / Password is used for authentication.</p>
 </td>
 </tr>
 </tbody>
@@ -3862,6 +4198,17 @@ string
 <p>ProjectID project where secret is located</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>location</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Location optionally defines a location for a secret</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.GCPWorkloadIdentity">GCPWorkloadIdentity
@@ -4303,6 +4650,92 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.InfisicalAuth">InfisicalAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.InfisicalProvider">InfisicalProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>universalAuthCredentials</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.UniversalAuthCredentials">
+UniversalAuthCredentials
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.InfisicalProvider">InfisicalProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>InfisicalProvider configures a store to sync secrets using the Infisical provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.InfisicalAuth">
+InfisicalAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how the Operator authenticates with the Infisical API</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretsScope</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.MachineIdentityScopeInWorkspace">
+MachineIdentityScopeInWorkspace
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostAPI</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.KeeperSecurityProvider">KeeperSecurityProvider
 </h3>
 <p>
@@ -4513,6 +4946,55 @@ CAProvider
 <td>
 <em>(Optional)</em>
 <p>see: <a href="https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider">https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.MachineIdentityScopeInWorkspace">MachineIdentityScopeInWorkspace
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.InfisicalProvider">InfisicalProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretsPath</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>environmentSlug</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>projectSlug</code></br>
+<em>
+string
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -4985,6 +5467,91 @@ External Secrets meta/v1.SecretKeySelector
 </td>
 <td>
 <p>Fingerprint is the fingerprint of the API private key.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.PassboltAuth">PassboltAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.PassboltProvider">PassboltProvider</a>)
+</p>
+<p>
+<p>Passbolt contains a secretRef for the passbolt credentials.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>passwordSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>privateKeySecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.PassboltProvider">PassboltProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.PassboltAuth">
+PassboltAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth defines the information necessary to authenticate against Passbolt Server</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>host</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Host defines the Passbolt Server to connect to</p>
 </td>
 </tr>
 </tbody>
@@ -5568,6 +6135,20 @@ AkeylessProvider
 </tr>
 <tr>
 <td>
+<code>bitwardensecretsmanager</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerProvider">
+BitwardenSecretsManagerProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>BitwardenSecretsManager configures this store to sync secrets using BitwardenSecretsManager provider</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>vault</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.VaultProvider">
@@ -5886,6 +6467,47 @@ PasswordDepotProvider
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>passbolt</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.PassboltProvider">
+PassboltProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>device42</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.Device42Provider">
+Device42Provider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Device42 configures this store to sync secrets using the Device42 provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>infisical</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.InfisicalProvider">
+InfisicalProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Infisical configures this store to sync secrets using the Infisical provider</p>
 </td>
 </tr>
 </tbody>
@@ -6765,6 +7387,48 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.UniversalAuthCredentials">UniversalAuthCredentials
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.InfisicalAuth">InfisicalAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>clientId</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientSecret</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.ValidationResult">ValidationResult
 (<code>byte</code> alias)</p></h3>
 <p>
@@ -6876,7 +7540,7 @@ resource is used as the app role secret.</p>
 <p>
 <p>VaultAuth is the configuration used to authenticate with a Vault server.
 Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code>, <code>userPass</code>, <code>jwt</code> or <code>cert</code>
-can be specified.</p>
+can be specified. A namespace to authenticate against can optionally be specified.</p>
 </p>
 <table>
 <thead>
@@ -6886,6 +7550,22 @@ can be specified.</p>
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Name of the vault namespace to authenticate to. This can be different than the namespace your secret is in.
+Namespaces is a set of features within Vault Enterprise that allows
+Vault environments to support Secure Multi-tenancy. e.g: &ldquo;ns1&rdquo;.
+More about namespaces can be found here <a href="https://www.vaultproject.io/docs/enterprise/namespaces">https://www.vaultproject.io/docs/enterprise/namespaces</a>
+This will default to Vault.Namespace field if set, or empty otherwise</p>
+</td>
+</tr>
 <tr>
 <td>
 <code>tokenSecretRef</code></br>

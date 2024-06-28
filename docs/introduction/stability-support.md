@@ -51,16 +51,20 @@ The following table describes the stability level of each provider and who's res
 | [Doppler SecretOps Platform](https://external-secrets.io/latest/provider/doppler)                          |   alpha   |                                                                                         [@ryan-blunden](https://github.com/ryan-blunden/) [@nmanoogian](https://github.com/nmanoogian/) |
 | [Keeper Security](https://www.keepersecurity.com/)                                                         |   alpha   |                                                                                                                                              [@ppodevlab](https://github.com/ppodevlab) |
 | [Scaleway](https://external-secrets.io/latest/provider/scaleway)                                           |   alpha   |                                                                                                                                                   [@azert9](https://github.com/azert9/) |
-| [Conjur](https://external-secrets.io/latest/provider/conjur)                                               |   alpha   |                                                                                                                                 [@davidh-cyberark](https://github.com/davidh-cyberark/) |
+| [Conjur](https://external-secrets.io/latest/provider/conjur)                                               |   stable   |                                                                                                                                 [@davidh-cyberark](https://github.com/davidh-cyberark/) [@szh](https://github.com/szh) |
 | [Delinea](https://external-secrets.io/latest/provider/delinea)                                             |   alpha   |                                                                                                                                     [@michaelsauter](https://github.com/michaelsauter/) |
 | [Pulumi ESC](https://external-secrets.io/latest/provider/pulumi)                                           |   alpha   |                                                                                                                                                  [@dirien](https://github.com/dirien) |
+| [Passbolt](https://external-secrets.io/latest/provider/passbolt)                                           |   alpha   |                                                                                                                                                   |
+| [Infisical](https://external-secrets.io/latest/provider/infisical)                                         |   alpha   | [@akhilmhdh](https://github.com/akhilmhdh)                                                                                       |
+| [Device42](https://external-secrets.io/latest/provider/device42)                                           |   alpha   |                                                                                                                                                   |
+| [Bitwarden Secrets Manager](https://external-secrets.io/latest/provider/bitwarden-secrets-manager)         |   alpha   |                                                                                                                                                   |
 
 ## Provider Feature Support
 
 The following table show the support for features across different providers.
 
 | Provider                  | find by name | find by tags | metadataPolicy Fetch | referent authentication | store validation | push secret | DeletionPolicy Merge/Delete |
-| ------------------------- | :----------: | :----------: | :------------------: | :---------------------: | :--------------: | :---------: | :-------------------------: |
+|---------------------------|:------------:| :----------: | :------------------: | :---------------------: | :--------------: |:-----------:|:---------------------------:|
 | AWS Secrets Manager       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | AWS Parameter Store       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Hashicorp Vault           |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
@@ -79,9 +83,13 @@ The following table show the support for features across different providers.
 | Doppler                   |      x       |              |                      |                         |        x         |             |                             |
 | Keeper Security           |      x       |              |                      |                         |        x         |      x      |                             |
 | Scaleway                  |      x       |      x       |                      |                         |        x         |      x      |              x              |
-| Conjur                    |              |              |                      |                         |        x         |             |                             |
+| Conjur                    |      x       |      x       |                      |                         |        x         |             |                             |
 | Delinea                   |      x       |              |                      |                         |        x         |             |                             |
 | Pulumi ESC                |      x       |              |                      |                         |        x         |             |                             |
+| Passbolt                  |      x       |              |                      |                         |        x         |             |                             |
+| Infisical                 |      x       |              |                      |            x            |        x         |             |                             |
+| Device42                  |              |              |                      |                         |        x         |             |                             |
+| Bitwarden Secrets Manager |      x       |              |                      |                         |        x         |      x      |              x              |
 
 ## Support Policy
 

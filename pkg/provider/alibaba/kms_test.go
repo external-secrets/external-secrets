@@ -102,7 +102,7 @@ var setNilMockClient = func(kmstc *keyManagementServiceTestCase) {
 }
 
 func TestAlibabaKMSGetSecret(t *testing.T) {
-	secretData := make(map[string]interface{})
+	secretData := make(map[string]any)
 	secretValue := "changedvalue"
 	secretData["payload"] = secretValue
 

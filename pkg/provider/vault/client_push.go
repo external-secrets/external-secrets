@@ -26,16 +26,34 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
-	value := secret.Data[data.GetSecretKey()]
-	label := map[string]interface{}{
+	var (
+		value []byte
+		err   error
+	)
+	key := data.GetSecretKey()
+	if key == "" {
+		// Must convert secret values to string, otherwise data will be sent as base64 to Vault
+		secretStringVal := make(map[string]string)
+		for k, v := range secret.Data {
+			secretStringVal[k] = string(v)
+		}
+		value, err = utils.JSONMarshal(secretStringVal)
+		if err != nil {
+			return fmt.Errorf("failed to serialize secret content as JSON: %w", err)
+		}
+	} else {
+		value = secret.Data[key]
+	}
+	label := map[string]any{
 		"custom_metadata": map[string]string{
 			"managed-by": "external-secrets",
 		},
 	}
-	secretVal := make(map[string]interface{})
+	secretVal := make(map[string]any)
 	path := c.buildPath(data.GetRemoteKey())
 	metaPath, err := c.buildMetadataPath(data.GetRemoteKey())
 	if err != nil {
@@ -106,7 +124,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		secretToPush["custom_metadata"] = label["custom_metadata"]
 	}
 	if c.store.Version == esv1beta1.VaultKVStoreV2 {
-		secretToPush = map[string]interface{}{
+		secretToPush = map[string]any{
 			"data": secretVal,
 		}
 	}
@@ -160,7 +178,7 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecre
 		if len(secretVal) > 0 {
 			secretToPush := secretVal
 			if c.store.Version == esv1beta1.VaultKVStoreV2 {
-				secretToPush = map[string]interface{}{
+				secretToPush = map[string]any{
 					"data": secretVal,
 				}
 			}

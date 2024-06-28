@@ -123,29 +123,19 @@ func (s *secretsManagerClient) GetSecretValue(
 func (s *secretsManagerClient) doAPICall(ctx context.Context,
 	action string,
 	request any) (any, error) {
-	accessKeyID, err := s.config.Credential.GetAccessKeyId()
+	creds, err := s.config.Credential.GetCredential()
 	if err != nil {
-		return nil, fmt.Errorf("error getting AccessKeyId: %w", err)
-	}
-
-	accessKeySecret, err := s.config.Credential.GetAccessKeySecret()
-	if err != nil {
-		return nil, fmt.Errorf("error getting AccessKeySecret: %w", err)
-	}
-
-	securityToken, err := s.config.Credential.GetSecurityToken()
-	if err != nil {
-		return nil, fmt.Errorf("error getting SecurityToken: %w", err)
+		return nil, fmt.Errorf("could not get credentials: %w", err)
 	}
 
 	apiRequest := newOpenAPIRequest(s.endpoint, action, methodTypeGET, request)
-	apiRequest.query["AccessKeyId"] = accessKeyID
+	apiRequest.query["AccessKeyId"] = creds.AccessKeyId
 
-	if utils.Deref(securityToken) != "" {
-		apiRequest.query["SecurityToken"] = securityToken
+	if utils.Deref(creds.SecurityToken) != "" {
+		apiRequest.query["SecurityToken"] = creds.SecurityToken
 	}
 
-	apiRequest.query["Signature"] = openapiutil.GetRPCSignature(apiRequest.query, utils.Ptr(apiRequest.method.String()), accessKeySecret)
+	apiRequest.query["Signature"] = openapiutil.GetRPCSignature(apiRequest.query, utils.Ptr(apiRequest.method.String()), creds.AccessKeySecret)
 
 	httpReq, err := newHTTPRequestWithContext(ctx, apiRequest)
 	if err != nil {
@@ -161,7 +151,7 @@ func (s *secretsManagerClient) doAPICall(ctx context.Context,
 	return s.parseResponse(resp)
 }
 
-func (s *secretsManagerClient) parseResponse(resp *http.Response) (map[string]interface{}, error) {
+func (s *secretsManagerClient) parseResponse(resp *http.Response) (map[string]any, error) {
 	statusCode := utils.Ptr(resp.StatusCode)
 	if utils.Deref(util.Is4xx(statusCode)) || utils.Deref(util.Is5xx(statusCode)) {
 		return nil, s.parseErrorResponse(resp)
@@ -192,7 +182,7 @@ func (s *secretsManagerClient) parseErrorResponse(resp *http.Response) error {
 	}
 
 	errorMap["statusCode"] = utils.Ptr(resp.StatusCode)
-	err = tea.NewSDKError(map[string]interface{}{
+	err = tea.NewSDKError(map[string]any{
 		"code":               tea.ToString(defaultAny(errorMap["Code"], errorMap["code"])),
 		"message":            fmt.Sprintf("code: %s, %s", tea.ToString(resp.StatusCode), tea.ToString(defaultAny(errorMap["Message"], errorMap["message"]))),
 		"data":               errorMap,
@@ -222,7 +212,7 @@ type openAPIRequest struct {
 func newOpenAPIRequest(endpoint string,
 	action string,
 	method methodType,
-	request interface{},
+	request any,
 ) *openAPIRequest {
 	req := &openAPIRequest{
 		endpoint: endpoint,

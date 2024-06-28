@@ -25,8 +25,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	v1 "k8s.io/api/core/v1"
@@ -43,6 +41,9 @@ import (
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 var (
@@ -464,6 +465,39 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 				fmt.Sprintf(`{"f:data":{"f:targetProperty":{}},"f:immutable":{},"f:metadata":{"f:annotations":{"f:es-annotation-key":{},"f:%s":{}},"f:labels":{"f:es-label-key":{}}}}`, esv1beta1.AnnotationDataHash)),
 			).To(BeEmpty())
 			Expect(ctest.HasFieldOwnership(secret.ObjectMeta, FakeManager, `{"f:data":{".":{},"f:pre-existing-key":{}},"f:metadata":{"f:annotations":{".":{},"f:existing-annotation-key":{}},"f:labels":{".":{},"f:existing-label-key":{}}},"f:type":{}}`)).To(BeEmpty())
+		}
+	}
+
+	mergeWithSecretUpdate := func(tc *testCase) {
+		const secretVal = "someValue"
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyMerge
+		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Hour}
+
+		Expect(k8sClient.Create(context.Background(), &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ExternalSecretTargetSecretName,
+				Namespace: ExternalSecretNamespace,
+			},
+			Data: map[string][]byte{
+				existingKey: []byte(existingVal),
+			},
+		}, client.FieldOwner(FakeManager))).To(Succeed())
+
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// Overwrite the secret value to check if the change kicks reconciliation and overwrites it again
+			Expect(k8sClient.Update(context.Background(), &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ExternalSecretTargetSecretName,
+					Namespace: ExternalSecretNamespace,
+				},
+				Data: map[string][]byte{
+					existingKey: []byte("differentValue"),
+				},
+			}, client.FieldOwner(FakeManager))).To(Succeed())
+
+			Expect(string(secret.Data[existingKey])).To(Equal(existingVal))
+			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
 		}
 	}
 
@@ -2225,6 +2259,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		Entry("should removed outdated labels and annotations", removeOutdatedLabelsAnnotations),
 		Entry("should set prometheus counters", checkPrometheusCounters),
 		Entry("should merge with existing secret using creationPolicy=Merge", mergeWithSecret),
+		Entry("should kick reconciliation when secret changes using creationPolicy=Merge", mergeWithSecretUpdate),
 		Entry("should error if secret doesn't exist when using creationPolicy=Merge", mergeWithSecretErr),
 		Entry("should not resolve conflicts with creationPolicy=Merge", mergeWithConflict),
 		Entry("should not update unchanged secret using creationPolicy=Merge", mergeWithSecretNoChange),

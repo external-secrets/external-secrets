@@ -32,7 +32,7 @@ This will generate a valid dockerconfigjson secret for you to use!
 You can get the final value with:
 
 ```bash
-kubectl get secret secret-to-be-created -n <namespace> -o jsonpath="{.data\.dockerconfigjson}" | base64 -d
+kubectl get secret secret-to-be-created -n <namespace> -o jsonpath="{.data.\.dockerconfigjson}" | base64 -d
 ```
 
 Alternately, if you only have the container registry name and password value, you can take advantage of the advanced ExternalSecret templating functions to create the secret:

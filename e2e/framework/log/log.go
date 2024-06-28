@@ -19,6 +19,6 @@ import (
 )
 
 // Logf logs the format string to ginkgo stdout.
-func Logf(format string, args ...interface{}) {
+func Logf(format string, args ...any) {
 	ginkgo.GinkgoWriter.Printf(format+"\n", args...)
 }

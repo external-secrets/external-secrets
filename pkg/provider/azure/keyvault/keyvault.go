@@ -35,7 +35,6 @@ import (
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/tidwall/gjson"
-	"golang.org/x/crypto/pkcs12"
 	"golang.org/x/crypto/sha3"
 	authv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -47,6 +46,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	gopkcs12 "software.sslmate.com/src/go-pkcs12"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
@@ -64,27 +64,32 @@ const (
 	AnnotationTenantID   = "azure.workload.identity/tenant-id"
 	managerLabel         = "external-secrets"
 
-	errUnexpectedStoreSpec   = "unexpected store spec"
-	errMissingAuthType       = "cannot initialize Azure Client: no valid authType was specified"
-	errPropNotExist          = "property %s does not exist in key %s"
-	errTagNotExist           = "tag %s does not exist"
-	errUnknownObjectType     = "unknown Azure Keyvault object Type for %s"
-	errUnmarshalJSONData     = "error unmarshalling json data: %w"
-	errDataFromCert          = "cannot get use dataFrom to get certificate secret"
-	errDataFromKey           = "cannot get use dataFrom to get key secret"
-	errMissingTenant         = "missing tenantID in store config"
-	errMissingSecretRef      = "missing secretRef in provider config"
-	errMissingClientIDSecret = "missing accessKeyID/secretAccessKey in store config"
-	errFindSecret            = "could not find secret %s/%s: %w"
-	errFindDataKey           = "no data for %q in secret '%s/%s'"
+	errUnexpectedStoreSpec      = "unexpected store spec"
+	errMissingAuthType          = "cannot initialize Azure Client: no valid authType was specified"
+	errPropNotExist             = "property %s does not exist in key %s"
+	errTagNotExist              = "tag %s does not exist"
+	errUnknownObjectType        = "unknown Azure Keyvault object Type for %s"
+	errUnmarshalJSONData        = "error unmarshalling json data: %w"
+	errDataFromCert             = "cannot get use dataFrom to get certificate secret"
+	errDataFromKey              = "cannot get use dataFrom to get key secret"
+	errMissingTenant            = "missing tenantID in store config"
+	errMissingClient            = "missing clientID: either serviceAccountRef or service account annotation '%s' is missing"
+	errMissingSecretRef         = "missing secretRef in provider config"
+	errMissingClientIDSecret    = "missing accessKeyID/secretAccessKey in store config"
+	errInvalidClientCredentials = "both clientSecret and clientCredentials set"
+	errMultipleClientID         = "multiple clientID found. Check secretRef and serviceAccountRef"
+	errMultipleTenantID         = "multiple tenantID found. Check secretRef, 'spec.provider.azurekv.tenantId', and serviceAccountRef"
+	errFindSecret               = "could not find secret %s/%s: %w"
+	errFindDataKey              = "no data for %q in secret '%s/%s'"
 
-	errInvalidStore              = "invalid store"
-	errInvalidStoreSpec          = "invalid store spec"
-	errInvalidStoreProv          = "invalid store provider"
-	errInvalidAzureProv          = "invalid azure keyvault provider"
-	errInvalidSecRefClientID     = "invalid AuthSecretRef.ClientID: %w"
-	errInvalidSecRefClientSecret = "invalid AuthSecretRef.ClientSecret: %w"
-	errInvalidSARef              = "invalid ServiceAccountRef: %w"
+	errInvalidStore                   = "invalid store"
+	errInvalidStoreSpec               = "invalid store spec"
+	errInvalidStoreProv               = "invalid store provider"
+	errInvalidAzureProv               = "invalid azure keyvault provider"
+	errInvalidSecRefClientID          = "invalid AuthSecretRef.ClientID: %w"
+	errInvalidSecRefClientSecret      = "invalid AuthSecretRef.ClientSecret: %w"
+	errInvalidSecRefClientCertificate = "invalid AuthSecretRef.ClientCertificate: %w"
+	errInvalidSARef                   = "invalid ServiceAccountRef: %w"
 
 	errMissingWorkloadEnvVars = "missing environment variables. AZURE_CLIENT_ID, AZURE_TENANT_ID and AZURE_FEDERATED_TOKEN_FILE must be set"
 	errReadTokenFile          = "unable to read token file %s: %w"
@@ -310,13 +315,37 @@ func (a *Azure) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecret
 	}
 }
 
-func (a *Azure) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf("not implemented")
+func (a *Azure) SecretExists(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) (bool, error) {
+	objectType, secretName := getObjType(esv1beta1.ExternalSecretDataRemoteRef{Key: remoteRef.GetRemoteKey()})
+
+	var err error
+	switch objectType {
+	case defaultObjType:
+		_, err = a.baseClient.GetSecret(ctx, *a.provider.VaultURL, secretName, "")
+	case objectTypeCert:
+		_, err = a.baseClient.GetCertificate(ctx, *a.provider.VaultURL, secretName, "")
+	case objectTypeKey:
+		_, err = a.baseClient.GetKey(ctx, *a.provider.VaultURL, secretName, "")
+	default:
+		errMsg := fmt.Sprintf("secret type '%v' is not supported", objectType)
+		return false, errors.New(errMsg)
+	}
+
+	err = parseError(err)
+	if err != nil {
+		var noSecretErr esv1beta1.NoSecretError
+		if errors.As(err, &noSecretErr) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
 }
 
 func getCertificateFromValue(value []byte) (*x509.Certificate, error) {
 	// 1st: try decode pkcs12
-	_, localCert, err := pkcs12.Decode(value, "")
+	_, localCert, err := gopkcs12.Decode(value, "")
 	if err == nil {
 		return localCert, nil
 	}
@@ -342,7 +371,7 @@ func getCertificateFromValue(value []byte) (*x509.Certificate, error) {
 	return nil, fmt.Errorf("could not parse certificate value as PKCS#12, DER or PEM")
 }
 
-func getKeyFromValue(value []byte) (interface{}, error) {
+func getKeyFromValue(value []byte) (any, error) {
 	val := value
 	pemBlock, _ := pem.Decode(value)
 	// if a private key regular expression doesn't match, we should consider this key to be symmetric
@@ -526,7 +555,7 @@ func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretF
 	basicClient := a.baseClient
 	secretsMap := make(map[string][]byte)
 	checkTags := len(ref.Tags) > 0
-	checkName := ref.Name != nil && len(ref.Name.RegExp) > 0
+	checkName := ref.Name != nil && ref.Name.RegExp != ""
 
 	secretListIter, err := basicClient.GetSecretsComplete(ctx, *a.provider.VaultURL, nil)
 	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecrets, err)
@@ -769,9 +798,10 @@ func getSecretMapProperties(tags map[string]*string, key, property string) map[s
 func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider tokenProviderFunc) (autorest.Authorizer, error) {
 	aadEndpoint := AadEndpointForType(a.provider.EnvironmentType)
 	kvResource := kvResourceForProviderConfig(a.provider.EnvironmentType)
-	// if no serviceAccountRef was provided
+	// If no serviceAccountRef was provided
 	// we expect certain env vars to be present.
-	// They are set by the azure workload identity webhook.
+	// They are set by the azure workload identity webhook
+	// by adding the label `azure.workload.identity/use: "true"` to the external-secrets pod
 	if a.provider.ServiceAccountRef == nil {
 		clientID := os.Getenv("AZURE_CLIENT_ID")
 		tenantID := os.Getenv("AZURE_TENANT_ID")
@@ -801,13 +831,76 @@ func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider
 	if err != nil {
 		return nil, err
 	}
-	clientID, ok := sa.ObjectMeta.Annotations[AnnotationClientID]
-	if !ok {
-		return nil, fmt.Errorf(errMissingSAAnnotation, AnnotationClientID)
+	// Extract clientID
+	var clientID string
+	// First check if AuthSecretRef is set and clientID can be fetched from there
+	if a.provider.AuthSecretRef != nil {
+		if a.provider.AuthSecretRef.ClientID == nil {
+			return nil, fmt.Errorf(errMissingClientIDSecret)
+		}
+		clientID, err = resolvers.SecretKeyRef(
+			ctx,
+			a.crClient,
+			a.store.GetKind(),
+			a.namespace, a.provider.AuthSecretRef.ClientID)
+		if err != nil {
+			return nil, err
+		}
 	}
-	tenantID, ok := sa.ObjectMeta.Annotations[AnnotationTenantID]
-	if !ok {
-		return nil, fmt.Errorf(errMissingSAAnnotation, AnnotationTenantID)
+	// If AuthSecretRef is not set, use default (Service Account) implementation
+	// Try to get clientID from Annotations
+	if len(sa.ObjectMeta.Annotations) > 0 {
+		if val, found := sa.ObjectMeta.Annotations[AnnotationClientID]; found {
+			// If clientID is defined in both Annotations and AuthSecretRef, return an error
+			if clientID != "" {
+				return nil, fmt.Errorf(errMultipleClientID)
+			}
+			clientID = val
+		}
+	}
+	// Return an error if clientID is still empty
+	if clientID == "" {
+		return nil, fmt.Errorf(errMissingClient, AnnotationClientID)
+	}
+	// Extract tenantID
+	var tenantID string
+	// First check if AuthSecretRef is set and tenantID can be fetched from there
+	if a.provider.AuthSecretRef != nil {
+		// We may want to set tenantID explicitly in the `spec.provider.azurekv` section of the SecretStore object
+		// So that is okay if it is not there
+		if a.provider.AuthSecretRef.TenantID != nil {
+			tenantID, err = resolvers.SecretKeyRef(
+				ctx,
+				a.crClient,
+				a.store.GetKind(),
+				a.namespace, a.provider.AuthSecretRef.TenantID)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	// Check if spec.provider.azurekv.tenantID is set
+	if tenantID == "" && a.provider.TenantID != nil {
+		tenantID = *a.provider.TenantID
+	}
+	// Try to get tenantID from Annotations first. Default implementation.
+	if len(sa.ObjectMeta.Annotations) > 0 {
+		if val, found := sa.ObjectMeta.Annotations[AnnotationTenantID]; found {
+			// If tenantID is defined in both Annotations and AuthSecretRef, return an error
+			if tenantID != "" {
+				return nil, fmt.Errorf(errMultipleTenantID)
+			}
+			tenantID = val
+		}
+	}
+	// Fallback: use the AZURE_TENANT_ID env var which is set by the azure workload identity webhook
+	// https://azure.github.io/azure-workload-identity/docs/topics/service-account-labels-and-annotations.html#service-account
+	if tenantID == "" {
+		tenantID = os.Getenv("AZURE_TENANT_ID")
+	}
+	// Return an error if tenantID is still empty
+	if tenantID == "" {
+		return nil, errors.New(errMissingTenant)
 	}
 	audiences := []string{AzureDefaultAudience}
 	if len(a.provider.ServiceAccountRef.Audiences) > 0 {
@@ -888,29 +981,79 @@ func (a *Azure) authorizerForServicePrincipal(ctx context.Context) (autorest.Aut
 	if a.provider.AuthSecretRef == nil {
 		return nil, fmt.Errorf(errMissingSecretRef)
 	}
-	if a.provider.AuthSecretRef.ClientID == nil || a.provider.AuthSecretRef.ClientSecret == nil {
+	if a.provider.AuthSecretRef.ClientID == nil || (a.provider.AuthSecretRef.ClientSecret == nil && a.provider.AuthSecretRef.ClientCertificate == nil) {
 		return nil, fmt.Errorf(errMissingClientIDSecret)
 	}
+	if a.provider.AuthSecretRef.ClientSecret != nil && a.provider.AuthSecretRef.ClientCertificate != nil {
+		return nil, fmt.Errorf(errInvalidClientCredentials)
+	}
+
+	return a.getAuthorizerFromCredentials(ctx)
+}
+
+func (a *Azure) getAuthorizerFromCredentials(ctx context.Context) (autorest.Authorizer, error) {
 	clientID, err := resolvers.SecretKeyRef(
 		ctx,
 		a.crClient,
 		a.store.GetKind(),
-		a.namespace, a.provider.AuthSecretRef.ClientID)
+		a.namespace, a.provider.AuthSecretRef.ClientID,
+	)
+
 	if err != nil {
 		return nil, err
 	}
-	clientSecret, err := resolvers.SecretKeyRef(
-		ctx,
-		a.crClient,
-		a.store.GetKind(),
-		a.namespace, a.provider.AuthSecretRef.ClientSecret)
-	if err != nil {
-		return nil, err
+
+	if a.provider.AuthSecretRef.ClientSecret != nil {
+		clientSecret, err := resolvers.SecretKeyRef(
+			ctx,
+			a.crClient,
+			a.store.GetKind(),
+			a.namespace, a.provider.AuthSecretRef.ClientSecret,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		return getAuthorizerForClientSecret(
+			clientID,
+			clientSecret,
+			*a.provider.TenantID,
+			a.provider.EnvironmentType,
+		)
+	} else {
+		clientCertificate, err := resolvers.SecretKeyRef(
+			ctx,
+			a.crClient,
+			a.store.GetKind(),
+			a.namespace, a.provider.AuthSecretRef.ClientCertificate,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		return getAuthorizerForClientCertificate(
+			clientID,
+			[]byte(clientCertificate),
+			*a.provider.TenantID,
+			a.provider.EnvironmentType,
+		)
 	}
-	clientCredentialsConfig := kvauth.NewClientCredentialsConfig(clientID, clientSecret, *a.provider.TenantID)
-	clientCredentialsConfig.Resource = kvResourceForProviderConfig(a.provider.EnvironmentType)
-	clientCredentialsConfig.AADEndpoint = AadEndpointForType(a.provider.EnvironmentType)
+}
+
+func getAuthorizerForClientSecret(clientID, clientSecret, tenantID string, environmentType esv1beta1.AzureEnvironmentType) (autorest.Authorizer, error) {
+	clientCredentialsConfig := kvauth.NewClientCredentialsConfig(clientID, clientSecret, tenantID)
+	clientCredentialsConfig.Resource = kvResourceForProviderConfig(environmentType)
+	clientCredentialsConfig.AADEndpoint = AadEndpointForType(environmentType)
 	return clientCredentialsConfig.Authorizer()
+}
+
+func getAuthorizerForClientCertificate(clientID string, certificateBytes []byte, tenantID string, environmentType esv1beta1.AzureEnvironmentType) (autorest.Authorizer, error) {
+	clientCertificateConfig := NewClientInMemoryCertificateConfig(clientID, certificateBytes, tenantID)
+	clientCertificateConfig.Resource = kvResourceForProviderConfig(environmentType)
+	clientCertificateConfig.AADEndpoint = AadEndpointForType(environmentType)
+	return clientCertificateConfig.Authorizer()
 }
 
 func (a *Azure) Close(_ context.Context) error {

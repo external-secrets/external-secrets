@@ -34,7 +34,7 @@ az keyvault set-policy --name kv-name-with-certs --object-id "$KUBELET_IDENTITY_
 
 #### Service Principal key authentication
 
-A service Principal client and Secret is created and the JSON keyfile is stored in a `Kind=Secret`. The `ClientID` and `ClientSecret` should be configured for the secret. This service principal should have proper access rights to the keyvault to be managed by the operator
+A service Principal client and Secret is created and the JSON keyfile is stored in a `Kind=Secret`. The `ClientID` and `ClientSecret` or `ClientCertificate` (in PEM format) should be configured for the secret. This service principal should have proper access rights to the keyvault to be managed by the operator.
 
 #### Managed Identity authentication
 
@@ -88,6 +88,14 @@ You run the controller without service account (effectively without azure permis
 
 ```yaml
 {% include 'azkv-workload-identity.yaml' %}
+```
+
+In case you don't have the clientId when deploying the SecretStore, such as when deploying a Helm chart that includes instructions for creating a [Managed Identity](https://github.com/Azure/azure-service-operator/blob/main/v2/samples/managedidentity/v1api20181130/v1api20181130_userassignedidentity.yaml) using [Azure Service Operator](https://azure.github.io/azure-service-operator/) next to the SecretStore definition, you may encounter an interpolation problem. Helm lacks dependency management, which means it can create an issue when the clientId is only known after everything is deployed. Although the Service Account can inject `clientId` and `tenantId` into a pod, it doesn't support secretKeyRef/configMapKeyRef. Therefore, you can deliver the clientId and tenantId directly, bypassing the Service Account.
+
+The following example demonstrates using the secretRef field to directly deliver the `clientId` and `tenantId` to the SecretStore while utilizing Workload Identity authentication.
+
+```yaml
+{% include 'azkv-workload-identity-secretref.yaml' %}
 ```
 
 ### Update secret store

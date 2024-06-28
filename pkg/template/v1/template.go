@@ -26,8 +26,8 @@ import (
 
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/youmark/pkcs8"
-	"golang.org/x/crypto/pkcs12"
 	corev1 "k8s.io/api/core/v1"
+	"software.sslmate.com/src/go-pkcs12"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
@@ -89,6 +89,7 @@ func Execute(tpl, data map[string][]byte, _ esapi.TemplateScope, _ esapi.Templat
 
 func execute(k, val string, data map[string][]byte) ([]byte, error) {
 	t, err := tpl.New(k).
+		Option("missingkey=error").
 		Funcs(tplFuncs).
 		Parse(val)
 	if err != nil {
@@ -135,7 +136,7 @@ func jwkPublicKeyPem(jwkjson []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var rawkey interface{}
+	var rawkey any
 	err = k.Raw(&rawkey)
 	if err != nil {
 		return "", err
@@ -153,7 +154,7 @@ func jwkPrivateKeyPem(jwkjson []byte) (string, error) {
 		return "", err
 	}
 	var mpk []byte
-	var pk interface{}
+	var pk any
 	err = k.Raw(&pk)
 	if err != nil {
 		return "", err
@@ -202,8 +203,8 @@ func base64encode(in []byte) []byte {
 	return out
 }
 
-func fromJSON(in []byte) (interface{}, error) {
-	var out interface{}
+func fromJSON(in []byte) (any, error) {
+	var out any
 	err := json.Unmarshal(in, &out)
 	if err != nil {
 		return nil, fmt.Errorf(errUnmarshalJSON, err)
@@ -211,7 +212,7 @@ func fromJSON(in []byte) (interface{}, error) {
 	return out, nil
 }
 
-func toJSON(in interface{}) (string, error) {
+func toJSON(in any) (string, error) {
 	output, err := json.Marshal(in)
 	if err != nil {
 		return "", fmt.Errorf(errMarshalJSON, err)

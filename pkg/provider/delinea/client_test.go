@@ -32,7 +32,7 @@ type fakeAPI struct {
 // createVaultSecret assembles a vault.Secret.
 // vault.Secret has unexported nested types, and is therefore quite
 // tricky from outside the vault package. This function facilitates easy setup.
-func createVaultSecret(path string, data map[string]interface{}) *vault.Secret {
+func createVaultSecret(path string, data map[string]any) *vault.Secret {
 	s := &vault.Secret{}
 	s.Path = path
 	s.Data = data
@@ -53,11 +53,11 @@ func newTestClient() esv1beta1.SecretsClient {
 	return &client{
 		api: &fakeAPI{
 			secrets: []*vault.Secret{
-				createVaultSecret("a", map[string]interface{}{}),
-				createVaultSecret("b", map[string]interface{}{
+				createVaultSecret("a", map[string]any{}),
+				createVaultSecret("b", map[string]any{
 					"hello": "world",
 				}),
-				createVaultSecret("c", map[string]interface{}{
+				createVaultSecret("c", map[string]any{
 					"foo": map[string]string{"bar": "baz"},
 				}),
 			},

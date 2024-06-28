@@ -20,7 +20,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.ref }}
@@ -42,18 +42,18 @@ jobs:
         include:
         - dockerfile: "Dockerfile"
           build-args: "CGO_ENABLED=0"
-          build-arch: "amd64 arm64"
-          build-platform: "linux/amd64,linux/arm64"
+          build-arch: "amd64 arm64 ppc64le"
+          build-platform: "linux/amd64,linux/arm64,linux/ppc64le"
           tag-suffix: "-${{ needs.checkout.outputs.timestamp }}" # distroless
         - dockerfile: "Dockerfile.ubi"
           build-args: "CGO_ENABLED=0"
-          build-arch: "amd64 arm64"
-          build-platform: "linux/amd64,linux/arm64"
+          build-arch: "amd64 arm64 ppc64le"
+          build-platform: "linux/amd64,linux/arm64,linux/ppc64le"
           tag-suffix: "-ubi-${{ needs.checkout.outputs.timestamp }}" # ubi
         - dockerfile: "Dockerfile.ubi"
           build-args: "CGO_ENABLED=0 GOEXPERIMENT=boringcrypto" # fips
-          build-arch: "amd64"
-          build-platform: "linux/amd64"
+          build-arch: "amd64 ppc64le"
+          build-platform: "linux/amd64,linux/ppc64le"
           tag-suffix: "-ubi-boringssl-${{ needs.checkout.outputs.timestamp }}"
     with:
       dockerfile: ${{ matrix.dockerfile }}

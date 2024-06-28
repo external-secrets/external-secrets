@@ -73,6 +73,9 @@ func GetProvider(s GenericStore) (Provider, error) {
 	}
 	spec := s.GetSpec()
 	if spec == nil {
+		// Note, this condition can never be reached, because
+		// the Spec is not a pointer in Kubernetes. It will
+		// always exist.
 		return nil, fmt.Errorf("no spec found in %#v", s)
 	}
 	storeName, err := getProviderName(spec.Provider)
@@ -99,7 +102,7 @@ func getProviderName(storeSpec *SecretStoreProvider) (string, error) {
 		return "", fmt.Errorf("failed to marshal store spec: %w", err)
 	}
 
-	storeMap := make(map[string]interface{})
+	storeMap := make(map[string]any)
 	err = json.Unmarshal(storeBytes, &storeMap)
 	if err != nil {
 		return "", fmt.Errorf("failed to unmarshal store spec: %w", err)

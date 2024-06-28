@@ -1,4 +1,4 @@
-FROM gcr.io/distroless/static@sha256:072d78bc452a2998929a9579464e55067db4bf6d2c5f9cde582e33c10a415bd1
+FROM gcr.io/distroless/static@sha256:41972110a1c1a5c0b6adb283e8aa092c43c31f7c5d79b8656fbffff2c3e61f05
 ARG TARGETOS
 ARG TARGETARCH
 COPY bin/external-secrets-${TARGETOS}-${TARGETARCH} /bin/external-secrets

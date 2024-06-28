@@ -35,7 +35,6 @@ const (
 	errDeleteSecretsNotSupported     = "deleting secrets is currently not supported"
 	errUnmarshalSecret               = "unable to unmarshal secret, is it a valid JSON?: %w"
 	errUnableToGetValue              = "unable to get value for key %s"
-	errGettingSecretMapNotSupported  = "getting secret map is currently not supported"
 	errGettingAllSecretsNotSupported = "getting all secrets is currently not supported"
 )
 
@@ -74,6 +73,26 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	return utils.GetByteValue(value)
 }
 
+func (c *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	data, err := c.GetSecret(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+
+	kv := make(map[string]string)
+	err = json.Unmarshal(data, &kv)
+	if err != nil {
+		return nil, fmt.Errorf(errUnmarshalSecret, err)
+	}
+
+	secretData := make(map[string][]byte, len(kv))
+	for k, v := range kv {
+		secretData[k] = []byte(v)
+	}
+
+	return secretData, nil
+}
+
 func (c *client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
 	return errors.New(errPushSecretsNotSupported)
 }
@@ -88,10 +107,6 @@ func (c *client) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef
 
 func (c *client) Validate() (esv1beta1.ValidationResult, error) {
 	return esv1beta1.ValidationResultReady, nil
-}
-
-func (c *client) GetSecretMap(_ context.Context, _ esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	return nil, errors.New(errGettingSecretMapNotSupported)
 }
 
 func (c *client) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {

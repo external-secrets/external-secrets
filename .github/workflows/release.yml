@@ -22,13 +22,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.source_ref }}
 
       - name: Create Release
-        uses: softprops/action-gh-release@d99959edae48b5ffffd7b00da66dcdb0a33a52ee # v2.0.2
+        uses: softprops/action-gh-release@a74c6b72af54cfa997e81df42d94703d6313a2d0 # v2.0.6
         with:
           tag_name: ${{ github.event.inputs.version }}
           target_commitish: ${{ github.event.inputs.source_ref }}
@@ -71,12 +71,12 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 0
 
       - name: Setup Go
-        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
         id: setup-go
         with:
           go-version-file: "go.mod"
@@ -86,7 +86,7 @@ jobs:
         run: go mod download
 
       - name: Login to Docker
-        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+        uses: docker/login-action@0d4c9c5ea7693da7b068278f7b52bda2a190a446 # v3.2.0
         with:
           registry: ghcr.io
           username: ${{ secrets.GHCR_USERNAME }}
@@ -113,7 +113,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update Release
-        uses: softprops/action-gh-release@d99959edae48b5ffffd7b00da66dcdb0a33a52ee # v2.0.2
+        uses: softprops/action-gh-release@a74c6b72af54cfa997e81df42d94703d6313a2d0 # v2.0.6
         with:
           tag_name: ${{ github.event.inputs.version }}
           files: |

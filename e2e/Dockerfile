@@ -1,4 +1,4 @@
-FROM golang:1.22.1-bookworm@sha256:6699d2852712f090399ccd4e8dfd079b4d55376f3ab3aff5b2dc8b7b1c11e27e as builder
+FROM golang:1.22.4-bookworm@sha256:96788441ff71144c93fc67577f2ea99fd4474f8e45c084e9445fe3454387de5b as builder
 
 ENV KUBECTL_VERSION="v1.28.3"
 ENV HELM_VERSION="v3.13.1"
@@ -16,7 +16,7 @@ COPY . .
 WORKDIR /usr/src/app/e2e
 RUN make e2e-bin
 
-FROM alpine:3.19.1@sha256:c5b1261d6d3e43071626931fc004f70149baeba2c8ec672bd4f27761f8e1ad6b
+FROM alpine:3.20.1@sha256:b89d9c93e9ed3597455c90a0b88a8bbb5cb7188438f70953fede212a0c4394e0
 RUN apk add -U --no-cache \
     ca-certificates \
     bash \

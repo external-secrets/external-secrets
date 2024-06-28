@@ -5,7 +5,7 @@ SHELL         := /bin/bash
 MAKEFLAGS     += --warn-undefined-variables
 .SHELLFLAGS   := -euo pipefail -c
 
-ARCH ?= amd64 arm64
+ARCH ?= amd64 arm64 ppc64le
 BUILD_ARGS ?= CGO_ENABLED=0
 DOCKER_BUILD_ARGS ?=
 DOCKERFILE ?= Dockerfile
@@ -146,6 +146,7 @@ run: generate ## Run app locally (without a k8s cluster)
 
 manifests: helm.generate ## Generate manifests from helm chart
 	mkdir -p $(OUTPUT_DIR)/deploy/manifests
+	helm dependency build $(HELM_DIR)
 	helm template external-secrets $(HELM_DIR) -f deploy/manifests/helm-values.yaml > $(OUTPUT_DIR)/deploy/manifests/external-secrets.yaml
 
 crds.install: generate ## Install CRDs into a cluster. This is for convenience
@@ -257,22 +258,22 @@ docker.promote: ## Promote the docker image to the registry
 # ====================================================================================
 # Terraform
 
-tf.plan.%: ## Runs terrform plan for a provider
+tf.plan.%: ## Runs terraform plan for a provider
 	@cd $(TF_DIR)/$*; \
 	terraform init; \
 	terraform plan
 
-tf.apply.%: ## Runs terrform apply for a provider
+tf.apply.%: ## Runs terraform apply for a provider
 	@cd $(TF_DIR)/$*; \
 	terraform init; \
 	terraform apply -auto-approve
 
-tf.destroy.%: ## Runs terrform destroy for a provider
+tf.destroy.%: ## Runs terraform destroy for a provider
 	@cd $(TF_DIR)/$*; \
 	terraform init; \
 	terraform destroy -auto-approve
 
-tf.show.%: ## Runs terrform show for a provider and outputs to a file
+tf.show.%: ## Runs terraform show for a provider and outputs to a file
 	@cd $(TF_DIR)/$*; \
 	terraform init; \
 	terraform plan -out tfplan.binary; \
@@ -321,8 +322,8 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
 
 ## Tool Versions
-GOLANGCI_VERSION := 1.54.2
-KUBERNETES_VERSION := 1.28.x
+GOLANGCI_VERSION := 1.57.2
+KUBERNETES_VERSION := 1.30.x
 TILT_VERSION := 0.33.10
 
 .PHONY: envtest
