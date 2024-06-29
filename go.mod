@@ -90,6 +90,7 @@ require (
 	github.com/sethvargo/go-password v0.3.0
 	github.com/spf13/pflag v1.0.5
 	github.com/tidwall/sjson v1.2.5
+	k8s.io/kube-openapi v0.0.0-20240620174524-b456828f718b
 	sigs.k8s.io/yaml v1.4.0
 	software.sslmate.com/src/go-pkcs12 v0.4.0
 )
@@ -195,7 +196,6 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20240617180043-68d350f18fd4 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240617180043-68d350f18fd4 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
-	k8s.io/kube-openapi v0.0.0-20240620174524-b456828f718b // indirect
 	lukechampine.com/frand v1.4.2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 )
