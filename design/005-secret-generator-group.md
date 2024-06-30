@@ -4,7 +4,7 @@ title: Secret Generators
 version: v1alpha1
 authors: Christian Hünig, Jan Steffen, Moritz Johner
 creation-date: 2022-07-08
-status: draft
+status: implemented
 ---
 ```
 
