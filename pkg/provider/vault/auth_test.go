@@ -155,7 +155,7 @@ func TestSetAuthNamespace(t *testing.T) {
 			}
 
 			// during authentication (getting a token)
-			resetNS := c.useAuthNamespace(context.Background())
+			resetNS := c.useAuthNamespace(context.Background(), tc.args.store.Spec.Provider.Vault)
 			actual.During = c.client.Namespace()
 			resetNS()
 

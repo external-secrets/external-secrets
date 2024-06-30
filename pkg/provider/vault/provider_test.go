@@ -48,8 +48,8 @@ var (
 	secretStorePath = "secret"
 )
 
-func makeValidSecretStoreWithVersion(v esv1beta1.VaultKVStoreVersion, namespace string) *esv1beta1.SecretStore {
-	store := &esv1beta1.SecretStore{
+func makeValidSecretStoreWithVersion(v esv1beta1.VaultKVStoreVersion) *esv1beta1.SecretStore {
+	return &esv1beta1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vault-store",
 			Namespace: "default",
@@ -73,15 +73,10 @@ func makeValidSecretStoreWithVersion(v esv1beta1.VaultKVStoreVersion, namespace 
 			},
 		},
 	}
-	if namespace != "" {
-		store.Spec.Provider.Vault.Namespace = &namespace
-	}
-
-	return store
 }
 
 func makeValidSecretStore() *esv1beta1.SecretStore {
-	return makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "")
+	return makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2)
 }
 
 func makeValidSecretStoreWithCerts() *esv1beta1.SecretStore {

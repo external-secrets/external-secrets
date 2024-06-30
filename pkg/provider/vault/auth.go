@@ -42,9 +42,9 @@ const (
 
 // setAuth gets a new token using the configured mechanism.
 // If there's already a valid token, does nothing.
-func (c *client) setAuth(ctx context.Context, cfg *vault.Config) error {
+func (c *client) setAuth(ctx context.Context, spec *esv1beta1.VaultProvider, cfg *vault.Config) error {
 	// Switch to auth namespace if different from the provider namespace
-	restoreNamespace := c.useAuthNamespace(ctx)
+	restoreNamespace := c.useAuthNamespace(ctx, spec)
 	defer restoreNamespace()
 
 	tokenExists := false
@@ -198,10 +198,10 @@ func revokeTokenIfValid(ctx context.Context, client util.Client) error {
 	return nil
 }
 
-func (c *client) useAuthNamespace(_ context.Context) func() {
+func (c *client) useAuthNamespace(_ context.Context, spec *esv1beta1.VaultProvider) func() {
 	ns := ""
-	if c.store.Namespace != nil {
-		ns = *c.store.Namespace
+	if spec != nil && spec.Namespace != nil {
+		ns = *spec.Namespace
 	}
 
 	if c.store.Auth.Namespace != nil {

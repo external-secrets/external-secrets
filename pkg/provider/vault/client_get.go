@@ -227,9 +227,6 @@ func (c *client) buildMetadataPath(path string) (string, error) {
 			url = fmt.Sprintf("%s/metadata/%s", *c.store.Path, path)
 		}
 	}
-	if c.namespace != "" {
-		url = fmt.Sprintf("%s/%s", c.namespace, url)
-	}
 	return url, nil
 }
 
@@ -295,9 +292,6 @@ func (c *client) buildPath(path string) string {
 		}
 		buildMount = append(buildMount, buildPath...)
 		out = strings.Join(buildMount, "/")
-		if c.namespace != "" {
-			out = c.namespace + "/" + out
-		}
 		return out
 	}
 	if !strings.Contains(out, "/data/") && c.store.Version == esv1beta1.VaultKVStoreV2 {
@@ -305,13 +299,7 @@ func (c *client) buildPath(path string) string {
 		buildMount := []string{buildPath[0], "data"}
 		buildMount = append(buildMount, buildPath[1:]...)
 		out = strings.Join(buildMount, "/")
-		if c.namespace != "" {
-			out = c.namespace + "/" + out
-		}
 		return out
-	}
-	if c.namespace != "" {
-		out = c.namespace + "/" + out
 	}
 	return out
 }

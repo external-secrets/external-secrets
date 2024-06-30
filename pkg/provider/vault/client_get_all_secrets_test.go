@@ -137,39 +137,16 @@ func TestGetAllSecrets(t *testing.T) {
 		"FindByName": {
 			reason: "should map multiple secrets matching name",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "").Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ListWithContextFn:         newListWithContextFn(secret, ""),
-					ReadWithDataWithContextFn: newReadWithContextFn(secret, ""),
+					ListWithContextFn:         newListWithContextFn(secret),
+					ReadWithDataWithContextFn: newReadtWithContextFn(secret),
 				},
 				data: esv1beta1.ExternalSecretFind{
 					Name: &esv1beta1.FindName{
 						RegExp: "secret.*",
 					},
 				},
-			},
-			want: want{
-				err: nil,
-				val: map[string][]byte{
-					"secret1": secret1Bytes,
-					"secret2": secret2Bytes,
-				},
-			},
-		},
-		"FindByName with Namespace": {
-			reason: "should map multiple secrets matching name",
-			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "test-namespace").Spec.Provider.Vault,
-				vLogical: &fake.Logical{
-					ListWithContextFn:         newListWithContextFn(secret, "test-namespace"),
-					ReadWithDataWithContextFn: newReadWithContextFn(secret, "test-namespace"),
-				},
-				data: esv1beta1.ExternalSecretFind{
-					Name: &esv1beta1.FindName{
-						RegExp: "secret.*",
-					},
-				},
-				ns: "test-namespace",
 			},
 			want: want{
 				err: nil,
@@ -182,10 +159,10 @@ func TestGetAllSecrets(t *testing.T) {
 		"FindByTag": {
 			reason: "should map multiple secrets matching tags",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "").Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ListWithContextFn:         newListWithContextFn(secret, ""),
-					ReadWithDataWithContextFn: newReadWithContextFn(secret, ""),
+					ListWithContextFn:         newListWithContextFn(secret),
+					ReadWithDataWithContextFn: newReadtWithContextFn(secret),
 				},
 				data: esv1beta1.ExternalSecretFind{
 					Tags: map[string]string{
@@ -204,10 +181,10 @@ func TestGetAllSecrets(t *testing.T) {
 		"FilterByPath": {
 			reason: "should filter secrets based on path",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "").Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ListWithContextFn:         newListWithContextFn(secret, ""),
-					ReadWithDataWithContextFn: newReadWithContextFn(secret, ""),
+					ListWithContextFn:         newListWithContextFn(secret),
+					ReadWithDataWithContextFn: newReadtWithContextFn(secret),
 				},
 				data: esv1beta1.ExternalSecretFind{
 					Path: &path,
@@ -227,10 +204,10 @@ func TestGetAllSecrets(t *testing.T) {
 		"FailIfKv1": {
 			reason: "should not work if using kv1 store",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1, "").Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ListWithContextFn:         newListWithContextFn(secret, ""),
-					ReadWithDataWithContextFn: newReadWithContextFn(secret, ""),
+					ListWithContextFn:         newListWithContextFn(secret),
+					ReadWithDataWithContextFn: newReadtWithContextFn(secret),
 				},
 				data: esv1beta1.ExternalSecretFind{
 					Tags: map[string]string{
@@ -245,9 +222,9 @@ func TestGetAllSecrets(t *testing.T) {
 		"MetadataNotFound": {
 			reason: "metadata secret not found",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2, "").Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ListWithContextFn: newListWithContextFn(secret, ""),
+					ListWithContextFn: newListWithContextFn(secret),
 					ReadWithDataWithContextFn: func(ctx context.Context, path string, d map[string][]string) (*vault.Secret, error) {
 						return nil, nil
 					},
@@ -283,18 +260,15 @@ func TestGetAllSecrets(t *testing.T) {
 	}
 }
 
-func newListWithContextFn(secrets map[string]any, namespace string) func(ctx context.Context, path string) (*vault.Secret, error) {
+func newListWithContextFn(secrets map[string]any) func(ctx context.Context, path string) (*vault.Secret, error) {
 	return func(ctx context.Context, path string) (*vault.Secret, error) {
-		if namespace != "" && namespace[len(namespace)-1] != '/' {
-			namespace += "/"
-		}
-		path = strings.TrimPrefix(path, namespace+"secret/metadata/")
+		path = strings.TrimPrefix(path, "secret/metadata/")
 		if path == "" {
 			path = "default"
 		}
 		data, ok := secrets[path]
 		if !ok {
-			return nil, errors.New("secret not found")
+			return nil, errors.New("Secret not found")
 		}
 		meta := data.(map[string]any)
 		ans := meta["metadata"].(map[string]any)
@@ -307,13 +281,10 @@ func newListWithContextFn(secrets map[string]any, namespace string) func(ctx con
 	}
 }
 
-func newReadWithContextFn(secrets map[string]any, namespace string) func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
+func newReadtWithContextFn(secrets map[string]any) func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
 	return func(ctx context.Context, path string, d map[string][]string) (*vault.Secret, error) {
-		if namespace != "" && namespace[len(namespace)-1] != '/' {
-			namespace += "/"
-		}
-		path = strings.TrimPrefix(path, namespace+"secret/data/")
-		path = strings.TrimPrefix(path, namespace+"secret/metadata/")
+		path = strings.TrimPrefix(path, "secret/data/")
+		path = strings.TrimPrefix(path, "secret/metadata/")
 		if path == "" {
 			path = "default"
 		}
