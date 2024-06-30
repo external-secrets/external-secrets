@@ -23,7 +23,7 @@ import (
 
 	vault "github.com/hashicorp/vault/api"
 
-	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
+	util "github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 )
 
 type LoginFn func(ctx context.Context, authMethod vault.AuthMethod) (*vault.Secret, error)
@@ -49,12 +49,8 @@ type Logical struct {
 func (f Logical) DeleteWithContext(ctx context.Context, path string) (*vault.Secret, error) {
 	return f.DeleteWithContextFn(ctx, path)
 }
-func NewDeleteWithContextFn(secret map[string]any, namespace string, err error) DeleteWithContextFn {
+func NewDeleteWithContextFn(secret map[string]any, err error) DeleteWithContextFn {
 	return func(ctx context.Context, path string) (*vault.Secret, error) {
-		if namespace != "" && !strings.HasPrefix(path, namespace) {
-			return nil, fmt.Errorf("path does not contain namespace")
-		}
-
 		vault := &vault.Secret{
 			Data: secret,
 		}
@@ -62,15 +58,11 @@ func NewDeleteWithContextFn(secret map[string]any, namespace string, err error) 
 	}
 }
 
-func NewReadWithContextFn(secret map[string]any, namespace string, err error) ReadWithDataWithContextFn {
+func NewReadWithContextFn(secret map[string]any, err error) ReadWithDataWithContextFn {
 	return func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
 		if secret == nil {
 			return nil, err
 		}
-		if namespace != "" && !strings.HasPrefix(path, namespace) {
-			return nil, fmt.Errorf("path does not contain namespace")
-		}
-
 		vault := &vault.Secret{
 			Data: secret,
 		}
@@ -78,15 +70,11 @@ func NewReadWithContextFn(secret map[string]any, namespace string, err error) Re
 	}
 }
 
-func NewReadMetadataWithContextFn(secret map[string]any, namespace string, err error) ReadWithDataWithContextFn {
+func NewReadMetadataWithContextFn(secret map[string]any, err error) ReadWithDataWithContextFn {
 	return func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
 		if secret == nil {
 			return nil, err
 		}
-		if namespace != "" && !strings.HasPrefix(path, namespace) {
-			return nil, fmt.Errorf("path does not contain namespace")
-		}
-
 		metadata := make(map[string]any)
 		metadata["custom_metadata"] = secret
 		vault := &vault.Secret{
@@ -96,12 +84,8 @@ func NewReadMetadataWithContextFn(secret map[string]any, namespace string, err e
 	}
 }
 
-func NewWriteWithContextFn(secret map[string]any, namespace string, err error) WriteWithContextFn {
+func NewWriteWithContextFn(secret map[string]any, err error) WriteWithContextFn {
 	return func(ctx context.Context, path string, data map[string]any) (*vault.Secret, error) {
-		if namespace != "" && !strings.HasPrefix(path, namespace) {
-			return nil, fmt.Errorf("path does not contain namespace")
-		}
-
 		return &vault.Secret{Data: secret}, err
 	}
 }
