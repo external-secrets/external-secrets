@@ -76,7 +76,7 @@ func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
 		}
 	}
 
-	if len(c.store.Server.URL) == 0 {
+	if c.store.Server.URL == "" {
 		return nil, fmt.Errorf("no server URL provided")
 	}
 
@@ -90,7 +90,6 @@ func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
 			CAData:   ca,
 		},
 	}, nil
-
 }
 
 func (c *Client) getCA(ctx context.Context) ([]byte, error) {
