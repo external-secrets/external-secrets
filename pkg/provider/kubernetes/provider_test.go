@@ -152,6 +152,7 @@ func TestNewClient(t *testing.T) {
 						Provider: &esv1beta1.SecretStoreProvider{
 							Kubernetes: &esv1beta1.KubernetesProvider{
 								Server: esv1beta1.KubernetesServer{
+									URL:      "https://my.test.tld",
 									CABundle: []byte(testCertificate),
 								},
 								Auth: esv1beta1.KubernetesAuth{
@@ -184,6 +185,7 @@ func TestNewClient(t *testing.T) {
 						Provider: &esv1beta1.SecretStoreProvider{
 							Kubernetes: &esv1beta1.KubernetesProvider{
 								Server: esv1beta1.KubernetesServer{
+									URL:      "https://my.test.tld",
 									CABundle: []byte(testCertificate),
 								},
 								RemoteNamespace: "remote",
@@ -218,6 +220,7 @@ func TestNewClient(t *testing.T) {
 						Provider: &esv1beta1.SecretStoreProvider{
 							Kubernetes: &esv1beta1.KubernetesProvider{
 								Server: esv1beta1.KubernetesServer{
+									URL:      "https://my.test.tld",
 									CABundle: []byte(testCertificate),
 								},
 								RemoteNamespace: "remote",
