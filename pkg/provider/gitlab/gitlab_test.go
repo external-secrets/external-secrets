@@ -861,7 +861,7 @@ func TestValidateStore(t *testing.T) {
 		},
 		{
 			store: makeSecretStore(project, environment, withAccessToken("userName", "userKey", &namespace)),
-			err:   fmt.Errorf("namespace not allowed with namespaced SecretStore"),
+			err:   fmt.Errorf("namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore"),
 		},
 		{
 			store: makeSecretStore(project, environment, withAccessToken("userName", "userKey", nil)),

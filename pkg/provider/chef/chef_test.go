@@ -302,7 +302,7 @@ func TestValidateStore(t *testing.T) {
 		},
 		{
 			store: makeSecretStore(name, baseURL, makeAuth(authName, authNamespace, authKey)),
-			err:   fmt.Errorf("received invalid Chef SecretStore resource: namespace not allowed with namespaced SecretStore"),
+			err:   fmt.Errorf("received invalid Chef SecretStore resource: namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore"),
 		},
 		{
 			store: &esv1beta1.SecretStore{
