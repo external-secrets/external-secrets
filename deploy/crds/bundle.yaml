@@ -3634,6 +3634,23 @@ spec:
                                   type: object
                               type: object
                           type: object
+                        authRef:
+                          description: A reference to a secret that contains the auth information.
+                          properties:
+                            key:
+                              description: |-
+                                The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                defaulted, in others it may be required.
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                to the namespace of the referent.
+                              type: string
+                          type: object
                         remoteNamespace:
                           default: default
                           description: Remote namespace to fetch the secrets from
@@ -3674,8 +3691,6 @@ spec:
                               description: configures the Kubernetes server Address.
                               type: string
                           type: object
-                      required:
-                        - auth
                       type: object
                     onboardbase:
                       description: Onboardbase configures this store to sync secrets using the Onboardbase provider
@@ -9182,6 +9197,23 @@ spec:
                                   type: object
                               type: object
                           type: object
+                        authRef:
+                          description: A reference to a secret that contains the auth information.
+                          properties:
+                            key:
+                              description: |-
+                                The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                defaulted, in others it may be required.
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                to the namespace of the referent.
+                              type: string
+                          type: object
                         remoteNamespace:
                           default: default
                           description: Remote namespace to fetch the secrets from
@@ -9222,8 +9254,6 @@ spec:
                               description: configures the Kubernetes server Address.
                               type: string
                           type: object
-                      required:
-                        - auth
                       type: object
                     onboardbase:
                       description: Onboardbase configures this store to sync secrets using the Onboardbase provider
