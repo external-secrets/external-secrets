@@ -4121,6 +4121,69 @@ spec:
                         - region
                         - secretKey
                       type: object
+                    secretserver:
+                      description: |-
+                        SecretServer configures this store to sync secrets using SecretServer provider
+                        https://docs.delinea.com/online-help/secret-server/start.htm
+                      properties:
+                        password:
+                          description: Password is the secret server account password.
+                          properties:
+                            secretRef:
+                              description: SecretRef references a key in a secret that will be used as value.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                            value:
+                              description: Value can be specified directly to set a value without using a secret.
+                              type: string
+                          type: object
+                        serverURL:
+                          description: |-
+                            ServerURL
+                            URL to your secret server installation
+                          type: string
+                        username:
+                          description: Username is the secret server account username.
+                          properties:
+                            secretRef:
+                              description: SecretRef references a key in a secret that will be used as value.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                            value:
+                              description: Value can be specified directly to set a value without using a secret.
+                              type: string
+                          type: object
+                      required:
+                        - password
+                        - serverURL
+                        - username
+                      type: object
                     senhasegura:
                       description: Senhasegura configures this store to sync secrets using senhasegura provider
                       properties:
@@ -9683,6 +9746,69 @@ spec:
                         - projectId
                         - region
                         - secretKey
+                      type: object
+                    secretserver:
+                      description: |-
+                        SecretServer configures this store to sync secrets using SecretServer provider
+                        https://docs.delinea.com/online-help/secret-server/start.htm
+                      properties:
+                        password:
+                          description: Password is the secret server account password.
+                          properties:
+                            secretRef:
+                              description: SecretRef references a key in a secret that will be used as value.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                            value:
+                              description: Value can be specified directly to set a value without using a secret.
+                              type: string
+                          type: object
+                        serverURL:
+                          description: |-
+                            ServerURL
+                            URL to your secret server installation
+                          type: string
+                        username:
+                          description: Username is the secret server account username.
+                          properties:
+                            secretRef:
+                              description: SecretRef references a key in a secret that will be used as value.
+                              properties:
+                                key:
+                                  description: |-
+                                    The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                    defaulted, in others it may be required.
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                    to the namespace of the referent.
+                                  type: string
+                              type: object
+                            value:
+                              description: Value can be specified directly to set a value without using a secret.
+                              type: string
+                          type: object
+                      required:
+                        - password
+                        - serverURL
+                        - username
                       type: object
                     senhasegura:
                       description: Senhasegura configures this store to sync secrets using senhasegura provider

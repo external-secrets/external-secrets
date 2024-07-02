@@ -27,4 +27,5 @@ import (
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/template"
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/vault"
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/conjur"
+	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/secretserver"
 )
