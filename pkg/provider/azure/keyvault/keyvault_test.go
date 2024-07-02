@@ -444,7 +444,6 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 
 		smtc.expectedData = wholeSecretMap
-
 	}
 
 	secretNoTags := func(smtc *secretManagerTestCase) {
