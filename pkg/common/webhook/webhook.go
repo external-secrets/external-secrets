@@ -35,6 +35,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/template/v2"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
@@ -106,12 +107,11 @@ func (w *Webhook) GetSecretMap(ctx context.Context, provider *Spec, ref *esv1bet
 	}
 	// Change the map of generic objects to a map of byte arrays
 	values := make(map[string][]byte)
-	for rKey, rValue := range jsonvalue {
-		jVal, ok := rValue.(string)
-		if !ok {
-			return nil, fmt.Errorf("failed to get response (wrong type in key '%s': %T)", rKey, rValue)
+	for rKey := range jsonvalue {
+		values[rKey], err = utils.GetByteValueFromMap(jsonvalue, rKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get response for key '%s': %w", rKey, err)
 		}
-		values[rKey] = []byte(jVal)
 	}
 	return values, nil
 }
