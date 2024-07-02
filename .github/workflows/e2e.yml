@@ -6,7 +6,7 @@ on:
 
 permissions:
   contents: read
-
+  issues: write
 name: e2e tests
 
 env:
