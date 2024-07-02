@@ -7,6 +7,7 @@ on:
 permissions:
   contents: read
   issues: write
+  pull-requests: write
 name: e2e tests
 
 env:
