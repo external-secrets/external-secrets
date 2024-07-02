@@ -16,6 +16,7 @@ package vault
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -158,6 +159,24 @@ func checkToken(ctx context.Context, token util.Token) (bool, error) {
 	}
 	tokenType := t.(string)
 	if tokenType == "batch" {
+		return false, nil
+	}
+	ttl, ok := resp.Data["ttl"]
+	if !ok {
+		return false, fmt.Errorf("no TTL found in response")
+	}
+	ttlInt, err := ttl.(json.Number).Int64()
+	if err != nil {
+		return false, fmt.Errorf("invalid token TTL: %v: %w", ttl, err)
+	}
+	expireTime, ok := resp.Data["expire_time"]
+	if !ok {
+		return false, fmt.Errorf("no expiration time found in response")
+	}
+	if ttlInt < 60 && expireTime != nil {
+		// Treat expirable tokens that are about to expire as already expired.
+		// This ensures that the token won't expire in between this check and
+		// performing the actual operation.
 		return false, nil
 	}
 	return true, nil

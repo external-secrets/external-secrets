@@ -16,6 +16,7 @@ package vault
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -204,6 +205,74 @@ func TestCheckTokenErrors(t *testing.T) {
 			cached, _ := checkToken(context.Background(), token)
 			if cached {
 				t.Errorf("%v", tc.message)
+			}
+		})
+	}
+}
+
+func TestCheckTokenTtl(t *testing.T) {
+	cases := map[string]struct {
+		message string
+		secret  *vault.Secret
+		cache   bool
+	}{
+		"LongTTLExpirable": {
+			message: "should cache if expirable token expires far into the future",
+			secret: &vault.Secret{
+				Data: map[string]interface{}{
+					"expire_time": "2024-01-01T00:00:00.000000000Z",
+					"ttl":         json.Number("3600"),
+					"type":        "service",
+				},
+			},
+			cache: true,
+		},
+		"ShortTTLExpirable": {
+			message: "should not cache if expirable token is about to expire",
+			secret: &vault.Secret{
+				Data: map[string]interface{}{
+					"expire_time": "2024-01-01T00:00:00.000000000Z",
+					"ttl":         json.Number("5"),
+					"type":        "service",
+				},
+			},
+			cache: false,
+		},
+		"ZeroTTLExpirable": {
+			message: "should not cache if expirable token has TTL of 0",
+			secret: &vault.Secret{
+				Data: map[string]interface{}{
+					"expire_time": "2024-01-01T00:00:00.000000000Z",
+					"ttl":         json.Number("0"),
+					"type":        "service",
+				},
+			},
+			cache: false,
+		},
+		"NonExpirable": {
+			message: "should cache if token is non-expirable",
+			secret: &vault.Secret{
+				Data: map[string]interface{}{
+					"expire_time": nil,
+					"ttl":         json.Number("0"),
+					"type":        "service",
+				},
+			},
+			cache: true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			token := fake.Token{
+				LookupSelfWithContextFn: func(ctx context.Context) (*vault.Secret, error) {
+					return tc.secret, nil
+				},
+			}
+
+			cached, err := checkToken(context.Background(), token)
+			if cached != tc.cache || err != nil {
+				t.Errorf("%v: err = %v", tc.message, err)
 			}
 		})
 	}
