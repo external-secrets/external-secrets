@@ -581,6 +581,7 @@ func TestOracleVaultGetAllSecrets(t *testing.T) {
 
 func TestOracleVaultPushSecret(t *testing.T) {
 	testSecretKey := "test-secret-key"
+	encryptionKey := "must-not-be-blank-for-push"
 	var testCases = map[string]struct {
 		vms       *VaultManagementService
 		data      testingfake.PushSecretData
@@ -589,6 +590,7 @@ func TestOracleVaultPushSecret(t *testing.T) {
 	}{
 		"create a secret if not exists": {
 			&VaultManagementService{
+				encryptionKey: encryptionKey,
 				Client: &fakeoracle.OracleMockClient{
 					SecretBundles: map[string]secrets.SecretBundle{
 						s2id: s2bundle,
@@ -607,6 +609,7 @@ func TestOracleVaultPushSecret(t *testing.T) {
 		},
 		"update a secret if exists": {
 			&VaultManagementService{
+				encryptionKey: encryptionKey,
 				Client: &fakeoracle.OracleMockClient{
 					SecretBundles: map[string]secrets.SecretBundle{
 						s1id: s1bundle,
@@ -626,6 +629,7 @@ func TestOracleVaultPushSecret(t *testing.T) {
 		},
 		"neither create nor update if secret content is unchanged": {
 			&VaultManagementService{
+				encryptionKey: encryptionKey,
 				Client: &fakeoracle.OracleMockClient{
 					SecretBundles: map[string]secrets.SecretBundle{
 						s1id: s1bundle,
