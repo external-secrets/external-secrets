@@ -61,9 +61,10 @@ type secretManagerTestCase struct {
 	setValue       []byte
 	expectedSecret string
 	// for testing secretmap
-	expectedData map[string][]byte
-
+	expectedData      map[string][]byte
 	expectedExistence bool
+	// for testing pushing multi-key k8s secrets
+	secret *corev1.Secret
 }
 
 func makeValidSecretManagerTestCase() *secretManagerTestCase {
@@ -427,6 +428,24 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.expectError = errNotManaged
 	}
+	wholeSecretNoKey := func(smtc *secretManagerTestCase) {
+		wholeSecretMap := map[string][]byte{"key1": []byte(`value1`), "key2": []byte(`value2`)}
+		wholeSecretString := `{"key1": "value1", "key2": "value2" }`
+		wholeSecret := &corev1.Secret{Data: wholeSecretMap}
+		smtc.secret = wholeSecret
+		smtc.pushData = testingfake.PushSecretData{
+			RemoteKey: secretName,
+		}
+		smtc.secretOutput = keyvault.SecretBundle{
+			Tags: map[string]*string{
+				"managed-by": pointer.To("external-secrets"),
+			},
+			Value: &wholeSecretString,
+		}
+
+		smtc.expectedData = wholeSecretMap
+	}
+
 	secretNoTags := func(smtc *secretManagerTestCase) {
 		smtc.setValue = []byte(goodSecret)
 		smtc.pushData = testingfake.PushSecretData{
@@ -772,6 +791,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(failedNotParseableError),
 		makeValidSecretManagerTestCaseCustom(failedSetSecret),
 		makeValidSecretManagerTestCaseCustom(typeNotSupported),
+		makeValidSecretManagerTestCaseCustom(wholeSecretNoKey),
 	}
 
 	sm := Azure{
@@ -779,17 +799,29 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
-		secret := &corev1.Secret{
-			Data: map[string][]byte{
-				secretKey: v.setValue,
-			},
+		if v.secret == nil {
+			v.secret = &corev1.Secret{
+				Data: map[string][]byte{
+					secretKey: v.setValue,
+				},
+			}
 		}
-		err := sm.PushSecret(context.Background(), secret, v.pushData)
+		err := sm.PushSecret(context.Background(), v.secret, v.pushData)
 		if !utils.ErrorContains(err, v.expectError) {
 			if err == nil {
 				t.Errorf("[%d] unexpected error: <nil>, expected: '%s'", k, v.expectError)
 			} else {
 				t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+			}
+		}
+		if len(v.expectedData) > 0 {
+			sm.baseClient = v.mockClient
+			out, err := sm.GetSecretMap(context.Background(), *v.ref)
+			if !utils.ErrorContains(err, v.expectError) {
+				t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
+			}
+			if err == nil && !reflect.DeepEqual(out, v.expectedData) {
+				t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
 			}
 		}
 	}
