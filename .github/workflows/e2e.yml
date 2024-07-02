@@ -131,12 +131,14 @@ jobs:
       uses: peter-evans/find-comment@3eae4d37986fb5a8592848f6a574fdf654e61f9e # v3.1.0
       id: fc
       with:
+        token: ${{ secrets.GITHUB_TOKEN }}
         issue-number: ${{ github.event.client_payload.pull_request.number }}
         body-includes: /ok-to-test sha=${{ env.TARGET_SHA }}
     - name: Update on Succeess
       if: always() && steps.fc.outputs.comment-id != '' &&  steps.e2e.conclusion == 'success'
       uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4.0.0
       with:
+        token: ${{ secrets.GITHUB_TOKEN }}
         issue-number: ${{ github.event.client_payload.pull_request.number }}
         body: |
             [Bot] - :white_check_mark: [e2e tests pass](https://github.com/external-secrets/external-secrets/actions/runs/${{ steps.update-check-run.outputs.result.id }})
@@ -146,6 +148,7 @@ jobs:
       if: always() && steps.fc.outputs.comment-id != '' &&  steps.e2e.conclusion != 'success'
       uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4.0.0
       with:
+        token: ${{ secrets.GITHUB_TOKEN }}
         issue-number: ${{ github.event.client_payload.pull_request.number }}
         body: |
             [Bot] - :x: [e2e tests failed](https://github.com/external-secrets/external-secrets/actions/runs/${{ steps.update-check-run.outputs.result.id }})
