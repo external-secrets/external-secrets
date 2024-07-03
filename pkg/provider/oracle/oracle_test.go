@@ -284,7 +284,7 @@ func TestValidateStore(t *testing.T) {
 		},
 		{
 			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, &namespace)),
-			err:   fmt.Errorf("namespace not allowed with namespaced SecretStore"),
+			err:   fmt.Errorf("namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore"),
 		},
 		{
 			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, "", nil)),
@@ -296,7 +296,7 @@ func TestValidateStore(t *testing.T) {
 		},
 		{
 			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, nil), withFingerprint(secretName, secretKey, &namespace)),
-			err:   fmt.Errorf("namespace not allowed with namespaced SecretStore"),
+			err:   fmt.Errorf("namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore"),
 		},
 		{
 			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, nil), withFingerprint(secretName, "", nil)),
