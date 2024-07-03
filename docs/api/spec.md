@@ -4864,6 +4864,7 @@ KubernetesServer
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>configures the Kubernetes server Address.</p>
 </td>
 </tr>
@@ -4877,7 +4878,22 @@ KubernetesAuth
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Auth configures how secret-manager authenticates with a Kubernetes instance.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>authRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>A reference to a secret that contains the auth information.</p>
 </td>
 </tr>
 <tr>

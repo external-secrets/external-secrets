@@ -591,9 +591,10 @@ func TestPushSecret(t *testing.T) {
 		req func(*fakesm.MockSMClient) error
 	}
 	tests := []struct {
-		desc string
-		args args
-		want want
+		desc   string
+		args   args
+		want   want
+		secret *corev1.Secret
 	}{
 		{
 			desc: "SetSecret successfully pushes a secret",
@@ -801,6 +802,19 @@ func TestPushSecret(t *testing.T) {
 				err: canceledError,
 			},
 		},
+		{
+			desc: "Whole secret is set with no existing GCPSM secret",
+			args: args{
+				store:                         &esv1beta1.GCPSMProvider{ProjectID: smtc.projectID},
+				mock:                          smtc.mockClient,
+				GetSecretMockReturn:           fakesm.SecretMockReturn{Secret: &secret, Err: nil},
+				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
+				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil}},
+			want: want{
+				err: nil,
+			},
+			secret: &corev1.Secret{Data: map[string][]byte{"key1": []byte(`value1`), "key2": []byte(`value2`)}},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.desc, func(t *testing.T) {
@@ -814,7 +828,10 @@ func TestPushSecret(t *testing.T) {
 				smClient: tc.args.mock,
 				store:    tc.args.store,
 			}
-			s := &corev1.Secret{Data: map[string][]byte{secretKey: []byte("fake-value")}}
+			s := tc.secret
+			if s == nil {
+				s = &corev1.Secret{Data: map[string][]byte{secretKey: []byte("fake-value")}}
+			}
 			data := testingfake.PushSecretData{
 				SecretKey: secretKey,
 				Metadata:  tc.args.Metadata,
