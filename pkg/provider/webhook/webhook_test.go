@@ -299,6 +299,34 @@ want:
   path: /api/getsecret?id=testkey&version=1
   err: ''
   result: "RE/DACTED=="
+---
+case: good json with mixed fields and jsonpath filter
+args:
+  url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}
+  key: testkey
+  version: 1
+  jsonpath: $.result.thesecret
+  response: '{"result":{"thesecret":"secret-value","alsosecret":"another-value", "id": 1234, "weight": 1.5}}'
+want:
+  path: /api/getsecret?id=testkey&version=1
+  err: ''
+  result: secret-value
+---
+case: good json with mixed fields to map
+args:
+  url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}
+  key: testkey
+  version: 1
+  jsonpath: $.result
+  response: '{"result":{"thesecret":"secret-value","alsosecret":"another-value", "id": 1234, "weight": 1.5}}'
+want:
+  path: /api/getsecret?id=testkey&version=1
+  err: ''
+  resultmap:
+    thesecret: secret-value
+    alsosecret: another-value
+    id: 1234
+    weight: 1.5
 `
 
 func TestWebhookGetSecret(t *testing.T) {
