@@ -38,13 +38,13 @@ func (p *secretStoreProvider) CreateSecret(key string, val framework.SecretEntry
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 	fields := make([]server.SecretField, 1)
-	fields[0].FieldID = 439 // Data
+	fields[0].FieldID = 195 // Data
 	fields[0].ItemValue = val.Value
 
 	s, err := p.api.CreateSecret(server.Secret{
-		SecretTemplateID: 6098, // custom template
+		SecretTemplateID: 6027, // custom template
 		SiteID: 1,
-		FolderID: 73,
+		FolderID: 10,
 		Name: key,
 		Fields: fields,
 	})
