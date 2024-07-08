@@ -152,6 +152,11 @@ func (p *Provider) initClient(ctx context.Context, c *client, client util.Client
 	if vaultSpec.ReadYourWrites && vaultSpec.ForwardInconsistent {
 		client.AddHeader("X-Vault-Inconsistent", "forward-active-node")
 	}
+	if vaultSpec.Headers != nil{
+		for hKey, hValue := range provider.Headers {
+			client.AddHeader(hKey, hValue)
+		}
+	}
 	c.client = client
 	c.auth = client.Auth()
 	c.logical = client.Logical()
