@@ -423,7 +423,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			label: "invalid store namespace not allowed",
 			store: makeSecretStore(withAuth(secretName, "", &namespace)),
-			err:   fmt.Errorf("invalid store: namespace not allowed with namespaced SecretStore"),
+			err:   fmt.Errorf("invalid store: namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore"),
 		},
 		{
 			label: "valid provide optional dopplerToken.key",

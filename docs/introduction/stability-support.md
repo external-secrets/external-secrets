@@ -19,7 +19,7 @@ We want to cover the following cases:
 
 | ESO Version | Kubernetes Version | Release Date | End of Life    |
 | ----------- | ------------------ | ------------ | -------------- |
-| 0.9.x       | 1.19 → 1.29        | Jun 22, 2023 | Release of 1.1 |
+| 0.9.x       | 1.19 → 1.30        | Jun 22, 2023 | Release of 1.1 |
 | 0.8.x       | 1.19 → 1.28        | Mar 16, 2023 | Release of 1.0 |
 | 0.7.x       | 1.19 → 1.26        | Dec 11, 2022 | Jun 22, 2023   |
 | 0.6.x       | 1.19 → 1.24        | Oct 9, 2022  | Mar 16, 2023   |

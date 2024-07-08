@@ -199,7 +199,7 @@ func TestValidateStore(t *testing.T) {
 					},
 				},
 			},
-			want: errors.New("namespace not allowed with namespaced SecretStore"),
+			want: errors.New("namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore"),
 		},
 	}
 	for name, tc := range tests {
