@@ -44,7 +44,7 @@ func (p *secretStoreProvider) CreateSecret(key string, val framework.SecretEntry
 	s, err := p.api.CreateSecret(server.Secret{
 		SecretTemplateID: 6051, // custom template
 		SiteID: 1,
-		FolderID: 11,
+		FolderID: 10,
 		Name: key,
 		Fields: fields,
 	})
