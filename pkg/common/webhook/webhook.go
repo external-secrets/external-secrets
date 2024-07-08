@@ -116,13 +116,21 @@ func (w *Webhook) GetSecretMap(ctx context.Context, provider *Spec, ref *esv1bet
 	return values, nil
 }
 
-func (w *Webhook) GetTemplateData(ctx context.Context, ref *esv1beta1.ExternalSecretDataRemoteRef, secrets []Secret) (map[string]map[string]string, error) {
+func (w *Webhook) GetTemplateData(ctx context.Context, ref *esv1beta1.ExternalSecretDataRemoteRef, secrets []Secret, urlEncode bool) (map[string]map[string]string, error) {
 	data := map[string]map[string]string{}
 	if ref != nil {
-		data["remoteRef"] = map[string]string{
-			"key":      url.QueryEscape(ref.Key),
-			"version":  url.QueryEscape(ref.Version),
-			"property": url.QueryEscape(ref.Property),
+		if urlEncode {
+			data["remoteRef"] = map[string]string{
+				"key":      url.QueryEscape(ref.Key),
+				"version":  url.QueryEscape(ref.Version),
+				"property": url.QueryEscape(ref.Property),
+			}
+		} else {
+			data["remoteRef"] = map[string]string{
+				"key":      ref.Key,
+				"version":  ref.Version,
+				"property": ref.Property,
+			}
 		}
 	}
 	for _, secref := range secrets {
@@ -144,19 +152,25 @@ func (w *Webhook) GetWebhookData(ctx context.Context, provider *Spec, ref *esv1b
 	if w.HTTP == nil {
 		return nil, fmt.Errorf("http client not initialized")
 	}
-	data, err := w.GetTemplateData(ctx, ref, provider.Secrets)
+
+	escapedData, err := w.GetTemplateData(ctx, ref, provider.Secrets, true)
 	if err != nil {
 		return nil, err
 	}
+	rawData, err := w.GetTemplateData(ctx, ref, provider.Secrets, false)
+	if err != nil {
+		return nil, err
+	}
+
 	method := provider.Method
 	if method == "" {
 		method = http.MethodGet
 	}
-	url, err := ExecuteTemplateString(provider.URL, data)
+	url, err := ExecuteTemplateString(provider.URL, escapedData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse url: %w", err)
 	}
-	body, err := ExecuteTemplate(provider.Body, data)
+	body, err := ExecuteTemplate(provider.Body, rawData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse body: %w", err)
 	}
@@ -166,7 +180,7 @@ func (w *Webhook) GetWebhookData(ctx context.Context, provider *Spec, ref *esv1b
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	for hKey, hValueTpl := range provider.Headers {
-		hValue, err := ExecuteTemplateString(hValueTpl, data)
+		hValue, err := ExecuteTemplateString(hValueTpl, rawData)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse header %s: %w", hKey, err)
 		}

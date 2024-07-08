@@ -133,7 +133,7 @@ func (w *WebHook) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDat
 		return nil, err
 	}
 	// Only parse as json if we have a jsonpath set
-	data, err := w.wh.GetTemplateData(ctx, &ref, provider.Secrets)
+	data, err := w.wh.GetTemplateData(ctx, &ref, provider.Secrets, false)
 	if err != nil {
 		return nil, err
 	}
