@@ -137,6 +137,10 @@ func (c *client) getSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRe
 		if err != nil {
 			return nil, err
 		}
+		if len(s) == 0 {
+			return nil, errors.New("unable to retrieve secret at this time")
+		}
+
 		return &s[0], nil
 	}
 	return c.api.Secret(id)
