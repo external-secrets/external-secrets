@@ -155,6 +155,11 @@ type SecretStoreProvider struct {
 	// +optional
 	Delinea *DelineaProvider `json:"delinea,omitempty"`
 
+	// SecretServer configures this store to sync secrets using SecretServer provider
+	// https://docs.delinea.com/online-help/secret-server/start.htm
+	// +optional
+	SecretServer *SecretServerProvider `json:"secretserver,omitempty"`
+
 	// Chef configures this store to sync secrets with chef server
 	// +optional
 	Chef *ChefProvider `json:"chef,omitempty"`

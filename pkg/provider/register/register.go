@@ -42,6 +42,7 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/passworddepot"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/pulumi"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/scaleway"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/secretserver"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/senhasegura"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/vault"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/webhook"
