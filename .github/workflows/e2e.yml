@@ -139,7 +139,7 @@ jobs:
         token: ${{ steps.create_token.outputs.token }}
         issue-number: ${{ github.event.client_payload.pull_request.number }}
         body: |
-            [Bot] - :white_check_mark: [e2e for $TARGET_SHA passed](https://github.com/external-secrets/external-secrets/actions/runs/${{ github.run_id }})
+            [Bot] - :white_check_mark: [e2e for ${{ env.TARGET_SHA }} passed](https://github.com/external-secrets/external-secrets/actions/runs/${{ github.run_id }})
     - name: Update on Failure
       if: always() &&  steps.e2e.conclusion != 'success'
       uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4.0.0
@@ -147,4 +147,4 @@ jobs:
         token: ${{ steps.create_token.outputs.token }}
         issue-number: ${{ github.event.client_payload.pull_request.number }}
         body: |
-            [Bot] - :x: [e2e for $TARGET_SHA failed](https://github.com/external-secrets/external-secrets/actions/runs/${{ github.run_id }})
+            [Bot] - :x: [e2e for ${{ env.TARGET_SHA }} failed](https://github.com/external-secrets/external-secrets/actions/runs/${{ github.run_id }})
