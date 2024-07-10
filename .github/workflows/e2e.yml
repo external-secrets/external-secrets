@@ -109,7 +109,7 @@ jobs:
         # Conveniently, job.status maps to https://developer.github.com/v3/checks/runs/#update-a-check-run
         conclusion: ${{ job.status }}
       with:
-        github-token: ${{ steps.create_token.outputs.token }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           const { data: pull } = await github.rest.pulls.get({
             ...context.repo,
