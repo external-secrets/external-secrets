@@ -1,0 +1,38 @@
+{
+"Name": "ESO-test-secret",
+"FolderID": 73,
+"ID": 1000,
+"SiteID": 1,
+"SecretTemplateID": 6098,
+"SecretPolicyID": -1,
+"PasswordTypeWebScriptID": -1,
+"LauncherConnectAsSecretID": -1,
+"CheckOutIntervalMinutes": -1,
+"Active": true,
+"CheckedOut": false,
+"CheckOutEnabled": false,
+"AutoChangeEnabled": false,
+"CheckOutChangePasswordEnabled": false,
+"DelayIndexing": false,
+"EnableInheritPermissions": false,
+"EnableInheritSecretPolicy": false,
+"ProxyEnabled": false,
+"RequiresComment": false,
+"SessionRecordingEnabled": false,
+"WebLauncherRequiresIncognitoMode": false,
+"Items": [
+  {
+	"ItemID": 286259,
+	"FieldID": 439,
+	"FileAttachmentID": 0,
+	"FieldName": "Data",
+	"Slug": "data",
+	"FieldDescription": "json text field",
+	"Filename": "",
+	"ItemValue": "{ \"user\": \"robertOppenheimer\", \"password\": \"badPassword\",\"server\":\"192.168.1.50\"}",
+	"IsFile": false,
+	"IsNotes": false,
+	"IsPassword": false
+  }
+]
+}
