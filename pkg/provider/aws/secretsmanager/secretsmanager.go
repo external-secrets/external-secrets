@@ -230,7 +230,7 @@ func (sm *SecretsManager) handleSecretError(err error) (bool, error) {
 		return false, err
 	}
 	if aerr.Code() == awssm.ErrCodeResourceNotFoundException {
-		return true, nil
+		return false, nil
 	}
 	return false, err
 }
