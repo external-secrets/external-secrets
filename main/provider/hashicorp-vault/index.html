@@ -3842,12 +3842,13 @@ one supported by this provider. For other secrets engines, please refer to the
 <span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span>
 
 <span class="nn">---</span>
-<span class="c1"># will create a secret with:</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-sync</span>
-<span class="nt">data</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">foobar</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">czNjcjN0</span>
+<span class="c1"># That will automatically create a Kubernetes Secret with:</span>
+<span class="c1"># apiVersion: v1</span>
+<span class="c1"># kind: Secret</span>
+<span class="c1"># metadata:</span>
+<span class="c1">#  name: example-sync</span>
+<span class="c1"># data:</span>
+<span class="c1">#  foobar: czNjcjN0</span>
 </code></pre></div>
 <p>Keep in mind that fetching the labels with <code>metadataPolicy: Fetch</code> only works with KV sercrets engine version v2.</p>
 <h4 id="fetching-raw-values">Fetching Raw Values</h4>
