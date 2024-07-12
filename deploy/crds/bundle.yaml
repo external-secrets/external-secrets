@@ -4685,6 +4685,11 @@ spec:
                             the option is enabled serverside.
                             https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header
                           type: boolean
+                        headers:
+                          additionalProperties:
+                            type: string
+                          description: Headers to be added in Vault request
+                          type: object
                         namespace:
                           description: |-
                             Name of the vault namespace. Namespaces is a set of features within Vault Enterprise that allows
@@ -10248,6 +10253,11 @@ spec:
                             the option is enabled serverside.
                             https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header
                           type: boolean
+                        headers:
+                          additionalProperties:
+                            type: string
+                          description: Headers to be added in Vault request
+                          type: object
                         namespace:
                           description: |-
                             Name of the vault namespace. Namespaces is a set of features within Vault Enterprise that allows
@@ -11938,6 +11948,11 @@ spec:
                         the option is enabled serverside.
                         https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header
                       type: boolean
+                    headers:
+                      additionalProperties:
+                        type: string
+                      description: Headers to be added in Vault request
+                      type: object
                     namespace:
                       description: |-
                         Name of the vault namespace. Namespaces is a set of features within Vault Enterprise that allows
