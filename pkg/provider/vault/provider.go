@@ -148,13 +148,13 @@ func (p *Provider) initClient(ctx context.Context, c *client, client util.Client
 	if vaultSpec.Namespace != nil {
 		client.SetNamespace(*vaultSpec.Namespace)
 	}
-	
+
 	if vaultSpec.Headers != nil {
 		for hKey, hValue := range vaultSpec.Headers {
 			client.AddHeader(hKey, hValue)
 		}
 	}
-	
+
 	if vaultSpec.ReadYourWrites && vaultSpec.ForwardInconsistent {
 		client.AddHeader("X-Vault-Inconsistent", "forward-active-node")
 	}
