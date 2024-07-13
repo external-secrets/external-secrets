@@ -495,7 +495,7 @@ func TestGetCA(t *testing.T) {
 			args: args{
 				store: makeStoreWithCA("secret", ""),
 				kube: clientfake.NewClientBuilder().
-					WithObjects(makeFakeCASource("secret", certData)).Build(),
+					WithObjects(makeFakeCASource("secret", certDataEncoded)).Build(),
 				namespace: "default",
 				corev1:    utilfake.NewCreateTokenMock().WithToken(createFakeJwtToken(true)),
 			},
