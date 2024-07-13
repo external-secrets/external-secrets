@@ -89,12 +89,13 @@ spec:
       property: dev
 
 ---
-# will create a secret with:
-kind: Secret
-metadata:
-  name: example-sync
-data:
-  foobar: czNjcjN0
+# That will automatically create a Kubernetes Secret with:
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#  name: example-sync
+# data:
+#  foobar: czNjcjN0
 ```
 
 Keep in mind that fetching the labels with `metadataPolicy: Fetch` only works with KV sercrets engine version v2.
