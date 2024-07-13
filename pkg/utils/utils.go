@@ -16,6 +16,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"crypto/md5" //nolint:gosec
 	"encoding/base64"
 	"encoding/json"
@@ -31,12 +32,15 @@ import (
 	"time"
 	"unicode"
 
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/template/v2"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -514,4 +518,104 @@ func CompareStringAndByteSlices(valueString *string, valueByte []byte) bool {
 	}
 
 	return bytes.Equal(valueByte, []byte(*valueString))
+}
+
+// CreateCertOpts contains options for a cert pool creation.
+type CreateCertOpts struct {
+	CABundle   []byte
+	CAProvider *esv1beta1.CAProvider
+	StoreKind  string
+	Namespace  string
+	Client     client.Client
+}
+
+// CreateCACert creates a CertPool using either a CABundle directly, or
+// a ConfigMap / Secret.
+func CreateCACert(ctx context.Context, opts CreateCertOpts) ([]byte, error) {
+	if len(opts.CABundle) == 0 && opts.CAProvider == nil {
+		return nil, nil
+	}
+
+	if len(opts.CABundle) > 0 {
+		pem, err := base64decode(opts.CABundle)
+		if err != nil {
+			pem = opts.CABundle
+		}
+
+		return pem, nil
+	}
+
+	if opts.CAProvider != nil &&
+		opts.StoreKind == esv1beta1.ClusterSecretStoreKind &&
+		opts.CAProvider.Namespace == nil {
+		return nil, fmt.Errorf("missing namespace on caProvider secret")
+	}
+
+	var cert []byte
+	var err error
+
+	switch opts.CAProvider.Type {
+	case esv1beta1.CAProviderTypeSecret:
+		cert, err = getCertFromSecret(ctx, opts.Client, opts.CAProvider, opts.StoreKind, opts.Namespace)
+		if err != nil {
+			return nil, err
+		}
+
+		return base64decode(cert)
+	case esv1beta1.CAProviderTypeConfigMap:
+		return getCertFromConfigMap(ctx, opts.Namespace, opts.Client, opts.CAProvider)
+	}
+
+	return nil, fmt.Errorf("unsupported CA provider type: %s", opts.CAProvider.Type)
+}
+
+func base64decode(cert []byte) ([]byte, error) {
+	certBytes, decodeErr := Decode(esv1beta1.ExternalSecretDecodeBase64, cert)
+	if decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode base64: %w", decodeErr)
+	}
+
+	return certBytes, nil
+}
+
+func getCertFromSecret(ctx context.Context, c client.Client, provider *esv1beta1.CAProvider, storeKind, namespace string) ([]byte, error) {
+	secretRef := esmeta.SecretKeySelector{
+		Name: provider.Name,
+		Key:  provider.Key,
+	}
+
+	if provider.Namespace != nil {
+		secretRef.Namespace = provider.Namespace
+	}
+
+	cert, err := resolvers.SecretKeyRef(ctx, c, storeKind, namespace, &secretRef)
+	if err != nil {
+		return nil, err
+	}
+
+	return []byte(cert), nil
+}
+
+func getCertFromConfigMap(ctx context.Context, namespace string, c client.Client, provider *esv1beta1.CAProvider) ([]byte, error) {
+	objKey := client.ObjectKey{
+		Name:      provider.Name,
+		Namespace: namespace,
+	}
+
+	if provider.Namespace != nil {
+		objKey.Namespace = *provider.Namespace
+	}
+
+	configMapRef := &corev1.ConfigMap{}
+	err := c.Get(ctx, objKey, configMapRef)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get caProvider secret %s: %w", objKey.Name, err)
+	}
+
+	val, ok := configMapRef.Data[provider.Key]
+	if !ok {
+		return nil, fmt.Errorf("failed to get caProvider configMap %s -> %s", objKey.Name, provider.Key)
+	}
+
+	return []byte(val), nil
 }
