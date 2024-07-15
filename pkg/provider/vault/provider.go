@@ -169,7 +169,7 @@ func (p *Provider) initClient(ctx context.Context, c *client, client util.Client
 	if c.storeKind == esv1beta1.ClusterSecretStoreKind && c.namespace == "" && isReferentSpec(vaultSpec) {
 		return c, nil
 	}
-	if err := c.setAuth(ctx, vaultSpec, cfg); err != nil {
+	if err := c.setAuth(ctx, cfg); err != nil {
 		return nil, err
 	}
 
