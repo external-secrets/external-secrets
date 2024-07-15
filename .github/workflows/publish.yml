@@ -66,7 +66,7 @@ jobs:
           install: true
 
       - name: Setup Go
-        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
+        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
         id: setup-go
         with:
           go-version-file: "go.mod"
@@ -126,7 +126,7 @@ jobs:
         run: make docker.build
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@7c2007bcb556501da015201bcba5aa14069b74e2 # master
+        uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8 # master
         with:
           image-ref: ${{ inputs.image-name }}:${{ steps.container_info.outputs.image-tag }}
           format: 'table'
