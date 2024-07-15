@@ -67,7 +67,7 @@ spec:
           - --crd-names=secretstores.external-secrets.io
           {{- end }}
           {{- if .Values.installCRDs }}
-          - --enable-partial-cache=true
+          - --enable-secrets-caching=true
           {{- end }}
           {{- range $key, $value := .Values.certController.extraArgs }}
             {{- if $value }}
