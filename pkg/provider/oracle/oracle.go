@@ -96,11 +96,22 @@ const (
 )
 
 func (vms *VaultManagementService) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	if vms.encryptionKey == "" {
+		return fmt.Errorf("SecretStore must reference encryption key")
+	}
+	value := secret.Data[data.GetSecretKey()]
 	if data.GetSecretKey() == "" {
-		return fmt.Errorf("pushing the whole secret is not yet implemented")
+		secretData := map[string]string{}
+		for k, v := range secret.Data {
+			secretData[k] = string(v)
+		}
+		jsonSecret, err := json.Marshal(secretData)
+		if err != nil {
+			return fmt.Errorf("unable to create json %v from value: %v", value, secretData)
+		}
+		value = jsonSecret
 	}
 
-	value := secret.Data[data.GetSecretKey()]
 	secretName := data.GetRemoteKey()
 	encodedValue := base64.StdEncoding.EncodeToString(value)
 	sec, action, err := vms.getSecretBundleWithCode(ctx, secretName)
