@@ -276,7 +276,6 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretData
 	}
 
 	secret := keyValue{
-		Key:   "secret",
 		Value: "",
 	}
 
