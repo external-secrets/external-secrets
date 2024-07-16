@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"strings"
 
-	approle "github.com/hashicorp/vault/api/auth/approle"
+	"github.com/hashicorp/vault/api/auth/approle"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/constants"

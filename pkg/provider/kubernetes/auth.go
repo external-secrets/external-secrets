@@ -30,11 +30,7 @@ import (
 )
 
 const (
-	errInvalidClusterStoreMissingNamespace = "missing namespace"
-	errFetchCredentials                    = "could not fetch credentials: %w"
-	errMissingCredentials                  = "missing credentials: \"%s\""
-	errEmptyKey                            = "key %s found but empty"
-	errUnableCreateToken                   = "cannot create service account token: %q"
+	errUnableCreateToken = "cannot create service account token: %q"
 )
 
 func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
