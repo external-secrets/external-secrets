@@ -2,7 +2,7 @@
 
 External Secrets Operator integrates with [BeyondTrust Password Safe](https://www.beyondtrust.com/docs/beyondinsight-password-safe/).
 
-Warning: The External Secrets Operator is designed to write secrets to Kubernetes secrets which are by default written to etcd base 64 encoded. This is not secure, you must configure Kubernetes encryption or use third-party encryption for production environments.
+Warning: The External Secrets Operator secure usage involves taking several measures. Please see [Security Best Practices](https://external-secrets.io/latest/guides/security-best-practices/) for more information.
 
 Warning: If the BT provider secret is deleted it will still exist in the Kubernetes secrets.
 
@@ -91,7 +91,7 @@ spec:
 ### Creating a ExternalSecret
 
 You can follow the below example to create a `ExternalSecret` resource. Secrets can be referenced by path.
-You can also use a `ClusterExternalSecret` allowing you to reference secrets from all namespaces. [ClusterExternalSecret](https://external-secrets.io/latest/api/clusterexternalsecret/)
+You can also use a `ClusterExternalSecret` allowing you to reference secrets from all namespaces.
 
 ```sh
 kubectl apply -f external-secret.yml
