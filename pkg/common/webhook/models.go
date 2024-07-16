@@ -16,6 +16,8 @@ package webhook
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 type Spec struct {
@@ -55,31 +57,7 @@ type Spec struct {
 
 	// The provider for the CA bundle to use to validate webhook server certificate.
 	// +optional
-	CAProvider *CAProvider `json:"caProvider,omitempty"`
-}
-type CAProviderType string
-
-const (
-	CAProviderTypeSecret    CAProviderType = "Secret"
-	CAProviderTypeConfigMap CAProviderType = "ConfigMap"
-)
-
-// Defines a location to fetch the cert for the webhook provider from.
-type CAProvider struct {
-	// The type of provider to use such as "Secret", or "ConfigMap".
-	// +kubebuilder:validation:Enum="Secret";"ConfigMap"
-	Type CAProviderType `json:"type"`
-
-	// The name of the object located at the provider type.
-	Name string `json:"name"`
-
-	// The key the value inside of the provider type to use, only used with "Secret" type
-	// +kubebuilder:validation:Optional
-	Key string `json:"key,omitempty"`
-
-	// The namespace the Provider type is in.
-	// +optional
-	Namespace *string `json:"namespace,omitempty"`
+	CAProvider *esv1beta1.CAProvider `json:"caProvider,omitempty"`
 }
 
 type Result struct {
