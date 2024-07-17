@@ -410,7 +410,7 @@ func (a *akeylessBase) getAkeylessHTTPClient(ctx context.Context, provider *esv1
 		return client, nil
 	}
 
-	cert, err := utils.CreateCACert(ctx, utils.CreateCertOpts{
+	cert, err := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
 		StoreKind:  a.storeKind,
 		Client:     a.kube,
 		Namespace:  a.namespace,

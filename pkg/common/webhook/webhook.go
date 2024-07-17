@@ -232,7 +232,7 @@ func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Clie
 
 func (w *Webhook) GetCACertPool(ctx context.Context, provider *Spec) (*x509.CertPool, error) {
 	caCertPool := x509.NewCertPool()
-	ca, err := utils.CreateCACert(ctx, utils.CreateCertOpts{
+	ca, err := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
 		CABundle:   provider.CABundle,
 		CAProvider: provider.CAProvider,
 		StoreKind:  w.StoreKind,
