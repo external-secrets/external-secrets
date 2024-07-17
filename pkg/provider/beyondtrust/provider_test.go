@@ -96,13 +96,18 @@ func TestNewClient(t *testing.T) {
 			Spec: esv1beta1.SecretStoreSpec{
 				Provider: &esv1beta1.SecretStoreProvider{
 					Beyondtrust: &esv1beta1.BeyondtrustProvider{
-						APIURL:        "https://example.com:443/BeyondTrust/api/public/v3/",
-						Retrievaltype: "SECRET",
-						Clientid: &esv1beta1.BeyondTrustProviderSecretRef{
-							Value: "12345678-25fg-4b05-9ced-35e7dd5093ae",
+						Server: &esv1beta1.BeyondtrustServer{
+							APIURL:        "https://example.com:443/BeyondTrust/api/public/v3/",
+							Retrievaltype: "SECRET",
 						},
-						Clientsecret: &esv1beta1.BeyondTrustProviderSecretRef{
-							Value: "1234567890on8mTcOzJcltiEg4wYOhDVMer123456789",
+
+						Auth: &esv1beta1.BeyondtrustAuth{
+							Clientid: &esv1beta1.BeyondTrustProviderSecretRef{
+								Value: "12345678-25fg-4b05-9ced-35e7dd5093ae",
+							},
+							Clientsecret: &esv1beta1.BeyondTrustProviderSecretRef{
+								Value: "1234567890on8mTcOzJcltiEg4wYOhDVMer123456789",
+							},
 						},
 					},
 				},
@@ -124,13 +129,17 @@ func TestNewClientBadClientId(t *testing.T) {
 			Spec: esv1beta1.SecretStoreSpec{
 				Provider: &esv1beta1.SecretStoreProvider{
 					Beyondtrust: &esv1beta1.BeyondtrustProvider{
-						APIURL:        "https://example.com:443/BeyondTrust/api/public/v3/",
-						Retrievaltype: "SECRET",
-						Clientid: &esv1beta1.BeyondTrustProviderSecretRef{
-							Value: "6138d050",
+						Server: &esv1beta1.BeyondtrustServer{
+							APIURL:        "https://example.com:443/BeyondTrust/api/public/v3/",
+							Retrievaltype: "SECRET",
 						},
-						Clientsecret: &esv1beta1.BeyondTrustProviderSecretRef{
-							Value: "1234567890on8mTcOzJcltiEg4wYOhDVMer123456789",
+						Auth: &esv1beta1.BeyondtrustAuth{
+							Clientid: &esv1beta1.BeyondTrustProviderSecretRef{
+								Value: "6138d050",
+							},
+							Clientsecret: &esv1beta1.BeyondTrustProviderSecretRef{
+								Value: "1234567890on8mTcOzJcltiEg4wYOhDVMer123456789",
+							},
 						},
 					},
 				},
@@ -152,13 +161,17 @@ func TestNewClientBadClientSecret(t *testing.T) {
 			Spec: esv1beta1.SecretStoreSpec{
 				Provider: &esv1beta1.SecretStoreProvider{
 					Beyondtrust: &esv1beta1.BeyondtrustProvider{
-						APIURL:        "https://example.com:443/BeyondTrust/api/public/v3/",
-						Retrievaltype: "SECRET",
-						Clientid: &esv1beta1.BeyondTrustProviderSecretRef{
-							Value: "12345678-25fg-4b05-9ced-35e7dd5093ae",
+						Server: &esv1beta1.BeyondtrustServer{
+							APIURL:        "https://example.com:443/BeyondTrust/api/public/v3/",
+							Retrievaltype: "SECRET",
 						},
-						Clientsecret: &esv1beta1.BeyondTrustProviderSecretRef{
-							Value: "8i7U0Yulabon8mTc",
+						Auth: &esv1beta1.BeyondtrustAuth{
+							Clientsecret: &esv1beta1.BeyondTrustProviderSecretRef{
+								Value: "8i7U0Yulabon8mTc",
+							},
+							Clientid: &esv1beta1.BeyondTrustProviderSecretRef{
+								Value: "12345678-25fg-4b05-9ced-35e7dd5093ae",
+							},
 						},
 					},
 				},
@@ -180,14 +193,18 @@ func TestNewClientBadSeparator(t *testing.T) {
 			Spec: esv1beta1.SecretStoreSpec{
 				Provider: &esv1beta1.SecretStoreProvider{
 					Beyondtrust: &esv1beta1.BeyondtrustProvider{
-						APIURL:        "https://example.com:443/BeyondTrust/api/public/v3/",
-						Separator:     "//",
-						Retrievaltype: "SECRET",
-						Clientid: &esv1beta1.BeyondTrustProviderSecretRef{
-							Value: "12345678-25fg-4b05-9ced-35e7dd5093ae",
+						Server: &esv1beta1.BeyondtrustServer{
+							APIURL:        "https://example.com:443/BeyondTrust/api/public/v3/",
+							Separator:     "//",
+							Retrievaltype: "SECRET",
 						},
-						Clientsecret: &esv1beta1.BeyondTrustProviderSecretRef{
-							Value: "1234567890on8mTcOzJcltiEg4wYOhDVMer123456789",
+						Auth: &esv1beta1.BeyondtrustAuth{
+							Clientid: &esv1beta1.BeyondTrustProviderSecretRef{
+								Value: "12345678-25fg-4b05-9ced-35e7dd5093ae",
+							},
+							Clientsecret: &esv1beta1.BeyondTrustProviderSecretRef{
+								Value: "1234567890on8mTcOzJcltiEg4wYOhDVMer123456789",
+							},
 						},
 					},
 				},
@@ -209,15 +226,19 @@ func TestNewClientBadClientTimeOutinSeconds(t *testing.T) {
 			Spec: esv1beta1.SecretStoreSpec{
 				Provider: &esv1beta1.SecretStoreProvider{
 					Beyondtrust: &esv1beta1.BeyondtrustProvider{
-						APIURL:               "https://example.com:443/BeyondTrust/api/public/v3/",
-						Separator:            "/",
-						Clienttimeoutseconds: 400,
-						Retrievaltype:        "SECRET",
-						Clientid: &esv1beta1.BeyondTrustProviderSecretRef{
-							Value: "12345678-25fg-4b05-9ced-35e7dd5093ae",
+						Server: &esv1beta1.BeyondtrustServer{
+							APIURL:               "https://example.com:443/BeyondTrust/api/public/v3/",
+							Separator:            "/",
+							Clienttimeoutseconds: 400,
+							Retrievaltype:        "SECRET",
 						},
-						Clientsecret: &esv1beta1.BeyondTrustProviderSecretRef{
-							Value: "1234567890on8mTcOzJcltiEg4wYOhDVMer123456789",
+						Auth: &esv1beta1.BeyondtrustAuth{
+							Clientsecret: &esv1beta1.BeyondTrustProviderSecretRef{
+								Value: "1234567890on8mTcOzJcltiEg4wYOhDVMer123456789",
+							},
+							Clientid: &esv1beta1.BeyondTrustProviderSecretRef{
+								Value: "12345678-25fg-4b05-9ced-35e7dd5093ae",
+							},
 						},
 					},
 				},

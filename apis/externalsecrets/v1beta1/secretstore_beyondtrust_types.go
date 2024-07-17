@@ -28,9 +28,7 @@ type BeyondTrustProviderSecretRef struct {
 }
 
 // Configures a store to sync secrets using BeyondTrust Password Safe.
-type BeyondtrustProvider struct {
-	// Required - BeyondTrust Password Safe API URL. https://example.com:443/beyondtrust/api/public/V3.
-	APIURL string `json:"apiurl"`
+type BeyondtrustAuth struct {
 	// Required - API OAuth Client ID.
 	Clientid *BeyondTrustProviderSecretRef `json:"clientid"`
 	// Required - API OAuth Client Secret.
@@ -39,6 +37,12 @@ type BeyondtrustProvider struct {
 	Certificate *BeyondTrustProviderSecretRef `json:"certificate,omitempty"`
 	// Certificate private key (key.pem). For use when authenticating with an OAuth client Id
 	Certificatekey *BeyondTrustProviderSecretRef `json:"certificatekey,omitempty"`
+}
+
+// Configures a store to sync secrets using BeyondTrust Password Safe.
+type BeyondtrustServer struct {
+	// Required - BeyondTrust Password Safe API URL. https://example.com:443/beyondtrust/api/public/V3.
+	APIURL string `json:"apiurl"`
 	// The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.
 	Retrievaltype string `json:"retrievaltype,omitempty"`
 	// A character that separates the folder names.
@@ -47,4 +51,13 @@ type BeyondtrustProvider struct {
 	VerifyCA bool `json:"verifyca"`
 	// Timeout specifies a time limit for requests made by this Client. The timeout includes connection time, any redirects, and reading the response body. Defaults to 45 seconds.
 	Clienttimeoutseconds int `json:"clienttimeoutseconds,omitempty"`
+}
+
+type BeyondtrustProvider struct {
+
+	// Auth configures how the operator authenticates with Beyondtrust.
+	Auth *BeyondtrustAuth `json:"auth"`
+
+	// Auth configures how API server works.
+	Server *BeyondtrustServer `json:"server"`
 }

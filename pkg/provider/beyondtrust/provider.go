@@ -119,19 +119,19 @@ func (*Provider) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	config := store.GetSpec().Provider.Beyondtrust
 	logger := logging.NewLogrLogger(&ESOLogger)
-	apiURL := config.APIURL
+	apiURL := config.Server.APIURL
 	certificate := ""
 	certificateKey := ""
 	clientTimeOutInSeconds := 45
 	retryMaxElapsedTimeMinutes := 15
 	separator := "/"
 
-	if config.Separator != "" {
-		separator = config.Separator
+	if config.Server.Separator != "" {
+		separator = config.Server.Separator
 	}
 
-	if config.Clienttimeoutseconds != 0 {
-		clientTimeOutInSeconds = config.Clienttimeoutseconds
+	if config.Server.Clienttimeoutseconds != 0 {
+		clientTimeOutInSeconds = config.Server.Clienttimeoutseconds
 	}
 
 	backoffDefinition := backoff.NewExponentialBackOff()
@@ -139,25 +139,25 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	backoffDefinition.MaxElapsedTime = time.Duration(retryMaxElapsedTimeMinutes) * time.Second
 	backoffDefinition.RandomizationFactor = 0.5
 
-	clientID, err := loadConfigSecret(ctx, config.Clientid, kube, namespace)
+	clientID, err := loadConfigSecret(ctx, config.Auth.Clientid, kube, namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error: %w", err)
 	}
 
-	clientSecret, err := loadConfigSecret(ctx, config.Clientsecret, kube, namespace)
+	clientSecret, err := loadConfigSecret(ctx, config.Auth.Clientsecret, kube, namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error: %w", err)
 	}
 
-	if config.Certificate != nil && config.Certificatekey != nil {
-		loadedCertificate, err := loadConfigSecret(ctx, config.Certificate, kube, namespace)
+	if config.Auth.Certificate != nil && config.Auth.Certificatekey != nil {
+		loadedCertificate, err := loadConfigSecret(ctx, config.Auth.Certificate, kube, namespace)
 		if err != nil {
 			return nil, fmt.Errorf("error: %w", err)
 		}
 
 		certificate = loadedCertificate
 
-		loadedCertificateKey, err := loadConfigSecret(ctx, config.Certificatekey, kube, namespace)
+		loadedCertificateKey, err := loadConfigSecret(ctx, config.Auth.Certificatekey, kube, namespace)
 		if err != nil {
 			return nil, fmt.Errorf("error: %w", err)
 		}
@@ -172,7 +172,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		ApiUrl:                     &apiURL,
 		ClientTimeOutInSeconds:     clientTimeOutInSeconds,
 		Separator:                  &separator,
-		VerifyCa:                   config.VerifyCA,
+		VerifyCa:                   config.Server.VerifyCA,
 		Logger:                     logger,
 		Certificate:                certificate,
 		CertificateKey:             certificateKey,
@@ -187,7 +187,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	}
 
 	// creating a http client
-	httpClientObj, err := utils.GetHttpClient(clientTimeOutInSeconds, config.VerifyCA, certificate, certificateKey, logger)
+	httpClientObj, err := utils.GetHttpClient(clientTimeOutInSeconds, config.Server.VerifyCA, certificate, certificateKey, logger)
 
 	if err != nil {
 		return nil, fmt.Errorf("error: %w", err)
@@ -197,8 +197,8 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	authenticate, _ := auth.Authenticate(*httpClientObj, backoffDefinition, apiURL, clientID, clientSecret, logger, retryMaxElapsedTimeMinutes)
 
 	return &Provider{
-		apiURL:        config.APIURL,
-		retrievaltype: config.Retrievaltype,
+		apiURL:        config.Server.APIURL,
+		retrievaltype: config.Server.Retrievaltype,
 		authenticate:  *authenticate,
 		log:           *logger,
 		separator:     separator,
@@ -331,9 +331,17 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 		return nil, fmt.Errorf(errInvalidProvider, store.GetObjectMeta().String())
 	}
 
-	apiURL, err := url.Parse(provider.APIURL)
+	apiURL, err := url.Parse(provider.Server.APIURL)
 	if err != nil {
 		return nil, fmt.Errorf(errInvalidHostURL)
+	}
+
+	if provider.Auth.Clientid.SecretRef != nil {
+		return nil, err
+	}
+
+	if provider.Auth.Clientsecret.SecretRef != nil {
+		return nil, err
 	}
 
 	if apiURL.Host == "" {
