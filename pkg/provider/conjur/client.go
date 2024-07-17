@@ -60,7 +60,7 @@ func (c *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 		return nil, err
 	}
 
-	cert, getCertErr := utils.CreateCACert(ctx, utils.CreateCertOpts{
+	cert, getCertErr := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
 		CABundle:   []byte(prov.CABundle),
 		CAProvider: prov.CAProvider,
 		StoreKind:  c.store.GetKind(),

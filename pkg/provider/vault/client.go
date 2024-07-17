@@ -55,7 +55,7 @@ func (c *client) newConfig(ctx context.Context) (*vault.Config, error) {
 
 	if len(c.store.CABundle) != 0 || c.store.CAProvider != nil {
 		caCertPool := x509.NewCertPool()
-		ca, err := utils.CreateCACert(ctx, utils.CreateCertOpts{
+		ca, err := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
 			CABundle:   c.store.CABundle,
 			CAProvider: c.store.CAProvider,
 			StoreKind:  c.storeKind,

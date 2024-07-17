@@ -43,7 +43,7 @@ func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
 		return clientcmd.RESTConfigFromKubeConfig(cfg)
 	}
 
-	ca, err := utils.CreateCACert(ctx, utils.CreateCertOpts{
+	ca, err := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
 		CABundle:   c.store.Server.CABundle,
 		CAProvider: c.store.Server.CAProvider,
 		StoreKind:  c.storeKind,

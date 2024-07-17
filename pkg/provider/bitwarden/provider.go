@@ -108,7 +108,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 
 // newHTTPSClient creates a new HTTPS client with the given cert.
 func newHTTPSClient(ctx context.Context, c client.Client, storeKind, namespace string, provider *esv1beta1.BitwardenSecretsManagerProvider) (*http.Client, error) {
-	cert, err := utils.CreateCACert(ctx, utils.CreateCertOpts{
+	cert, err := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
 		CABundle:   []byte(provider.CABundle),
 		CAProvider: provider.CAProvider,
 		StoreKind:  storeKind,

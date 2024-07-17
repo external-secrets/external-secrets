@@ -529,9 +529,9 @@ type CreateCertOpts struct {
 	Client     client.Client
 }
 
-// CreateCACert creates a CertPool using either a CABundle directly, or
+// FetchCACertFromSource creates a CertPool using either a CABundle directly, or
 // a ConfigMap / Secret.
-func CreateCACert(ctx context.Context, opts CreateCertOpts) ([]byte, error) {
+func FetchCACertFromSource(ctx context.Context, opts CreateCertOpts) ([]byte, error) {
 	if len(opts.CABundle) == 0 && opts.CAProvider == nil {
 		return nil, nil
 	}
@@ -551,17 +551,9 @@ func CreateCACert(ctx context.Context, opts CreateCertOpts) ([]byte, error) {
 		return nil, fmt.Errorf("missing namespace on caProvider secret")
 	}
 
-	var cert []byte
-	var err error
-
 	switch opts.CAProvider.Type {
 	case esv1beta1.CAProviderTypeSecret:
-		cert, err = getCertFromSecret(ctx, opts.Client, opts.CAProvider, opts.StoreKind, opts.Namespace)
-		if err != nil {
-			return nil, err
-		}
-
-		return base64decode(cert)
+		return getCertFromSecret(ctx, opts.Client, opts.CAProvider, opts.StoreKind, opts.Namespace)
 	case esv1beta1.CAProviderTypeConfigMap:
 		return getCertFromConfigMap(ctx, opts.Namespace, opts.Client, opts.CAProvider)
 	}

@@ -116,7 +116,7 @@ func TestSetAuth(t *testing.T) {
 						Namespace: "default",
 					},
 					Data: map[string][]byte{
-						"cert":  []byte("bXljZXJ0ZGF0YQ=="),
+						"cert":  []byte("mycertdata"),
 						"token": []byte("mytoken"),
 					},
 				}).Build(),
@@ -215,7 +215,7 @@ func TestSetAuth(t *testing.T) {
 				store: &esv1beta1.KubernetesProvider{
 					Server: esv1beta1.KubernetesServer{
 						URL:      "https://my.test.tld",
-						CABundle: []byte("bXljZXJ0ZGF0YQ=="),
+						CABundle: []byte("mycertdata"),
 					},
 					Auth: esv1beta1.KubernetesAuth{
 						Token: &esv1beta1.TokenAuth{
