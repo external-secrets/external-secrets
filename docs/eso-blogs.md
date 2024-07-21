@@ -59,3 +59,11 @@ Emin writes about the Push Secret feature of ESO and how this new feature revers
 ## [GCP Secret Manager with self-hosted Kubernetes](https://medium.com/@jjlakis/gcp-secret-manager-with-self-hosted-kubernetes-db35d01d65f0)
 
 Jacek writes about bringing GCP secrets to on-premises cluster through External Secrets Operator intergration with workload identity.
+
+## [Injecting AWS Secrets in a Kubernetes Cluster with External Secrets Operator](https://blog.devops.dev/injecting-external-secrets-in-a-kubernetes-cluster-1e9bbe0f0d5b)
+
+Ali writes about integrating AWS Secrets Manager and Parameter Store secrets within an EKS Cluster using ESO. He shows a quick setup of the operator, and how to fetch secrets in a repeatable fashion. The guide is bundled with cool illustrations and code snippets that describe the ESO architecture and injection process
+
+## [Encoding & Decoding Kubernetes Secrets — ESO Advanced Templating](https://blog.devops.dev/encoding-decoding-kubernetes-secrets-externalsecrets-operator-826b9680df63)
+
+Here, Ali briefly introduces templates within ESO and describes some use cases where templating can be crucial. Code snippets are included where needed too.
