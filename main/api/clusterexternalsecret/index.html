@@ -816,6 +816,30 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#deprecations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deprecations
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Deprecations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#namespaceselector" class="md-nav__link">
+    <span class="md-ellipsis">
+      namespaceSelector
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3238,6 +3262,30 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#deprecations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deprecations
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Deprecations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#namespaceselector" class="md-nav__link">
+    <span class="md-ellipsis">
+      namespaceSelector
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3260,7 +3308,7 @@
 
 <p><img alt="ClusterExternalSecret" src="../../pictures/diagrams-cluster-external-secrets.png" /></p>
 <p>The <code>ClusterExternalSecret</code> is a cluster scoped resource that can be used to manage <code>ExternalSecret</code> resources in specific namespaces.</p>
-<p>With <code>namespaceSelector</code> you can select namespaces in which the ExternalSecret should be created.
+<p>With <code>namespaceSelectors</code> you can select namespaces in which the ExternalSecret should be created.
 If there is a conflict with an existing resource the controller will error out.</p>
 <h2 id="example">Example</h2>
 <p>Below is an example of the <code>ClusterExternalSecret</code> in use.</p>
@@ -3274,8 +3322,17 @@ If there is a conflict with an existing resource the controller will error out.<
 
 <span class="w">  </span><span class="c1"># This is a basic label selector to select the namespaces to deploy ExternalSecrets to.</span>
 <span class="w">  </span><span class="c1"># you can read more about them here https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#resources-that-support-set-based-requirements</span>
-<span class="w">  </span><span class="nt">namespaceSelector</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span><span class="w"> </span>
+<span class="w">  </span><span class="c1"># Deprecated: Use namespaceSelectors instead.</span>
+<span class="w">  </span><span class="c1"># namespaceSelector:</span>
+<span class="w">  </span><span class="c1">#   matchLabels:</span>
+<span class="w">  </span><span class="c1">#     cool: label</span>
+
+<span class="w">  </span><span class="c1"># This is a list of basic label selector to select the namespaces to deploy ExternalSecrets to.</span>
+<span class="w">  </span><span class="c1"># you can read more about them here https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#resources-that-support-set-based-requirements</span>
+<span class="w">  </span><span class="c1"># The list is OR&#39;d together, so if any of the namespaceSelectors match the namespace,</span>
+<span class="w">  </span><span class="c1"># the ExternalSecret will be deployed to that namespace.</span>
+<span class="w">  </span><span class="nt">namespaceSelectors</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">matchLabels</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">cool</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">label</span>
 
 <span class="w">  </span><span class="c1"># How often the ClusterExternalSecret should reconcile itself</span>
@@ -3341,6 +3398,10 @@ If there is a conflict with an existing resource the controller will error out.<
 <span class="w">    </span><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;True&quot;</span>
 <span class="w">    </span><span class="nt">lastTransitionTime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2022-01-12T12:33:02Z&quot;</span>
 </code></pre></div>
+<h2 id="deprecations">Deprecations</h2>
+<h3 id="namespaceselector">namespaceSelector</h3>
+<p>The field <code>namespaceSelector</code> has been deprecated in favor of <code>namespaceSelectors</code> and will be removed in a future
+version.</p>
 
 
 
