@@ -27,7 +27,7 @@ helm install external-secrets \
 
 ##### Certificate
 
-The Bitwarden SDK Server _NEEDS_ to run as an HTTPS service. That means that any installation that once to with Bitwarden
+The Bitwarden SDK Server _NEEDS_ to run as an HTTPS service. That means that any installation that wants to communicate with the Bitwarden
 provider will need to generate a certificate. The best approach for that is to use cert-manager. It's easy to set up
 and can generate a certificate that the store can use to connect with the server.
 
