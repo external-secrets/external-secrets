@@ -3469,7 +3469,7 @@ gets a determinable endpoint.</p>
     --set bitwarden-sdk-server.enabled=true
 </code></pre></div>
 <h5 id="certificate">Certificate</h5>
-<p>The Bitwarden SDK Server <em>NEEDS</em> to run as an HTTPS service. That means that any installation that once to with Bitwarden
+<p>The Bitwarden SDK Server <em>NEEDS</em> to run as an HTTPS service. That means that any installation that wants to communicate with the Bitwarden
 provider will need to generate a certificate. The best approach for that is to use cert-manager. It's easy to set up
 and can generate a certificate that the store can use to connect with the server.</p>
 <p>For a sample set up look at the bitwarden sdk server's test setup. It contains a self-signed certificate issuer for
