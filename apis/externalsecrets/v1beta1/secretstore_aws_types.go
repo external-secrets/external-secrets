@@ -124,4 +124,8 @@ type AWSProvider struct {
 	// AWS STS assume role transitive session tags. Required when multiple rules are used with the provider
 	// +optional
 	TransitiveTagKeys []*string `json:"transitiveTagKeys,omitempty"`
+
+	// Prefix adds a prefix to all retrieved values.
+	// +optional
+	Prefix string `json:"prefix,omitempty"`
 }

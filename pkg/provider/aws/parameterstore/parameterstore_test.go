@@ -51,6 +51,7 @@ type parameterstoreTestCase struct {
 	expectError    string
 	expectedSecret string
 	expectedData   map[string][]byte
+	prefix         string
 }
 
 func makeValidParameterStoreTestCase() *parameterstoreTestCase {
@@ -60,6 +61,7 @@ func makeValidParameterStoreTestCase() *parameterstoreTestCase {
 		apiOutput:      makeValidAPIOutput(),
 		remoteRef:      makeValidRemoteRef(),
 		apiErr:         nil,
+		prefix:         "",
 		expectError:    "",
 		expectedSecret: "",
 		expectedData:   make(map[string][]byte),
@@ -569,6 +571,17 @@ func TestGetSecret(t *testing.T) {
 		pstc.expectedSecret = "RRRRR"
 	}
 
+	// good case: key is passed in and prefix is set, output is sent back
+	setSecretStringWithPrefix := func(pstc *parameterstoreTestCase) {
+		pstc.apiInput = &ssm.GetParameterInput{
+			Name:           aws.String("/test/this/baz"),
+			WithDecryption: aws.Bool(true),
+		}
+		pstc.prefix = "/test/this"
+		pstc.apiOutput.Parameter.Value = aws.String("RRRRR")
+		pstc.expectedSecret = "RRRRR"
+	}
+
 	// good case: extract property
 	setExtractProperty := func(pstc *parameterstoreTestCase) {
 		pstc.apiOutput.Parameter.Value = aws.String(`{"/shmoo": "bang"}`)
@@ -649,6 +662,7 @@ func TestGetSecret(t *testing.T) {
 	}
 
 	successCases := []*parameterstoreTestCase{
+		makeValidParameterStoreTestCaseCustom(setSecretStringWithPrefix),
 		makeValidParameterStoreTestCaseCustom(setSecretString),
 		makeValidParameterStoreTestCaseCustom(setExtractProperty),
 		makeValidParameterStoreTestCaseCustom(setMissingProperty),
@@ -665,6 +679,7 @@ func TestGetSecret(t *testing.T) {
 	ps := ParameterStore{}
 	for k, v := range successCases {
 		ps.client = v.fakeClient
+		ps.prefix = v.prefix
 		out, err := ps.GetSecret(context.Background(), *v.remoteRef)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
