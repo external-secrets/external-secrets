@@ -308,10 +308,7 @@ func (pm *ParameterStore) findByName(ctx context.Context, ref esv1beta1.External
 			if !matcher.MatchName(*param.Name) {
 				continue
 			}
-			err = pm.fetchAndSet(ctx, data, *param.Name)
-			if err != nil {
-				return nil, err
-			}
+			data[*param.Name] = []byte(*param.Value)
 		}
 		nextToken = it.NextToken
 		if nextToken == nil {
