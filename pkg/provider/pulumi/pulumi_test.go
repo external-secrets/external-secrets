@@ -21,37 +21,62 @@ import (
 	"reflect"
 	"testing"
 
-	esc2 "github.com/pulumi/esc"
-	esc "github.com/pulumi/esc/cmd/esc/cli/client"
+	esc "github.com/pulumi/esc-sdk/sdk/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
-func newTestClient(t *testing.T, _, _ string, handler func(w http.ResponseWriter, r *http.Request)) *client {
-	const userAgent = "test-user-agent"
+// Constants for content type and value.
+const contentTypeValue = "application/json"
+const contentType = "Content-Type"
+
+func newTestClient(t *testing.T, _, pattern string, handler func(w http.ResponseWriter, r *http.Request)) *client {
 	const token = "test-token"
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "token "+token, r.Header.Get("Authorization"))
-		handler(w, r)
-	}))
-	t.Cleanup(server.Close)
+	mux := http.NewServeMux()
 
+	mux.HandleFunc(pattern, handler)
+	mux.HandleFunc("/environments/foo/bar/open/", func(w http.ResponseWriter, r *http.Request) {
+		r.Header.Add(contentType, contentTypeValue)
+		w.Header().Add(contentType, contentTypeValue)
+		w.WriteHeader(http.StatusOK)
+		err := json.NewEncoder(w).Encode(map[string]interface{}{
+			"id": "session-id",
+		})
+		require.NoError(t, err)
+	})
+
+	server := httptest.NewServer(mux)
+	t.Cleanup(server.Close)
+	configuration := esc.NewConfiguration()
+	configuration.AddDefaultHeader("Authorization", "token "+token)
+	configuration.UserAgent = "external-secrets-operator"
+	configuration.Servers = esc.ServerConfigurations{
+		esc.ServerConfiguration{
+			URL: server.URL,
+		},
+	}
+	ctx := esc.NewAuthContext(token)
+	escClient := esc.NewClient(configuration)
 	return &client{
-		escClient:    esc.New(userAgent, server.URL, token, true),
+		escClient:    *escClient,
+		authCtx:      ctx,
 		organization: "foo",
 		environment:  "bar",
 	}
 }
 
 func TestGetSecret(t *testing.T) {
-	ctx := context.Background()
-	expected := esc2.NewValue("world")
+	testmap := map[string]interface{}{
+		"b": "world",
+	}
 
-	client := newTestClient(t, http.MethodGet, "/api/preview/environments/foo/bar/open/session", func(w http.ResponseWriter, r *http.Request) {
-		err := json.NewEncoder(w).Encode(expected)
+	client := newTestClient(t, http.MethodGet, "/environments/foo/bar/open/session-id", func(w http.ResponseWriter, r *http.Request) {
+		r.Header.Add(contentType, contentTypeValue)
+		w.Header().Add(contentType, contentTypeValue)
+		err := json.NewEncoder(w).Encode(esc.NewValue(testmap, esc.Trace{}))
 		require.NoError(t, err)
 	})
 
@@ -64,12 +89,12 @@ func TestGetSecret(t *testing.T) {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key: "b",
 			},
-			want: []byte(`world`),
+			want: []byte(`{"b":"world"}`),
 		},
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			got, err := client.GetSecret(ctx, tc.ref)
+			got, err := client.GetSecret(context.TODO(), tc.ref)
 			if tc.err == nil {
 				assert.NoError(t, err)
 				assert.Equal(t, tc.want, got)
@@ -86,7 +111,7 @@ func TestGetSecretMap(t *testing.T) {
 	tests := []struct {
 		name  string
 		ref   esv1beta1.ExternalSecretDataRemoteRef
-		input string
+		input map[string]interface{}
 
 		want    map[string][]byte
 		wantErr bool
@@ -96,7 +121,62 @@ func TestGetSecretMap(t *testing.T) {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key: "mysec",
 			},
-			input: `{"foo": "bar", "foobar": 42, "bar": true}`,
+			input: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"value": "bar",
+					"trace": map[string]interface{}{
+						"def": map[string]interface{}{
+							"environment": "bar",
+							"begin": map[string]interface{}{
+								"line":   3,
+								"column": 9,
+								"byte":   29,
+							},
+							"end": map[string]interface{}{
+								"line":   3,
+								"column": 13,
+								"byte":   33,
+							},
+						},
+					},
+				},
+				"foobar": map[string]interface{}{
+					"value": "42",
+					"trace": map[string]interface{}{
+						"def": map[string]interface{}{
+							"environment": "bar",
+							"begin": map[string]interface{}{
+								"line":   4,
+								"column": 9,
+								"byte":   38,
+							},
+							"end": map[string]interface{}{
+								"line":   4,
+								"column": 13,
+								"byte":   42,
+							},
+						},
+					},
+				},
+				"bar": map[string]interface{}{
+					"value": true,
+					"trace": map[string]interface{}{
+						"def": map[string]interface{}{
+							"environment": "bar",
+							"begin": map[string]interface{}{
+								"line":   5,
+								"column": 9,
+								"byte":   47,
+							},
+							"end": map[string]interface{}{
+								"line":   5,
+								"column": 13,
+								"byte":   51,
+							},
+						},
+					},
+				},
+			},
 			want: map[string][]byte{
 				"foo":    []byte("bar"),
 				"foobar": []byte("42"),
@@ -109,10 +189,85 @@ func TestGetSecretMap(t *testing.T) {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key: "mysec",
 			},
-			input: `{"foo": {"foobar": 42}, "bar": {"foo": "bar"}}`,
+			input: map[string]interface{}{
+				"test22": map[string]interface{}{
+					"value": map[string]interface{}{
+						"my": map[string]interface{}{
+							"value": "hello",
+							"trace": map[string]interface{}{
+								"def": map[string]interface{}{
+									"environment": "bar",
+									"begin": map[string]interface{}{
+										"line":   6,
+										"column": 11,
+										"byte":   72,
+									},
+									"end": map[string]interface{}{
+										"line":   6,
+										"column": 16,
+										"byte":   77,
+									},
+								},
+							},
+						},
+					},
+					"trace": map[string]interface{}{
+						"def": map[string]interface{}{
+							"environment": "bar",
+							"begin": map[string]interface{}{
+								"line":   6,
+								"column": 7,
+								"byte":   68,
+							},
+							"end": map[string]interface{}{
+								"line":   6,
+								"column": 16,
+								"byte":   77,
+							},
+						},
+					},
+				},
+				"test33": map[string]interface{}{
+					"value": map[string]interface{}{
+						"world": map[string]interface{}{
+							"value": "hello",
+							"trace": map[string]interface{}{
+								"def": map[string]interface{}{
+									"environment": "bar",
+									"begin": map[string]interface{}{
+										"line":   8,
+										"column": 14,
+										"byte":   103,
+									},
+									"end": map[string]interface{}{
+										"line":   8,
+										"column": 19,
+										"byte":   108,
+									},
+								},
+							},
+						},
+					},
+					"trace": map[string]interface{}{
+						"def": map[string]interface{}{
+							"environment": "bar",
+							"begin": map[string]interface{}{
+								"line":   8,
+								"column": 7,
+								"byte":   96,
+							},
+							"end": map[string]interface{}{
+								"line":   8,
+								"column": 19,
+								"byte":   108,
+							},
+						},
+					},
+				},
+			},
 			want: map[string][]byte{
-				"foo": []byte(`{"foobar":42}`),
-				"bar": []byte(`{"foo":"bar"}`),
+				"test22": []byte(`{"my":{"trace":{"def":{"begin":{"byte":72,"column":11,"line":6},"end":{"byte":77,"column":16,"line":6},"environment":"bar"}},"value":"hello"}}`),
+				"test33": []byte(`{"world":{"trace":{"def":{"begin":{"byte":103,"column":14,"line":8},"end":{"byte":108,"column":19,"line":8},"environment":"bar"}},"value":"hello"}}`),
 			},
 			wantErr: false,
 		},
@@ -121,23 +276,79 @@ func TestGetSecretMap(t *testing.T) {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key: "mysec",
 			},
-			input: `{"foo": "bar", "bar": {"foo": {"bar": false}}}`,
+			input: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"value": "bar",
+					"trace": map[string]interface{}{
+						"def": map[string]interface{}{
+							"environment": "bar",
+							"begin": map[string]interface{}{
+								"line":   3,
+								"column": 9,
+								"byte":   29,
+							},
+							"end": map[string]interface{}{
+								"line":   3,
+								"column": 13,
+								"byte":   33,
+							},
+						},
+					},
+				},
+				"test22": map[string]interface{}{
+					"value": map[string]interface{}{
+						"my": map[string]interface{}{
+							"value": "hello",
+							"trace": map[string]interface{}{
+								"def": map[string]interface{}{
+									"environment": "bar",
+									"begin": map[string]interface{}{
+										"line":   6,
+										"column": 11,
+										"byte":   72,
+									},
+									"end": map[string]interface{}{
+										"line":   6,
+										"column": 16,
+										"byte":   77,
+									},
+								},
+							},
+						},
+					},
+					"trace": map[string]interface{}{
+						"def": map[string]interface{}{
+							"environment": "bar",
+							"begin": map[string]interface{}{
+								"line":   6,
+								"column": 7,
+								"byte":   68,
+							},
+							"end": map[string]interface{}{
+								"line":   6,
+								"column": 16,
+								"byte":   77,
+							},
+						},
+					},
+				},
+			},
 			want: map[string][]byte{
-				"foo": []byte(`bar`),
-				"bar": []byte(`{"foo":{"bar":false}}`),
+				"foo":    []byte("bar"),
+				"test22": []byte(`{"my":{"trace":{"def":{"begin":{"byte":72,"column":11,"line":6},"end":{"byte":77,"column":16,"line":6},"environment":"bar"}},"value":"hello"}}`),
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := newTestClient(t, http.MethodGet, "/api/preview/environments/foo/bar/open/session", func(w http.ResponseWriter, r *http.Request) {
-				esc2Input, err1 := esc2.FromJSON(tt.input, false)
-				require.NoError(t, err1)
-				err2 := json.NewEncoder(w).Encode(esc2Input)
+			p := newTestClient(t, http.MethodGet, "/environments/foo/bar/open/session-id", func(w http.ResponseWriter, r *http.Request) {
+				r.Header.Add(contentType, contentTypeValue)
+				w.Header().Add(contentType, contentTypeValue)
+				err2 := json.NewEncoder(w).Encode(esc.NewValue(tt.input, esc.Trace{}))
 				require.NoError(t, err2)
 			})
-			got, err := p.GetSecretMap(context.Background(), tt.ref)
+			got, err := p.GetSecretMap(context.TODO(), tt.ref)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ProviderPulumi.GetSecretMap() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -146,5 +357,53 @@ func TestGetSecretMap(t *testing.T) {
 				t.Errorf("ProviderPulumi.GetSecretMap() get = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestCreateSubmaps(t *testing.T) {
+	input := map[string]interface{}{
+		"a.b.c": 1,
+		"a.b.d": 2,
+		"a.e":   3,
+		"f":     4,
+	}
+
+	expected := map[string]interface{}{
+		"a": map[string]interface{}{
+			"b": map[string]interface{}{
+				"c": 1,
+				"d": 2,
+			},
+			"e": 3,
+		},
+		"f": 4,
+	}
+
+	result := createSubmaps(input)
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("createSubmaps() = %v, want %v", result, expected)
+	}
+
+	// Test nested access
+	a, ok := result["a"].(map[string]interface{})
+	if !ok {
+		t.Errorf("Expected 'a' to be a map")
+	}
+
+	b, ok := a["b"].(map[string]interface{})
+	if !ok {
+		t.Errorf("Expected 'a.b' to be a map")
+	}
+
+	c, ok := b["c"].(int)
+	if !ok || c != 1 {
+		t.Errorf("Expected 'a.b.c' to be 1, got %v", b["c"])
+	}
+
+	// Test non-nested key
+	f, ok := result["f"].(int)
+	if !ok || f != 4 {
+		t.Errorf("Expected 'f' to be 4, got %v", result["f"])
 	}
 }
