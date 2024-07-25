@@ -42,6 +42,11 @@ const (
 	invalidProp        = "INVALPROP"
 )
 
+var (
+	fakeSecretKey = "fakeSecretKey"
+	fakeValue     = "fakeValue"
+)
+
 type parameterstoreTestCase struct {
 	fakeClient     *fakeps.Client
 	apiInput       *ssm.GetParameterInput
@@ -272,8 +277,6 @@ const remoteKey = "fake-key"
 func TestPushSecret(t *testing.T) {
 	invalidParameters := errors.New(ssm.ErrCodeInvalidParameters)
 	alreadyExistsError := errors.New(ssm.ErrCodeAlreadyExistsException)
-	fakeSecretKey := "fakeSecretKey"
-	fakeValue := "fakeValue"
 	fakeSecret := &corev1.Secret{
 		Data: map[string][]byte{
 			fakeSecretKey: []byte(fakeValue),
@@ -520,9 +523,43 @@ func TestPushSecret(t *testing.T) {
 	}
 }
 
+func TestPushSecretWithPrefix(t *testing.T) {
+	fakeSecret := &corev1.Secret{
+		Data: map[string][]byte{
+			fakeSecretKey: []byte(fakeValue),
+		},
+	}
+	managedByESO := ssm.Tag{
+		Key:   &managedBy,
+		Value: &externalSecrets,
+	}
+	putParameterOutput := &ssm.PutParameterOutput{}
+	getParameterOutput := &ssm.GetParameterOutput{}
+	describeParameterOutput := &ssm.DescribeParametersOutput{}
+	validListTagsForResourceOutput := &ssm.ListTagsForResourceOutput{
+		TagList: []*ssm.Tag{&managedByESO},
+	}
+
+	client := fakeps.Client{
+		PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+		GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(getParameterOutput, nil),
+		DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+		ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+	}
+
+	psd := fake.PushSecretData{SecretKey: fakeSecretKey, RemoteKey: remoteKey}
+	ps := ParameterStore{
+		client: &client,
+		prefix: "/test/this/thing/",
+	}
+	err := ps.PushSecret(context.TODO(), fakeSecret, psd)
+	require.NoError(t, err)
+
+	input := client.PutParameterWithContextFnCalledWith[0][0]
+	assert.Equal(t, "/test/this/thing/fake-key", *input.Name)
+}
+
 func TestPushSecretCalledOnlyOnce(t *testing.T) {
-	fakeSecretKey := "fakeSecretKey"
-	fakeValue := "fakeValue"
 	fakeSecret := &corev1.Secret{
 		Data: map[string][]byte{
 			fakeSecretKey: []byte(fakeValue),
