@@ -3379,17 +3379,18 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 <span class="w">    </span><span class="c1"># It is immutable</span>
 <span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">application-config</span>
 
-<span class="w">    </span><span class="c1"># Enum with values: &#39;Owner&#39;, &#39;Merge&#39;, or &#39;None&#39;</span>
-<span class="w">    </span><span class="c1"># Default value of &#39;Owner&#39;</span>
-<span class="w">    </span><span class="c1"># Owner creates the secret and sets .metadata.ownerReferences of the resource</span>
-<span class="w">    </span><span class="c1"># Merge does not create the secret, but merges in the data fields to the secret</span>
-<span class="w">    </span><span class="c1"># None does not create a secret (future use with injector)</span>
-<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;Merge&#39;</span>
+<span class="w">    </span><span class="c1"># Specifies the ExternalSecret ownership details in the created Secret. Options:</span>
+<span class="w">    </span><span class="c1"># - Owner: (default) Creates the Secret and sets .metadata.ownerReferences. If the ExternalSecret is deleted, the Secret will also be deleted.</span>
+<span class="w">    </span><span class="c1"># - Merge: Does not create the Secret but merges data fields into the existing Secret (expects the Secret to already exist).</span>
+<span class="w">    </span><span class="c1"># - Orphan: Creates the Secret but does not set .metadata.ownerReferences. If the Secret already exists, it will be updated.</span>
+<span class="w">    </span><span class="c1"># - None: Does not create or update the Secret (reserved for future use with injector).</span>
+<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Merge</span>
 
-<span class="w">    </span><span class="c1"># DeletionPolicy defines how/when to delete the Secret in Kubernetes</span>
-<span class="w">    </span><span class="c1"># if the provider secret gets deleted.</span>
-<span class="w">    </span><span class="c1"># Valid values are Delete, Merge, Retain</span>
-<span class="w">    </span><span class="nt">deletionPolicy</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Retain&quot;</span>
+<span class="w">    </span><span class="c1"># Specifies what happens to the Secret when data fields are deleted from the provider (e.g., Vault, AWS Parameter Store). Options:</span>
+<span class="w">    </span><span class="c1"># - Retain: (default) Retains the Secret if all Secret data fields have been deleted from the provider.</span>
+<span class="w">    </span><span class="c1"># - Delete: Removes the Secret if all Secret data fields from the provider are deleted.</span>
+<span class="w">    </span><span class="c1"># - Merge: Removes keys from the Secret but not the Secret itself.</span>
+<span class="w">    </span><span class="nt">deletionPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Retain</span>
 
 <span class="w">    </span><span class="c1"># Specify a blueprint for the resulting Kind=Secret</span>
 <span class="w">    </span><span class="nt">template</span><span class="p">:</span>
