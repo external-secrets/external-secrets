@@ -17,6 +17,7 @@ package externalsecret
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -224,6 +225,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err != nil {
 		r.markAsFailed(log, errGetSecretData, err, &externalSecret, syncCallsError.With(resourceLabels))
 		return ctrl.Result{}, err
+	}
+
+	// secret data was not modified.
+	if errors.Is(err, esv1beta1.NotModifiedErr) {
+		log.Info("secret was not modified as a NotModified was returned by the provider")
+		r.markAsDone(&externalSecret, start, log)
+
+		return ctrl.Result{}, nil
 	}
 
 	// if no data was found we can delete the secret if needed.
