@@ -196,6 +196,11 @@ func (w *Webhook) GetWebhookData(ctx context.Context, provider *Spec, ref *esv1b
 	if resp.StatusCode == 404 {
 		return nil, esv1beta1.NoSecretError{}
 	}
+
+	if resp.StatusCode == http.StatusNotModified {
+		return nil, esv1beta1.NotModifiedError{}
+	}
+
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("endpoint gave error %s", resp.Status)
 	}

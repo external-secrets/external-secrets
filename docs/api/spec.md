@@ -5033,6 +5033,12 @@ string
 <p>NoSecretError shall be returned when a GetSecret can not find the
 desired secret. This is used for deletionPolicy.</p>
 </p>
+<h3 id="external-secrets.io/v1beta1.NotModifiedError">NotModifiedError
+</h3>
+<p>
+<p>NotModifiedError to signal that the webhook received no changes,
+and it should just return without doing anything.</p>
+</p>
 <h3 id="external-secrets.io/v1beta1.OnboardbaseAuthSecretRef">OnboardbaseAuthSecretRef
 </h3>
 <p>
