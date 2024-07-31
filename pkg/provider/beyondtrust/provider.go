@@ -47,6 +47,7 @@ const (
 	errNoSuchKeyFmt         = "no such key in secret: %q"
 	errInvalidRetrievalPath = "invalid retrieval path. Provide one path, separator and name"
 	errNotImplemented       = "not implemented"
+	errReturn               = "error: %w"
 )
 
 var (
@@ -141,25 +142,25 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 
 	clientID, err := loadConfigSecret(ctx, config.Auth.Clientid, kube, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("error: %w", err)
+		return nil, fmt.Errorf(errReturn, err)
 	}
 
 	clientSecret, err := loadConfigSecret(ctx, config.Auth.Clientsecret, kube, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("error: %w", err)
+		return nil, fmt.Errorf(errReturn, err)
 	}
 
 	if config.Auth.Certificate != nil && config.Auth.Certificatekey != nil {
 		loadedCertificate, err := loadConfigSecret(ctx, config.Auth.Certificate, kube, namespace)
 		if err != nil {
-			return nil, fmt.Errorf("error: %w", err)
+			return nil, fmt.Errorf(errReturn, err)
 		}
 
 		certificate = loadedCertificate
 
 		loadedCertificateKey, err := loadConfigSecret(ctx, config.Auth.Certificatekey, kube, namespace)
 		if err != nil {
-			return nil, fmt.Errorf("error: %w", err)
+			return nil, fmt.Errorf(errReturn, err)
 		}
 
 		certificateKey = loadedCertificateKey
@@ -183,14 +184,14 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	errorsInInputs := utils.ValidateInputs(params)
 
 	if errorsInInputs != nil {
-		return nil, fmt.Errorf("error: %w", errorsInInputs)
+		return nil, fmt.Errorf(errReturn, errorsInInputs)
 	}
 
 	// creating a http client
 	httpClientObj, err := utils.GetHttpClient(clientTimeOutInSeconds, config.Server.VerifyCA, certificate, certificateKey, logger)
 
 	if err != nil {
-		return nil, fmt.Errorf("error: %w", err)
+		return nil, fmt.Errorf(errReturn, err)
 	}
 
 	// instantiating authenticate obj, injecting httpClient object
@@ -272,7 +273,7 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretData
 
 	_, err := p.authenticate.GetPasswordSafeAuthentication()
 	if err != nil {
-		return nil, fmt.Errorf("error: %w", err)
+		return nil, fmt.Errorf(errReturn, err)
 	}
 
 	secret := keyValue{
@@ -287,9 +288,9 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretData
 		if err != nil {
 			err = p.authenticate.SignOut()
 			if err != nil {
-				return nil, fmt.Errorf("error: %w", err)
+				return nil, fmt.Errorf(errReturn, err)
 			}
-			return nil, fmt.Errorf("error: %w", err)
+			return nil, fmt.Errorf(errReturn, err)
 		}
 		secret.Value = returnSecret
 	} else {
@@ -300,9 +301,9 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretData
 		if err != nil {
 			err = p.authenticate.SignOut()
 			if err != nil {
-				return nil, fmt.Errorf("error: %w", err)
+				return nil, fmt.Errorf(errReturn, err)
 			}
-			return nil, fmt.Errorf("error: %w", err)
+			return nil, fmt.Errorf(errReturn, err)
 		}
 		secret.Value = returnSecret
 	}

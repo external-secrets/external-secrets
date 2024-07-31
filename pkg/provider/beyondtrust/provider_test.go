@@ -26,31 +26,38 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
+const (
+	errTestCase  = "Test case Failed"
+	fakeApiUrl   = "https://example.com:443/BeyondTrust/api/public/v3/"
+	clientId     = "12345678-25fg-4b05-9ced-35e7dd5093ae"
+	clientSecret = "12345678-25fg-4b05-9ced-35e7dd5093ae"
+)
+
 func createMockPasswordSafeClient(t *testing.T) kubeclient.Client {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/Auth/SignAppin":
 			_, err := w.Write([]byte(`{"UserId":1, "EmailAddress":"fake@beyondtrust.com"}`))
 			if err != nil {
-				t.Error("Test case Failed")
+				t.Error(errTestCase)
 			}
 
 		case "/Auth/Signout":
 			_, err := w.Write([]byte(``))
 			if err != nil {
-				t.Error("Test case Failed")
+				t.Error(errTestCase)
 			}
 
 		case "/secrets-safe/secrets":
 			_, err := w.Write([]byte(`[{"SecretType": "FILE", "Password": "credential_in_sub_3_password","Id": "12345678-07d6-4955-175a-08db047219ce","Title": "credential_in_sub_3"}]`))
 			if err != nil {
-				t.Error("Test case Failed")
+				t.Error(errTestCase)
 			}
 
 		case "/secrets-safe/secrets/12345678-07d6-4955-175a-08db047219ce/file/download":
 			_, err := w.Write([]byte(`fake_password`))
 			if err != nil {
-				t.Error("Test case Failed")
+				t.Error(errTestCase)
 			}
 
 		default:
@@ -97,16 +104,16 @@ func TestNewClient(t *testing.T) {
 				Provider: &esv1beta1.SecretStoreProvider{
 					Beyondtrust: &esv1beta1.BeyondtrustProvider{
 						Server: &esv1beta1.BeyondtrustServer{
-							APIURL:        "https://example.com:443/BeyondTrust/api/public/v3/",
+							APIURL:        fakeApiUrl,
 							Retrievaltype: "SECRET",
 						},
 
 						Auth: &esv1beta1.BeyondtrustAuth{
 							Clientid: &esv1beta1.BeyondTrustProviderSecretRef{
-								Value: "12345678-25fg-4b05-9ced-35e7dd5093ae",
+								Value: clientId,
 							},
 							Clientsecret: &esv1beta1.BeyondTrustProviderSecretRef{
-								Value: "1234567890on8mTcOzJcltiEg4wYOhDVMer123456789",
+								Value: clientSecret,
 							},
 						},
 					},
@@ -121,7 +128,7 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestNewClientBadClientId(t *testing.T) {
-	t.Run("should create new client", func(t *testing.T) {
+	t.Run("should create new client, bad client id", func(t *testing.T) {
 		ctx := context.Background()
 		p := &Provider{}
 		c := createMockPasswordSafeClient(t)
@@ -130,7 +137,7 @@ func TestNewClientBadClientId(t *testing.T) {
 				Provider: &esv1beta1.SecretStoreProvider{
 					Beyondtrust: &esv1beta1.BeyondtrustProvider{
 						Server: &esv1beta1.BeyondtrustServer{
-							APIURL:        "https://example.com:443/BeyondTrust/api/public/v3/",
+							APIURL:        fakeApiUrl,
 							Retrievaltype: "SECRET",
 						},
 						Auth: &esv1beta1.BeyondtrustAuth{
@@ -138,7 +145,7 @@ func TestNewClientBadClientId(t *testing.T) {
 								Value: "6138d050",
 							},
 							Clientsecret: &esv1beta1.BeyondTrustProviderSecretRef{
-								Value: "1234567890on8mTcOzJcltiEg4wYOhDVMer123456789",
+								Value: clientSecret,
 							},
 						},
 					},
@@ -153,7 +160,7 @@ func TestNewClientBadClientId(t *testing.T) {
 }
 
 func TestNewClientBadClientSecret(t *testing.T) {
-	t.Run("should create new client", func(t *testing.T) {
+	t.Run("should create new client, bad client secret", func(t *testing.T) {
 		ctx := context.Background()
 		p := &Provider{}
 		c := createMockPasswordSafeClient(t)
@@ -162,7 +169,7 @@ func TestNewClientBadClientSecret(t *testing.T) {
 				Provider: &esv1beta1.SecretStoreProvider{
 					Beyondtrust: &esv1beta1.BeyondtrustProvider{
 						Server: &esv1beta1.BeyondtrustServer{
-							APIURL:        "https://example.com:443/BeyondTrust/api/public/v3/",
+							APIURL:        fakeApiUrl,
 							Retrievaltype: "SECRET",
 						},
 						Auth: &esv1beta1.BeyondtrustAuth{
@@ -170,7 +177,7 @@ func TestNewClientBadClientSecret(t *testing.T) {
 								Value: "8i7U0Yulabon8mTc",
 							},
 							Clientid: &esv1beta1.BeyondTrustProviderSecretRef{
-								Value: "12345678-25fg-4b05-9ced-35e7dd5093ae",
+								Value: clientId,
 							},
 						},
 					},
@@ -185,7 +192,7 @@ func TestNewClientBadClientSecret(t *testing.T) {
 }
 
 func TestNewClientBadSeparator(t *testing.T) {
-	t.Run("should create new client", func(t *testing.T) {
+	t.Run("should create new client, bad Separator", func(t *testing.T) {
 		ctx := context.Background()
 		p := &Provider{}
 		c := createMockPasswordSafeClient(t)
@@ -194,16 +201,16 @@ func TestNewClientBadSeparator(t *testing.T) {
 				Provider: &esv1beta1.SecretStoreProvider{
 					Beyondtrust: &esv1beta1.BeyondtrustProvider{
 						Server: &esv1beta1.BeyondtrustServer{
-							APIURL:        "https://example.com:443/BeyondTrust/api/public/v3/",
+							APIURL:        fakeApiUrl,
 							Separator:     "//",
 							Retrievaltype: "SECRET",
 						},
 						Auth: &esv1beta1.BeyondtrustAuth{
 							Clientid: &esv1beta1.BeyondTrustProviderSecretRef{
-								Value: "12345678-25fg-4b05-9ced-35e7dd5093ae",
+								Value: clientId,
 							},
 							Clientsecret: &esv1beta1.BeyondTrustProviderSecretRef{
-								Value: "1234567890on8mTcOzJcltiEg4wYOhDVMer123456789",
+								Value: clientSecret,
 							},
 						},
 					},
@@ -218,7 +225,7 @@ func TestNewClientBadSeparator(t *testing.T) {
 }
 
 func TestNewClientBadClientTimeOutinSeconds(t *testing.T) {
-	t.Run("should create new client", func(t *testing.T) {
+	t.Run("should create new client, time out", func(t *testing.T) {
 		ctx := context.Background()
 		p := &Provider{}
 		c := createMockPasswordSafeClient(t)
@@ -227,17 +234,17 @@ func TestNewClientBadClientTimeOutinSeconds(t *testing.T) {
 				Provider: &esv1beta1.SecretStoreProvider{
 					Beyondtrust: &esv1beta1.BeyondtrustProvider{
 						Server: &esv1beta1.BeyondtrustServer{
-							APIURL:               "https://example.com:443/BeyondTrust/api/public/v3/",
+							APIURL:               fakeApiUrl,
 							Separator:            "/",
 							Clienttimeoutseconds: 400,
 							Retrievaltype:        "SECRET",
 						},
 						Auth: &esv1beta1.BeyondtrustAuth{
 							Clientsecret: &esv1beta1.BeyondTrustProviderSecretRef{
-								Value: "1234567890on8mTcOzJcltiEg4wYOhDVMer123456789",
+								Value: clientSecret,
 							},
 							Clientid: &esv1beta1.BeyondTrustProviderSecretRef{
-								Value: "12345678-25fg-4b05-9ced-35e7dd5093ae",
+								Value: clientId,
 							},
 						},
 					},
