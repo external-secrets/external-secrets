@@ -70,6 +70,7 @@ func (p *Provider) NewClient(_ context.Context, store esv1beta1.GenericStore, ku
 		wh:        wh,
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
 	}
+	whClient.wh.EnforceLabels = true
 	if whClient.storeKind == esv1beta1.ClusterSecretStoreKind {
 		whClient.wh.ClusterScoped = true
 	}
