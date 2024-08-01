@@ -281,6 +281,18 @@ SecretsManager
 <p>AWS STS assume role transitive session tags. Required when multiple rules are used with the provider</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>prefix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Prefix adds a prefix to all retrieved values.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.AWSServiceType">AWSServiceType
@@ -5020,6 +5032,12 @@ string
 <p>
 <p>NoSecretError shall be returned when a GetSecret can not find the
 desired secret. This is used for deletionPolicy.</p>
+</p>
+<h3 id="external-secrets.io/v1beta1.NotModifiedError">NotModifiedError
+</h3>
+<p>
+<p>NotModifiedError to signal that the webhook received no changes,
+and it should just return without doing anything.</p>
 </p>
 <h3 id="external-secrets.io/v1beta1.OnboardbaseAuthSecretRef">OnboardbaseAuthSecretRef
 </h3>

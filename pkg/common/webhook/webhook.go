@@ -64,9 +64,9 @@ func (w *Webhook) getStoreSecret(ctx context.Context, ref SecretKeySelector) (*c
 		return nil, fmt.Errorf("failed to get clustersecretstore webhook secret %s: %w", ref.Name, err)
 	}
 	if w.EnforceLabels {
-		expected, ok := secret.Labels["generators.external-secrets.io/type"]
+		expected, ok := secret.Labels["external-secrets.io/type"]
 		if !ok {
-			return nil, fmt.Errorf("secret does not contain needed label to be used on webhook generator")
+			return nil, fmt.Errorf("secret does not contain needed label 'external-secrets.io/type: webhook'. Update secret label to use it with webhook")
 		}
 		if expected != "webhook" {
 			return nil, fmt.Errorf("secret type is not 'webhook'")
@@ -196,6 +196,11 @@ func (w *Webhook) GetWebhookData(ctx context.Context, provider *Spec, ref *esv1b
 	if resp.StatusCode == 404 {
 		return nil, esv1beta1.NoSecretError{}
 	}
+
+	if resp.StatusCode == http.StatusNotModified {
+		return nil, esv1beta1.NotModifiedError{}
+	}
+
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("endpoint gave error %s", resp.Status)
 	}
