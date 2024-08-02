@@ -29,9 +29,9 @@ type BeyondTrustProviderSecretRef struct {
 
 // Configures a store to sync secrets using BeyondTrust Password Safe.
 type BeyondtrustAuth struct {
-	// Required - API OAuth Client ID.
+	// +required - API OAuth Client ID.
 	ClientId *BeyondTrustProviderSecretRef `json:"clientid"`
-	// Required - API OAuth Client Secret.
+	// +required - API OAuth Client Secret.
 	ClientSecret *BeyondTrustProviderSecretRef `json:"clientsecret"`
 	// Content of the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.
 	Certificate *BeyondTrustProviderSecretRef `json:"certificate,omitempty"`
@@ -41,13 +41,13 @@ type BeyondtrustAuth struct {
 
 // Configures a store to sync secrets using BeyondTrust Password Safe.
 type BeyondtrustServer struct {
-	// Required - BeyondTrust Password Safe API URL. https://example.com:443/beyondtrust/api/public/V3.
+	// +required - BeyondTrust Password Safe API URL. https://example.com:443/beyondtrust/api/public/V3.
 	ApiUrl string `json:"apiurl"`
 	// The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.
 	RetrievalType string `json:"retrievaltype,omitempty"`
 	// A character that separates the folder names.
 	Separator string `json:"separator,omitempty"`
-	// Required - Indicates whether to verify the certificate authority on the Secrets Safe instance. Warning - false is insecure, instructs the BT provider not to verify the certificate authority.
+	// +required - Indicates whether to verify the certificate authority on the Secrets Safe instance. Warning - false is insecure, instructs the BT provider not to verify the certificate authority.
 	VerifyCA bool `json:"verifyca"`
 	// Timeout specifies a time limit for requests made by this Client. The timeout includes connection time, any redirects, and reading the response body. Defaults to 45 seconds.
 	ClientTimeOutSeconds int `json:"clienttimeoutseconds,omitempty"`
