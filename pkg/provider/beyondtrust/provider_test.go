@@ -95,7 +95,6 @@ func createMockPasswordSafeClient(t *testing.T) kubeclient.Client {
 }
 
 func TestNewClient(t *testing.T) {
-
 	type args struct {
 		store     esv1beta1.SecretStore
 		kube      kubeclient.Client
@@ -119,12 +118,12 @@ func TestNewClient(t *testing.T) {
 						Provider: &esv1beta1.SecretStoreProvider{
 							Beyondtrust: &esv1beta1.BeyondtrustProvider{
 								Server: &esv1beta1.BeyondtrustServer{
-									ApiUrl:        fakeAPIURL,
+									APIURL:        fakeAPIURL,
 									RetrievalType: "SECRET",
 								},
 
 								Auth: &esv1beta1.BeyondtrustAuth{
-									ClientId: &esv1beta1.BeyondTrustProviderSecretRef{
+									ClientID: &esv1beta1.BeyondTrustProviderSecretRef{
 										Value: clientID,
 									},
 									ClientSecret: &esv1beta1.BeyondTrustProviderSecretRef{
@@ -150,12 +149,12 @@ func TestNewClient(t *testing.T) {
 						Provider: &esv1beta1.SecretStoreProvider{
 							Beyondtrust: &esv1beta1.BeyondtrustProvider{
 								Server: &esv1beta1.BeyondtrustServer{
-									ApiUrl:        fakeAPIURL,
+									APIURL:        fakeAPIURL,
 									RetrievalType: "SECRET",
 								},
 
 								Auth: &esv1beta1.BeyondtrustAuth{
-									ClientId: &esv1beta1.BeyondTrustProviderSecretRef{
+									ClientID: &esv1beta1.BeyondTrustProviderSecretRef{
 										Value: "6138d050",
 									},
 									ClientSecret: &esv1beta1.BeyondTrustProviderSecretRef{
@@ -182,7 +181,7 @@ func TestNewClient(t *testing.T) {
 						Provider: &esv1beta1.SecretStoreProvider{
 							Beyondtrust: &esv1beta1.BeyondtrustProvider{
 								Server: &esv1beta1.BeyondtrustServer{
-									ApiUrl:        fakeAPIURL,
+									APIURL:        fakeAPIURL,
 									RetrievalType: "SECRET",
 								},
 
@@ -190,7 +189,7 @@ func TestNewClient(t *testing.T) {
 									ClientSecret: &esv1beta1.BeyondTrustProviderSecretRef{
 										Value: "8i7U0Yulabon8mTc",
 									},
-									ClientId: &esv1beta1.BeyondTrustProviderSecretRef{
+									ClientID: &esv1beta1.BeyondTrustProviderSecretRef{
 										Value: clientID,
 									},
 								},
@@ -214,12 +213,12 @@ func TestNewClient(t *testing.T) {
 						Provider: &esv1beta1.SecretStoreProvider{
 							Beyondtrust: &esv1beta1.BeyondtrustProvider{
 								Server: &esv1beta1.BeyondtrustServer{
-									ApiUrl:        fakeAPIURL,
+									APIURL:        fakeAPIURL,
 									Separator:     "//",
 									RetrievalType: "SECRET",
 								},
 								Auth: &esv1beta1.BeyondtrustAuth{
-									ClientId: &esv1beta1.BeyondTrustProviderSecretRef{
+									ClientID: &esv1beta1.BeyondTrustProviderSecretRef{
 										Value: clientID,
 									},
 									ClientSecret: &esv1beta1.BeyondTrustProviderSecretRef{
@@ -246,13 +245,13 @@ func TestNewClient(t *testing.T) {
 						Provider: &esv1beta1.SecretStoreProvider{
 							Beyondtrust: &esv1beta1.BeyondtrustProvider{
 								Server: &esv1beta1.BeyondtrustServer{
-									ApiUrl:               fakeAPIURL,
+									APIURL:               fakeAPIURL,
 									Separator:            "/",
 									ClientTimeOutSeconds: 400,
 									RetrievalType:        "SECRET",
 								},
 								Auth: &esv1beta1.BeyondtrustAuth{
-									ClientId: &esv1beta1.BeyondTrustProviderSecretRef{
+									ClientID: &esv1beta1.BeyondTrustProviderSecretRef{
 										Value: clientID,
 									},
 									ClientSecret: &esv1beta1.BeyondTrustProviderSecretRef{
@@ -274,7 +273,7 @@ func TestNewClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := tt.args.provider.NewClient(context.Background(), &tt.args.store, tt.args.kube, "test")
+			_, err := tt.args.provider.NewClient(context.Background(), &tt.args.store, tt.args.kube, tt.nameSpace)
 			if err != nil && tt.validateErrorNil {
 				t.Errorf("ProviderBeyondtrust.NewClient() error = %v", err)
 			}
@@ -282,7 +281,6 @@ func TestNewClient(t *testing.T) {
 			if err != nil && tt.validateErrorText {
 				assert.Equal(t, err.Error(), tt.expectedErrorText)
 			}
-
 		})
 	}
 }

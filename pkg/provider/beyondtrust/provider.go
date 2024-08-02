@@ -53,16 +53,9 @@ var (
 	errSecretRefAndValueConflict = errors.New("cannot specify both secret reference and value")
 	errMissingSecretName         = errors.New("must specify a secret name")
 	errMissingSecretKey          = errors.New("must specify a secret key")
-	errSecretRefAndValueMissing  = errors.New("must specify either secret reference or direct value")
 	ESOLogger                    = ctrl.Log.WithName("provider").WithName("beyondtrust")
 	maxFileSecretSizeBytes       = 5000000
 )
-
-// this struct will hold the keys that the service returns.
-type keyValue struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
-}
 
 // Provider is a Password Safe secrets provider implementing NewClient and ValidateStore for the esv1beta1.Provider interface.
 type Provider struct {
@@ -119,7 +112,7 @@ func (*Provider) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	config := store.GetSpec().Provider.Beyondtrust
 	logger := logging.NewLogrLogger(&ESOLogger)
-	apiURL := config.Server.ApiUrl
+	apiURL := config.Server.APIURL
 	certificate := ""
 	certificateKey := ""
 	clientTimeOutInSeconds := 45
@@ -139,7 +132,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	backoffDefinition.MaxElapsedTime = time.Duration(retryMaxElapsedTimeMinutes) * time.Second
 	backoffDefinition.RandomizationFactor = 0.5
 
-	clientID, err := loadConfigSecret(ctx, config.Auth.ClientId, kube, namespace)
+	clientID, err := loadConfigSecret(ctx, config.Auth.ClientID, kube, namespace)
 	if err != nil {
 		return nil, fmt.Errorf("error loading clientID: %w", err)
 	}
@@ -197,7 +190,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	authenticate, _ := auth.Authenticate(*httpClientObj, backoffDefinition, apiURL, clientID, clientSecret, logger, retryMaxElapsedTimeMinutes)
 
 	return &Provider{
-		apiURL:        config.Server.ApiUrl,
+		apiURL:        config.Server.APIURL,
 		retrievaltype: config.Server.RetrievalType,
 		authenticate:  *authenticate,
 		log:           *logger,
@@ -318,12 +311,12 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 		return nil, fmt.Errorf(errInvalidProvider, store.GetObjectMeta().String())
 	}
 
-	apiURL, err := url.Parse(provider.Server.ApiUrl)
+	apiURL, err := url.Parse(provider.Server.APIURL)
 	if err != nil {
 		return nil, fmt.Errorf(errInvalidHostURL)
 	}
 
-	if provider.Auth.ClientId.SecretRef != nil {
+	if provider.Auth.ClientID.SecretRef != nil {
 		return nil, err
 	}
 
