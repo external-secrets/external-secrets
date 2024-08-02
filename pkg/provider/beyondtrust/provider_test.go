@@ -28,8 +28,8 @@ import (
 
 const (
 	errTestCase  = "Test case Failed"
-	fakeApiUrl   = "https://example.com:443/BeyondTrust/api/public/v3/"
-	clientId     = "12345678-25fg-4b05-9ced-35e7dd5093ae"
+	fakeAPIURL   = "https://example.com:443/BeyondTrust/api/public/v3/"
+	clientID     = "12345678-25fg-4b05-9ced-35e7dd5093ae"
 	clientSecret = "12345678-25fg-4b05-9ced-35e7dd5093ae"
 )
 
@@ -95,165 +95,194 @@ func createMockPasswordSafeClient(t *testing.T) kubeclient.Client {
 }
 
 func TestNewClient(t *testing.T) {
-	t.Run("should create new client", func(t *testing.T) {
-		ctx := context.Background()
-		p := &Provider{}
-		c := createMockPasswordSafeClient(t)
-		s := esv1beta1.SecretStore{
-			Spec: esv1beta1.SecretStoreSpec{
-				Provider: &esv1beta1.SecretStoreProvider{
-					Beyondtrust: &esv1beta1.BeyondtrustProvider{
-						Server: &esv1beta1.BeyondtrustServer{
-							APIURL:        fakeApiUrl,
-							Retrievaltype: "SECRET",
-						},
 
-						Auth: &esv1beta1.BeyondtrustAuth{
-							Clientid: &esv1beta1.BeyondTrustProviderSecretRef{
-								Value: clientId,
-							},
-							Clientsecret: &esv1beta1.BeyondTrustProviderSecretRef{
-								Value: clientSecret,
-							},
-						},
-					},
-				},
-			},
-		}
+	type args struct {
+		store     esv1beta1.SecretStore
+		kube      kubeclient.Client
+		namespace string
+		provider  esv1beta1.Provider
+	}
+	tests := []struct {
+		name              string
+		nameSpace         string
+		args              args
+		validateErrorNil  bool
+		validateErrorText bool
+		expectedErrorText string
+	}{
+		{
+			name:      "Client ok",
+			nameSpace: "test",
+			args: args{
+				store: esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							Beyondtrust: &esv1beta1.BeyondtrustProvider{
+								Server: &esv1beta1.BeyondtrustServer{
+									ApiUrl:        fakeAPIURL,
+									RetrievalType: "SECRET",
+								},
 
-		_, err := p.NewClient(ctx, &s, c, "test")
-
-		assert.Nil(t, err)
-	})
-}
-
-func TestNewClientBadClientId(t *testing.T) {
-	t.Run("should create new client, bad client id", func(t *testing.T) {
-		ctx := context.Background()
-		p := &Provider{}
-		c := createMockPasswordSafeClient(t)
-		s := esv1beta1.SecretStore{
-			Spec: esv1beta1.SecretStoreSpec{
-				Provider: &esv1beta1.SecretStoreProvider{
-					Beyondtrust: &esv1beta1.BeyondtrustProvider{
-						Server: &esv1beta1.BeyondtrustServer{
-							APIURL:        fakeApiUrl,
-							Retrievaltype: "SECRET",
-						},
-						Auth: &esv1beta1.BeyondtrustAuth{
-							Clientid: &esv1beta1.BeyondTrustProviderSecretRef{
-								Value: "6138d050",
-							},
-							Clientsecret: &esv1beta1.BeyondTrustProviderSecretRef{
-								Value: clientSecret,
+								Auth: &esv1beta1.BeyondtrustAuth{
+									ClientId: &esv1beta1.BeyondTrustProviderSecretRef{
+										Value: clientID,
+									},
+									ClientSecret: &esv1beta1.BeyondTrustProviderSecretRef{
+										Value: clientSecret,
+									},
+								},
 							},
 						},
 					},
 				},
+				kube:     createMockPasswordSafeClient(t),
+				provider: &Provider{},
 			},
-		}
+			validateErrorNil:  true,
+			validateErrorText: false,
+		},
+		{
+			name:      "Bad Client Id",
+			nameSpace: "test",
+			args: args{
+				store: esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							Beyondtrust: &esv1beta1.BeyondtrustProvider{
+								Server: &esv1beta1.BeyondtrustServer{
+									ApiUrl:        fakeAPIURL,
+									RetrievalType: "SECRET",
+								},
 
-		_, err := p.NewClient(ctx, &s, c, "test")
-
-		assert.Equal(t, err.Error(), "error: Key: 'UserInputValidaton.ClientId' Error:Field validation for 'ClientId' failed on the 'min' tag", "The two errors should be the same.")
-	})
-}
-
-func TestNewClientBadClientSecret(t *testing.T) {
-	t.Run("should create new client, bad client secret", func(t *testing.T) {
-		ctx := context.Background()
-		p := &Provider{}
-		c := createMockPasswordSafeClient(t)
-		s := esv1beta1.SecretStore{
-			Spec: esv1beta1.SecretStoreSpec{
-				Provider: &esv1beta1.SecretStoreProvider{
-					Beyondtrust: &esv1beta1.BeyondtrustProvider{
-						Server: &esv1beta1.BeyondtrustServer{
-							APIURL:        fakeApiUrl,
-							Retrievaltype: "SECRET",
-						},
-						Auth: &esv1beta1.BeyondtrustAuth{
-							Clientsecret: &esv1beta1.BeyondTrustProviderSecretRef{
-								Value: "8i7U0Yulabon8mTc",
-							},
-							Clientid: &esv1beta1.BeyondTrustProviderSecretRef{
-								Value: clientId,
+								Auth: &esv1beta1.BeyondtrustAuth{
+									ClientId: &esv1beta1.BeyondTrustProviderSecretRef{
+										Value: "6138d050",
+									},
+									ClientSecret: &esv1beta1.BeyondTrustProviderSecretRef{
+										Value: clientSecret,
+									},
+								},
 							},
 						},
 					},
 				},
+				kube:     createMockPasswordSafeClient(t),
+				provider: &Provider{},
 			},
-		}
+			validateErrorNil:  false,
+			validateErrorText: true,
+			expectedErrorText: "error in Inputs: Key: 'UserInputValidaton.ClientId' Error:Field validation for 'ClientId' failed on the 'min' tag",
+		},
+		{
+			name:      "Bad Client Secret",
+			nameSpace: "test",
+			args: args{
+				store: esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							Beyondtrust: &esv1beta1.BeyondtrustProvider{
+								Server: &esv1beta1.BeyondtrustServer{
+									ApiUrl:        fakeAPIURL,
+									RetrievalType: "SECRET",
+								},
 
-		_, err := p.NewClient(ctx, &s, c, "test")
-
-		assert.Equal(t, err.Error(), "error: Key: 'UserInputValidaton.ClientSecret' Error:Field validation for 'ClientSecret' failed on the 'min' tag", "The two error should be the same.")
-	})
-}
-
-func TestNewClientBadSeparator(t *testing.T) {
-	t.Run("should create new client, bad Separator", func(t *testing.T) {
-		ctx := context.Background()
-		p := &Provider{}
-		c := createMockPasswordSafeClient(t)
-		s := esv1beta1.SecretStore{
-			Spec: esv1beta1.SecretStoreSpec{
-				Provider: &esv1beta1.SecretStoreProvider{
-					Beyondtrust: &esv1beta1.BeyondtrustProvider{
-						Server: &esv1beta1.BeyondtrustServer{
-							APIURL:        fakeApiUrl,
-							Separator:     "//",
-							Retrievaltype: "SECRET",
-						},
-						Auth: &esv1beta1.BeyondtrustAuth{
-							Clientid: &esv1beta1.BeyondTrustProviderSecretRef{
-								Value: clientId,
-							},
-							Clientsecret: &esv1beta1.BeyondTrustProviderSecretRef{
-								Value: clientSecret,
+								Auth: &esv1beta1.BeyondtrustAuth{
+									ClientSecret: &esv1beta1.BeyondTrustProviderSecretRef{
+										Value: "8i7U0Yulabon8mTc",
+									},
+									ClientId: &esv1beta1.BeyondTrustProviderSecretRef{
+										Value: clientID,
+									},
+								},
 							},
 						},
 					},
 				},
+				kube:     createMockPasswordSafeClient(t),
+				provider: &Provider{},
 			},
-		}
-
-		_, err := p.NewClient(ctx, &s, c, "test")
-
-		assert.Equal(t, err.Error(), "error: Key: 'UserInputValidaton.Separator' Error:Field validation for 'Separator' failed on the 'max' tag")
-	})
-}
-
-func TestNewClientBadClientTimeOutinSeconds(t *testing.T) {
-	t.Run("should create new client, time out", func(t *testing.T) {
-		ctx := context.Background()
-		p := &Provider{}
-		c := createMockPasswordSafeClient(t)
-		s := esv1beta1.SecretStore{
-			Spec: esv1beta1.SecretStoreSpec{
-				Provider: &esv1beta1.SecretStoreProvider{
-					Beyondtrust: &esv1beta1.BeyondtrustProvider{
-						Server: &esv1beta1.BeyondtrustServer{
-							APIURL:               fakeApiUrl,
-							Separator:            "/",
-							Clienttimeoutseconds: 400,
-							Retrievaltype:        "SECRET",
-						},
-						Auth: &esv1beta1.BeyondtrustAuth{
-							Clientsecret: &esv1beta1.BeyondTrustProviderSecretRef{
-								Value: clientSecret,
-							},
-							Clientid: &esv1beta1.BeyondTrustProviderSecretRef{
-								Value: clientId,
+			validateErrorNil:  false,
+			validateErrorText: true,
+			expectedErrorText: "error in Inputs: Key: 'UserInputValidaton.ClientSecret' Error:Field validation for 'ClientSecret' failed on the 'min' tag",
+		},
+		{
+			name:      "Bad Separator",
+			nameSpace: "test",
+			args: args{
+				store: esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							Beyondtrust: &esv1beta1.BeyondtrustProvider{
+								Server: &esv1beta1.BeyondtrustServer{
+									ApiUrl:        fakeAPIURL,
+									Separator:     "//",
+									RetrievalType: "SECRET",
+								},
+								Auth: &esv1beta1.BeyondtrustAuth{
+									ClientId: &esv1beta1.BeyondTrustProviderSecretRef{
+										Value: clientID,
+									},
+									ClientSecret: &esv1beta1.BeyondTrustProviderSecretRef{
+										Value: clientSecret,
+									},
+								},
 							},
 						},
 					},
 				},
+				kube:     createMockPasswordSafeClient(t),
+				provider: &Provider{},
 			},
-		}
+			validateErrorNil:  false,
+			validateErrorText: true,
+			expectedErrorText: "error in Inputs: Key: 'UserInputValidaton.Separator' Error:Field validation for 'Separator' failed on the 'max' tag",
+		},
+		{
+			name:      "Time Out",
+			nameSpace: "test",
+			args: args{
+				store: esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							Beyondtrust: &esv1beta1.BeyondtrustProvider{
+								Server: &esv1beta1.BeyondtrustServer{
+									ApiUrl:               fakeAPIURL,
+									Separator:            "/",
+									ClientTimeOutSeconds: 400,
+									RetrievalType:        "SECRET",
+								},
+								Auth: &esv1beta1.BeyondtrustAuth{
+									ClientId: &esv1beta1.BeyondTrustProviderSecretRef{
+										Value: clientID,
+									},
+									ClientSecret: &esv1beta1.BeyondTrustProviderSecretRef{
+										Value: clientSecret,
+									},
+								},
+							},
+						},
+					},
+				},
+				kube:     createMockPasswordSafeClient(t),
+				provider: &Provider{},
+			},
+			validateErrorNil:  false,
+			validateErrorText: true,
+			expectedErrorText: "error in Inputs: Key: 'UserInputValidaton.ClientTimeOutinSeconds' Error:Field validation for 'ClientTimeOutinSeconds' failed on the 'lte' tag",
+		},
+	}
 
-		_, err := p.NewClient(ctx, &s, c, "test")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := tt.args.provider.NewClient(context.Background(), &tt.args.store, tt.args.kube, "test")
+			if err != nil && tt.validateErrorNil {
+				t.Errorf("ProviderBeyondtrust.NewClient() error = %v", err)
+			}
 
-		assert.Equal(t, err.Error(), "error: Key: 'UserInputValidaton.ClientTimeOutinSeconds' Error:Field validation for 'ClientTimeOutinSeconds' failed on the 'lte' tag")
-	})
+			if err != nil && tt.validateErrorText {
+				assert.Equal(t, err.Error(), tt.expectedErrorText)
+			}
+
+		})
+	}
 }

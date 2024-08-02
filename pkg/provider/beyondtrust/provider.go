@@ -47,7 +47,6 @@ const (
 	errNoSuchKeyFmt         = "no such key in secret: %q"
 	errInvalidRetrievalPath = "invalid retrieval path. Provide one path, separator and name"
 	errNotImplemented       = "not implemented"
-	errReturn               = "error: %w"
 )
 
 var (
@@ -120,7 +119,7 @@ func (*Provider) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	config := store.GetSpec().Provider.Beyondtrust
 	logger := logging.NewLogrLogger(&ESOLogger)
-	apiURL := config.Server.APIURL
+	apiURL := config.Server.ApiUrl
 	certificate := ""
 	certificateKey := ""
 	clientTimeOutInSeconds := 45
@@ -131,8 +130,8 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		separator = config.Server.Separator
 	}
 
-	if config.Server.Clienttimeoutseconds != 0 {
-		clientTimeOutInSeconds = config.Server.Clienttimeoutseconds
+	if config.Server.ClientTimeOutSeconds != 0 {
+		clientTimeOutInSeconds = config.Server.ClientTimeOutSeconds
 	}
 
 	backoffDefinition := backoff.NewExponentialBackOff()
@@ -140,27 +139,27 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	backoffDefinition.MaxElapsedTime = time.Duration(retryMaxElapsedTimeMinutes) * time.Second
 	backoffDefinition.RandomizationFactor = 0.5
 
-	clientID, err := loadConfigSecret(ctx, config.Auth.Clientid, kube, namespace)
+	clientID, err := loadConfigSecret(ctx, config.Auth.ClientId, kube, namespace)
 	if err != nil {
-		return nil, fmt.Errorf(errReturn, err)
+		return nil, fmt.Errorf("error loading clientID: %w", err)
 	}
 
-	clientSecret, err := loadConfigSecret(ctx, config.Auth.Clientsecret, kube, namespace)
+	clientSecret, err := loadConfigSecret(ctx, config.Auth.ClientSecret, kube, namespace)
 	if err != nil {
-		return nil, fmt.Errorf(errReturn, err)
+		return nil, fmt.Errorf("error loading clientSecret: %w", err)
 	}
 
-	if config.Auth.Certificate != nil && config.Auth.Certificatekey != nil {
+	if config.Auth.Certificate != nil && config.Auth.CertificateKey != nil {
 		loadedCertificate, err := loadConfigSecret(ctx, config.Auth.Certificate, kube, namespace)
 		if err != nil {
-			return nil, fmt.Errorf(errReturn, err)
+			return nil, fmt.Errorf("error loading Certificate: %w", err)
 		}
 
 		certificate = loadedCertificate
 
-		loadedCertificateKey, err := loadConfigSecret(ctx, config.Auth.Certificatekey, kube, namespace)
+		loadedCertificateKey, err := loadConfigSecret(ctx, config.Auth.CertificateKey, kube, namespace)
 		if err != nil {
-			return nil, fmt.Errorf(errReturn, err)
+			return nil, fmt.Errorf("error loading Certificate Key: %w", err)
 		}
 
 		certificateKey = loadedCertificateKey
@@ -184,22 +183,22 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	errorsInInputs := utils.ValidateInputs(params)
 
 	if errorsInInputs != nil {
-		return nil, fmt.Errorf(errReturn, errorsInInputs)
+		return nil, fmt.Errorf("error in Inputs: %w", errorsInInputs)
 	}
 
 	// creating a http client
 	httpClientObj, err := utils.GetHttpClient(clientTimeOutInSeconds, config.Server.VerifyCA, certificate, certificateKey, logger)
 
 	if err != nil {
-		return nil, fmt.Errorf(errReturn, err)
+		return nil, fmt.Errorf("error creating http client: %w", err)
 	}
 
 	// instantiating authenticate obj, injecting httpClient object
 	authenticate, _ := auth.Authenticate(*httpClientObj, backoffDefinition, apiURL, clientID, clientSecret, logger, retryMaxElapsedTimeMinutes)
 
 	return &Provider{
-		apiURL:        config.Server.APIURL,
-		retrievaltype: config.Server.Retrievaltype,
+		apiURL:        config.Server.ApiUrl,
+		retrievaltype: config.Server.RetrievalType,
 		authenticate:  *authenticate,
 		log:           *logger,
 		separator:     separator,
@@ -247,8 +246,6 @@ func validateSecretRef(ref *esv1beta1.BeyondTrustProviderSecretRef) error {
 		if ref.SecretRef.Key == "" {
 			return errMissingSecretKey
 		}
-	} else if ref.Value == "" {
-		return errSecretRefAndValueMissing
 	}
 
 	return nil
@@ -273,42 +270,31 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretData
 
 	_, err := p.authenticate.GetPasswordSafeAuthentication()
 	if err != nil {
-		return nil, fmt.Errorf(errReturn, err)
+		return nil, fmt.Errorf("error getting authentication: %w", err)
 	}
 
-	secret := keyValue{
-		Value: "",
-	}
-
-	if managedAccountType {
-		var returnSecret string
+	managedFetch := func() (string, error) {
 		ESOLogger.Info("retrieve managed account value", "retrievalPath:", retrievalPath)
 		manageAccountObj, _ := managed_account.NewManagedAccountObj(p.authenticate, &p.log)
-		returnSecret, err := manageAccountObj.GetSecret(retrievalPath, p.separator)
-		if err != nil {
-			err = p.authenticate.SignOut()
-			if err != nil {
-				return nil, fmt.Errorf(errReturn, err)
-			}
-			return nil, fmt.Errorf(errReturn, err)
-		}
-		secret.Value = returnSecret
-	} else {
-		var returnSecret string
+		return manageAccountObj.GetSecret(retrievalPath, p.separator)
+	}
+	unmanagedFetch := func() (string, error) {
 		ESOLogger.Info("retrieve secrets safe value", "retrievalPath:", retrievalPath)
 		secretObj, _ := secrets.NewSecretObj(p.authenticate, &p.log, maxFileSecretSizeBytes)
-		returnSecret, err := secretObj.GetSecret(retrievalPath, p.separator)
-		if err != nil {
-			err = p.authenticate.SignOut()
-			if err != nil {
-				return nil, fmt.Errorf(errReturn, err)
-			}
-			return nil, fmt.Errorf(errReturn, err)
-		}
-		secret.Value = returnSecret
+		return secretObj.GetSecret(retrievalPath, p.separator)
 	}
-
-	return []byte(secret.Value), nil
+	fetch := unmanagedFetch
+	if managedAccountType {
+		fetch = managedFetch
+	}
+	returnSecret, err := fetch()
+	if err != nil {
+		if serr := p.authenticate.SignOut(); serr != nil {
+			return nil, errors.Join(err, serr)
+		}
+		return nil, fmt.Errorf("error getting secret/managed account: %w", err)
+	}
+	return []byte(returnSecret), nil
 }
 
 // ValidateStore validates the store configuration to prevent unexpected errors.
@@ -332,16 +318,16 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 		return nil, fmt.Errorf(errInvalidProvider, store.GetObjectMeta().String())
 	}
 
-	apiURL, err := url.Parse(provider.Server.APIURL)
+	apiURL, err := url.Parse(provider.Server.ApiUrl)
 	if err != nil {
 		return nil, fmt.Errorf(errInvalidHostURL)
 	}
 
-	if provider.Auth.Clientid.SecretRef != nil {
+	if provider.Auth.ClientId.SecretRef != nil {
 		return nil, err
 	}
 
-	if provider.Auth.Clientsecret.SecretRef != nil {
+	if provider.Auth.ClientSecret.SecretRef != nil {
 		return nil, err
 	}
 
