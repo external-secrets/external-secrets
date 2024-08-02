@@ -350,13 +350,19 @@ func getCertificateFromValue(value []byte) (*x509.Certificate, error) {
 		return localCert, nil
 	}
 
-	// 2nd: try DER
+	// 2nd: try decode pkcs12 with chain
+	_, localCert, _, err = gopkcs12.DecodeChain(value, "")
+	if err == nil {
+		return localCert, nil
+	}
+
+	// 3rd: try DER
 	localCert, err = x509.ParseCertificate(value)
 	if err == nil {
 		return localCert, nil
 	}
 
-	// 3nd: parse PEM blocks
+	// 4th: parse PEM blocks
 	for {
 		block, rest := pem.Decode(value)
 		value = rest
