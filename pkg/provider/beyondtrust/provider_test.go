@@ -96,10 +96,9 @@ func createMockPasswordSafeClient(t *testing.T) kubeclient.Client {
 
 func TestNewClient(t *testing.T) {
 	type args struct {
-		store     esv1beta1.SecretStore
-		kube      kubeclient.Client
-		namespace string
-		provider  esv1beta1.Provider
+		store    esv1beta1.SecretStore
+		kube     kubeclient.Client
+		provider esv1beta1.Provider
 	}
 	tests := []struct {
 		name              string
