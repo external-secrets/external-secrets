@@ -1967,6 +1967,9 @@ should match snapshot of default values:
                             externalID:
                               description: AWS External ID set on assumed IAM roles
                               type: string
+                            prefix:
+                              description: Prefix adds a prefix to all retrieved values.
+                              type: string
                             region:
                               description: AWS Region to be used for the provider
                               type: string
@@ -3389,7 +3392,7 @@ should match snapshot of default values:
                                   type: object
                               type: object
                             apiUrl:
-                              default: https://api.pulumi.com
+                              default: https://api.pulumi.com/api/preview
                               description: APIURL is the URL of the Pulumi API.
                               type: string
                             environment:
@@ -3474,6 +3477,69 @@ should match snapshot of default values:
                             - projectId
                             - region
                             - secretKey
+                          type: object
+                        secretserver:
+                          description: |-
+                            SecretServer configures this store to sync secrets using SecretServer provider
+                            https://docs.delinea.com/online-help/secret-server/start.htm
+                          properties:
+                            password:
+                              description: Password is the secret server account password.
+                              properties:
+                                secretRef:
+                                  description: SecretRef references a key in a secret that will be used as value.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                value:
+                                  description: Value can be specified directly to set a value without using a secret.
+                                  type: string
+                              type: object
+                            serverURL:
+                              description: |-
+                                ServerURL
+                                URL to your secret server installation
+                              type: string
+                            username:
+                              description: Username is the secret server account username.
+                              properties:
+                                secretRef:
+                                  description: SecretRef references a key in a secret that will be used as value.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                value:
+                                  description: Value can be specified directly to set a value without using a secret.
+                                  type: string
+                              type: object
+                          required:
+                            - password
+                            - serverURL
+                            - username
                           type: object
                         senhasegura:
                           description: Senhasegura configures this store to sync secrets using senhasegura provider
@@ -4039,6 +4105,11 @@ should match snapshot of default values:
                                 the option is enabled serverside.
                                 https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header
                               type: boolean
+                            headers:
+                              additionalProperties:
+                                type: string
+                              description: Headers to be added in Vault request
+                              type: object
                             namespace:
                               description: |-
                                 Name of the vault namespace. Namespaces is a set of features within Vault Enterprise that allows
