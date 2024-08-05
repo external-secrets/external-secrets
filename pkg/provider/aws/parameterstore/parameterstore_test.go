@@ -495,6 +495,34 @@ func TestPushSecret(t *testing.T) {
 				err: fmt.Errorf("failed to parse metadata: failed to parse JSON raw data: invalid character 'f' looking for beginning of object key string"),
 			},
 		},
+		"GetRemoteSecretWithoutDecryption": {
+			reason: "test if push secret's get remote source is encrypted for valid comparison",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`
+					{
+						"parameterStoreType": "SecureString",
+						"parameterStoreKeyID": "arn:aws:kms:sa-east-1:00000000000:key/bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"
+					}
+					`),
+				},
+				client: fakeps.Client{
+					PutParameterWithContextFn: fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn: fakeps.NewGetParameterWithContextFn(&ssm.GetParameterOutput{
+						Parameter: &ssm.Parameter{
+							Type:  aws.String("SecureString"),
+							Value: aws.String("sensitive"),
+						},
+					}, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+				},
+			},
+			want: want{
+				err: fmt.Errorf("unable to compare 'sensitive' result, ensure to request a decrypted value"),
+			},
+		},
 	}
 
 	for name, tc := range tests {
@@ -625,6 +653,7 @@ func TestGetSecret(t *testing.T) {
 		pstc.expectedSecret = "bang"
 		pstc.remoteRef.Property = "/shmoo"
 	}
+
 	// good case: extract property with `.`
 	setExtractPropertyWithDot := func(pstc *parameterstoreTestCase) {
 		pstc.apiOutput.Parameter.Value = aws.String(`{"/shmoo.boom": "bang"}`)
