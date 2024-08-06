@@ -78,7 +78,7 @@ require (
 	github.com/aliyun/credentials-go v1.3.6
 	github.com/avast/retry-go/v4 v4.6.0
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/cyberark/conjur-api-go v0.12.3
+	github.com/cyberark/conjur-api-go v0.12.4
 	github.com/fortanix/sdkms-client-go v0.4.0
 	github.com/go-openapi/strfmt v0.23.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
