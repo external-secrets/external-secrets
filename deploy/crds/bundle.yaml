@@ -2837,7 +2837,7 @@ spec:
                                   description: Value can be specified directly to set a value without using a secret.
                                   type: string
                               type: object
-                            certificatekey:
+                            certificateKey:
                               description: Certificate private key (key.pem). For use when authenticating with an OAuth client Id
                               properties:
                                 secretRef:
@@ -2861,8 +2861,7 @@ spec:
                                   description: Value can be specified directly to set a value without using a secret.
                                   type: string
                               type: object
-                            clientid:
-                              description: Required - API OAuth Client ID.
+                            clientId:
                               properties:
                                 secretRef:
                                   description: SecretRef references a key in a secret that will be used as value.
@@ -2885,8 +2884,7 @@ spec:
                                   description: Value can be specified directly to set a value without using a secret.
                                   type: string
                               type: object
-                            clientsecret:
-                              description: Required - API OAuth Client Secret.
+                            clientSecret:
                               properties:
                                 secretRef:
                                   description: SecretRef references a key in a secret that will be used as value.
@@ -2910,30 +2908,28 @@ spec:
                                   type: string
                               type: object
                           required:
-                            - clientid
-                            - clientsecret
+                            - clientId
+                            - clientSecret
                           type: object
                         server:
                           description: Auth configures how API server works.
                           properties:
-                            apiurl:
-                              description: Required - BeyondTrust Password Safe API URL. https://example.com:443/beyondtrust/api/public/V3.
+                            apiUrl:
                               type: string
-                            clienttimeoutseconds:
+                            clientTimeOutSeconds:
                               description: Timeout specifies a time limit for requests made by this Client. The timeout includes connection time, any redirects, and reading the response body. Defaults to 45 seconds.
                               type: integer
-                            retrievaltype:
+                            retrievalType:
                               description: The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.
                               type: string
                             separator:
                               description: A character that separates the folder names.
                               type: string
-                            verifyca:
-                              description: Required - Indicates whether to verify the certificate authority on the Secrets Safe instance. Warning - false is insecure, instructs the BT provider not to verify the certificate authority.
+                            verifyCA:
                               type: boolean
                           required:
-                            - apiurl
-                            - verifyca
+                            - apiUrl
+                            - verifyCA
                           type: object
                       required:
                         - auth
@@ -8603,7 +8599,7 @@ spec:
                                   description: Value can be specified directly to set a value without using a secret.
                                   type: string
                               type: object
-                            certificatekey:
+                            certificateKey:
                               description: Certificate private key (key.pem). For use when authenticating with an OAuth client Id
                               properties:
                                 secretRef:
@@ -8627,8 +8623,7 @@ spec:
                                   description: Value can be specified directly to set a value without using a secret.
                                   type: string
                               type: object
-                            clientid:
-                              description: Required - API OAuth Client ID.
+                            clientId:
                               properties:
                                 secretRef:
                                   description: SecretRef references a key in a secret that will be used as value.
@@ -8651,8 +8646,7 @@ spec:
                                   description: Value can be specified directly to set a value without using a secret.
                                   type: string
                               type: object
-                            clientsecret:
-                              description: Required - API OAuth Client Secret.
+                            clientSecret:
                               properties:
                                 secretRef:
                                   description: SecretRef references a key in a secret that will be used as value.
@@ -8676,30 +8670,28 @@ spec:
                                   type: string
                               type: object
                           required:
-                            - clientid
-                            - clientsecret
+                            - clientId
+                            - clientSecret
                           type: object
                         server:
                           description: Auth configures how API server works.
                           properties:
-                            apiurl:
-                              description: Required - BeyondTrust Password Safe API URL. https://example.com:443/beyondtrust/api/public/V3.
+                            apiUrl:
                               type: string
-                            clienttimeoutseconds:
+                            clientTimeOutSeconds:
                               description: Timeout specifies a time limit for requests made by this Client. The timeout includes connection time, any redirects, and reading the response body. Defaults to 45 seconds.
                               type: integer
-                            retrievaltype:
+                            retrievalType:
                               description: The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.
                               type: string
                             separator:
                               description: A character that separates the folder names.
                               type: string
-                            verifyca:
-                              description: Required - Indicates whether to verify the certificate authority on the Secrets Safe instance. Warning - false is insecure, instructs the BT provider not to verify the certificate authority.
+                            verifyCA:
                               type: boolean
                           required:
-                            - apiurl
-                            - verifyca
+                            - apiUrl
+                            - verifyCA
                           type: object
                       required:
                         - auth
