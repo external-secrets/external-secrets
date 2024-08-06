@@ -292,7 +292,7 @@ func testInvalidMtlsStore(tc *framework.TestCase) {
 		Expect(string(ss.Status.Conditions[0].Type)).Should(Equal("Ready"))
 		Expect(string(ss.Status.Conditions[0].Status)).Should(Equal("False"))
 		Expect(ss.Status.Conditions[0].Reason).Should(Equal("ValidationFailed"))
-		Expect(ss.Status.Conditions[0].Message).Should(Equal("unable to validate store"))
+		Expect(ss.Status.Conditions[0].Message).Should(ContainSubstring("unable to validate store"))
 		return true, nil
 	})
 	Expect(err).ToNot(HaveOccurred())

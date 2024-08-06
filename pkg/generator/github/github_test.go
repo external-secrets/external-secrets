@@ -54,7 +54,7 @@ func TestGenerate(t *testing.T) {
 		namespace string
 	}
 	pem, err := os.ReadFile(tstCrtName)
-	assert.NoError(t, err, "Should not error when reading privatKey")
+	assert.NoError(t, err, "Should not error when reading privateKey")
 
 	validResponce := []byte(`{
 		"token": "ghs_16C7e42F292c6912E7710c838347Ae178B4a",
@@ -93,7 +93,7 @@ func TestGenerate(t *testing.T) {
 						Namespace: "foo",
 					},
 					Data: map[string][]byte{
-						"privatKey": pem,
+						"privateKey": pem,
 					},
 				}).Build(),
 				jsonSpec: &apiextensions.JSON{
@@ -104,11 +104,11 @@ spec:
   installID: "00000000"
   URL: %q
   auth:
-    privatKey:
+    privateKey:
       secretRef:
         name: "testName"
         namespace: "foo"
-        key: "privatKey"`, server.URL)),
+        key: "privateKey"`, server.URL)),
 				},
 			},
 			want: map[string][]byte{

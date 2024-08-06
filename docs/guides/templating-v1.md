@@ -18,7 +18,7 @@ You can use templates to inject your secrets into a configuration file that you 
 
 You can also use pre-defined functions to extract data from your secrets. Here: extract key/cert from a pkcs12 archive and store it as PEM.
 ``` yaml
-{% include 'pkcs12-template-v1-external-secret.yaml' %}
+{% include 'pkcs12-template-v2-external-secret.yaml' %}
 ```
 
 ### TemplateFrom

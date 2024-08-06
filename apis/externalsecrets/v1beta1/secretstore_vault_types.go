@@ -86,6 +86,10 @@ type VaultProvider struct {
 	// https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header
 	// +optional
 	ForwardInconsistent bool `json:"forwardInconsistent,omitempty"`
+
+	// Headers to be added in Vault request
+	// +optional
+	Headers map[string]string `json:"headers,omitempty"`
 }
 
 // VaultClientTLS is the configuration used for client side related TLS communication,

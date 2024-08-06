@@ -21,41 +21,28 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"golang.org/x/crypto/pkcs12"
 	gopkcs12 "software.sslmate.com/src/go-pkcs12"
 )
 
 func pkcs12keyPass(pass, input string) (string, error) {
-	blocks, err := pkcs12.ToPEM([]byte(input), pass)
+	privateKey, _, _, err := gopkcs12.DecodeChain([]byte(input), pass)
 	if err != nil {
 		return "", fmt.Errorf(errDecodePKCS12WithPass, err)
 	}
 
-	var pemData []byte
-	for _, block := range blocks {
-		// remove bag attributes like localKeyID, friendlyName
-		block.Headers = nil
-		if block.Type == pemTypeCertificate {
-			continue
-		}
-		key, err := parsePrivateKey(block.Bytes)
-		if err != nil {
-			return "", err
-		}
-		// we use pkcs8 because it supports more key types (ecdsa, ed25519), not just RSA
-		block.Bytes, err = x509.MarshalPKCS8PrivateKey(key)
-		if err != nil {
-			return "", err
-		}
-		// report error if encode fails
-		var buf bytes.Buffer
-		if err := pem.Encode(&buf, block); err != nil {
-			return "", err
-		}
-		pemData = append(pemData, buf.Bytes()...)
+	marshalPrivateKey, err := x509.MarshalPKCS8PrivateKey(privateKey)
+	if err != nil {
+		return "", err
 	}
 
-	return string(pemData), nil
+	var buf bytes.Buffer
+	if err := pem.Encode(&buf, &pem.Block{
+		Type:  pemTypeKey,
+		Bytes: marshalPrivateKey,
+	}); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
 func parsePrivateKey(block []byte) (any, error) {
@@ -76,21 +63,28 @@ func pkcs12key(input string) (string, error) {
 }
 
 func pkcs12certPass(pass, input string) (string, error) {
-	blocks, err := pkcs12.ToPEM([]byte(input), pass)
+	_, certificate, caCerts, err := gopkcs12.DecodeChain([]byte(input), pass)
 	if err != nil {
 		return "", fmt.Errorf(errDecodeCertWithPass, err)
 	}
 
 	var pemData []byte
-	for _, block := range blocks {
-		if block.Type != pemTypeCertificate {
-			continue
-		}
-		// remove bag attributes like localKeyID, friendlyName
-		block.Headers = nil
-		// report error if encode fails
+	var buf bytes.Buffer
+	if err := pem.Encode(&buf, &pem.Block{
+		Type:  pemTypeCertificate,
+		Bytes: certificate.Raw,
+	}); err != nil {
+		return "", err
+	}
+
+	pemData = append(pemData, buf.Bytes()...)
+
+	for _, ca := range caCerts {
 		var buf bytes.Buffer
-		if err := pem.Encode(&buf, block); err != nil {
+		if err := pem.Encode(&buf, &pem.Block{
+			Type:  pemTypeCertificate,
+			Bytes: ca.Raw,
+		}); err != nil {
 			return "", err
 		}
 		pemData = append(pemData, buf.Bytes()...)

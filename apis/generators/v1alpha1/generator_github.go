@@ -30,7 +30,7 @@ type GithubAccessTokenSpec struct {
 }
 
 type GithubAuth struct {
-	PrivatKey GithubSecretRef `json:"privatKey"`
+	PrivateKey GithubSecretRef `json:"privateKey"`
 }
 
 type GithubSecretRef struct {

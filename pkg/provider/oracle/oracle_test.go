@@ -284,7 +284,7 @@ func TestValidateStore(t *testing.T) {
 		},
 		{
 			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, &namespace)),
-			err:   fmt.Errorf("namespace not allowed with namespaced SecretStore"),
+			err:   fmt.Errorf("namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore"),
 		},
 		{
 			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, "", nil)),
@@ -296,7 +296,7 @@ func TestValidateStore(t *testing.T) {
 		},
 		{
 			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, nil), withFingerprint(secretName, secretKey, &namespace)),
-			err:   fmt.Errorf("namespace not allowed with namespaced SecretStore"),
+			err:   fmt.Errorf("namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore"),
 		},
 		{
 			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, nil), withFingerprint(secretName, "", nil)),
@@ -581,6 +581,7 @@ func TestOracleVaultGetAllSecrets(t *testing.T) {
 
 func TestOracleVaultPushSecret(t *testing.T) {
 	testSecretKey := "test-secret-key"
+	encryptionKey := "must-not-be-blank-for-push"
 	var testCases = map[string]struct {
 		vms       *VaultManagementService
 		data      testingfake.PushSecretData
@@ -589,6 +590,7 @@ func TestOracleVaultPushSecret(t *testing.T) {
 	}{
 		"create a secret if not exists": {
 			&VaultManagementService{
+				encryptionKey: encryptionKey,
 				Client: &fakeoracle.OracleMockClient{
 					SecretBundles: map[string]secrets.SecretBundle{
 						s2id: s2bundle,
@@ -605,8 +607,28 @@ func TestOracleVaultPushSecret(t *testing.T) {
 			},
 			"created",
 		},
+		"create a json secret if not exists": {
+			&VaultManagementService{
+				encryptionKey: encryptionKey,
+				Client: &fakeoracle.OracleMockClient{
+					SecretBundles: map[string]secrets.SecretBundle{
+						s2id: s2bundle,
+					},
+				},
+				VaultClient: &fakeoracle.OracleMockVaultClient{},
+			},
+			testingfake.PushSecretData{
+				SecretKey: testSecretKey,
+				RemoteKey: s1id,
+			},
+			func(vms *VaultManagementService) bool {
+				return vms.VaultClient.(*fakeoracle.OracleMockVaultClient).CreatedCount == 1
+			},
+			"{'key-a':'secret-a', 'key-b': 'secret-b'}",
+		},
 		"update a secret if exists": {
 			&VaultManagementService{
+				encryptionKey: encryptionKey,
 				Client: &fakeoracle.OracleMockClient{
 					SecretBundles: map[string]secrets.SecretBundle{
 						s1id: s1bundle,
@@ -626,6 +648,7 @@ func TestOracleVaultPushSecret(t *testing.T) {
 		},
 		"neither create nor update if secret content is unchanged": {
 			&VaultManagementService{
+				encryptionKey: encryptionKey,
 				Client: &fakeoracle.OracleMockClient{
 					SecretBundles: map[string]secrets.SecretBundle{
 						s1id: s1bundle,

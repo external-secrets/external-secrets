@@ -19,7 +19,7 @@ We want to cover the following cases:
 
 | ESO Version | Kubernetes Version | Release Date | End of Life    |
 | ----------- | ------------------ | ------------ | -------------- |
-| 0.9.x       | 1.19 → 1.29        | Jun 22, 2023 | Release of 1.1 |
+| 0.9.x       | 1.19 → 1.30        | Jun 22, 2023 | Release of 1.1 |
 | 0.8.x       | 1.19 → 1.28        | Mar 16, 2023 | Release of 1.0 |
 | 0.7.x       | 1.19 → 1.26        | Dec 11, 2022 | Jun 22, 2023   |
 | 0.6.x       | 1.19 → 1.24        | Oct 9, 2022  | Mar 16, 2023   |
@@ -53,17 +53,19 @@ The following table describes the stability level of each provider and who's res
 | [Scaleway](https://external-secrets.io/latest/provider/scaleway)                                           |   alpha   |                                                                                                                                                   [@azert9](https://github.com/azert9/) |
 | [Conjur](https://external-secrets.io/latest/provider/conjur)                                               |   stable   |                                                                                                                                 [@davidh-cyberark](https://github.com/davidh-cyberark/) [@szh](https://github.com/szh) |
 | [Delinea](https://external-secrets.io/latest/provider/delinea)                                             |   alpha   |                                                                                                                                     [@michaelsauter](https://github.com/michaelsauter/) |
+| [SecretServer](https://external-secrets.io/latest/provider/secretserver)                                   |   alpha   |                                                                                                                                     [@billhamilton](https://github.com/pacificcode/) |
 | [Pulumi ESC](https://external-secrets.io/latest/provider/pulumi)                                           |   alpha   |                                                                                                                                                  [@dirien](https://github.com/dirien) |
 | [Passbolt](https://external-secrets.io/latest/provider/passbolt)                                           |   alpha   |                                                                                                                                                   |
 | [Infisical](https://external-secrets.io/latest/provider/infisical)                                         |   alpha   | [@akhilmhdh](https://github.com/akhilmhdh)                                                                                       |
 | [Device42](https://external-secrets.io/latest/provider/device42)                                           |   alpha   |                                                                                                                                                   |
+| [Bitwarden Secrets Manager](https://external-secrets.io/latest/provider/bitwarden-secrets-manager)         |   alpha   | [@skarlso](https://github.com/Skarlso)                                                                                           |
 
 ## Provider Feature Support
 
 The following table show the support for features across different providers.
 
 | Provider                  | find by name | find by tags | metadataPolicy Fetch | referent authentication | store validation | push secret | DeletionPolicy Merge/Delete |
-| ------------------------- | :----------: | :----------: | :------------------: | :---------------------: | :--------------: | :---------: | :-------------------------: |
+|---------------------------|:------------:| :----------: | :------------------: | :---------------------: | :--------------: |:-----------:|:---------------------------:|
 | AWS Secrets Manager       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | AWS Parameter Store       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Hashicorp Vault           |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
@@ -84,10 +86,12 @@ The following table show the support for features across different providers.
 | Scaleway                  |      x       |      x       |                      |                         |        x         |      x      |              x              |
 | Conjur                    |      x       |      x       |                      |                         |        x         |             |                             |
 | Delinea                   |      x       |              |                      |                         |        x         |             |                             |
+| SecretServer              |      x       |              |                      |                         |        x         |             |                             |
 | Pulumi ESC                |      x       |              |                      |                         |        x         |             |                             |
 | Passbolt                  |      x       |              |                      |                         |        x         |             |                             |
 | Infisical                 |      x       |              |                      |            x            |        x         |             |                             |
 | Device42                  |              |              |                      |                         |        x         |             |                             |
+| Bitwarden Secrets Manager |      x       |              |                      |                         |        x         |      x      |              x              |
 
 ## Support Policy
 

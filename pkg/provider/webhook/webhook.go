@@ -70,6 +70,7 @@ func (p *Provider) NewClient(_ context.Context, store esv1beta1.GenericStore, ku
 		wh:        wh,
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
 	}
+	whClient.wh.EnforceLabels = true
 	if whClient.storeKind == esv1beta1.ClusterSecretStoreKind {
 		whClient.wh.ClusterScoped = true
 	}
@@ -133,7 +134,7 @@ func (w *WebHook) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDat
 		return nil, err
 	}
 	// Only parse as json if we have a jsonpath set
-	data, err := w.wh.GetTemplateData(ctx, &ref, provider.Secrets)
+	data, err := w.wh.GetTemplateData(ctx, &ref, provider.Secrets, false)
 	if err != nil {
 		return nil, err
 	}

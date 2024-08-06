@@ -84,6 +84,9 @@ kubectl run --rm \
   --env="DELINEA_TENANT=${DELINEA_TENANT:-}" \
   --env="DELINEA_CLIENT_ID=${DELINEA_CLIENT_ID:-}" \
   --env="DELINEA_CLIENT_SECRET=${DELINEA_CLIENT_SECRET:-}" \
+  --env="SECRETSERVER_USERNAME=${SECRETSERVER_USERNAME:-}" \
+  --env="SECRETSERVER_PASSWORD=${SECRETSERVER_PASSWORD:-}" \
+  --env="SECRETSERVER_URL=${SECRETSERVER_URL:-}" \
   --env="VERSION=${VERSION}" \
   --env="TEST_SUITES=${TEST_SUITES}" \
   --overrides='{ "apiVersion": "v1", "spec":{"serviceAccountName": "external-secrets-e2e"}}' \

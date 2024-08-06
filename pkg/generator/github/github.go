@@ -127,11 +127,11 @@ func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client
 		gh.URL = res.Spec.URL + ghPath
 	}
 	secret := &corev1.Secret{}
-	if err := gh.Kube.Get(ctx, client.ObjectKey{Name: res.Spec.Auth.PrivatKey.SecretRef.Name, Namespace: n}, secret); err != nil {
+	if err := gh.Kube.Get(ctx, client.ObjectKey{Name: res.Spec.Auth.PrivateKey.SecretRef.Name, Namespace: n}, secret); err != nil {
 		return nil, fmt.Errorf("error getting GH pem from secret:%w", err)
 	}
 
-	pk, err := jwt.ParseRSAPrivateKeyFromPEM(secret.Data[res.Spec.Auth.PrivatKey.SecretRef.Key])
+	pk, err := jwt.ParseRSAPrivateKeyFromPEM(secret.Data[res.Spec.Auth.PrivateKey.SecretRef.Key])
 	if err != nil {
 		return nil, fmt.Errorf("error parsing RSA private key: %w", err)
 	}

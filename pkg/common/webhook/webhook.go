@@ -35,6 +35,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/template/v2"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
@@ -63,9 +64,9 @@ func (w *Webhook) getStoreSecret(ctx context.Context, ref SecretKeySelector) (*c
 		return nil, fmt.Errorf("failed to get clustersecretstore webhook secret %s: %w", ref.Name, err)
 	}
 	if w.EnforceLabels {
-		expected, ok := secret.Labels["generators.external-secrets.io/type"]
+		expected, ok := secret.Labels["external-secrets.io/type"]
 		if !ok {
-			return nil, fmt.Errorf("secret does not contain needed label to be used on webhook generator")
+			return nil, fmt.Errorf("secret does not contain needed label 'external-secrets.io/type: webhook'. Update secret label to use it with webhook")
 		}
 		if expected != "webhook" {
 			return nil, fmt.Errorf("secret type is not 'webhook'")
@@ -106,23 +107,30 @@ func (w *Webhook) GetSecretMap(ctx context.Context, provider *Spec, ref *esv1bet
 	}
 	// Change the map of generic objects to a map of byte arrays
 	values := make(map[string][]byte)
-	for rKey, rValue := range jsonvalue {
-		jVal, ok := rValue.(string)
-		if !ok {
-			return nil, fmt.Errorf("failed to get response (wrong type in key '%s': %T)", rKey, rValue)
+	for rKey := range jsonvalue {
+		values[rKey], err = utils.GetByteValueFromMap(jsonvalue, rKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get response for key '%s': %w", rKey, err)
 		}
-		values[rKey] = []byte(jVal)
 	}
 	return values, nil
 }
 
-func (w *Webhook) GetTemplateData(ctx context.Context, ref *esv1beta1.ExternalSecretDataRemoteRef, secrets []Secret) (map[string]map[string]string, error) {
+func (w *Webhook) GetTemplateData(ctx context.Context, ref *esv1beta1.ExternalSecretDataRemoteRef, secrets []Secret, urlEncode bool) (map[string]map[string]string, error) {
 	data := map[string]map[string]string{}
 	if ref != nil {
-		data["remoteRef"] = map[string]string{
-			"key":      url.QueryEscape(ref.Key),
-			"version":  url.QueryEscape(ref.Version),
-			"property": url.QueryEscape(ref.Property),
+		if urlEncode {
+			data["remoteRef"] = map[string]string{
+				"key":      url.QueryEscape(ref.Key),
+				"version":  url.QueryEscape(ref.Version),
+				"property": url.QueryEscape(ref.Property),
+			}
+		} else {
+			data["remoteRef"] = map[string]string{
+				"key":      ref.Key,
+				"version":  ref.Version,
+				"property": ref.Property,
+			}
 		}
 	}
 	for _, secref := range secrets {
@@ -144,19 +152,25 @@ func (w *Webhook) GetWebhookData(ctx context.Context, provider *Spec, ref *esv1b
 	if w.HTTP == nil {
 		return nil, fmt.Errorf("http client not initialized")
 	}
-	data, err := w.GetTemplateData(ctx, ref, provider.Secrets)
+
+	escapedData, err := w.GetTemplateData(ctx, ref, provider.Secrets, true)
 	if err != nil {
 		return nil, err
 	}
+	rawData, err := w.GetTemplateData(ctx, ref, provider.Secrets, false)
+	if err != nil {
+		return nil, err
+	}
+
 	method := provider.Method
 	if method == "" {
 		method = http.MethodGet
 	}
-	url, err := ExecuteTemplateString(provider.URL, data)
+	url, err := ExecuteTemplateString(provider.URL, escapedData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse url: %w", err)
 	}
-	body, err := ExecuteTemplate(provider.Body, data)
+	body, err := ExecuteTemplate(provider.Body, rawData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse body: %w", err)
 	}
@@ -166,7 +180,7 @@ func (w *Webhook) GetWebhookData(ctx context.Context, provider *Spec, ref *esv1b
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	for hKey, hValueTpl := range provider.Headers {
-		hValue, err := ExecuteTemplateString(hValueTpl, data)
+		hValue, err := ExecuteTemplateString(hValueTpl, rawData)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse header %s: %w", hKey, err)
 		}
@@ -182,6 +196,11 @@ func (w *Webhook) GetWebhookData(ctx context.Context, provider *Spec, ref *esv1b
 	if resp.StatusCode == 404 {
 		return nil, esv1beta1.NoSecretError{}
 	}
+
+	if resp.StatusCode == http.StatusNotModified {
+		return nil, esv1beta1.NotModifiedError{}
+	}
+
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("endpoint gave error %s", resp.Status)
 	}

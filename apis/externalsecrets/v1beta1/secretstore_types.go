@@ -50,7 +50,12 @@ type ClusterSecretStoreCondition struct {
 	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
 
 	// Choose namespaces by name
+	// +optional
 	Namespaces []string `json:"namespaces,omitempty"`
+
+	// Choose namespaces by using regex matching
+	// +optional
+	NamespaceRegexes []string `json:"namespaceRegexes,omitempty"`
 }
 
 // SecretStoreProvider contains the provider-specific configuration.
@@ -68,6 +73,10 @@ type SecretStoreProvider struct {
 	// Akeyless configures this store to sync secrets using Akeyless Vault provider
 	// +optional
 	Akeyless *AkeylessProvider `json:"akeyless,omitempty"`
+
+	// BitwardenSecretsManager configures this store to sync secrets using BitwardenSecretsManager provider
+	// +optional
+	BitwardenSecretsManager *BitwardenSecretsManagerProvider `json:"bitwardensecretsmanager,omitempty"`
 
 	// Vault configures this store to sync secrets using Hashi provider
 	// +optional
@@ -145,6 +154,11 @@ type SecretStoreProvider struct {
 	// https://docs.delinea.com/online-help/products/devops-secrets-vault/current
 	// +optional
 	Delinea *DelineaProvider `json:"delinea,omitempty"`
+
+	// SecretServer configures this store to sync secrets using SecretServer provider
+	// https://docs.delinea.com/online-help/secret-server/start.htm
+	// +optional
+	SecretServer *SecretServerProvider `json:"secretserver,omitempty"`
 
 	// Chef configures this store to sync secrets with chef server
 	// +optional

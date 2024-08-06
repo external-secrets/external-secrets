@@ -1359,7 +1359,7 @@ func TestSecretExists(t *testing.T) {
 				wantError: true,
 			},
 		},
-		"SecretExistsReturnsTrueForNonExistingSecret": {
+		"SecretExistsReturnsFalseForNonExistingSecret": {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
@@ -1369,7 +1369,7 @@ func TestSecretExists(t *testing.T) {
 			},
 			want: want{
 				err:       nil,
-				wantError: true,
+				wantError: false,
 			},
 		},
 		"SecretExistsReturnsFalseForErroredSecret": {

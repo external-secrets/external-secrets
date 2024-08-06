@@ -62,10 +62,13 @@ spec:
           - --healthz-addr={{ .Values.certController.readinessProbe.address }}:{{ .Values.certController.readinessProbe.port }}
           - --loglevel={{ .Values.certController.log.level }}
           - --zap-time-encoding={{ .Values.certController.log.timeEncoding }}
-          {{ if not .Values.crds.createClusterSecretStore -}}
+          {{- if not .Values.crds.createClusterSecretStore }}
           - --crd-names=externalsecrets.external-secrets.io
           - --crd-names=secretstores.external-secrets.io
-          {{- end -}}
+          {{- end }}
+          {{- if .Values.installCRDs }}
+          - --enable-partial-cache=true
+          {{- end }}
           {{- range $key, $value := .Values.certController.extraArgs }}
             {{- if $value }}
           - --{{ $key }}={{ $value }}

@@ -281,6 +281,18 @@ SecretsManager
 <p>AWS STS assume role transitive session tags. Required when multiple rules are used with the provider</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>prefix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Prefix adds a prefix to all retrieved values.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.AWSServiceType">AWSServiceType
@@ -997,6 +1009,166 @@ string
 <td>
 <em>(Optional)</em>
 <p>If multiple Managed Identity is assigned to the pod, you can select the one to be used</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.BitwardenSecretsManagerAuth">BitwardenSecretsManagerAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider</a>)
+</p>
+<p>
+<p>BitwardenSecretsManagerAuth contains the ref to the secret that contains the machine account token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerSecretRef">
+BitwardenSecretsManagerSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>BitwardenSecretsManagerProvider configures a store to sync secrets with a Bitwarden Secrets Manager instance.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiURL</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>identityURL</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>bitwardenServerSDKURL</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Base64 encoded certificate for the bitwarden server sdk. The sdk MUST run with HTTPS to make sure no MITM attack
+can be performed.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>organizationID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>OrganizationID determines which organization this secret store manages.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>projectID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ProjectID determines which project this secret store manages.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerAuth">
+BitwardenSecretsManagerAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how secret-manager authenticates with a bitwarden machine account instance.
+Make sure that the token being used has permissions on the given secret.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.BitwardenSecretsManagerSecretRef">BitwardenSecretsManagerSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerAuth">BitwardenSecretsManagerAuth</a>)
+</p>
+<p>
+<p>BitwardenSecretsManagerSecretRef contains the credential ref to the bitwarden instance.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>credentials</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>AccessToken used for the bitwarden instance.</p>
 </td>
 </tr>
 </tbody>
@@ -1861,7 +2033,20 @@ Kubernetes meta/v1.LabelSelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Choose namespaces by name</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespaceRegexes</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Choose namespaces by using regex matching</p>
 </td>
 </tr>
 </tbody>
@@ -4691,6 +4876,7 @@ KubernetesServer
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>configures the Kubernetes server Address.</p>
 </td>
 </tr>
@@ -4704,7 +4890,22 @@ KubernetesAuth
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Auth configures how secret-manager authenticates with a Kubernetes instance.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>authRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>A reference to a secret that contains the auth information.</p>
 </td>
 </tr>
 <tr>
@@ -4831,6 +5032,12 @@ string
 <p>
 <p>NoSecretError shall be returned when a GetSecret can not find the
 desired secret. This is used for deletionPolicy.</p>
+</p>
+<h3 id="external-secrets.io/v1beta1.NotModifiedError">NotModifiedError
+</h3>
+<p>
+<p>NotModifiedError to signal that the webhook received no changes,
+and it should just return without doing anything.</p>
 </p>
 <h3 id="external-secrets.io/v1beta1.OnboardbaseAuthSecretRef">OnboardbaseAuthSecretRef
 </h3>
@@ -5735,6 +5942,107 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.SecretServerProvider">SecretServerProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>See <a href="https://github.com/DelineaXPM/tss-sdk-go/blob/main/server/server.go">https://github.com/DelineaXPM/tss-sdk-go/blob/main/server/server.go</a>.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>username</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretServerProviderRef">
+SecretServerProviderRef
+</a>
+</em>
+</td>
+<td>
+<p>Username is the secret server account username.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>password</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretServerProviderRef">
+SecretServerProviderRef
+</a>
+</em>
+</td>
+<td>
+<p>Password is the secret server account password.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serverURL</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ServerURL
+URL to your secret server installation</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.SecretServerProviderRef">SecretServerProviderRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretServerProvider">SecretServerProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Value can be specified directly to set a value without using a secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretRef references a key in a secret that will be used as value.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.SecretStore">SecretStore
 </h3>
 <p>
@@ -5958,6 +6266,20 @@ AkeylessProvider
 <td>
 <em>(Optional)</em>
 <p>Akeyless configures this store to sync secrets using Akeyless Vault provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>bitwardensecretsmanager</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerProvider">
+BitwardenSecretsManagerProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>BitwardenSecretsManager configures this store to sync secrets using BitwardenSecretsManager provider</p>
 </td>
 </tr>
 <tr>
@@ -6225,6 +6547,21 @@ DelineaProvider
 <em>(Optional)</em>
 <p>Delinea DevOps Secrets Vault
 <a href="https://docs.delinea.com/online-help/products/devops-secrets-vault/current">https://docs.delinea.com/online-help/products/devops-secrets-vault/current</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretserver</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretServerProvider">
+SecretServerProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretServer configures this store to sync secrets using SecretServer provider
+<a href="https://docs.delinea.com/online-help/secret-server/start.htm">https://docs.delinea.com/online-help/secret-server/start.htm</a></p>
 </td>
 </tr>
 <tr>
@@ -8306,6 +8643,18 @@ bool
 leader instead of simply retrying within a loop. This can increase performance if
 the option is enabled serverside.
 <a href="https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header">https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>headers</code></br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Headers to be added in Vault request</p>
 </td>
 </tr>
 </tbody>

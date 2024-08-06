@@ -35,7 +35,6 @@ import (
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/tidwall/gjson"
-	"golang.org/x/crypto/pkcs12"
 	"golang.org/x/crypto/sha3"
 	authv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -47,6 +46,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	gopkcs12 "software.sslmate.com/src/go-pkcs12"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
@@ -345,18 +345,24 @@ func (a *Azure) SecretExists(ctx context.Context, remoteRef esv1beta1.PushSecret
 
 func getCertificateFromValue(value []byte) (*x509.Certificate, error) {
 	// 1st: try decode pkcs12
-	_, localCert, err := pkcs12.Decode(value, "")
+	_, localCert, err := gopkcs12.Decode(value, "")
 	if err == nil {
 		return localCert, nil
 	}
 
-	// 2nd: try DER
+	// 2nd: try decode pkcs12 with chain
+	_, localCert, _, err = gopkcs12.DecodeChain(value, "")
+	if err == nil {
+		return localCert, nil
+	}
+
+	// 3rd: try DER
 	localCert, err = x509.ParseCertificate(value)
 	if err == nil {
 		return localCert, nil
 	}
 
-	// 3nd: parse PEM blocks
+	// 4th: parse PEM blocks
 	for {
 		block, rest := pem.Decode(value)
 		value = rest
@@ -531,12 +537,25 @@ func (a *Azure) setKeyVaultKey(ctx context.Context, secretName string, value []b
 
 // PushSecret stores secrets into a Key vault instance.
 func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	var (
+		value []byte
+		err   error
+	)
 	if data.GetSecretKey() == "" {
-		return fmt.Errorf("pushing the whole secret is not yet implemented")
+		// Must convert secret values to string, otherwise data will be sent as base64 to Vault
+		secretStringVal := make(map[string]string)
+		for k, v := range secret.Data {
+			secretStringVal[k] = string(v)
+		}
+		value, err = utils.JSONMarshal(secretStringVal)
+		if err != nil {
+			return fmt.Errorf("failed to serialize secret content as JSON: %w", err)
+		}
+	} else {
+		value = secret.Data[data.GetSecretKey()]
 	}
 
 	objectType, secretName := getObjType(esv1beta1.ExternalSecretDataRemoteRef{Key: data.GetRemoteKey()})
-	value := secret.Data[data.GetSecretKey()]
 	switch objectType {
 	case defaultObjType:
 		return a.setKeyVaultSecret(ctx, secretName, value)

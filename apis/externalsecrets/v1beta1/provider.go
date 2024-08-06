@@ -105,3 +105,13 @@ type NoSecretError struct{}
 func (NoSecretError) Error() string {
 	return "Secret does not exist"
 }
+
+var NotModifiedErr = NotModifiedError{}
+
+// NotModifiedError to signal that the webhook received no changes,
+// and it should just return without doing anything.
+type NotModifiedError struct{}
+
+func (NotModifiedError) Error() string {
+	return "not modified"
+}

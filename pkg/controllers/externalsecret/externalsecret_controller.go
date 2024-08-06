@@ -17,6 +17,7 @@ package externalsecret
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -130,6 +131,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
+	// See https://github.com/external-secrets/external-secrets/issues/3604
+	// We fetch the ExternalSecret resource above, however the status subresource is inconsistent.
+	// We have to explicitly fetch it, otherwise it may be missing and will cause
+	// unexpected side effects.
+	err = r.SubResource("status").Get(ctx, &externalSecret, &externalSecret)
+	if err != nil {
+		log.Error(err, "failed to get status subresource")
+		return ctrl.Result{}, err
+	}
+
 	timeSinceLastRefresh := 0 * time.Second
 	if !externalSecret.Status.RefreshTime.IsZero() {
 		timeSinceLastRefresh = time.Since(externalSecret.Status.RefreshTime.Time)
@@ -214,6 +225,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err != nil {
 		r.markAsFailed(log, errGetSecretData, err, &externalSecret, syncCallsError.With(resourceLabels))
 		return ctrl.Result{}, err
+	}
+
+	// secret data was not modified.
+	if errors.Is(err, esv1beta1.NotModifiedErr) {
+		log.Info("secret was not modified as a NotModified was returned by the provider")
+		r.markAsDone(&externalSecret, start, log)
+
+		return ctrl.Result{}, nil
 	}
 
 	// if no data was found we can delete the secret if needed.

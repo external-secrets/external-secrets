@@ -7,6 +7,7 @@
 - [Container Solutions](http://container-solutions.com/)
 - [DaangnPay](https://www.daangnpay.com/)
 - [Epidemic Sound](https://www.epidemicsound.com/)
+- [Elastic](https://www.elastic.co/)
 - [Fivetran](https://www.fivetran.com)
 - [Form3](https://www.form3.tech/)
 - [GoTo](https://www.goto.com/)
