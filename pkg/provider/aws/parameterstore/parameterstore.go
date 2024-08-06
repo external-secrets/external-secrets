@@ -195,7 +195,8 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 	}
 
 	secretValue := ssm.GetParameterInput{
-		Name: &secretName,
+		Name:           &secretName,
+		WithDecryption: aws.Bool(true),
 	}
 
 	existing, err := pm.client.GetParameterWithContext(ctx, &secretValue)
@@ -217,6 +218,12 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 
 		if !isManaged {
 			return fmt.Errorf("secret not managed by external-secrets")
+		}
+
+		// When fetching a remote SecureString parameter without decrypting, the default value will always be 'sensitive'
+		// in this case, no updates will be pushed remotely
+		if existing.Parameter.Value != nil && *existing.Parameter.Value == "sensitive" {
+			return fmt.Errorf("unable to compare 'sensitive' result, ensure to request a decrypted value")
 		}
 
 		if existing.Parameter.Value != nil && *existing.Parameter.Value == string(value) {
