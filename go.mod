@@ -65,6 +65,7 @@ require (
 	dario.cat/mergo v1.0.0
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.13.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.7.0
+	github.com/BeyondTrust/go-client-library-passwordsafe v0.6.0
 	github.com/DelineaXPM/dsv-sdk-go/v2 v2.1.2
 	github.com/DelineaXPM/tss-sdk-go/v2 v2.0.1
 	github.com/Onboardbase/go-cryptojs-aes-decrypt v0.0.0-20230430095000-27c0d3a9016d
@@ -76,6 +77,7 @@ require (
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.6
 	github.com/aliyun/credentials-go v1.3.6
 	github.com/avast/retry-go/v4 v4.6.0
+	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/cyberark/conjur-api-go v0.12.4
 	github.com/fortanix/sdkms-client-go v0.4.0
 	github.com/go-openapi/strfmt v0.23.0
