@@ -34,6 +34,14 @@ jobs:
         with:
           version: v3.14.2 # remember to also update for the second job (release)
 
+      - name: Install Helm Schema Plugin
+        run: |
+          helm plugin install https://github.com/losisin/helm-values-schema-json.git
+
+      - name: Generate values.schema.json
+        run: |
+          helm schema -input deploy/charts/external-secrets/values.yaml -output deploy/charts/external-secrets/values.schema.json
+
       - uses: actions/setup-python@39cd14951b08e74b54015e9e001cdefcf80e669f # v5.1.1
         with:
           python-version: 3.7
@@ -95,6 +103,15 @@ jobs:
       #   run: |
       #     echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --dearmor --output keyring.gpg
       #     echo "${{ secrets.GPG_PASSPHRASE }}" > passphrase-file.txt
+
+      - name: Install Helm Schema Plugin
+        run: |
+          helm plugin install https://github.com/losisin/helm-values-schema-json.git
+
+      - name: Generate values.schema.json
+        run: |
+          helm schema -input deploy/charts/external-secrets/values.yaml -output deploy/charts/external-secrets/values.schema.json
+
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@a917fd15b20e8b64b94d9158ad54cd6345335584 # v1.6.0
         if: |
@@ -134,3 +151,5 @@ jobs:
             fi
             helm push "${pkg}" "oci://ghcr.io/${GITHUB_REPOSITORY_OWNER}/charts"
           done
+
+
