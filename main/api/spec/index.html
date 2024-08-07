@@ -4214,6 +4214,235 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.BeyondTrustProviderSecretRef">BeyondTrustProviderSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.BeyondtrustAuth">BeyondtrustAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Value can be specified directly to set a value without using a secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretRef references a key in a secret that will be used as value.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.BeyondtrustAuth">BeyondtrustAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.BeyondtrustProvider">BeyondtrustProvider</a>)
+</p>
+<p>
+<p>Configures a store to sync secrets using BeyondTrust Password Safe.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>clientId</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BeyondTrustProviderSecretRef">
+BeyondTrustProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientSecret</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BeyondTrustProviderSecretRef">
+BeyondTrustProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>certificate</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BeyondTrustProviderSecretRef">
+BeyondTrustProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>Content of the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>certificateKey</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BeyondTrustProviderSecretRef">
+BeyondTrustProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>Certificate private key (key.pem). For use when authenticating with an OAuth client Id</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.BeyondtrustProvider">BeyondtrustProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BeyondtrustAuth">
+BeyondtrustAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how the operator authenticates with Beyondtrust.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>server</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BeyondtrustServer">
+BeyondtrustServer
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how API server works.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.BeyondtrustServer">BeyondtrustServer
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.BeyondtrustProvider">BeyondtrustProvider</a>)
+</p>
+<p>
+<p>Configures a store to sync secrets using BeyondTrust Password Safe.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiUrl</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>retrievalType</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>separator</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>A character that separates the folder names.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>verifyCA</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientTimeOutSeconds</code></br>
+<em>
+int
+</em>
+</td>
+<td>
+<p>Timeout specifies a time limit for requests made by this Client. The timeout includes connection time, any redirects, and reading the response body. Defaults to 45 seconds.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.BitwardenSecretsManagerAuth">BitwardenSecretsManagerAuth
 </h3>
 <p>
@@ -9859,6 +10088,20 @@ InfisicalProvider
 <td>
 <em>(Optional)</em>
 <p>Infisical configures this store to sync secrets using the Infisical provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>beyondtrust</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BeyondtrustProvider">
+BeyondtrustProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Beyondtrust configures this store to sync secrets using Password Safe provider.</p>
 </td>
 </tr>
 </tbody>
