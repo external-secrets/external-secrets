@@ -1996,6 +1996,30 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="IAM Policy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fetching-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fetching Parameters
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pushing-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pushing Parameters
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -3387,6 +3411,30 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="IAM Policy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fetching-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fetching Parameters
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pushing-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pushing Parameters
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -3575,6 +3623,7 @@ is available in different tiers, <a href="https://aws.amazon.com/systems-manager
 Please estimate your costs before using ESO. Cost depends on the RefreshInterval of your ExternalSecrets.</p>
 </div>
 <h3 id="iam-policy">IAM Policy</h3>
+<h4 id="fetching-parameters">Fetching Parameters</h4>
 <p>The example policy below shows the minimum required permissions for fetching SSM parameters. This policy permits pinning down access to secrets with a path matching <code>dev-*</code>. Other operations may require additional permission. For example, finding parameters based on tags will also require <code>ssm:DescribeParameters</code> and <code>tag:GetResources</code> permission with <code>"Resource": "*"</code>. Generally, the specific permission required will be logged as an error if an operation fails.</p>
 <p>For further information see <a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html">AWS Documentation</a>.</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
@@ -3590,9 +3639,22 @@ Please estimate your costs before using ESO. Cost depends on the RefreshInterval
 <span class="w">  </span><span class="p">]</span>
 <span class="p">}</span>
 </code></pre></div>
+<h4 id="pushing-parameters">Pushing Parameters</h4>
+<p>The example policy below shows the minimum required permissions for pushing SSM parameters. Like with the fetching policy it restricts the path in which it can push secrets too.</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="s2">&quot;ssm:GetParameter*&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;ssm:PutParameter*&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;ssm:AddTagsToResource&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;ssm:ListTagsForResource&quot;</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;arn:aws:ssm:us-east-2:1234567889911:parameter/dev-*&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
 <h3 id="json-secret-values">JSON Secret Values</h3>
 <p>You can store JSON objects in a parameter. You can access nested values or arrays using <a href="https://github.com/tidwall/gjson/blob/master/SYNTAX.md">gjson syntax</a>:</p>
-<p>Consider the following JSON object that is stored in the Parameter Store key <code>friendslist</code>:
+<p>Consider the following JSON object that is stored in the Parameter Store key <code>friendslist</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;first&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Tom&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;last&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Anderson&quot;</span><span class="p">},</span>
 <span class="w">  </span><span class="nt">&quot;friends&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
@@ -3601,8 +3663,8 @@ Please estimate your costs before using ESO. Cost depends on the RefreshInterval
 <span class="w">    </span><span class="p">{</span><span class="nt">&quot;first&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Jane&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;last&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Murphy&quot;</span><span class="p">}</span>
 <span class="w">  </span><span class="p">]</span>
 <span class="p">}</span>
-</code></pre></div></p>
-<p>This is an example on how you would look up nested keys in the above json object:
+</code></pre></div>
+<p>This is an example on how you would look up nested keys in the above json object:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -3631,7 +3693,7 @@ Please estimate your costs before using ESO. Cost depends on the RefreshInterval
 <span class="w">      </span><span class="nt">metadataPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Fetch</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span>
 <span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span>
-</code></pre></div></p>
+</code></pre></div>
 <h3 id="parameter-versions">Parameter Versions</h3>
 <p>ParameterStore creates a new version of a parameter every time it is updated with a new value. The parameter can be referenced via the <code>version</code> property</p>
 <h2 id="setsecret">SetSecret</h2>
