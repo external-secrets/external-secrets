@@ -22,9 +22,11 @@ A new [external secrets generator](https://external-secrets.io/latest/guides/gen
 
 ## Motivation
 
-[RDS IAM database authentication](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.IAMDBAuth.html) is a feature that facilitates short lived credentials that are generated on-demand. Although a more secure option than long lived credentials, it requires changes in application code to generate the token prior to connect to the database.
+[RDS IAM database authentication](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.IAMDBAuth.html) is a feature that facilitates short lived credentials that are generated on-demand. Although a more secure option than long lived credentials, it requires changes in application code to generate the token prior to connect to the database. With `RDSIAMAuthenticationToken` generator, we can use external secrets operator to generate the tokens on our behalf. As far as the application is concerned, it is still using username and password.
 
-With `RDSIAMAuthenticationToken` generator, we can use external secrets operator to generate the tokens on our behalf. As far as the application is concerned, it is still using username and password (read from environment variables from kubernetes secret).
+> [!NOTE]  
+> For the most part, we would need to mount the token as a file, since generated tokens only have a lifetime of 15 minutes; environment variables set by kubernetes do not change during the lifetime of the pod.
+
 
 ### Goals
 
