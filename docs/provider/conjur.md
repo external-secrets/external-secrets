@@ -6,7 +6,9 @@ This section describes how to set up the Conjur provider for External Secrets Op
 
 Before installing the Conjur provider, you need:
 
-* A running Conjur Server, with:
+* A running Conjur Server ([OSS](https://github.com/cyberark/conjur),
+[Enterprise](https://www.cyberark.com/products/secrets-manager-enterprise/), or
+[Cloud](https://www.cyberark.com/products/multi-cloud-secrets/)), with:
   * An accessible Conjur endpoint (for example: `https://myapi.example.com`).
   * Your configured Conjur authentication info (such as `hostid`, `apikey`, or JWT service ID). For more information on configuring Conjur, see [Policy statement reference](https://docs.cyberark.com/conjur-open-source/Latest/en/Content/Operations/Policy/policy-statement-ref.htm).
   * Support for your authentication method (`apikey` is supported by default, `jwt` requires additional configuration).
