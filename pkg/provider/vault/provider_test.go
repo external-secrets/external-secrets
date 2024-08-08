@@ -419,7 +419,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				newClientFunc: fake.ClientWithLoginMock,
 			},
 			want: want{
-				err: fmt.Errorf(errVaultCert, errors.New(`cannot find secret data for key: "cert"`)),
+				err: fmt.Errorf("cannot find secret data for key: \"cert\""),
 			},
 		},
 		"SuccessfulVaultStoreWithIamAuthSecret": {
@@ -491,7 +491,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				newClientFunc: fake.ClientWithLoginMock,
 			},
 			want: want{
-				err: fmt.Errorf(errConfigMapFmt, "cert"),
+				err: fmt.Errorf("failed to get caProvider configMap vault-cert -> cert"),
 			},
 		},
 		"GetCertificateFormatError": {

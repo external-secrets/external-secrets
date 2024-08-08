@@ -26,10 +26,6 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
-var (
-	errBadCertBundle = "caBundle failed to base64 decode: %w"
-)
-
 const (
 	// NoteMetadataKey defines the note for the pushed secret.
 	NoteMetadataKey = "note"
@@ -247,16 +243,6 @@ func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
 // Close closes the provider.
 func (p *Provider) Close(_ context.Context) error {
 	return nil
-}
-
-// getCABundle try retrieve the CA bundle from the provider CABundle.
-func (p *Provider) getCABundle(provider *esv1beta1.BitwardenSecretsManagerProvider) ([]byte, error) {
-	certBytes, decodeErr := utils.Decode(esv1beta1.ExternalSecretDecodeBase64, []byte(provider.CABundle))
-	if decodeErr != nil {
-		return nil, fmt.Errorf(errBadCertBundle, decodeErr)
-	}
-
-	return certBytes, nil
 }
 
 func (p *Provider) findSecretByRef(ctx context.Context, key, projectID string) (*SecretResponse, error) {

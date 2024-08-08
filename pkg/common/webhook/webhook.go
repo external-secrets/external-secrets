@@ -207,7 +207,7 @@ func (w *Webhook) GetWebhookData(ctx context.Context, provider *Spec, ref *esv1b
 	return io.ReadAll(resp.Body)
 }
 
-func (w *Webhook) GetHTTPClient(provider *Spec) (*http.Client, error) {
+func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Client, error) {
 	client := &http.Client{}
 	if provider.Timeout != nil {
 		client.Timeout = provider.Timeout.Duration
@@ -216,7 +216,7 @@ func (w *Webhook) GetHTTPClient(provider *Spec) (*http.Client, error) {
 		// No need to process ca stuff if it is not there
 		return client, nil
 	}
-	caCertPool, err := w.GetCACertPool(provider)
+	caCertPool, err := w.GetCACertPool(ctx, provider)
 	if err != nil {
 		return nil, err
 	}
@@ -230,37 +230,23 @@ func (w *Webhook) GetHTTPClient(provider *Spec) (*http.Client, error) {
 	return client, nil
 }
 
-func (w *Webhook) GetCACertPool(provider *Spec) (*x509.CertPool, error) {
+func (w *Webhook) GetCACertPool(ctx context.Context, provider *Spec) (*x509.CertPool, error) {
 	caCertPool := x509.NewCertPool()
-	if len(provider.CABundle) > 0 {
-		ok := caCertPool.AppendCertsFromPEM(provider.CABundle)
-		if !ok {
-			return nil, fmt.Errorf("failed to append cabundle")
-		}
+	ca, err := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
+		CABundle:   provider.CABundle,
+		CAProvider: provider.CAProvider,
+		StoreKind:  w.StoreKind,
+		Namespace:  w.Namespace,
+		Client:     w.Kube,
+	})
+	if err != nil {
+		return nil, err
+	}
+	ok := caCertPool.AppendCertsFromPEM(ca)
+	if !ok {
+		return nil, fmt.Errorf("failed to append cabundle")
 	}
 
-	if provider.CAProvider != nil {
-		var cert []byte
-		var err error
-
-		switch provider.CAProvider.Type {
-		case CAProviderTypeSecret:
-			cert, err = w.GetCertFromSecret(provider)
-		case CAProviderTypeConfigMap:
-			cert, err = w.GetCertFromConfigMap(provider)
-		default:
-			err = fmt.Errorf("unknown caprovider type: %s", provider.CAProvider.Type)
-		}
-
-		if err != nil {
-			return nil, err
-		}
-
-		ok := caCertPool.AppendCertsFromPEM(cert)
-		if !ok {
-			return nil, fmt.Errorf("failed to append cabundle")
-		}
-	}
 	return caCertPool, nil
 }
 

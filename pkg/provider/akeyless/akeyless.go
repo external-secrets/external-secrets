@@ -37,10 +37,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -180,7 +178,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 	return nil, nil
 }
 
-func newClient(_ context.Context, store esv1beta1.GenericStore, kube client.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (esv1beta1.SecretsClient, error) {
+func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (esv1beta1.SecretsClient, error) {
 	akl := &akeylessBase{
 		kube:      kube,
 		store:     store,
@@ -202,7 +200,7 @@ func newClient(_ context.Context, store esv1beta1.GenericStore, kube client.Clie
 		return nil, fmt.Errorf("missing Auth in store config")
 	}
 
-	client, err := akl.getAkeylessHTTPClient(spec)
+	client, err := akl.getAkeylessHTTPClient(ctx, spec)
 	if err != nil {
 		return nil, err
 	}
@@ -406,14 +404,27 @@ func (a *Akeyless) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 	return secretData, nil
 }
 
-func (a *akeylessBase) getAkeylessHTTPClient(provider *esv1beta1.AkeylessProvider) (*http.Client, error) {
+func (a *akeylessBase) getAkeylessHTTPClient(ctx context.Context, provider *esv1beta1.AkeylessProvider) (*http.Client, error) {
 	client := &http.Client{Timeout: 30 * time.Second}
 	if len(provider.CABundle) == 0 && provider.CAProvider == nil {
 		return client, nil
 	}
-	caCertPool, err := a.getCACertPool(provider)
+
+	cert, err := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
+		StoreKind:  a.storeKind,
+		Client:     a.kube,
+		Namespace:  a.namespace,
+		CABundle:   provider.CABundle,
+		CAProvider: provider.CAProvider,
+	})
 	if err != nil {
 		return nil, err
+	}
+
+	caCertPool := x509.NewCertPool()
+	ok := caCertPool.AppendCertsFromPEM(cert)
+	if !ok {
+		return nil, fmt.Errorf("failed to append caBundle")
 	}
 
 	tlsConf := &tls.Config{
@@ -422,94 +433,4 @@ func (a *akeylessBase) getAkeylessHTTPClient(provider *esv1beta1.AkeylessProvide
 	}
 	client.Transport = &http.Transport{TLSClientConfig: tlsConf}
 	return client, nil
-}
-
-func (a *akeylessBase) getCACertPool(provider *esv1beta1.AkeylessProvider) (*x509.CertPool, error) {
-	caCertPool := x509.NewCertPool()
-	if len(provider.CABundle) > 0 {
-		pem, err := base64decode(provider.CABundle)
-		if err != nil {
-			pem = provider.CABundle
-		}
-		ok := caCertPool.AppendCertsFromPEM(pem)
-		if !ok {
-			return nil, fmt.Errorf("failed to append caBundle")
-		}
-	}
-
-	if provider.CAProvider != nil &&
-		a.storeKind == esv1beta1.ClusterSecretStoreKind &&
-		provider.CAProvider.Namespace == nil {
-		return nil, fmt.Errorf("missing namespace on caProvider secret")
-	}
-
-	if provider.CAProvider != nil {
-		var cert []byte
-		var err error
-
-		switch provider.CAProvider.Type {
-		case esv1beta1.CAProviderTypeSecret:
-			cert, err = a.getCertFromSecret(provider)
-		case esv1beta1.CAProviderTypeConfigMap:
-			cert, err = a.getCertFromConfigMap(provider)
-		default:
-			err = fmt.Errorf("unknown CAProvider type: %s", provider.CAProvider.Type)
-		}
-
-		if err != nil {
-			return nil, err
-		}
-		pem, err := base64decode(cert)
-		if err != nil {
-			pem = cert
-		}
-		ok := caCertPool.AppendCertsFromPEM(pem)
-		if !ok {
-			return nil, fmt.Errorf("failed to append caBundle")
-		}
-	}
-	return caCertPool, nil
-}
-
-func (a *akeylessBase) getCertFromSecret(provider *esv1beta1.AkeylessProvider) ([]byte, error) {
-	secretRef := esmeta.SecretKeySelector{
-		Name: provider.CAProvider.Name,
-		Key:  provider.CAProvider.Key,
-	}
-
-	if provider.CAProvider.Namespace != nil {
-		secretRef.Namespace = provider.CAProvider.Namespace
-	}
-
-	ctx := context.Background()
-	cert, err := resolvers.SecretKeyRef(ctx, a.kube, a.storeKind, a.namespace, &secretRef)
-	if err != nil {
-		return nil, err
-	}
-
-	return []byte(cert), nil
-}
-
-func (a *akeylessBase) getCertFromConfigMap(provider *esv1beta1.AkeylessProvider) ([]byte, error) {
-	objKey := client.ObjectKey{
-		Name: provider.CAProvider.Name,
-	}
-
-	if provider.CAProvider.Namespace != nil {
-		objKey.Namespace = *provider.CAProvider.Namespace
-	}
-
-	configMapRef := &corev1.ConfigMap{}
-	ctx := context.Background()
-	err := a.kube.Get(ctx, objKey, configMapRef)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get caProvider secret %s: %w", objKey.Name, err)
-	}
-
-	val, ok := configMapRef.Data[provider.CAProvider.Key]
-	if !ok {
-		return nil, fmt.Errorf("failed to get caProvider configMap %s -> %s", objKey.Name, provider.CAProvider.Key)
-	}
-
-	return []byte(val), nil
 }

@@ -21,6 +21,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 // Defined Header Keys.
@@ -100,18 +104,18 @@ type SdkClient struct {
 	client *http.Client
 }
 
-func NewSdkClient(apiURL, identityURL, bitwardenURL, token string, caBundle []byte) (*SdkClient, error) {
-	client, err := newHTTPSClient(caBundle)
+func NewSdkClient(ctx context.Context, c client.Client, storeKind, namespace string, provider *v1beta1.BitwardenSecretsManagerProvider, token string) (*SdkClient, error) {
+	httpsClient, err := newHTTPSClient(ctx, c, storeKind, namespace, provider)
 	if err != nil {
 		return nil, fmt.Errorf("error creating https client: %w", err)
 	}
 
 	return &SdkClient{
-		apiURL:                apiURL,
-		identityURL:           identityURL,
+		apiURL:                provider.APIURL,
+		identityURL:           provider.IdentityURL,
+		bitwardenSdkServerURL: provider.BitwardenServerSDKURL,
 		token:                 token,
-		client:                client,
-		bitwardenSdkServerURL: bitwardenURL,
+		client:                httpsClient,
 	}, nil
 }
 

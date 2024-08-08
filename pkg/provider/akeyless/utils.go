@@ -15,7 +15,6 @@ limitations under the License.
 package akeyless
 
 import (
-	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
@@ -108,13 +107,4 @@ func sendReq(url string) string {
 
 	body, _ := io.ReadAll(resp.Body)
 	return string(body)
-}
-
-func base64decode(in []byte) ([]byte, error) {
-	out := make([]byte, len(in))
-	l, err := base64.StdEncoding.Decode(out, in)
-	if err != nil {
-		return nil, err
-	}
-	return out[:l], nil
 }

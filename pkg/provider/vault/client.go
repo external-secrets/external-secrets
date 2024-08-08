@@ -25,13 +25,12 @@ import (
 	"github.com/go-logr/logr"
 	vault "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
@@ -56,39 +55,19 @@ func (c *client) newConfig(ctx context.Context) (*vault.Config, error) {
 
 	if len(c.store.CABundle) != 0 || c.store.CAProvider != nil {
 		caCertPool := x509.NewCertPool()
-
-		if len(c.store.CABundle) > 0 {
-			ok := caCertPool.AppendCertsFromPEM(c.store.CABundle)
-			if !ok {
-				return nil, fmt.Errorf(errVaultCert, errors.New("failed to parse certificates from CertPool"))
-			}
+		ca, err := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
+			CABundle:   c.store.CABundle,
+			CAProvider: c.store.CAProvider,
+			StoreKind:  c.storeKind,
+			Namespace:  c.namespace,
+			Client:     c.kube,
+		})
+		if err != nil {
+			return nil, err
 		}
-
-		if c.store.CAProvider != nil && c.storeKind == esv1beta1.ClusterSecretStoreKind && c.store.CAProvider.Namespace == nil {
-			return nil, errors.New(errCANamespace)
-		}
-
-		if c.store.CAProvider != nil {
-			var cert []byte
-			var err error
-
-			switch c.store.CAProvider.Type {
-			case esv1beta1.CAProviderTypeSecret:
-				cert, err = getCertFromSecret(c)
-			case esv1beta1.CAProviderTypeConfigMap:
-				cert, err = getCertFromConfigMap(c)
-			default:
-				return nil, errors.New(errUnknownCAProvider)
-			}
-
-			if err != nil {
-				return nil, err
-			}
-
-			ok := caCertPool.AppendCertsFromPEM(cert)
-			if !ok {
-				return nil, fmt.Errorf(errVaultCert, errors.New("failed to parse certificates from CertPool"))
-			}
+		ok := caCertPool.AppendCertsFromPEM(ca)
+		if !ok {
+			return nil, fmt.Errorf(errVaultCert, errors.New("failed to parse certificates from CertPool"))
 		}
 
 		if transport, ok := cfg.HttpClient.Transport.(*http.Transport); ok {
@@ -136,50 +115,6 @@ func (c *client) configureClientTLS(ctx context.Context, cfg *vault.Config) erro
 		}
 	}
 	return nil
-}
-
-func getCertFromSecret(v *client) ([]byte, error) {
-	secretRef := esmeta.SecretKeySelector{
-		Name:      v.store.CAProvider.Name,
-		Namespace: &v.namespace,
-		Key:       v.store.CAProvider.Key,
-	}
-
-	if v.store.CAProvider.Namespace != nil {
-		secretRef.Namespace = v.store.CAProvider.Namespace
-	}
-
-	ctx := context.Background()
-	res, err := resolvers.SecretKeyRef(ctx, v.kube, v.storeKind, v.namespace, &secretRef)
-	if err != nil {
-		return nil, fmt.Errorf(errVaultCert, err)
-	}
-
-	return []byte(res), nil
-}
-
-func getCertFromConfigMap(v *client) ([]byte, error) {
-	objKey := types.NamespacedName{
-		Name:      v.store.CAProvider.Name,
-		Namespace: v.namespace,
-	}
-
-	if v.store.CAProvider.Namespace != nil {
-		objKey.Namespace = *v.store.CAProvider.Namespace
-	}
-
-	configMapRef := &corev1.ConfigMap{}
-	ctx := context.Background()
-	err := v.kube.Get(ctx, objKey, configMapRef)
-	if err != nil {
-		return nil, fmt.Errorf(errVaultCert, err)
-	}
-
-	val, ok := configMapRef.Data[v.store.CAProvider.Key]
-	if !ok {
-		return nil, fmt.Errorf(errConfigMapFmt, v.store.CAProvider.Key)
-	}
-	return []byte(val), nil
 }
 
 func (c *client) Close(ctx context.Context) error {

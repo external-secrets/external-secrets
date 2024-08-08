@@ -42,7 +42,7 @@ func (w *Webhook) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kc
 	w.wh.Namespace = ns
 	w.url = provider.URL
 	w.wh.Kube = kclient
-	w.wh.HTTP, err = w.wh.GetHTTPClient(provider)
+	w.wh.HTTP, err = w.wh.GetHTTPClient(ctx, provider)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare provider http client: %w", err)
 	}
