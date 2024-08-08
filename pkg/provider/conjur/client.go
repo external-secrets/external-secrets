@@ -79,48 +79,9 @@ func (c *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 	}
 
 	if prov.Auth.APIKey != nil {
-		config.Account = prov.Auth.APIKey.Account
-		conjUser, secErr := resolvers.SecretKeyRef(
-			ctx,
-			c.kube,
-			c.StoreKind,
-			c.namespace, prov.Auth.APIKey.UserRef)
-		if secErr != nil {
-			return nil, fmt.Errorf(errBadServiceUser, secErr)
-		}
-		conjAPIKey, secErr := resolvers.SecretKeyRef(
-			ctx,
-			c.kube,
-			c.StoreKind,
-			c.namespace,
-			prov.Auth.APIKey.APIKeyRef)
-		if secErr != nil {
-			return nil, fmt.Errorf(errBadServiceAPIKey, secErr)
-		}
-
-		conjur, newClientFromKeyError := c.clientAPI.NewClientFromKey(config,
-			authn.LoginPair{
-				Login:  conjUser,
-				APIKey: conjAPIKey,
-			},
-		)
-
-		if newClientFromKeyError != nil {
-			return nil, fmt.Errorf(errConjurClient, newClientFromKeyError)
-		}
-		c.client = conjur
-		return conjur, nil
+		return c.conjurClientFromAPIKey(ctx, config, prov)
 	} else if prov.Auth.Jwt != nil {
-		config.Account = prov.Auth.Jwt.Account
-
-		conjur, clientFromJwtError := c.newClientFromJwt(ctx, config, prov.Auth.Jwt)
-		if clientFromJwtError != nil {
-			return nil, fmt.Errorf(errConjurClient, clientFromJwtError)
-		}
-
-		c.client = conjur
-
-		return conjur, nil
+		return c.conjurClientFromJWT(ctx, config, prov)
 	} else {
 		// Should not happen because validate func should catch this
 		return nil, fmt.Errorf("no authentication method provided")
@@ -216,4 +177,59 @@ func (c *Client) getCA(ctx context.Context, provider *esv1beta1.ConjurProvider) 
 		return "", fmt.Errorf(errBadCertBundle, decodeErr)
 	}
 	return string(certBytes), nil
+}
+
+func (c *Client) conjurClientFromAPIKey(ctx context.Context, config conjurapi.Config, prov *esv1beta1.ConjurProvider) (SecretsClient, error) {
+	config.Account = prov.Auth.APIKey.Account
+	conjUser, secErr := resolvers.SecretKeyRef(
+		ctx,
+		c.kube,
+		c.StoreKind,
+		c.namespace, prov.Auth.APIKey.UserRef)
+	if secErr != nil {
+		return nil, fmt.Errorf(errBadServiceUser, secErr)
+	}
+	conjAPIKey, secErr := resolvers.SecretKeyRef(
+		ctx,
+		c.kube,
+		c.StoreKind,
+		c.namespace,
+		prov.Auth.APIKey.APIKeyRef)
+	if secErr != nil {
+		return nil, fmt.Errorf(errBadServiceAPIKey, secErr)
+	}
+
+	conjur, newClientFromKeyError := c.clientAPI.NewClientFromKey(config,
+		authn.LoginPair{
+			Login:  conjUser,
+			APIKey: conjAPIKey,
+		},
+	)
+
+	if newClientFromKeyError != nil {
+		return nil, fmt.Errorf(errConjurClient, newClientFromKeyError)
+	}
+	c.client = conjur
+	return conjur, nil
+}
+
+func (c *Client) conjurClientFromJWT(ctx context.Context, config conjurapi.Config, prov *esv1beta1.ConjurProvider) (SecretsClient, error) {
+	config.Account = prov.Auth.Jwt.Account
+	config.JWTHostID = prov.Auth.Jwt.HostID
+	config.ServiceID = prov.Auth.Jwt.ServiceID
+
+	jwtToken, getJWTError := c.getJWTToken(ctx, prov.Auth.Jwt)
+	if getJWTError != nil {
+		return nil, getJWTError
+	}
+
+	config.JWTContent = jwtToken
+
+	conjur, clientError := c.clientAPI.NewClientFromJWT(config)
+	if clientError != nil {
+		return nil, fmt.Errorf(errConjurClient, clientError)
+	}
+
+	c.client = conjur
+	return conjur, nil
 }
