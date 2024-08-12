@@ -1344,7 +1344,7 @@ CAProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>see: <a href="https://external-secrets.io/v0.9.10/spec/#external-secrets.io/v1alpha1.CAProvider">https://external-secrets.io/v0.9.10/spec/#external-secrets.io/v1alpha1.CAProvider</a></p>
+<p>see: <a href="https://external-secrets.io/latest/spec/#external-secrets.io/v1alpha1.CAProvider">https://external-secrets.io/latest/spec/#external-secrets.io/v1alpha1.CAProvider</a></p>
 </td>
 </tr>
 <tr>

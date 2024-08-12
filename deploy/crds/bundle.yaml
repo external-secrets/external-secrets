@@ -2979,7 +2979,7 @@ spec:
                             can be performed.
                           type: string
                         caProvider:
-                          description: 'see: https://external-secrets.io/v0.9.10/spec/#external-secrets.io/v1alpha1.CAProvider'
+                          description: 'see: https://external-secrets.io/latest/spec/#external-secrets.io/v1alpha1.CAProvider'
                           properties:
                             key:
                               description: The key where the CA certificate can be found in the Secret or ConfigMap.
@@ -8764,7 +8764,7 @@ spec:
                             can be performed.
                           type: string
                         caProvider:
-                          description: 'see: https://external-secrets.io/v0.9.10/spec/#external-secrets.io/v1alpha1.CAProvider'
+                          description: 'see: https://external-secrets.io/latest/spec/#external-secrets.io/v1alpha1.CAProvider'
                           properties:
                             key:
                               description: The key where the CA certificate can be found in the Secret or ConfigMap.

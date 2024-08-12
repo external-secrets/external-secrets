@@ -143,7 +143,7 @@ func transform(val string, data map[string][]byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// DecodeValues decodes values from a secretMap.
+// DecodeMap decodes values from a secretMap.
 func DecodeMap(strategy esv1beta1.ExternalSecretDecodingStrategy, in map[string][]byte) (map[string][]byte, error) {
 	out := make(map[string][]byte, len(in))
 	for k, v := range in {
@@ -562,7 +562,7 @@ func FetchCACertFromSource(ctx context.Context, opts CreateCertOpts) ([]byte, er
 }
 
 func base64decode(cert []byte) ([]byte, error) {
-	certBytes, decodeErr := Decode(esv1beta1.ExternalSecretDecodeBase64, cert)
+	certBytes, decodeErr := Decode(esv1beta1.ExternalSecretDecodeAuto, cert)
 	if decodeErr != nil {
 		return nil, fmt.Errorf("failed to decode base64: %w", decodeErr)
 	}

@@ -25,7 +25,7 @@ type BitwardenSecretsManagerProvider struct {
 	// can be performed.
 	// +optional
 	CABundle string `json:"caBundle,omitempty"`
-	// see: https://external-secrets.io/v0.9.10/spec/#external-secrets.io/v1alpha1.CAProvider
+	// see: https://external-secrets.io/latest/spec/#external-secrets.io/v1alpha1.CAProvider
 	// +optional
 	CAProvider *CAProvider `json:"caProvider,omitempty"`
 	// OrganizationID determines which organization this secret store manages.
