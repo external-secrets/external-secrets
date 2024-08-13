@@ -18,8 +18,10 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5" //nolint:gosec
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"net"
@@ -539,7 +541,7 @@ func FetchCACertFromSource(ctx context.Context, opts CreateCertOpts) ([]byte, er
 	if len(opts.CABundle) > 0 {
 		pem, err := base64decode(opts.CABundle)
 		if err != nil {
-			pem = opts.CABundle
+			return nil, fmt.Errorf("failed to decode ca bundle: %w", err)
 		}
 
 		return pem, nil
@@ -553,18 +555,46 @@ func FetchCACertFromSource(ctx context.Context, opts CreateCertOpts) ([]byte, er
 
 	switch opts.CAProvider.Type {
 	case esv1beta1.CAProviderTypeSecret:
-		return getCertFromSecret(ctx, opts.Client, opts.CAProvider, opts.StoreKind, opts.Namespace)
+		cert, err := getCertFromSecret(ctx, opts.Client, opts.CAProvider, opts.StoreKind, opts.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get cert from secret: %w", err)
+		}
+
+		return cert, nil
 	case esv1beta1.CAProviderTypeConfigMap:
-		return getCertFromConfigMap(ctx, opts.Namespace, opts.Client, opts.CAProvider)
+		cert, err := getCertFromConfigMap(ctx, opts.Namespace, opts.Client, opts.CAProvider)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get cert from configmap: %w", err)
+		}
+
+		return cert, nil
 	}
 
 	return nil, fmt.Errorf("unsupported CA provider type: %s", opts.CAProvider.Type)
 }
 
 func base64decode(cert []byte) ([]byte, error) {
-	certBytes, decodeErr := Decode(esv1beta1.ExternalSecretDecodeAuto, cert)
-	if decodeErr != nil {
-		return nil, fmt.Errorf("failed to decode base64: %w", decodeErr)
+	if c, err := parseCertificateBytes(cert); err == nil {
+		return c, nil
+	}
+
+	// try decoding and test for validity again...
+	certificate, err := Decode(esv1beta1.ExternalSecretDecodeAuto, cert)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode base64: %w", err)
+	}
+
+	return parseCertificateBytes(certificate)
+}
+
+func parseCertificateBytes(certBytes []byte) ([]byte, error) {
+	block, _ := pem.Decode(certBytes)
+	if block == nil {
+		return nil, errors.New("failed to parse the new certificate, not valid pem data")
+	}
+
+	if _, err := x509.ParseCertificate(block.Bytes); err != nil {
+		return nil, fmt.Errorf("failed to validate certificate: %w", err)
 	}
 
 	return certBytes, nil
@@ -582,7 +612,7 @@ func getCertFromSecret(ctx context.Context, c client.Client, provider *esv1beta1
 
 	cert, err := resolvers.SecretKeyRef(ctx, c, storeKind, namespace, &secretRef)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to resolve secret key ref: %w", err)
 	}
 
 	return []byte(cert), nil
