@@ -1,4 +1,4 @@
-Babel==2.15.0
+Babel==2.16.0
 certifi==2024.7.4
 charset-normalizer==3.3.2
 click==8.1.7
@@ -29,7 +29,7 @@ platformdirs==4.2.2
 Pygments==2.18.0
 pymdown-extensions==10.9
 python-dateutil==2.9.0.post0
-PyYAML==6.0.1
+PyYAML==6.0.2
 pyyaml_env_tag==0.1
 regex==2024.7.24
 requests==2.32.3
@@ -38,5 +38,5 @@ termcolor==2.4.0
 tornado==6.4.1
 urllib3==2.2.2
 verspec==0.1.0
-watchdog==4.0.1
-zipp==3.19.2
+watchdog==4.0.2
+zipp==3.20.0
