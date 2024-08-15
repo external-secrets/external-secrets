@@ -1780,6 +1780,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#5-restrict-webhook-tls-ciphers" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Restrict Webhook TLS Ciphers
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3500,6 +3509,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#5-restrict-webhook-tls-ciphers" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Restrict Webhook TLS Ciphers
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3744,6 +3762,12 @@
 <span class="c1"># Specify the namespace where external secrets should be reconciled</span>
 <span class="nt">scopedNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-namespace</span>
 </code></pre></div>
+<h3 id="5-restrict-webhook-tls-ciphers">5. Restrict Webhook TLS Ciphers</h3>
+<p>Consider installing ESO restricting webhook ciphers. Use the following Helm values to scope webhook for specific TLS ciphers:
+<div class="highlight"><pre><span></span><code><span class="nt">webhook</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">extraArgs</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">tls-ciphers</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256&quot;</span>
+</code></pre></div></p>
 <h2 id="pod-security">Pod Security</h2>
 <p>The Pods of the External Secrets Operator have been configured to meet the <a href="https://kubernetes.io/docs/concepts/security/pod-security-standards/">Pod Security Standards</a>, specifically the restricted profile. This configuration ensures a strong security posture by implementing recommended best practices for hardening Pods, including those outlined in the <a href="https://media.defense.gov/2022/Aug/29/2003066362/-1/-1/0/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.PDF">NSA Kubernetes Hardening Guide</a>.</p>
 <p>By adhering to these standards, the External Secrets Operator benefits from a secure and resilient operating environment. The restricted profile has been set as the default configuration since version <code>v0.8.2</code>, and it is recommended to maintain this setting to align with the principle of least privilege.</p>
