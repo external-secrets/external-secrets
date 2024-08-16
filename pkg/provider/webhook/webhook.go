@@ -60,7 +60,7 @@ func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
 }
 
-func (p *Provider) NewClient(_ context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	wh := webhook.Webhook{
 		Kube:      kube,
 		Namespace: namespace,
@@ -80,7 +80,7 @@ func (p *Provider) NewClient(_ context.Context, store esv1beta1.GenericStore, ku
 	}
 	whClient.url = provider.URL
 
-	whClient.wh.HTTP, err = whClient.wh.GetHTTPClient(provider)
+	whClient.wh.HTTP, err = whClient.wh.GetHTTPClient(ctx, provider)
 	if err != nil {
 		return nil, err
 	}
@@ -113,12 +113,12 @@ func (w *WebHook) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRe
 	return false, fmt.Errorf(errNotImplemented)
 }
 
-// Not Implemented PushSecret.
+// PushSecret not implement.
 func (w *WebHook) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
 	return fmt.Errorf(errNotImplemented)
 }
 
-// Empty GetAllSecrets.
+// GetAllSecrets Empty .
 func (w *WebHook) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, fmt.Errorf(errNotImplemented)

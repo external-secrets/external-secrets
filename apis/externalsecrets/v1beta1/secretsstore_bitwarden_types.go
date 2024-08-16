@@ -23,8 +23,11 @@ type BitwardenSecretsManagerProvider struct {
 	BitwardenServerSDKURL string `json:"bitwardenServerSDKURL,omitempty"`
 	// Base64 encoded certificate for the bitwarden server sdk. The sdk MUST run with HTTPS to make sure no MITM attack
 	// can be performed.
-	// +required
-	CABundle string `json:"caBundle"`
+	// +optional
+	CABundle string `json:"caBundle,omitempty"`
+	// see: https://external-secrets.io/latest/spec/#external-secrets.io/v1alpha1.CAProvider
+	// +optional
+	CAProvider *CAProvider `json:"caProvider,omitempty"`
 	// OrganizationID determines which organization this secret store manages.
 	OrganizationID string `json:"organizationID"`
 	// ProjectID determines which project this secret store manages.
