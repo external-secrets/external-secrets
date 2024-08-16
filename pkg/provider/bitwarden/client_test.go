@@ -823,3 +823,98 @@ func TestProviderSecretExists(t *testing.T) {
 		})
 	}
 }
+
+func TestProviderGetSecretMap(t *testing.T) {
+	type fields struct {
+		kube      func() client.Client
+		namespace string
+		store     v1beta1.GenericStore
+		mock      func(c *FakeClient)
+	}
+	type args struct {
+		ctx context.Context
+		ref v1beta1.ExternalSecretDataRemoteRef
+		key string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name: "get secret map",
+			fields: fields{
+				kube: func() client.Client {
+					return fake.NewFakeClient()
+				},
+				namespace: "default",
+				store:     &v1beta1.SecretStore{},
+				mock: func(c *FakeClient) {
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						Key:            "key",
+						Note:           "note",
+						OrganizationID: "org",
+						Value:          `{"key": "value"}`,
+					})
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: v1beta1.ExternalSecretDataRemoteRef{
+					Key:      "d8f29773-3019-4973-9bbc-66327d077fe2",
+					Property: "key",
+				},
+				key: "key",
+			},
+			want: []byte("value"),
+		},
+		{
+			name: "get secret map - missing key",
+			fields: fields{
+				kube: func() client.Client {
+					return fake.NewFakeClient()
+				},
+				namespace: "default",
+				store:     &v1beta1.SecretStore{},
+				mock: func(c *FakeClient) {
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						Key:            "key",
+						Note:           "note",
+						OrganizationID: "org",
+						Value:          `{"key": "value"}`,
+					})
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: v1beta1.ExternalSecretDataRemoteRef{
+					Key:      "d8f29773-3019-4973-9bbc-66327d077fe2",
+					Property: "nope",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeClient := &FakeClient{}
+			tt.fields.mock(fakeClient)
+
+			p := &Provider{
+				kube:               tt.fields.kube(),
+				namespace:          tt.fields.namespace,
+				store:              tt.fields.store,
+				bitwardenSdkClient: fakeClient,
+			}
+			got, err := p.GetSecretMap(tt.args.ctx, tt.args.ref)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetSecret() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equal(t, tt.want, got[tt.args.key])
+		})
+	}
+}
