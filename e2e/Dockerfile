@@ -1,4 +1,4 @@
-FROM golang:1.22.6-bookworm@sha256:39b7e6ebaca464d51989858871f792f2e186dce8ce0cbdba7e88e4444b244407 as builder
+FROM golang:1.23.0-bookworm@sha256:31dc846dd1bcca84d2fa231bcd16c09ff271bcc1a5ae2c48ff10f13b039688f3 as builder
 
 ENV KUBECTL_VERSION="v1.28.3"
 ENV HELM_VERSION="v3.13.1"
