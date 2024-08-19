@@ -10,32 +10,32 @@ replace (
 replace (
 	github.com/external-secrets/external-secrets v0.0.0 => ../
 	github.com/go-check/check => github.com/go-check/check v0.0.0-20180628173108-788fd7840127
-	k8s.io/api => k8s.io/api v0.30.0
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.30.0
-	k8s.io/apimachinery => k8s.io/apimachinery v0.30.0
-	k8s.io/apiserver => k8s.io/apiserver v0.30.0
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.30.0
-	k8s.io/client-go => k8s.io/client-go v0.30.0
-	k8s.io/cloud-provider => k8s.io/cloud-provider v0.30.0
-	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.30.0
-	k8s.io/code-generator => k8s.io/code-generator v0.30.0
-	k8s.io/component-base => k8s.io/component-base v0.30.0
-	k8s.io/component-helpers => k8s.io/component-helpers v0.30.0
-	k8s.io/controller-manager => k8s.io/controller-manager v0.30.0
-	k8s.io/cri-api => k8s.io/cri-api v0.30.0
-	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.30.0
-	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.30.0
-	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.30.0
-	k8s.io/kube-proxy => k8s.io/kube-proxy v0.30.0
-	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.30.0
-	k8s.io/kubectl => k8s.io/kubectl v0.30.0
-	k8s.io/kubelet => k8s.io/kubelet v0.30.0
+	k8s.io/api => k8s.io/api v0.31.0
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.31.0
+	k8s.io/apimachinery => k8s.io/apimachinery v0.31.0
+	k8s.io/apiserver => k8s.io/apiserver v0.31.0
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.31.0
+	k8s.io/client-go => k8s.io/client-go v0.31.0
+	k8s.io/cloud-provider => k8s.io/cloud-provider v0.31.0
+	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.31.0
+	k8s.io/code-generator => k8s.io/code-generator v0.31.0
+	k8s.io/component-base => k8s.io/component-base v0.31.0
+	k8s.io/component-helpers => k8s.io/component-helpers v0.31.0
+	k8s.io/controller-manager => k8s.io/controller-manager v0.31.0
+	k8s.io/cri-api => k8s.io/cri-api v0.31.0
+	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.31.0
+	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.31.0
+	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.31.0
+	k8s.io/kube-proxy => k8s.io/kube-proxy v0.31.0
+	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.31.0
+	k8s.io/kubectl => k8s.io/kubectl v0.31.0
+	k8s.io/kubelet => k8s.io/kubelet v0.31.0
 	k8s.io/kubernetes => k8s.io/kubernetes v1.30.0
-	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.30.0
-	k8s.io/metrics => k8s.io/metrics v0.30.0
-	k8s.io/mount-utils => k8s.io/mount-utils v0.30.0
-	k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.30.0
-	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.30.0
+	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.31.0
+	k8s.io/metrics => k8s.io/metrics v0.31.0
+	k8s.io/mount-utils => k8s.io/mount-utils v0.31.0
+	k8s.io/pod-security-admission => k8s.io/pod-security-admission v0.31.0
+	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.31.0
 )
 
 require (
@@ -109,6 +109,7 @@ require (
 	github.com/fluxcd/pkg/apis/acl v0.1.0 // indirect
 	github.com/fluxcd/pkg/apis/kustomize v1.2.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.4 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -160,7 +161,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
-	github.com/moby/spdystream v0.2.0 // indirect
+	github.com/moby/spdystream v0.4.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
@@ -183,6 +184,7 @@ require (
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
+	github.com/x448/float16 v0.8.4 // indirect
 	github.com/zalando/go-keyring v0.2.5 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.53.0 // indirect
