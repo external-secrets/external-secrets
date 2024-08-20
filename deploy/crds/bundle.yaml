@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   labels:
     external-secrets.io/component: controller
   name: clusterexternalsecrets.external-secrets.io
@@ -131,7 +131,6 @@ spec:
                               generatorRef:
                                 description: |-
                                   GeneratorRef points to a generator custom resource.
-
 
                                   Deprecated: The generatorRef is not implemented in .data[].
                                   this will be removed with v1.
@@ -660,7 +659,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   labels:
     external-secrets.io/component: controller
   name: clustersecretstores.external-secrets.io
@@ -5252,7 +5251,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   labels:
     external-secrets.io/component: controller
   name: externalsecrets.external-secrets.io
@@ -5501,9 +5500,7 @@ spec:
                         This field is effectively required, but due to backwards compatibility is
                         allowed to be empty. Instances of this type with an empty value here are
                         almost certainly wrong.
-                        TODO: Add other useful fields. apiVersion, kind, uid?
                         More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                        TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                       type: string
                   type: object
                   x-kubernetes-map-type: atomic
@@ -5639,7 +5636,6 @@ spec:
                           generatorRef:
                             description: |-
                               GeneratorRef points to a generator custom resource.
-
 
                               Deprecated: The generatorRef is not implemented in .data[].
                               this will be removed with v1.
@@ -6012,9 +6008,7 @@ spec:
                         This field is effectively required, but due to backwards compatibility is
                         allowed to be empty. Instances of this type with an empty value here are
                         almost certainly wrong.
-                        TODO: Add other useful fields. apiVersion, kind, uid?
                         More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                        TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                       type: string
                   type: object
                   x-kubernetes-map-type: atomic
@@ -6068,7 +6062,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   name: pushsecrets.external-secrets.io
 spec:
   group: external-secrets.io
@@ -6445,7 +6439,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   labels:
     external-secrets.io/component: controller
   name: secretstores.external-secrets.io
@@ -11037,7 +11031,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   labels:
     external-secrets.io/component: controller
   name: acraccesstokens.generators.external-secrets.io
@@ -11064,7 +11058,6 @@ spec:
             (depending on the identity).
             This can be scoped down to the repository level using .spec.scope.
             In case scope is defined it will return an ACR Access Token.
-
 
             See docs: https://github.com/Azure/acr/blob/main/docs/AAD-OAuth.md
           properties:
@@ -11199,11 +11192,9 @@ spec:
                     if not provided it will return a refresh token that has full scope.
                     Note: you need to pin it down to the repository level, there is no wildcard available.
 
-
                     examples:
                     repository:my-repository:pull,push
                     repository:my-repository:pull
-
 
                     see docs for details: https://docs.docker.com/registry/spec/auth/scope/
                   type: string
@@ -11234,7 +11225,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   labels:
     external-secrets.io/component: controller
   name: ecrauthorizationtokens.generators.external-secrets.io
@@ -11402,7 +11393,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   labels:
     external-secrets.io/component: controller
   name: fakes.generators.external-secrets.io
@@ -11479,7 +11470,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   labels:
     external-secrets.io/component: controller
   name: gcraccesstokens.generators.external-secrets.io
@@ -11608,7 +11599,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   labels:
     external-secrets.io/component: controller
   name: githubaccesstokens.generators.external-secrets.io
@@ -11711,7 +11702,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   labels:
     external-secrets.io/component: controller
   name: passwords.generators.external-secrets.io
@@ -11810,7 +11801,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   labels:
     external-secrets.io/component: controller
   name: vaultdynamicsecrets.generators.external-secrets.io
@@ -12508,7 +12499,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   labels:
     external-secrets.io/component: controller
   name: webhooks.generators.external-secrets.io
