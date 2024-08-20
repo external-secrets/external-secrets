@@ -63,6 +63,14 @@ scopedRBAC: true
 scopedNamespace: my-namespace
 ```
 
+### 5. Restrict Webhook TLS Ciphers
+
+Consider installing ESO restricting webhook ciphers. Use the following Helm values to scope webhook for specific TLS ciphers:
+```yaml
+webhook:
+  extraArgs:
+    tls-ciphers: "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256"
+```
 ## Pod Security
 
 The Pods of the External Secrets Operator have been configured to meet the [Pod Security Standards](https://kubernetes.io/docs/concepts/security/pod-security-standards/), specifically the restricted profile. This configuration ensures a strong security posture by implementing recommended best practices for hardening Pods, including those outlined in the [NSA Kubernetes Hardening Guide](https://media.defense.gov/2022/Aug/29/2003066362/-1/-1/0/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.PDF).

@@ -43,13 +43,11 @@ var (
 )
 
 const (
-	errVaultStore        = "received invalid Vault SecretStore resource: %w"
-	errVaultClient       = "cannot setup new vault client: %w"
-	errVaultCert         = "cannot set Vault CA certificate: %w"
-	errConfigMapFmt      = "cannot find config map data for key: %q"
-	errClientTLSAuth     = "error from Client TLS Auth: %q"
-	errUnknownCAProvider = "unknown caProvider type given"
-	errCANamespace       = "cannot read secret for CAProvider due to missing namespace on kind ClusterSecretStore"
+	errVaultStore    = "received invalid Vault SecretStore resource: %w"
+	errVaultClient   = "cannot setup new vault client: %w"
+	errVaultCert     = "cannot set Vault CA certificate: %w"
+	errClientTLSAuth = "error from Client TLS Auth: %q"
+	errCANamespace   = "missing namespace on caProvider secret"
 )
 
 type Provider struct {

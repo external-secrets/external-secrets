@@ -19,23 +19,18 @@ import (
 	"fmt"
 
 	authenticationv1 "k8s.io/api/authentication/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
-	errInvalidClusterStoreMissingNamespace = "missing namespace"
-	errFetchCredentials                    = "could not fetch credentials: %w"
-	errMissingCredentials                  = "missing credentials: \"%s\""
-	errEmptyKey                            = "key %s found but empty"
-	errUnableCreateToken                   = "cannot create service account token: %q"
+	errUnableCreateToken = "cannot create service account token: %q"
 )
 
 func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
@@ -48,7 +43,13 @@ func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
 		return clientcmd.RESTConfigFromKubeConfig(cfg)
 	}
 
-	ca, err := c.getCA(ctx)
+	ca, err := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
+		CABundle:   c.store.Server.CABundle,
+		CAProvider: c.store.Server.CAProvider,
+		StoreKind:  c.storeKind,
+		Namespace:  c.namespace,
+		Client:     c.ctrlClient,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -90,40 +91,6 @@ func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
 			CAData:   ca,
 		},
 	}, nil
-}
-
-func (c *Client) getCA(ctx context.Context) ([]byte, error) {
-	if c.store.Server.CABundle != nil {
-		return c.store.Server.CABundle, nil
-	}
-	if c.store.Server.CAProvider != nil {
-		var ca []byte
-		var err error
-		switch c.store.Server.CAProvider.Type {
-		case esv1beta1.CAProviderTypeConfigMap:
-			keySelector := esmeta.SecretKeySelector{
-				Name:      c.store.Server.CAProvider.Name,
-				Namespace: c.store.Server.CAProvider.Namespace,
-				Key:       c.store.Server.CAProvider.Key,
-			}
-			ca, err = c.fetchConfigMapKey(ctx, keySelector)
-			if err != nil {
-				return nil, fmt.Errorf("unable to fetch Server.CAProvider ConfigMap: %w", err)
-			}
-		case esv1beta1.CAProviderTypeSecret:
-			keySelector := esmeta.SecretKeySelector{
-				Name:      c.store.Server.CAProvider.Name,
-				Namespace: c.store.Server.CAProvider.Namespace,
-				Key:       c.store.Server.CAProvider.Key,
-			}
-			ca, err = c.fetchSecretKey(ctx, keySelector)
-			if err != nil {
-				return nil, fmt.Errorf("unable to fetch Server.CAProvider Secret: %w", err)
-			}
-		}
-		return ca, nil
-	}
-	return nil, fmt.Errorf("no Certificate Authority provided")
 }
 
 func (c *Client) getClientKeyAndCert(ctx context.Context) ([]byte, []byte, error) {
@@ -170,31 +137,4 @@ func (c *Client) fetchSecretKey(ctx context.Context, ref esmeta.SecretKeySelecto
 		return nil, err
 	}
 	return []byte(secret), nil
-}
-
-func (c *Client) fetchConfigMapKey(ctx context.Context, key esmeta.SecretKeySelector) ([]byte, error) {
-	configMap := &corev1.ConfigMap{}
-	objectKey := types.NamespacedName{
-		Name:      key.Name,
-		Namespace: c.namespace,
-	}
-	// only ClusterStore is allowed to set namespace (and then it's required)
-	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
-		if key.Namespace == nil {
-			return nil, fmt.Errorf(errInvalidClusterStoreMissingNamespace)
-		}
-		objectKey.Namespace = *key.Namespace
-	}
-	err := c.ctrlClient.Get(ctx, objectKey, configMap)
-	if err != nil {
-		return nil, fmt.Errorf(errFetchCredentials, err)
-	}
-	val, ok := configMap.Data[key.Key]
-	if !ok {
-		return nil, fmt.Errorf(errMissingCredentials, key.Key)
-	}
-	if val == "" {
-		return nil, fmt.Errorf(errEmptyKey, key.Key)
-	}
-	return []byte(val), nil
 }

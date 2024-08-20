@@ -1328,8 +1328,23 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Base64 encoded certificate for the bitwarden server sdk. The sdk MUST run with HTTPS to make sure no MITM attack
 can be performed.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.CAProvider">
+CAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>see: <a href="https://external-secrets.io/latest/spec/#external-secrets.io/v1alpha1.CAProvider">https://external-secrets.io/latest/spec/#external-secrets.io/v1alpha1.CAProvider</a></p>
 </td>
 </tr>
 <tr>
@@ -1407,6 +1422,7 @@ External Secrets meta/v1.SecretKeySelector
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1beta1.AkeylessProvider">AkeylessProvider</a>, 
+<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider</a>, 
 <a href="#external-secrets.io/v1beta1.ConjurProvider">ConjurProvider</a>, 
 <a href="#external-secrets.io/v1beta1.KubernetesServer">KubernetesServer</a>, 
 <a href="#external-secrets.io/v1beta1.VaultProvider">VaultProvider</a>)
