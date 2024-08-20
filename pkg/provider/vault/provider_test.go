@@ -306,7 +306,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				}),
 			},
 			want: want{
-				err: fmt.Errorf(errVaultCert, errors.New("failed to parse certificates from CertPool")),
+				err: fmt.Errorf("failed to decode ca bundle: %w", errors.New("failed to parse the new certificate, not valid pem data")),
 			},
 		},
 		"VaultAuthFormatError": {
@@ -419,7 +419,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				newClientFunc: fake.ClientWithLoginMock,
 			},
 			want: want{
-				err: fmt.Errorf(errVaultCert, errors.New(`cannot find secret data for key: "cert"`)),
+				err: fmt.Errorf("failed to get cert from secret: %w", fmt.Errorf("failed to resolve secret key ref: %w", errors.New("cannot find secret data for key: \"cert\""))),
 			},
 		},
 		"SuccessfulVaultStoreWithIamAuthSecret": {
@@ -491,7 +491,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				newClientFunc: fake.ClientWithLoginMock,
 			},
 			want: want{
-				err: fmt.Errorf(errConfigMapFmt, "cert"),
+				err: fmt.Errorf("failed to get cert from configmap: %w", errors.New("failed to get caProvider configMap vault-cert -> cert")),
 			},
 		},
 		"GetCertificateFormatError": {
@@ -506,7 +506,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 					},
 					Data: map[string][]byte{
 						tlsKey: secretClientKey,
-						tlsCrt: []byte("cert with mistak"),
+						tlsCrt: []byte("cert with mistake"),
 					},
 				}).Build(),
 				newClientFunc: fake.ClientWithLoginMock,

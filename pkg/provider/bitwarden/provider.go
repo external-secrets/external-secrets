@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
@@ -58,17 +59,12 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return nil, fmt.Errorf("could not resolve auth credentials: %w", err)
 	}
 
-	bundle, err := p.getCABundle(storeSpec.Provider.BitwardenSecretsManager)
-	if err != nil {
-		return nil, fmt.Errorf("could not resolve caBundle: %w", err)
-	}
-
-	sdkClient, err := NewSdkClient(
-		storeSpec.Provider.BitwardenSecretsManager.APIURL,
-		storeSpec.Provider.BitwardenSecretsManager.IdentityURL,
-		storeSpec.Provider.BitwardenSecretsManager.BitwardenServerSDKURL,
+	sdkClient, err := NewSdkClient(ctx,
+		kube,
+		store.GetKind(),
+		namespace,
+		storeSpec.Provider.BitwardenSecretsManager,
 		token,
-		bundle,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("could not create SdkClient: %w", err)
@@ -88,17 +84,49 @@ func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 }
 
 // ValidateStore validates the store.
-func (p *Provider) ValidateStore(_ esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+	storeSpec := store.GetSpec()
+	if storeSpec == nil {
+		return admission.Warnings{}, fmt.Errorf("no store type or wrong store type")
+	}
+
+	if storeSpec.Provider == nil {
+		return admission.Warnings{}, fmt.Errorf("provider not configured")
+	}
+
+	bitwardenSpec := storeSpec.Provider.BitwardenSecretsManager
+	if bitwardenSpec == nil {
+		return admission.Warnings{}, fmt.Errorf("bitwarden spec not configured")
+	}
+
+	if bitwardenSpec.CAProvider == nil && bitwardenSpec.CABundle == "" {
+		return admission.Warnings{
+			"Neither CA nor CA bundle is configured; user is expected to provide certificate information via volume mount.",
+		}, nil
+	}
+
 	return nil, nil
 }
 
 // newHTTPSClient creates a new HTTPS client with the given cert.
-func newHTTPSClient(cert []byte) (*http.Client, error) {
+func newHTTPSClient(ctx context.Context, c client.Client, storeKind, namespace string, provider *esv1beta1.BitwardenSecretsManagerProvider) (*http.Client, error) {
+	cert, err := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
+		CABundle:   []byte(provider.CABundle),
+		CAProvider: provider.CAProvider,
+		StoreKind:  storeKind,
+		Namespace:  namespace,
+		Client:     c,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	pool := x509.NewCertPool()
 	ok := pool.AppendCertsFromPEM(cert)
 	if !ok {
-		return nil, fmt.Errorf("can't append Conjur SSL cert")
+		return nil, fmt.Errorf("failed to append caBundle")
 	}
+
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12},
 	}
