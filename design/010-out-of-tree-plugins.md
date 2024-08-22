@@ -19,16 +19,22 @@ status: draft
 
 ## Summary
 This proposal aims to introduce possibility of using out of tree secret stores with External Secrets Operator (ESO).
+This proposal builds on top of [Moritz Johner's work](https://github.com/external-secrets/external-secrets/compare/main...mj-provider-mod).
 
 ## Motivation
 The proposal is motivated by the need to use ESO with closed source secret stores, such as home-grown solutions used by
 some companies. Upstreaming integrations with such secret stores is not feasible.
 
 ### Goals
-What are the goals of this proposal, what's the problem we want to solve?
+There are following goals of the proposal:
+
+* Enabling out of tree providers to be integrated with ESO.
 
 ### Non-Goals
-What are explicit non-goals of this proposal?
+There are following non-goals of the proposal:
+
+* Migrating all existing providers to client-server model, though the proposal would enable such step.
+* Minimizing privileges that ESO pod runs with, though the proposal paves way towards such work in the future.
 
 ## Proposal
 How does the proposal look like?
@@ -37,25 +43,16 @@ How does the proposal look like?
 #### User story 1
 As a user, I want to use ESO with my home-grown secret store and avoid maintaning a fork of ESO.
 
-#### User story 2
-As a user, I want to run ESO with minimal privileges and use a separate process to communicate with secret store.
-
 ### API
 Following structures will be used at `SecretStore.Spec.Provider` field:
 
 ```go
-type OutOfTreeProvider struct {
+type GPRCProvider struct {
     // Name of the provider.
-    Name string `json:"name"`
-
-    // Host to connect using gRPC.
-    Host string `json:"host"`
-
-    // Port to connect using gRPC.
-    Port int `json:"port"`
+    URL string `json:"name"`
 
     // TLS authentication configuration.
-    TLSSecretRef TLSSecretRef `json:"tlsSecretRef,omitempty"`
+    TLSSecretRef *TLSSecretRef `json:"tlsSecretRef,omitempty"`
 }
 
 type TLSSecretRef struct {
@@ -66,6 +63,7 @@ type TLSSecretRef struct {
     Namespace string `json:"namespace"`
 }
 ```
+
 Following schema will be used for communication between ESO and out of tree secret store:
 
 ```protobuf
@@ -84,18 +82,68 @@ enum DecodingStrategy {
 }
 
 message GetSecretRequest {
-  string key = 1;
-  optional string metadata_policy = 2;
-  optional string property = 3;
-  optional string version = 4;
-  optional ConversionStrategy conversion_strategy = 5;
-  optional DecodingStrategy decoding_strategy = 6;
+  bytes store = 1;
+  string namespace = 2;
+  bytes objects = 3;
+  RemoteRef remoteRef = 4;
 }
 
-service GetSecret(GetSecretRequest) returns (bytes);
+message RemoteRef {
+  string key = 1;
+  string metadataPolicy = 2;
+  string property = 3;
+  string version = 4;
+  ConverstionStrategy conversionStrategy = 5;
+  DecodingStrategy decodingStrategy = 6;
+}
+
+message GetSecretReply {
+  bytes secret = 1;
+  string error = 2;
+}
+
+message PushSecretRequest {
+  bytes store = 1;
+  string namespace = 2;
+  bytes objects = 3;
+  bytes secret = 4;
+  PushRemoteRef remoteRef = 5;
+}
+
+message PushRemoteRef {
+  string remoteKey = 1;
+  string property = 2;
+}
+
+message PushSecretReply { string error = 1; }
+
+message DeleteSecretRequest {
+  PushRemoteRef remoteRef = 1;
+}
+
+message DeleteSecretReply { string error = 1; }
+
+message SecretExistsRequest {
+  PushRemoteRef remoteRef = 1;
+}
+
+message SecretExistsReply {
+  bool exists = 1;
+  string error = 2;
+}
+
+service SecretsServer {
+  rpc GetSecret(GetSecretRequest) returns (GetSecretReply);
+  rpc PushSecret(PushSecretRequest) returns (PushSecretReply);
+  rpc DeleteSecret(DeleteSecretRequest) returns (DeleteSecretReply);
+  rpc SecretExists(SecretExistsRequest) returns (SecretExistsReply);
+}
 ```
 
 ### Behavior
+
+#### GetSecret
+
 ```mermaid
 sequenceDiagram
     participant controller as ESO Controller
@@ -107,15 +155,79 @@ sequenceDiagram
     controller->>provider: NewClient()
     provider->>controller: SecretsClient
     controller->>client: GetSecret()
-    client->>server: GetSecret()
+    client->>server: rpc GetSecret()
     server->>secretstore: retrives secret
     secretstore->>server: returns secret
-    server->>client: []byte
-    client->>controller: []byte
+    server->>client: GetSecretReply
+    client->>controller: ([]byte, error)
+```
+
+#### PushSecret
+
+```mermaid
+sequenceDiagram
+    participant controller as ESO Controller
+    participant provider as SecretsProvider
+    participant client as SecretsClient
+    participant server as SecretsServer
+    participant secretstore as SecretStore
+
+    controller->>provider: NewClient()
+    provider->>controller: SecretsClient
+    controller->>client: PushSecret()
+    client->>server: rpc PushSecret()
+    server->>secretstore: saves secret
+    secretstore->>server: returns operation status
+    client->>controller: error
+```
+
+#### DeleteSecret
+
+```mermaid
+sequenceDiagram
+    participant controller as ESO Controller
+    participant provider as SecretsProvider
+    participant client as SecretsClient
+    participant server as SecretsServer
+    participant secretstore as SecretStore
+
+    controller->>provider: NewClient()
+    provider->>controller: SecretsClient
+    controller->>client: DeleteSecret()
+    client->>server: rpc DeleteSecret()
+    server->>secretstore: deletes secret
+    secretstore->>server: returns operation status
+    server->>client: PushSecretReply
+    client->>controller: error
+```
+
+#### SecretExists
+
+```mermaid
+sequenceDiagram
+    participant controller as ESO Controller
+    participant provider as SecretsProvider
+    participant client as SecretsClient
+    participant server as SecretsServer
+    participant secretstore as SecretStore
+
+    controller->>provider: NewClient()
+    provider->>controller: SecretsClient
+    controller->>client: SecretExists()
+    client->>server: rpc SecretExists()
+    server->>secretstore: checks if secret exists
+    secretstore->>server: returns operation status
+    server->>client: SecretExistsReply
+    client->>controller: (bool, error)
 ```
 
 ### Drawbacks
-If we implement this feature, what are drawbacks and disadvantages of this approach?
+Following drawbacks must be considered:
+
+* Running `SecretsServer` in separate pod means that gRPC communication between `SecretsClient` and `SecretsServer` will
+  happen over the network rather than UNIX socket. All potential issues related to network communication must be considered
+  (e.g. timeouts, slow responses, server unavailability, retries).
+* Running `SecretsServer` in the same pod that ESO increases operational burden by making ESO Helm chart more complicated.
 
 ### Acceptance Criteria
 What does it take to make this feature producation ready? Please take the time to think about:
