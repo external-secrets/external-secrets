@@ -114,7 +114,6 @@ sequenceDiagram
     client->>controller: []byte
 ```
 
-
 ### Drawbacks
 If we implement this feature, what are drawbacks and disadvantages of this approach?
 
