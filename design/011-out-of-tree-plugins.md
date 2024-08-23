@@ -16,6 +16,18 @@ status: draft
 // autogen please
 <!-- /toc -->
 
+## Glossary
+
+SecretsStore
+: Third party application that safely stores secrets. External Secrets Operator (ESO) retrieves the secrets to create
+Kubernetes `Secret` objects.
+
+SecretsServer
+: Implementation of gRPC server that communicate with `SecretsStore` to manage secret's lifecycle and read it.
+
+SecretsClient
+: implementation of `SecretsClient` interface that communicates with `SecretsServer` over gRPC.
+
 
 ## Summary
 This proposal aims to introduce possibility of using out of tree secret stores with External Secrets Operator (ESO).
