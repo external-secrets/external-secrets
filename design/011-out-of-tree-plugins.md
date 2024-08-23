@@ -242,6 +242,19 @@ Following drawbacks must be considered:
 * Running `SecretsServer` in the same pod that ESO increases operational burden by making ESO Helm chart more complicated.
 
 ### Acceptance Criteria
+This is purely additive feature and can be reverted if necessary. Users not relying on out of tree secret stores should
+not be affected.
+
+Implementation must:
+* Expose metrics for: median, p75, p90, p95 and p99 of communication latency between `SecretsClient` and `SecretsServer`.
+* Use Distributed Tracing for communication between `SecretsClient` and `SecretsServer`.
+
+In case of high latency between `SecretsClient` and `SecretsServer` user will be able to retrieve latency distribution
+and analyze distributed traces in order to understand what went wrong.
+In case of lack of connectivity appropriate timeout (connect timeout and connection timeout) must be set in `SecretsClient`
+so that connection is terminated. A service mesh can be used to provide circuit breaker facility.
+
+
 What does it take to make this feature producation ready? Please take the time to think about:
 * how would you rollout this feature and rollback if it causes harm?
 * Test Roadmap: what kinds of tests do we want to ensure a good user experience?
