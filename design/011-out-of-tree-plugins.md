@@ -41,7 +41,7 @@ How does the proposal look like?
 
 ### User Stories
 #### User story 1
-As a user, I want to use ESO with my home-grown secret store and avoid maintaning a fork of ESO.
+As a user, I want to use ESO with my home-grown secret store and avoid maintaining a fork of ESO.
 
 ### API
 Following structures will be used at `SecretStore.Spec.Provider` field:
