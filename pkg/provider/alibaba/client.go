@@ -16,6 +16,7 @@ package alibaba
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -66,7 +67,7 @@ func newClient(config *openapi.Config, options *util.RuntimeOptions) (*secretsMa
 	}
 
 	if utils.Deref(endpoint) == "" {
-		return nil, fmt.Errorf("error KMS endpoint is missing")
+		return nil, errors.New("error KMS endpoint is missing")
 	}
 
 	const (

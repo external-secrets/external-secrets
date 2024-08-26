@@ -49,18 +49,18 @@ const (
 
 func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
-		return nil, fmt.Errorf(errInvalidStore)
+		return nil, errors.New(errInvalidStore)
 	}
 	spc := store.GetSpec()
 	if spc == nil {
-		return nil, fmt.Errorf(errInvalidStoreSpec)
+		return nil, errors.New(errInvalidStoreSpec)
 	}
 	if spc.Provider == nil {
-		return nil, fmt.Errorf(errInvalidStoreProv)
+		return nil, errors.New(errInvalidStoreProv)
 	}
 	vaultProvider := spc.Provider.Vault
 	if vaultProvider == nil {
-		return nil, fmt.Errorf(errInvalidVaultProv)
+		return nil, errors.New(errInvalidVaultProv)
 	}
 	if vaultProvider.Auth.AppRole != nil {
 		// check SecretRef for valid configuration
@@ -75,7 +75,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 					return nil, fmt.Errorf(errInvalidAppRoleRef, err)
 				}
 			} else { // we ran out of ways to get RoleID. return an appropriate error
-				return nil, fmt.Errorf(errInvalidAppRoleID)
+				return nil, errors.New(errInvalidAppRoleID)
 			}
 		}
 	}
@@ -97,7 +97,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 				return nil, fmt.Errorf(errInvalidJwtK8sSA, err)
 			}
 		} else {
-			return nil, fmt.Errorf(errJwtNoTokenSource)
+			return nil, errors.New(errJwtNoTokenSource)
 		}
 	}
 	if vaultProvider.Auth.Kubernetes != nil {

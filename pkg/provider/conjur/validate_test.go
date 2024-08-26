@@ -15,7 +15,7 @@ limitations under the License.
 package conjur
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -34,19 +34,19 @@ func TestValidateStore(t *testing.T) {
 		},
 		{
 			store: makeAPIKeySecretStore("", svcUser, svcApikey, svcAccount),
-			err:   fmt.Errorf("conjur URL cannot be empty"),
+			err:   errors.New("conjur URL cannot be empty"),
 		},
 		{
 			store: makeAPIKeySecretStore(svcURL, "", svcApikey, svcAccount),
-			err:   fmt.Errorf("missing Auth.Apikey.UserRef"),
+			err:   errors.New("missing Auth.Apikey.UserRef"),
 		},
 		{
 			store: makeAPIKeySecretStore(svcURL, svcUser, "", svcAccount),
-			err:   fmt.Errorf("missing Auth.Apikey.ApiKeyRef"),
+			err:   errors.New("missing Auth.Apikey.ApiKeyRef"),
 		},
 		{
 			store: makeAPIKeySecretStore(svcURL, svcUser, svcApikey, ""),
-			err:   fmt.Errorf("missing Auth.ApiKey.Account"),
+			err:   errors.New("missing Auth.ApiKey.Account"),
 		},
 
 		{
@@ -59,24 +59,24 @@ func TestValidateStore(t *testing.T) {
 		},
 		{
 			store: makeJWTSecretStore(svcURL, "conjur", "", jwtAuthnService, "", ""),
-			err:   fmt.Errorf("missing Auth.Jwt.Account"),
+			err:   errors.New("missing Auth.Jwt.Account"),
 		},
 		{
 			store: makeJWTSecretStore(svcURL, "conjur", "", "", "", "myconjuraccount"),
-			err:   fmt.Errorf("missing Auth.Jwt.ServiceID"),
+			err:   errors.New("missing Auth.Jwt.ServiceID"),
 		},
 		{
 			store: makeJWTSecretStore("", "conjur", "", jwtAuthnService, "", "myconjuraccount"),
-			err:   fmt.Errorf("conjur URL cannot be empty"),
+			err:   errors.New("conjur URL cannot be empty"),
 		},
 		{
 			store: makeJWTSecretStore(svcURL, "", "", jwtAuthnService, "", "myconjuraccount"),
-			err:   fmt.Errorf("must specify Auth.Jwt.SecretRef or Auth.Jwt.ServiceAccountRef"),
+			err:   errors.New("must specify Auth.Jwt.SecretRef or Auth.Jwt.ServiceAccountRef"),
 		},
 
 		{
 			store: makeNoAuthSecretStore(svcURL),
-			err:   fmt.Errorf("missing Auth.* configuration"),
+			err:   errors.New("missing Auth.* configuration"),
 		},
 	}
 	p := Provider{}

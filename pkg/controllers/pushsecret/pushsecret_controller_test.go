@@ -17,6 +17,7 @@ package pushsecret
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -350,7 +351,7 @@ var _ = Describe("PushSecret controller", func() {
 			return nil
 		}
 		fakeProvider.SecretExistsFn = func(ctx context.Context, ref v1beta1.PushSecretRemoteRef) (bool, error) {
-			return false, fmt.Errorf("don't know")
+			return false, errors.New("don't know")
 		}
 		tc.pushsecret.Spec.UpdatePolicy = v1alpha1.PushSecretUpdatePolicyIfNotExists
 		initialValue := fakeProvider.SetSecretArgs[tc.pushsecret.Spec.Data[0].Match.RemoteRef.RemoteKey].Value
@@ -553,7 +554,7 @@ var _ = Describe("PushSecret controller", func() {
 			return nil
 		}
 		fakeProvider.DeleteSecretFn = func() error {
-			return fmt.Errorf("Nope")
+			return errors.New("Nope")
 		}
 		tc.pushsecret = &v1alpha1.PushSecret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -611,7 +612,7 @@ var _ = Describe("PushSecret controller", func() {
 			return nil
 		}
 		fakeProvider.DeleteSecretFn = func() error {
-			return fmt.Errorf("boom")
+			return errors.New("boom")
 		}
 		tc.pushsecret.Spec.DeletionPolicy = v1alpha1.PushSecretDeletionPolicyDelete
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
@@ -995,7 +996,7 @@ var _ = Describe("PushSecret controller", func() {
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	setSecretFail := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
-			return fmt.Errorf("boom")
+			return errors.New("boom")
 		}
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
 			expected := v1alpha1.PushSecretStatusCondition{
@@ -1010,7 +1011,7 @@ var _ = Describe("PushSecret controller", func() {
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	newClientFail := func(tc *testCase) {
 		fakeProvider.NewFn = func(context.Context, v1beta1.GenericStore, client.Client, string) (v1beta1.SecretsClient, error) {
-			return nil, fmt.Errorf("boom")
+			return nil, errors.New("boom")
 		}
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
 			expected := v1alpha1.PushSecretStatusCondition{

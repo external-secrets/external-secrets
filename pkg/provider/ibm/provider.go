@@ -17,6 +17,7 @@ package ibm
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -98,27 +99,27 @@ func (c *client) setAuth(ctx context.Context) error {
 }
 
 func (ibm *providerIBM) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf(errNotImplemented)
+	return errors.New(errNotImplemented)
 }
 
 func (ibm *providerIBM) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf(errNotImplemented)
+	return false, errors.New(errNotImplemented)
 }
 
 // Not Implemented PushSecret.
 func (ibm *providerIBM) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return fmt.Errorf(errNotImplemented)
+	return errors.New(errNotImplemented)
 }
 
 // Empty GetAllSecrets.
 func (ibm *providerIBM) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
-	return nil, fmt.Errorf(errNotImplemented)
+	return nil, errors.New(errNotImplemented)
 }
 
 func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(ibm.IBMClient) {
-		return nil, fmt.Errorf(errUninitalizedIBMProvider)
+		return nil, errors.New(errUninitalizedIBMProvider)
 	}
 
 	var secretGroupName string
@@ -143,7 +144,7 @@ func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1beta1.ExternalSecre
 	case sm.Secret_SecretType_UsernamePassword:
 
 		if ref.Property == "" {
-			return nil, fmt.Errorf("remoteRef.property required for secret type username_password")
+			return nil, errors.New("remoteRef.property required for secret type username_password")
 		}
 		return getUsernamePasswordSecret(ibm, &secretName, ref, secretGroupName)
 
@@ -158,7 +159,7 @@ func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1beta1.ExternalSecre
 	case sm.Secret_SecretType_ImportedCert:
 
 		if ref.Property == "" {
-			return nil, fmt.Errorf("remoteRef.property required for secret type imported_cert")
+			return nil, errors.New("remoteRef.property required for secret type imported_cert")
 		}
 
 		return getImportCertSecret(ibm, &secretName, ref, secretGroupName)
@@ -166,7 +167,7 @@ func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1beta1.ExternalSecre
 	case sm.Secret_SecretType_PublicCert:
 
 		if ref.Property == "" {
-			return nil, fmt.Errorf("remoteRef.property required for secret type public_cert")
+			return nil, errors.New("remoteRef.property required for secret type public_cert")
 		}
 
 		return getPublicCertSecret(ibm, &secretName, ref, secretGroupName)
@@ -174,7 +175,7 @@ func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1beta1.ExternalSecre
 	case sm.Secret_SecretType_PrivateCert:
 
 		if ref.Property == "" {
-			return nil, fmt.Errorf("remoteRef.property required for secret type private_cert")
+			return nil, errors.New("remoteRef.property required for secret type private_cert")
 		}
 
 		return getPrivateCertSecret(ibm, &secretName, ref, secretGroupName)
@@ -361,7 +362,7 @@ func getSecretData(ibm *providerIBM, secretName *string, secretType, secretGroup
 		// secret name has been provided instead of id
 		if secretGroupName == "" {
 			// secret group name is not provided
-			return nil, fmt.Errorf("failed to fetch the secret, secret group name is missing")
+			return nil, errors.New("failed to fetch the secret, secret group name is missing")
 		}
 
 		// secret group name is provided along with secret name,
@@ -398,7 +399,7 @@ func getSecretData(ibm *providerIBM, secretName *string, secretType, secretGroup
 
 func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if utils.IsNil(ibm.IBMClient) {
-		return nil, fmt.Errorf(errUninitalizedIBMProvider)
+		return nil, errors.New(errUninitalizedIBMProvider)
 	}
 	var secretGroupName string
 	secretType := sm.Secret_SecretType_Arbitrary
@@ -545,7 +546,7 @@ func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) (admission.W
 	storeSpec := store.GetSpec()
 	ibmSpec := storeSpec.Provider.IBM
 	if ibmSpec.ServiceURL == nil {
-		return nil, fmt.Errorf("serviceURL is required")
+		return nil, errors.New("serviceURL is required")
 	}
 
 	containerRef := ibmSpec.Auth.ContainerAuth
@@ -557,15 +558,15 @@ func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) (admission.W
 	if missingContainerRef == missingSecretRef {
 		// since both are equal, if one is missing assume both are missing
 		if missingContainerRef {
-			return nil, fmt.Errorf("missing auth method")
+			return nil, errors.New("missing auth method")
 		}
-		return nil, fmt.Errorf("too many auth methods defined")
+		return nil, errors.New("too many auth methods defined")
 	}
 
 	if !missingContainerRef {
 		// catch undefined container auth profile
 		if containerRef.Profile == "" {
-			return nil, fmt.Errorf("container auth profile cannot be empty")
+			return nil, errors.New("container auth profile cannot be empty")
 		}
 
 		// proceed with container auth
@@ -585,10 +586,10 @@ func (ibm *providerIBM) ValidateStore(store esv1beta1.GenericStore) (admission.W
 		return nil, err
 	}
 	if secretKeyRef.Name == "" {
-		return nil, fmt.Errorf("secretAPIKey.name cannot be empty")
+		return nil, errors.New("secretAPIKey.name cannot be empty")
 	}
 	if secretKeyRef.Key == "" {
-		return nil, fmt.Errorf("secretAPIKey.key cannot be empty")
+		return nil, errors.New("secretAPIKey.key cannot be empty")
 	}
 
 	return nil, nil

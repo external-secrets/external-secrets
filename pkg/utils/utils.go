@@ -550,7 +550,7 @@ func FetchCACertFromSource(ctx context.Context, opts CreateCertOpts) ([]byte, er
 	if opts.CAProvider != nil &&
 		opts.StoreKind == esv1beta1.ClusterSecretStoreKind &&
 		opts.CAProvider.Namespace == nil {
-		return nil, fmt.Errorf("missing namespace on caProvider secret")
+		return nil, errors.New("missing namespace on caProvider secret")
 	}
 
 	switch opts.CAProvider.Type {

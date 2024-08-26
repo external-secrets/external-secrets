@@ -16,6 +16,7 @@ package gcr
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -57,7 +58,7 @@ func (g *Generator) generate(
 	namespace string,
 	tokenSource tokenSourceFunc) (map[string][]byte, error) {
 	if jsonSpec == nil {
-		return nil, fmt.Errorf(errNoSpec)
+		return nil, errors.New(errNoSpec)
 	}
 	res, err := parseSpec(jsonSpec.Raw)
 	if err != nil {
