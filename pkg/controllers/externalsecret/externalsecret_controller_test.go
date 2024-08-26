@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -1724,7 +1725,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	// a error condition must be set.
 	providerErrCondition := func(tc *testCase) {
 		const secretVal = "foobar"
-		fakeProvider.WithGetSecret(nil, fmt.Errorf("boom"))
+		fakeProvider.WithGetSecret(nil, errors.New("boom"))
 		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Millisecond * 100}
 		tc.checkCondition = func(es *esv1beta1.ExternalSecret) bool {
 			cond := GetExternalSecretCondition(es.Status, esv1beta1.ExternalSecretReady)
@@ -1787,7 +1788,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	storeConstructErrCondition := func(tc *testCase) {
 		fakeProvider.WithNew(func(context.Context, esv1beta1.GenericStore, client.Client,
 			string) (esv1beta1.SecretsClient, error) {
-			return nil, fmt.Errorf("artificial constructor error")
+			return nil, errors.New("artificial constructor error")
 		})
 		tc.checkCondition = func(es *esv1beta1.ExternalSecret) bool {
 			// condition must be false

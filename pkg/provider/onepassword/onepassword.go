@@ -121,22 +121,22 @@ func validateStore(store esv1beta1.GenericStore) error {
 	// check nils
 	storeSpec := store.GetSpec()
 	if storeSpec == nil {
-		return fmt.Errorf(errOnePasswordStore, fmt.Errorf(errOnePasswordStoreNilSpec))
+		return fmt.Errorf(errOnePasswordStore, errors.New(errOnePasswordStoreNilSpec))
 	}
 	if storeSpec.Provider == nil {
-		return fmt.Errorf(errOnePasswordStore, fmt.Errorf(errOnePasswordStoreNilSpecProvider))
+		return fmt.Errorf(errOnePasswordStore, errors.New(errOnePasswordStoreNilSpecProvider))
 	}
 	if storeSpec.Provider.OnePassword == nil {
-		return fmt.Errorf(errOnePasswordStore, fmt.Errorf(errOnePasswordStoreNilSpecProviderOnePassword))
+		return fmt.Errorf(errOnePasswordStore, errors.New(errOnePasswordStoreNilSpecProviderOnePassword))
 	}
 
 	// check mandatory fields
 	config := storeSpec.Provider.OnePassword
 	if config.Auth.SecretRef.ConnectToken.Name == "" {
-		return fmt.Errorf(errOnePasswordStore, fmt.Errorf(errOnePasswordStoreMissingRefName))
+		return fmt.Errorf(errOnePasswordStore, errors.New(errOnePasswordStoreMissingRefName))
 	}
 	if config.Auth.SecretRef.ConnectToken.Key == "" {
-		return fmt.Errorf(errOnePasswordStore, fmt.Errorf(errOnePasswordStoreMissingRefKey))
+		return fmt.Errorf(errOnePasswordStore, errors.New(errOnePasswordStoreMissingRefKey))
 	}
 
 	// check namespace compared to kind
@@ -146,12 +146,12 @@ func validateStore(store esv1beta1.GenericStore) error {
 
 	// check at least one vault
 	if len(config.Vaults) == 0 {
-		return fmt.Errorf(errOnePasswordStore, fmt.Errorf(errOnePasswordStoreAtLeastOneVault))
+		return fmt.Errorf(errOnePasswordStore, errors.New(errOnePasswordStoreAtLeastOneVault))
 	}
 
 	// ensure vault numbers are unique
 	if !hasUniqueVaultNumbers(config.Vaults) {
-		return fmt.Errorf(errOnePasswordStore, fmt.Errorf(errOnePasswordStoreNonUniqueVaultNumbers))
+		return fmt.Errorf(errOnePasswordStore, errors.New(errOnePasswordStoreNonUniqueVaultNumbers))
 	}
 
 	// check valid URL
@@ -209,7 +209,7 @@ func (provider *ProviderOnePassword) DeleteSecret(_ context.Context, ref esv1bet
 }
 
 func (provider *ProviderOnePassword) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf("not implemented")
+	return false, errors.New("not implemented")
 }
 
 const (
@@ -332,7 +332,7 @@ func (provider *ProviderOnePassword) PushSecret(ctx context.Context, secret *cor
 // GetSecret returns a single secret from the provider.
 func (provider *ProviderOnePassword) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if ref.Version != "" {
-		return nil, fmt.Errorf(errVersionNotImplemented)
+		return nil, errors.New(errVersionNotImplemented)
 	}
 
 	item, err := provider.findItem(ref.Key)
@@ -366,7 +366,7 @@ func (provider *ProviderOnePassword) Validate() (esv1beta1.ValidationResult, err
 // GetSecretMap returns multiple k/v pairs from the provider, for dataFrom.extract.
 func (provider *ProviderOnePassword) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if ref.Version != "" {
-		return nil, fmt.Errorf(errVersionNotImplemented)
+		return nil, errors.New(errVersionNotImplemented)
 	}
 
 	item, err := provider.findItem(ref.Key)
@@ -386,7 +386,7 @@ func (provider *ProviderOnePassword) GetSecretMap(_ context.Context, ref esv1bet
 // GetAllSecrets syncs multiple 1Password Items into a single Kubernetes Secret, for dataFrom.find.
 func (provider *ProviderOnePassword) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Tags != nil {
-		return nil, fmt.Errorf(errTagsNotImplemented)
+		return nil, errors.New(errTagsNotImplemented)
 	}
 
 	secretData := make(map[string][]byte)

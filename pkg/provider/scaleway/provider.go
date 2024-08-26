@@ -16,6 +16,7 @@ package scaleway
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1beta1"
@@ -50,7 +51,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 
 	if store.GetKind() == esv1beta1.ClusterSecretStoreKind && doesConfigDependOnNamespace(cfg) {
 		// we are not attached to a specific namespace, but some config values are dependent on it
-		return nil, fmt.Errorf("when using a ClusterSecretStore, namespaces must be explicitly set")
+		return nil, errors.New("when using a ClusterSecretStore, namespaces must be explicitly set")
 	}
 
 	accessKey, err := loadConfigSecret(ctx, cfg.AccessKey, kube, namespace, store.GetKind())
@@ -97,14 +98,14 @@ func loadConfigSecret(ctx context.Context, ref *esv1beta1.ScalewayProviderSecret
 func validateSecretRef(store esv1beta1.GenericStore, ref *esv1beta1.ScalewayProviderSecretRef) error {
 	if ref.SecretRef != nil {
 		if ref.Value != "" {
-			return fmt.Errorf("cannot specify both secret reference and value")
+			return errors.New("cannot specify both secret reference and value")
 		}
 		err := utils.ValidateReferentSecretSelector(store, *ref.SecretRef)
 		if err != nil {
 			return err
 		}
 	} else if ref.Value == "" {
-		return fmt.Errorf("must specify either secret reference or direct value")
+		return errors.New("must specify either secret reference or direct value")
 	}
 
 	return nil
@@ -124,12 +125,12 @@ func doesConfigDependOnNamespace(cfg *esv1beta1.ScalewayProvider) bool {
 
 func getConfig(store esv1beta1.GenericStore) (*esv1beta1.ScalewayProvider, error) {
 	if store == nil {
-		return nil, fmt.Errorf("missing store specification")
+		return nil, errors.New("missing store specification")
 	}
 	storeSpec := store.GetSpec()
 
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Scaleway == nil {
-		return nil, fmt.Errorf("invalid specification for scaleway provider")
+		return nil, errors.New("invalid specification for scaleway provider")
 	}
 	cfg := storeSpec.Provider.Scaleway
 

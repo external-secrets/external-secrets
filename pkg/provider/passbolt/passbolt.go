@@ -98,7 +98,7 @@ func (provider *ProviderPassbolt) NewClient(ctx context.Context, store esv1beta1
 }
 
 func (provider *ProviderPassbolt) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf(errNotImplemented)
+	return false, errors.New(errNotImplemented)
 }
 
 func (provider *ProviderPassbolt) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
@@ -119,11 +119,11 @@ func (provider *ProviderPassbolt) GetSecret(ctx context.Context, ref esv1beta1.E
 }
 
 func (provider *ProviderPassbolt) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return fmt.Errorf(errNotImplemented)
+	return errors.New(errNotImplemented)
 }
 
 func (provider *ProviderPassbolt) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf(errNotImplemented)
+	return errors.New(errNotImplemented)
 }
 
 func (provider *ProviderPassbolt) Validate() (esv1beta1.ValidationResult, error) {
@@ -131,7 +131,7 @@ func (provider *ProviderPassbolt) Validate() (esv1beta1.ValidationResult, error)
 }
 
 func (provider *ProviderPassbolt) GetSecretMap(_ context.Context, _ esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	return nil, fmt.Errorf(errNotImplemented)
+	return nil, errors.New(errNotImplemented)
 }
 
 func (provider *ProviderPassbolt) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
