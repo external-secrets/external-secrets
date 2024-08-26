@@ -16,6 +16,7 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	authv1 "k8s.io/api/authorization/v1"
@@ -101,7 +102,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 func (p *Provider) newClient(ctx context.Context, store esv1beta1.GenericStore, ctrlClient kclient.Client, ctrlClientset kubernetes.Interface, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Kubernetes == nil {
-		return nil, fmt.Errorf("no store type or wrong store type")
+		return nil, errors.New("no store type or wrong store type")
 	}
 	storeSpecKubernetes := storeSpec.Provider.Kubernetes
 	client := &Client{

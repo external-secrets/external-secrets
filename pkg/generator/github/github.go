@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -70,7 +71,7 @@ func (g *Generator) generate(
 	kube client.Client,
 	namespace string) (map[string][]byte, error) {
 	if jsonSpec == nil {
-		return nil, fmt.Errorf(errNoSpec)
+		return nil, errors.New(errNoSpec)
 	}
 	ctx, cancel := context.WithTimeout(ctx, contextTimeout)
 	defer cancel()
@@ -101,7 +102,7 @@ func (g *Generator) generate(
 
 	accessToken, ok := gat["token"].(string)
 	if !ok {
-		return nil, fmt.Errorf("token isn't a string or token key doesn't exist")
+		return nil, errors.New("token isn't a string or token key doesn't exist")
 	}
 	return map[string][]byte{
 		defaultLoginUsername: []byte(accessToken),

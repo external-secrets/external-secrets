@@ -16,6 +16,7 @@ package clusterexternalsecret
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"slices"
@@ -132,7 +133,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 
 		if err == nil && !isExternalSecretOwnedBy(&existingES, clusterExternalSecret.Name) {
-			failedNamespaces[namespace.Name] = fmt.Errorf("external secret already exists in namespace")
+			failedNamespaces[namespace.Name] = errors.New("external secret already exists in namespace")
 			continue
 		}
 

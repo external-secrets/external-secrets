@@ -16,6 +16,7 @@ package akeyless
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
@@ -72,10 +73,10 @@ func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
 	}
 
 	if accessID == "" {
-		return "", fmt.Errorf(errMissingSAK)
+		return "", errors.New(errMissingSAK)
 	}
 	if accessType == "" {
-		return "", fmt.Errorf(errMissingAKID)
+		return "", errors.New(errMissingAKID)
 	}
 
 	return a.GetToken(accessID, accessType, accessTypeParam, prov.Auth.KubernetesAuth)

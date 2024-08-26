@@ -406,7 +406,7 @@ func (r *Reconciler) GetSecretStores(ctx context.Context, ps esapi.PushSecret) (
 
 func (r *Reconciler) getSecretStoreFromName(ctx context.Context, refStore esapi.PushSecretStoreRef, ns string) (v1beta1.GenericStore, error) {
 	if refStore.Name == "" {
-		return nil, fmt.Errorf("refStore Name must be provided")
+		return nil, errors.New("refStore Name must be provided")
 	}
 	ref := types.NamespacedName{
 		Name: refStore.Name,

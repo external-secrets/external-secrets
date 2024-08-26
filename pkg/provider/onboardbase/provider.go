@@ -16,6 +16,7 @@ package onboardbase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -53,7 +54,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	storeSpec := store.GetSpec()
 
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Onboardbase == nil {
-		return nil, fmt.Errorf(errOnboardbaseStore)
+		return nil, errors.New(errOnboardbaseStore)
 	}
 
 	onboardbaseStoreSpec := storeSpec.Provider.Onboardbase

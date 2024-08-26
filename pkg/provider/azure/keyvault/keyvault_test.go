@@ -200,7 +200,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 			RemoteKey: secretName,
 		}
 		smtc.expectError = "boom"
-		smtc.apiErr = fmt.Errorf("boom")
+		smtc.apiErr = errors.New("boom")
 	}
 
 	secretNoDeletePermissions := func(smtc *secretManagerTestCase) {
@@ -258,7 +258,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 			RemoteKey: certName,
 		}
 		smtc.expectError = "crash"
-		smtc.apiErr = fmt.Errorf("crash")
+		smtc.apiErr = errors.New("crash")
 	}
 
 	certNoDeletePermissions := func(smtc *secretManagerTestCase) {
@@ -315,7 +315,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 			RemoteKey: keyName,
 		}
 		smtc.expectError = "tls timeout"
-		smtc.apiErr = fmt.Errorf("tls timeout")
+		smtc.apiErr = errors.New("tls timeout")
 	}
 
 	keyNoDeletePermissions := func(smtc *secretManagerTestCase) {
@@ -483,7 +483,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			SecretKey: secretKey,
 			RemoteKey: secretName,
 		}
-		smtc.apiErr = fmt.Errorf("crash")
+		smtc.apiErr = errors.New("crash")
 		smtc.expectError = "crash"
 	}
 	failedSetSecret := func(smtc *secretManagerTestCase) {

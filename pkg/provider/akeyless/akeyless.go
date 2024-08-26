@@ -119,11 +119,11 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 	if akeylessGWApiURL != nil && *akeylessGWApiURL != "" {
 		url, err := url.Parse(*akeylessGWApiURL)
 		if err != nil {
-			return nil, fmt.Errorf(errInvalidAkeylessURL)
+			return nil, errors.New(errInvalidAkeylessURL)
 		}
 
 		if url.Host == "" {
-			return nil, fmt.Errorf(errInvalidAkeylessURL)
+			return nil, errors.New(errInvalidAkeylessURL)
 		}
 	}
 	if akeylessSpec.Auth.KubernetesAuth != nil {
@@ -140,11 +140,11 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 		}
 
 		if akeylessSpec.Auth.KubernetesAuth.AccessID == "" {
-			return nil, fmt.Errorf("missing kubernetes auth-method access-id")
+			return nil, errors.New("missing kubernetes auth-method access-id")
 		}
 
 		if akeylessSpec.Auth.KubernetesAuth.K8sConfName == "" {
-			return nil, fmt.Errorf("missing kubernetes config name")
+			return nil, errors.New("missing kubernetes config name")
 		}
 		return nil, nil
 	}
@@ -156,11 +156,11 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 	}
 
 	if accessID.Name == "" {
-		return nil, fmt.Errorf(errInvalidAkeylessAccessIDName)
+		return nil, errors.New(errInvalidAkeylessAccessIDName)
 	}
 
 	if accessID.Key == "" {
-		return nil, fmt.Errorf(errInvalidAkeylessAccessIDKey)
+		return nil, errors.New(errInvalidAkeylessAccessIDKey)
 	}
 
 	accessType := akeylessSpec.Auth.SecretRef.AccessType
@@ -197,7 +197,7 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 	}
 
 	if spec.Auth == nil {
-		return nil, fmt.Errorf("missing Auth in store config")
+		return nil, errors.New("missing Auth in store config")
 	}
 
 	client, err := akl.getAkeylessHTTPClient(ctx, spec)
@@ -235,22 +235,22 @@ func (a *Akeyless) Validate() (esv1beta1.ValidationResult, error) {
 }
 
 func (a *Akeyless) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return fmt.Errorf(errNotImplemented)
+	return errors.New(errNotImplemented)
 }
 
 func (a *Akeyless) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf(errNotImplemented)
+	return errors.New(errNotImplemented)
 }
 
 func (a *Akeyless) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf(errNotImplemented)
+	return false, errors.New(errNotImplemented)
 }
 
 // Implements store.Client.GetSecret Interface.
 // Retrieves a secret with the secret name defined in ref.Name.
 func (a *Akeyless) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(a.Client) {
-		return nil, fmt.Errorf(errUninitalizedAkeylessProvider)
+		return nil, errors.New(errUninitalizedAkeylessProvider)
 	}
 
 	token, err := a.Client.TokenFromSecretRef(ctx)
@@ -295,7 +295,7 @@ func (a *Akeyless) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 // Retrieves a all secrets with defined in ref.Name or tags.
 func (a *Akeyless) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if utils.IsNil(a.Client) {
-		return nil, fmt.Errorf(errUninitalizedAkeylessProvider)
+		return nil, errors.New(errUninitalizedAkeylessProvider)
 	}
 
 	searchPath := ""
@@ -382,7 +382,7 @@ func (a *Akeyless) findSecretsFromName(ctx context.Context, candidates []string,
 // New version of GetSecretMap.
 func (a *Akeyless) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if utils.IsNil(a.Client) {
-		return nil, fmt.Errorf(errUninitalizedAkeylessProvider)
+		return nil, errors.New(errUninitalizedAkeylessProvider)
 	}
 
 	val, err := a.GetSecret(ctx, ref)
@@ -424,7 +424,7 @@ func (a *akeylessBase) getAkeylessHTTPClient(ctx context.Context, provider *esv1
 	caCertPool := x509.NewCertPool()
 	ok := caCertPool.AppendCertsFromPEM(cert)
 	if !ok {
-		return nil, fmt.Errorf("failed to append caBundle")
+		return nil, errors.New("failed to append caBundle")
 	}
 
 	tlsConf := &tls.Config{

@@ -50,8 +50,6 @@ const (
 	errGCPSMStore                   = "received invalid GCPSM SecretStore resource"
 	errUnableGetCredentials         = "unable to get credentials: %w"
 	errClientClose                  = "unable to close SecretManager client: %w"
-	errMissingStoreSpec             = "invalid: missing store spec"
-	errFetchSAKSecret               = "could not fetch SecretAccessKey secret: %w"
 	errUnableProcessJSONCredentials = "failed to process the provided JSON credentials: %w"
 	errUnableCreateGCPSMClient      = "failed to create GCP secretmanager client: %w"
 	errUninitalizedGCPProvider      = "provider GCP is not initialized"
@@ -131,7 +129,7 @@ func parseError(err error) error {
 }
 
 func (c *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf("not implemented")
+	return false, errors.New("not implemented")
 }
 
 // PushSecret pushes a kubernetes secret key into gcp provider Secret.
@@ -414,7 +412,7 @@ func (c *Client) extractProjectIDNumber(secretFullName string) string {
 // GetSecret returns a single secret from the provider.
 func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(c.smClient) || c.store.ProjectID == "" {
-		return nil, fmt.Errorf(errUninitalizedGCPProvider)
+		return nil, errors.New(errUninitalizedGCPProvider)
 	}
 
 	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
@@ -527,7 +525,7 @@ func (c *Client) getSecretMetadata(ctx context.Context, ref esv1beta1.ExternalSe
 // GetSecretMap returns multiple k/v pairs from the provider.
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if c.smClient == nil || c.store.ProjectID == "" {
-		return nil, fmt.Errorf(errUninitalizedGCPProvider)
+		return nil, errors.New(errUninitalizedGCPProvider)
 	}
 
 	data, err := c.GetSecret(ctx, ref)

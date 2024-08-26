@@ -16,6 +16,7 @@ package fake
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -104,13 +105,13 @@ func ExpectWriteWithContextValue(expected map[string]any) WriteWithContextFn {
 
 func ExpectWriteWithContextNoCall() WriteWithContextFn {
 	return func(_ context.Context, path string, data map[string]any) (*vault.Secret, error) {
-		return nil, fmt.Errorf("fail")
+		return nil, errors.New("fail")
 	}
 }
 
 func ExpectDeleteWithContextNoCall() DeleteWithContextFn {
 	return func(ctx context.Context, path string) (*vault.Secret, error) {
-		return nil, fmt.Errorf("fail")
+		return nil, errors.New("fail")
 	}
 }
 func WriteChangingReadContext(secret map[string]any, l Logical) WriteWithContextFn {
