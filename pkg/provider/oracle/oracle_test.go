@@ -21,6 +21,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -112,7 +113,7 @@ func makeValidVaultTestCaseCustom(tweaks ...func(smtc *vaultTestCase)) *vaultTes
 // This case can be shared by both GetSecret and GetSecretMap tests.
 // bad case: set apiErr.
 var setAPIErr = func(smtc *vaultTestCase) {
-	smtc.apiErr = fmt.Errorf("oh no")
+	smtc.apiErr = errors.New("oh no")
 	smtc.expectError = "oh no"
 }
 
@@ -264,43 +265,43 @@ func TestValidateStore(t *testing.T) {
 	testCases := []ValidateStoreTestCase{
 		{
 			store: makeSecretStore("", region),
-			err:   fmt.Errorf("vault cannot be empty"),
+			err:   errors.New("vault cannot be empty"),
 		},
 		{
 			store: makeSecretStore(vaultOCID, ""),
-			err:   fmt.Errorf("region cannot be empty"),
+			err:   errors.New("region cannot be empty"),
 		},
 		{
 			store: makeSecretStore(vaultOCID, region, withSecretAuth("", tenant)),
-			err:   fmt.Errorf("user cannot be empty"),
+			err:   errors.New("user cannot be empty"),
 		},
 		{
 			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, "")),
-			err:   fmt.Errorf("tenant cannot be empty"),
+			err:   errors.New("tenant cannot be empty"),
 		},
 		{
 			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey("", secretKey, nil)),
-			err:   fmt.Errorf("privateKey.name cannot be empty"),
+			err:   errors.New("privateKey.name cannot be empty"),
 		},
 		{
 			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, &namespace)),
-			err:   fmt.Errorf("namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore"),
+			err:   errors.New("namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore"),
 		},
 		{
 			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, "", nil)),
-			err:   fmt.Errorf("privateKey.key cannot be empty"),
+			err:   errors.New("privateKey.key cannot be empty"),
 		},
 		{
 			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, nil), withFingerprint("", secretKey, nil)),
-			err:   fmt.Errorf("fingerprint.name cannot be empty"),
+			err:   errors.New("fingerprint.name cannot be empty"),
 		},
 		{
 			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, nil), withFingerprint(secretName, secretKey, &namespace)),
-			err:   fmt.Errorf("namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore"),
+			err:   errors.New("namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore"),
 		},
 		{
 			store: makeSecretStore(vaultOCID, region, withSecretAuth(userOCID, tenant), withPrivateKey(secretName, secretKey, nil), withFingerprint(secretName, "", nil)),
-			err:   fmt.Errorf("fingerprint.key cannot be empty"),
+			err:   errors.New("fingerprint.key cannot be empty"),
 		},
 		{
 			store: makeSecretStore(vaultOCID, region),

@@ -309,7 +309,7 @@ func TestGetSecret(t *testing.T) {
 				},
 			},
 			want: want{
-				err: fmt.Errorf(errNotFound),
+				err: errors.New(errNotFound),
 			},
 		},
 		"FailReadSecretMetadataWrongVersion": {
@@ -324,7 +324,7 @@ func TestGetSecret(t *testing.T) {
 				},
 			},
 			want: want{
-				err: fmt.Errorf(errUnsupportedMetadataKvVersion),
+				err: errors.New(errUnsupportedMetadataKvVersion),
 			},
 		},
 	}

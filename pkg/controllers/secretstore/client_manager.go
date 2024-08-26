@@ -16,6 +16,7 @@ package secretstore
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -114,7 +115,7 @@ func (m *Manager) Get(ctx context.Context, storeRef esv1beta1.SecretStoreRef, na
 	}
 	// check if store should be handled by this controller instance
 	if !ShouldProcessStore(store, m.controllerClass) {
-		return nil, fmt.Errorf("can not reference unmanaged store")
+		return nil, errors.New("can not reference unmanaged store")
 	}
 	// when using ClusterSecretStore, validate the ClusterSecretStore namespace conditions
 	shouldProcess, err := m.shouldProcessSecret(store, namespace)

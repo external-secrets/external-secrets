@@ -17,6 +17,7 @@ package onboardbase
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -71,7 +72,7 @@ func (c *Client) setAuth(ctx context.Context) error {
 	credentialsSecret := &corev1.Secret{}
 	credentialsSecretName := c.store.Auth.OnboardbaseAPIKeyRef.Name
 	if credentialsSecretName == "" {
-		return fmt.Errorf(errOnboardbaseAPIKeySecretName)
+		return errors.New(errOnboardbaseAPIKeySecretName)
 	}
 	objectKey := types.NamespacedName{
 		Name:      credentialsSecretName,
@@ -80,7 +81,7 @@ func (c *Client) setAuth(ctx context.Context) error {
 	// only ClusterStore is allowed to set namespace (and then it's required)
 	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
 		if c.store.Auth.OnboardbaseAPIKeyRef.Namespace == nil {
-			return fmt.Errorf(errInvalidClusterStoreMissingOnboardbaseAPIKeyNamespace)
+			return errors.New(errInvalidClusterStoreMissingOnboardbaseAPIKeyNamespace)
 		}
 		objectKey.Namespace = *c.store.Auth.OnboardbaseAPIKeyRef.Namespace
 	}
@@ -188,7 +189,7 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 
 func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if len(ref.Tags) > 0 {
-		return nil, fmt.Errorf("find by tags not supported")
+		return nil, errors.New("find by tags not supported")
 	}
 
 	secrets, err := c.getSecrets(ctx)

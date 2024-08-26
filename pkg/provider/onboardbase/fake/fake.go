@@ -15,7 +15,7 @@ limitations under the License.
 package fake
 
 import (
-	"fmt"
+	"errors"
 	"net/url"
 
 	"github.com/google/go-cmp/cmp"
@@ -51,7 +51,7 @@ func (obbc *OnboardbaseClient) WithValue(request client.SecretRequest, response 
 	if obbc != nil {
 		obbc.getSecret = func(requestIn client.SecretRequest) (*client.SecretResponse, error) {
 			if !cmp.Equal(requestIn, request) {
-				return nil, fmt.Errorf("unexpected test argument")
+				return nil, errors.New("unexpected test argument")
 			}
 			return response, err
 		}

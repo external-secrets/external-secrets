@@ -16,6 +16,7 @@ package conjur
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/cyberark/conjur-api-go/conjurapi"
@@ -121,7 +122,7 @@ func (c *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 		return conjur, nil
 	} else {
 		// Should not happen because validate func should catch this
-		return nil, fmt.Errorf("no authentication method provided")
+		return nil, errors.New("no authentication method provided")
 	}
 }
 
@@ -137,7 +138,7 @@ func (c *Client) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef
 }
 
 func (c *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf("not implemented")
+	return false, errors.New("not implemented")
 }
 
 // Validate validates the provider.

@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sync"
 )
@@ -116,5 +117,5 @@ func getProviderName(storeSpec *SecretStoreProvider) (string, error) {
 		return k, nil
 	}
 
-	return "", fmt.Errorf("failed to find registered store backend")
+	return "", errors.New("failed to find registered store backend")
 }

@@ -16,6 +16,7 @@ package vault
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -66,7 +67,7 @@ func (c *client) requestTokenWithJwtAuth(ctx context.Context, jwtAuth *esv1beta1
 			*audiences,
 			*expirationSeconds)
 	} else {
-		err = fmt.Errorf(errJwtNoTokenSource)
+		err = errors.New(errJwtNoTokenSource)
 	}
 	if err != nil {
 		return err
