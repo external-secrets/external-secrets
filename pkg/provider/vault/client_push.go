@@ -74,7 +74,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		}
 		manager, ok := metadata["managed-by"]
 		if !ok || manager != "external-secrets" {
-			return fmt.Errorf("secret not managed by external-secrets")
+			return errors.New("secret not managed by external-secrets")
 		}
 	}
 	// Remove the metadata map to check the reconcile difference

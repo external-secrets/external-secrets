@@ -36,7 +36,7 @@ type GenericStoreValidator struct{}
 func (r *GenericStoreValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	st, ok := obj.(GenericStore)
 	if !ok {
-		return nil, fmt.Errorf(errInvalidStore)
+		return nil, errors.New(errInvalidStore)
 	}
 	return validateStore(st)
 }
@@ -45,7 +45,7 @@ func (r *GenericStoreValidator) ValidateCreate(_ context.Context, obj runtime.Ob
 func (r *GenericStoreValidator) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
 	st, ok := newObj.(GenericStore)
 	if !ok {
-		return nil, fmt.Errorf(errInvalidStore)
+		return nil, errors.New(errInvalidStore)
 	}
 	return validateStore(st)
 }

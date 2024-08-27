@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -45,7 +46,7 @@ func init() {
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.BitwardenSecretsManager == nil {
-		return nil, fmt.Errorf("no store type or wrong store type")
+		return nil, errors.New("no store type or wrong store type")
 	}
 
 	token, err := resolvers.SecretKeyRef(
@@ -87,16 +88,16 @@ func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil {
-		return admission.Warnings{}, fmt.Errorf("no store type or wrong store type")
+		return admission.Warnings{}, errors.New("no store type or wrong store type")
 	}
 
 	if storeSpec.Provider == nil {
-		return admission.Warnings{}, fmt.Errorf("provider not configured")
+		return admission.Warnings{}, errors.New("provider not configured")
 	}
 
 	bitwardenSpec := storeSpec.Provider.BitwardenSecretsManager
 	if bitwardenSpec == nil {
-		return admission.Warnings{}, fmt.Errorf("bitwarden spec not configured")
+		return admission.Warnings{}, errors.New("bitwarden spec not configured")
 	}
 
 	if bitwardenSpec.CAProvider == nil && bitwardenSpec.CABundle == "" {
@@ -124,7 +125,7 @@ func newHTTPSClient(ctx context.Context, c client.Client, storeKind, namespace s
 	pool := x509.NewCertPool()
 	ok := pool.AppendCertsFromPEM(cert)
 	if !ok {
-		return nil, fmt.Errorf("failed to append caBundle")
+		return nil, errors.New("failed to append caBundle")
 	}
 
 	tr := &http.Transport{

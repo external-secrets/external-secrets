@@ -16,7 +16,7 @@ package vault
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"strings"
 
 	"github.com/hashicorp/vault/api/auth/approle"
@@ -56,7 +56,7 @@ func (c *client) requestTokenWithAppRoleRef(ctx context.Context, appRole *esv1be
 			return err
 		}
 	} else { // we ran out of ways to get RoleID. return an appropriate error
-		return fmt.Errorf(errInvalidAppRoleID)
+		return errors.New(errInvalidAppRoleID)
 	}
 
 	secretID, err := resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, &appRole.SecretRef)

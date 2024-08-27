@@ -16,6 +16,7 @@ limitations under the License.
 package conjur
 
 import (
+	"errors"
 	"fmt"
 
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -33,7 +34,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 	}
 
 	if prov.URL == "" {
-		return nil, fmt.Errorf("conjur URL cannot be empty")
+		return nil, errors.New("conjur URL cannot be empty")
 	}
 	if prov.Auth.APIKey != nil {
 		err := validateAPIKeyStore(store, *prov.Auth.APIKey)
@@ -51,7 +52,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 
 	// At least one auth must be configured
 	if prov.Auth.APIKey == nil && prov.Auth.Jwt == nil {
-		return nil, fmt.Errorf("missing Auth.* configuration")
+		return nil, errors.New("missing Auth.* configuration")
 	}
 
 	return nil, nil
@@ -59,13 +60,13 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 
 func validateAPIKeyStore(store esv1beta1.GenericStore, auth esv1beta1.ConjurAPIKey) error {
 	if auth.Account == "" {
-		return fmt.Errorf("missing Auth.ApiKey.Account")
+		return errors.New("missing Auth.ApiKey.Account")
 	}
 	if auth.UserRef == nil {
-		return fmt.Errorf("missing Auth.Apikey.UserRef")
+		return errors.New("missing Auth.Apikey.UserRef")
 	}
 	if auth.APIKeyRef == nil {
-		return fmt.Errorf("missing Auth.Apikey.ApiKeyRef")
+		return errors.New("missing Auth.Apikey.ApiKeyRef")
 	}
 	if err := utils.ValidateReferentSecretSelector(store, *auth.UserRef); err != nil {
 		return fmt.Errorf("invalid Auth.Apikey.UserRef: %w", err)
@@ -78,13 +79,13 @@ func validateAPIKeyStore(store esv1beta1.GenericStore, auth esv1beta1.ConjurAPIK
 
 func validateJWTStore(store esv1beta1.GenericStore, auth esv1beta1.ConjurJWT) error {
 	if auth.Account == "" {
-		return fmt.Errorf("missing Auth.Jwt.Account")
+		return errors.New("missing Auth.Jwt.Account")
 	}
 	if auth.ServiceID == "" {
-		return fmt.Errorf("missing Auth.Jwt.ServiceID")
+		return errors.New("missing Auth.Jwt.ServiceID")
 	}
 	if auth.ServiceAccountRef == nil && auth.SecretRef == nil {
-		return fmt.Errorf("must specify Auth.Jwt.SecretRef or Auth.Jwt.ServiceAccountRef")
+		return errors.New("must specify Auth.Jwt.SecretRef or Auth.Jwt.ServiceAccountRef")
 	}
 	if auth.SecretRef != nil {
 		if err := utils.ValidateReferentSecretSelector(store, *auth.SecretRef); err != nil {

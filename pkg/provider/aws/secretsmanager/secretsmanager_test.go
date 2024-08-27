@@ -111,7 +111,7 @@ func makeValidSecretsManagerTestCaseCustom(tweaks ...func(smtc *secretsManagerTe
 // This case can be shared by both GetSecret and GetSecretMap tests.
 // bad case: set apiErr.
 var setAPIErr = func(smtc *secretsManagerTestCase) {
-	smtc.apiErr = fmt.Errorf("oh no")
+	smtc.apiErr = errors.New("oh no")
 	smtc.expectError = "oh no"
 }
 
@@ -769,7 +769,7 @@ func TestSetSecret(t *testing.T) {
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
 			want: want{
-				err: fmt.Errorf("secret not managed by external-secrets"),
+				err: errors.New("secret not managed by external-secrets"),
 			},
 		},
 	}
