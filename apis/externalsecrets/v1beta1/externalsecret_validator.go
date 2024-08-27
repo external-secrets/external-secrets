@@ -40,35 +40,35 @@ func (esv *ExternalSecretValidator) ValidateDelete(_ context.Context, _ runtime.
 func validateExternalSecret(obj runtime.Object) (admission.Warnings, error) {
 	es, ok := obj.(*ExternalSecret)
 	if !ok {
-		return nil, fmt.Errorf("unexpected type")
+		return nil, errors.New("unexpected type")
 	}
 
 	var errs error
 	if (es.Spec.Target.DeletionPolicy == DeletionPolicyDelete && es.Spec.Target.CreationPolicy == CreatePolicyMerge) ||
 		(es.Spec.Target.DeletionPolicy == DeletionPolicyDelete && es.Spec.Target.CreationPolicy == CreatePolicyNone) {
-		errs = errors.Join(errs, fmt.Errorf("deletionPolicy=Delete must not be used when the controller doesn't own the secret. Please set creationPolicy=Owner"))
+		errs = errors.Join(errs, errors.New("deletionPolicy=Delete must not be used when the controller doesn't own the secret. Please set creationPolicy=Owner"))
 	}
 
 	if es.Spec.Target.DeletionPolicy == DeletionPolicyMerge && es.Spec.Target.CreationPolicy == CreatePolicyNone {
-		errs = errors.Join(errs, fmt.Errorf("deletionPolicy=Merge must not be used with creationPolicy=None. There is no Secret to merge with"))
+		errs = errors.Join(errs, errors.New("deletionPolicy=Merge must not be used with creationPolicy=None. There is no Secret to merge with"))
 	}
 
 	if len(es.Spec.Data) == 0 && len(es.Spec.DataFrom) == 0 {
-		errs = errors.Join(errs, fmt.Errorf("either data or dataFrom should be specified"))
+		errs = errors.Join(errs, errors.New("either data or dataFrom should be specified"))
 	}
 
 	for _, ref := range es.Spec.DataFrom {
 		generatorRef := ref.SourceRef != nil && ref.SourceRef.GeneratorRef != nil
 		if (ref.Find != nil && (ref.Extract != nil || generatorRef)) || (ref.Extract != nil && (ref.Find != nil || generatorRef)) || (generatorRef && (ref.Find != nil || ref.Extract != nil)) {
-			errs = errors.Join(errs, fmt.Errorf("extract, find, or generatorRef cannot be set at the same time"))
+			errs = errors.Join(errs, errors.New("extract, find, or generatorRef cannot be set at the same time"))
 		}
 
 		if ref.Find == nil && ref.Extract == nil && ref.SourceRef == nil {
-			errs = errors.Join(errs, fmt.Errorf("either extract, find, or sourceRef must be set to dataFrom"))
+			errs = errors.Join(errs, errors.New("either extract, find, or sourceRef must be set to dataFrom"))
 		}
 
 		if ref.SourceRef != nil && ref.SourceRef.GeneratorRef == nil && ref.SourceRef.SecretStoreRef == nil {
-			errs = errors.Join(errs, fmt.Errorf("generatorRef or storeRef must be set when using sourceRef in dataFrom"))
+			errs = errors.Join(errs, errors.New("generatorRef or storeRef must be set when using sourceRef in dataFrom"))
 		}
 	}
 

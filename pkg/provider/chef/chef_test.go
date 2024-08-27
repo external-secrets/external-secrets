@@ -278,31 +278,31 @@ func TestValidateStore(t *testing.T) {
 	testCases := []ValidateStoreTestCase{
 		{
 			store: makeSecretStore("", baseURL, makeAuth(authName, authNamespace, authKey)),
-			err:   fmt.Errorf("received invalid Chef SecretStore resource: missing username"),
+			err:   errors.New("received invalid Chef SecretStore resource: missing username"),
 		},
 		{
 			store: makeSecretStore(name, "", makeAuth(authName, authNamespace, authKey)),
-			err:   fmt.Errorf("received invalid Chef SecretStore resource: missing serverurl"),
+			err:   errors.New("received invalid Chef SecretStore resource: missing serverurl"),
 		},
 		{
 			store: makeSecretStore(name, baseURL, nil),
-			err:   fmt.Errorf("received invalid Chef SecretStore resource: cannot initialize Chef Client: no valid authType was specified"),
+			err:   errors.New("received invalid Chef SecretStore resource: cannot initialize Chef Client: no valid authType was specified"),
 		},
 		{
 			store: makeSecretStore(name, baseInvalidURL, makeAuth(authName, authNamespace, authKey)),
-			err:   fmt.Errorf("received invalid Chef SecretStore resource: invalid serverurl: parse \"invalid base URL/\": invalid URI for request"),
+			err:   errors.New("received invalid Chef SecretStore resource: invalid serverurl: parse \"invalid base URL/\": invalid URI for request"),
 		},
 		{
 			store: makeSecretStore(name, noEndSlashInvalidBaseURL, makeAuth(authName, authNamespace, authKey)),
-			err:   fmt.Errorf("received invalid Chef SecretStore resource: serverurl does not end with slash(/)"),
+			err:   errors.New("received invalid Chef SecretStore resource: serverurl does not end with slash(/)"),
 		},
 		{
 			store: makeSecretStore(name, baseURL, makeAuth(authName, authNamespace, "")),
-			err:   fmt.Errorf("received invalid Chef SecretStore resource: missing Secret Key"),
+			err:   errors.New("received invalid Chef SecretStore resource: missing Secret Key"),
 		},
 		{
 			store: makeSecretStore(name, baseURL, makeAuth(authName, authNamespace, authKey)),
-			err:   fmt.Errorf("received invalid Chef SecretStore resource: namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore"),
+			err:   errors.New("received invalid Chef SecretStore resource: namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore"),
 		},
 		{
 			store: &esv1beta1.SecretStore{
@@ -310,7 +310,7 @@ func TestValidateStore(t *testing.T) {
 					Provider: nil,
 				},
 			},
-			err: fmt.Errorf("received invalid Chef SecretStore resource: missing provider"),
+			err: errors.New("received invalid Chef SecretStore resource: missing provider"),
 		},
 		{
 			store: &esv1beta1.SecretStore{
@@ -320,7 +320,7 @@ func TestValidateStore(t *testing.T) {
 					},
 				},
 			},
-			err: fmt.Errorf("received invalid Chef SecretStore resource: missing chef provider"),
+			err: errors.New("received invalid Chef SecretStore resource: missing chef provider"),
 		},
 	}
 	pc := Providerchef{}

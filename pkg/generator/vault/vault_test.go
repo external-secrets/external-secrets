@@ -17,7 +17,6 @@ package vaultdynamic
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -91,7 +90,7 @@ spec:
 				kube: clientfake.NewClientBuilder().Build(),
 			},
 			want: want{
-				err: fmt.Errorf("unable to setup Vault client: no role name was provided"),
+				err: errors.New("unable to setup Vault client: no role name was provided"),
 			},
 		},
 		"EmptyVaultResponse": {
@@ -124,7 +123,7 @@ spec:
 				}).Build(),
 			},
 			want: want{
-				err: fmt.Errorf("unable to get dynamic secret: empty response from Vault"),
+				err: errors.New("unable to get dynamic secret: empty response from Vault"),
 			},
 		},
 		"EmptyVaultPOST": {
@@ -159,7 +158,7 @@ spec:
 				}).Build(),
 			},
 			want: want{
-				err: fmt.Errorf("unable to get dynamic secret: empty response from Vault"),
+				err: errors.New("unable to get dynamic secret: empty response from Vault"),
 			},
 		},
 	}

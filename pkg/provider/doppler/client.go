@@ -17,6 +17,7 @@ package doppler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -119,7 +120,7 @@ func (c *Client) DeleteSecret(_ context.Context, ref esv1beta1.PushSecretRemoteR
 }
 
 func (c *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf("not implemented")
+	return false, errors.New("not implemented")
 }
 
 func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {

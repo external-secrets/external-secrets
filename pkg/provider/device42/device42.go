@@ -16,6 +16,7 @@ package device42
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -67,7 +68,7 @@ func (c *device42Client) getAuth(ctx context.Context) (string, string, error) {
 	credentialsSecret := &corev1.Secret{}
 	credentialsSecretName := c.store.Auth.SecretRef.Credentials.Name
 	if credentialsSecretName == "" {
-		return "", "", fmt.Errorf(errCredSecretName)
+		return "", "", errors.New(errCredSecretName)
 	}
 	objectKey := types.NamespacedName{
 		Name:      credentialsSecretName,
@@ -76,7 +77,7 @@ func (c *device42Client) getAuth(ctx context.Context) (string, string, error) {
 	// only ClusterStore is allowed to set namespace (and then it's required)
 	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
 		if c.store.Auth.SecretRef.Credentials.Namespace == nil {
-			return "", "", fmt.Errorf(errInvalidClusterStoreMissingSAKNamespace)
+			return "", "", errors.New(errInvalidClusterStoreMissingSAKNamespace)
 		}
 		objectKey.Namespace = *c.store.Auth.SecretRef.Credentials.Namespace
 	}
@@ -89,7 +90,7 @@ func (c *device42Client) getAuth(ctx context.Context) (string, string, error) {
 	username := credentialsSecret.Data["username"]
 	password := credentialsSecret.Data["password"]
 	if len(username) == 0 || len(password) == 0 {
-		return "", "", fmt.Errorf(errMissingSAK)
+		return "", "", errors.New(errMissingSAK)
 	}
 
 	return string(username), string(password), nil
@@ -103,7 +104,7 @@ func NewDevice42Provider() *Device42 {
 func (p *Device42) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Device42 == nil {
-		return nil, fmt.Errorf("no store type or wrong store type")
+		return nil, errors.New("no store type or wrong store type")
 	}
 	storeSpecDevice42 := storeSpec.Provider.Device42
 
@@ -125,7 +126,7 @@ func (p *Device42) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 }
 
 func (p *Device42) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf(errNotImplemented)
+	return false, errors.New(errNotImplemented)
 }
 
 func (p *Device42) Validate() (esv1beta1.ValidationResult, error) {
@@ -139,20 +140,20 @@ func (p *Device42) Validate() (esv1beta1.ValidationResult, error) {
 }
 
 func (p *Device42) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return fmt.Errorf(errNotImplemented)
+	return errors.New(errNotImplemented)
 }
 
 func (p *Device42) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	return nil, fmt.Errorf(errNotImplemented)
+	return nil, errors.New(errNotImplemented)
 }
 
 func (p *Device42) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf(errNotImplemented)
+	return errors.New(errNotImplemented)
 }
 
 func (p *Device42) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(p.client) {
-		return nil, fmt.Errorf(errUninitializedProvider)
+		return nil, errors.New(errUninitializedProvider)
 	}
 
 	data, err := p.client.GetSecret(ref.Key)

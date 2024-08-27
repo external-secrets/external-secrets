@@ -17,6 +17,7 @@ package vaultdynamic
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	vault "github.com/hashicorp/vault/api"
@@ -61,14 +62,14 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 
 func (g *Generator) generate(ctx context.Context, c *provider.Provider, jsonSpec *apiextensions.JSON, kube client.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (map[string][]byte, error) {
 	if jsonSpec == nil {
-		return nil, fmt.Errorf(errNoSpec)
+		return nil, errors.New(errNoSpec)
 	}
 	res, err := parseSpec(jsonSpec.Raw)
 	if err != nil {
 		return nil, fmt.Errorf(errParseSpec, err)
 	}
 	if res == nil || res.Spec.Provider == nil {
-		return nil, fmt.Errorf("no Vault provider config in spec")
+		return nil, errors.New("no Vault provider config in spec")
 	}
 	cl, err := c.NewGeneratorClient(ctx, kube, corev1, res.Spec.Provider, namespace)
 	if err != nil {
@@ -96,7 +97,7 @@ func (g *Generator) generate(ctx context.Context, c *provider.Provider, jsonSpec
 		return nil, err
 	}
 	if result == nil {
-		return nil, fmt.Errorf(errGetSecret, fmt.Errorf("empty response from Vault"))
+		return nil, fmt.Errorf(errGetSecret, errors.New("empty response from Vault"))
 	}
 
 	data := make(map[string]any)

@@ -178,7 +178,7 @@ func TestFindItem(t *testing.T) {
 				{
 					checkNote:    "two vaults",
 					findItemName: myItem,
-					expectedErr:  fmt.Errorf("key not found in 1Password Vaults: my-item in: map[my-shared-vault:2 my-vault:1]"),
+					expectedErr:  errors.New("key not found in 1Password Vaults: my-item in: map[my-shared-vault:2 my-vault:1]"),
 				},
 			},
 		},
@@ -371,7 +371,7 @@ func TestValidateStore(t *testing.T) {
 					Provider: nil,
 				},
 			},
-			expectedErr: fmt.Errorf(errOnePasswordStore, fmt.Errorf(errOnePasswordStoreNilSpecProvider)),
+			expectedErr: fmt.Errorf(errOnePasswordStore, errors.New(errOnePasswordStoreNilSpecProvider)),
 		},
 		{
 			checkNote: "invalid: nil OnePassword provider spec",
@@ -385,7 +385,7 @@ func TestValidateStore(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: fmt.Errorf(errOnePasswordStore, fmt.Errorf(errOnePasswordStoreNilSpecProviderOnePassword)),
+			expectedErr: fmt.Errorf(errOnePasswordStore, errors.New(errOnePasswordStoreNilSpecProviderOnePassword)),
 		},
 		{
 			checkNote: "valid secretStore",
@@ -441,7 +441,7 @@ func TestValidateStore(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: fmt.Errorf(errOnePasswordStore, fmt.Errorf("namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore")),
+			expectedErr: fmt.Errorf(errOnePasswordStore, errors.New("namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore")),
 		},
 		{
 			checkNote: "invalid: more than one vault with the same number",
@@ -469,7 +469,7 @@ func TestValidateStore(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: fmt.Errorf(errOnePasswordStore, fmt.Errorf(errOnePasswordStoreNonUniqueVaultNumbers)),
+			expectedErr: fmt.Errorf(errOnePasswordStore, errors.New(errOnePasswordStoreNonUniqueVaultNumbers)),
 		},
 		{
 			checkNote: "valid: clusterSecretStore",
@@ -525,7 +525,7 @@ func TestValidateStore(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: fmt.Errorf(errOnePasswordStore, fmt.Errorf("cluster scope requires namespace")),
+			expectedErr: fmt.Errorf(errOnePasswordStore, errors.New("cluster scope requires namespace")),
 		},
 		{
 			checkNote: "invalid: missing connectTokenSecretRef.name",
@@ -552,7 +552,7 @@ func TestValidateStore(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: fmt.Errorf(errOnePasswordStore, fmt.Errorf(errOnePasswordStoreMissingRefName)),
+			expectedErr: fmt.Errorf(errOnePasswordStore, errors.New(errOnePasswordStoreMissingRefName)),
 		},
 		{
 			checkNote: "invalid: missing connectTokenSecretRef.key",
@@ -579,7 +579,7 @@ func TestValidateStore(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: fmt.Errorf(errOnePasswordStore, fmt.Errorf(errOnePasswordStoreMissingRefKey)),
+			expectedErr: fmt.Errorf(errOnePasswordStore, errors.New(errOnePasswordStoreMissingRefKey)),
 		},
 		{
 			checkNote: "invalid: at least one vault",
@@ -604,7 +604,7 @@ func TestValidateStore(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: fmt.Errorf(errOnePasswordStore, fmt.Errorf(errOnePasswordStoreAtLeastOneVault)),
+			expectedErr: fmt.Errorf(errOnePasswordStore, errors.New(errOnePasswordStoreAtLeastOneVault)),
 		},
 		{
 			checkNote: "invalid: url",
@@ -631,7 +631,7 @@ func TestValidateStore(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: fmt.Errorf(errOnePasswordStore, fmt.Errorf(errOnePasswordStoreInvalidConnectHost, fmt.Errorf("parse \":/invalid.invalid\": missing protocol scheme"))),
+			expectedErr: fmt.Errorf(errOnePasswordStore, fmt.Errorf(errOnePasswordStoreInvalidConnectHost, errors.New("parse \":/invalid.invalid\": missing protocol scheme"))),
 		},
 	}
 
@@ -716,7 +716,7 @@ func TestGetSecret(t *testing.T) {
 						Property: key1,
 						Version:  "123",
 					},
-					expectedErr: fmt.Errorf(errVersionNotImplemented),
+					expectedErr: errors.New(errVersionNotImplemented),
 				},
 			},
 		},
@@ -764,7 +764,7 @@ func TestGetSecret(t *testing.T) {
 						Key:      myItem,
 						Property: "you-cant-find-me.png",
 					},
-					expectedErr: fmt.Errorf(errDocumentNotFound, fmt.Errorf("'my-item', 'you-cant-find-me.png'")),
+					expectedErr: fmt.Errorf(errDocumentNotFound, errors.New("'my-item', 'you-cant-find-me.png'")),
 				},
 			},
 		},
@@ -881,7 +881,7 @@ func TestGetSecretMap(t *testing.T) {
 						Property: key1,
 						Version:  "123",
 					},
-					expectedErr: fmt.Errorf(errVersionNotImplemented),
+					expectedErr: errors.New(errVersionNotImplemented),
 				},
 			},
 		},
@@ -1096,7 +1096,7 @@ func TestGetAllSecrets(t *testing.T) {
 							"asdf": "fdas",
 						},
 					},
-					expectedErr: fmt.Errorf(errTagsNotImplemented),
+					expectedErr: errors.New(errTagsNotImplemented),
 				},
 			},
 		},

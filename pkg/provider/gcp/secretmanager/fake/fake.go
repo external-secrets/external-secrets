@@ -198,7 +198,7 @@ func (mc *MockSMClient) WithValue(_ context.Context, req *secretmanagerpb.Access
 			// type secretmanagerpb.AccessSecretVersionRequest contains unexported fields
 			// use cmpopts.IgnoreUnexported to ignore all the unexported fields in the cmp.
 			if !cmp.Equal(paramReq, req, cmpopts.IgnoreUnexported(secretmanagerpb.AccessSecretVersionRequest{})) {
-				return nil, fmt.Errorf("unexpected test argument")
+				return nil, errors.New("unexpected test argument")
 			}
 			return val, err
 		}

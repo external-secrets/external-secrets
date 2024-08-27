@@ -15,6 +15,7 @@ limitations under the License.
 package util
 
 import (
+	"errors"
 	"fmt"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -31,18 +32,18 @@ const (
 // it returns the conjur provider or an error.
 func GetConjurProvider(store esv1beta1.GenericStore) (*esv1beta1.ConjurProvider, error) {
 	if store == nil {
-		return nil, fmt.Errorf(errNilStore)
+		return nil, errors.New(errNilStore)
 	}
 	spec := store.GetSpec()
 	if spec == nil {
-		return nil, fmt.Errorf(errMissingStoreSpec)
+		return nil, errors.New(errMissingStoreSpec)
 	}
 	if spec.Provider == nil {
-		return nil, fmt.Errorf(errMissingProvider)
+		return nil, errors.New(errMissingProvider)
 	}
 
 	if spec.Provider.Conjur == nil {
-		return nil, fmt.Errorf(errMissingProvider)
+		return nil, errors.New(errMissingProvider)
 	}
 
 	prov := spec.Provider.Conjur

@@ -16,6 +16,7 @@ package akeyless
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -85,7 +86,7 @@ func makeValidAkeylessTestCaseCustom(tweaks ...func(smtc *akeylessTestCase)) *ak
 // This case can be shared by both GetSecret and GetSecretMap tests.
 // bad case: set apiErr.
 var setAPIErr = func(smtc *akeylessTestCase) {
-	smtc.apiOutput.Err = fmt.Errorf("oh no")
+	smtc.apiOutput.Err = errors.New("oh no")
 	smtc.expectError = "oh no"
 }
 
@@ -160,7 +161,7 @@ func TestValidateStore(t *testing.T) {
 
 		_, err := provider.ValidateStore(store)
 		if err != nil {
-			t.Errorf(err.Error())
+			t.Error(err.Error())
 		}
 	})
 
@@ -186,7 +187,7 @@ func TestValidateStore(t *testing.T) {
 
 		_, err := provider.ValidateStore(store)
 		if err != nil {
-			t.Errorf(err.Error())
+			t.Error(err.Error())
 		}
 	})
 

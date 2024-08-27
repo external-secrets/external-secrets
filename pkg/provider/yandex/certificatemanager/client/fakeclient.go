@@ -16,7 +16,7 @@ package client
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -117,20 +117,20 @@ func (s *FakeCertificateManagerServer) NewIamToken(authorizedKey *iamkey.Key) *c
 
 func (s *FakeCertificateManagerServer) getCertificateContent(iamToken, certificateID, versionID string) (*api.GetCertificateContentResponse, error) {
 	if _, ok := s.certificateMap[certificateKey{certificateID}]; !ok {
-		return nil, fmt.Errorf("certificate not found")
+		return nil, errors.New("certificate not found")
 	}
 	if _, ok := s.versionMap[versionKey{certificateID, versionID}]; !ok {
-		return nil, fmt.Errorf("version not found")
+		return nil, errors.New("version not found")
 	}
 	if _, ok := s.tokenMap[tokenKey{iamToken}]; !ok {
-		return nil, fmt.Errorf("unauthenticated")
+		return nil, errors.New("unauthenticated")
 	}
 
 	if s.tokenMap[tokenKey{iamToken}].expiresAt.Before(s.clock.CurrentTime()) {
-		return nil, fmt.Errorf("iam token expired")
+		return nil, errors.New("iam token expired")
 	}
 	if !cmp.Equal(s.tokenMap[tokenKey{iamToken}].authorizedKey, s.certificateMap[certificateKey{certificateID}].expectedAuthorizedKey, cmpopts.IgnoreUnexported(iamkey.Key{})) {
-		return nil, fmt.Errorf("permission denied")
+		return nil, errors.New("permission denied")
 	}
 
 	return s.versionMap[versionKey{certificateID, versionID}].content, nil

@@ -16,6 +16,7 @@ package doppler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -55,7 +56,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	storeSpec := store.GetSpec()
 
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Doppler == nil {
-		return nil, fmt.Errorf(errDopplerStore)
+		return nil, errors.New(errDopplerStore)
 	}
 
 	dopplerStoreSpec := storeSpec.Provider.Doppler
