@@ -29,6 +29,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"time"
 
@@ -107,18 +108,9 @@ type CertInfo struct {
 	CAName   string
 }
 
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
-
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("CustomResourceDefinition", req.NamespacedName)
-	if contains(r.CrdResources, req.NamespacedName.Name) {
+	if slices.Contains(r.CrdResources, req.NamespacedName.Name) {
 		err := r.updateCRD(ctx, req)
 		if err != nil {
 			log.Error(err, "failed to inject conversion webhook")
