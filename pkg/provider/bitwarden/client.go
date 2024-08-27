@@ -16,6 +16,7 @@ package bitwarden
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -205,7 +206,29 @@ func (p *Provider) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRem
 
 // GetSecretMap returns multiple k/v pairs from the provider.
 func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	return nil, errors.New("GetSecretMap() not implemented")
+	data, err := p.GetSecret(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+
+	kv := make(map[string]json.RawMessage)
+	err = json.Unmarshal(data, &kv)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling secret: %w", err)
+	}
+
+	secretData := make(map[string][]byte)
+	for k, v := range kv {
+		var strVal string
+		err = json.Unmarshal(v, &strVal)
+		if err == nil {
+			secretData[k] = []byte(strVal)
+		} else {
+			secretData[k] = v
+		}
+	}
+
+	return secretData, nil
 }
 
 // GetAllSecrets gets multiple secrets from the provider and loads into a kubernetes secret.
