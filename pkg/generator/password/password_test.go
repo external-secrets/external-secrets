@@ -15,7 +15,7 @@ limitations under the License.
 package password
 
 import (
-	"fmt"
+	"errors"
 	"reflect"
 	"testing"
 
@@ -103,7 +103,7 @@ func TestGenerate(t *testing.T) {
 				},
 				passGen: func(len int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
 				) (string, error) {
-					return "", fmt.Errorf("boom")
+					return "", errors.New("boom")
 				},
 			},
 			wantErr: true,

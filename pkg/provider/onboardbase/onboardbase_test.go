@@ -16,7 +16,7 @@ package onboardbase
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"strings"
 	"testing"
 
@@ -128,7 +128,7 @@ func TestGetSecret(t *testing.T) {
 		pstc.request.Name = missingSecret
 		pstc.response = nil
 		pstc.expectError = missingSecretErr
-		pstc.apiErr = fmt.Errorf("")
+		pstc.apiErr = errors.New("")
 	}
 
 	setInvalidSecret := func(pstc *onboardbaseTestCase) {
@@ -137,14 +137,14 @@ func TestGetSecret(t *testing.T) {
 		pstc.request.Name = invalidSecret
 		pstc.response = nil
 		pstc.expectError = missingSecretErr
-		pstc.apiErr = fmt.Errorf("")
+		pstc.apiErr = errors.New("")
 	}
 
 	setClientError := func(pstc *onboardbaseTestCase) {
 		pstc.label = "invalid client error"
 		pstc.response = &client.SecretResponse{}
 		pstc.expectError = missingSecretErr
-		pstc.apiErr = fmt.Errorf("")
+		pstc.apiErr = errors.New("")
 	}
 
 	testCases := []*onboardbaseTestCase{
@@ -175,7 +175,7 @@ func TestDeleteSecret(t *testing.T) {
 		pstc.request.Name = missingSecret
 		pstc.response = nil
 		pstc.expectError = missingSecretErr
-		pstc.apiErr = fmt.Errorf("")
+		pstc.apiErr = errors.New("")
 	}
 
 	setInvalidSecret := func(pstc *onboardbaseTestCase) {
@@ -185,7 +185,7 @@ func TestDeleteSecret(t *testing.T) {
 		pstc.request.Name = invalidSecret
 		pstc.response = nil
 		pstc.expectError = missingSecretErr
-		pstc.apiErr = fmt.Errorf("")
+		pstc.apiErr = errors.New("")
 	}
 
 	deleteSecret := func(pstc *onboardbaseTestCase) {
@@ -237,7 +237,7 @@ func TestGetSecretMap(t *testing.T) {
 		pstc.label = "client error"
 		pstc.response = &client.SecretResponse{}
 		pstc.expectError = missingSecretErr
-		pstc.apiErr = fmt.Errorf("")
+		pstc.apiErr = errors.New("")
 	}
 
 	testCases := []*onboardbaseTestCase{
@@ -319,17 +319,17 @@ func TestValidateStore(t *testing.T) {
 		{
 			label: "invalid store missing onboardbaseAPIKey.name",
 			store: makeSecretStore(withAuth("", "", nil, "")),
-			err:   fmt.Errorf("invalid store: onboardbaseAPIKey.name cannot be empty"),
+			err:   errors.New("invalid store: onboardbaseAPIKey.name cannot be empty"),
 		},
 		{
 			label: "invalid store missing onboardbasePasscode.name",
 			store: makeSecretStore(withAuth(secretName, "", nil, "")),
-			err:   fmt.Errorf("invalid store: onboardbasePasscode.name cannot be empty"),
+			err:   errors.New("invalid store: onboardbasePasscode.name cannot be empty"),
 		},
 		{
 			label: "invalid store namespace not allowed",
 			store: makeSecretStore(withAuth(secretName, "", &namespace, "passcode")),
-			err:   fmt.Errorf("invalid store: namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore"),
+			err:   errors.New("invalid store: namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore"),
 		},
 		{
 			label: "valid provide optional onboardbaseAPIKey.key",

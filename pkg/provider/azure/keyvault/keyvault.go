@@ -79,21 +79,17 @@ const (
 	errInvalidClientCredentials = "both clientSecret and clientCredentials set"
 	errMultipleClientID         = "multiple clientID found. Check secretRef and serviceAccountRef"
 	errMultipleTenantID         = "multiple tenantID found. Check secretRef, 'spec.provider.azurekv.tenantId', and serviceAccountRef"
-	errFindSecret               = "could not find secret %s/%s: %w"
-	errFindDataKey              = "no data for %q in secret '%s/%s'"
 
-	errInvalidStore                   = "invalid store"
-	errInvalidStoreSpec               = "invalid store spec"
-	errInvalidStoreProv               = "invalid store provider"
-	errInvalidAzureProv               = "invalid azure keyvault provider"
-	errInvalidSecRefClientID          = "invalid AuthSecretRef.ClientID: %w"
-	errInvalidSecRefClientSecret      = "invalid AuthSecretRef.ClientSecret: %w"
-	errInvalidSecRefClientCertificate = "invalid AuthSecretRef.ClientCertificate: %w"
-	errInvalidSARef                   = "invalid ServiceAccountRef: %w"
+	errInvalidStore              = "invalid store"
+	errInvalidStoreSpec          = "invalid store spec"
+	errInvalidStoreProv          = "invalid store provider"
+	errInvalidAzureProv          = "invalid azure keyvault provider"
+	errInvalidSecRefClientID     = "invalid AuthSecretRef.ClientID: %w"
+	errInvalidSecRefClientSecret = "invalid AuthSecretRef.ClientSecret: %w"
+	errInvalidSARef              = "invalid ServiceAccountRef: %w"
 
 	errMissingWorkloadEnvVars = "missing environment variables. AZURE_CLIENT_ID, AZURE_TENANT_ID and AZURE_FEDERATED_TOKEN_FILE must be set"
 	errReadTokenFile          = "unable to read token file %s: %w"
-	errMissingSAAnnotation    = "missing service account annotation: %s"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -177,7 +173,7 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 	case esv1beta1.AzureWorkloadIdentity:
 		authorizer, err = az.authorizerForWorkloadIdentity(ctx, NewTokenProvider)
 	default:
-		err = fmt.Errorf(errMissingAuthType)
+		err = errors.New(errMissingAuthType)
 	}
 
 	cl := keyvault.New()
@@ -198,18 +194,18 @@ func getProvider(store esv1beta1.GenericStore) (*esv1beta1.AzureKVProvider, erro
 
 func (a *Azure) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
-		return nil, fmt.Errorf(errInvalidStore)
+		return nil, errors.New(errInvalidStore)
 	}
 	spc := store.GetSpec()
 	if spc == nil {
-		return nil, fmt.Errorf(errInvalidStoreSpec)
+		return nil, errors.New(errInvalidStoreSpec)
 	}
 	if spc.Provider == nil {
-		return nil, fmt.Errorf(errInvalidStoreProv)
+		return nil, errors.New(errInvalidStoreProv)
 	}
 	p := spc.Provider.AzureKV
 	if p == nil {
-		return nil, fmt.Errorf(errInvalidAzureProv)
+		return nil, errors.New(errInvalidAzureProv)
 	}
 	if p.AuthSecretRef != nil {
 		if p.AuthSecretRef.ClientID != nil {
@@ -245,7 +241,7 @@ func canDelete(tags map[string]*string, err error) (bool, error) {
 	}
 	manager, ok := tags["managed-by"]
 	if !ok || manager == nil || *manager != managerLabel {
-		return false, fmt.Errorf("not managed by external-secrets")
+		return false, errors.New("not managed by external-secrets")
 	}
 	return true, nil
 }
@@ -374,7 +370,7 @@ func getCertificateFromValue(value []byte) (*x509.Certificate, error) {
 			return cert, nil
 		}
 	}
-	return nil, fmt.Errorf("could not parse certificate value as PKCS#12, DER or PEM")
+	return nil, errors.New("could not parse certificate value as PKCS#12, DER or PEM")
 }
 
 func getKeyFromValue(value []byte) (any, error) {
@@ -409,7 +405,7 @@ func canCreate(tags map[string]*string, err error) (bool, error) {
 	if err == nil {
 		manager, ok := tags["managed-by"]
 		if !ok || manager == nil || *manager != managerLabel {
-			return false, fmt.Errorf("not managed by external-secrets")
+			return false, errors.New("not managed by external-secrets")
 		}
 	}
 	return true, nil
@@ -770,9 +766,9 @@ func (a *Azure) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDa
 		return getSecretMapMap(data)
 
 	case objectTypeCert:
-		return nil, fmt.Errorf(errDataFromCert)
+		return nil, errors.New(errDataFromCert)
 	case objectTypeKey:
-		return nil, fmt.Errorf(errDataFromKey)
+		return nil, errors.New(errDataFromKey)
 	}
 	return nil, fmt.Errorf(errUnknownObjectType, secretName)
 }
@@ -855,7 +851,7 @@ func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider
 	// First check if AuthSecretRef is set and clientID can be fetched from there
 	if a.provider.AuthSecretRef != nil {
 		if a.provider.AuthSecretRef.ClientID == nil {
-			return nil, fmt.Errorf(errMissingClientIDSecret)
+			return nil, errors.New(errMissingClientIDSecret)
 		}
 		clientID, err = resolvers.SecretKeyRef(
 			ctx,
@@ -872,7 +868,7 @@ func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider
 		if val, found := sa.ObjectMeta.Annotations[AnnotationClientID]; found {
 			// If clientID is defined in both Annotations and AuthSecretRef, return an error
 			if clientID != "" {
-				return nil, fmt.Errorf(errMultipleClientID)
+				return nil, errors.New(errMultipleClientID)
 			}
 			clientID = val
 		}
@@ -907,7 +903,7 @@ func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider
 		if val, found := sa.ObjectMeta.Annotations[AnnotationTenantID]; found {
 			// If tenantID is defined in both Annotations and AuthSecretRef, return an error
 			if tenantID != "" {
-				return nil, fmt.Errorf(errMultipleTenantID)
+				return nil, errors.New(errMultipleTenantID)
 			}
 			tenantID = val
 		}
@@ -995,16 +991,16 @@ func (a *Azure) authorizerForManagedIdentity() (autorest.Authorizer, error) {
 
 func (a *Azure) authorizerForServicePrincipal(ctx context.Context) (autorest.Authorizer, error) {
 	if a.provider.TenantID == nil {
-		return nil, fmt.Errorf(errMissingTenant)
+		return nil, errors.New(errMissingTenant)
 	}
 	if a.provider.AuthSecretRef == nil {
-		return nil, fmt.Errorf(errMissingSecretRef)
+		return nil, errors.New(errMissingSecretRef)
 	}
 	if a.provider.AuthSecretRef.ClientID == nil || (a.provider.AuthSecretRef.ClientSecret == nil && a.provider.AuthSecretRef.ClientCertificate == nil) {
-		return nil, fmt.Errorf(errMissingClientIDSecret)
+		return nil, errors.New(errMissingClientIDSecret)
 	}
 	if a.provider.AuthSecretRef.ClientSecret != nil && a.provider.AuthSecretRef.ClientCertificate != nil {
-		return nil, fmt.Errorf(errInvalidClientCredentials)
+		return nil, errors.New(errInvalidClientCredentials)
 	}
 
 	return a.getAuthorizerFromCredentials(ctx)

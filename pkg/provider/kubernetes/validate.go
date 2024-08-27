@@ -16,6 +16,7 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	authv1 "k8s.io/api/authorization/v1"
@@ -32,19 +33,19 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 	storeSpec := store.GetSpec()
 	k8sSpec := storeSpec.Provider.Kubernetes
 	if k8sSpec.AuthRef == nil && k8sSpec.Server.CABundle == nil && k8sSpec.Server.CAProvider == nil {
-		return nil, fmt.Errorf("a CABundle or CAProvider is required")
+		return nil, errors.New("a CABundle or CAProvider is required")
 	}
 	if store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind &&
 		k8sSpec.Server.CAProvider != nil &&
 		k8sSpec.Server.CAProvider.Namespace == nil {
-		return nil, fmt.Errorf("CAProvider.namespace must not be empty with ClusterSecretStore")
+		return nil, errors.New("CAProvider.namespace must not be empty with ClusterSecretStore")
 	}
 	if k8sSpec.Auth.Cert != nil {
 		if k8sSpec.Auth.Cert.ClientCert.Name == "" {
-			return nil, fmt.Errorf("ClientCert.Name cannot be empty")
+			return nil, errors.New("ClientCert.Name cannot be empty")
 		}
 		if k8sSpec.Auth.Cert.ClientCert.Key == "" {
-			return nil, fmt.Errorf("ClientCert.Key cannot be empty")
+			return nil, errors.New("ClientCert.Key cannot be empty")
 		}
 		if err := utils.ValidateSecretSelector(store, k8sSpec.Auth.Cert.ClientCert); err != nil {
 			return nil, err
@@ -52,10 +53,10 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 	}
 	if k8sSpec.Auth.Token != nil {
 		if k8sSpec.Auth.Token.BearerToken.Name == "" {
-			return nil, fmt.Errorf("BearerToken.Name cannot be empty")
+			return nil, errors.New("BearerToken.Name cannot be empty")
 		}
 		if k8sSpec.Auth.Token.BearerToken.Key == "" {
-			return nil, fmt.Errorf("BearerToken.Key cannot be empty")
+			return nil, errors.New("BearerToken.Key cannot be empty")
 		}
 		if err := utils.ValidateSecretSelector(store, k8sSpec.Auth.Token.BearerToken); err != nil {
 			return nil, err
@@ -94,7 +95,7 @@ func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
 			return esv1beta1.ValidationResultReady, nil
 		}
 	}
-	return esv1beta1.ValidationResultError, fmt.Errorf("client is not allowed to get secrets")
+	return esv1beta1.ValidationResultError, errors.New("client is not allowed to get secrets")
 }
 
 func contains(sub string, args []string) bool {

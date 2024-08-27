@@ -17,7 +17,7 @@ package webhookconfig
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
+	"errors"
 	"net/http"
 	"strings"
 	"sync"
@@ -145,7 +145,7 @@ func (r *Reconciler) ReadyCheck(_ *http.Request) error {
 	r.webhookReadyMu.Lock()
 	defer r.webhookReadyMu.Unlock()
 	if !r.webhookReady {
-		return fmt.Errorf(errWebhookNotReady)
+		return errors.New(errWebhookNotReady)
 	}
 	var eps v1.Endpoints
 	err := r.Get(context.TODO(), types.NamespacedName{
@@ -156,10 +156,10 @@ func (r *Reconciler) ReadyCheck(_ *http.Request) error {
 		return err
 	}
 	if len(eps.Subsets) == 0 {
-		return fmt.Errorf(errSubsetsNotReady)
+		return errors.New(errSubsetsNotReady)
 	}
 	if len(eps.Subsets[0].Addresses) == 0 {
-		return fmt.Errorf(errAddressesNotReady)
+		return errors.New(errAddressesNotReady)
 	}
 	return nil
 }
@@ -178,7 +178,7 @@ func (r *Reconciler) updateConfig(ctx context.Context, cfg *admissionregistratio
 
 	crt, ok := secret.Data[caCertName]
 	if !ok {
-		return fmt.Errorf(errCACertNotReady)
+		return errors.New(errCACertNotReady)
 	}
 	if err := r.inject(cfg, r.SvcName, r.SvcNamespace, crt); err != nil {
 		return err

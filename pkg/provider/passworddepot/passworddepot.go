@@ -35,7 +35,7 @@ const (
 	errFetchSAKSecret                         = "couldn't find secret on cluster: %w"
 	errMissingSAK                             = "missing credentials while setting auth"
 	errUninitalizedPasswordDepotProvider      = "provider passworddepot is not initialized"
-	errJSONSecretUnmarshal                    = "unable to unmarshal secret: %w"
+	errNotImplemented                         = "%s not implemented"
 )
 
 type Client interface {
@@ -69,7 +69,7 @@ func (c *passwordDepotClient) getAuth(ctx context.Context) (string, string, erro
 	credentialsSecret := &corev1.Secret{}
 	credentialsSecretName := c.store.Auth.SecretRef.Credentials.Name
 	if credentialsSecretName == "" {
-		return "", "", fmt.Errorf(errPasswordDepotCredSecretName)
+		return "", "", errors.New(errPasswordDepotCredSecretName)
 	}
 	objectKey := types.NamespacedName{
 		Name:      credentialsSecretName,
@@ -78,7 +78,7 @@ func (c *passwordDepotClient) getAuth(ctx context.Context) (string, string, erro
 	// only ClusterStore is allowed to set namespace (and then it's required)
 	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
 		if c.store.Auth.SecretRef.Credentials.Namespace == nil {
-			return "", "", fmt.Errorf(errInvalidClusterStoreMissingSAKNamespace)
+			return "", "", errors.New(errInvalidClusterStoreMissingSAKNamespace)
 		}
 		objectKey.Namespace = *c.store.Auth.SecretRef.Credentials.Namespace
 	}
@@ -91,22 +91,17 @@ func (c *passwordDepotClient) getAuth(ctx context.Context) (string, string, erro
 	username := credentialsSecret.Data["username"]
 	password := credentialsSecret.Data["password"]
 	if (username == nil) || (len(username) == 0 || password == nil) || (len(password) == 0) {
-		return "", "", fmt.Errorf(errMissingSAK)
+		return "", "", errors.New(errMissingSAK)
 	}
 
 	return string(username), string(password), nil
 }
 
-// Function newPasswordDepotProvider returns a reference to a new instance of a 'PasswordDepot' struct.
-func NewPasswordDepotProvider() *PasswordDepot {
-	return &PasswordDepot{}
-}
-
-// Method on PasswordDepot Provider to set up client with credentials and populate projectID.
+// NewClient Method on PasswordDepot Provider to set up client with credentials and populate projectID.
 func (p *PasswordDepot) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.PasswordDepot == nil {
-		return nil, fmt.Errorf("no store type or wrong store type")
+		return nil, errors.New("no store type or wrong store type")
 	}
 	storeSpecPasswordDepot := storeSpec.Provider.PasswordDepot
 
@@ -135,7 +130,7 @@ func (p *PasswordDepot) NewClient(ctx context.Context, store esv1beta1.GenericSt
 }
 
 func (p *PasswordDepot) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf("not implemented")
+	return false, fmt.Errorf(errNotImplemented, "SecretExists")
 }
 
 func (p *PasswordDepot) Validate() (esv1beta1.ValidationResult, error) {
@@ -143,20 +138,20 @@ func (p *PasswordDepot) Validate() (esv1beta1.ValidationResult, error) {
 }
 
 func (p *PasswordDepot) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf(errNotImplemented, "PushSecret")
 }
 
 func (p *PasswordDepot) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	return nil, fmt.Errorf(errNotImplemented, "GetAllSecrets")
 }
 
 func (p *PasswordDepot) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf("not implemented")
+	return fmt.Errorf(errNotImplemented, "DeleteSecret")
 }
 
 func (p *PasswordDepot) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(p.client) {
-		return nil, fmt.Errorf(errUninitalizedPasswordDepotProvider)
+		return nil, errors.New(errUninitalizedPasswordDepotProvider)
 	}
 
 	data, err := p.client.GetSecret(p.database, ref.Key)

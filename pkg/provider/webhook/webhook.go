@@ -17,6 +17,7 @@ package webhook
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -94,7 +95,7 @@ func (p *Provider) ValidateStore(_ esv1beta1.GenericStore) (admission.Warnings, 
 func getProvider(store esv1beta1.GenericStore) (*webhook.Spec, error) {
 	spc := store.GetSpec()
 	if spc == nil || spc.Provider == nil || spc.Provider.Webhook == nil {
-		return nil, fmt.Errorf("missing store provider webhook")
+		return nil, errors.New("missing store provider webhook")
 	}
 	out := webhook.Spec{}
 	d, err := json.Marshal(spc.Provider.Webhook)
@@ -106,22 +107,22 @@ func getProvider(store esv1beta1.GenericStore) (*webhook.Spec, error) {
 }
 
 func (w *WebHook) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf(errNotImplemented)
+	return errors.New(errNotImplemented)
 }
 
 func (w *WebHook) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf(errNotImplemented)
+	return false, errors.New(errNotImplemented)
 }
 
 // PushSecret not implement.
 func (w *WebHook) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return fmt.Errorf(errNotImplemented)
+	return errors.New(errNotImplemented)
 }
 
 // GetAllSecrets Empty .
 func (w *WebHook) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
-	return nil, fmt.Errorf(errNotImplemented)
+	return nil, errors.New(errNotImplemented)
 }
 
 func (w *WebHook) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
@@ -178,7 +179,7 @@ func extractSecretData(jsondata any) ([]byte, error) {
 	// in case we see a []something we pick the first element and return it
 	case []any:
 		if len(val) == 0 {
-			return nil, fmt.Errorf("filter worked but didn't get any result")
+			return nil, errors.New("filter worked but didn't get any result")
 		}
 		return extractSecretData(val[0])
 

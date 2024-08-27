@@ -271,7 +271,7 @@ func TestGetAllSecrets(t *testing.T) {
 				search:    "^secret[1,2", // Missing `]`
 			},
 			want: want{
-				err:    fmt.Errorf("could not compile find.name.regexp [%s]: %w", "^secret[1,2", fmt.Errorf("error parsing regexp: missing closing ]: `[1,2`")),
+				err:    fmt.Errorf("could not compile find.name.regexp [%s]: %w", "^secret[1,2", errors.New("error parsing regexp: missing closing ]: `[1,2`")),
 				values: nil,
 			},
 		},
@@ -415,7 +415,7 @@ func TestGetSecretMap(t *testing.T) {
 				},
 			},
 			want: want{
-				err: fmt.Errorf("%w", fmt.Errorf("error getting secret json_map: cannot find secret data for key: \"key3\"")),
+				err: fmt.Errorf("%w", errors.New("error getting secret json_map: cannot find secret data for key: \"key3\"")),
 				val: nil,
 			},
 		},

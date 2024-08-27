@@ -31,7 +31,7 @@ import (
 	"bytes"
 	"crypto/x509"
 	"encoding/pem"
-	"fmt"
+	"errors"
 )
 
 const (
@@ -80,7 +80,7 @@ func fetchCertChains(data []byte) ([]byte, error) {
 	for i := range nodes {
 		if !nodes[i].isParent {
 			if foundLeaf {
-				return nil, fmt.Errorf(errFoundDisjunctCert)
+				return nil, errors.New(errFoundDisjunctCert)
 			}
 			// this is the leaf node as it's not a parent for any other node
 			leaf = nodes[i]
@@ -89,7 +89,7 @@ func fetchCertChains(data []byte) ([]byte, error) {
 	}
 
 	if leaf == nil {
-		return nil, fmt.Errorf(errNoLeafFound)
+		return nil, errors.New(errNoLeafFound)
 	}
 
 	processedNodes := 0
@@ -98,7 +98,7 @@ func fetchCertChains(data []byte) ([]byte, error) {
 		processedNodes++
 		// ensure we aren't stuck in a cyclic loop
 		if processedNodes > len(nodes) {
-			return pemData, fmt.Errorf(errChainCycle)
+			return pemData, errors.New(errChainCycle)
 		}
 		newCertChain = append(newCertChain, leaf.cert)
 		leaf = leaf.parent
@@ -131,7 +131,7 @@ func pemToNodes(data []byte) ([]*node, error) {
 		// this should not be the case because ParseCertificate should return a non nil
 		// certificate when there is no error.
 		if cert == nil {
-			return nil, fmt.Errorf(errNilCert)
+			return nil, errors.New(errNilCert)
 		}
 		nodes = append(nodes, &node{
 			cert:     cert,

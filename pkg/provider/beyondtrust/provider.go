@@ -77,17 +77,17 @@ func (*Provider) Close(_ context.Context) error {
 
 // DeleteSecret implements v1beta1.SecretsClient.
 func (*Provider) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf(errNotImplemented)
+	return errors.New(errNotImplemented)
 }
 
 // GetSecretMap implements v1beta1.SecretsClient.
 func (*Provider) GetSecretMap(_ context.Context, _ esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	return make(map[string][]byte), fmt.Errorf(errNotImplemented)
+	return make(map[string][]byte), errors.New(errNotImplemented)
 }
 
 // PushSecret implements v1beta1.SecretsClient.
 func (*Provider) PushSecret(_ context.Context, _ *v1.Secret, _ esv1beta1.PushSecretData) error {
-	return fmt.Errorf(errNotImplemented)
+	return errors.New(errNotImplemented)
 }
 
 // Validate implements v1beta1.SecretsClient.
@@ -104,7 +104,7 @@ func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
 }
 
 func (*Provider) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf(errNotImplemented)
+	return false, errors.New(errNotImplemented)
 }
 
 // NewClient this is where we initialize the SecretClient and return it for the controller to use.
@@ -244,7 +244,7 @@ func validateSecretRef(ref *esv1beta1.BeyondTrustProviderSecretRef) error {
 }
 
 func (p *Provider) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	return nil, fmt.Errorf("GetAllSecrets not implemented")
+	return nil, errors.New("GetAllSecrets not implemented")
 }
 
 // GetSecret reads the secret from the Password Safe server and returns it. The controller uses the value here to
@@ -255,7 +255,7 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretData
 	retrievalPaths := utils.ValidatePaths([]string{ref.Key}, managedAccountType, p.separator, &p.log)
 
 	if len(retrievalPaths) != 1 {
-		return nil, fmt.Errorf(errInvalidRetrievalPath)
+		return nil, errors.New(errInvalidRetrievalPath)
 	}
 
 	retrievalPath := retrievalPaths[0]
@@ -292,17 +292,17 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretData
 // ValidateStore validates the store configuration to prevent unexpected errors.
 func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
-		return nil, fmt.Errorf(errNilStore)
+		return nil, errors.New(errNilStore)
 	}
 
 	spec := store.GetSpec()
 
 	if spec == nil {
-		return nil, fmt.Errorf(errMissingStoreSpec)
+		return nil, errors.New(errMissingStoreSpec)
 	}
 
 	if spec.Provider == nil {
-		return nil, fmt.Errorf(errMissingProvider)
+		return nil, errors.New(errMissingProvider)
 	}
 
 	provider := spec.Provider.Beyondtrust
@@ -312,7 +312,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 
 	apiURL, err := url.Parse(provider.Server.APIURL)
 	if err != nil {
-		return nil, fmt.Errorf(errInvalidHostURL)
+		return nil, errors.New(errInvalidHostURL)
 	}
 
 	if provider.Auth.ClientID.SecretRef != nil {
@@ -324,7 +324,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 	}
 
 	if apiURL.Host == "" {
-		return nil, fmt.Errorf(errInvalidHostURL)
+		return nil, errors.New(errInvalidHostURL)
 	}
 
 	return nil, nil
