@@ -135,7 +135,7 @@ type GitlabMockGroupVariablesClient struct {
 	listVariables func(gid any, options ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error)
 }
 
-func (mc *GitlabMockGroupVariablesClient) GetVariable(gid any, key string, _ ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error) {
+func (mc *GitlabMockGroupVariablesClient) GetVariable(gid any, key string, _ *gitlab.GetGroupVariableOptions, _ ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error) {
 	return mc.getVariable(gid, key, nil)
 }
 
