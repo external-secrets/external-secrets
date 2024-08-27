@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets
 
-go 1.23
+go 1.23.0
 
 replace github.com/Masterminds/sprig/v3 => github.com/external-secrets/sprig/v3 v3.3.0
 
@@ -89,6 +89,7 @@ require (
 	github.com/lestrrat-go/jwx/v2 v2.1.1
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.8.1
 	github.com/passbolt/go-passbolt v0.7.1
+	github.com/previder/vault-cli v0.1.1
 	github.com/pulumi/esc-sdk/sdk v0.9.2
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.29
 	github.com/sethvargo/go-password v0.3.1

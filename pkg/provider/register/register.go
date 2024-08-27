@@ -41,6 +41,7 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/oracle"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/passbolt"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/passworddepot"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/previder"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/pulumi"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/scaleway"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/secretserver"
