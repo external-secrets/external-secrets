@@ -239,33 +239,34 @@ Following drawbacks must be considered:
 * Running `SecretsServer` in separate pod means that gRPC communication between `SecretsClient` and `SecretsServer` will
   happen over the network rather than UNIX socket. All potential issues related to network communication must be considered
   (e.g. timeouts, slow responses, server unavailability, retries).
+* `SecretsServer` will run listening socket available within the cluster. Traffic should be encrypted and `SecretsClient`
+  must be able to authenticate when sending requests to the server.
 * Running `SecretsServer` in the same pod that ESO increases operational burden by making ESO Helm chart more complicated.
 
 ### Acceptance Criteria
-This is purely additive feature and can be reverted if necessary. Users not relying on out of tree secret stores should
-not be affected.
+Rolling the feature out should bring no risk to existing users as it is purely additive. The feature can be reverted and
+removed if necessary (e.g. if the implementation would harm ESO stability) without any effect for users not using it. It
+should be released gradually, starting with alpha and promoted to beta when it matures enough.
 
 Implementation must:
 * Expose metrics for: median, p75, p90, p95 and p99 of communication latency between `SecretsClient` and `SecretsServer`.
 * Use Distributed Tracing for communication between `SecretsClient` and `SecretsServer`.
 
+Observability features of `SecretsServer` are left to discretion of implementing party.
+
 In case of high latency between `SecretsClient` and `SecretsServer` user will be able to retrieve latency distribution
-and analyze distributed traces in order to understand what went wrong.
-In case of lack of connectivity appropriate timeout (connect timeout and connection timeout) must be set in `SecretsClient`
-so that connection is terminated. A service mesh can be used to provide circuit breaker facility.
+and analyze distributed traces to understand what went wrong. In case of lack of connectivity appropriate timeout (connect
+timeout and connection timeout) must be set in `SecretsClient` so that connection is terminated. A service mesh can be
+used to provide circuit breaker facility.
 
+Unit tests must be provided to verify behaviour of `SecretsClient` in case of various responses from `SecretsServer`.
+Responses must include erroneous ones, and they must ba handled gracefully by the client. Non-conformant response from
+the server must not cause ESO to panic.
 
-What does it take to make this feature producation ready? Please take the time to think about:
-* how would you rollout this feature and rollback if it causes harm?
-* Test Roadmap: what kinds of tests do we want to ensure a good user experience?
-* observability: Do users need to get insights into the inner workings of that feature?
-* monitoring: How can users tell whether the feature is working as expected or not?
-              can we provide dashboards, metrics, reasonable SLIs/SLOs
-              or example alerts for this feature?
-* troubleshooting: How would users want to troubleshoot this particular feature?
-                   Think about different failure modes of this feature.
+If integration tests were to be provided, them a mock `SecretsServer` should be used. The implementation of the mock server
+should always return valid response. Erroneous scenarios must be tested with unit tests.
 
 ## Alternatives
-What alternatives do we have and what are their pros and cons?
-
-
+Alternatively, we could allow code communicating with non-FOSS and non-public `SecretStores` to the codebase. It will be
+impossible to fully test such integration, and it would provide no value for ESO end users. I recommend to reject such an
+alternative.
