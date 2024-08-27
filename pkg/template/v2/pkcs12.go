@@ -19,6 +19,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
+	"errors"
 	"fmt"
 
 	gopkcs12 "software.sslmate.com/src/go-pkcs12"
@@ -55,7 +56,7 @@ func parsePrivateKey(block []byte) (any, error) {
 	if k, err := x509.ParseECPrivateKey(block); err == nil {
 		return k, nil
 	}
-	return nil, fmt.Errorf(errParsePrivKey)
+	return nil, errors.New(errParsePrivKey)
 }
 
 func pkcs12key(input string) (string, error) {

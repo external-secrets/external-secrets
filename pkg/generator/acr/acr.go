@@ -102,7 +102,7 @@ func (g *Generator) generate(
 	fetchAccessToken accessTokenFetcher,
 	fetchRefreshToken refreshTokenFetcher) (map[string][]byte, error) {
 	if jsonSpec == nil {
-		return nil, fmt.Errorf(errNoSpec)
+		return nil, errors.New(errNoSpec)
 	}
 	res, err := parseSpec(jsonSpec.Raw)
 	if err != nil {
@@ -136,7 +136,7 @@ func (g *Generator) generate(
 			namespace,
 		)
 	} else {
-		return nil, fmt.Errorf("unexpeted configuration")
+		return nil, errors.New("unexpeted configuration")
 	}
 	if err != nil {
 		return nil, err
@@ -187,7 +187,7 @@ func fetchACRAccessToken(acrRefreshToken, _, registryURL, scope string) (string,
 	}
 	accessToken, ok := payload["access_token"]
 	if !ok {
-		return "", fmt.Errorf("unable to get token")
+		return "", errors.New("unable to get token")
 	}
 	return accessToken, nil
 }
@@ -222,7 +222,7 @@ func fetchACRRefreshToken(aadAccessToken, tenantID, registryURL string) (string,
 	}
 	refreshToken, ok := payload["refresh_token"]
 	if !ok {
-		return "", fmt.Errorf("unable to get token")
+		return "", errors.New("unable to get token")
 	}
 	return refreshToken, nil
 }

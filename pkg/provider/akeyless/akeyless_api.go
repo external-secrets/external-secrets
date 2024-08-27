@@ -185,7 +185,7 @@ func (a *akeylessBase) GetRotatedSecrets(ctx context.Context, secretName, token 
 	if ok {
 		val, convert := valI.(map[string]any)
 		if !convert {
-			return "", fmt.Errorf("failure converting key from gsvOut")
+			return "", errors.New("failure converting key from gsvOut")
 		}
 		if _, ok := val["payload"]; ok {
 			return fmt.Sprintf("%v", val["payload"]), nil

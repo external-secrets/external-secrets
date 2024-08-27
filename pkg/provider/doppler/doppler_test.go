@@ -16,7 +16,7 @@ package doppler
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"strings"
 	"testing"
 
@@ -191,7 +191,7 @@ func TestGetSecret(t *testing.T) {
 		pstc.request.Name = missingSecret
 		pstc.response = nil
 		pstc.expectError = missingSecretErr
-		pstc.apiErr = fmt.Errorf("")
+		pstc.apiErr = errors.New("")
 	}
 
 	setInvalidSecret := func(pstc *dopplerTestCase) {
@@ -200,14 +200,14 @@ func TestGetSecret(t *testing.T) {
 		pstc.request.Name = invalidSecret
 		pstc.response = nil
 		pstc.expectError = missingSecretErr
-		pstc.apiErr = fmt.Errorf("")
+		pstc.apiErr = errors.New("")
 	}
 
 	setClientError := func(pstc *dopplerTestCase) {
 		pstc.label = "invalid client error" //nolint:goconst
 		pstc.response = &client.SecretResponse{}
 		pstc.expectError = missingSecretErr
-		pstc.apiErr = fmt.Errorf("")
+		pstc.apiErr = errors.New("")
 	}
 
 	testCases := []*dopplerTestCase{
@@ -254,7 +254,7 @@ func TestGetSecretMap(t *testing.T) {
 		pstc.label = "client error"
 		pstc.response = &client.SecretResponse{}
 		pstc.expectError = missingSecretErr
-		pstc.apiErr = fmt.Errorf("")
+		pstc.apiErr = errors.New("")
 	}
 
 	testCases := []*dopplerTestCase{
@@ -300,14 +300,14 @@ func TestDeleteSecret(t *testing.T) {
 		pstc.request = makeValidDeleteRequest()
 		pstc.remoteRef.RemoteKey = invalidRemoteKey
 		pstc.expectError = missingDeleteErr
-		pstc.apiErr = fmt.Errorf("")
+		pstc.apiErr = errors.New("")
 	}
 
 	setClientError := func(pstc *updateSecretCase) {
 		pstc.label = "invalid client error"
 		pstc.request = makeValidDeleteRequest()
 		pstc.expectError = missingDeleteErr
-		pstc.apiErr = fmt.Errorf("")
+		pstc.apiErr = errors.New("")
 	}
 
 	testCases := []*updateSecretCase{
@@ -337,7 +337,7 @@ func TestPushSecret(t *testing.T) {
 		pstc.label = "push missing secret key"
 		pstc.secretData = makeSecretData(invalidSecret, *makeValidPushRemoteRef())
 		pstc.expectError = missingPushErr
-		pstc.apiErr = fmt.Errorf("")
+		pstc.apiErr = errors.New("")
 	}
 
 	pushMissingRemoteSecret := func(pstc *updateSecretCase) {
@@ -349,13 +349,13 @@ func TestPushSecret(t *testing.T) {
 			},
 		)
 		pstc.expectError = missingPushErr
-		pstc.apiErr = fmt.Errorf("")
+		pstc.apiErr = errors.New("")
 	}
 
 	setClientError := func(pstc *updateSecretCase) {
 		pstc.label = "invalid client error"
 		pstc.expectError = missingPushErr
-		pstc.apiErr = fmt.Errorf("")
+		pstc.apiErr = errors.New("")
 	}
 
 	testCases := []*updateSecretCase{
@@ -418,12 +418,12 @@ func TestValidateStore(t *testing.T) {
 		{
 			label: "invalid store missing dopplerToken.name",
 			store: makeSecretStore(withAuth("", "", nil)),
-			err:   fmt.Errorf("invalid store: dopplerToken.name cannot be empty"),
+			err:   errors.New("invalid store: dopplerToken.name cannot be empty"),
 		},
 		{
 			label: "invalid store namespace not allowed",
 			store: makeSecretStore(withAuth(secretName, "", &namespace)),
-			err:   fmt.Errorf("invalid store: namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore"),
+			err:   errors.New("invalid store: namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore"),
 		},
 		{
 			label: "valid provide optional dopplerToken.key",

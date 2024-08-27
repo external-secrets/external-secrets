@@ -16,6 +16,7 @@ package keepersecurity
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	ksm "github.com/keeper-security/secrets-manager-go/core"
@@ -29,16 +30,13 @@ import (
 )
 
 const (
-	errKeeperSecurityUnableToCreateConfig           = "unable to create valid KeeperSecurity config: %w"
-	errKeeperSecurityStore                          = "received invalid KeeperSecurity SecretStore resource: %s"
-	errKeeperSecurityNilSpec                        = "nil spec"
-	errKeeperSecurityNilSpecProvider                = "nil spec.provider"
-	errKeeperSecurityNilSpecProviderKeeperSecurity  = "nil spec.provider.keepersecurity"
-	errKeeperSecurityStoreMissingAuth               = "missing: spec.provider.keepersecurity.auth"
-	errKeeperSecurityStoreMissingFolderID           = "missing: spec.provider.keepersecurity.folderID"
-	errInvalidClusterStoreMissingK8sSecretNamespace = "invalid ClusterSecretStore: missing KeeperSecurity k8s Auth Secret Namespace"
-	errFetchK8sSecret                               = "could not fetch k8s Secret: %w"
-	errMissingK8sSecretKey                          = "missing Secret key: %s"
+	errKeeperSecurityUnableToCreateConfig          = "unable to create valid KeeperSecurity config: %w"
+	errKeeperSecurityStore                         = "received invalid KeeperSecurity SecretStore resource: %s"
+	errKeeperSecurityNilSpec                       = "nil spec"
+	errKeeperSecurityNilSpecProvider               = "nil spec.provider"
+	errKeeperSecurityNilSpecProviderKeeperSecurity = "nil spec.provider.keepersecurity"
+	errKeeperSecurityStoreMissingAuth              = "missing: spec.provider.keepersecurity.auth"
+	errKeeperSecurityStoreMissingFolderID          = "missing: spec.provider.keepersecurity.folderID"
 )
 
 // Provider implements the necessary NewClient() and ValidateStore() funcs.
@@ -90,23 +88,23 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 	}
 	spc := store.GetSpec()
 	if spc == nil {
-		return nil, fmt.Errorf(errKeeperSecurityNilSpec)
+		return nil, errors.New(errKeeperSecurityNilSpec)
 	}
 	if spc.Provider == nil {
-		return nil, fmt.Errorf(errKeeperSecurityNilSpecProvider)
+		return nil, errors.New(errKeeperSecurityNilSpecProvider)
 	}
 	if spc.Provider.KeeperSecurity == nil {
-		return nil, fmt.Errorf(errKeeperSecurityNilSpecProviderKeeperSecurity)
+		return nil, errors.New(errKeeperSecurityNilSpecProviderKeeperSecurity)
 	}
 
 	// check mandatory fields
 	config := spc.Provider.KeeperSecurity
 
 	if err := utils.ValidateSecretSelector(store, config.Auth); err != nil {
-		return nil, fmt.Errorf(errKeeperSecurityStoreMissingAuth)
+		return nil, errors.New(errKeeperSecurityStoreMissingAuth)
 	}
 	if config.FolderID == "" {
-		return nil, fmt.Errorf(errKeeperSecurityStoreMissingFolderID)
+		return nil, errors.New(errKeeperSecurityStoreMissingFolderID)
 	}
 
 	return nil, nil

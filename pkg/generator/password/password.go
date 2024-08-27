@@ -16,6 +16,7 @@ package password
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/sethvargo/go-password/password"
@@ -57,7 +58,7 @@ func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ 
 
 func (g *Generator) generate(jsonSpec *apiextensions.JSON, passGen generateFunc) (map[string][]byte, error) {
 	if jsonSpec == nil {
-		return nil, fmt.Errorf(errNoSpec)
+		return nil, errors.New(errNoSpec)
 	}
 	res, err := parseSpec(jsonSpec.Raw)
 	if err != nil {

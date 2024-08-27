@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -59,7 +60,7 @@ func (c *Client) getJWTToken(ctx context.Context, conjurJWTConfig *esv1beta1.Con
 		}
 		return jwtToken, nil
 	}
-	return "", fmt.Errorf("missing ServiceAccountRef or SecretRef")
+	return "", errors.New("missing ServiceAccountRef or SecretRef")
 }
 
 // getJwtFromServiceAccountTokenRequest uses the TokenRequest API to get a JWT token for the given service account.
@@ -108,7 +109,7 @@ func newHTTPSClient(cert []byte) (*http.Client, error) {
 	pool := x509.NewCertPool()
 	ok := pool.AppendCertsFromPEM(cert)
 	if !ok {
-		return nil, fmt.Errorf("can't append Conjur SSL cert")
+		return nil, errors.New("can't append Conjur SSL cert")
 	}
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12},

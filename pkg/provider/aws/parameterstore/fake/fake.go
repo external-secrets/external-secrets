@@ -16,7 +16,7 @@ package fake
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
@@ -102,7 +102,7 @@ func NewPutParameterWithContextFn(output *ssm.PutParameterOutput, err error) Put
 func (sm *Client) WithValue(in *ssm.GetParameterInput, val *ssm.GetParameterOutput, err error) {
 	sm.GetParameterWithContextFn = func(ctx aws.Context, paramIn *ssm.GetParameterInput, options ...request.Option) (*ssm.GetParameterOutput, error) {
 		if !cmp.Equal(paramIn, in) {
-			return nil, fmt.Errorf("unexpected test argument")
+			return nil, errors.New("unexpected test argument")
 		}
 		return val, err
 	}

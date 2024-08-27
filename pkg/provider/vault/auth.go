@@ -155,11 +155,11 @@ func checkToken(ctx context.Context, token util.Token) (bool, error) {
 	// LookupSelfWithContext() calls ParseSecret(), which has several places
 	// that return no data and no error, including when a token is expired.
 	if resp == nil {
-		return false, fmt.Errorf("no response nor error for token lookup")
+		return false, errors.New("no response nor error for token lookup")
 	}
 	t, ok := resp.Data["type"]
 	if !ok {
-		return false, fmt.Errorf("could not assert token type")
+		return false, errors.New("could not assert token type")
 	}
 	tokenType := t.(string)
 	if tokenType == "batch" {
@@ -167,7 +167,7 @@ func checkToken(ctx context.Context, token util.Token) (bool, error) {
 	}
 	ttl, ok := resp.Data["ttl"]
 	if !ok {
-		return false, fmt.Errorf("no TTL found in response")
+		return false, errors.New("no TTL found in response")
 	}
 	ttlInt, err := ttl.(json.Number).Int64()
 	if err != nil {
@@ -175,7 +175,7 @@ func checkToken(ctx context.Context, token util.Token) (bool, error) {
 	}
 	expireTime, ok := resp.Data["expire_time"]
 	if !ok {
-		return false, fmt.Errorf("no expiration time found in response")
+		return false, errors.New("no expiration time found in response")
 	}
 	if ttlInt < 60 && expireTime != nil {
 		// Treat expirable tokens that are about to expire as already expired.
