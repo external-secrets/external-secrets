@@ -5,8 +5,8 @@ go 1.23
 replace github.com/Masterminds/sprig/v3 => github.com/external-secrets/sprig/v3 v3.3.0
 
 require (
-	cloud.google.com/go/iam v1.1.13
-	cloud.google.com/go/secretmanager v1.13.6
+	cloud.google.com/go/iam v1.2.0
+	cloud.google.com/go/secretmanager v1.14.0
 	github.com/Azure/azure-sdk-for-go v68.0.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.29
 	github.com/Azure/go-autorest/autorest/adal v0.9.24
@@ -30,23 +30,23 @@ require (
 	github.com/hashicorp/vault/api/auth/kubernetes v0.7.0
 	github.com/hashicorp/vault/api/auth/ldap v0.7.0
 	github.com/huandu/xstrings v1.5.0 // indirect
-	github.com/onsi/ginkgo/v2 v2.20.0
+	github.com/onsi/ginkgo/v2 v2.20.1
 	github.com/onsi/gomega v1.34.1
-	github.com/oracle/oci-go-sdk/v65 v65.71.1
-	github.com/prometheus/client_golang v1.20.0
+	github.com/oracle/oci-go-sdk/v65 v65.72.0
+	github.com/prometheus/client_golang v1.20.2
 	github.com/prometheus/client_model v0.6.1
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
 	github.com/tidwall/gjson v1.17.3
-	github.com/xanzy/go-gitlab v0.107.0
-	github.com/yandex-cloud/go-genproto v0.0.0-20240813143603-58770ef469b7
-	github.com/yandex-cloud/go-sdk v0.0.0-20240813144531-905aa41b481f
+	github.com/xanzy/go-gitlab v0.108.0
+	github.com/yandex-cloud/go-genproto v0.0.0-20240819112322-98a264d392f6
+	github.com/yandex-cloud/go-sdk v0.0.0-20240819112606-8a626cdc403d
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.26.0
 	golang.org/x/oauth2 v0.22.0
-	google.golang.org/api v0.192.0
-	google.golang.org/genproto v0.0.0-20240814211410-ddb44dafa142
+	google.golang.org/api v0.194.0
+	google.golang.org/genproto v0.0.0-20240823204242-4ba0660f739c
 	google.golang.org/grpc v1.65.0
 	gopkg.in/yaml.v3 v3.0.1
 	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
@@ -54,7 +54,7 @@ require (
 	k8s.io/apiextensions-apiserver v0.31.0
 	k8s.io/apimachinery v0.31.0
 	k8s.io/client-go v0.31.0
-	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
+	k8s.io/utils v0.0.0-20240821151609-f90d01438635
 	sigs.k8s.io/controller-runtime v0.19.0
 	sigs.k8s.io/controller-tools v0.16.1
 )
@@ -75,7 +75,7 @@ require (
 	github.com/alibabacloud-go/openapi-util v0.1.1
 	github.com/alibabacloud-go/tea v1.2.2
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.6
-	github.com/aliyun/credentials-go v1.3.7
+	github.com/aliyun/credentials-go v1.3.8
 	github.com/avast/retry-go/v4 v4.6.0
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/cyberark/conjur-api-go v0.12.4
@@ -94,13 +94,13 @@ require (
 	github.com/sethvargo/go-password v0.3.1
 	github.com/spf13/pflag v1.0.5
 	github.com/tidwall/sjson v1.2.5
-	k8s.io/kube-openapi v0.0.0-20240816214639-573285566f34
+	k8s.io/kube-openapi v0.0.0-20240822171749-76de80e0abd9
 	sigs.k8s.io/yaml v1.4.0
 	software.sslmate.com/src/go-pkcs12 v0.4.0
 )
 
 require (
-	cloud.google.com/go/auth v0.8.1 // indirect
+	cloud.google.com/go/auth v0.9.1 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.4 // indirect
 	cloud.google.com/go/compute/metadata v0.5.0 // indirect
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
@@ -114,12 +114,12 @@ require (
 	github.com/alibabacloud-go/darabonba-map v0.0.2 // indirect
 	github.com/alibabacloud-go/darabonba-signature-util v0.0.7 // indirect
 	github.com/alibabacloud-go/darabonba-string v1.0.2 // indirect
-	github.com/alibabacloud-go/debug v1.0.0 // indirect
+	github.com/alibabacloud-go/debug v1.0.1 // indirect
 	github.com/alibabacloud-go/endpoint-util v1.1.1 // indirect
 	github.com/alibabacloud-go/tea-xml v1.1.3 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/clbanning/mxj/v2 v2.7.0 // indirect
-	github.com/cloudflare/circl v1.3.9 // indirect
+	github.com/cloudflare/circl v1.4.0 // indirect
 	github.com/danieljoos/wincred v1.2.2 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
@@ -142,14 +142,14 @@ require (
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/zalando/go-keyring v0.2.5 // indirect
-	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.53.0 // indirect
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.53.0 // indirect
-	go.opentelemetry.io/otel v1.28.0 // indirect
-	go.opentelemetry.io/otel/metric v1.28.0 // indirect
-	go.opentelemetry.io/otel/trace v1.28.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.54.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.54.0 // indirect
+	go.opentelemetry.io/otel v1.29.0 // indirect
+	go.opentelemetry.io/otel/metric v1.29.0 // indirect
+	go.opentelemetry.io/otel/trace v1.29.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240814211410-ddb44dafa142 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240814211410-ddb44dafa142 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240823204242-4ba0660f739c // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240823204242-4ba0660f739c // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/ghodss/yaml.v1 v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
