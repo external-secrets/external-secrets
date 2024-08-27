@@ -242,6 +242,7 @@ Following drawbacks must be considered:
 * `SecretsServer` will run listening socket available within the cluster. Traffic should be encrypted and `SecretsClient`
   must be able to authenticate when sending requests to the server.
 * Running `SecretsServer` in the same pod that ESO increases operational burden by making ESO Helm chart more complicated.
+* Only one instance of gRPC `SecretsClient` will be able to run, due to structure of `SecretStore.Spec.Provider`.
 
 ### Acceptance Criteria
 Rolling the feature out should bring no risk to existing users as it is purely additive. The feature can be reverted and
