@@ -100,7 +100,7 @@ func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTest
 // This case can be shared by both GetSecret and GetSecretMap tests.
 // bad case: set apiErr.
 var setAPIErr = func(smtc *secretManagerTestCase) {
-	smtc.apiErr = fmt.Errorf("oh no")
+	smtc.apiErr = errors.New("oh no")
 	smtc.expectError = "oh no"
 }
 
@@ -517,7 +517,7 @@ func TestPushSecret(t *testing.T) {
 	canceledError := status.Error(codes.Canceled, "canceled")
 	canceledError, _ = apierror.FromError(canceledError)
 
-	APIerror := fmt.Errorf("API Error")
+	APIerror := errors.New("API Error")
 	labelError := fmt.Errorf("secret %v is not managed by external secrets", remoteKey)
 
 	secret := secretmanagerpb.Secret{
@@ -672,16 +672,16 @@ func TestPushSecret(t *testing.T) {
 				req: func(m *fakesm.MockSMClient) error {
 					req, ok := m.CreateSecretCalledWithN[0]
 					if !ok {
-						return fmt.Errorf("index 0 for call not found in the list of calls")
+						return errors.New("index 0 for call not found in the list of calls")
 					}
 
 					user, ok := req.Secret.Replication.Replication.(*secretmanagerpb.Replication_UserManaged_)
 					if !ok {
-						return fmt.Errorf("req.Secret.Replication.Replication was not of type *secretmanagerpb.Replication_UserManaged_")
+						return errors.New("req.Secret.Replication.Replication was not of type *secretmanagerpb.Replication_UserManaged_")
 					}
 
 					if len(user.UserManaged.Replicas) < 1 {
-						return fmt.Errorf("req.Secret.Replication.Replication.Replicas was not empty")
+						return errors.New("req.Secret.Replication.Replication.Replicas was not empty")
 					}
 
 					if user.UserManaged.Replicas[0].Location != "us-east-1" {
@@ -702,7 +702,7 @@ func TestPushSecret(t *testing.T) {
 				},
 				GetSecretMockReturn: fakesm.SecretMockReturn{Secret: &secret, Err: nil}},
 			want: want{
-				err: fmt.Errorf("failed to decode PushSecret metadata"),
+				err: errors.New("failed to decode PushSecret metadata"),
 			},
 		},
 		{

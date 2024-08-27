@@ -15,6 +15,7 @@ limitations under the License.
 package akeyless
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -47,14 +48,14 @@ const (
 // GetAKeylessProvider does the necessary nil checks and returns the akeyless provider or an error.
 func GetAKeylessProvider(store esv1beta1.GenericStore) (*esv1beta1.AkeylessProvider, error) {
 	if store == nil {
-		return nil, fmt.Errorf(errNilStore)
+		return nil, errors.New(errNilStore)
 	}
 	spc := store.GetSpec()
 	if spc == nil {
-		return nil, fmt.Errorf(errMissingStoreSpec)
+		return nil, errors.New(errMissingStoreSpec)
 	}
 	if spc.Provider == nil {
-		return nil, fmt.Errorf(errMissingProvider)
+		return nil, errors.New(errMissingStoreSpec)
 	}
 	prov := spc.Provider.Akeyless
 	if prov == nil {

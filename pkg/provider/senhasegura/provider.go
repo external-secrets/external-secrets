@@ -16,6 +16,7 @@ package senhasegura
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 
@@ -77,16 +78,16 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 
 func validateStore(store esv1beta1.GenericStore) error {
 	if store == nil {
-		return fmt.Errorf(errNilStore)
+		return errors.New(errNilStore)
 	}
 
 	spec := store.GetSpec()
 	if spec == nil {
-		return fmt.Errorf(errMissingStoreSpec)
+		return errors.New(errMissingStoreSpec)
 	}
 
 	if spec.Provider == nil {
-		return fmt.Errorf(errMissingProvider)
+		return errors.New(errMissingProvider)
 	}
 
 	provider := spec.Provider.Senhasegura
@@ -96,21 +97,21 @@ func validateStore(store esv1beta1.GenericStore) error {
 
 	url, err := url.Parse(provider.URL)
 	if err != nil {
-		return fmt.Errorf(errInvalidSenhaseguraURL)
+		return errors.New(errInvalidSenhaseguraURL)
 	}
 
 	// senhasegura doesn't accept requests without SSL/TLS layer for security reasons
 	// DSM doesn't provides gRPC schema, only HTTPS
 	if url.Scheme != "https" {
-		return fmt.Errorf(errInvalidSenhaseguraURLHTTPS)
+		return errors.New(errInvalidSenhaseguraURLHTTPS)
 	}
 
 	if url.Host == "" {
-		return fmt.Errorf(errInvalidSenhaseguraURL)
+		return errors.New(errInvalidSenhaseguraURL)
 	}
 
 	if provider.Auth.ClientID == "" {
-		return fmt.Errorf(errMissingClientID)
+		return errors.New(errMissingClientID)
 	}
 
 	return nil

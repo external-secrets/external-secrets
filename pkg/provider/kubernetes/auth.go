@@ -16,6 +16,7 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	authenticationv1 "k8s.io/api/authentication/v1"
@@ -66,7 +67,7 @@ func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
 			return nil, fmt.Errorf("could not fetch Auth.ServiceAccount: %w", err)
 		}
 	} else {
-		return nil, fmt.Errorf("no auth provider given")
+		return nil, errors.New("no auth provider given")
 	}
 
 	var key, cert []byte
@@ -78,7 +79,7 @@ func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
 	}
 
 	if c.store.Server.URL == "" {
-		return nil, fmt.Errorf("no server URL provided")
+		return nil, errors.New("no server URL provided")
 	}
 
 	return &rest.Config{

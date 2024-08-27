@@ -16,7 +16,7 @@ package gitlab
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/xanzy/go-gitlab"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -50,7 +50,7 @@ func (g *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 func (g *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Gitlab == nil {
-		return nil, fmt.Errorf("no store type or wrong store type")
+		return nil, errors.New("no store type or wrong store type")
 	}
 	storeSpecGitlab := storeSpec.Provider.Gitlab
 
@@ -106,19 +106,19 @@ func (g *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 	}
 
 	if gitlabSpec.ProjectID == "" && len(gitlabSpec.GroupIDs) == 0 {
-		return nil, fmt.Errorf("projectID and groupIDs must not both be empty")
+		return nil, errors.New("projectID and groupIDs must not both be empty")
 	}
 
 	if gitlabSpec.InheritFromGroups && len(gitlabSpec.GroupIDs) > 0 {
-		return nil, fmt.Errorf("defining groupIDs and inheritFromGroups = true is not allowed")
+		return nil, errors.New("defining groupIDs and inheritFromGroups = true is not allowed")
 	}
 
 	if accessToken.Key == "" {
-		return nil, fmt.Errorf("accessToken.key cannot be empty")
+		return nil, errors.New("accessToken.key cannot be empty")
 	}
 
 	if accessToken.Name == "" {
-		return nil, fmt.Errorf("accessToken.name cannot be empty")
+		return nil, errors.New("accessToken.name cannot be empty")
 	}
 
 	return nil, nil
