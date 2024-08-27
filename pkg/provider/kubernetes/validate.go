@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	authv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -89,20 +90,11 @@ func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
 		return esv1beta1.ValidationResultUnknown, fmt.Errorf("could not verify if client is valid: %w", err)
 	}
 	for _, rev := range authReview.Status.ResourceRules {
-		if (contains("secrets", rev.Resources) || contains("*", rev.Resources)) &&
-			(contains("get", rev.Verbs) || contains("*", rev.Verbs)) &&
-			(len(rev.APIGroups) == 0 || (contains("", rev.APIGroups) || contains("*", rev.APIGroups))) {
+		if (slices.Contains(rev.Resources, "secrets") || slices.Contains(rev.Resources, "*")) &&
+			(slices.Contains(rev.Verbs, "get") || slices.Contains(rev.Verbs, "*")) &&
+			(len(rev.APIGroups) == 0 || (slices.Contains(rev.APIGroups, "") || slices.Contains(rev.APIGroups, "*"))) {
 			return esv1beta1.ValidationResultReady, nil
 		}
 	}
 	return esv1beta1.ValidationResultError, errors.New("client is not allowed to get secrets")
-}
-
-func contains(sub string, args []string) bool {
-	for _, k := range args {
-		if k == sub {
-			return true
-		}
-	}
-	return false
 }

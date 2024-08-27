@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -239,12 +240,9 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 }
 
 func isManagedByESO(tags []*ssm.Tag) bool {
-	for _, tag := range tags {
-		if *tag.Key == managedBy && *tag.Value == externalSecrets {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(tags, func(tag *ssm.Tag) bool {
+		return *tag.Key == managedBy && *tag.Value == externalSecrets
+	})
 }
 
 func (pm *ParameterStore) setManagedRemoteParameter(ctx context.Context, secretRequest ssm.PutParameterInput, createManagedByTags bool) error {
