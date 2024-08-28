@@ -17,6 +17,7 @@ package fake
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -31,8 +32,8 @@ import (
 )
 
 var (
-	errMissingStore        = fmt.Errorf("missing store provider")
-	errMissingFakeProvider = fmt.Errorf("missing store provider fake")
+	errMissingStore        = errors.New("missing store provider")
+	errMissingFakeProvider = errors.New("missing store provider fake")
 	errMissingKeyField     = "key must be set in data %v"
 	errMissingValueField   = "at least one of value or valueMap must be set in data %v"
 )
@@ -129,7 +130,7 @@ func (p *Provider) PushSecret(_ context.Context, secret *corev1.Secret, data esv
 	}
 
 	if currentData.Origin != FakeSetSecret {
-		return fmt.Errorf("key already exists")
+		return errors.New("key already exists")
 	}
 	currentData.Value = string(value)
 

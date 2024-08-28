@@ -17,6 +17,7 @@ package gitlab
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
@@ -66,7 +67,7 @@ type ProjectVariablesClient interface {
 }
 
 type GroupVariablesClient interface {
-	GetVariable(gid any, key string, options ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error)
+	GetVariable(gid any, key string, opts *gitlab.GetGroupVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error)
 	ListVariables(gid any, opt *gitlab.ListGroupVariablesOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error)
 }
 
@@ -89,21 +90,21 @@ func (g *gitlabBase) getAuth(ctx context.Context) (string, error) {
 }
 
 func (g *gitlabBase) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf(errNotImplemented)
+	return errors.New(errNotImplemented)
 }
 
 func (g *gitlabBase) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf(errNotImplemented)
+	return false, errors.New(errNotImplemented)
 }
 
 func (g *gitlabBase) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return fmt.Errorf(errNotImplemented)
+	return errors.New(errNotImplemented)
 }
 
 // GetAllSecrets syncs all gitlab project and group variables into a single Kubernetes Secret.
 func (g *gitlabBase) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if utils.IsNil(g.projectVariablesClient) {
-		return nil, fmt.Errorf(errUninitializedGitlabProvider)
+		return nil, errors.New(errUninitializedGitlabProvider)
 	}
 	var effectiveEnvironment = g.store.Environment
 	if ref.Tags != nil {
@@ -112,15 +113,15 @@ func (g *gitlabBase) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecr
 			return nil, err
 		}
 		if !isEmptyOrWildcard(effectiveEnvironment) && !isEmptyOrWildcard(environment) {
-			return nil, fmt.Errorf(errEnvironmentIsConstricted)
+			return nil, errors.New(errEnvironmentIsConstricted)
 		}
 		effectiveEnvironment = environment
 	}
 	if ref.Path != nil {
-		return nil, fmt.Errorf(errPathNotImplemented)
+		return nil, errors.New(errPathNotImplemented)
 	}
 	if ref.Name == nil {
-		return nil, fmt.Errorf(errNameNotDefined)
+		return nil, errors.New(errNameNotDefined)
 	}
 
 	var matcher *find.Matcher
@@ -193,7 +194,7 @@ func ExtractTag(tags map[string]string) (string, error) {
 	var environmentScope string
 	for tag, value := range tags {
 		if tag != "environment_scope" {
-			return "", fmt.Errorf(errTagsOnlyEnvironmentSupported)
+			return "", errors.New(errTagsOnlyEnvironmentSupported)
 		}
 		environmentScope = value
 	}
@@ -202,7 +203,7 @@ func ExtractTag(tags map[string]string) (string, error) {
 
 func (g *gitlabBase) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(g.projectVariablesClient) || utils.IsNil(g.groupVariablesClient) {
-		return nil, fmt.Errorf(errUninitializedGitlabProvider)
+		return nil, errors.New(errUninitializedGitlabProvider)
 	}
 
 	// Need to replace hyphens with underscores to work with GitLab API

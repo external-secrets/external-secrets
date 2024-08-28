@@ -17,6 +17,7 @@ package ibm
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -144,7 +145,7 @@ func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTest
 // This case can be shared by both GetSecret and GetSecretMap tests.
 // bad case: set apiErr.
 var setAPIErr = func(smtc *secretManagerTestCase) {
-	smtc.apiErr = fmt.Errorf("oh no")
+	smtc.apiErr = errors.New("oh no")
 	smtc.expectError = "oh no"
 }
 
@@ -165,7 +166,7 @@ func TestValidateStore(t *testing.T) {
 	}
 	_, err := p.ValidateStore(store)
 	if err == nil {
-		t.Errorf(errExpectedErr)
+		t.Error(errExpectedErr)
 	} else if err.Error() != "serviceURL is required" {
 		t.Errorf("service URL test failed")
 	}
@@ -173,7 +174,7 @@ func TestValidateStore(t *testing.T) {
 	store.Spec.Provider.IBM.ServiceURL = &url
 	_, err = p.ValidateStore(store)
 	if err == nil {
-		t.Errorf(errExpectedErr)
+		t.Error(errExpectedErr)
 	} else if err.Error() != "missing auth method" {
 		t.Errorf("KeySelector test failed: expected missing auth method, got %v", err)
 	}
@@ -187,7 +188,7 @@ func TestValidateStore(t *testing.T) {
 	}
 	_, err = p.ValidateStore(store)
 	if err == nil {
-		t.Errorf(errExpectedErr)
+		t.Error(errExpectedErr)
 	} else if err.Error() != "namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore" {
 		t.Errorf("KeySelector test failed: expected namespace not allowed, got %v", err)
 	}

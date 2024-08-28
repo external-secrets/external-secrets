@@ -20,6 +20,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -66,10 +67,10 @@ func (w *Webhook) getStoreSecret(ctx context.Context, ref SecretKeySelector) (*c
 	if w.EnforceLabels {
 		expected, ok := secret.Labels["external-secrets.io/type"]
 		if !ok {
-			return nil, fmt.Errorf("secret does not contain needed label 'external-secrets.io/type: webhook'. Update secret label to use it with webhook")
+			return nil, errors.New("secret does not contain needed label 'external-secrets.io/type: webhook'. Update secret label to use it with webhook")
 		}
 		if expected != "webhook" {
-			return nil, fmt.Errorf("secret type is not 'webhook'")
+			return nil, errors.New("secret type is not 'webhook'")
 		}
 	}
 	return secret, nil
@@ -150,7 +151,7 @@ func (w *Webhook) GetTemplateData(ctx context.Context, ref *esv1beta1.ExternalSe
 
 func (w *Webhook) GetWebhookData(ctx context.Context, provider *Spec, ref *esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if w.HTTP == nil {
-		return nil, fmt.Errorf("http client not initialized")
+		return nil, errors.New("http client not initialized")
 	}
 
 	escapedData, err := w.GetTemplateData(ctx, ref, provider.Secrets, true)
@@ -244,7 +245,7 @@ func (w *Webhook) GetCACertPool(ctx context.Context, provider *Spec) (*x509.Cert
 	}
 	ok := caCertPool.AppendCertsFromPEM(ca)
 	if !ok {
-		return nil, fmt.Errorf("failed to append cabundle")
+		return nil, errors.New("failed to append cabundle")
 	}
 
 	return caCertPool, nil

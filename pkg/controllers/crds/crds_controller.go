@@ -29,6 +29,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"time"
 
@@ -107,18 +108,9 @@ type CertInfo struct {
 	CAName   string
 }
 
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
-
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("CustomResourceDefinition", req.NamespacedName)
-	if contains(r.CrdResources, req.NamespacedName.Name) {
+	if slices.Contains(r.CrdResources, req.NamespacedName.Name) {
 		err := r.updateCRD(ctx, req)
 		if err != nil {
 			log.Error(err, "failed to inject conversion webhook")
@@ -175,10 +167,10 @@ func (r *Reconciler) checkEndpoints() error {
 		return err
 	}
 	if len(eps.Subsets) == 0 {
-		return fmt.Errorf(errSubsetsNotReady)
+		return errors.New(errSubsetsNotReady)
 	}
 	if len(eps.Subsets[0].Addresses) == 0 {
-		return fmt.Errorf(errAddressesNotReady)
+		return errors.New(errAddressesNotReady)
 	}
 	return nil
 }
@@ -234,7 +226,7 @@ func injectService(crd *apiext.CustomResourceDefinition, svc types.NamespacedNam
 		crd.Spec.Conversion.Webhook == nil ||
 		crd.Spec.Conversion.Webhook.ClientConfig == nil ||
 		crd.Spec.Conversion.Webhook.ClientConfig.Service == nil {
-		return fmt.Errorf("unexpected crd conversion webhook config")
+		return errors.New("unexpected crd conversion webhook config")
 	}
 	crd.Spec.Conversion.Webhook.ClientConfig.Service.Namespace = svc.Namespace
 	crd.Spec.Conversion.Webhook.ClientConfig.Service.Name = svc.Name
@@ -245,7 +237,7 @@ func injectCert(crd *apiext.CustomResourceDefinition, certPem []byte) error {
 	if crd.Spec.Conversion == nil ||
 		crd.Spec.Conversion.Webhook == nil ||
 		crd.Spec.Conversion.Webhook.ClientConfig == nil {
-		return fmt.Errorf("unexpected crd conversion webhook config")
+		return errors.New("unexpected crd conversion webhook config")
 	}
 	crd.Spec.Conversion.Webhook.ClientConfig.CABundle = certPem
 	return nil

@@ -17,7 +17,6 @@ package parameterstore
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -403,7 +402,7 @@ func TestPushSecret(t *testing.T) {
 				},
 			},
 			want: want{
-				err: fmt.Errorf("secret not managed by external-secrets"),
+				err: errors.New("secret not managed by external-secrets"),
 			},
 		},
 		"SetSecretGetTagsError": {
@@ -414,11 +413,11 @@ func TestPushSecret(t *testing.T) {
 					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
 					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(validGetParameterOutput, nil),
 					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
-					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(nil, fmt.Errorf("you shall not tag")),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(nil, errors.New("you shall not tag")),
 				},
 			},
 			want: want{
-				err: fmt.Errorf("you shall not tag"),
+				err: errors.New("you shall not tag"),
 			},
 		},
 		"SetSecretContentMatches": {
@@ -492,7 +491,7 @@ func TestPushSecret(t *testing.T) {
 				},
 			},
 			want: want{
-				err: fmt.Errorf("failed to parse metadata: failed to parse JSON raw data: invalid character 'f' looking for beginning of object key string"),
+				err: errors.New("failed to parse metadata: failed to parse JSON raw data: invalid character 'f' looking for beginning of object key string"),
 			},
 		},
 		"GetRemoteSecretWithoutDecryption": {
@@ -520,7 +519,7 @@ func TestPushSecret(t *testing.T) {
 				},
 			},
 			want: want{
-				err: fmt.Errorf("unable to compare 'sensitive' result, ensure to request a decrypted value"),
+				err: errors.New("unable to compare 'sensitive' result, ensure to request a decrypted value"),
 			},
 		},
 	}
@@ -691,7 +690,7 @@ func TestGetSecret(t *testing.T) {
 	// base case: api output return error
 	setAPIError := func(pstc *parameterstoreTestCase) {
 		pstc.apiOutput = &ssm.GetParameterOutput{}
-		pstc.apiErr = fmt.Errorf("oh no")
+		pstc.apiErr = errors.New("oh no")
 		pstc.expectError = "oh no"
 	}
 
@@ -775,7 +774,7 @@ func TestGetSecretMap(t *testing.T) {
 	setAPIError := func(pstc *parameterstoreTestCase) {
 		pstc.apiOutput.Parameter = &ssm.Parameter{}
 		pstc.expectError = "some api err"
-		pstc.apiErr = fmt.Errorf("some api err")
+		pstc.apiErr = errors.New("some api err")
 	}
 	// bad case: invalid json
 	setInvalidJSON := func(pstc *parameterstoreTestCase) {

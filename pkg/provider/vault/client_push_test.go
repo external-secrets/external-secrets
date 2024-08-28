@@ -85,13 +85,13 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("failed to read")),
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, errors.New("failed to read")),
 					WriteWithContextFn:        fake.ExpectWriteWithContextNoCall(),
 					DeleteWithContextFn:       fake.ExpectDeleteWithContextNoCall(),
 				},
 			},
 			want: want{
-				err: fmt.Errorf("failed to read"),
+				err: errors.New("failed to read"),
 			},
 		},
 		"DeleteSecretFailIfErrorKV2": {
@@ -99,13 +99,13 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
-					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, fmt.Errorf("failed to read")),
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, errors.New("failed to read")),
 					WriteWithContextFn:        fake.ExpectWriteWithContextNoCall(),
 					DeleteWithContextFn:       fake.ExpectDeleteWithContextNoCall(),
 				},
 			},
 			want: want{
-				err: fmt.Errorf("failed to read"),
+				err: errors.New("failed to read"),
 			},
 		},
 		"DeleteSecretNotManagedKV1": {
@@ -200,11 +200,11 @@ func TestDeleteSecret(t *testing.T) {
 						},
 					}, nil),
 					WriteWithContextFn:  fake.ExpectWriteWithContextNoCall(),
-					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, fmt.Errorf("failed to delete")),
+					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, errors.New("failed to delete")),
 				},
 			},
 			want: want{
-				err: fmt.Errorf("failed to delete"),
+				err: errors.New("failed to delete"),
 			},
 		},
 		"DeleteSecretErrorKV2": {
@@ -221,11 +221,11 @@ func TestDeleteSecret(t *testing.T) {
 						},
 					}, nil),
 					WriteWithContextFn:  fake.ExpectWriteWithContextNoCall(),
-					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, fmt.Errorf("failed to delete")),
+					DeleteWithContextFn: fake.NewDeleteWithContextFn(nil, errors.New("failed to delete")),
 				},
 			},
 			want: want{
-				err: fmt.Errorf("failed to delete"),
+				err: errors.New("failed to delete"),
 			},
 		},
 		"DeleteSecretUpdatePropertyKV1": {

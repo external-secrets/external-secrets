@@ -15,7 +15,7 @@ limitations under the License.
 package fake
 
 import (
-	"fmt"
+	"errors"
 	"net/url"
 
 	"github.com/google/go-cmp/cmp"
@@ -53,7 +53,7 @@ func (dc *DopplerClient) WithValue(request client.SecretRequest, response *clien
 	if dc != nil {
 		dc.getSecret = func(requestIn client.SecretRequest) (*client.SecretResponse, error) {
 			if !cmp.Equal(requestIn, request) {
-				return nil, fmt.Errorf("unexpected test argument")
+				return nil, errors.New("unexpected test argument")
 			}
 			return response, err
 		}
@@ -64,7 +64,7 @@ func (dc *DopplerClient) WithUpdateValue(request client.UpdateSecretsRequest, er
 	if dc != nil {
 		dc.updateSecrets = func(requestIn client.UpdateSecretsRequest) error {
 			if !cmp.Equal(requestIn, request) {
-				return fmt.Errorf("unexpected test argument")
+				return errors.New("unexpected test argument")
 			}
 			return err
 		}

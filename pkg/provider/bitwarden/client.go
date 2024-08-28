@@ -16,6 +16,7 @@ package bitwarden
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -43,15 +44,15 @@ const (
 func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
 	spec := p.store.GetSpec()
 	if spec == nil || spec.Provider == nil {
-		return fmt.Errorf("store does not have a provider")
+		return errors.New("store does not have a provider")
 	}
 
 	if data.GetSecretKey() == "" {
-		return fmt.Errorf("pushing the whole secret is not yet implemented")
+		return errors.New("pushing the whole secret is not yet implemented")
 	}
 
 	if data.GetRemoteKey() == "" {
-		return fmt.Errorf("remote key must be defined")
+		return errors.New("remote key must be defined")
 	}
 
 	value, ok := secret.Data[data.GetSecretKey()]
@@ -132,7 +133,7 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 
 	spec := p.store.GetSpec()
 	if spec == nil || spec.Provider == nil {
-		return nil, fmt.Errorf("store does not have a provider")
+		return nil, errors.New("store does not have a provider")
 	}
 
 	secret, err := p.findSecretByRef(ctx, ref.Key, spec.Provider.BitwardenSecretsManager.ProjectID)
@@ -151,7 +152,7 @@ func (p *Provider) DeleteSecret(ctx context.Context, ref esv1beta1.PushSecretRem
 
 	spec := p.store.GetSpec()
 	if spec == nil || spec.Provider == nil {
-		return fmt.Errorf("store does not have a provider")
+		return errors.New("store does not have a provider")
 	}
 
 	secret, err := p.findSecretByRef(ctx, ref.GetRemoteKey(), spec.Provider.BitwardenSecretsManager.ProjectID)
@@ -193,7 +194,7 @@ func (p *Provider) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRem
 
 	spec := p.store.GetSpec()
 	if spec == nil || spec.Provider == nil {
-		return false, fmt.Errorf("store does not have a provider")
+		return false, errors.New("store does not have a provider")
 	}
 
 	if _, err := p.findSecretByRef(ctx, ref.GetRemoteKey(), spec.Provider.BitwardenSecretsManager.ProjectID); err != nil {
@@ -205,7 +206,29 @@ func (p *Provider) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRem
 
 // GetSecretMap returns multiple k/v pairs from the provider.
 func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	return nil, fmt.Errorf("GetSecretMap() not implemented")
+	data, err := p.GetSecret(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+
+	kv := make(map[string]json.RawMessage)
+	err = json.Unmarshal(data, &kv)
+	if err != nil {
+		return nil, fmt.Errorf("error unmarshalling secret: %w", err)
+	}
+
+	secretData := make(map[string][]byte)
+	for k, v := range kv {
+		var strVal string
+		err = json.Unmarshal(v, &strVal)
+		if err == nil {
+			secretData[k] = []byte(strVal)
+		} else {
+			secretData[k] = v
+		}
+	}
+
+	return secretData, nil
 }
 
 // GetAllSecrets gets multiple secrets from the provider and loads into a kubernetes secret.
@@ -214,7 +237,7 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 func (p *Provider) GetAllSecrets(ctx context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	spec := p.store.GetSpec()
 	if spec == nil {
-		return nil, fmt.Errorf("store does not have a provider")
+		return nil, errors.New("store does not have a provider")
 	}
 
 	secrets, err := p.bitwardenSdkClient.ListSecrets(ctx, spec.Provider.BitwardenSecretsManager.OrganizationID)
@@ -248,7 +271,7 @@ func (p *Provider) Close(_ context.Context) error {
 func (p *Provider) findSecretByRef(ctx context.Context, key, projectID string) (*SecretResponse, error) {
 	spec := p.store.GetSpec()
 	if spec == nil || spec.Provider == nil {
-		return nil, fmt.Errorf("store does not have a provider")
+		return nil, errors.New("store does not have a provider")
 	}
 
 	// ListAll Secrets for an organization. If the key matches our key, we GetSecret that and do a compare.

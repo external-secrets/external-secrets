@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -144,7 +145,7 @@ func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 }
 
 func (pm *ParameterStore) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf("not implemented")
+	return false, errors.New("not implemented")
 }
 
 func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
@@ -217,13 +218,13 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 		isManaged := isManagedByESO(tags)
 
 		if !isManaged {
-			return fmt.Errorf("secret not managed by external-secrets")
+			return errors.New("secret not managed by external-secrets")
 		}
 
 		// When fetching a remote SecureString parameter without decrypting, the default value will always be 'sensitive'
 		// in this case, no updates will be pushed remotely
 		if existing.Parameter.Value != nil && *existing.Parameter.Value == "sensitive" {
-			return fmt.Errorf("unable to compare 'sensitive' result, ensure to request a decrypted value")
+			return errors.New("unable to compare 'sensitive' result, ensure to request a decrypted value")
 		}
 
 		if existing.Parameter.Value != nil && *existing.Parameter.Value == string(value) {
@@ -239,12 +240,9 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 }
 
 func isManagedByESO(tags []*ssm.Tag) bool {
-	for _, tag := range tags {
-		if *tag.Key == managedBy && *tag.Value == externalSecrets {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(tags, func(tag *ssm.Tag) bool {
+		return *tag.Key == managedBy && *tag.Value == externalSecrets
+	})
 }
 
 func (pm *ParameterStore) setManagedRemoteParameter(ctx context.Context, secretRequest ssm.PutParameterInput, createManagedByTags bool) error {

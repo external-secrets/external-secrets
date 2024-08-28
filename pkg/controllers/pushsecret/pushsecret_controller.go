@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 	"time"
 
@@ -235,9 +236,7 @@ func mergeSecretState(newMap, old esapi.SyncedPushSecretsMap) esapi.SyncedPushSe
 		if !ok {
 			out[k] = make(map[string]esapi.PushSecretData)
 		}
-		for kk, vv := range v {
-			out[k][kk] = vv
-		}
+		maps.Insert(out[k], maps.All(v))
 	}
 	return out
 }
@@ -406,7 +405,7 @@ func (r *Reconciler) GetSecretStores(ctx context.Context, ps esapi.PushSecret) (
 
 func (r *Reconciler) getSecretStoreFromName(ctx context.Context, refStore esapi.PushSecretStoreRef, ns string) (v1beta1.GenericStore, error) {
 	if refStore.Name == "" {
-		return nil, fmt.Errorf("refStore Name must be provided")
+		return nil, errors.New("refStore Name must be provided")
 	}
 	ref := types.NamespacedName{
 		Name: refStore.Name,

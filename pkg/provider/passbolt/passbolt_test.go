@@ -17,7 +17,6 @@ package passbolt
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -100,21 +99,21 @@ func TestValidateStore(t *testing.T) {
 
 	// missing auth
 	_, err := p.ValidateStore(store)
-	g.Expect(err).To(g.BeEquivalentTo(fmt.Errorf(errPassboltStoreMissingAuth)))
+	g.Expect(err).To(g.BeEquivalentTo(errors.New(errPassboltStoreMissingAuth)))
 
 	// missing password
 	store.Spec.Provider.Passbolt.Auth = &esv1beta1.PassboltAuth{
 		PrivateKeySecretRef: &esmeta.SecretKeySelector{Key: "some-secret", Name: "privatekey"},
 	}
 	_, err = p.ValidateStore(store)
-	g.Expect(err).To(g.BeEquivalentTo(fmt.Errorf(errPassboltStoreMissingAuthPassword)))
+	g.Expect(err).To(g.BeEquivalentTo(errors.New(errPassboltStoreMissingAuthPassword)))
 
 	// missing privateKey
 	store.Spec.Provider.Passbolt.Auth = &esv1beta1.PassboltAuth{
 		PasswordSecretRef: &esmeta.SecretKeySelector{Key: "some-secret", Name: "password"},
 	}
 	_, err = p.ValidateStore(store)
-	g.Expect(err).To(g.BeEquivalentTo(fmt.Errorf(errPassboltStoreMissingAuthPrivateKey)))
+	g.Expect(err).To(g.BeEquivalentTo(errors.New(errPassboltStoreMissingAuthPrivateKey)))
 
 	store.Spec.Provider.Passbolt.Auth = &esv1beta1.PassboltAuth{
 
@@ -124,12 +123,12 @@ func TestValidateStore(t *testing.T) {
 
 	// missing host
 	_, err = p.ValidateStore(store)
-	g.Expect(err).To(g.BeEquivalentTo(fmt.Errorf(errPassboltStoreMissingHost)))
+	g.Expect(err).To(g.BeEquivalentTo(errors.New(errPassboltStoreMissingHost)))
 
 	// not https
 	store.Spec.Provider.Passbolt.Host = "http://passbolt.test"
 	_, err = p.ValidateStore(store)
-	g.Expect(err).To(g.BeEquivalentTo(fmt.Errorf(errPassboltStoreHostSchemeNotHTTPS)))
+	g.Expect(err).To(g.BeEquivalentTo(errors.New(errPassboltStoreHostSchemeNotHTTPS)))
 
 	// spec ok
 	store.Spec.Provider.Passbolt.Host = "https://passbolt.test"
@@ -276,23 +275,23 @@ func TestSecretExists(t *testing.T) {
 	p := &ProviderPassbolt{client: clientMock}
 	g.RegisterTestingT(t)
 	_, err := p.SecretExists(context.TODO(), nil)
-	g.Expect(err).To(g.BeEquivalentTo(fmt.Errorf(errNotImplemented)))
+	g.Expect(err).To(g.BeEquivalentTo(errors.New(errNotImplemented)))
 }
 func TestPushSecret(t *testing.T) {
 	p := &ProviderPassbolt{client: clientMock}
 	g.RegisterTestingT(t)
 	err := p.PushSecret(context.TODO(), nil, nil)
-	g.Expect(err).To(g.BeEquivalentTo(fmt.Errorf(errNotImplemented)))
+	g.Expect(err).To(g.BeEquivalentTo(errors.New(errNotImplemented)))
 }
 func TestDeleteSecret(t *testing.T) {
 	p := &ProviderPassbolt{client: clientMock}
 	g.RegisterTestingT(t)
 	err := p.DeleteSecret(context.TODO(), nil)
-	g.Expect(err).To(g.BeEquivalentTo(fmt.Errorf(errNotImplemented)))
+	g.Expect(err).To(g.BeEquivalentTo(errors.New(errNotImplemented)))
 }
 func TestGetSecretMap(t *testing.T) {
 	p := &ProviderPassbolt{client: clientMock}
 	g.RegisterTestingT(t)
 	_, err := p.GetSecretMap(context.TODO(), esv1beta1.ExternalSecretDataRemoteRef{})
-	g.Expect(err).To(g.BeEquivalentTo(fmt.Errorf(errNotImplemented)))
+	g.Expect(err).To(g.BeEquivalentTo(errors.New(errNotImplemented)))
 }
