@@ -125,8 +125,6 @@ func TestGetAllSecrets(t *testing.T) {
 			"access_key":    "access_key2",
 			"access_secret": "access_secret2",
 		},
-		// uncommenting this makes the findByName kv1 test fail
-		//"secret3": make(map[string]any),
 		"tag": map[string]any{
 			"access_key":    "unfetched",
 			"access_secret": "unfetched",
