@@ -22,6 +22,7 @@ rules:
     - "validatingwebhookconfigurations"
     verbs:
     - "list"
+    - "watch"
   - apiGroups:
     - "admissionregistration.k8s.io"
     resources:
