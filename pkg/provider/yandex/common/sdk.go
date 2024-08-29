@@ -57,7 +57,16 @@ func NewGrpcConnection(
 		return nil, err
 	}
 
-	return grpc.NewClient(serviceAPIEndpoint.Address,
+	// Until gRPC proposal A61 is implemented in grpc-go, default gRPC name resolver (dns)
+	// is incompatible with dualstack backends, and YC API backends are dualstack.
+	// However, if passthrough resolver is used instead, grpc-go won't do any name resolution
+	// and will pass the endpoint to net.Dial as-is, which would utilize happy-eyeballs
+	// support in Go's net package.
+	// So we explicitly set gRPC resolver to `passthrough` to match `ycsdk`s behavior,
+	// which uses `passthrough` resolver implicitly by using deprecated grpc.DialContext
+	// instead of grpc.NewClient used here
+	target := "passthrough:///" + serviceAPIEndpoint.Address
+	return grpc.NewClient(target,
 		grpc.WithTransportCredentials(credentials.NewTLS(tlsConfig)),
 		grpc.WithKeepaliveParams(keepalive.ClientParameters{
 			Time:                time.Second * 30,
