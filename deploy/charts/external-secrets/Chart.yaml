@@ -16,6 +16,6 @@ maintainers:
 
 dependencies:
   - name: bitwarden-sdk-server
-    version: v0.1.4
+    version: v0.3.1
     repository: oci://ghcr.io/external-secrets/charts
     condition: bitwarden-sdk-server.enabled
