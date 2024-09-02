@@ -27,12 +27,6 @@ import (
 
 type Generator struct{}
 
-const (
-	errNoSpec    = "no config spec provided"
-	errParseSpec = "unable to parse spec: %w"
-	errGetToken  = "unable to get authorization token: %w"
-)
-
 type generateFunc func() (string, error)
 
 func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ client.Client, _ string) (map[string][]byte, error) {
@@ -42,7 +36,7 @@ func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ 
 	)
 }
 
-func (g *Generator) generate(jsonSpec *apiextensions.JSON, uuidGen generateFunc) (map[string][]byte, error) {
+func (g *Generator) generate(_ *apiextensions.JSON, uuidGen generateFunc) (map[string][]byte, error) {
 	uuid, err := uuidGen()
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate UUID: %w", err)
