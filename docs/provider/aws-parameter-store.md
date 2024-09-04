@@ -131,9 +131,13 @@ Optionally, it is possible to configure additional options for the parameter suc
 {% include 'aws-pm-push-secret-with-metadata.yaml' %}
 ```
 
-`parameterStoreType` takes three options. `String`, `StringList`, and `SecureString`, where `String` is the _default_.
+`parameterStore.type` takes three options. `String`, `StringList`, and `SecureString`, where `String` is the _default_.
 
-`parameterStoreKeyID` takes a KMS Key `$ID` or `$ARN` (in case a key source is created in another account) as a string, where `alias/aws/ssm` is the _default_. This property is only used if `parameterStoreType` is set as `SecureString`.
+`parameterStore.keyID` takes a KMS Key `$ID` or `$ARN` (in case a key source is created in another account) as a string, where `alias/aws/ssm` is the _default_. This property is only used if `parameterStore.type` is set as `SecureString`.
+
+`parameterStore.tier` takes two options. `Standard` or `Advanced`, where `Standard` is the _default_.
+
+`parameterStore.policies` takes a list of parameter policies. This property is only used if `parameterStore.tier` is set as `Advanced`. To have access to all options regarding policies please use the following official guide: [Assigning parameter policies](https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-policies.html)
 
 #### Check successful secret sync
 

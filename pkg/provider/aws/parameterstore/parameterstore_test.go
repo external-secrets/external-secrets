@@ -17,6 +17,7 @@ package parameterstore
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -442,9 +443,29 @@ func TestPushSecret(t *testing.T) {
 				metadata: &apiextensionsv1.JSON{
 					Raw: []byte(`
 					{
-						"parameterStoreType": "SecureString", 
-						"parameterStoreKeyID": "arn:aws:kms:sa-east-1:00000000000:key/bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"
-					}
+						"parameterStore": {
+								"type": "SecureString",
+								"keyID": "arn:aws:kms:sa-east-1:00000000000:key/bb123123-b2b0-4f60-ac3a-44a13f0e6b6c",
+								"tier": "Advanced",
+								"policies": [
+										{
+												"type": "Expiration",
+												"version": "1.0",
+												"attributes": {
+														"timestamp": "2024-12-02T21:34:33.000Z"
+												}
+										},
+										{
+												"type": "ExpirationNotification",
+												"version": "1.0",
+												"attributes": {
+														"before": "2",
+														"unit": "Days"
+												}
+										}
+								]
+						}
+				}
 					`),
 				},
 				client: fakeps.Client{
@@ -491,7 +512,25 @@ func TestPushSecret(t *testing.T) {
 				},
 			},
 			want: want{
-				err: errors.New("failed to parse metadata: failed to parse JSON raw data: invalid character 'f' looking for beginning of object key string"),
+				err: fmt.Errorf("failed to unmarshal metadata: invalid character 'f' looking for beginning of object key string"),
+			},
+		},
+		"SetSecretWithInvalidMetadataPolicies": {
+			reason: "test push secret with invalid metadata policies structure",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{"parameterStore": []}`),
+				},
+				client: fakeps.Client{
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(sameGetParameterOutput, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+				},
+			},
+			want: want{
+				err: fmt.Errorf("failed to unmarshal metadata: json: cannot unmarshal array into Go struct field PushSecretMetadata.ParameterStore of type parameterstore.ParameterStoreMetadata"),
 			},
 		},
 		"GetRemoteSecretWithoutDecryption": {
