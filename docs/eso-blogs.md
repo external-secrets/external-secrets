@@ -2,6 +2,11 @@
 
 A list of blogs written by people all over the community. Feel free to let us know if you are writing about ESO at some place! We would be happy to mention you here!
 
+
+## [From vulnerable to unhackable: secrets management in cloud-native environments](https://medium.com/@as_mallem/from-vulnerable-to-unhackable-secrets-management-in-cloud-native-environments-cb341bd97869/)
+
+[@Saliha Mallem](https://www.linkedin.com/in/saliha-mallem/) writes about integrating ESO with IBM Cloud Secrets Manager. In her blog, she outlines the steps to deploy ESO and demonstrates how to use both the Secrets Manager API and the Vault API for seamless integration. The blog is user-friendly and easy to follow.
+
 ## [Enhancing Kubernetes Security and Flexibility with the CyberArk Conjur and ESO Integration](https://developer.cyberark.com/blog/enhancing-kubernetes-security-and-flexibility-with-the-cyberark-conjur-and-eso-integration/)
 
 [@szh](https://github.com/szh) Writes about using ESO with CyberArk Conjur. He includes detailed steps on how to
