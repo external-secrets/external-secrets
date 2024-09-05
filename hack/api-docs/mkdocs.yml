@@ -139,5 +139,3 @@ nav:
           - Talks: eso-talks.md
           - Demos: eso-demos.md
           - Blogs: eso-blogs.md
-  - References:
-      - API specification: spec.md
