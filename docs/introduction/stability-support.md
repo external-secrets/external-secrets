@@ -17,16 +17,16 @@ We want to cover the following cases:
 - regular go dependency updates
 - backport bug fixes on demand
 
-| ESO Version | Kubernetes Version | Release Date | End of Life    |
-|-------------|--------------------|--------------| -------------- |
-| 0.10.x      | 1.19 → 1.31        | Aug 3, 2024  | Release of 1.1 |
-| 0.9.x       | 1.19 → 1.30        | Jun 22, 2023 | Release of 1.1 |
-| 0.8.x       | 1.19 → 1.28        | Mar 16, 2023 | Release of 1.0 |
-| 0.7.x       | 1.19 → 1.26        | Dec 11, 2022 | Jun 22, 2023   |
-| 0.6.x       | 1.19 → 1.24        | Oct 9, 2022  | Mar 16, 2023   |
-| 0.5.x       | 1.19 → 1.24        | Apr 6, 2022  | Dec 11, 2022   |
-| 0.4.x       | 1.16 → 1.24        | Feb 2, 2022  | Oct 9, 2022    |
-| 0.3.x       | 1.16 → 1.24        | Jul 25, 2021 | Apr 6, 2022    |
+| ESO Version | Kubernetes Version | Release Date | End of Life     |
+| ----------- | ------------------ | ------------ | --------------- |
+| 0.10.x      | 1.19 → 1.31        | Aug 3, 2024  | Release of 0.12 |
+| 0.9.x       | 1.19 → 1.30        | Jun 22, 2023 | Release of 0.11 |
+| 0.8.x       | 1.19 → 1.28        | Mar 16, 2023 | Aug 3, 2024     |
+| 0.7.x       | 1.19 → 1.26        | Dec 11, 2022 | Jun 22, 2023    |
+| 0.6.x       | 1.19 → 1.24        | Oct 9, 2022  | Mar 16, 2023    |
+| 0.5.x       | 1.19 → 1.24        | Apr 6, 2022  | Dec 11, 2022    |
+| 0.4.x       | 1.16 → 1.24        | Feb 2, 2022  | Oct 9, 2022     |
+| 0.3.x       | 1.16 → 1.24        | Jul 25, 2021 | Apr 6, 2022     |
 
 ## Provider Stability and Support Level
 
@@ -52,22 +52,22 @@ The following table describes the stability level of each provider and who's res
 | [Doppler SecretOps Platform](https://external-secrets.io/latest/provider/doppler)                          |   alpha   |                                                                                         [@ryan-blunden](https://github.com/ryan-blunden/) [@nmanoogian](https://github.com/nmanoogian/) |
 | [Keeper Security](https://www.keepersecurity.com/)                                                         |   alpha   |                                                                                                                                              [@ppodevlab](https://github.com/ppodevlab) |
 | [Scaleway](https://external-secrets.io/latest/provider/scaleway)                                           |   alpha   |                                                                                                                                                   [@azert9](https://github.com/azert9/) |
-| [Conjur](https://external-secrets.io/latest/provider/conjur)                                               |   stable   |                                                                                                                                 [@davidh-cyberark](https://github.com/davidh-cyberark/) [@szh](https://github.com/szh) |
+| [Conjur](https://external-secrets.io/latest/provider/conjur)                                               |  stable   |                                                                                                  [@davidh-cyberark](https://github.com/davidh-cyberark/) [@szh](https://github.com/szh) |
 | [Delinea](https://external-secrets.io/latest/provider/delinea)                                             |   alpha   |                                                                                                                                     [@michaelsauter](https://github.com/michaelsauter/) |
 | [Beyondtrust](https://external-secrets.io/latest/provider/beyondtrust)                                     |   alpha   |                                                                                                                                       [@btfhernandez](https://github.com/btfhernandez/) |
-| [SecretServer](https://external-secrets.io/latest/provider/secretserver)                                   |   alpha   |                                                                                                                                     [@billhamilton](https://github.com/pacificcode/) |
-| [Pulumi ESC](https://external-secrets.io/latest/provider/pulumi)                                           |   alpha   |                                                                                                                                                  [@dirien](https://github.com/dirien) |
-| [Passbolt](https://external-secrets.io/latest/provider/passbolt)                                           |   alpha   |                                                                                                                                                   |
-| [Infisical](https://external-secrets.io/latest/provider/infisical)                                         |   alpha   | [@akhilmhdh](https://github.com/akhilmhdh)                                                                                       |
-| [Device42](https://external-secrets.io/latest/provider/device42)                                           |   alpha   |                                                                                                                                                   |
-| [Bitwarden Secrets Manager](https://external-secrets.io/latest/provider/bitwarden-secrets-manager)         |   alpha   | [@skarlso](https://github.com/Skarlso)                                                                                           |
+| [SecretServer](https://external-secrets.io/latest/provider/secretserver)                                   |   alpha   |                                                                                                                                        [@billhamilton](https://github.com/pacificcode/) |
+| [Pulumi ESC](https://external-secrets.io/latest/provider/pulumi)                                           |   alpha   |                                                                                                                                                    [@dirien](https://github.com/dirien) |
+| [Passbolt](https://external-secrets.io/latest/provider/passbolt)                                           |   alpha   |                                                                                                                                                                                         |
+| [Infisical](https://external-secrets.io/latest/provider/infisical)                                         |   alpha   |                                                                                                                                              [@akhilmhdh](https://github.com/akhilmhdh) |
+| [Device42](https://external-secrets.io/latest/provider/device42)                                           |   alpha   |                                                                                                                                                                                         |
+| [Bitwarden Secrets Manager](https://external-secrets.io/latest/provider/bitwarden-secrets-manager)         |   alpha   |                                                                                                                                                  [@skarlso](https://github.com/Skarlso) |
 
 ## Provider Feature Support
 
 The following table show the support for features across different providers.
 
 | Provider                  | find by name | find by tags | metadataPolicy Fetch | referent authentication | store validation | push secret | DeletionPolicy Merge/Delete |
-|---------------------------|:------------:| :----------: | :------------------: | :---------------------: | :--------------: |:-----------:|:---------------------------:|
+| ------------------------- | :----------: | :----------: | :------------------: | :---------------------: | :--------------: | :---------: | :-------------------------: |
 | AWS Secrets Manager       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | AWS Parameter Store       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Hashicorp Vault           |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
