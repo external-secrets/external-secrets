@@ -64,9 +64,10 @@ You can find the roadmap in our documentation: https://external-secrets.io/main/
 
 ## Sponsored by
 
-![](assets/CS_logo_1.png)
-![](assets/form3_logo.png)
-![](assets/pento_logo.png)
+![External Secrets Inc.](assets/ESI_Logo.svg)
+![Container Solutions](assets/CS_logo_1.png)
+![Form 3](assets/form3_logo.png)
+![Pento ](assets/pento_logo.png)
 
 
 ## License
