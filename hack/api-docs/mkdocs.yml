@@ -63,6 +63,7 @@ nav:
       - Fake: api/generator/fake.md
       - Webhook: api/generator/webhook.md
       - Github: api/generator/github.md
+      - UUID: api/generator/uuid.md
     - Reference Docs:
       - API specification: api/spec.md
       - Controller Options: api/controller-options.md
