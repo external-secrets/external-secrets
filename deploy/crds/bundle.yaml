@@ -11812,7 +11812,7 @@ spec:
     listKind: UUIDList
     plural: uuids
     shortNames:
-      - password
+      - uuids
     singular: uuid
   scope: Namespaced
   versions:
