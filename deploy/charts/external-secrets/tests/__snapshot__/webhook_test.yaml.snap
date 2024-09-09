@@ -7,8 +7,8 @@ should match snapshot of default values:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: external-secrets-webhook
-        app.kubernetes.io/version: v0.10.2
-        helm.sh/chart: external-secrets-0.10.2
+        app.kubernetes.io/version: v0.10.3
+        helm.sh/chart: external-secrets-0.10.3
       name: RELEASE-NAME-external-secrets-webhook
       namespace: NAMESPACE
     spec:
@@ -24,8 +24,8 @@ should match snapshot of default values:
             app.kubernetes.io/instance: RELEASE-NAME
             app.kubernetes.io/managed-by: Helm
             app.kubernetes.io/name: external-secrets-webhook
-            app.kubernetes.io/version: v0.10.2
-            helm.sh/chart: external-secrets-0.10.2
+            app.kubernetes.io/version: v0.10.3
+            helm.sh/chart: external-secrets-0.10.3
         spec:
           automountServiceAccountToken: true
           containers:
@@ -39,7 +39,7 @@ should match snapshot of default values:
                 - --healthz-addr=:8081
                 - --loglevel=info
                 - --zap-time-encoding=epoch
-              image: ghcr.io/external-secrets/external-secrets:v0.10.2
+              image: ghcr.io/external-secrets/external-secrets:v0.10.3
               imagePullPolicy: IfNotPresent
               name: webhook
               ports:
@@ -83,8 +83,8 @@ should match snapshot of default values:
         app.kubernetes.io/instance: RELEASE-NAME
         app.kubernetes.io/managed-by: Helm
         app.kubernetes.io/name: external-secrets-webhook
-        app.kubernetes.io/version: v0.10.2
+        app.kubernetes.io/version: v0.10.3
         external-secrets.io/component: webhook
-        helm.sh/chart: external-secrets-0.10.2
+        helm.sh/chart: external-secrets-0.10.3
       name: RELEASE-NAME-external-secrets-webhook
       namespace: NAMESPACE
