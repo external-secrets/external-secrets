@@ -19,8 +19,7 @@ import (
 )
 
 // UUIDSpec controls the behavior of the uuid generator.
-type UUIDSpec struct {
-}
+type UUIDSpec struct{}
 
 // Password generates a random password based on the
 // configuration parameters in spec.
@@ -28,7 +27,7 @@ type UUIDSpec struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Namespaced,categories={password},shortName=password
+// +kubebuilder:resource:scope=Namespaced,categories={password},shortName=uuids
 type UUID struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
