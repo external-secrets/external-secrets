@@ -30,6 +30,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
+	prov "github.com/external-secrets/external-secrets/apis/providers/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault/fake"
 	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -362,7 +363,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
+		provider: &prov.AzureKVSpec{VaultURL: pointer.To(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -825,7 +826,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
+		provider: &prov.AzureKVSpec{VaultURL: pointer.To(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -1218,7 +1219,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
+		provider: &prov.AzureKVSpec{VaultURL: pointer.To(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -1377,7 +1378,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
+		provider: &prov.AzureKVSpec{VaultURL: pointer.To(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -1532,7 +1533,7 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
+		provider: &prov.AzureKVSpec{VaultURL: pointer.To(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -1735,7 +1736,7 @@ func TestAzureKeyVaultSecretExists(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
+		provider: &prov.AzureKVSpec{VaultURL: pointer.To(fakeURL)},
 	}
 
 	for k, tc := range testCases {

@@ -1194,7 +1194,7 @@ func TestValidRetryInput(t *testing.T) {
 					ServiceURL: &serviceURL,
 				},
 			},
-			RetrySettings: &esv1beta1.SecretStoreRetrySettings{
+			RetrySettings: &v1.RetrySettings{
 				RetryInterval: &invalid,
 			},
 		},

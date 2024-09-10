@@ -503,7 +503,7 @@ func TestValidRetryInput(t *testing.T) {
 					},
 				},
 			},
-			RetrySettings: &esv1beta1.SecretStoreRetrySettings{
+			RetrySettings: &esmeta.RetrySettings{
 				RetryInterval: &invalid,
 			},
 		},

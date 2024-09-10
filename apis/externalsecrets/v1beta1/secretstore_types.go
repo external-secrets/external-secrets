@@ -17,6 +17,8 @@ package v1beta1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 // SecretStoreSpec defines the desired state of SecretStore.
@@ -27,11 +29,15 @@ type SecretStoreSpec struct {
 	Controller string `json:"controller,omitempty"`
 
 	// Used to configure the provider. Only one provider may be set
-	Provider *SecretStoreProvider `json:"provider"`
+	// +optional
+	Provider *SecretStoreProvider `json:"provider,omitempty"`
 
+	// Used to reference a CRD-based provider. Only one of ProviderRef or provider may be set.
+	// providerRef takes precedence over provider.
+	ProviderRef *esmeta.ProviderRef `json:"providerRef,omitempty"`
 	// Used to configure http retries if failed
 	// +optional
-	RetrySettings *SecretStoreRetrySettings `json:"retrySettings,omitempty"`
+	RetrySettings *esmeta.RetrySettings `json:"retrySettings,omitempty"`
 
 	// Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
 	// +optional
@@ -189,39 +195,6 @@ type SecretStoreProvider struct {
 	// Beyondtrust configures this store to sync secrets using Password Safe provider.
 	// +optional
 	Beyondtrust *BeyondtrustProvider `json:"beyondtrust,omitempty"`
-}
-
-type CAProviderType string
-
-const (
-	CAProviderTypeSecret    CAProviderType = "Secret"
-	CAProviderTypeConfigMap CAProviderType = "ConfigMap"
-)
-
-// Used to provide custom certificate authority (CA) certificates
-// for a secret store. The CAProvider points to a Secret or ConfigMap resource
-// that contains a PEM-encoded certificate.
-type CAProvider struct {
-	// The type of provider to use such as "Secret", or "ConfigMap".
-	// +kubebuilder:validation:Enum="Secret";"ConfigMap"
-	Type CAProviderType `json:"type"`
-
-	// The name of the object located at the provider type.
-	Name string `json:"name"`
-
-	// The key where the CA certificate can be found in the Secret or ConfigMap.
-	// +kubebuilder:validation:Optional
-	Key string `json:"key,omitempty"`
-
-	// The namespace the Provider type is in.
-	// Can only be defined when used in a ClusterSecretStore.
-	// +optional
-	Namespace *string `json:"namespace,omitempty"`
-}
-
-type SecretStoreRetrySettings struct {
-	MaxRetries    *int32  `json:"maxRetries,omitempty"`
-	RetryInterval *string `json:"retryInterval,omitempty"`
 }
 
 type SecretStoreConditionType string

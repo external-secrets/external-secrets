@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
@@ -61,6 +62,18 @@ type Client interface {
 	GetResourceType(ctx context.Context, typeID string) (*api.ResourceType, error)
 	DecryptMessage(message string) (string, error)
 	GetSecret(ctx context.Context, resourceID string) (*api.Secret, error)
+}
+
+func (provider *ProviderPassbolt) ApplyReferent(spec kclient.Object, _ esmeta.ReferentCallOrigin, _ string) (kclient.Object, error) {
+	return spec, nil
+}
+
+func (provider *ProviderPassbolt) Convert(_ esv1beta1.GenericStore) (kclient.Object, error) {
+	return nil, nil
+}
+
+func (provider *ProviderPassbolt) NewClientFromObj(_ context.Context, _ kclient.Object, _ kclient.Client, _ string) (esv1beta1.SecretsClient, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
 func (provider *ProviderPassbolt) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {

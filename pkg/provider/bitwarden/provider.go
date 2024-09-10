@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
@@ -40,6 +41,18 @@ type Provider struct {
 
 func init() {
 	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{BitwardenSecretsManager: &esv1beta1.BitwardenSecretsManagerProvider{}})
+}
+
+func (p *Provider) ApplyReferent(spec client.Object, _ esmeta.ReferentCallOrigin, _ string) (client.Object, error) {
+	return spec, nil
+}
+
+func (p *Provider) Convert(_ esv1beta1.GenericStore) (client.Object, error) {
+	return nil, nil
+}
+
+func (p *Provider) NewClientFromObj(_ context.Context, _ client.Object, _ client.Client, _ string) (esv1beta1.SecretsClient, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
 // NewClient creates a new Bitwarden Secret Manager client.

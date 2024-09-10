@@ -525,7 +525,7 @@ func CompareStringAndByteSlices(valueString *string, valueByte []byte) bool {
 // CreateCertOpts contains options for a cert pool creation.
 type CreateCertOpts struct {
 	CABundle   []byte
-	CAProvider *esv1beta1.CAProvider
+	CAProvider *esmeta.CAProvider
 	StoreKind  string
 	Namespace  string
 	Client     client.Client
@@ -554,14 +554,14 @@ func FetchCACertFromSource(ctx context.Context, opts CreateCertOpts) ([]byte, er
 	}
 
 	switch opts.CAProvider.Type {
-	case esv1beta1.CAProviderTypeSecret:
+	case esmeta.CAProviderTypeSecret:
 		cert, err := getCertFromSecret(ctx, opts.Client, opts.CAProvider, opts.StoreKind, opts.Namespace)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get cert from secret: %w", err)
 		}
 
 		return cert, nil
-	case esv1beta1.CAProviderTypeConfigMap:
+	case esmeta.CAProviderTypeConfigMap:
 		cert, err := getCertFromConfigMap(ctx, opts.Namespace, opts.Client, opts.CAProvider)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get cert from configmap: %w", err)
@@ -600,7 +600,7 @@ func parseCertificateBytes(certBytes []byte) ([]byte, error) {
 	return certBytes, nil
 }
 
-func getCertFromSecret(ctx context.Context, c client.Client, provider *esv1beta1.CAProvider, storeKind, namespace string) ([]byte, error) {
+func getCertFromSecret(ctx context.Context, c client.Client, provider *esmeta.CAProvider, storeKind, namespace string) ([]byte, error) {
 	secretRef := esmeta.SecretKeySelector{
 		Name: provider.Name,
 		Key:  provider.Key,
@@ -618,7 +618,7 @@ func getCertFromSecret(ctx context.Context, c client.Client, provider *esv1beta1
 	return []byte(cert), nil
 }
 
-func getCertFromConfigMap(ctx context.Context, namespace string, c client.Client, provider *esv1beta1.CAProvider) ([]byte, error) {
+func getCertFromConfigMap(ctx context.Context, namespace string, c client.Client, provider *esmeta.CAProvider) ([]byte, error) {
 	objKey := client.ObjectKey{
 		Name:      provider.Name,
 		Namespace: namespace,

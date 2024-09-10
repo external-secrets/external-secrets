@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
@@ -41,6 +42,17 @@ type Provider struct{}
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadWrite
+}
+
+func (p *Provider) ApplyReferent(spec kubeClient.Object, _ esmeta.ReferentCallOrigin, _ string) (kubeClient.Object, error) {
+	return spec, nil
+}
+func (p *Provider) Convert(_ esv1beta1.GenericStore) (kubeClient.Object, error) {
+	return nil, nil
+}
+
+func (p *Provider) NewClientFromObj(_ context.Context, _ kubeClient.Object, _ kubeClient.Client, _ string) (esv1beta1.SecretsClient, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kubeClient.Client, namespace string) (esv1beta1.SecretsClient, error) {

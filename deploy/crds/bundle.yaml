@@ -5190,6 +5190,22 @@ spec:
                         - auth
                       type: object
                   type: object
+                providerRef:
+                  description: |-
+                    Used to reference a CRD-based provider. Only one of ProviderRef or provider may be set.
+                    providerRef takes precedence over provider.
+                  properties:
+                    apiVersion:
+                      type: string
+                    kind:
+                      type: string
+                    name:
+                      type: string
+                  required:
+                    - apiVersion
+                    - kind
+                    - name
+                  type: object
                 refreshInterval:
                   description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
                   type: integer
@@ -5202,8 +5218,6 @@ spec:
                     retryInterval:
                       type: string
                   type: object
-              required:
-                - provider
               type: object
             status:
               description: SecretStoreStatus defines the observed state of the SecretStore.
@@ -10970,6 +10984,22 @@ spec:
                         - auth
                       type: object
                   type: object
+                providerRef:
+                  description: |-
+                    Used to reference a CRD-based provider. Only one of ProviderRef or provider may be set.
+                    providerRef takes precedence over provider.
+                  properties:
+                    apiVersion:
+                      type: string
+                    kind:
+                      type: string
+                    name:
+                      type: string
+                  required:
+                    - apiVersion
+                    - kind
+                    - name
+                  type: object
                 refreshInterval:
                   description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
                   type: integer
@@ -10982,8 +11012,6 @@ spec:
                     retryInterval:
                       type: string
                   type: object
-              required:
-                - provider
               type: object
             status:
               description: SecretStoreStatus defines the observed state of the SecretStore.
@@ -12689,6 +12717,1054 @@ spec:
               required:
                 - result
                 - url
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+  conversion:
+    strategy: Webhook
+    webhook:
+      conversionReviewVersions:
+        - v1
+      clientConfig:
+        service:
+          name: kubernetes
+          namespace: default
+          path: /convert
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.2
+  name: akeylesses.providers.external-secrets.io
+spec:
+  group: providers.external-secrets.io
+  names:
+    categories:
+      - akeyless
+    kind: Akeyless
+    listKind: AkeylessList
+    plural: akeylesses
+    shortNames:
+      - akeyless
+    singular: akeyless
+  scope: Cluster
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: AkeylessSpec Configures an store to sync secrets using Akeyless KV.
+              properties:
+                akeylessGWApiURL:
+                  description: Akeyless GW API Url from which the secrets to be fetched from.
+                  type: string
+                authSecretRef:
+                  description: Auth configures how the operator authenticates with Akeyless.
+                  properties:
+                    kubernetesAuth:
+                      description: |-
+                        Kubernetes authenticates with Akeyless by passing the ServiceAccount
+                        token stored in the named Secret resource.
+                      properties:
+                        accessID:
+                          description: the Akeyless Kubernetes auth-method access-id
+                          type: string
+                        k8sConfName:
+                          description: Kubernetes-auth configuration name in Akeyless-Gateway
+                          type: string
+                        secretRef:
+                          description: |-
+                            Optional secret field containing a Kubernetes ServiceAccount JWT used
+                            for authenticating with Akeyless. If a name is specified without a key,
+                            `token` is the default. If one is not specified, the one bound to
+                            the controller will be used.
+                          properties:
+                            key:
+                              description: |-
+                                The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                defaulted, in others it may be required.
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                to the namespace of the referent.
+                              type: string
+                          type: object
+                        serviceAccountRef:
+                          description: |-
+                            Optional service account field containing the name of a kubernetes ServiceAccount.
+                            If the service account is specified, the service account secret token JWT will be used
+                            for authenticating with Akeyless. If the service account selector is not supplied,
+                            the secretRef will be used instead.
+                          properties:
+                            audiences:
+                              description: |-
+                                Audience specifies the `aud` claim for the service account token
+                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                to the namespace of the referent.
+                              type: string
+                          required:
+                            - name
+                          type: object
+                      required:
+                        - accessID
+                        - k8sConfName
+                      type: object
+                    secretRef:
+                      description: |-
+                        Reference to a Secret that contains the details
+                        to authenticate with Akeyless.
+                      properties:
+                        accessID:
+                          description: The SecretAccessID is used for authentication
+                          properties:
+                            key:
+                              description: |-
+                                The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                defaulted, in others it may be required.
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                to the namespace of the referent.
+                              type: string
+                          type: object
+                        accessType:
+                          description: |-
+                            A reference to a specific 'key' within a Secret resource,
+                            In some instances, `key` is a required field.
+                          properties:
+                            key:
+                              description: |-
+                                The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                defaulted, in others it may be required.
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                to the namespace of the referent.
+                              type: string
+                          type: object
+                        accessTypeParam:
+                          description: |-
+                            A reference to a specific 'key' within a Secret resource,
+                            In some instances, `key` is a required field.
+                          properties:
+                            key:
+                              description: |-
+                                The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                defaulted, in others it may be required.
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                to the namespace of the referent.
+                              type: string
+                          type: object
+                      type: object
+                  type: object
+                caBundle:
+                  description: |-
+                    PEM/base64 encoded CA bundle used to validate Akeyless Gateway certificate. Only used
+                    if the AkeylessGWApiURL URL is using HTTPS protocol. If not set the system root certificates
+                    are used to validate the TLS connection.
+                  format: byte
+                  type: string
+                caProvider:
+                  description: The provider for the CA bundle to use to validate Akeyless Gateway certificate.
+                  properties:
+                    key:
+                      description: The key where the CA certificate can be found in the Secret or ConfigMap.
+                      type: string
+                    name:
+                      description: The name of the object located at the provider type.
+                      type: string
+                    namespace:
+                      description: |-
+                        The namespace the Provider type is in.
+                        Can only be defined when used in a ClusterSecretStore.
+                      type: string
+                    type:
+                      description: The type of provider to use such as "Secret", or "ConfigMap".
+                      enum:
+                        - Secret
+                        - ConfigMap
+                      type: string
+                  required:
+                    - name
+                    - type
+                  type: object
+                controller:
+                  description: |-
+                    Used to select the correct ESO controller (think: ingress.ingressClassName)
+                    The ESO controller is instantiated with a specific controller name and filters ES based on this property
+                  type: string
+                refreshInterval:
+                  description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
+                  type: integer
+                retrySettings:
+                  description: Used to configure http retries if failed
+                  properties:
+                    maxRetries:
+                      format: int32
+                      type: integer
+                    retryInterval:
+                      type: string
+                  type: object
+              required:
+                - akeylessGWApiURL
+                - authSecretRef
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+  conversion:
+    strategy: Webhook
+    webhook:
+      conversionReviewVersions:
+        - v1
+      clientConfig:
+        service:
+          name: kubernetes
+          namespace: default
+          path: /convert
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.2
+  name: alibabas.providers.external-secrets.io
+spec:
+  group: providers.external-secrets.io
+  names:
+    categories:
+      - alibaba
+    kind: Alibaba
+    listKind: AlibabaList
+    plural: alibabas
+    shortNames:
+      - alibaba
+    singular: alibaba
+  scope: Cluster
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: AlibabaProvider configures a store to sync secrets using the Alibaba Secret Manager provider.
+              properties:
+                auth:
+                  description: AlibabaAuth contains a secretRef for credentials.
+                  properties:
+                    rrsa:
+                      description: Authenticate against Alibaba using RRSA.
+                      properties:
+                        oidcProviderArn:
+                          type: string
+                        oidcTokenFilePath:
+                          type: string
+                        roleArn:
+                          type: string
+                        sessionName:
+                          type: string
+                      required:
+                        - oidcProviderArn
+                        - oidcTokenFilePath
+                        - roleArn
+                        - sessionName
+                      type: object
+                    secretRef:
+                      description: AlibabaAuthSecretRef holds secret references for Alibaba credentials.
+                      properties:
+                        accessKeyIDSecretRef:
+                          description: The AccessKeyID is used for authentication
+                          properties:
+                            key:
+                              description: |-
+                                The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                defaulted, in others it may be required.
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                to the namespace of the referent.
+                              type: string
+                          type: object
+                        accessKeySecretSecretRef:
+                          description: The AccessKeySecret is used for authentication
+                          properties:
+                            key:
+                              description: |-
+                                The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                defaulted, in others it may be required.
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                to the namespace of the referent.
+                              type: string
+                          type: object
+                      required:
+                        - accessKeyIDSecretRef
+                        - accessKeySecretSecretRef
+                      type: object
+                  type: object
+                controller:
+                  description: |-
+                    Used to select the correct ESO controller (think: ingress.ingressClassName)
+                    The ESO controller is instantiated with a specific controller name and filters ES based on this property
+                  type: string
+                refreshInterval:
+                  description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
+                  type: integer
+                regionID:
+                  description: Alibaba Region to be used for the provider
+                  type: string
+                retrySettings:
+                  description: Used to configure http retries if failed
+                  properties:
+                    maxRetries:
+                      format: int32
+                      type: integer
+                    retryInterval:
+                      type: string
+                  type: object
+              required:
+                - auth
+                - regionID
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+  conversion:
+    strategy: Webhook
+    webhook:
+      conversionReviewVersions:
+        - v1
+      clientConfig:
+        service:
+          name: kubernetes
+          namespace: default
+          path: /convert
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.2
+  name: awses.providers.external-secrets.io
+spec:
+  group: providers.external-secrets.io
+  names:
+    categories:
+      - aws
+    kind: AWS
+    listKind: AWSList
+    plural: awses
+    shortNames:
+      - aws
+    singular: aws
+  scope: Cluster
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: AWSProvider configures a store to sync secrets with AWS.
+              properties:
+                additionalRoles:
+                  description: AdditionalRoles is a chained list of Role ARNs which the provider will sequentially assume before assuming the Role
+                  items:
+                    type: string
+                  type: array
+                auth:
+                  description: |-
+                    Auth defines the information necessary to authenticate against AWS
+                    if not set aws sdk will infer credentials from your environment
+                    see: https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
+                  properties:
+                    jwt:
+                      description: Authenticate against AWS using service account tokens.
+                      properties:
+                        serviceAccountRef:
+                          description: A reference to a ServiceAccount resource.
+                          properties:
+                            audiences:
+                              description: |-
+                                Audience specifies the `aud` claim for the service account token
+                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                to the namespace of the referent.
+                              type: string
+                          required:
+                            - name
+                          type: object
+                      type: object
+                    secretRef:
+                      description: |-
+                        AWSAuthSecretRef holds secret references for AWS credentials
+                        both AccessKeyID and SecretAccessKey must be defined in order to properly authenticate.
+                      properties:
+                        accessKeyIDSecretRef:
+                          description: The AccessKeyID is used for authentication
+                          properties:
+                            key:
+                              description: |-
+                                The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                defaulted, in others it may be required.
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                to the namespace of the referent.
+                              type: string
+                          type: object
+                        secretAccessKeySecretRef:
+                          description: The SecretAccessKey is used for authentication
+                          properties:
+                            key:
+                              description: |-
+                                The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                defaulted, in others it may be required.
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                to the namespace of the referent.
+                              type: string
+                          type: object
+                        sessionTokenSecretRef:
+                          description: |-
+                            The SessionToken used for authentication
+                            This must be defined if AccessKeyID and SecretAccessKey are temporary credentials
+                            see: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html
+                          properties:
+                            key:
+                              description: |-
+                                The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                defaulted, in others it may be required.
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                to the namespace of the referent.
+                              type: string
+                          type: object
+                      type: object
+                  type: object
+                controller:
+                  description: |-
+                    Used to select the correct ESO controller (think: ingress.ingressClassName)
+                    The ESO controller is instantiated with a specific controller name and filters ES based on this property
+                  type: string
+                externalID:
+                  description: AWS External ID set on assumed IAM roles
+                  type: string
+                prefix:
+                  description: Prefix adds a prefix to all retrieved values.
+                  type: string
+                refreshInterval:
+                  description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
+                  type: integer
+                region:
+                  description: AWS Region to be used for the provider
+                  type: string
+                retrySettings:
+                  description: Used to configure http retries if failed
+                  properties:
+                    maxRetries:
+                      format: int32
+                      type: integer
+                    retryInterval:
+                      type: string
+                  type: object
+                role:
+                  description: Role is a Role ARN which the provider will assume
+                  type: string
+                secretsManager:
+                  description: SecretsManager defines how the provider behaves when interacting with AWS SecretsManager
+                  properties:
+                    forceDeleteWithoutRecovery:
+                      description: |-
+                        Specifies whether to delete the secret without any recovery window. You
+                        can't use both this parameter and RecoveryWindowInDays in the same call.
+                        If you don't use either, then by default Secrets Manager uses a 30 day
+                        recovery window.
+                        see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-ForceDeleteWithoutRecovery
+                      type: boolean
+                    recoveryWindowInDays:
+                      description: |-
+                        The number of days from 7 to 30 that Secrets Manager waits before
+                        permanently deleting the secret. You can't use both this parameter and
+                        ForceDeleteWithoutRecovery in the same call. If you don't use either,
+                        then by default Secrets Manager uses a 30 day recovery window.
+                        see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays
+                      format: int64
+                      type: integer
+                  type: object
+                service:
+                  description: Service defines which service should be used to fetch the secrets
+                  enum:
+                    - SecretsManager
+                    - ParameterStore
+                  type: string
+                sessionTags:
+                  description: AWS STS assume role session tags
+                  items:
+                    properties:
+                      key:
+                        type: string
+                      value:
+                        type: string
+                    required:
+                      - key
+                      - value
+                    type: object
+                  type: array
+                transitiveTagKeys:
+                  description: AWS STS assume role transitive session tags. Required when multiple rules are used with the provider
+                  items:
+                    type: string
+                  type: array
+              required:
+                - region
+                - service
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+  conversion:
+    strategy: Webhook
+    webhook:
+      conversionReviewVersions:
+        - v1
+      clientConfig:
+        service:
+          name: kubernetes
+          namespace: default
+          path: /convert
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.2
+  name: azurekvs.providers.external-secrets.io
+spec:
+  group: providers.external-secrets.io
+  names:
+    categories:
+      - azure
+    kind: AzureKv
+    listKind: AzureKvList
+    plural: azurekvs
+    shortNames:
+      - azure
+    singular: azurekv
+  scope: Cluster
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: Configures an store to sync secrets using AzureKvKV.
+              properties:
+                authSecretRef:
+                  description: Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type. Optional for WorkloadIdentity.
+                  properties:
+                    clientCertificate:
+                      description: The AzureKvClientCertificate of the service principle used for authentication.
+                      properties:
+                        key:
+                          description: |-
+                            The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                            defaulted, in others it may be required.
+                          type: string
+                        name:
+                          description: The name of the Secret resource being referred to.
+                          type: string
+                        namespace:
+                          description: |-
+                            Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                            to the namespace of the referent.
+                          type: string
+                      type: object
+                    clientId:
+                      description: The AzureKvclientId of the service principle or managed identity used for authentication.
+                      properties:
+                        key:
+                          description: |-
+                            The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                            defaulted, in others it may be required.
+                          type: string
+                        name:
+                          description: The name of the Secret resource being referred to.
+                          type: string
+                        namespace:
+                          description: |-
+                            Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                            to the namespace of the referent.
+                          type: string
+                      type: object
+                    clientSecret:
+                      description: The AzureKvClientSecret of the service principle used for authentication.
+                      properties:
+                        key:
+                          description: |-
+                            The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                            defaulted, in others it may be required.
+                          type: string
+                        name:
+                          description: The name of the Secret resource being referred to.
+                          type: string
+                        namespace:
+                          description: |-
+                            Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                            to the namespace of the referent.
+                          type: string
+                      type: object
+                    tenantId:
+                      description: The AzureKvtenantId of the managed identity used for authentication.
+                      properties:
+                        key:
+                          description: |-
+                            The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                            defaulted, in others it may be required.
+                          type: string
+                        name:
+                          description: The name of the Secret resource being referred to.
+                          type: string
+                        namespace:
+                          description: |-
+                            Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                            to the namespace of the referent.
+                          type: string
+                      type: object
+                  type: object
+                authType:
+                  default: ServicePrincipal
+                  description: |-
+                    Auth type defines how to authenticate to the keyvault service.
+                    Valid values are:
+                    - "ServicePrincipal" (default): Using a service principal (tenantId, clientId, clientSecret)
+                    - "ManagedIdentity": Using Managed Identity assigned to the pod (see aad-pod-identity)
+                  enum:
+                    - ServicePrincipal
+                    - ManagedIdentity
+                    - WorkloadIdentity
+                  type: string
+                controller:
+                  description: |-
+                    Used to select the correct ESO controller (think: ingress.ingressClassName)
+                    The ESO controller is instantiated with a specific controller name and filters ES based on this property
+                  type: string
+                environmentType:
+                  default: PublicCloud
+                  description: |-
+                    EnvironmentType specifies the AzureKvcloud environment endpoints to use for
+                    connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint.
+                    The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152
+                    PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
+                  enum:
+                    - PublicCloud
+                    - USGovernmentCloud
+                    - ChinaCloud
+                    - GermanCloud
+                  type: string
+                identityId:
+                  description: If multiple Managed Identity is assigned to the pod, you can select the one to be used
+                  type: string
+                refreshInterval:
+                  description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
+                  type: integer
+                retrySettings:
+                  description: Used to configure http retries if failed
+                  properties:
+                    maxRetries:
+                      format: int32
+                      type: integer
+                    retryInterval:
+                      type: string
+                  type: object
+                serviceAccountRef:
+                  description: |-
+                    ServiceAccountRef specified the service account
+                    that should be used when authenticating with WorkloadIdentity.
+                  properties:
+                    audiences:
+                      description: |-
+                        Audience specifies the `aud` claim for the service account token
+                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                        then this audiences will be appended to the list
+                      items:
+                        type: string
+                      type: array
+                    name:
+                      description: The name of the ServiceAccount resource being referred to.
+                      type: string
+                    namespace:
+                      description: |-
+                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                        to the namespace of the referent.
+                      type: string
+                  required:
+                    - name
+                  type: object
+                tenantId:
+                  description: TenantID configures the AzureKvTenant to send requests to. Required for ServicePrincipal auth type. Optional for WorkloadIdentity.
+                  type: string
+                vaultUrl:
+                  description: Vault Url from which the secrets to be fetched from.
+                  type: string
+              required:
+                - vaultUrl
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+  conversion:
+    strategy: Webhook
+    webhook:
+      conversionReviewVersions:
+        - v1
+      clientConfig:
+        service:
+          name: kubernetes
+          namespace: default
+          path: /convert
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.2
+  name: fakes.providers.external-secrets.io
+spec:
+  group: providers.external-secrets.io
+  names:
+    categories:
+      - fake
+    kind: Fake
+    listKind: FakeList
+    plural: fakes
+    shortNames:
+      - fake
+    singular: fake
+  scope: Cluster
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: FakeSpec contains the static data.
+              properties:
+                controller:
+                  description: |-
+                    Used to select the correct ESO controller (think: ingress.ingressClassName)
+                    The ESO controller is instantiated with a specific controller name and filters ES based on this property
+                  type: string
+                data:
+                  items:
+                    properties:
+                      key:
+                        type: string
+                      value:
+                        type: string
+                      valueMap:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      version:
+                        type: string
+                    required:
+                      - key
+                    type: object
+                  type: array
+                refreshInterval:
+                  description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
+                  type: integer
+                retrySettings:
+                  description: Used to configure http retries if failed
+                  properties:
+                    maxRetries:
+                      format: int32
+                      type: integer
+                    retryInterval:
+                      type: string
+                  type: object
+              required:
+                - data
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+  conversion:
+    strategy: Webhook
+    webhook:
+      conversionReviewVersions:
+        - v1
+      clientConfig:
+        service:
+          name: kubernetes
+          namespace: default
+          path: /convert
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.2
+  name: gitlabs.providers.external-secrets.io
+spec:
+  group: providers.external-secrets.io
+  names:
+    categories:
+      - gitlab
+    kind: Gitlab
+    listKind: GitlabList
+    plural: gitlabs
+    shortNames:
+      - gitlab
+    singular: gitlab
+  scope: Cluster
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: Configures a store to sync secrets with a GitLab instance.
+              properties:
+                auth:
+                  description: Auth configures how secret-manager authenticates with a GitLab instance.
+                  properties:
+                    SecretRef:
+                      properties:
+                        accessToken:
+                          description: AccessToken is used for authentication.
+                          properties:
+                            key:
+                              description: |-
+                                The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                defaulted, in others it may be required.
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                to the namespace of the referent.
+                              type: string
+                          type: object
+                      type: object
+                  required:
+                    - SecretRef
+                  type: object
+                controller:
+                  description: |-
+                    Used to select the correct ESO controller (think: ingress.ingressClassName)
+                    The ESO controller is instantiated with a specific controller name and filters ES based on this property
+                  type: string
+                environment:
+                  description: Environment environment_scope of gitlab CI/CD variables (Please see https://docs.gitlab.com/ee/ci/environments/#create-a-static-environment on how to create environments)
+                  type: string
+                groupIDs:
+                  description: GroupIDs specify, which gitlab groups to pull secrets from. Group secrets are read from left to right followed by the project variables.
+                  items:
+                    type: string
+                  type: array
+                inheritFromGroups:
+                  description: InheritFromGroups specifies whether parent groups should be discovered and checked for secrets.
+                  type: boolean
+                projectID:
+                  description: ProjectID specifies a project where secrets are located.
+                  type: string
+                refreshInterval:
+                  description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
+                  type: integer
+                retrySettings:
+                  description: Used to configure http retries if failed
+                  properties:
+                    maxRetries:
+                      format: int32
+                      type: integer
+                    retryInterval:
+                      type: string
+                  type: object
+                url:
+                  description: URL configures the GitLab instance URL. Defaults to https://gitlab.com/.
+                  type: string
+              required:
+                - auth
               type: object
           type: object
       served: true

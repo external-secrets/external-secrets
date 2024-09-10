@@ -611,14 +611,14 @@ func makeJWTSecretStore(svcURL, serviceAccountName, secretName, jwtServiceID, jw
 func makeStoreWithCA(caSource, caData string) *esv1beta1.SecretStore {
 	store := makeJWTSecretStore(svcURL, "conjur", "", jwtAuthnService, "", "myconjuraccount")
 	if caSource == "secret" {
-		store.Spec.Provider.Conjur.CAProvider = &esv1beta1.CAProvider{
-			Type: esv1beta1.CAProviderTypeSecret,
+		store.Spec.Provider.Conjur.CAProvider = &esmeta.CAProvider{
+			Type: esmeta.CAProviderTypeSecret,
 			Name: "conjur-cert",
 			Key:  "ca",
 		}
 	} else if caSource == "configmap" {
-		store.Spec.Provider.Conjur.CAProvider = &esv1beta1.CAProvider{
-			Type: esv1beta1.CAProviderTypeConfigMap,
+		store.Spec.Provider.Conjur.CAProvider = &esmeta.CAProvider{
+			Type: esmeta.CAProviderTypeConfigMap,
 			Name: "conjur-cert",
 			Key:  "ca",
 		}

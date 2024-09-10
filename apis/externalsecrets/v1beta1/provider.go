@@ -20,6 +20,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 const (
@@ -48,9 +50,15 @@ func (v ValidationResult) String() string {
 
 // Provider is a common interface for interacting with secret backends.
 type Provider interface {
+	// NewClient based on a provider spec
+	NewClientFromObj(ctx context.Context, obj client.Object, kube client.Client, namespace string) (SecretsClient, error)
+
+	// ApplyReferent gets an object and changes namespace fields according to referent strategy
+	ApplyReferent(spec client.Object, caller esmeta.ReferentCallOrigin, namespace string) (client.Object, error)
+
 	// NewClient constructs a SecretsManager Provider
 	NewClient(ctx context.Context, store GenericStore, kube client.Client, namespace string) (SecretsClient, error)
-
+	Convert(store GenericStore) (client.Object, error)
 	// ValidateStore checks if the provided store is valid
 	// The provider may return a warning and an error.
 	// The intended use of the warning to indicate a deprecation of behavior

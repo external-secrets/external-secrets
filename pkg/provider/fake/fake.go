@@ -27,6 +27,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	prov "github.com/external-secrets/external-secrets/apis/providers/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
@@ -62,6 +64,77 @@ func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadWrite
 }
 
+func (p *Provider) ApplyReferent(spec client.Object, caller esmeta.ReferentCallOrigin, ns string) (client.Object, error) {
+	converted, ok := spec.(*prov.Fake)
+	out := converted.DeepCopy()
+	if !ok {
+		return nil, fmt.Errorf("could not convert source object %v into 'fake' provider type: object from type %T", spec.GetName(), spec)
+	}
+	switch caller {
+	case esmeta.ReferentCallSecretStore:
+		// Logic to update 'namespace' fields from provider original spec.
+		fmt.Printf("i would do something here if I was a legit implementation updating all ns references to %v\n", ns)
+	case esmeta.ReferentCallProvider:
+		// Logic to update 'namespace' fields from provider original spec.
+		fmt.Printf("i would do something here if I was a legit implementation updating all ns references to %v\n", ns)
+
+	case esmeta.ReferentCallClusterSecretStore:
+	default:
+		// Logic to not update 'namespace' and use provider configuration as is. (if nil, keep nil as this means referent)
+		fmt.Println("I wouldn't do anything here")
+	}
+	return out, nil
+}
+
+func (p *Provider) Convert(in esv1beta1.GenericStore) (client.Object, error) {
+	out := &prov.Fake{}
+	tmp := map[string]interface{}{
+		"spec": in.GetSpec().Provider.Fake,
+	}
+	d, err := json.Marshal(tmp)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(d, out)
+	if err != nil {
+		return nil, fmt.Errorf("could not convert %v in a valid fake provider: %w", in.GetName(), err)
+	}
+	return out, nil
+}
+
+func (p *Provider) NewClientFromObj(_ context.Context, obj client.Object, _ client.Client, _ string) (esv1beta1.SecretsClient, error) {
+	if p.database == nil {
+		p.database = make(map[string]Config)
+	}
+	f, ok := obj.(*prov.Fake)
+	if !ok {
+		return nil, fmt.Errorf("could not open Provider Spec for obj '%v': expected 'Fake' type, got '%T'", obj.GetName(), obj)
+	}
+	cfg := p.database[f.GetName()]
+	if cfg == nil {
+		cfg = Config{}
+	}
+	for key, data := range cfg {
+		if data.Origin == FakeSecretStore {
+			delete(cfg, key)
+		}
+	}
+	for _, data := range f.Spec.Data {
+		mapKey := fmt.Sprintf("%v%v", data.Key, data.Version)
+		cfg[mapKey] = &Data{
+			Value:   data.Value,
+			Version: data.Version,
+			Origin:  FakeSecretStore,
+		}
+		if data.ValueMap != nil {
+			cfg[mapKey].ValueMap = data.ValueMap
+		}
+	}
+	p.database[f.GetName()] = cfg
+	return &Provider{
+		config: cfg,
+	}, nil
+}
 func (p *Provider) NewClient(_ context.Context, store esv1beta1.GenericStore, _ client.Client, _ string) (esv1beta1.SecretsClient, error) {
 	if p.database == nil {
 		p.database = make(map[string]Config)
@@ -269,4 +342,10 @@ func init() {
 	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
 		Fake: &esv1beta1.FakeProvider{},
 	})
+	esv1beta1.RegisterByName(&Provider{}, prov.FakeKind)
+	ref := esmeta.ProviderRef{
+		APIVersion: prov.Group + "/" + prov.Version,
+		Kind:       prov.FakeKind,
+	}
+	prov.RefRegister(&prov.Fake{}, ref)
 }

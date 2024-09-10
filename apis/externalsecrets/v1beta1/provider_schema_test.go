@@ -16,20 +16,33 @@ package v1beta1
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 type PP struct{}
 
 const shouldBeRegistered = "provider should be registered"
 
+func (p *PP) Convert(_ GenericStore) (client.Object, error) {
+	return nil, nil
+}
 func (p *PP) Capabilities() SecretStoreCapabilities {
 	return SecretStoreReadOnly
+}
+
+func (p *PP) ApplyReferent(spec client.Object, _ esmeta.ReferentCallOrigin, _ string) (client.Object, error) {
+	return spec, nil
+}
+func (p *PP) NewClientFromObj(_ context.Context, _ client.Object, _ client.Client, _ string) (SecretsClient, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
 // New constructs a SecretsManager Provider.

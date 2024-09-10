@@ -131,8 +131,8 @@ func makeDefaultStore(suffix, namespace string) (*rbac.Role, *rbac.RoleBinding, 
 			Provider: &esv1beta1.SecretStoreProvider{
 				Kubernetes: &esv1beta1.KubernetesProvider{
 					Server: esv1beta1.KubernetesServer{
-						CAProvider: &esv1beta1.CAProvider{
-							Type: esv1beta1.CAProviderTypeConfigMap,
+						CAProvider: &esmeta.CAProvider{
+							Type: esmeta.CAProviderTypeConfigMap,
 							Name: "kube-root-ca.crt",
 							Key:  "ca.crt",
 						},

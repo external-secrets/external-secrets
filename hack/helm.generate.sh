@@ -11,10 +11,10 @@ else
 fi
 
 cd "${SCRIPT_DIR}"/../
-
+mkdir -p ${HELM_DIR}/templates/crds
 # Split the generated bundle yaml file to inject control flags
-yq e -Ns "\"${HELM_DIR}/templates/crds/\" + .spec.names.singular" ${BUNDLE_DIR}/bundle.yaml
-
+yq e -Ns "\"${HELM_DIR}/templates/crds/\" + (.metadata.name | sub (\"\.\",\"_\"))" ${BUNDLE_DIR}/bundle.yaml
+ls "${HELM_DIR}/templates/crds"
 # Add helm if statement for controlling the install of CRDs
 for i in "${HELM_DIR}"/templates/crds/*.yml; do
   export CRDS_FLAG_NAME="create$(yq e '.spec.names.kind' $i)"

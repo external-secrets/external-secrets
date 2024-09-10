@@ -71,7 +71,7 @@ type VaultProvider struct {
 
 	// The provider for the CA bundle to use to validate Vault server certificate.
 	// +optional
-	CAProvider *CAProvider `json:"caProvider,omitempty"`
+	CAProvider *esmeta.CAProvider `json:"caProvider,omitempty"`
 
 	// ReadYourWrites ensures isolated read-after-write semantics by
 	// providing discovered cluster replication states in each request.

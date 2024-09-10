@@ -1,6 +1,6 @@
 suite: test crds
 templates:
-  - crds/secretstore.yaml
+  - crds/secretstores_external-secrets_io.yaml
 tests:
   - it: should match snapshot of default values
     asserts:

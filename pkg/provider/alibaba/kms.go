@@ -31,6 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	prov "github.com/external-secrets/external-secrets/apis/providers/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
@@ -48,8 +50,9 @@ var _ esv1beta1.SecretsClient = &KeyManagementService{}
 var _ esv1beta1.Provider = &KeyManagementService{}
 
 type KeyManagementService struct {
-	Client SMInterface
-	Config *openapi.Config
+	Client    SMInterface
+	Config    *openapi.Config
+	storeKind string
 }
 
 type SMInterface interface {
@@ -133,12 +136,29 @@ func (kms *KeyManagementService) Capabilities() esv1beta1.SecretStoreCapabilitie
 	return esv1beta1.SecretStoreReadOnly
 }
 
-// NewClient constructs a new secrets client based on the provided store.
-func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
-	storeSpec := store.GetSpec()
-	alibabaSpec := storeSpec.Provider.Alibaba
+func (kms *KeyManagementService) Convert(in esv1beta1.GenericStore) (kclient.Object, error) {
+	out := &prov.Alibaba{}
+	tmp := map[string]interface{}{
+		"spec": in.GetSpec().Provider.Alibaba,
+	}
+	d, err := json.Marshal(tmp)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(d, out)
+	if err != nil {
+		return nil, fmt.Errorf("could not convert %v in a valid fake provider: %w", in.GetName(), err)
+	}
+	return out, nil
+}
+func (kms *KeyManagementService) NewClientFromObj(ctx context.Context, obj kclient.Object, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+	p, ok := obj.(*prov.Alibaba)
+	if !ok {
+		return nil, errors.New("could not validate provider")
+	}
+	alibabaSpec := &p.Spec
 
-	credentials, err := newAuth(ctx, kube, store, namespace)
+	credentials, err := newAuth(ctx, kube, alibabaSpec, namespace, kms.storeKind)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Alibaba credentials: %w", err)
 	}
@@ -148,7 +168,7 @@ func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1beta1.
 		Credential: credentials,
 	}
 
-	options := newOptions(store)
+	options := newOptions(alibabaSpec)
 	client, err := newClient(config, options)
 	if err != nil {
 		return nil, fmt.Errorf(errAlibabaClient, err)
@@ -159,9 +179,28 @@ func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1beta1.
 	return kms, nil
 }
 
-func newOptions(store esv1beta1.GenericStore) *util.RuntimeOptions {
-	storeSpec := store.GetSpec()
+func (kms *KeyManagementService) ApplyReferent(spec kclient.Object, caller esmeta.ReferentCallOrigin, _ string) (kclient.Object, error) {
+	converted, ok := spec.(*prov.Akeyless)
+	out := converted.DeepCopy()
+	if !ok {
+		return nil, fmt.Errorf("could not convert source object %v into 'fake' provider type: object from type %T", spec.GetName(), spec)
+	}
+	switch caller {
+	case esmeta.ReferentCallClusterSecretStore:
+		kms.storeKind = esv1beta1.ClusterSecretStoreKind
+	case esmeta.ReferentCallSecretStore:
+	case esmeta.ReferentCallProvider:
+	default:
+	}
+	return out, nil
+}
 
+// NewClient constructs a new secrets client based on the provided store.
+func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+	return nil, errors.New("no longer supported")
+}
+
+func newOptions(storeSpec *prov.AlibabaSpec) *util.RuntimeOptions {
 	options := &util.RuntimeOptions{}
 	// Setup retry options, if present in storeSpec
 	if storeSpec.RetrySettings != nil {
@@ -180,20 +219,17 @@ func newOptions(store esv1beta1.GenericStore) *util.RuntimeOptions {
 	return options
 }
 
-func newAuth(ctx context.Context, kube kclient.Client, store esv1beta1.GenericStore, namespace string) (credential.Credential, error) {
-	storeSpec := store.GetSpec()
-	alibabaSpec := storeSpec.Provider.Alibaba
-
+func newAuth(ctx context.Context, kube kclient.Client, alibabaSpec *prov.AlibabaSpec, namespace, storeKind string) (credential.Credential, error) {
 	switch {
 	case alibabaSpec.Auth.RRSAAuth != nil:
-		credentials, err := newRRSAAuth(store)
+		credentials, err := newRRSAAuth(alibabaSpec)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create Alibaba OIDC credentials: %w", err)
 		}
 
 		return credentials, nil
 	case alibabaSpec.Auth.SecretRef != nil:
-		credentials, err := newAccessKeyAuth(ctx, kube, store, namespace)
+		credentials, err := newAccessKeyAuth(ctx, kube, alibabaSpec, namespace, storeKind)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create Alibaba AccessKey credentials: %w", err)
 		}
@@ -204,10 +240,7 @@ func newAuth(ctx context.Context, kube kclient.Client, store esv1beta1.GenericSt
 	}
 }
 
-func newRRSAAuth(store esv1beta1.GenericStore) (credential.Credential, error) {
-	storeSpec := store.GetSpec()
-	alibabaSpec := storeSpec.Provider.Alibaba
-
+func newRRSAAuth(alibabaSpec *prov.AlibabaSpec) (credential.Credential, error) {
 	credentialConfig := &credential.Config{
 		OIDCProviderArn:   &alibabaSpec.Auth.RRSAAuth.OIDCProviderARN,
 		OIDCTokenFilePath: &alibabaSpec.Auth.RRSAAuth.OIDCTokenFilePath,
@@ -221,10 +254,7 @@ func newRRSAAuth(store esv1beta1.GenericStore) (credential.Credential, error) {
 	return credential.NewCredential(credentialConfig)
 }
 
-func newAccessKeyAuth(ctx context.Context, kube kclient.Client, store esv1beta1.GenericStore, namespace string) (credential.Credential, error) {
-	storeSpec := store.GetSpec()
-	alibabaSpec := storeSpec.Provider.Alibaba
-	storeKind := store.GetObjectKind().GroupVersionKind().Kind
+func newAccessKeyAuth(ctx context.Context, kube kclient.Client, alibabaSpec *prov.AlibabaSpec, namespace, storeKind string) (credential.Credential, error) {
 	accessKeyID, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &alibabaSpec.Auth.SecretRef.AccessKeyID)
 	if err != nil {
 		return nil, fmt.Errorf(errFetchAccessKeyID, err)
@@ -356,4 +386,10 @@ func init() {
 	esv1beta1.Register(&KeyManagementService{}, &esv1beta1.SecretStoreProvider{
 		Alibaba: &esv1beta1.AlibabaProvider{},
 	})
+	esv1beta1.RegisterByName(&KeyManagementService{}, prov.AlibabaKind)
+	ref := esmeta.ProviderRef{
+		APIVersion: prov.Group + "/" + prov.Version,
+		Kind:       prov.AlibabaKind,
+	}
+	prov.RefRegister(&prov.Alibaba{}, ref)
 }

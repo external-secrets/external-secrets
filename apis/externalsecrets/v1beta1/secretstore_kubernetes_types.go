@@ -31,7 +31,7 @@ type KubernetesServer struct {
 
 	// see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider
 	// +optional
-	CAProvider *CAProvider `json:"caProvider,omitempty"`
+	CAProvider *esmeta.CAProvider `json:"caProvider,omitempty"`
 }
 
 // Configures a store to sync secrets with a Kubernetes instance.

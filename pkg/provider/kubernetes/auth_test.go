@@ -123,8 +123,8 @@ func TestSetAuth(t *testing.T) {
 				store: &esv1beta1.KubernetesProvider{
 					Server: esv1beta1.KubernetesServer{
 						URL: "https://my.test.tld",
-						CAProvider: &esv1beta1.CAProvider{
-							Type: esv1beta1.CAProviderTypeSecret,
+						CAProvider: &v1.CAProvider{
+							Type: v1.CAProviderTypeSecret,
 							Name: "foobar",
 							Key:  "cert",
 						},
@@ -173,8 +173,8 @@ func TestSetAuth(t *testing.T) {
 				store: &esv1beta1.KubernetesProvider{
 					Server: esv1beta1.KubernetesServer{
 						URL: "https://my.test.tld",
-						CAProvider: &esv1beta1.CAProvider{
-							Type: esv1beta1.CAProviderTypeConfigMap,
+						CAProvider: &v1.CAProvider{
+							Type: v1.CAProviderTypeConfigMap,
 							Name: "foobar",
 							Key:  "cert",
 						},

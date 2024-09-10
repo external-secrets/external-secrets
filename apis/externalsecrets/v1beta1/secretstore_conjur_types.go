@@ -21,8 +21,8 @@ type ConjurProvider struct {
 	// +optional
 	CABundle string `json:"caBundle,omitempty"`
 	// +optional
-	CAProvider *CAProvider `json:"caProvider,omitempty"`
-	Auth       ConjurAuth  `json:"auth"`
+	CAProvider *esmeta.CAProvider `json:"caProvider,omitempty"`
+	Auth       ConjurAuth         `json:"auth"`
 }
 
 type ConjurAuth struct {

@@ -16,6 +16,7 @@ package secretstore
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -31,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 func TestManagerGet(t *testing.T) {
@@ -406,6 +408,17 @@ type WrapProvider struct {
 		esv1beta1.GenericStore,
 		client.Client,
 		string) (esv1beta1.SecretsClient, error)
+}
+
+func (f *WrapProvider) NewClientFromObj(_ context.Context, _ client.Object, _ client.Client, _ string) (esv1beta1.SecretsClient, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+func (f *WrapProvider) ApplyReferent(spec client.Object, _ esmeta.ReferentCallOrigin, _ string) (client.Object, error) {
+	return spec, nil
+}
+func (f *WrapProvider) Convert(_ esv1beta1.GenericStore) (client.Object, error) {
+	return nil, nil
 }
 
 // NewClient constructs a SecretsManager Provider.

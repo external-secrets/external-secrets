@@ -16,23 +16,29 @@ package gitlab
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/xanzy/go-gitlab"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	prov "github.com/external-secrets/external-secrets/apis/providers/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // Provider satisfies the provider interface.
-type Provider struct{}
+type Provider struct {
+	storeKind string
+}
 
 // gitlabBase satisfies the provider.SecretsClient interface.
 type gitlabBase struct {
 	kube      kclient.Client
-	store     *esv1beta1.GitlabProvider
+	store     *prov.GitlabSpec
 	storeKind string
 	namespace string
 
@@ -46,33 +52,69 @@ func (g *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
 }
 
-// Method on GitLab Provider to set up projectVariablesClient with credentials, populate projectID and environment.
-func (g *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
-	storeSpec := store.GetSpec()
-	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Gitlab == nil {
+func (g *Provider) ApplyReferent(spec kclient.Object, caller esmeta.ReferentCallOrigin, namespace string) (kclient.Object, error) {
+	converted, ok := spec.(*prov.Gitlab)
+	if !ok {
+		return nil, fmt.Errorf("could not convert source object %v into 'fake' provider type: object from type %T", spec.GetName(), spec)
+	}
+	ns := &namespace
+	out := converted.DeepCopy()
+	switch caller {
+	case esmeta.ReferentCallProvider:
+	case esmeta.ReferentCallSecretStore:
+		out.Spec.Auth.SecretRef.AccessToken.Namespace = ns
+	case esmeta.ReferentCallClusterSecretStore:
+		// compatibility with utils.SecretKeyRef
+		g.storeKind = esv1beta1.ClusterSecretStoreKind
+	default:
+	}
+
+	return spec, nil
+}
+
+func (g *Provider) Convert(in esv1beta1.GenericStore) (kclient.Object, error) {
+	out := &prov.Gitlab{}
+	tmp := map[string]interface{}{
+		"spec": in.GetSpec().Provider.Gitlab,
+	}
+	d, err := json.Marshal(tmp)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(d, out)
+	if err != nil {
+		return nil, fmt.Errorf("could not convert %v in a valid fake provider: %w", in.GetName(), err)
+	}
+	return out, nil
+}
+
+func (g *Provider) NewClientFromObj(ctx context.Context, obj kclient.Object, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+	spec, ok := obj.(*prov.Gitlab)
+	if !ok {
 		return nil, errors.New("no store type or wrong store type")
 	}
-	storeSpecGitlab := storeSpec.Provider.Gitlab
-
 	gl := &gitlabBase{
 		kube:      kube,
-		store:     storeSpecGitlab,
+		store:     &spec.Spec,
+		storeKind: g.storeKind,
 		namespace: namespace,
-		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
 	}
-
-	client, err := gl.getClient(ctx, storeSpecGitlab)
+	client, err := gl.getClient(ctx, &spec.Spec)
 	if err != nil {
 		return nil, err
 	}
 	gl.projectsClient = client.Projects
 	gl.projectVariablesClient = client.ProjectVariables
 	gl.groupVariablesClient = client.GroupVariables
-
 	return gl, nil
 }
 
-func (g *gitlabBase) getClient(ctx context.Context, provider *esv1beta1.GitlabProvider) (*gitlab.Client, error) {
+// Method on GitLab Provider to set up projectVariablesClient with credentials, populate projectID and environment.
+func (g *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+	return nil, errors.New("method no longer supported")
+}
+
+func (g *gitlabBase) getClient(ctx context.Context, provider *prov.GitlabSpec) (*gitlab.Client, error) {
 	credentials, err := g.getAuth(ctx)
 	if err != nil {
 		return nil, err
@@ -128,4 +170,10 @@ func init() {
 	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
 		Gitlab: &esv1beta1.GitlabProvider{},
 	})
+	esv1beta1.RegisterByName(&Provider{}, prov.GitlabKind)
+	ref := esmeta.ProviderRef{
+		APIVersion: prov.Group + "/" + prov.Version,
+		Kind:       prov.GitlabKind,
+	}
+	prov.RefRegister(&prov.Gitlab{}, ref)
 }

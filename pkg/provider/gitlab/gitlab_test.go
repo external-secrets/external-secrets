@@ -35,6 +35,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esv1meta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	prov "github.com/external-secrets/external-secrets/apis/providers/v1alpha1"
 	fakegitlab "github.com/external-secrets/external-secrets/pkg/provider/gitlab/fake"
 )
 
@@ -315,51 +316,47 @@ func TestNewClient(t *testing.T) {
 	ctx := context.Background()
 	const namespace = "namespace"
 
-	store := &esv1beta1.SecretStore{
+	store := &prov.Gitlab{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Gitlab: &esv1beta1.GitlabProvider{},
-			},
-		},
+		Spec: prov.GitlabSpec{},
 	}
-	provider, err := esv1beta1.GetProvider(store)
-	tassert.Nil(t, err)
+	provider, ok := esv1beta1.GetProviderByName("gitlab")
+	tassert.True(t, ok)
 
 	k8sClient := clientfake.NewClientBuilder().Build()
-	secretClient, err := provider.NewClient(context.Background(), store, k8sClient, namespace)
+	secretClient, err := provider.NewClientFromObj(context.Background(), store, k8sClient, namespace)
 	tassert.EqualError(t, err, errMissingCredentials)
 	tassert.Nil(t, secretClient)
 
-	store.Spec.Provider.Gitlab.Auth = esv1beta1.GitlabAuth{}
-	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
+	store.Spec.Auth = prov.GitlabAuth{}
+	secretClient, err = provider.NewClientFromObj(context.Background(), store, k8sClient, namespace)
 	tassert.EqualError(t, err, errMissingCredentials)
 	tassert.Nil(t, secretClient)
 
-	store.Spec.Provider.Gitlab.Auth.SecretRef = esv1beta1.GitlabSecretRef{}
-	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
+	store.Spec.Auth.SecretRef = prov.GitlabSecretRef{}
+	secretClient, err = provider.NewClientFromObj(context.Background(), store, k8sClient, namespace)
 	tassert.EqualError(t, err, errMissingCredentials)
 	tassert.Nil(t, secretClient)
 
-	store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken = esv1meta.SecretKeySelector{}
-	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
+	store.Spec.Auth.SecretRef.AccessToken = esv1meta.SecretKeySelector{}
+	secretClient, err = provider.NewClientFromObj(context.Background(), store, k8sClient, namespace)
 	tassert.EqualError(t, err, errMissingCredentials)
 	tassert.Nil(t, secretClient)
 
 	const authorizedKeySecretName = "authorizedKeySecretName"
 	const authorizedKeySecretKey = "authorizedKeySecretKey"
-	store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken.Name = authorizedKeySecretName
-	store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken.Key = authorizedKeySecretKey
-	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
+	store.Spec.Auth.SecretRef.AccessToken.Name = authorizedKeySecretName
+	store.Spec.Auth.SecretRef.AccessToken.Key = authorizedKeySecretKey
+	secretClient, err = provider.NewClientFromObj(context.Background(), store, k8sClient, namespace)
 	tassert.EqualError(t, err, "cannot get Kubernetes secret \"authorizedKeySecretName\": secrets \"authorizedKeySecretName\" not found")
 	tassert.Nil(t, secretClient)
 
 	err = createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, newFakeAuthorizedKey()))
 	tassert.Nil(t, err)
 
-	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
+	secretClient, err = provider.NewClientFromObj(context.Background(), store, k8sClient, namespace)
 	tassert.Nil(t, err)
 	tassert.NotNil(t, secretClient)
 }
@@ -435,7 +432,7 @@ func TestGetSecret(t *testing.T) {
 	}
 
 	sm := gitlabBase{}
-	sm.store = &esv1beta1.GitlabProvider{}
+	sm.store = &prov.GitlabSpec{}
 	for k, v := range successCases {
 		sm.projectVariablesClient = v.mockProjectVarClient
 		sm.groupVariablesClient = v.mockGroupVarClient
@@ -455,7 +452,7 @@ func TestGetSecret(t *testing.T) {
 func TestResolveGroupIds(t *testing.T) {
 	v := makeValidSecretManagerTestCaseCustom()
 	sm := gitlabBase{}
-	sm.store = &esv1beta1.GitlabProvider{}
+	sm.store = &prov.GitlabSpec{}
 	sm.projectsClient = v.mockProjectsClient
 	sm.store.ProjectID = v.projectID
 	sm.store.InheritFromGroups = true
@@ -647,7 +644,7 @@ func TestGetAllSecrets(t *testing.T) {
 	}
 
 	sm := gitlabBase{}
-	sm.store = &esv1beta1.GitlabProvider{}
+	sm.store = &prov.GitlabSpec{}
 	for k, v := range cases {
 		sm.projectVariablesClient = v.mockProjectVarClient
 		sm.groupVariablesClient = v.mockGroupVarClient
@@ -707,7 +704,7 @@ func TestGetAllSecretsWithGroups(t *testing.T) {
 	}
 
 	sm := gitlabBase{}
-	sm.store = &esv1beta1.GitlabProvider{}
+	sm.store = &prov.GitlabSpec{}
 	sm.store.Environment = environment
 	for k, v := range cases {
 		sm.projectVariablesClient = v.mockProjectVarClient
@@ -742,7 +739,7 @@ func TestValidate(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setGroupListAPIRespBadCode),
 	}
 	sm := gitlabBase{}
-	sm.store = &esv1beta1.GitlabProvider{}
+	sm.store = &prov.GitlabSpec{}
 	for k, v := range successCases {
 		sm.projectsClient = v.mockProjectsClient
 		sm.projectVariablesClient = v.mockProjectVarClient
@@ -785,7 +782,7 @@ func TestGetSecretMap(t *testing.T) {
 	}
 
 	sm := gitlabBase{}
-	sm.store = &esv1beta1.GitlabProvider{}
+	sm.store = &prov.GitlabSpec{}
 	for k, v := range successCases {
 		sm.projectVariablesClient = v.mockProjectVarClient
 		sm.groupVariablesClient = v.mockGroupVarClient

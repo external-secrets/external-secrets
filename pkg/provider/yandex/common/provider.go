@@ -109,6 +109,18 @@ func (p *YandexCloudProvider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
 }
 
+func (p *YandexCloudProvider) Convert(_ esv1beta1.GenericStore) (kclient.Object, error) {
+	// Makes default to normal SecretStore approach
+	return nil, nil
+}
+
+func (p *YandexCloudProvider) ApplyReferent(spec kclient.Object, _ esmeta.ReferentCallOrigin, _ string) (kclient.Object, error) {
+	return spec, nil
+}
+func (p *YandexCloudProvider) NewClientFromObj(_ context.Context, _ kclient.Object, _ kclient.Client, _ string) (esv1beta1.SecretsClient, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
 // NewClient constructs a Yandex.Cloud Provider.
 func (p *YandexCloudProvider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	input, err := p.adaptInputFunc(store)
