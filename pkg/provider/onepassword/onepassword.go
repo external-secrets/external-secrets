@@ -391,10 +391,8 @@ func (provider *ProviderOnePassword) GetSecretMap(_ context.Context, ref esv1bet
 	}
 	for key, value := range valueFiles {
 		valueMap[key] = value
-
 	}
 	return valueMap, nil
-	//		return nil, fmt.Errorf("no fields or files: '%s' in '%s'", ref.Property, item.Title)
 }
 
 // GetAllSecrets syncs multiple 1Password Items into a single Kubernetes Secret, for dataFrom.find.
