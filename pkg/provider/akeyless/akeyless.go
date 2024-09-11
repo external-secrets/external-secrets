@@ -15,6 +15,7 @@ limitations under the License.
 package akeyless
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -23,6 +24,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -42,8 +44,9 @@ import (
 )
 
 const (
-	defaultAPIUrl     = "https://api.akeyless.io"
-	errNotImplemented = "not implemented"
+	defaultAPIUrl       = "https://api.akeyless.io"
+	errNotImplemented   = "not implemented"
+	ExtSecretManagedTag = "k8s-external-secrets"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -80,6 +83,10 @@ type akeylessVaultInterface interface {
 	GetSecretByType(ctx context.Context, secretName, token string, version int32) (string, error)
 	TokenFromSecretRef(ctx context.Context) (string, error)
 	ListSecrets(ctx context.Context, path, tag, token string) ([]string, error)
+	DescribeItem(ctx context.Context, itemName, token string) (*akeyless.Item, error)
+	CreateSecret(ctx context.Context) akeyless.ApiCreateSecretRequest
+	UpdateSecret(ctx context.Context) akeyless.ApiUpdateSecretValRequest
+	DeleteSecret(ctx context.Context) akeyless.ApiDeleteItemRequest
 }
 
 func init() {
@@ -232,18 +239,6 @@ func (a *Akeyless) Validate() (esv1beta1.ValidationResult, error) {
 	}
 
 	return esv1beta1.ValidationResultReady, nil
-}
-
-func (a *Akeyless) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return errors.New(errNotImplemented)
-}
-
-func (a *Akeyless) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return errors.New(errNotImplemented)
-}
-
-func (a *Akeyless) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, errors.New(errNotImplemented)
 }
 
 // Implements store.Client.GetSecret Interface.
@@ -402,6 +397,149 @@ func (a *Akeyless) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 		secretData[k] = []byte(v)
 	}
 	return secretData, nil
+}
+
+func (a *Akeyless) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRemoteRef) (bool, error) {
+	if utils.IsNil(a.Client) {
+		return false, errors.New(errUninitalizedAkeylessProvider)
+	}
+	secret, err := a.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: ref.GetRemoteKey()})
+	if errors.Is(err, ErrItemNotExists) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if ref.GetProperty() == "" {
+		return true, nil
+	}
+	var secretMap map[string]any
+	err = json.Unmarshal(secret, &secretMap)
+	if err != nil {
+		return false, err
+	}
+	_, ok := secretMap[ref.GetProperty()]
+	return ok, nil
+}
+
+func (a *Akeyless) PushSecret(ctx context.Context, secret *corev1.Secret, psd esv1beta1.PushSecretData) error {
+	if utils.IsNil(a.Client) {
+		return errors.New(errUninitalizedAkeylessProvider)
+	}
+	token, err := a.Client.TokenFromSecretRef(ctx)
+	if err != nil {
+		return err
+	}
+	secretRemote, err := a.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: psd.GetRemoteKey()})
+	isNotExists := errors.Is(err, ErrItemNotExists)
+	if err != nil && !isNotExists {
+		return err
+	}
+	var data map[string]any
+	if isNotExists {
+		mapSize := 1
+		if psd.GetProperty() == "" {
+			mapSize = len(secret.Data)
+		}
+		data = make(map[string]any, mapSize)
+	} else {
+		json.Unmarshal(secretRemote, &data)
+	}
+	if psd.GetProperty() == "" {
+		data = make(map[string]any, len(secret.Data))
+		for k, v := range secret.Data {
+			data[k] = string(v)
+		}
+	} else if v, ok := secret.Data[psd.GetSecretKey()]; ok {
+		data[psd.GetProperty()] = string(v)
+	}
+	dataByte, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	if bytes.Equal(dataByte, secretRemote) {
+		return nil
+	}
+	if isNotExists {
+		csBody := akeyless.CreateSecret{
+			Name:  psd.GetRemoteKey(),
+			Value: string(dataByte),
+			Token: &token,
+			Tags:  &[]string{ExtSecretManagedTag},
+		}
+		_, _, err = a.Client.CreateSecret(ctx).Body(csBody).Execute()
+	} else {
+		csBody := akeyless.UpdateSecretVal{
+			Name:  psd.GetRemoteKey(),
+			Value: string(dataByte),
+			Token: &token,
+		}
+		_, _, err = a.Client.UpdateSecret(ctx).Body(csBody).Execute()
+	}
+	return err
+}
+
+func (a *Akeyless) DeleteSecret(ctx context.Context, psr esv1beta1.PushSecretRemoteRef) error {
+	if utils.IsNil(a.Client) {
+		return errors.New(errUninitalizedAkeylessProvider)
+	}
+	token, err := a.Client.TokenFromSecretRef(ctx)
+	if err != nil {
+		return err
+	}
+	item, err := a.Client.DescribeItem(ctx, psr.GetRemoteKey(), token)
+	fmt.Println("desc", err)
+	if err != nil {
+		return err
+	}
+	if item.ItemTags == nil || !slices.Contains(*item.ItemTags, ExtSecretManagedTag) {
+		return nil
+	}
+	if psr.GetProperty() == "" {
+		_, _, err = a.Client.DeleteSecret(ctx).Body(akeyless.DeleteItem{Name: psr.GetRemoteKey(), Token: &token}).Execute()
+		fmt.Println("del", err)
+		return err
+	}
+	secret, err := a.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: psr.GetRemoteKey()})
+	if err != nil {
+		return err
+	}
+	var secretMap map[string]any
+	err = json.Unmarshal(secret, &secretMap)
+	if err != nil {
+		return err
+	}
+	delete(secretMap, psr.GetProperty())
+	if len(secretMap) == 0 {
+		_, _, err = a.Client.DeleteSecret(ctx).Body(akeyless.DeleteItem{Name: psr.GetRemoteKey(), Token: &token}).Execute()
+		fmt.Println("del2", err)
+		return err
+	}
+	byteSecretMap, err := json.Marshal(secretMap)
+	fmt.Println("mar", err)
+	if err != nil {
+		return err
+	}
+	csBody := akeyless.UpdateSecretVal{
+		Name:  psr.GetRemoteKey(),
+		Value: string(byteSecretMap),
+		Token: &token,
+	}
+	_, _, err = a.Client.UpdateSecret(ctx).Body(csBody).Execute()
+	fmt.Println("up", err)
+	return err
+}
+
+func (a *akeylessBase) DeleteSecret(ctx context.Context) akeyless.ApiDeleteItemRequest {
+	return a.RestAPI.DeleteItem(ctx)
+}
+
+func (a *akeylessBase) CreateSecret(ctx context.Context) akeyless.ApiCreateSecretRequest {
+	return a.RestAPI.CreateSecret(ctx)
+}
+
+func (a *akeylessBase) UpdateSecret(ctx context.Context) akeyless.ApiUpdateSecretValRequest {
+	return a.RestAPI.UpdateSecretVal(ctx)
 }
 
 func (a *akeylessBase) getAkeylessHTTPClient(ctx context.Context, provider *esv1beta1.AkeylessProvider) (*http.Client, error) {

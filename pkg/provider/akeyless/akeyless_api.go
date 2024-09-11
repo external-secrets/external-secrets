@@ -40,7 +40,10 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
-var apiErr akeyless.GenericOpenAPIError
+var (
+	apiErr           akeyless.GenericOpenAPIError
+	ErrItemNotExists = errors.New("item does not exist")
+)
 
 const DefServiceAccountFile = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
@@ -88,8 +91,10 @@ func (a *akeylessBase) GetSecretByType(ctx context.Context, secretName, token st
 	if err != nil {
 		return "", err
 	}
+	if _, ok := item.GetItemNameOk(); !ok {
+		return "", ErrItemNotExists
+	}
 	secretType := item.GetItemType()
-
 	switch secretType {
 	case "STATIC_SECRET":
 		return a.GetStaticSecret(ctx, secretName, token, version)
