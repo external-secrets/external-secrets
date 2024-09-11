@@ -764,7 +764,7 @@ func TestGetSecret(t *testing.T) {
 						Key:      myItem,
 						Property: "you-cant-find-me.png",
 					},
-					expectedErr: fmt.Errorf(errDocumentNotFound, errors.New("'my-item', 'you-cant-find-me.png'")),
+					expectedErr: fmt.Errorf(errFieldOrFileNotFound, errors.New("'my-item', 'you-cant-find-me.png'")),
 				},
 			},
 		},

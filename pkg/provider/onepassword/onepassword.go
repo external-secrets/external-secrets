@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/1Password/connect-sdk-go/connect"
@@ -51,6 +52,7 @@ const (
 	errGetItem               = "error finding 1Password Item: %w"
 	errUpdateItem            = "error updating 1Password Item: %w"
 	errDocumentNotFound      = "error finding 1Password Document: %w"
+	errFieldOrFileNotFound   = "error finding 1Password Field or File: %w"
 	errTagsNotImplemented    = "'find.tags' is not implemented in the 1Password provider"
 	errVersionNotImplemented = "'remoteRef.version' is not implemented in the 1Password provider"
 	errCreateItem            = "error creating 1Password Item: %w"
@@ -340,14 +342,17 @@ func (provider *ProviderOnePassword) GetSecret(_ context.Context, ref esv1beta1.
 		return nil, err
 	}
 
-	// handle files
-	if item.Category == documentCategory {
-		// default to the first file when ref.Property is empty
-		return provider.getFile(item, ref.Property)
+	// handle fields
+	value, err := provider.getField(item, ref.Property)
+	if err != nil && strings.HasSuffix(err.Error(), "got 0") {
+		// handle files
+		value, err = provider.getFile(item, ref.Property)
+		if err != nil {
+			return nil, fmt.Errorf(errFieldOrFileNotFound, fmt.Errorf("'%s', '%s'", item.Title, ref.Property))
+		}
 	}
 
-	// handle fields
-	return provider.getField(item, ref.Property)
+	return value, err
 }
 
 // Validate checks if the client is configured correctly
@@ -374,13 +379,22 @@ func (provider *ProviderOnePassword) GetSecretMap(_ context.Context, ref esv1bet
 		return nil, err
 	}
 
-	// handle files
-	if item.Category == documentCategory {
-		return provider.getFiles(item, ref.Property)
-	}
-
 	// handle fields
-	return provider.getFields(item, ref.Property)
+	valueMap, err := provider.getFields(item, ref.Property)
+	if err != nil && !strings.HasSuffix(err.Error(), "got 0") {
+		return nil, err
+	}
+	// handle files
+	valueFiles, err := provider.getFiles(item, ref.Property)
+	if err != nil {
+		return nil, err
+	}
+	for key, value := range valueFiles {
+		valueMap[key] = value
+
+	}
+	return valueMap, nil
+	//		return nil, fmt.Errorf("no fields or files: '%s' in '%s'", ref.Property, item.Title)
 }
 
 // GetAllSecrets syncs multiple 1Password Items into a single Kubernetes Secret, for dataFrom.find.
@@ -568,13 +582,9 @@ func (provider *ProviderOnePassword) getAllForVault(vaultID string, ref esv1beta
 		}
 
 		// handle files
-		if item.Category == documentCategory {
-			err = provider.getAllFiles(item, ref, secretData)
-			if err != nil {
-				return err
-			}
-
-			continue
+		err = provider.getAllFiles(item, ref, secretData)
+		if err != nil {
+			return err
 		}
 
 		// handle fields
