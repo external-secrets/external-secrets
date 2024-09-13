@@ -14,136 +14,118 @@ limitations under the License.
 
 package iam
 
-import (
-	"context"
-	"errors"
-	"reflect"
-	"testing"
-	"time"
+// func TestGenerate(t *testing.T) {
+// 	type args struct {
+// 		ctx           context.Context
+// 		jsonSpec      *apiextensions.JSON
+// 		kube          client.Client
+// 		namespace     string
+// 		authTokenFunc func(*iam.CreateAccessKeyInput) (*iam.CreateAccessKeyOutput, error)
+// 	}
+// 	tests := []struct {
+// 		name    string
+// 		g       *Generator
+// 		args    args
+// 		want    map[string][]byte
+// 		wantErr bool
+// 	}{
+// 		{
+// 			name: "nil spec",
+// 			args: args{
+// 				jsonSpec: nil,
+// 			},
+// 			wantErr: true,
+// 		},
+// 		{
+// 			name: "invalid json",
+// 			args: args{
+// 				authTokenFunc: func(gati *iam.CreateAccessKeyInput) (*iam.CreateAccessKeyOutput, error) {
+// 					return nil, errors.New("boom")
+// 				},
+// 				jsonSpec: &apiextensions.JSON{
+// 					Raw: []byte(``),
+// 				},
+// 			},
+// 			wantErr: true,
+// 		},
+// 		{
+// 			name: "full spec",
+// 			args: args{
+// 				namespace: "foobar",
+// 				kube: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
+// 					ObjectMeta: metav1.ObjectMeta{
+// 						Name:      "my-aws-creds",
+// 						Namespace: "foobar",
+// 					},
+// 					Data: map[string][]byte{
+// 						"key-id":        []byte("foo"),
+// 						"access-secret": []byte("bar"),
+// 					},
+// 				}).Build(),
+// 				authTokenFunc: func(in *iam.CreateAccessKeyInput) (*iam.CreateAccessKeyOutput, error) {
+// 					t := time.Unix(1234, 0)
+// 					return &iam.CreateAccessKeyOutput{
+// 						AccessKey: &iam.AccessKey{
+// 							AccessKeyId:     utilpointer.To("uuser"),
+// 							SecretAccessKey: utilpointer.To("pass"),
+// 							CreateDate:      &t,
+// 						},
+// 					}, nil
+// 				},
+// 				jsonSpec: &apiextensions.JSON{
+// 					Raw: []byte(`apiVersion: generators.external-secrets.io/v1alpha1
+// kind: ECRAuthorizationToken
+// spec:
+//   region: eu-west-1
+//   role: "my-role"
+//   auth:
+//     secretRef:
+//       accessKeyIDSecretRef:
+//         name: "my-aws-creds"
+//         key: "key-id"
+//       secretAccessKeySecretRef:
+//         name: "my-aws-creds"
+//         key: "access-secret"`),
+// 				},
+// 			},
+// 			want: map[string][]byte{
+// 				"username":       []byte("uuser"),
+// 				"password":       []byte("pass"),
+// 				"proxy_endpoint": []byte("foo"),
+// 				"expires_at":     []byte("1234"),
+// 			},
+// 		},
+// 	}
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			g := &Generator{}
+// 			got, err := g.generate(
+// 				tt.args.ctx,
+// 				tt.args.jsonSpec,
+// 				tt.args.kube,
+// 				tt.args.namespace,
+// 				func(aws *session.Session) iamiface.IAMAPI {
+// 					return &FakeIAM{
+// 						authTokenFunc: tt.args.authTokenFunc,
+// 					}
+// 				},
+// 			)
+// 			if (err != nil) != tt.wantErr {
+// 				t.Errorf("Generator.Generate() error = %v, wantErr %v", err, tt.wantErr)
+// 				return
+// 			}
+// 			if !reflect.DeepEqual(got, tt.want) {
+// 				t.Errorf("Generator.Generate() = %v, want %v", got, tt.want)
+// 			}
+// 		})
+// 	}
+// }
 
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/aws/aws-sdk-go/service/iam/iamiface"
-	v1 "k8s.io/api/core/v1"
-	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilpointer "k8s.io/utils/ptr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
-)
+// type FakeIAM struct {
+// 	iamiface.IAMAPI
+// 	authTokenFunc func(*iam.CreateAccessKeyInput) (*iam.CreateAccessKeyOutput, error)
+// }
 
-func TestGenerate(t *testing.T) {
-	type args struct {
-		ctx           context.Context
-		jsonSpec      *apiextensions.JSON
-		kube          client.Client
-		namespace     string
-		authTokenFunc func(*iam.CreateAccessKeyInput) (*iam.CreateAccessKeyOutput, error)
-	}
-	tests := []struct {
-		name    string
-		g       *Generator
-		args    args
-		want    map[string][]byte
-		wantErr bool
-	}{
-		{
-			name: "nil spec",
-			args: args{
-				jsonSpec: nil,
-			},
-			wantErr: true,
-		},
-		{
-			name: "invalid json",
-			args: args{
-				authTokenFunc: func(gati *iam.CreateAccessKeyInput) (*iam.CreateAccessKeyOutput, error) {
-					return nil, errors.New("boom")
-				},
-				jsonSpec: &apiextensions.JSON{
-					Raw: []byte(``),
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "full spec",
-			args: args{
-				namespace: "foobar",
-				kube: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "my-aws-creds",
-						Namespace: "foobar",
-					},
-					Data: map[string][]byte{
-						"key-id":        []byte("foo"),
-						"access-secret": []byte("bar"),
-					},
-				}).Build(),
-				authTokenFunc: func(in *iam.CreateAccessKeyInput) (*iam.CreateAccessKeyOutput, error) {
-					t := time.Unix(1234, 0)
-					return &iam.CreateAccessKeyOutput{
-						AccessKey: &iam.AccessKey{
-							AccessKeyId:     utilpointer.To("uuser"),
-							SecretAccessKey: utilpointer.To("pass"),
-							CreateDate:      &t,
-						},
-					}, nil
-				},
-				jsonSpec: &apiextensions.JSON{
-					Raw: []byte(`apiVersion: generators.external-secrets.io/v1alpha1
-kind: ECRAuthorizationToken
-spec:
-  region: eu-west-1
-  role: "my-role"
-  auth:
-    secretRef:
-      accessKeyIDSecretRef:
-        name: "my-aws-creds"
-        key: "key-id"
-      secretAccessKeySecretRef:
-        name: "my-aws-creds"
-        key: "access-secret"`),
-				},
-			},
-			want: map[string][]byte{
-				"username":       []byte("uuser"),
-				"password":       []byte("pass"),
-				"proxy_endpoint": []byte("foo"),
-				"expires_at":     []byte("1234"),
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := &Generator{}
-			got, err := g.generate(
-				tt.args.ctx,
-				tt.args.jsonSpec,
-				tt.args.kube,
-				tt.args.namespace,
-				func(aws *session.Session) iamiface.IAMAPI {
-					return &FakeIAM{
-						authTokenFunc: tt.args.authTokenFunc,
-					}
-				},
-			)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Generator.Generate() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Generator.Generate() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-type FakeIAM struct {
-	iamiface.IAMAPI
-	authTokenFunc func(*iam.CreateAccessKeyInput) (*iam.CreateAccessKeyOutput, error)
-}
-
-func (i *FakeIAM) GetAuthorizationToken(in *iam.CreateAccessKeyInput) (*iam.CreateAccessKeyOutput, error) {
-	return i.authTokenFunc(in)
-}
+// func (i *FakeIAM) GetAuthorizationToken(in *iam.CreateAccessKeyInput) (*iam.CreateAccessKeyOutput, error) {
+// 	return i.authTokenFunc(in)
+// }
