@@ -47,7 +47,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.hostNetwork | bool | `false` | Run the certController on the host network |
 | certController.image.flavour | string | `""` |  |
 | certController.image.pullPolicy | string | `"IfNotPresent"` |  |
-| certController.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
+| certController.image.repository | string | `"oci.external-secrets.io/external-secrets/external-secrets"` |  |
 | certController.image.tag | string | `""` |  |
 | certController.imagePullSecrets | list | `[]` |  |
 | certController.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifices Log Params to the Webhook |
@@ -111,7 +111,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | hostNetwork | bool | `false` | Run the controller on the host network |
 | image.flavour | string | `""` | The flavour of tag you want to use There are different image flavours available, like distroless and ubi. Please see GitHub release notes for image tags for these flavors. By default, the distroless image is used. |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
-| image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
+| image.repository | string | `"oci.external-secrets.io/external-secrets/external-secrets"` |  |
 | image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
 | imagePullSecrets | list | `[]` |  |
 | installCRDs | bool | `true` | If set, install and upgrade CRDs through helm chart. |
@@ -185,7 +185,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.hostNetwork | bool | `false` | Specifies if webhook pod should use hostNetwork or not. |
 | webhook.image.flavour | string | `""` | The flavour of tag you want to use |
 | webhook.image.pullPolicy | string | `"IfNotPresent"` |  |
-| webhook.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
+| webhook.image.repository | string | `"oci.external-secrets.io/external-secrets/external-secrets"` |  |
 | webhook.image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
 | webhook.imagePullSecrets | list | `[]` |  |
 | webhook.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifices Log Params to the Webhook |
