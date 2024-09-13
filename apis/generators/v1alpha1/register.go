@@ -100,8 +100,17 @@ var (
 	GithubAccessTokenGroupVersionKind = SchemeGroupVersion.WithKind(GithubAccessTokenKind)
 )
 
+// AWSIAMKeys type metadata.
+var (
+	AWSIAMKeysKind             = reflect.TypeOf(AWSIAMKeys{}).Name()
+	AWSIAMKeysGroupKind        = schema.GroupKind{Group: Group, Kind: AWSIAMKeysKind}.String()
+	AWSIAMKeysKindAPIVersion   = AWSIAMKeysKind + "." + SchemeGroupVersion.String()
+	AWSIAMKeysGroupVersionKind = SchemeGroupVersion.WithKind(AWSIAMKeysKind)
+)
+
 func init() {
-	SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationToken{})
+	SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationTokenList{})
+	SchemeBuilder.Register(&AWSIAMKeys{}, &AWSIAMKeysList{})
 	SchemeBuilder.Register(&GCRAccessToken{}, &GCRAccessTokenList{})
 	SchemeBuilder.Register(&GithubAccessToken{}, &GithubAccessTokenList{})
 	SchemeBuilder.Register(&ACRAccessToken{}, &ACRAccessTokenList{})
