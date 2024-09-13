@@ -94,7 +94,7 @@ nav:
       - AWS Secrets Manager: provider/aws-secrets-manager.md
       - AWS Parameter Store: provider/aws-parameter-store.md
       - Azure Key Vault: provider/azure-key-vault.md
-      - BeyoundTrust: provider/beyondtrust.md
+      - BeyondTrust: provider/beyondtrust.md
       - Bitwarden Secrets Manager: provider/bitwarden-secrets-manager.md
       - Chef: provider/chef.md
       - CyberArk Conjur: provider/conjur.md
