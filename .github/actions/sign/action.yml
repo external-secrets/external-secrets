@@ -1,0 +1,96 @@
+name: 'Provenance / SBOM / Sign'
+
+description: 'Creates SBOM & provenance files and signs the image'
+
+inputs:
+  image-name:
+    description: "name of the image"
+    required: true
+    default: ''
+  image-tag:
+    description: "image tag"
+    required: true
+    default: ""
+  GHCR_USERNAME:
+    description: "ghcr username"
+    required: true
+  GHCR_TOKEN:
+    description: "ghcr token"
+    required: true
+  GITHUB_TOKEN:
+    description: "gh token"
+    required: true
+
+runs:
+  using: "composite"
+
+  steps:
+
+    - name: Install cosign
+      uses: sigstore/cosign-installer@v2
+      with:
+        cosign-release: v1.13.6
+
+    - name: Install Syft
+      uses: anchore/sbom-action/download-syft@v0.7.0
+
+    - name: Check Cosign install
+      shell: bash
+      run: cosign version
+
+    - name: Login to ghcr.io
+      uses: docker/login-action@v1.14.1
+      with:
+        registry: ghcr.io
+        username: ${{ inputs.GHCR_USERNAME }}
+        password: ${{ inputs.GHCR_TOKEN }}
+
+    - name: Setup Go
+      uses: actions/setup-go@v3
+      with:
+        go-version-file: "go.mod"
+
+    - name: Set up crane
+      shell: bash
+      run: go install github.com/google/go-containerregistry/cmd/crane@v0.11.0
+
+    - name: Get docker image tag
+      id: container_info
+      shell: bash
+      run: echo "digest=$(crane digest ${{ inputs.image-name }}:${{ inputs.image-tag }})" >> $GITHUB_OUTPUT
+
+    - name: Sign image
+      shell: bash
+      env:
+        COSIGN_EXPERIMENTAL: "1"
+      run: cosign sign -a GITHUB_ACTOR=${{ github.triggering_actor }} "${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}"
+
+    - name: Attach SBOM to image
+      shell: bash
+      id: sbom
+      env:
+        COSIGN_EXPERIMENTAL: "1"
+      run: |
+        syft "${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}" -o spdx-json=sbom.${{ inputs.image-tag }}.spdx.json
+        cosign attest --predicate sbom.${{ inputs.image-tag }}.spdx.json --type spdx "${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}"
+        cosign verify-attestation --type spdx ${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }} | jq '.payload |= @base64d | .payload | fromjson'
+
+    - name: Generate provenance
+      uses: philips-labs/slsa-provenance-action@v0.7.2
+      with:
+        command: generate
+        subcommand: container
+        arguments: --repository "${{ inputs.image-name }}" --output-path provenance.${{ inputs.image-tag }}.intoto.jsonl --digest "${{ steps.container_info.outputs.digest }}" --tags "${{ inputs.image-tag }}"
+      env:
+        COSIGN_EXPERIMENTAL: "0"
+        GITHUB_TOKEN: "${{ inputs.GITHUB_TOKEN }}"
+
+    - name: Attach provenance
+      shell: bash
+      id: provenance
+      env:
+        COSIGN_EXPERIMENTAL: "1"
+      run: |
+        jq '.predicate' provenance.${{ inputs.image-tag }}.intoto.jsonl > provenance-predicate.att
+        cosign attest --predicate provenance-predicate.att --type slsaprovenance "${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}"
+        cosign verify-attestation --type slsaprovenance ${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}

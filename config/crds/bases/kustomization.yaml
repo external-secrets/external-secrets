@@ -8,7 +8,6 @@ resources:
   - external-secrets.io_pushsecrets.yaml
   - external-secrets.io_secretstores.yaml
   - generators.external-secrets.io_acraccesstokens.yaml
-  - generators.external-secrets.io_awsiamkeys.yaml
   - generators.external-secrets.io_ecrauthorizationtokens.yaml
   - generators.external-secrets.io_fakes.yaml
   - generators.external-secrets.io_gcraccesstokens.yaml

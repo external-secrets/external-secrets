@@ -1,0 +1,173 @@
+name: "e2e"
+description: "runs our e2e test suite"
+
+runs:
+  using: composite
+  steps:
+
+    # create new status check for this specific provider
+    - uses: actions/github-script@v6
+      with:
+        github-token: ${{ env.GITHUB_TOKEN }}
+        script: |
+          const { data: pull } = await github.rest.pulls.get({
+            ...context.repo,
+            pull_number: process.env.GITHUB_PR_NUMBER
+          });
+          const ref = pull.head.sha;
+          const { data: checks } = await github.rest.checks.listForRef({
+            ...context.repo,
+            ref
+          });
+          const job_name = "e2e-managed-" + process.env.CLOUD_PROVIDER
+          const check = checks.check_runs.filter(c => c.name === job_name);
+          if(check && check.length > 0){
+            const { data: result } = await github.rest.checks.update({
+              ...context.repo,
+              check_run_id: check[0].id,
+              status: 'in_progress',
+            });
+            return result;
+          }
+          const { data: result } = await github.rest.checks.create({
+            ...context.repo,
+            name: job_name,
+            head_sha: pull.head.sha,
+            status: 'in_progress',
+          });
+          return result;
+
+    - name: Setup Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: "1.21"
+
+    - name: Find the Go Cache
+      id: go
+      shell: bash
+      run: |
+        echo "build-cache=$(go env GOCACHE)" >> $GITHUB_OUTPUT
+        echo "mod-cache=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
+
+    - name: Cache the Go Build Cache
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.go.outputs.build-cache }}
+        key: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+        restore-keys: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-
+
+    - name: Cache Go Dependencies
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.go.outputs.mod-cache }}
+        key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+        restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
+
+    - name: Setup TFLint
+      uses: terraform-linters/setup-tflint@v2
+      with:
+        tflint_version: v0.28.0  # Must be specified. See: https://github.com/terraform-linters/tflint/releases for latest versions
+
+    - name: Run TFLint
+      shell: bash
+      run: find ${{ github.workspace }} | grep tf$ | xargs -n1 dirname | xargs -IXXX -n1 /bin/sh -c 'set -o errexit; cd XXX; pwd; tflint --loglevel=info .; cd - >/dev/null'
+
+    - name: Configure AWS Credentials
+      if: env.CLOUD_PROVIDER == 'aws'
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Setup TF Gcloud Provider
+      shell: bash
+      if: env.CLOUD_PROVIDER == 'gcp'
+      env:
+        GCP_SM_SA_GKE_JSON: ${{ env.GCP_SM_SA_GKE_JSON }}
+      run: |-
+        mkdir -p terraform/gcp/secrets
+        echo ${GCP_SM_SA_GKE_JSON} > terraform/gcp/secrets/gcloud-service-account-key.json
+
+    - name: 'Az CLI login'
+      uses: azure/login@v1
+      if: env.CLOUD_PROVIDER == 'azure'
+      with:
+        client-id: ${{ env.TFC_AZURE_CLIENT_ID }}
+        tenant-id: ${{ env.TFC_AZURE_TENANT_ID }}
+        subscription-id: ${{ env.TFC_AZURE_SUBSCRIPTION_ID }}
+
+    - name: Show TF
+      shell: bash
+      env:
+        ARM_CLIENT_ID: "${{ env.TFC_AZURE_CLIENT_ID }}"
+        ARM_SUBSCRIPTION_ID: "${{ env.TFC_AZURE_SUBSCRIPTION_ID }}"
+        ARM_TENANT_ID: "${{ env.TFC_AZURE_TENANT_ID }}"
+      run: |-
+        PROVIDER=${{env.CLOUD_PROVIDER}}
+        make tf.show.${PROVIDER}
+
+    - name: Apply TF
+      shell: bash
+      env:
+        ARM_CLIENT_ID: "${{ env.TFC_AZURE_CLIENT_ID }}"
+        ARM_SUBSCRIPTION_ID: "${{ env.TFC_AZURE_SUBSCRIPTION_ID }}"
+        ARM_TENANT_ID: "${{ env.TFC_AZURE_TENANT_ID }}"
+      run: |-
+        PROVIDER=${{env.CLOUD_PROVIDER}}
+        make tf.apply.${PROVIDER}
+
+    - name: Setup gcloud CLI
+      if: env.CLOUD_PROVIDER == 'gcp'
+      uses: google-github-actions/setup-gcloud@v0
+      with:
+        service_account_key: ${{ env.GCP_SM_SA_GKE_JSON }}
+        project_id: ${{ env.GCP_PROJECT_ID }}
+        install_components: 'gke-gcloud-auth-plugin'
+
+    - name: Get the GKE credentials
+      shell: bash
+      if: env.CLOUD_PROVIDER == 'gcp'
+      run: |-
+        gcloud container clusters get-credentials "$GCP_GKE_CLUSTER" --zone "$GCP_GKE_ZONE" --project "$GCP_PROJECT_ID"
+
+    - name: Get the AWS credentials
+      shell: bash
+      if: env.CLOUD_PROVIDER == 'aws'
+      run: |-
+        aws --region $AWS_REGION eks update-kubeconfig --name $AWS_CLUSTER_NAME
+
+    - name: Get AKS credentials
+      if: env.CLOUD_PROVIDER == 'azure'
+      shell: bash
+      run: |-
+        az aks get-credentials --admin --name eso-cluster --resource-group external-secrets-operator
+
+    - name: Login to Docker
+      uses: docker/login-action@v2
+      if: env.GHCR_USERNAME != ''
+      with:
+        registry: ghcr.io
+        username: ${{ env.GHCR_USERNAME }}
+        password: ${{ env.GHCR_TOKEN }}
+
+    - name: Run managed e2e Tests
+      shell: bash
+      env:
+        GCP_SM_SA_JSON: ${{ env.GCP_SM_SA_JSON }}
+      run: |
+        export PATH=$PATH:$(go env GOPATH)/bin
+        PROVIDER=${{env.CLOUD_PROVIDER}}
+        go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.6
+        make test.e2e.managed GINKGO_LABELS="${PROVIDER} && managed" TEST_SUITES="provider"
+
+    - name: Destroy TF
+      shell: bash
+      if: always()
+      env:
+        ARM_CLIENT_ID: "${{ env.TFC_AZURE_CLIENT_ID }}"
+        ARM_SUBSCRIPTION_ID: "${{ env.TFC_AZURE_SUBSCRIPTION_ID }}"
+        ARM_TENANT_ID: "${{ env.TFC_AZURE_TENANT_ID }}"
+      run: |-
+        PROVIDER=${{env.CLOUD_PROVIDER}}
+        make tf.destroy.${PROVIDER}
+

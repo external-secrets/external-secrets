@@ -1,0 +1,69 @@
+name: "e2e"
+description: "runs our e2e test suite"
+
+runs:
+  using: composite
+  steps:
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Setup Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: "${{ env.GO_VERSION }}"
+
+    - name: Find the Go Cache
+      id: go
+      shell: bash
+      run: |
+        echo "build-cache=$(go env GOCACHE)" >> $GITHUB_OUTPUT
+        echo "mod-cache=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
+
+    - name: Cache the Go Build Cache
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.go.outputs.build-cache }}
+        key: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+        restore-keys: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-
+
+    - name: Cache Go Dependencies
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.go.outputs.mod-cache }}
+        key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+        restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
+
+    - name: Setup kind
+      uses: engineerd/setup-kind@v0.5.0
+      with:
+        version: ${{ env.KIND_VERSION }}
+        wait: 10m
+        image: ${{ env.KIND_IMAGE }}
+        name: external-secrets
+
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v2
+      with:
+        version: ${{ env.DOCKER_BUILDX_VERSION }}
+        install: true
+
+    - name: run go mod tidy
+      shell: bash
+      run: |
+        go install github.com/onsi/ginkgo/v2/ginkgo@${{ env.GINKGO_VERSION }}
+        go version
+        ginkgo version
+        cd e2e && go mod tidy && git status && git diff
+
+    - name: Run e2e Tests
+      shell: bash
+      env:
+        DOCKER_BUILD_ARGS: --load
+      run: |
+        export PATH=$PATH:$(go env GOPATH)/bin
+        go install github.com/onsi/ginkgo/v2/ginkgo@${{ env.GINKGO_VERSION }}
+        make test.e2e
