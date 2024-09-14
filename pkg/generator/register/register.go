@@ -18,7 +18,8 @@ package register
 
 import (
 	_ "github.com/external-secrets/external-secrets/pkg/generator/acr"
-	_ "github.com/external-secrets/external-secrets/pkg/generator/ecr"
+	_ "github.com/external-secrets/external-secrets/pkg/generator/aws/ecr"
+	_ "github.com/external-secrets/external-secrets/pkg/generator/aws/iam"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/fake"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/gcr"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/github"
