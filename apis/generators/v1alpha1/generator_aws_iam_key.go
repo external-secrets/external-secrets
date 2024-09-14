@@ -1,4 +1,4 @@
-//Copyright External Secrets Inc. All Rights Reserved
+// Copyright External Secrets Inc. All Rights Reserved
 
 package v1alpha1
 

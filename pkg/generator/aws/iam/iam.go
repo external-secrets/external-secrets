@@ -1,4 +1,4 @@
-//Copyright External Secrets Inc. All Rights Reserved
+// Copyright External Secrets Inc. All Rights Reserved
 
 package iam
 
@@ -6,7 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
+	"sort"
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -73,27 +73,20 @@ func (g *Generator) generate(
 	if err != nil {
 		return nil, fmt.Errorf(errListCredentials, username, err)
 	}
-	lastCreated := time.Time{}
-	var keyToDelete *string
-	for _, cred := range creds.AccessKeyMetadata {
-
-		createDate := *cred.CreateDate
-		if lastCreated.Before(createDate) {
-			lastCreated = *cred.CreateDate
-			keyToDelete = cred.AccessKeyId
-		}
-	}
-	if keyToDelete != nil {
-		_, err = client.DeleteAccessKey(&iam.DeleteAccessKeyInput{
-			UserName:    &username,
-			AccessKeyId: keyToDelete,
+	keysToDelete := len(creds.AccessKeyMetadata) - res.Spec.IAMRef.MaxKeys + 1
+	if keysToDelete > 0 {
+		sort.Slice(creds.AccessKeyMetadata, func(i, j int) bool {
+			return creds.AccessKeyMetadata[i].CreateDate.Before(*creds.AccessKeyMetadata[j].CreateDate)
 		})
-		if err != nil {
-			return nil, fmt.Errorf(errDeleteCredentials, username, err)
+		for _, cred := range creds.AccessKeyMetadata[:keysToDelete] {
+			_, err = client.DeleteAccessKey(&iam.DeleteAccessKeyInput{
+				UserName:    &username,
+				AccessKeyId: cred.AccessKeyId,
+			})
+			if err != nil {
+				return nil, fmt.Errorf(errDeleteCredentials, username, err)
+			}
 		}
-	}
-	if err != nil {
-		return nil, fmt.Errorf(errCleanupCredentials, username, err)
 	}
 	out, err := client.CreateAccessKey(&iam.CreateAccessKeyInput{
 		UserName: &username,
