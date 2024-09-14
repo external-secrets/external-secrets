@@ -1,0 +1,5 @@
+chart-dirs:
+  - deploy/charts
+helm-extra-args: "--timeout=5m"
+check-version-increment: false
+target-branch: main

@@ -11233,13 +11233,13 @@ spec:
   group: generators.external-secrets.io
   names:
     categories:
-      - awsiamkeys
-    kind: AWSIAMKeys
-    listKind: AWSIAMKeysList
+      - awsiamkey
+    kind: AWSIAMKey
+    listKind: AWSIAMKeyList
     plural: awsiamkeys
     shortNames:
-      - awsiamkeys
-    singular: awsiamkeys
+      - awsiamkey
+    singular: awsiamkey
   scope: Namespaced
   versions:
     - name: v1alpha1

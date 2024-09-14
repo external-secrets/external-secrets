@@ -1,16 +1,4 @@
-/*
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+//Copyright External Secrets Inc. All Rights Reserved
 
 package v1alpha1
 
@@ -45,8 +33,8 @@ type IAMRef struct {
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
-// +kubebuilder:resource:scope=Namespaced,categories={awsiamkeys},shortName=awsiamkeys
-type AWSIAMKeys struct {
+// +kubebuilder:resource:scope=Namespaced,categories={awsiamkey},shortName=awsiamkey
+type AWSIAMKey struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -59,5 +47,5 @@ type AWSIAMKeys struct {
 type AWSIAMKeysList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []AWSIAMKeys `json:"items"`
+	Items           []AWSIAMKey `json:"items"`
 }
