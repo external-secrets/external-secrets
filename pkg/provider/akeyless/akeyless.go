@@ -47,6 +47,7 @@ const (
 	defaultAPIUrl       = "https://api.akeyless.io"
 	errNotImplemented   = "not implemented"
 	ExtSecretManagedTag = "k8s-external-secrets"
+	AkeylessToken       = "AKEYLESS_TOKEN"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -80,13 +81,13 @@ type Item struct {
 }
 
 type akeylessVaultInterface interface {
-	GetSecretByType(ctx context.Context, secretName, token string, version int32) (string, error)
+	GetSecretByType(ctx context.Context, secretName string, version int32) (string, error)
 	TokenFromSecretRef(ctx context.Context) (string, error)
-	ListSecrets(ctx context.Context, path, tag, token string) ([]string, error)
-	DescribeItem(ctx context.Context, itemName, token string) (*akeyless.Item, error)
-	CreateSecret(ctx context.Context) akeyless.ApiCreateSecretRequest
-	UpdateSecret(ctx context.Context) akeyless.ApiUpdateSecretValRequest
-	DeleteSecret(ctx context.Context) akeyless.ApiDeleteItemRequest
+	ListSecrets(ctx context.Context, path, tag string) ([]string, error)
+	DescribeItem(ctx context.Context, itemName string) (*akeyless.Item, error)
+	CreateSecret(ctx context.Context, remoteKey, data string) error
+	UpdateSecret(ctx context.Context, remoteKey, data string) error
+	DeleteSecret(ctx context.Context, remoteKey string) error
 }
 
 func init() {
@@ -226,6 +227,17 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 	return &Akeyless{Client: akl, url: akeylessGwAPIURL}, nil
 }
 
+func (a *Akeyless) contextWithToken(ctx context.Context) (context.Context, error) {
+	if v := ctx.Value(AkeylessToken); v != nil {
+		return ctx, nil
+	}
+	token, err := a.Client.TokenFromSecretRef(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return context.WithValue(ctx, AkeylessToken, &token), nil
+}
+
 func (a *Akeyless) Close(_ context.Context) error {
 	return nil
 }
@@ -247,8 +259,7 @@ func (a *Akeyless) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 	if utils.IsNil(a.Client) {
 		return nil, errors.New(errUninitalizedAkeylessProvider)
 	}
-
-	token, err := a.Client.TokenFromSecretRef(ctx)
+	ctx, err := a.contextWithToken(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +270,7 @@ func (a *Akeyless) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 			version = int32(i)
 		}
 	}
-	value, err := a.Client.GetSecretByType(ctx, ref.Key, token, version)
+	value, err := a.Client.GetSecretByType(ctx, ref.Key, version)
 	if err != nil {
 		return nil, err
 	}
@@ -292,6 +303,10 @@ func (a *Akeyless) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 	if utils.IsNil(a.Client) {
 		return nil, errors.New(errUninitalizedAkeylessProvider)
 	}
+	ctx, err := a.contextWithToken(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	searchPath := ""
 	if ref.Path != nil {
@@ -303,25 +318,20 @@ func (a *Akeyless) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 			searchPath += "/"
 		}
 	}
-	token, err := a.Client.TokenFromSecretRef(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	if ref.Name != nil {
-		potentialSecrets, err := a.Client.ListSecrets(ctx, searchPath, "", token)
+		potentialSecrets, err := a.Client.ListSecrets(ctx, searchPath, "")
 		if err != nil {
 			return nil, err
 		}
 		if len(potentialSecrets) == 0 {
 			return nil, nil
 		}
-		return a.findSecretsFromName(ctx, potentialSecrets, *ref.Name, token)
+		return a.findSecretsFromName(ctx, potentialSecrets, *ref.Name)
 	}
 	if len(ref.Tags) > 0 {
 		var potentialSecretsName []string
 		for _, v := range ref.Tags {
-			potentialSecrets, err := a.Client.ListSecrets(ctx, searchPath, v, token)
+			potentialSecrets, err := a.Client.ListSecrets(ctx, searchPath, v)
 			if err != nil {
 				return nil, err
 			}
@@ -332,16 +342,15 @@ func (a *Akeyless) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 		if len(potentialSecretsName) == 0 {
 			return nil, nil
 		}
-		return a.getSecrets(ctx, potentialSecretsName, token)
+		return a.getSecrets(ctx, potentialSecretsName)
 	}
-
 	return nil, errors.New("unexpected find operator")
 }
 
-func (a *Akeyless) getSecrets(ctx context.Context, candidates []string, token string) (map[string][]byte, error) {
+func (a *Akeyless) getSecrets(ctx context.Context, candidates []string) (map[string][]byte, error) {
 	secrets := make(map[string][]byte)
 	for _, name := range candidates {
-		secretValue, err := a.Client.GetSecretByType(ctx, name, token, 0)
+		secretValue, err := a.Client.GetSecretByType(ctx, name, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -352,7 +361,7 @@ func (a *Akeyless) getSecrets(ctx context.Context, candidates []string, token st
 	return secrets, nil
 }
 
-func (a *Akeyless) findSecretsFromName(ctx context.Context, candidates []string, ref esv1beta1.FindName, token string) (map[string][]byte, error) {
+func (a *Akeyless) findSecretsFromName(ctx context.Context, candidates []string, ref esv1beta1.FindName) (map[string][]byte, error) {
 	secrets := make(map[string][]byte)
 	matcher, err := find.New(ref)
 	if err != nil {
@@ -361,7 +370,7 @@ func (a *Akeyless) findSecretsFromName(ctx context.Context, candidates []string,
 	for _, name := range candidates {
 		ok := matcher.MatchName(name)
 		if ok {
-			secretValue, err := a.Client.GetSecretByType(ctx, name, token, 0)
+			secretValue, err := a.Client.GetSecretByType(ctx, name, 0)
 			if err != nil {
 				return nil, err
 			}
@@ -379,7 +388,6 @@ func (a *Akeyless) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 	if utils.IsNil(a.Client) {
 		return nil, errors.New(errUninitalizedAkeylessProvider)
 	}
-
 	val, err := a.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -426,7 +434,7 @@ func (a *Akeyless) PushSecret(ctx context.Context, secret *corev1.Secret, psd es
 	if utils.IsNil(a.Client) {
 		return errors.New(errUninitalizedAkeylessProvider)
 	}
-	token, err := a.Client.TokenFromSecretRef(ctx)
+	ctx, err := a.contextWithToken(ctx)
 	if err != nil {
 		return err
 	}
@@ -443,7 +451,10 @@ func (a *Akeyless) PushSecret(ctx context.Context, secret *corev1.Secret, psd es
 		}
 		data = make(map[string]any, mapSize)
 	} else {
-		json.Unmarshal(secretRemote, &data)
+		err = json.Unmarshal(secretRemote, &data)
+		if err != nil {
+			return err
+		}
 	}
 	if psd.GetProperty() == "" {
 		data = make(map[string]any, len(secret.Data))
@@ -461,20 +472,9 @@ func (a *Akeyless) PushSecret(ctx context.Context, secret *corev1.Secret, psd es
 		return nil
 	}
 	if isNotExists {
-		csBody := akeyless.CreateSecret{
-			Name:  psd.GetRemoteKey(),
-			Value: string(dataByte),
-			Token: &token,
-			Tags:  &[]string{ExtSecretManagedTag},
-		}
-		_, _, err = a.Client.CreateSecret(ctx).Body(csBody).Execute()
+		err = a.Client.CreateSecret(ctx, psd.GetRemoteKey(), string(dataByte))
 	} else {
-		csBody := akeyless.UpdateSecretVal{
-			Name:  psd.GetRemoteKey(),
-			Value: string(dataByte),
-			Token: &token,
-		}
-		_, _, err = a.Client.UpdateSecret(ctx).Body(csBody).Execute()
+		err = a.Client.UpdateSecret(ctx, psd.GetRemoteKey(), string(dataByte))
 	}
 	return err
 }
@@ -483,21 +483,19 @@ func (a *Akeyless) DeleteSecret(ctx context.Context, psr esv1beta1.PushSecretRem
 	if utils.IsNil(a.Client) {
 		return errors.New(errUninitalizedAkeylessProvider)
 	}
-	token, err := a.Client.TokenFromSecretRef(ctx)
+	ctx, err := a.contextWithToken(ctx)
 	if err != nil {
 		return err
 	}
-	item, err := a.Client.DescribeItem(ctx, psr.GetRemoteKey(), token)
-	fmt.Println("desc", err)
+	item, err := a.Client.DescribeItem(ctx, psr.GetRemoteKey())
 	if err != nil {
 		return err
 	}
-	if item.ItemTags == nil || !slices.Contains(*item.ItemTags, ExtSecretManagedTag) {
+	if item == nil || item.ItemTags == nil || !slices.Contains(*item.ItemTags, ExtSecretManagedTag) {
 		return nil
 	}
 	if psr.GetProperty() == "" {
-		_, _, err = a.Client.DeleteSecret(ctx).Body(akeyless.DeleteItem{Name: psr.GetRemoteKey(), Token: &token}).Execute()
-		fmt.Println("del", err)
+		err = a.Client.DeleteSecret(ctx, psr.GetRemoteKey())
 		return err
 	}
 	secret, err := a.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: psr.GetRemoteKey()})
@@ -511,35 +509,15 @@ func (a *Akeyless) DeleteSecret(ctx context.Context, psr esv1beta1.PushSecretRem
 	}
 	delete(secretMap, psr.GetProperty())
 	if len(secretMap) == 0 {
-		_, _, err = a.Client.DeleteSecret(ctx).Body(akeyless.DeleteItem{Name: psr.GetRemoteKey(), Token: &token}).Execute()
-		fmt.Println("del2", err)
+		err = a.Client.DeleteSecret(ctx, psr.GetRemoteKey())
 		return err
 	}
 	byteSecretMap, err := json.Marshal(secretMap)
-	fmt.Println("mar", err)
 	if err != nil {
 		return err
 	}
-	csBody := akeyless.UpdateSecretVal{
-		Name:  psr.GetRemoteKey(),
-		Value: string(byteSecretMap),
-		Token: &token,
-	}
-	_, _, err = a.Client.UpdateSecret(ctx).Body(csBody).Execute()
-	fmt.Println("up", err)
+	err = a.Client.UpdateSecret(ctx, psr.GetRemoteKey(), string(byteSecretMap))
 	return err
-}
-
-func (a *akeylessBase) DeleteSecret(ctx context.Context) akeyless.ApiDeleteItemRequest {
-	return a.RestAPI.DeleteItem(ctx)
-}
-
-func (a *akeylessBase) CreateSecret(ctx context.Context) akeyless.ApiCreateSecretRequest {
-	return a.RestAPI.CreateSecret(ctx)
-}
-
-func (a *akeylessBase) UpdateSecret(ctx context.Context) akeyless.ApiUpdateSecretValRequest {
-	return a.RestAPI.UpdateSecretVal(ctx)
 }
 
 func (a *akeylessBase) getAkeylessHTTPClient(ctx context.Context, provider *esv1beta1.AkeylessProvider) (*http.Client, error) {
