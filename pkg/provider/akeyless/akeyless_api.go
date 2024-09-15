@@ -354,7 +354,7 @@ func (a *akeylessBase) UpdateSecret(ctx context.Context, remoteKey, data string)
 		Token: ctx.Value(AkeylessToken).(*string),
 	}
 	_, _, err := a.RestAPI.UpdateSecretVal(ctx).Body(usBody).Execute()
-	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMUpdateSecret, err)
+	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMUpdateSecretVal, err)
 	return err
 }
 
@@ -364,7 +364,7 @@ func (a *akeylessBase) DeleteSecret(ctx context.Context, remoteKey string) error
 		Token: ctx.Value(AkeylessToken).(*string),
 	}
 	_, _, err := a.RestAPI.DeleteItem(ctx).Body(dsBody).Execute()
-	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMDeleteSecret, err)
+	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMDeleteItem, err)
 	return err
 }
 

@@ -57,22 +57,18 @@ func (c *AkeylessMockClient) SetDescribeItemFn(f func(ctx context.Context, itemN
 	return c
 }
 
-// CreateSecret implements akeyless.akeylessVaultInterface.
 func (mc *AkeylessMockClient) CreateSecret(ctx context.Context, remoteKey string, data string) error {
 	return mc.createSecret(ctx, remoteKey, data)
 }
 
-// DeleteSecret implements akeyless.akeylessVaultInterface.
 func (mc *AkeylessMockClient) DeleteSecret(ctx context.Context, remoteKey string) error {
 	return mc.deleteSecret(ctx, remoteKey)
 }
 
-// DescribeItem implements akeyless.akeylessVaultInterface.
 func (mc *AkeylessMockClient) DescribeItem(ctx context.Context, itemName string) (*akeyless.Item, error) {
 	return mc.describeItem(ctx, itemName)
 }
 
-// UpdateSecret implements akeyless.akeylessVaultInterface.
 func (mc *AkeylessMockClient) UpdateSecret(ctx context.Context, remoteKey string, data string) error {
 	return mc.updateSecret(ctx, remoteKey, data)
 }
