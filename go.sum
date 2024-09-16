@@ -596,8 +596,8 @@ github.com/prometheus/common v0.59.1 h1:LXb1quJHWm1P6wq/U824uxYi4Sg0oGvNeUm1z5dJ
 github.com/prometheus/common v0.59.1/go.mod h1:GpWM7dewqmVYcd7SmRaiWVe9SSqjf0UrwnYnpEZNuT0=
 github.com/prometheus/procfs v0.15.1 h1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=
 github.com/prometheus/procfs v0.15.1/go.mod h1:fB45yRUv8NstnjriLhBQLuOUt+WW4BsoGhij/e3PBqk=
-github.com/pulumi/esc-sdk/sdk v0.9.2 h1:I+kKa7F/gY9lUiHEYuczHyrYB299CavG7rAB1yXybSw=
-github.com/pulumi/esc-sdk/sdk v0.9.2/go.mod h1:J6+8bCUJyLXvYOmTAc90/EhU1iUPr1Koo3NUnFzY78k=
+github.com/pulumi/esc-sdk/sdk v0.10.0 h1:tVZGVSVgSf/3UkKI3iC9E287eXw9VERvmdI4vN2BD4o=
+github.com/pulumi/esc-sdk/sdk v0.10.0/go.mod h1:J6+8bCUJyLXvYOmTAc90/EhU1iUPr1Koo3NUnFzY78k=
 github.com/r3labs/diff v0.0.0-20191120142937-b4ed99a31f5a h1:2v4Ipjxa3sh+xn6GvtgrMub2ci4ZLQMvTaYIba2lfdc=
 github.com/r3labs/diff v0.0.0-20191120142937-b4ed99a31f5a/go.mod h1:ozniNEFS3j1qCwHKdvraMn1WJOsUxHd7lYfukEIS4cs=
 github.com/rogpeppe/fastuuid v1.2.0/go.mod h1:jVj6XXZzXRy/MSR5jhDC/2q6DgLz+nrA6LYCDYWNEvQ=

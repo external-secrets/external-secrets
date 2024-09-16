@@ -80,7 +80,7 @@ if settings.get('debug').get('enabled'):
 
 
 docker_build_with_restart(
-    'ghcr.io/external-secrets/external-secrets',
+    'oci.external-secrets.io/external-secrets/external-secrets',
     '.',
     dockerfile = dockerfile,
     entrypoint = entrypoint,
