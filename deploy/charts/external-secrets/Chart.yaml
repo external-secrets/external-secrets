@@ -2,8 +2,8 @@ apiVersion: v2
 name: external-secrets
 description: External secret management for Kubernetes
 type: application
-version: "0.10.0"
-appVersion: "v0.10.0"
+version: "0.10.3"
+appVersion: "v0.10.3"
 kubeVersion: ">= 1.19.0-0"
 keywords:
   - kubernetes-external-secrets
@@ -16,6 +16,6 @@ maintainers:
 
 dependencies:
   - name: bitwarden-sdk-server
-    version: v0.1.4
+    version: v0.3.1
     repository: oci://ghcr.io/external-secrets/charts
     condition: bitwarden-sdk-server.enabled

@@ -72,7 +72,7 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 # ====================================================================================
 # Conformance
 
-reviewable: generate docs manifests helm.generate helm.docs lint ## Ensure a PR is ready for review.
+reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint ## Ensure a PR is ready for review.
 	@go mod tidy
 	@cd e2e/ && go mod tidy
 
@@ -172,6 +172,16 @@ helm.build: helm.generate ## Build helm chart
 	@helm package $(HELM_DIR) --dependency-update --destination $(OUTPUT_DIR)/chart
 	@mv $(OUTPUT_DIR)/chart/external-secrets-$(HELM_VERSION).tgz $(OUTPUT_DIR)/chart/external-secrets.tgz
 	@$(OK) helm package
+
+helm.schema.plugin:
+	@$(INFO) Installing helm-values-schema-json plugin
+	@helm plugin install https://github.com/losisin/helm-values-schema-json.git || true
+	@$(OK) Installed helm-values-schema-json plugin
+
+helm.schema.update: helm.schema.plugin
+	@$(INFO) Generating values.schema.json
+	@helm schema -input $(HELM_DIR)/values.yaml -output $(HELM_DIR)/values.schema.json
+	@$(OK) Generated values.schema.json
 
 helm.generate:
 	./hack/helm.generate.sh $(BUNDLE_DIR) $(HELM_DIR)

@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -107,9 +108,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 				return nil
 			}
 		}
-		for k, v := range vaultSecret {
-			secretVal[k] = v
-		}
+		maps.Insert(secretVal, maps.All(vaultSecret))
 		// Secret got from vault is already on map[string]string format
 		secretVal[data.GetProperty()] = string(value)
 	} else {
