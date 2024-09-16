@@ -59,7 +59,7 @@ func TestSecretManagerGetSecret(t *testing.T) {
 	}
 }
 
-func TestSecretManagerGetSecret_NotExisting(t *testing.T) {
+func TestSecretManagerGetSecretNotExisting(t *testing.T) {
 	previderProvider := &SecretManager{VaultClient: &PreviderVaultFakeClient{}}
 	ctx := context.Background()
 	ref := esv1beta1.ExternalSecretDataRemoteRef{Key: "secret3"}
