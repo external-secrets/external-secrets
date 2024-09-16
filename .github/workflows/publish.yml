@@ -79,13 +79,22 @@ jobs:
         shell: bash
         run: git fetch --prune --unshallow
 
-      - name: Login to Docker
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
-        if: env.IS_FORK == 'false'
+      - name: Set up Google Cloud authentication
+        id: auth
+        uses: google-github-actions/auth@v2
         with:
-          registry: ghcr.io
-          username: ${{ secrets.GHCR_USERNAME }}
-          password: ${{ secrets.GHCR_TOKEN }}
+          token_format: access_token
+          workload_identity_provider: ${{ vars.DEV_IDENTITY_POOL }}
+          service_account: ${{ vars.DEV_CI_SERVICE_ACCOUNT }}
+          access_token_lifetime: 300s
+
+
+      - name: Login to Artifact Registry
+        uses: docker/login-action@v1
+        with:
+          registry: us-central1-docker.pkg.dev
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
 
       - name: Get docker image tag
         id: container_info

@@ -38,12 +38,22 @@ runs:
       shell: bash
       run: cosign version
 
-    - name: Login to ghcr.io
-      uses: docker/login-action@v1.14.1
+    - name: Set up Google Cloud authentication
+      id: auth
+      uses: google-github-actions/auth@v2
       with:
-        registry: ghcr.io
-        username: ${{ inputs.GHCR_USERNAME }}
-        password: ${{ inputs.GHCR_TOKEN }}
+        token_format: access_token
+        workload_identity_provider: ${{ vars.DEV_IDENTITY_POOL }}
+        service_account: ${{ vars.DEV_CI_SERVICE_ACCOUNT }}
+        access_token_lifetime: 300s
+
+
+    - name: Login to Artifact Registry
+      uses: docker/login-action@v1
+      with:
+        registry: us-central1-docker.pkg.dev
+        username: oauth2accesstoken
+        password: ${{ steps.auth.outputs.access_token }}
 
     - name: Setup Go
       uses: actions/setup-go@v3
