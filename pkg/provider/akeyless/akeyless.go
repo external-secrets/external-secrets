@@ -237,7 +237,7 @@ func (a *Akeyless) contextWithToken(ctx context.Context) (context.Context, error
 	if err != nil {
 		return nil, err
 	}
-	return context.WithValue(ctx, AkeylessToken, &token), nil
+	return context.WithValue(ctx, AkeylessToken, token), nil
 }
 
 func (a *Akeyless) Close(_ context.Context) error {
@@ -447,6 +447,7 @@ func (a *Akeyless) PushSecret(ctx context.Context, secret *corev1.Secret, psd es
 	}
 	var data map[string]any
 	if isNotExists {
+		err = nil
 		mapSize := 1
 		if psd.GetProperty() == "" {
 			mapSize = len(secret.Data)
@@ -454,9 +455,9 @@ func (a *Akeyless) PushSecret(ctx context.Context, secret *corev1.Secret, psd es
 		data = make(map[string]any, mapSize)
 	} else {
 		err = json.Unmarshal(secretRemote, &data)
-		if err != nil {
-			return err
-		}
+	}
+	if err != nil {
+		return err
 	}
 	if psd.GetProperty() == "" {
 		data = make(map[string]any, len(secret.Data))
@@ -474,11 +475,9 @@ func (a *Akeyless) PushSecret(ctx context.Context, secret *corev1.Secret, psd es
 		return nil
 	}
 	if isNotExists {
-		err = a.Client.CreateSecret(ctx, psd.GetRemoteKey(), string(dataByte))
-	} else {
-		err = a.Client.UpdateSecret(ctx, psd.GetRemoteKey(), string(dataByte))
+		return a.Client.CreateSecret(ctx, psd.GetRemoteKey(), string(dataByte))
 	}
-	return err
+	return a.Client.UpdateSecret(ctx, psd.GetRemoteKey(), string(dataByte))
 }
 
 func (a *Akeyless) DeleteSecret(ctx context.Context, psr esv1beta1.PushSecretRemoteRef) error {
