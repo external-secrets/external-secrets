@@ -21,7 +21,7 @@ bitwarden-sdk-server:
 revisionHistoryLimit: 10
 
 image:
-  repository: ghcr.io/external-secrets/external-secrets
+  repository: oci.external-secrets.io/external-secrets/external-secrets
   pullPolicy: IfNotPresent
   # -- The image tag to use. The default is the chart appVersion.
   tag: ""
@@ -259,7 +259,7 @@ webhook:
   # -- Specifies if webhook pod should use hostNetwork or not.
   hostNetwork: false
   image:
-    repository: ghcr.io/external-secrets/external-secrets
+    repository: oci.external-secrets.io/external-secrets/external-secrets
     pullPolicy: IfNotPresent
     # -- The image tag to use. The default is the chart appVersion.
     tag: ""
@@ -417,7 +417,7 @@ certController:
   revisionHistoryLimit: 10
 
   image:
-    repository: ghcr.io/external-secrets/external-secrets
+    repository: oci.external-secrets.io/external-secrets/external-secrets
     pullPolicy: IfNotPresent
     tag: ""
     flavour: ""

@@ -1,3 +1,10 @@
+# [Sponsored by](https://opencollective.com/external-secrets-org)
+
+[![cs-logo](./pictures/cs_logo.png)](https://container-solutions.com)
+[![External Secrets inc.](./pictures/ESI_Logo.svg)](https://externalsecrets.com)
+[![Form3](./pictures/form3_logo.png)](https://www.form3.tech/)
+[![Pento](./pictures/pento_logo.png)](https://pento.io)
+
 # Introduction
 
 ![high-level](./pictures/diagrams-high-level-simple.png)
@@ -50,8 +57,3 @@ How to get involved:
 
 ![godaddy-logo](./pictures/godaddy_logo.png)
 
-### Sponsored by
-
-![cs-logo](./pictures/cs_logo.png)
-![Form3](./pictures/form3_logo.png)
-![Pento](./pictures/pento_logo.png)

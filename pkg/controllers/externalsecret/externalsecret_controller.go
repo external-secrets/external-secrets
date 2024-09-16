@@ -19,6 +19,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 	"time"
 
@@ -474,11 +476,8 @@ func getManagedDataKeys(secret *v1.Secret, fieldOwner string) ([]string, error) 
 		if !ok {
 			return nil
 		}
-		var keys []string
-		for k := range df {
-			keys = append(keys, k)
-		}
-		return keys
+
+		return slices.Collect(maps.Keys(df))
 	})
 }
 
@@ -639,12 +638,9 @@ func isSecretValid(existingSecret v1.Secret) bool {
 // computeDataHashAnnotation generate a hash of the secret data combining the old key with the new keys to add or override.
 func (r *Reconciler) computeDataHashAnnotation(existing, secret *v1.Secret) string {
 	data := make(map[string][]byte)
-	for k, v := range existing.Data {
-		data[k] = v
-	}
-	for k, v := range secret.Data {
-		data[k] = v
-	}
+	maps.Insert(data, maps.All(existing.Data))
+	maps.Insert(data, maps.All(secret.Data))
+
 	return utils.ObjectHash(data)
 }
 

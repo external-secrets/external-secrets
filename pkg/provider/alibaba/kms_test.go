@@ -77,7 +77,7 @@ func makeValidAPIOutput() *kmssdk.GetSecretValueResponseBody {
 	response := &kmssdk.GetSecretValueResponseBody{
 		SecretName:    utils.Ptr(secretName),
 		SecretData:    utils.Ptr(secretValue),
-		VersionStages: []*string{},
+		VersionStages: &kmssdk.GetSecretValueResponseBodyVersionStages{},
 	}
 	return response
 }

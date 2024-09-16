@@ -211,10 +211,10 @@ func waitForCerts(c crds.CertInfo, timeout time.Duration) error {
 		if err == nil {
 			return nil
 		}
-		if err != nil {
-			setupLog.Error(err, "invalid certs. retrying...")
-			<-time.After(time.Second * 10)
-		}
+
+		setupLog.Error(err, "invalid certs. retrying...")
+		<-time.After(time.Second * 10)
+
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}

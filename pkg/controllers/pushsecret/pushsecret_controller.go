@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 	"time"
 
@@ -235,9 +236,7 @@ func mergeSecretState(newMap, old esapi.SyncedPushSecretsMap) esapi.SyncedPushSe
 		if !ok {
 			out[k] = make(map[string]esapi.PushSecretData)
 		}
-		for kk, vv := range v {
-			out[k][kk] = vv
-		}
+		maps.Insert(out[k], maps.All(v))
 	}
 	return out
 }

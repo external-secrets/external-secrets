@@ -696,6 +696,67 @@ func TestGetSecretPath(t *testing.T) {
 	}
 }
 
+func TestGetSecretMetadataPath(t *testing.T) {
+	storeV2 := makeValidSecretStore()
+	storeV2NoPath := storeV2.DeepCopy()
+	multiPath := "secret/path"
+	storeV2.Spec.Provider.Vault.Path = &multiPath
+	storeV2NoPath.Spec.Provider.Vault.Path = nil
+
+	storeV1 := makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1)
+	storeV1NoPath := storeV1.DeepCopy()
+	storeV1.Spec.Provider.Vault.Path = &multiPath
+	storeV1NoPath.Spec.Provider.Vault.Path = nil
+
+	type args struct {
+		store    *esv1beta1.VaultProvider
+		path     string
+		expected string
+	}
+	cases := map[string]struct {
+		reason string
+		args   args
+	}{
+		"PathForV1": {
+			reason: "path should compose with mount point if set",
+			args: args{
+				store:    storeV1.Spec.Provider.Vault,
+				path:     "data/test",
+				expected: "secret/path/data/test",
+			},
+		},
+		"PathForV2": {
+			reason: "path should compose with mount point if set without data",
+			args: args{
+				store:    storeV2.Spec.Provider.Vault,
+				path:     "secret/path/data/test",
+				expected: "secret/path/metadata/secret/path/data/test",
+			},
+		},
+		"PathForV2WithData": {
+			reason: "if data is in the path it shouldn't be changed",
+			args: args{
+				store:    storeV2NoPath.Spec.Provider.Vault,
+				path:     "my_data/data/path",
+				expected: "my_data/metadata/path",
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			vStore := &client{
+				store: tc.args.store,
+			}
+
+			want, _ := vStore.buildMetadataPath(tc.args.path)
+			if diff := cmp.Diff(want, tc.args.expected); diff != "" {
+				t.Errorf("\n%s\nvault.buildPath(...): -want expected, +got error:\n%s", tc.reason, diff)
+			}
+		})
+	}
+}
+
 func TestSecretExists(t *testing.T) {
 	secret := map[string]any{
 		"foo": "bar",
