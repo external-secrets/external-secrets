@@ -1,15 +1,30 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package previder
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+
 	previderclient "github.com/previder/vault-cli/pkg"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -40,7 +55,7 @@ func (s *SecretManager) NewClient(ctx context.Context, store esv1beta1.GenericSt
 		return nil, fmt.Errorf(accessToken, err)
 	}
 
-	s.VaultClient, err = previderclient.NewVaultClient(storeSpec.BaseUri, accessToken)
+	s.VaultClient, err = previderclient.NewVaultClient(storeSpec.BaseURI, accessToken)
 
 	if err != nil {
 		return nil, err
@@ -82,15 +97,15 @@ func (s *SecretManager) GetSecret(ctx context.Context, ref esv1beta1.ExternalSec
 }
 
 func (s *SecretManager) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
-	return fmt.Errorf(errNotImplemented)
+	return errors.New(errNotImplemented)
 }
 
 func (s *SecretManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf(errNotImplemented)
+	return errors.New(errNotImplemented)
 }
 
 func (s *SecretManager) SecretExists(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf(errNotImplemented)
+	return false, errors.New(errNotImplemented)
 }
 
 func (s *SecretManager) Validate() (esv1beta1.ValidationResult, error) {
@@ -113,7 +128,7 @@ func (s *SecretManager) GetSecretMap(ctx context.Context, ref esv1beta1.External
 }
 
 func (s *SecretManager) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	return nil, fmt.Errorf(errNotImplemented)
+	return nil, errors.New(errNotImplemented)
 }
 
 func (s *SecretManager) Close(ctx context.Context) error {

@@ -1,7 +1,21 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package previder
 
 import (
 	"errors"
+
 	"github.com/previder/vault-cli/pkg"
 	"github.com/previder/vault-cli/pkg/model"
 )
@@ -24,8 +38,8 @@ func (v *PreviderVaultFakeClient) DecryptSecret(id string) (*model.SecretDecrypt
 }
 
 func (v *PreviderVaultFakeClient) GetSecrets() ([]model.Secret, error) {
-	var secretList []model.Secret
-	for k, _ := range secrets {
+	secretList := make([]model.Secret, 0)
+	for k := range secrets {
 		secretList = append(secretList, model.Secret{Description: k})
 	}
 	return secretList, nil
