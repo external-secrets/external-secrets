@@ -52,7 +52,6 @@ const (
 	errGetItem               = "error finding 1Password Item: %w"
 	errUpdateItem            = "error updating 1Password Item: %w"
 	errDocumentNotFound      = "error finding 1Password Document: %w"
-	errFieldOrFileNotFound   = "error finding 1Password Field or File: %w"
 	errTagsNotImplemented    = "'find.tags' is not implemented in the 1Password provider"
 	errVersionNotImplemented = "'remoteRef.version' is not implemented in the 1Password provider"
 	errCreateItem            = "error creating 1Password Item: %w"
@@ -342,17 +341,25 @@ func (provider *ProviderOnePassword) GetSecret(_ context.Context, ref esv1beta1.
 		return nil, err
 	}
 
-	// handle fields
-	value, err := provider.getField(item, ref.Property)
-	if err != nil && strings.HasSuffix(err.Error(), "got 0") {
-		// handle files
-		value, err = provider.getFile(item, ref.Property)
-		if err != nil {
-			return nil, fmt.Errorf(errFieldOrFileNotFound, fmt.Errorf("'%s', '%s'", item.Title, ref.Property))
+	// handle Document secret type
+	if item.Category == documentCategory {
+		if strings.HasPrefix(ref.Property, "field/") {
+			return provider.getField(item, ref.Property[6:])
 		}
+		if strings.HasPrefix(ref.Property, "file/") {
+			return provider.getFile(item, ref.Property[5:])
+		}
+		return provider.getFile(item, ref.Property)
 	}
 
-	return value, err
+	// handle other secret types
+	if strings.HasPrefix(ref.Property, "file/") {
+		return provider.getFile(item, ref.Property[5:])
+	}
+	if strings.HasPrefix(ref.Property, "field/") {
+		return provider.getField(item, ref.Property[6:])
+	}
+	return provider.getField(item, ref.Property)
 }
 
 // Validate checks if the client is configured correctly
@@ -379,20 +386,24 @@ func (provider *ProviderOnePassword) GetSecretMap(_ context.Context, ref esv1bet
 		return nil, err
 	}
 
-	// handle fields
-	valueMap, err := provider.getFields(item, ref.Property)
-	if err != nil && !strings.HasSuffix(err.Error(), "got 0") {
-		return nil, err
+	// handle Document secret type
+	if item.Category == documentCategory {
+		if strings.HasPrefix(ref.Property, "field/") {
+			return provider.getFields(item, ref.Property[6:])
+		}
+		if strings.HasPrefix(ref.Property, "file/") {
+			return provider.getFiles(item, ref.Property[5:])
+		}
+		return provider.getFiles(item, ref.Property)
 	}
-	// handle files
-	valueFiles, err := provider.getFiles(item, ref.Property)
-	if err != nil {
-		return nil, err
+	// handle other secret types
+	if strings.HasPrefix(ref.Property, "file/") {
+		return provider.getFiles(item, ref.Property[5:])
 	}
-	for key, value := range valueFiles {
-		valueMap[key] = value
+	if strings.HasPrefix(ref.Property, "field/") {
+		return provider.getFields(item, ref.Property[6:])
 	}
-	return valueMap, nil
+	return provider.getFields(item, ref.Property)
 }
 
 // GetAllSecrets syncs multiple 1Password Items into a single Kubernetes Secret, for dataFrom.find.
