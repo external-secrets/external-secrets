@@ -342,7 +342,8 @@ func (a *akeylessBase) CreateSecret(ctx context.Context, remoteKey, data string)
 		Token: ctx.Value(AkeylessToken).(*string),
 		Tags:  &[]string{ExtSecretManagedTag},
 	}
-	_, _, err := a.RestAPI.CreateSecret(ctx).Body(csBody).Execute()
+	_, res, err := a.RestAPI.CreateSecret(ctx).Body(csBody).Execute()
+	defer res.Body.Close()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMCreateSecret, err)
 	return err
 }
@@ -353,7 +354,8 @@ func (a *akeylessBase) UpdateSecret(ctx context.Context, remoteKey, data string)
 		Value: data,
 		Token: ctx.Value(AkeylessToken).(*string),
 	}
-	_, _, err := a.RestAPI.UpdateSecretVal(ctx).Body(usBody).Execute()
+	_, res, err := a.RestAPI.UpdateSecretVal(ctx).Body(usBody).Execute()
+	defer res.Body.Close()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMUpdateSecretVal, err)
 	return err
 }
@@ -363,7 +365,8 @@ func (a *akeylessBase) DeleteSecret(ctx context.Context, remoteKey string) error
 		Name:  remoteKey,
 		Token: ctx.Value(AkeylessToken).(*string),
 	}
-	_, _, err := a.RestAPI.DeleteItem(ctx).Body(dsBody).Execute()
+	_, res, err := a.RestAPI.DeleteItem(ctx).Body(dsBody).Execute()
+	defer res.Body.Close()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMDeleteItem, err)
 	return err
 }

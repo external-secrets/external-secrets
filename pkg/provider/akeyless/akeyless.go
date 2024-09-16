@@ -43,11 +43,13 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
+type AkeylessCtx string
+
 const (
-	defaultAPIUrl       = "https://api.akeyless.io"
-	errNotImplemented   = "not implemented"
-	ExtSecretManagedTag = "k8s-external-secrets"
-	AkeylessToken       = "AKEYLESS_TOKEN"
+	defaultAPIUrl                   = "https://api.akeyless.io"
+	errNotImplemented               = "not implemented"
+	ExtSecretManagedTag             = "k8s-external-secrets"
+	AkeylessToken       AkeylessCtx = "AKEYLESS_TOKEN"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644

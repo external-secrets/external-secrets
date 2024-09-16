@@ -32,32 +32,32 @@ func New() *AkeylessMockClient {
 	return &AkeylessMockClient{}
 }
 
-func (c *AkeylessMockClient) SetGetSecretFn(f func(secretName string, version int32) (string, error)) *AkeylessMockClient {
-	c.getSecret = f
-	return c
+func (mc *AkeylessMockClient) SetGetSecretFn(f func(secretName string, version int32) (string, error)) *AkeylessMockClient {
+	mc.getSecret = f
+	return mc
 }
 
-func (c *AkeylessMockClient) SetCreateSecretFn(f func(ctx context.Context, remoteKey, data string) error) *AkeylessMockClient {
-	c.createSecret = f
-	return c
+func (mc *AkeylessMockClient) SetCreateSecretFn(f func(ctx context.Context, remoteKey, data string) error) *AkeylessMockClient {
+	mc.createSecret = f
+	return mc
 }
 
-func (c *AkeylessMockClient) SetUpdateSecretFn(f func(ctx context.Context, remoteKey, data string) error) *AkeylessMockClient {
-	c.updateSecret = f
-	return c
+func (mc *AkeylessMockClient) SetUpdateSecretFn(f func(ctx context.Context, remoteKey, data string) error) *AkeylessMockClient {
+	mc.updateSecret = f
+	return mc
 }
 
-func (c *AkeylessMockClient) SetDeleteSecretFn(f func(ctx context.Context, remoteKey string) error) *AkeylessMockClient {
-	c.deleteSecret = f
-	return c
+func (mc *AkeylessMockClient) SetDeleteSecretFn(f func(ctx context.Context, remoteKey string) error) *AkeylessMockClient {
+	mc.deleteSecret = f
+	return mc
 }
 
-func (c *AkeylessMockClient) SetDescribeItemFn(f func(ctx context.Context, itemName string) (*akeyless.Item, error)) *AkeylessMockClient {
-	c.describeItem = f
-	return c
+func (mc *AkeylessMockClient) SetDescribeItemFn(f func(ctx context.Context, itemName string) (*akeyless.Item, error)) *AkeylessMockClient {
+	mc.describeItem = f
+	return mc
 }
 
-func (mc *AkeylessMockClient) CreateSecret(ctx context.Context, remoteKey string, data string) error {
+func (mc *AkeylessMockClient) CreateSecret(ctx context.Context, remoteKey, data string) error {
 	return mc.createSecret(ctx, remoteKey, data)
 }
 
@@ -69,7 +69,7 @@ func (mc *AkeylessMockClient) DescribeItem(ctx context.Context, itemName string)
 	return mc.describeItem(ctx, itemName)
 }
 
-func (mc *AkeylessMockClient) UpdateSecret(ctx context.Context, remoteKey string, data string) error {
+func (mc *AkeylessMockClient) UpdateSecret(ctx context.Context, remoteKey, data string) error {
 	return mc.updateSecret(ctx, remoteKey, data)
 }
 
