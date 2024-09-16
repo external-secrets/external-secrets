@@ -21,14 +21,14 @@ import (
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-func TestSecretManager_Capabilities(t *testing.T) {
+func TestSecretManagerCapabilities(t *testing.T) {
 	previderProvider := &SecretManager{}
 	if previderProvider.Capabilities() != esv1beta1.SecretStoreReadOnly {
 		t.Errorf("Store does not return correct value for capabilities")
 	}
 }
 
-func TestSecretManager_Close(t *testing.T) {
+func TestSecretManagerClose(t *testing.T) {
 	previderProvider := &SecretManager{}
 	ctx := context.Background()
 	if previderProvider.Close(ctx) != nil {
@@ -36,7 +36,7 @@ func TestSecretManager_Close(t *testing.T) {
 	}
 }
 
-func TestSecretManager_GetAllSecrets(t *testing.T) {
+func TestSecretManagerGetAllSecrets(t *testing.T) {
 	previderProvider := &SecretManager{}
 	ctx := context.Background()
 	ref := esv1beta1.ExternalSecretFind{}
@@ -46,7 +46,7 @@ func TestSecretManager_GetAllSecrets(t *testing.T) {
 	}
 }
 
-func TestSecretManager_GetSecret(t *testing.T) {
+func TestSecretManagerGetSecret(t *testing.T) {
 	previderProvider := &SecretManager{VaultClient: &PreviderVaultFakeClient{}}
 	ctx := context.Background()
 	ref := esv1beta1.ExternalSecretDataRemoteRef{Key: "secret1"}
@@ -59,7 +59,7 @@ func TestSecretManager_GetSecret(t *testing.T) {
 	}
 }
 
-func TestSecretManager_GetSecret_NotExisting(t *testing.T) {
+func TestSecretManagerGetSecret_NotExisting(t *testing.T) {
 	previderProvider := &SecretManager{VaultClient: &PreviderVaultFakeClient{}}
 	ctx := context.Background()
 	ref := esv1beta1.ExternalSecretDataRemoteRef{Key: "secret3"}
@@ -69,7 +69,7 @@ func TestSecretManager_GetSecret_NotExisting(t *testing.T) {
 	}
 }
 
-func TestSecretManager_GetSecretMap(t *testing.T) {
+func TestSecretManagerGetSecretMap(t *testing.T) {
 	previderProvider := &SecretManager{VaultClient: &PreviderVaultFakeClient{}}
 	ctx := context.Background()
 	key := "secret1"
@@ -84,7 +84,7 @@ func TestSecretManager_GetSecretMap(t *testing.T) {
 	}
 }
 
-func TestSecretManager_Validate(t *testing.T) {
+func TestSecretManagerValidate(t *testing.T) {
 	previderProvider := &SecretManager{VaultClient: &PreviderVaultFakeClient{}}
 	validate, err := previderProvider.Validate()
 	if err != nil || validate != esv1beta1.ValidationResultReady {
@@ -92,7 +92,7 @@ func TestSecretManager_Validate(t *testing.T) {
 	}
 }
 
-func TestSecretManager_ValidateStore(t *testing.T) {
+func TestSecretManagerValidateStore(t *testing.T) {
 	previderProvider := &SecretManager{}
 	store := &esv1beta1.SecretStore{
 		Spec: esv1beta1.SecretStoreSpec{
