@@ -108,11 +108,20 @@ var (
 	AWSIAMKeysGroupVersionKind = SchemeGroupVersion.WithKind(AWSIAMKeysKind)
 )
 
+// Uuid type metadata.
+var (
+	UUIDKind             = reflect.TypeOf(UUID{}).Name()
+	UUIDGroupKind        = schema.GroupKind{Group: Group, Kind: UUIDKind}.String()
+	UUIDKindAPIVersion   = UUIDKind + "." + SchemeGroupVersion.String()
+	UUIDGroupVersionKind = SchemeGroupVersion.WithKind(UUIDKind)
+)
+
 func init() {
 	SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationToken{})
 	SchemeBuilder.Register(&GCRAccessToken{}, &GCRAccessTokenList{})
 	SchemeBuilder.Register(&GithubAccessToken{}, &GithubAccessTokenList{})
 	SchemeBuilder.Register(&AWSIAMKey{}, &AWSIAMKeysList{})
+	SchemeBuilder.Register(&UUID{}, &UUIDList{})
 	SchemeBuilder.Register(&ACRAccessToken{}, &ACRAccessTokenList{})
 	SchemeBuilder.Register(&Fake{}, &FakeList{})
 	SchemeBuilder.Register(&VaultDynamicSecret{}, &VaultDynamicSecretList{})

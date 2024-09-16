@@ -1,8 +1,12 @@
 {% extends "base.html" %}
-
 {% block outdated %}
   You're not viewing the latest version.
   <a href="{{ '../' ~ base_url }}">
     <strong>Click here to go to latest.</strong>
   </a>
+{% endblock %}
+
+{% block footer %}
+<img referrerpolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=6658a9eb-067d-49f1-94f2-b8b00f21451e" />
+  {{ super() }}
 {% endblock %}

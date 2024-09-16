@@ -43,12 +43,24 @@ func NewESO(mutators ...MutationFunc) *ESO {
 					Value: os.Getenv("VERSION"),
 				},
 				{
+					Key:   "webhook.image.repository",
+					Value: "ghcr.io/external-secrets/external-secrets",
+				},
+				{
 					Key:   "certController.image.tag",
 					Value: os.Getenv("VERSION"),
 				},
 				{
+					Key:   "certController.image.repository",
+					Value: "ghcr.io/external-secrets/external-secrets",
+				},
+				{
 					Key:   "image.tag",
 					Value: os.Getenv("VERSION"),
+				},
+				{
+					Key:   "image.repository",
+					Value: "ghcr.io/external-secrets/external-secrets",
 				},
 				{
 					Key:   "extraArgs.loglevel",
