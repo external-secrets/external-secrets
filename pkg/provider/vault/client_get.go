@@ -221,7 +221,7 @@ func (c *client) buildMetadataPath(path string) (string, error) {
 			return "", errors.New(errPathInvalid)
 		}
 		if c.store.Path == nil {
-			path = strings.Replace(path, "data", "metadata", 1)
+			path = strings.Replace(path, "/data/", "/metadata/", 1)
 			url = path
 		} else {
 			url = fmt.Sprintf("%s/metadata/%s", *c.store.Path, path)

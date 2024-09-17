@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -111,8 +112,8 @@ func NewSdkClient(ctx context.Context, c client.Client, storeKind, namespace str
 	}
 
 	return &SdkClient{
-		apiURL:                provider.APIURL,
-		identityURL:           provider.IdentityURL,
+		apiURL:                strings.TrimSuffix(provider.APIURL, "/"),
+		identityURL:           strings.TrimSuffix(provider.IdentityURL, "/"),
 		bitwardenSdkServerURL: provider.BitwardenServerSDKURL,
 		token:                 token,
 		client:                httpsClient,

@@ -13,5 +13,6 @@ resources:
   - generators.external-secrets.io_gcraccesstokens.yaml
   - generators.external-secrets.io_githubaccesstokens.yaml
   - generators.external-secrets.io_passwords.yaml
+  - generators.external-secrets.io_uuids.yaml
   - generators.external-secrets.io_vaultdynamicsecrets.yaml
   - generators.external-secrets.io_webhooks.yaml

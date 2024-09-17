@@ -4,7 +4,7 @@ should match snapshot of default values:
     kind: CustomResourceDefinition
     metadata:
       annotations:
-        controller-gen.kubebuilder.io/version: v0.16.1
+        controller-gen.kubebuilder.io/version: v0.16.2
       labels:
         external-secrets.io/component: controller
       name: secretstores.external-secrets.io

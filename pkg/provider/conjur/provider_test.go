@@ -709,7 +709,7 @@ func (c *ConjurMockAPIClient) NewClientFromKey(_ conjurapi.Config, _ authn.Login
 	return &fake.ConjurMockClient{}, nil
 }
 
-func (c *ConjurMockAPIClient) NewClientFromJWT(_ conjurapi.Config, _, _, _ string) (SecretsClient, error) {
+func (c *ConjurMockAPIClient) NewClientFromJWT(_ conjurapi.Config) (SecretsClient, error) {
 	return &fake.ConjurMockClient{}, nil
 }
 

@@ -20,7 +20,7 @@ kind: Secret
 metadata:
   name: webhook-credentials
   labels:
-    generators.external-secrets.io/type: webhook #Needed to allow webhook to use this secret
+    external-secrets.io/type: webhook #Needed to allow webhook to use this secret
 data:
   username: dGVzdA== # "test"
   password: dGVzdA== # "test"
