@@ -64,6 +64,8 @@ const (
 	errExpectedOneFieldMsgF = "%w: '%s' in '%s', got %d"
 
 	documentCategory = "DOCUMENT"
+	fieldPrefix      = "field/"
+	filePrefix       = "file/"
 )
 
 // Custom Errors //.
@@ -343,20 +345,20 @@ func (provider *ProviderOnePassword) GetSecret(_ context.Context, ref esv1beta1.
 
 	// handle Document secret type
 	if item.Category == documentCategory {
-		if strings.HasPrefix(ref.Property, "field/") {
+		if strings.HasPrefix(ref.Property, fieldPrefix) {
 			return provider.getField(item, ref.Property[6:])
 		}
-		if strings.HasPrefix(ref.Property, "file/") {
+		if strings.HasPrefix(ref.Property, filePrefix) {
 			return provider.getFile(item, ref.Property[5:])
 		}
 		return provider.getFile(item, ref.Property)
 	}
 
 	// handle other secret types
-	if strings.HasPrefix(ref.Property, "file/") {
+	if strings.HasPrefix(ref.Property, filePrefix) {
 		return provider.getFile(item, ref.Property[5:])
 	}
-	if strings.HasPrefix(ref.Property, "field/") {
+	if strings.HasPrefix(ref.Property, fieldPrefix) {
 		return provider.getField(item, ref.Property[6:])
 	}
 	return provider.getField(item, ref.Property)
@@ -388,19 +390,19 @@ func (provider *ProviderOnePassword) GetSecretMap(_ context.Context, ref esv1bet
 
 	// handle Document secret type
 	if item.Category == documentCategory {
-		if strings.HasPrefix(ref.Property, "field/") {
+		if strings.HasPrefix(ref.Property, fieldPrefix) {
 			return provider.getFields(item, ref.Property[6:])
 		}
-		if strings.HasPrefix(ref.Property, "file/") {
+		if strings.HasPrefix(ref.Property, filePrefix) {
 			return provider.getFiles(item, ref.Property[5:])
 		}
 		return provider.getFiles(item, ref.Property)
 	}
 	// handle other secret types
-	if strings.HasPrefix(ref.Property, "file/") {
+	if strings.HasPrefix(ref.Property, filePrefix) {
 		return provider.getFiles(item, ref.Property[5:])
 	}
-	if strings.HasPrefix(ref.Property, "field/") {
+	if strings.HasPrefix(ref.Property, fieldPrefix) {
 		return provider.getFields(item, ref.Property[6:])
 	}
 	return provider.getFields(item, ref.Property)
