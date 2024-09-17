@@ -334,14 +334,19 @@ func (provider *ProviderOnePassword) PushSecret(ctx context.Context, secret *cor
 }
 
 // Clean property string by removing property prefix if needed.
-func getObjType(property, defaultType string) (string, string) {
+func getObjType(documentType onepassword.ItemCategory, property string) (string, string) {
 	if strings.HasPrefix(property, fieldPrefix+prefixSplitter) {
 		return fieldPrefix, property[6:]
 	}
 	if strings.HasPrefix(property, filePrefix+prefixSplitter) {
 		return filePrefix, property[5:]
 	}
-	return defaultType, property
+
+	if documentType == documentCategory {
+		return filePrefix, property
+	}
+
+	return fieldPrefix, property
 }
 
 // GetSecret returns a single secret from the provider.
@@ -355,17 +360,7 @@ func (provider *ProviderOnePassword) GetSecret(_ context.Context, ref esv1beta1.
 		return nil, err
 	}
 
-	// handle Document secret type
-	if item.Category == documentCategory {
-		propertyType, property := getObjType(ref.Property, filePrefix)
-		if propertyType == fieldPrefix {
-			return provider.getField(item, property)
-		}
-		return provider.getFile(item, property)
-	}
-
-	// handle other secret types
-	propertyType, property := getObjType(ref.Property, fieldPrefix)
+	propertyType, property := getObjType(item.Category, ref.Property)
 	if propertyType == filePrefix {
 		return provider.getFile(item, property)
 	}
@@ -396,16 +391,7 @@ func (provider *ProviderOnePassword) GetSecretMap(_ context.Context, ref esv1bet
 		return nil, err
 	}
 
-	// handle Document secret type
-	if item.Category == documentCategory {
-		propertyType, property := getObjType(ref.Property, filePrefix)
-		if propertyType == fieldPrefix {
-			return provider.getFields(item, property)
-		}
-		return provider.getFiles(item, property)
-	}
-	// handle other secret types
-	propertyType, property := getObjType(ref.Property, fieldPrefix)
+	propertyType, property := getObjType(item.Category, ref.Property)
 	if propertyType == filePrefix {
 		return provider.getFiles(item, property)
 	}
