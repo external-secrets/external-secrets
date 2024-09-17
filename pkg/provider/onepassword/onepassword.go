@@ -64,8 +64,9 @@ const (
 	errExpectedOneFieldMsgF = "%w: '%s' in '%s', got %d"
 
 	documentCategory = "DOCUMENT"
-	fieldPrefix      = "field/"
-	filePrefix       = "file/"
+	fieldPrefix      = "field"
+	filePrefix       = "file"
+	prefixSplitter   = "/"
 )
 
 // Custom Errors //.
@@ -332,6 +333,17 @@ func (provider *ProviderOnePassword) PushSecret(ctx context.Context, secret *cor
 	return nil
 }
 
+// Clean property string by removing property prefix if needed.
+func getObjType(property, defaultType string) (string, string) {
+	if strings.HasPrefix(property, fieldPrefix+prefixSplitter) {
+		return fieldPrefix, property[6:]
+	}
+	if strings.HasPrefix(property, filePrefix+prefixSplitter) {
+		return filePrefix, property[5:]
+	}
+	return defaultType, property
+}
+
 // GetSecret returns a single secret from the provider.
 func (provider *ProviderOnePassword) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if ref.Version != "" {
@@ -345,23 +357,19 @@ func (provider *ProviderOnePassword) GetSecret(_ context.Context, ref esv1beta1.
 
 	// handle Document secret type
 	if item.Category == documentCategory {
-		if strings.HasPrefix(ref.Property, fieldPrefix) {
-			return provider.getField(item, ref.Property[6:])
+		propertyType, property := getObjType(ref.Property, filePrefix)
+		if propertyType == fieldPrefix {
+			return provider.getField(item, property)
 		}
-		if strings.HasPrefix(ref.Property, filePrefix) {
-			return provider.getFile(item, ref.Property[5:])
-		}
-		return provider.getFile(item, ref.Property)
+		return provider.getFile(item, property)
 	}
 
 	// handle other secret types
-	if strings.HasPrefix(ref.Property, filePrefix) {
-		return provider.getFile(item, ref.Property[5:])
+	propertyType, property := getObjType(ref.Property, fieldPrefix)
+	if propertyType == filePrefix {
+		return provider.getFile(item, property)
 	}
-	if strings.HasPrefix(ref.Property, fieldPrefix) {
-		return provider.getField(item, ref.Property[6:])
-	}
-	return provider.getField(item, ref.Property)
+	return provider.getField(item, property)
 }
 
 // Validate checks if the client is configured correctly
@@ -390,22 +398,18 @@ func (provider *ProviderOnePassword) GetSecretMap(_ context.Context, ref esv1bet
 
 	// handle Document secret type
 	if item.Category == documentCategory {
-		if strings.HasPrefix(ref.Property, fieldPrefix) {
-			return provider.getFields(item, ref.Property[6:])
+		propertyType, property := getObjType(ref.Property, filePrefix)
+		if propertyType == fieldPrefix {
+			return provider.getFields(item, property)
 		}
-		if strings.HasPrefix(ref.Property, filePrefix) {
-			return provider.getFiles(item, ref.Property[5:])
-		}
-		return provider.getFiles(item, ref.Property)
+		return provider.getFiles(item, property)
 	}
 	// handle other secret types
-	if strings.HasPrefix(ref.Property, filePrefix) {
-		return provider.getFiles(item, ref.Property[5:])
+	propertyType, property := getObjType(ref.Property, fieldPrefix)
+	if propertyType == filePrefix {
+		return provider.getFiles(item, property)
 	}
-	if strings.HasPrefix(ref.Property, fieldPrefix) {
-		return provider.getFields(item, ref.Property[6:])
-	}
-	return provider.getFields(item, ref.Property)
+	return provider.getFields(item, property)
 }
 
 // GetAllSecrets syncs multiple 1Password Items into a single Kubernetes Secret, for dataFrom.find.

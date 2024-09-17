@@ -720,7 +720,7 @@ func TestGetSecret(t *testing.T) {
 					checkNote: key1 + " with prefix",
 					ref: esv1beta1.ExternalSecretDataRemoteRef{
 						Key:      myItem,
-						Property: fieldPrefix + key1,
+						Property: fieldPrefix + prefixSplitter + key1,
 					},
 					expectedValue: value1,
 					expectedErr:   nil,
@@ -746,7 +746,7 @@ func TestGetSecret(t *testing.T) {
 					checkNote: "file named my-file.png with prefix",
 					ref: esv1beta1.ExternalSecretDataRemoteRef{
 						Key:      myItem,
-						Property: filePrefix + myFilePNG,
+						Property: filePrefix + prefixSplitter + myFilePNG,
 					},
 					expectedValue: myContents,
 					expectedErr:   nil,
@@ -782,7 +782,7 @@ func TestGetSecret(t *testing.T) {
 					checkNote: "field named password",
 					ref: esv1beta1.ExternalSecretDataRemoteRef{
 						Key:      myItem,
-						Property: fieldPrefix + key1,
+						Property: fieldPrefix + prefixSplitter + key1,
 					},
 					expectedValue: value2,
 					expectedErr:   nil,
@@ -800,7 +800,7 @@ func TestGetSecret(t *testing.T) {
 					checkNote: "file named my-file.png with prefix",
 					ref: esv1beta1.ExternalSecretDataRemoteRef{
 						Key:      myItem,
-						Property: filePrefix + myFilePNG,
+						Property: filePrefix + prefixSplitter + myFilePNG,
 					},
 					expectedValue: myContents,
 					expectedErr:   nil,
@@ -971,7 +971,7 @@ func TestGetSecretMap(t *testing.T) {
 					checkNote: "limit by Property with prefix",
 					ref: esv1beta1.ExternalSecretDataRemoteRef{
 						Key:      myItem,
-						Property: filePrefix + myFilePNG,
+						Property: filePrefix + prefixSplitter + myFilePNG,
 					},
 					expectedMap: map[string][]byte{
 						myFilePNG: []byte(myContents),
@@ -1036,7 +1036,7 @@ func TestGetSecretMap(t *testing.T) {
 					checkNote: "limit by Property with prefix",
 					ref: esv1beta1.ExternalSecretDataRemoteRef{
 						Key:      myItem,
-						Property: filePrefix + myFilePNG,
+						Property: filePrefix + prefixSplitter + myFilePNG,
 					},
 					expectedMap: map[string][]byte{
 						myFilePNG: []byte(myContents),
@@ -1047,7 +1047,7 @@ func TestGetSecretMap(t *testing.T) {
 					checkNote: "get field limit by Property",
 					ref: esv1beta1.ExternalSecretDataRemoteRef{
 						Key:      myItem,
-						Property: fieldPrefix + key1,
+						Property: fieldPrefix + prefixSplitter + key1,
 					},
 					expectedMap: map[string][]byte{
 						key1: []byte(value2),
