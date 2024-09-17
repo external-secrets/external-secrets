@@ -20,8 +20,9 @@ import (
 
 // PreviderProvider configures a store to sync secrets using the Previder Secret Manager provider.
 type PreviderProvider struct {
-	Auth    PreviderAuth `json:"auth"`
-	BaseURI string       `json:"baseUri,omitempty"`
+	Auth PreviderAuth `json:"auth"`
+	// +optional
+	BaseURI string `json:"baseUri,omitempty"`
 }
 
 // PreviderAuth contains a secretRef for credentials.
