@@ -52,6 +52,7 @@ rules:
     resources:
     - "acraccesstokens"
     - "ecrauthorizationtokens"
+    - "awsiamkeys"
     - "fakes"
     - "gcraccesstokens"
     - "githubaccesstokens"
