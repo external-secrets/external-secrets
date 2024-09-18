@@ -28,8 +28,9 @@ BeyondTrust [OAuth Authentication](https://www.beyondtrust.com/docs/beyondinsigh
 kubectl create secret generic bt-secret --from-literal ClientSecret="<your secret>"
 kubectl create secret generic bt-id --from-literal ClientId="<your ID>"
 ```
+
 ### Client Certificate
-Download the pfx certificate from Secrets Safe extract the certificate and create two Kubernetes secret.
+Download the pfx certificate from Secrets Safe, extract the certificate and create two Kubernetes secret.
 
 ```sh
 openssl pkcs12 -in client_certificate.pfx -nocerts -out ps_key.pem -nodes
@@ -62,30 +63,32 @@ kubectl apply -f secret-store.yml
 apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
- name: secretstore-beyondtrust
+  name: secretstore-beyondtrust
 spec:
- provider:
-   beyondtrust:
-    apiurl: https://example.com:443/BeyondTrust/api/public/v3/
-    certificate:
-      secretRef:
-          name: bt-certificate
-          key: ClientCertificate
-    certificatekey:
-      secretRef:
-          name: bt-certificatekey
-          key: ClientCertificateKey
-    clientsecret:
-      secretRef:
-        name: bt-secret
-        key: ClientSecret
-    clientid:
-      secretRef:
-        name: bt-id
-        key: ClientId
-    retrievaltype: MANAGED_ACCOUNT
-    verifyca: true
-    clienttimeoutseconds: 45
+  provider:
+    beyondtrust:
+      server:
+        apiUrl: https://example.com:443/BeyondTrust/api/public/v3/
+        retrievalType: MANAGED_ACCOUNT
+        verifyCA: true
+        clientTimeOutSeconds: 45
+      auth: 
+        certificate:
+          secretRef:
+            name: bt-certificate
+            key: ClientCertificate
+        certificateKey:
+          secretRef:
+            name: bt-certificatekey
+            key: ClientCertificateKey
+        clientSecret:
+          secretRef:
+            name: bt-secret
+            key: ClientSecret
+        clientId:
+          secretRef:
+            name: bt-id
+            key: ClientId
 ```
 
 ### Creating a ExternalSecret
