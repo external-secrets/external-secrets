@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package v1beta1
 
 import (
@@ -68,6 +69,20 @@ func TestValidateExternalSecret(t *testing.T) {
 			expectedErr: "either data or dataFrom should be specified",
 		},
 		{
+			name: "find with extract",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					DataFrom: []ExternalSecretDataFromRemoteRef{
+						{
+							Find:    &ExternalSecretFind{},
+							Extract: &ExternalSecretDataRemoteRef{},
+						},
+					},
+				},
+			},
+			expectedErr: "extract, find, or generatorRef cannot be set at the same time",
+		},
+		{
 			name: "generator with find",
 			obj: &ExternalSecret{
 				Spec: ExternalSecretSpec{
@@ -81,7 +96,7 @@ func TestValidateExternalSecret(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: "generator can not be used with find or extract",
+			expectedErr: "extract, find, or generatorRef cannot be set at the same time",
 		},
 		{
 			name: "generator with extract",
@@ -97,7 +112,31 @@ func TestValidateExternalSecret(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: "generator can not be used with find or extract",
+			expectedErr: "extract, find, or generatorRef cannot be set at the same time",
+		},
+		{
+			name: "empty dataFrom",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					DataFrom: []ExternalSecretDataFromRemoteRef{
+						{},
+					},
+				},
+			},
+			expectedErr: "either extract, find, or sourceRef must be set to dataFrom",
+		},
+		{
+			name: "empty sourceRef",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					DataFrom: []ExternalSecretDataFromRemoteRef{
+						{
+							SourceRef: &StoreGeneratorSourceRef{},
+						},
+					},
+				},
+			},
+			expectedErr: "generatorRef or storeRef must be set when using sourceRef in dataFrom",
 		},
 		{
 			name: "multiple errors",
@@ -117,7 +156,11 @@ either data or dataFrom should be specified`,
 			obj: &ExternalSecret{
 				Spec: ExternalSecretSpec{
 					DataFrom: []ExternalSecretDataFromRemoteRef{
-						{},
+						{
+							SourceRef: &StoreGeneratorSourceRef{
+								GeneratorRef: &GeneratorRef{},
+							},
+						},
 					},
 				},
 			},

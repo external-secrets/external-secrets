@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "external-secrets.fullname" . }}
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ template "external-secrets.namespace" . }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
   {{- with .Values.deploymentAnnotations }}
@@ -35,15 +35,19 @@ spec:
       serviceAccountName: {{ include "external-secrets.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
       {{- with .Values.podSecurityContext }}
+      {{- if and (.enabled) (gt (keys . | len) 1) }}
       securityContext:
-        {{- toYaml . | nindent 8 }}
+        {{- include "external-secrets.renderSecurityContext" (dict "securityContext" . "context" $) | nindent 8 }}
+      {{- end }}
       {{- end }}
       hostNetwork: {{ .Values.hostNetwork }}
       containers:
         - name: {{ .Chart.Name }}
           {{- with .Values.securityContext }}
+           {{- if and (.enabled) (gt (keys . | len) 1) }}
           securityContext:
-            {{- toYaml . | nindent 12 }}
+            {{- include "external-secrets.renderSecurityContext" (dict "securityContext" . "context" $) | nindent 12 }}
+          {{- end }}
           {{- end }}
           image: {{ include "external-secrets.image" (dict "chartAppVersion" .Chart.AppVersion "image" .Values.image) | trim }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -87,6 +91,8 @@ spec:
           {{- end }}
           {{- end }}
           - --metrics-addr=:{{ .Values.metrics.listen.port }}
+          - --loglevel={{ .Values.log.level }}
+          - --zap-time-encoding={{ .Values.log.timeEncoding }}
           ports:
             - containerPort: {{ .Values.metrics.listen.port }}
               protocol: TCP
@@ -106,6 +112,7 @@ spec:
         {{- if .Values.extraContainers }}
           {{ toYaml .Values.extraContainers | nindent 8}}
         {{- end }}
+      dnsPolicy: {{ .Values.dnsPolicy }}
       {{- if .Values.dnsConfig }}
       dnsConfig:
           {{- toYaml .Values.dnsConfig | nindent 8 }}
@@ -114,19 +121,19 @@ spec:
       volumes:
       {{- toYaml .Values.extraVolumes | nindent 8 }}
       {{- end }}
-      {{- with .Values.nodeSelector }}
+      {{- with .Values.nodeSelector | default .Values.global.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      {{- with .Values.affinity | default .Values.global.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      {{- with .Values.tolerations | default .Values.global.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.topologySpreadConstraints }}
+      {{- with .Values.topologySpreadConstraints | default .Values.global.topologySpreadConstraints }}
       topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
       {{- end }}

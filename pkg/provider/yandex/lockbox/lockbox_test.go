@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package lockbox
 
 import (
@@ -640,7 +641,7 @@ func newYandexLockboxSecretStore(apiEndpoint, namespace, authorizedKeySecretName
 	}
 }
 
-func toJSON(t *testing.T, v interface{}) []byte {
+func toJSON(t *testing.T, v any) []byte {
 	jsonBytes, err := json.Marshal(v)
 	tassert.Nil(t, err)
 	return jsonBytes

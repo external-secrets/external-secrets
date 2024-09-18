@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package webhookconfig
 
 import (
@@ -18,13 +19,16 @@ import (
 	"context"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	pointer "k8s.io/utils/ptr"
+
+	"github.com/external-secrets/external-secrets/pkg/constants"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 const defaultCACert = `-----BEGIN CERTIFICATE-----
@@ -124,7 +128,7 @@ var _ = Describe("ValidatingWebhookConfig reconcile", Ordered, func() {
 	}
 
 	IgnoreNoMatch := func(tc *testCase) {
-		delete(tc.vwc.ObjectMeta.Labels, wellKnownLabelKey)
+		delete(tc.vwc.ObjectMeta.Labels, constants.WellKnownLabelKey)
 		tc.assert = func() {
 			Consistently(func() bool {
 				var vwc admissionregistration.ValidatingWebhookConfiguration
@@ -230,7 +234,7 @@ func makeValidatingWebhookConfig() *admissionregistration.ValidatingWebhookConfi
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "name-shouldnt-matter",
 			Labels: map[string]string{
-				wellKnownLabelKey: wellKnownLabelValue,
+				constants.WellKnownLabelKey: constants.WellKnownLabelValueWebhook,
 			},
 		},
 		Webhooks: []admissionregistration.ValidatingWebhook{

@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package kubernetes
 
 import (
@@ -50,6 +51,24 @@ mv+AggtK0aRFb9o47z/BypLdk5mhbf3Mmr88C8XBzEnfdYyf4JpTlZrYLBmDCu5d
 9RLLsjXxhag8xqMtd1uLUM8XOTGzVWacw8iGY+CTtBKqyA+AE6/bDwZvEwVtsKtC
 QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
 -----END CERTIFICATE-----`
+	testKubeConfig = `apiVersion: v1
+clusters:
+- cluster:
+    server: https://api.my-domain.tld
+  name: mycluster
+contexts:
+- context:
+    cluster: mycluster
+    user: myuser
+  name: mycontext
+current-context: mycontext
+kind: Config
+preferences: {}
+users:
+- name: myuser
+  user:
+    token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJPbmxpbmUgSldUIEJ1aWxkZXIiLCJpYXQiOjE3MTkzOTY4OTksImV4cCI6MTc1MDkzMjg4NywiYXVkIjoid3d3LmV4YW1wbGUuY29tIiwic3ViIjoianJvY2tldEBleGFtcGxlLmNvbSIsIkdpdmVuTmFtZSI6IkpvaG5ueSIsIlN1cm5hbWUiOiJSb2NrZXQiLCJFbWFpbCI6Impyb2NrZXRAZXhhbXBsZS5jb20iLCJSb2xlIjpbIk1hbmFnZXIiLCJQcm9qZWN0IEFkbWluaXN0cmF0b3IiXX0.xXrfIl0akhfjWU_BDl7Ad54SXje0YlJdnugzwh96VmM
+`
 )
 
 func TestNewClient(t *testing.T) {
@@ -88,6 +107,40 @@ func TestNewClient(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:   "test auth ref",
+			fields: fields{},
+			args: args{
+				store: &esv1beta1.ClusterSecretStore{
+					TypeMeta: metav1.TypeMeta{
+						Kind: esv1beta1.ClusterSecretStoreKind,
+					},
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							Kubernetes: &esv1beta1.KubernetesProvider{
+								AuthRef: &v1.SecretKeySelector{
+									Name:      "foo",
+									Namespace: pointer.To("default"),
+									Key:       "config",
+								},
+							},
+						},
+					},
+				},
+				namespace: "",
+				kube: fclient.NewClientBuilder().WithObjects(&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "foo",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{
+						"config": []byte(testKubeConfig),
+					},
+				}).Build(),
+				clientset: clientgofake.NewSimpleClientset(),
+			},
+			want: true,
+		},
+		{
 			name:   "test referent auth return",
 			fields: fields{},
 			args: args{
@@ -99,6 +152,7 @@ func TestNewClient(t *testing.T) {
 						Provider: &esv1beta1.SecretStoreProvider{
 							Kubernetes: &esv1beta1.KubernetesProvider{
 								Server: esv1beta1.KubernetesServer{
+									URL:      "https://my.test.tld",
 									CABundle: []byte(testCertificate),
 								},
 								Auth: esv1beta1.KubernetesAuth{
@@ -131,6 +185,7 @@ func TestNewClient(t *testing.T) {
 						Provider: &esv1beta1.SecretStoreProvider{
 							Kubernetes: &esv1beta1.KubernetesProvider{
 								Server: esv1beta1.KubernetesServer{
+									URL:      "https://my.test.tld",
 									CABundle: []byte(testCertificate),
 								},
 								RemoteNamespace: "remote",
@@ -165,6 +220,7 @@ func TestNewClient(t *testing.T) {
 						Provider: &esv1beta1.SecretStoreProvider{
 							Kubernetes: &esv1beta1.KubernetesProvider{
 								Server: esv1beta1.KubernetesServer{
+									URL:      "https://my.test.tld",
 									CABundle: []byte(testCertificate),
 								},
 								RemoteNamespace: "remote",

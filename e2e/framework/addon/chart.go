@@ -12,6 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package addon
 
 import (
@@ -65,6 +66,7 @@ func (c *HelmChart) Install() error {
 	}
 
 	args := []string{"install", c.ReleaseName, c.Chart,
+		"--dependency-update",
 		"--debug",
 		"--wait",
 		"--timeout", "600s",

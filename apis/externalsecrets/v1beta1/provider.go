@@ -79,6 +79,9 @@ type SecretsClient interface {
 	// DeleteSecret will delete the secret from a provider
 	DeleteSecret(ctx context.Context, remoteRef PushSecretRemoteRef) error
 
+	// SecretExists checks if a secret is already present in the provider at the given location.
+	SecretExists(ctx context.Context, remoteRef PushSecretRemoteRef) (bool, error)
+
 	// Validate checks if the client is configured correctly
 	// and is able to retrieve secrets from the provider.
 	// If the validation result is unknown it will be ignored.
@@ -101,4 +104,14 @@ type NoSecretError struct{}
 
 func (NoSecretError) Error() string {
 	return "Secret does not exist"
+}
+
+var NotModifiedErr = NotModifiedError{}
+
+// NotModifiedError to signal that the webhook received no changes,
+// and it should just return without doing anything.
+type NotModifiedError struct{}
+
+func (NotModifiedError) Error() string {
+	return "not modified"
 }

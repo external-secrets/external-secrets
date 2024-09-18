@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -77,7 +78,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
 	if remoteRef.GetProperty() == "" {
-		return fmt.Errorf("requires property in RemoteRef to delete secret value")
+		return errors.New("requires property in RemoteRef to delete secret value")
 	}
 
 	extSecret, getErr := c.userSecretClient.Get(ctx, remoteRef.GetRemoteKey(), metav1.GetOptions{})
@@ -100,9 +101,13 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecre
 	return c.fullDelete(ctx, remoteRef.GetRemoteKey())
 }
 
+func (c *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, errors.New("not implemented")
+}
+
 func (c *Client) PushSecret(ctx context.Context, secret *v1.Secret, data esv1beta1.PushSecretData) error {
 	if data.GetProperty() == "" && data.GetSecretKey() != "" {
-		return fmt.Errorf("requires property in RemoteRef to push secret value if secret key is defined")
+		return errors.New("requires property in RemoteRef to push secret value if secret key is defined")
 	}
 
 	extSecret, getErr := c.userSecretClient.Get(ctx, data.GetRemoteKey(), metav1.GetOptions{})
@@ -228,7 +233,7 @@ func getMapFromValues(property, jsonStr string) (map[string][]byte, error) {
 	val := gjson.Get(jsonStr, property)
 	if val.Exists() {
 		retMap := make(map[string][]byte)
-		var tmpMap map[string]interface{}
+		var tmpMap map[string]any
 		decoded, err := base64.StdEncoding.DecodeString(val.String())
 		if err != nil {
 			return nil, err

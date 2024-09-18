@@ -17,14 +17,16 @@ package externalsecret
 import (
 	"context"
 	"fmt"
+	"maps"
 
 	v1 "k8s.io/api/core/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
-	_ "github.com/external-secrets/external-secrets/pkg/provider/register" // Loading registered providers.
 	"github.com/external-secrets/external-secrets/pkg/template"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+
+	_ "github.com/external-secrets/external-secrets/pkg/provider/register" // Loading registered providers.
 )
 
 // merge template in the following order:
@@ -43,9 +45,7 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 	}
 	// Merge Policy should merge secrets
 	if es.Spec.Target.Template.MergePolicy == esv1beta1.MergePolicyMerge {
-		for k, v := range dataMap {
-			secret.Data[k] = v
-		}
+		maps.Insert(secret.Data, maps.All(dataMap))
 	}
 	execute, err := template.EngineForVersion(es.Spec.Target.Template.EngineVersion)
 	if err != nil {

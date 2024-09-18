@@ -14,15 +14,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout Code"
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: "Run FOSSA Scan"
-        uses: fossas/fossa-action@45d0cd825dcbe195c58a83662b0abb684ca739d8 # main
+        uses: fossas/fossa-action@09bcf127dc0ccb4b5a023f6f906728878e8610ba # main
         with:
           api-key: ${{secrets.FOSSA_API_KEY}}
 
       - name: "Run FOSSA Test"
-        uses: fossas/fossa-action@45d0cd825dcbe195c58a83662b0abb684ca739d8 # main
+        uses: fossas/fossa-action@09bcf127dc0ccb4b5a023f6f906728878e8610ba # main
         with:
           api-key: ${{secrets.FOSSA_API_KEY}}
           run-tests: true

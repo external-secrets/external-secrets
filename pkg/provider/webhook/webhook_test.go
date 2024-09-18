@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package webhook
 
 import (
@@ -50,6 +51,7 @@ type args struct {
 
 type want struct {
 	Path      string            `json:"path,omitempty"`
+	Body      string            `json:"body,omitempty"`
 	Err       string            `json:"err,omitempty"`
 	Result    string            `json:"result,omitempty"`
 	ResultMap map[string]string `json:"resultmap,omitempty"`
@@ -298,6 +300,43 @@ want:
   path: /api/getsecret?id=testkey&version=1
   err: ''
   result: "RE/DACTED=="
+---
+case: good json with mixed fields and jsonpath filter
+args:
+  url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}
+  key: testkey
+  version: 1
+  jsonpath: $.result.thesecret
+  response: '{"result":{"thesecret":"secret-value","alsosecret":"another-value", "id": 1234, "weight": 1.5}}'
+want:
+  path: /api/getsecret?id=testkey&version=1
+  err: ''
+  result: secret-value
+---
+case: good json with mixed fields to map
+args:
+  url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}
+  key: testkey
+  version: 1
+  jsonpath: $.result
+  response: '{"result":{"thesecret":"secret-value","alsosecret":"another-value", "id": 1234, "weight": 1.5}}'
+want:
+  path: /api/getsecret?id=testkey&version=1
+  err: ''
+  resultmap:
+    thesecret: secret-value
+    alsosecret: another-value
+    id: 1234
+    weight: 1.5
+---
+case: only url encoding for url templates
+args:
+  url: /api/getsecrets?folder={{ .remoteRef.key }}
+  body: '{"folder": "{{ .remoteRef.key }}"}'
+  key: /myapp/secrets
+want:
+  path: /api/getsecrets?folder=%2Fmyapp%2Fsecrets
+  body: '{"folder": "/myapp/secrets"}'
 `
 
 func TestWebhookGetSecret(t *testing.T) {
@@ -319,6 +358,12 @@ func testCaseServer(tc testCase, t *testing.T) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		if tc.Want.Path != "" && req.URL.String() != tc.Want.Path {
 			t.Errorf("%s: unexpected api path: %s, expected %s", tc.Case, req.URL.String(), tc.Want.Path)
+		}
+		if tc.Want.Body != "" {
+			b, _ := io.ReadAll(req.Body)
+			if string(b) != tc.Want.Body {
+				t.Errorf("%s: unexpected body: %s, expected %s", tc.Case, string(b), tc.Want.Body)
+			}
 		}
 		if tc.Args.StatusCode != 0 {
 			rw.WriteHeader(tc.Args.StatusCode)

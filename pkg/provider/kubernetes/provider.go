@@ -16,6 +16,7 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	authv1 "k8s.io/api/authorization/v1"
@@ -23,7 +24,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/rest"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
@@ -73,11 +73,7 @@ type Client struct {
 
 	// namespace is the namespace of the
 	// ExternalSecret referencing this provider.
-	namespace   string
-	Certificate []byte
-	Key         []byte
-	CA          []byte
-	BearerToken []byte
+	namespace string
 }
 
 func init() {
@@ -106,7 +102,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 func (p *Provider) newClient(ctx context.Context, store esv1beta1.GenericStore, ctrlClient kclient.Client, ctrlClientset kubernetes.Interface, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Kubernetes == nil {
-		return nil, fmt.Errorf("no store type or wrong store type")
+		return nil, errors.New("no store type or wrong store type")
 	}
 	storeSpecKubernetes := storeSpec.Provider.Kubernetes
 	client := &Client{
@@ -123,22 +119,12 @@ func (p *Provider) newClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return client, nil
 	}
 
-	if err := client.setAuth(ctx); err != nil {
-		return nil, err
+	cfg, err := client.getAuth(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare auth: %w", err)
 	}
 
-	config := &rest.Config{
-		Host:        client.store.Server.URL,
-		BearerToken: string(client.BearerToken),
-		TLSClientConfig: rest.TLSClientConfig{
-			Insecure: false,
-			CertData: client.Certificate,
-			KeyData:  client.Key,
-			CAData:   client.CA,
-		},
-	}
-
-	userClientset, err := kubernetes.NewForConfig(config)
+	userClientset, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("error configuring clientset: %w", err)
 	}

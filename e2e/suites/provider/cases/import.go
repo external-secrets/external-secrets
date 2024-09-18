@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package suite
 
 import (
@@ -25,4 +26,6 @@ import (
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/scaleway"
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/template"
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/vault"
+	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/conjur"
+	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/secretserver"
 )

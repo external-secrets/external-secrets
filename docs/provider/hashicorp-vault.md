@@ -89,12 +89,13 @@ spec:
       property: dev
 
 ---
-# will create a secret with:
-kind: Secret
-metadata:
-  name: example-sync
-data:
-  foobar: czNjcjN0
+# That will automatically create a Kubernetes Secret with:
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#  name: example-sync
+# data:
+#  foobar: czNjcjN0
 ```
 
 Keep in mind that fetching the labels with `metadataPolicy: Fetch` only works with KV sercrets engine version v2.
@@ -278,6 +279,8 @@ We support five different modes for authentication:
 [tlsCert](https://developer.hashicorp.com/vault/docs/auth/cert), each one comes with it's own
 trade-offs. Depending on the authentication method you need to adapt your environment.
 
+If you're using Vault namespaces, you can authenticate into one namespace and use the vault token against a different namespace, if desired.
+
 #### Token-based authentication
 
 A static token is stored in a `Kind=Secret` and is used to authenticate with vault.
@@ -362,7 +365,7 @@ set of AWS Programmatic access credentials stored in a `Kind=Secret` and referen
 
 ### Mutual authentication (mTLS)
 
-Under specific compliance requirements, the Vault server can be set up to enforce mutual authentication from clients across all APIs by configuring the server with `tls_require_and_verify_client_cert = true`. This configuration differs fundamentally from the [TLS certificates auth method](#TLS-certificates-authentication). While the TLS certificates auth method allows the issuance of a Vault token through the `/v1/auth/cert/login` API, the mTLS configuration solely focuses on TLS transport layer authentication and lacks any authorization-related capabilities. It's important to note that the Vault token must still be included in the request, following any of the supported authentication methods mentioned earlier.
+Under specific compliance requirements, the Vault server can be set up to enforce mutual authentication from clients across all APIs by configuring the server with `tls_require_and_verify_client_cert = true`. This configuration differs fundamentally from the [TLS certificates auth method](#tls-certificates-authentication). While the TLS certificates auth method allows the issuance of a Vault token through the `/v1/auth/cert/login` API, the mTLS configuration solely focuses on TLS transport layer authentication and lacks any authorization-related capabilities. It's important to note that the Vault token must still be included in the request, following any of the supported authentication methods mentioned earlier.
 
 ```yaml
 {% include 'vault-mtls-store.yaml' %}
@@ -458,6 +461,28 @@ spec:
       path: "secret"
       version: "v2"
       auth:
+        # ...
+```
+
+##### Authenticating into a different namespace
+
+In some situations your authentication backend may be in one namespace, and your secrets in another. You can authenticate into one namespace, and use that token against another, by setting `provider.vault.namespace` and `provider.vault.auth.namespace` to different values. If `provider.vault.auth.namespace` is unset but `provider.vault.namespace` is, it will default to the `provider.vault.namespace` value.
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: vault-backend
+spec:
+  provider:
+    vault:
+      server: "http://my.vault.server:8200"
+      # See https://www.vaultproject.io/docs/enterprise/namespaces
+      namespace: "app-team"
+      path: "secret"
+      version: "v2"
+      auth:
+        namespace: "kubernetes-team"
         # ...
 ```
 

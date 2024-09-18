@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package keepersecurity
 
 import (
@@ -638,7 +639,7 @@ func generateRecords() []*ksm.Record {
 		if i == 0 {
 			record = ksm.Record{
 				Uid: fmt.Sprintf(RecordNameFormat, i),
-				RecordDict: map[string]interface{}{
+				RecordDict: map[string]any{
 					"type":      externalSecretType,
 					"folderUID": folderID,
 				},
@@ -646,7 +647,7 @@ func generateRecords() []*ksm.Record {
 		} else {
 			record = ksm.Record{
 				Uid: fmt.Sprintf(RecordNameFormat, i),
-				RecordDict: map[string]interface{}{
+				RecordDict: map[string]any{
 					"type":      LoginType,
 					"folderUID": folderID,
 				},

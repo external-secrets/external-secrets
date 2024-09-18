@@ -11,10 +11,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package fake
 
 import (
-	"fmt"
+	"errors"
 	"net/url"
 
 	"github.com/google/go-cmp/cmp"
@@ -23,7 +24,8 @@ import (
 )
 
 type DopplerClient struct {
-	getSecret func(request client.SecretRequest) (*client.SecretResponse, error)
+	getSecret     func(request client.SecretRequest) (*client.SecretResponse, error)
+	updateSecrets func(request client.UpdateSecretsRequest) error
 }
 
 func (dc *DopplerClient) BaseURL() *url.URL {
@@ -43,13 +45,28 @@ func (dc *DopplerClient) GetSecrets(_ client.SecretsRequest) (*client.SecretsRes
 	return &client.SecretsResponse{}, nil
 }
 
+func (dc *DopplerClient) UpdateSecrets(request client.UpdateSecretsRequest) error {
+	return dc.updateSecrets(request)
+}
+
 func (dc *DopplerClient) WithValue(request client.SecretRequest, response *client.SecretResponse, err error) {
 	if dc != nil {
 		dc.getSecret = func(requestIn client.SecretRequest) (*client.SecretResponse, error) {
 			if !cmp.Equal(requestIn, request) {
-				return nil, fmt.Errorf("unexpected test argument")
+				return nil, errors.New("unexpected test argument")
 			}
 			return response, err
+		}
+	}
+}
+
+func (dc *DopplerClient) WithUpdateValue(request client.UpdateSecretsRequest, err error) {
+	if dc != nil {
+		dc.updateSecrets = func(requestIn client.UpdateSecretsRequest) error {
+			if !cmp.Equal(requestIn, request) {
+				return errors.New("unexpected test argument")
+			}
+			return err
 		}
 	}
 }

@@ -11,10 +11,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package akeyless
 
 import (
-	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -47,14 +48,14 @@ const (
 // GetAKeylessProvider does the necessary nil checks and returns the akeyless provider or an error.
 func GetAKeylessProvider(store esv1beta1.GenericStore) (*esv1beta1.AkeylessProvider, error) {
 	if store == nil {
-		return nil, fmt.Errorf(errNilStore)
+		return nil, errors.New(errNilStore)
 	}
 	spc := store.GetSpec()
 	if spc == nil {
-		return nil, fmt.Errorf(errMissingStoreSpec)
+		return nil, errors.New(errMissingStoreSpec)
 	}
 	if spc.Provider == nil {
-		return nil, fmt.Errorf(errMissingProvider)
+		return nil, errors.New(errMissingStoreSpec)
 	}
 	prov := spc.Provider.Akeyless
 	if prov == nil {
@@ -107,13 +108,4 @@ func sendReq(url string) string {
 
 	body, _ := io.ReadAll(resp.Body)
 	return string(body)
-}
-
-func base64decode(in []byte) ([]byte, error) {
-	out := make([]byte, len(in))
-	l, err := base64.StdEncoding.Decode(out, in)
-	if err != nil {
-		return nil, err
-	}
-	return out[:l], nil
 }

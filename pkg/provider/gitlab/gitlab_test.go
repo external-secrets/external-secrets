@@ -11,11 +11,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package gitlab
 
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -255,14 +257,14 @@ func prepareMockGroupVarClient(smtc *secretManagerTestCase) {
 // This case can be shared by both GetSecret and GetSecretMap tests.
 // bad case: set apiErr.
 var setAPIErr = func(smtc *secretManagerTestCase) {
-	smtc.apiErr = fmt.Errorf("oh no")
+	smtc.apiErr = errors.New("oh no")
 	smtc.expectError = "oh no"
 	smtc.projectAPIResponse.Response.StatusCode = http.StatusInternalServerError
 	smtc.expectedValidationResult = esv1beta1.ValidationResultError
 }
 
 var setListAPIErr = func(smtc *secretManagerTestCase) {
-	err := fmt.Errorf("oh no")
+	err := errors.New("oh no")
 	smtc.apiErr = err
 	smtc.expectError = fmt.Errorf(errList, err).Error()
 	smtc.expectedValidationResult = esv1beta1.ValidationResultError
@@ -362,7 +364,7 @@ func TestNewClient(t *testing.T) {
 	tassert.NotNil(t, secretClient)
 }
 
-func toJSON(t *testing.T, v interface{}) []byte {
+func toJSON(t *testing.T, v any) []byte {
 	jsonBytes, err := json.Marshal(v)
 	tassert.Nil(t, err)
 	return jsonBytes
@@ -844,23 +846,23 @@ func TestValidateStore(t *testing.T) {
 	testCases := []ValidateStoreTestCase{
 		{
 			store: makeSecretStore("", environment),
-			err:   fmt.Errorf("projectID and groupIDs must not both be empty"),
+			err:   errors.New("projectID and groupIDs must not both be empty"),
 		},
 		{
 			store: makeSecretStore(project, environment, withGroups([]string{"group1"}, true)),
-			err:   fmt.Errorf("defining groupIDs and inheritFromGroups = true is not allowed"),
+			err:   errors.New("defining groupIDs and inheritFromGroups = true is not allowed"),
 		},
 		{
 			store: makeSecretStore(project, environment, withAccessToken("", userkey, nil)),
-			err:   fmt.Errorf("accessToken.name cannot be empty"),
+			err:   errors.New("accessToken.name cannot be empty"),
 		},
 		{
 			store: makeSecretStore(project, environment, withAccessToken(username, "", nil)),
-			err:   fmt.Errorf("accessToken.key cannot be empty"),
+			err:   errors.New("accessToken.key cannot be empty"),
 		},
 		{
 			store: makeSecretStore(project, environment, withAccessToken("userName", "userKey", &namespace)),
-			err:   fmt.Errorf("namespace not allowed with namespaced SecretStore"),
+			err:   errors.New("namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore"),
 		},
 		{
 			store: makeSecretStore(project, environment, withAccessToken("userName", "userKey", nil)),

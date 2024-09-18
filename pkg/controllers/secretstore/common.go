@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package secretstore
 
 import (
@@ -34,7 +35,7 @@ const (
 	errValidationFailed    = "could not validate provider: %w"
 	errPatchStatus         = "unable to patch status: %w"
 	errUnableCreateClient  = "unable to create client"
-	errUnableValidateStore = "unable to validate store"
+	errUnableValidateStore = "unable to validate store: %s"
 	errUnableGetProvider   = "unable to get store provider"
 
 	msgStoreValidated = "store validated"
@@ -102,7 +103,7 @@ func validateStore(ctx context.Context, namespace, controllerClass string, store
 	}
 	validationResult, err := cl.Validate()
 	if err != nil && validationResult != esapi.ValidationResultUnknown {
-		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonValidationFailed, errUnableValidateStore)
+		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonValidationFailed, fmt.Sprintf(errUnableValidateStore, err))
 		SetExternalSecretCondition(store, *cond, gaugeVecGetter)
 		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonValidationFailed, err.Error())
 		return fmt.Errorf(errValidationFailed, err)

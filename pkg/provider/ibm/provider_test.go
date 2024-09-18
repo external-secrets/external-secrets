@@ -11,17 +11,18 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package ibm
 
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/IBM/go-sdk-core/v5/core"
 	sm "github.com/IBM/secrets-manager-go-sdk/v2/secretsmanagerv2"
@@ -48,9 +49,6 @@ type secretManagerTestCase struct {
 	mockClient      *fakesm.IBMMockClient
 	apiInput        *sm.GetSecretOptions
 	apiOutput       sm.SecretIntf
-	listInput       *sm.ListSecretsOptions
-	listOutput      *sm.SecretMetadataPaginatedCollection
-	listError       error
 	getByNameInput  *sm.GetSecretByNameTypeOptions
 	getByNameOutput sm.SecretIntf
 	getByNameError  error
@@ -69,9 +67,6 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		apiInput:        makeValidAPIInput(),
 		ref:             makeValidRef(),
 		apiOutput:       makeValidAPIOutput(),
-		listInput:       makeValidListInput(),
-		listOutput:      makeValidListSecretsOutput(),
-		listError:       nil,
 		getByNameInput:  makeValidGetByNameInput(),
 		getByNameOutput: makeValidGetByNameOutput(),
 		getByNameError:  nil,
@@ -85,9 +80,6 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		GetSecretOptions:       smtc.apiInput,
 		GetSecretOutput:        smtc.apiOutput,
 		GetSecretErr:           smtc.apiErr,
-		ListSecretsOptions:     smtc.listInput,
-		ListSecretsOutput:      smtc.listOutput,
-		ListSecretsErr:         smtc.listError,
 		GetSecretByNameOptions: smtc.getByNameInput,
 		GetSecretByNameOutput:  smtc.getByNameOutput,
 		GetSecretByNameErr:     smtc.getByNameError,
@@ -133,16 +125,6 @@ func makeValidGetByNameOutput() sm.SecretIntf {
 	return i
 }
 
-func makeValidListSecretsOutput() *sm.SecretMetadataPaginatedCollection {
-	list := sm.SecretMetadataPaginatedCollection{}
-	return &list
-}
-
-func makeValidListInput() *sm.ListSecretsOptions {
-	listOpt := sm.ListSecretsOptions{}
-	return &listOpt
-}
-
 func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTestCase)) *secretManagerTestCase {
 	smtc := makeValidSecretManagerTestCase()
 	for _, fn := range tweaks {
@@ -152,9 +134,6 @@ func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTest
 		GetSecretOptions:       smtc.apiInput,
 		GetSecretOutput:        smtc.apiOutput,
 		GetSecretErr:           smtc.apiErr,
-		ListSecretsOptions:     smtc.listInput,
-		ListSecretsOutput:      smtc.listOutput,
-		ListSecretsErr:         smtc.listError,
 		GetSecretByNameOptions: smtc.getByNameInput,
 		GetSecretByNameOutput:  smtc.getByNameOutput,
 		GetSecretByNameErr:     smtc.apiErr,
@@ -166,7 +145,7 @@ func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTest
 // This case can be shared by both GetSecret and GetSecretMap tests.
 // bad case: set apiErr.
 var setAPIErr = func(smtc *secretManagerTestCase) {
-	smtc.apiErr = fmt.Errorf("oh no")
+	smtc.apiErr = errors.New("oh no")
 	smtc.expectError = "oh no"
 }
 
@@ -187,7 +166,7 @@ func TestValidateStore(t *testing.T) {
 	}
 	_, err := p.ValidateStore(store)
 	if err == nil {
-		t.Errorf(errExpectedErr)
+		t.Error(errExpectedErr)
 	} else if err.Error() != "serviceURL is required" {
 		t.Errorf("service URL test failed")
 	}
@@ -195,7 +174,7 @@ func TestValidateStore(t *testing.T) {
 	store.Spec.Provider.IBM.ServiceURL = &url
 	_, err = p.ValidateStore(store)
 	if err == nil {
-		t.Errorf(errExpectedErr)
+		t.Error(errExpectedErr)
 	} else if err.Error() != "missing auth method" {
 		t.Errorf("KeySelector test failed: expected missing auth method, got %v", err)
 	}
@@ -209,8 +188,8 @@ func TestValidateStore(t *testing.T) {
 	}
 	_, err = p.ValidateStore(store)
 	if err == nil {
-		t.Errorf(errExpectedErr)
-	} else if err.Error() != "namespace not allowed with namespaced SecretStore" {
+		t.Error(errExpectedErr)
+	} else if err.Error() != "namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore" {
 		t.Errorf("KeySelector test failed: expected namespace not allowed, got %v", err)
 	}
 
@@ -317,16 +296,9 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 				Username:   &secretUsername,
 				Password:   &secretPassword,
 			}
-			secretMetadata := &sm.UsernamePasswordSecretMetadata{
-				Name: utilpointer.To("testyname"),
-				ID:   utilpointer.To(secretUUID),
-			}
 			smtc.name = name
 			smtc.apiInput.ID = utilpointer.To(secretUUID)
 			smtc.apiOutput = secret
-			smtc.listInput.Search = utilpointer.To("testyname")
-			smtc.listOutput.Secrets = make([]sm.SecretMetadataIntf, 1)
-			smtc.listOutput.Secrets[0] = secretMetadata
 			smtc.ref.Key = "username_password/" + secretName
 			smtc.ref.Property = property
 			if property == "username" {
@@ -337,8 +309,6 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		}
 	}
 	setSecretUserPassByID := funcSetUserPass(secretUUID, "username", "good case: username_password type - get username by ID")
-	setSecretUserPassUsername := funcSetUserPass("testyname", "username", "good case: username_password type - get username by secret name")
-	setSecretUserPassPassword := funcSetUserPass("testyname", "password", "good case: username_password type - get password by secret name")
 
 	// good case: iam_credentials type
 	funcSetSecretIam := func(secretName, name string) func(*secretManagerTestCase) {
@@ -349,24 +319,17 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 				ID:         utilpointer.To(secretUUID),
 				ApiKey:     utilpointer.To(secretAPIKey),
 			}
-			secretMetadata := &sm.IAMCredentialsSecretMetadata{
-				Name: utilpointer.To("testyname"),
-				ID:   utilpointer.To(secretUUID),
-			}
 			smtc.apiInput.ID = utilpointer.To(secretUUID)
 			smtc.name = name
 			smtc.apiOutput = secret
-			smtc.listInput.Search = utilpointer.To("testyname")
-			smtc.listOutput.Secrets = make([]sm.SecretMetadataIntf, 1)
-			smtc.listOutput.Secrets[0] = secretMetadata
 			smtc.ref.Key = iamCredentialsSecret + secretName
 			smtc.expectedSecret = secretAPIKey
 		}
 	}
 
 	setSecretIamByID := funcSetSecretIam(secretUUID, "good case: iam_credenatials type - get API Key by ID")
-	setSecretIamByName := funcSetSecretIam("testyname", "good case: iam_credenatials type - get API Key by name")
 
+	// good case: iam_credentials type - get API Key by name, providing the secret group ID
 	funcSetSecretIamNew := func(secretName, groupName, name string) func(*secretManagerTestCase) {
 		return func(smtc *secretManagerTestCase) {
 			secret := &sm.IAMCredentialsSecret{
@@ -400,16 +363,9 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 				ID:          utilpointer.To(secretUUID),
 				Credentials: dummySrvCreds,
 			}
-			secretMetadata := &sm.ServiceCredentialsSecretMetadata{
-				Name: utilpointer.To("testyname"),
-				ID:   utilpointer.To(secretUUID),
-			}
 			smtc.apiInput.ID = utilpointer.To(secretUUID)
 			smtc.name = name
 			smtc.apiOutput = secret
-			smtc.listInput.Search = utilpointer.To("testyname")
-			smtc.listOutput.Secrets = make([]sm.SecretMetadataIntf, 1)
-			smtc.listOutput.Secrets[0] = secretMetadata
 			smtc.ref.Key = "service_credentials/" + secretName
 			smtc.expectedSecret = "{\"apikey\":\"01234567890\"}"
 		}
@@ -489,10 +445,10 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// bad case: private_cert type without property
 	badSecretPrivateCert := funcSetCertSecretTest(privateCert, "bad case: private_cert type without property", sm.Secret_SecretType_PrivateCert, false)
 
-	secretDataKV := make(map[string]interface{})
+	secretDataKV := make(map[string]any)
 	secretDataKV["key1"] = "val1"
 
-	secretDataKVComplex := make(map[string]interface{})
+	secretDataKVComplex := make(map[string]any)
 	secretKVComplex := `{"key1":"val1","key2":"val2","key3":"val3","keyC":{"keyC1":"valC1","keyC2":"valC2"},"special.log":"file-content"}`
 	json.Unmarshal([]byte(secretKVComplex), &secretDataKVComplex)
 
@@ -601,10 +557,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setNilMockClient),
 		makeValidSecretManagerTestCaseCustom(badSecretUserPass),
 		makeValidSecretManagerTestCaseCustom(setSecretUserPassByID),
-		makeValidSecretManagerTestCaseCustom(setSecretUserPassUsername),
-		makeValidSecretManagerTestCaseCustom(setSecretUserPassPassword),
 		makeValidSecretManagerTestCaseCustom(setSecretIamByID),
-		makeValidSecretManagerTestCaseCustom(setSecretIamByName),
 		makeValidSecretManagerTestCaseCustom(setSecretCert),
 		makeValidSecretManagerTestCaseCustom(setSecretKV),
 		makeValidSecretManagerTestCaseCustom(setSecretKVWithKey),
@@ -626,7 +579,6 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	for _, v := range successCases {
 		t.Run(v.name, func(t *testing.T) {
 			sm.IBMClient = v.mockClient
-			sm.cache = NewCache(10, 1*time.Minute)
 			out, err := sm.GetSecret(context.Background(), *v.ref)
 			if !ErrorContains(err, v.expectError) {
 				t.Errorf("unexpected error:\n%s, expected:\n'%s'", err.Error(), v.expectError)
@@ -648,10 +600,10 @@ func TestGetSecretMap(t *testing.T) {
 	secretIntermediate := "intermediate_value"
 	timeValue := "0001-01-01T00:00:00.000Z"
 
-	secretComplex := map[string]interface{}{
+	secretComplex := map[string]any{
 		"key1": "val1",
 		"key2": "val2",
-		"keyC": map[string]interface{}{
+		"keyC": map[string]any{
 			"keyC1": map[string]string{
 				"keyA": "valA",
 				"keyB": "valB",

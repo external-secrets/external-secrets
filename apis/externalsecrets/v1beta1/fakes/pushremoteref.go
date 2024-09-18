@@ -18,7 +18,7 @@ type PushRemoteRef struct {
 	getRemoteKeyReturnsOnCall map[int]struct {
 		result1 string
 	}
-	invocations      map[string][][]interface{}
+	invocations      map[string][][]any
 	invocationsMutex sync.RWMutex
 }
 
@@ -29,7 +29,7 @@ func (fake *PushRemoteRef) GetRemoteKey() string {
 	}{})
 	stub := fake.GetRemoteKeyStub
 	fakeReturns := fake.getRemoteKeyReturns
-	fake.recordInvocation("GetRemoteKey", []interface{}{})
+	fake.recordInvocation("GetRemoteKey", []any{})
 	fake.getRemoteKeyMutex.Unlock()
 	if stub != nil {
 		return stub()
@@ -79,26 +79,26 @@ func (fake *PushRemoteRef) GetRemoteKeyReturnsOnCall(i int, result1 string) {
 	}{result1}
 }
 
-func (fake *PushRemoteRef) Invocations() map[string][][]interface{} {
+func (fake *PushRemoteRef) Invocations() map[string][][]any {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
 	fake.getRemoteKeyMutex.RLock()
 	defer fake.getRemoteKeyMutex.RUnlock()
-	copiedInvocations := map[string][][]interface{}{}
+	copiedInvocations := map[string][][]any{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
 	}
 	return copiedInvocations
 }
 
-func (fake *PushRemoteRef) recordInvocation(key string, args []interface{}) {
+func (fake *PushRemoteRef) recordInvocation(key string, args []any) {
 	fake.invocationsMutex.Lock()
 	defer fake.invocationsMutex.Unlock()
 	if fake.invocations == nil {
-		fake.invocations = map[string][][]interface{}{}
+		fake.invocations = map[string][][]any{}
 	}
 	if fake.invocations[key] == nil {
-		fake.invocations[key] = [][]interface{}{}
+		fake.invocations[key] = [][]any{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
 }

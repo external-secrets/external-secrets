@@ -35,6 +35,8 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
@@ -68,6 +70,7 @@ func (a *akeylessBase) GetToken(accessID, accType, accTypeParam string, k8sAuth 
 	}
 
 	authOut, res, err := a.RestAPI.Auth(ctx).Body(*authBody).Execute()
+	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMAuth, err)
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return "", fmt.Errorf("authentication failed: %v", string(apiErr.Body()))
@@ -111,6 +114,7 @@ func (a *akeylessBase) DescribeItem(ctx context.Context, itemName, token string)
 		body.Token = &token
 	}
 	gsvOut, res, err := a.RestAPI.DescribeItem(ctx).Body(body).Execute()
+	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMDescribeItem, err)
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			var item *Item
@@ -139,6 +143,7 @@ func (a *akeylessBase) GetCertificate(ctx context.Context, certificateName, toke
 	}
 
 	gcvOut, res, err := a.RestAPI.GetCertificateValue(ctx).Body(body).Execute()
+	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetCertificateValue, err)
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return "", fmt.Errorf("can't get certificate value: %v", string(apiErr.Body()))
@@ -167,6 +172,7 @@ func (a *akeylessBase) GetRotatedSecrets(ctx context.Context, secretName, token 
 	}
 
 	gsvOut, res, err := a.RestAPI.GetRotatedSecretValue(ctx).Body(body).Execute()
+	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetRotatedSecretValue, err)
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return "", fmt.Errorf("can't get rotated secret value: %v", string(apiErr.Body()))
@@ -177,9 +183,9 @@ func (a *akeylessBase) GetRotatedSecrets(ctx context.Context, secretName, token 
 
 	valI, ok := gsvOut["value"]
 	if ok {
-		val, convert := valI.(map[string]interface{})
+		val, convert := valI.(map[string]any)
 		if !convert {
-			return "", fmt.Errorf("failure converting key from gsvOut")
+			return "", errors.New("failure converting key from gsvOut")
 		}
 		if _, ok := val["payload"]; ok {
 			return fmt.Sprintf("%v", val["payload"]), nil
@@ -215,6 +221,7 @@ func (a *akeylessBase) GetDynamicSecrets(ctx context.Context, secretName, token 
 	}
 
 	gsvOut, res, err := a.RestAPI.GetDynamicSecretValue(ctx).Body(body).Execute()
+	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetDynamicSecretValue, err)
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return "", fmt.Errorf("can't get dynamic secret value: %v", string(apiErr.Body()))
@@ -244,6 +251,7 @@ func (a *akeylessBase) GetStaticSecret(ctx context.Context, secretName, token st
 	}
 
 	gsvOut, res, err := a.RestAPI.GetSecretValue(ctx).Body(gsvBody).Execute()
+	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetSecretValue, err)
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return "", fmt.Errorf("can't get secret value: %v", string(apiErr.Body()))
@@ -296,6 +304,7 @@ func (a *akeylessBase) ListSecrets(ctx context.Context, path, tag, token string)
 	}
 
 	lipOut, res, err := a.RestAPI.ListItems(ctx).Body(gsvBody).Execute()
+	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMListItems, err)
 	if err != nil {
 		if errors.As(err, &apiErr) {
 			return nil, fmt.Errorf("can't get secrets list: %v", string(apiErr.Body()))

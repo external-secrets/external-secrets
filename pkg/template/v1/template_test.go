@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package template
 
 import (
@@ -291,6 +292,14 @@ func TestExecute(t *testing.T) {
 			},
 			data:   map[string][]byte{},
 			expErr: "unable to parse template",
+		},
+		{
+			name: "unknown key error",
+			tpl: map[string][]byte{
+				"key": []byte(`{{ .unknown }}`),
+			},
+			data:   map[string][]byte{},
+			expErr: "unable to execute template at key key",
 		},
 		{
 			name: "jwk rsa pub pem",

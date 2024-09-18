@@ -16,98 +16,95 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	authenticationv1 "k8s.io/api/authentication/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
-	errInvalidClusterStoreMissingNamespace = "missing namespace"
-	errFetchCredentials                    = "could not fetch credentials: %w"
-	errMissingCredentials                  = "missing credentials: \"%s\""
-	errEmptyKey                            = "key %s found but empty"
-	errUnableCreateToken                   = "cannot create service account token: %q"
+	errUnableCreateToken = "cannot create service account token: %q"
 )
 
-func (c *Client) setAuth(ctx context.Context) error {
-	err := c.setCA(ctx)
-	if err != nil {
-		return err
+func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
+	if c.store.AuthRef != nil {
+		cfg, err := c.fetchSecretKey(ctx, *c.store.AuthRef)
+		if err != nil {
+			return nil, err
+		}
+
+		return clientcmd.RESTConfigFromKubeConfig(cfg)
 	}
+
+	ca, err := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
+		CABundle:   c.store.Server.CABundle,
+		CAProvider: c.store.Server.CAProvider,
+		StoreKind:  c.storeKind,
+		Namespace:  c.namespace,
+		Client:     c.ctrlClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var token []byte
 	if c.store.Auth.Token != nil {
-		c.BearerToken, err = c.fetchSecretKey(ctx, c.store.Auth.Token.BearerToken)
+		token, err = c.fetchSecretKey(ctx, c.store.Auth.Token.BearerToken)
 		if err != nil {
-			return fmt.Errorf("could not fetch Auth.Token.BearerToken: %w", err)
+			return nil, fmt.Errorf("could not fetch Auth.Token.BearerToken: %w", err)
 		}
-		return nil
-	}
-	if c.store.Auth.ServiceAccount != nil {
-		c.BearerToken, err = c.serviceAccountToken(ctx, c.store.Auth.ServiceAccount)
+	} else if c.store.Auth.ServiceAccount != nil {
+		token, err = c.serviceAccountToken(ctx, c.store.Auth.ServiceAccount)
 		if err != nil {
-			return fmt.Errorf("could not fetch Auth.ServiceAccount: %w", err)
+			return nil, fmt.Errorf("could not fetch Auth.ServiceAccount: %w", err)
 		}
-		return nil
+	} else {
+		return nil, errors.New("no auth provider given")
 	}
+
+	var key, cert []byte
 	if c.store.Auth.Cert != nil {
-		return c.setClientCert(ctx)
-	}
-	return fmt.Errorf("no credentials provided")
-}
-
-func (c *Client) setCA(ctx context.Context) error {
-	if c.store.Server.CABundle != nil {
-		c.CA = c.store.Server.CABundle
-		return nil
-	}
-	if c.store.Server.CAProvider != nil {
-		var ca []byte
-		var err error
-		switch c.store.Server.CAProvider.Type {
-		case esv1beta1.CAProviderTypeConfigMap:
-			keySelector := esmeta.SecretKeySelector{
-				Name:      c.store.Server.CAProvider.Name,
-				Namespace: c.store.Server.CAProvider.Namespace,
-				Key:       c.store.Server.CAProvider.Key,
-			}
-			ca, err = c.fetchConfigMapKey(ctx, keySelector)
-			if err != nil {
-				return fmt.Errorf("unable to fetch Server.CAProvider ConfigMap: %w", err)
-			}
-		case esv1beta1.CAProviderTypeSecret:
-			keySelector := esmeta.SecretKeySelector{
-				Name:      c.store.Server.CAProvider.Name,
-				Namespace: c.store.Server.CAProvider.Namespace,
-				Key:       c.store.Server.CAProvider.Key,
-			}
-			ca, err = c.fetchSecretKey(ctx, keySelector)
-			if err != nil {
-				return fmt.Errorf("unable to fetch Server.CAProvider Secret: %w", err)
-			}
+		key, cert, err = c.getClientKeyAndCert(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("could not fetch client key and cert: %w", err)
 		}
-		c.CA = ca
-		return nil
 	}
-	return fmt.Errorf("no Certificate Authority provided")
+
+	if c.store.Server.URL == "" {
+		return nil, errors.New("no server URL provided")
+	}
+
+	return &rest.Config{
+		Host:        c.store.Server.URL,
+		BearerToken: string(token),
+		TLSClientConfig: rest.TLSClientConfig{
+			Insecure: false,
+			CertData: cert,
+			KeyData:  key,
+			CAData:   ca,
+		},
+	}, nil
 }
 
-func (c *Client) setClientCert(ctx context.Context) error {
+func (c *Client) getClientKeyAndCert(ctx context.Context) ([]byte, []byte, error) {
 	var err error
-	c.Certificate, err = c.fetchSecretKey(ctx, c.store.Auth.Cert.ClientCert)
+	cert, err := c.fetchSecretKey(ctx, c.store.Auth.Cert.ClientCert)
 	if err != nil {
-		return fmt.Errorf("unable to fetch client certificate: %w", err)
+		return nil, nil, fmt.Errorf("unable to fetch client certificate: %w", err)
 	}
-	c.Key, err = c.fetchSecretKey(ctx, c.store.Auth.Cert.ClientKey)
+	key, err := c.fetchSecretKey(ctx, c.store.Auth.Cert.ClientKey)
 	if err != nil {
-		return fmt.Errorf("unable to fetch client key: %w", err)
+		return nil, nil, fmt.Errorf("unable to fetch client key: %w", err)
 	}
-	return nil
+	return key, cert, nil
 }
 
 func (c *Client) serviceAccountToken(ctx context.Context, serviceAccountRef *esmeta.ServiceAccountSelector) ([]byte, error) {
@@ -141,31 +138,4 @@ func (c *Client) fetchSecretKey(ctx context.Context, ref esmeta.SecretKeySelecto
 		return nil, err
 	}
 	return []byte(secret), nil
-}
-
-func (c *Client) fetchConfigMapKey(ctx context.Context, key esmeta.SecretKeySelector) ([]byte, error) {
-	configMap := &corev1.ConfigMap{}
-	objectKey := types.NamespacedName{
-		Name:      key.Name,
-		Namespace: c.namespace,
-	}
-	// only ClusterStore is allowed to set namespace (and then it's required)
-	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
-		if key.Namespace == nil {
-			return nil, fmt.Errorf(errInvalidClusterStoreMissingNamespace)
-		}
-		objectKey.Namespace = *key.Namespace
-	}
-	err := c.ctrlClient.Get(ctx, objectKey, configMap)
-	if err != nil {
-		return nil, fmt.Errorf(errFetchCredentials, err)
-	}
-	val, ok := configMap.Data[key.Key]
-	if !ok {
-		return nil, fmt.Errorf(errMissingCredentials, key.Key)
-	}
-	if val == "" {
-		return nil, fmt.Errorf(errEmptyKey, key.Key)
-	}
-	return []byte(val), nil
 }

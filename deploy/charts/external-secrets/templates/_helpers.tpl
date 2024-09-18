@@ -24,6 +24,17 @@ If release name contains chart name it will be used as a full name.
 {{- end }}
 
 {{/*
+Define namespace of chart, useful for multi-namespace deployments
+*/}}
+{{- define "external-secrets.namespace" -}}
+{{- if .Values.namespaceOverride }}
+{{- .Values.namespaceOverride }}
+{{- else }}
+{{- .Release.Namespace }}
+{{- end }}
+{{- end }}
+
+{{/*
 Create chart name and version as used by the chart label.
 */}}
 {{- define "external-secrets.chart" -}}
@@ -143,3 +154,45 @@ Determine the image to use, including if using a flavour.
 {{ printf "%s:%s" .image.repository (.image.tag | default .chartAppVersion) }}
 {{- end }}
 {{- end }}
+
+{{/*
+Renders a complete tree, even values that contains template.
+*/}}
+{{- define "external-secrets.render" -}}
+  {{- if typeIs "string" .value }}
+    {{- tpl .value .context }}
+  {{ else }}
+    {{- tpl (.value | toYaml) .context }}
+  {{- end }}
+{{- end -}}
+
+{{/*
+Return true if the OpenShift is the detected platform
+Usage:
+{{- include "external-secrets.isOpenShift" . -}}
+*/}}
+{{- define "external-secrets.isOpenShift" -}}
+{{- if .Capabilities.APIVersions.Has "security.openshift.io/v1" -}}
+{{- true -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Render the securityContext based on the provided securityContext
+  {{- include "external-secrets.renderSecurityContext" (dict "securityContext" .Values.securityContext "context" $) -}}
+*/}}
+{{- define "external-secrets.renderSecurityContext" -}}
+{{- $adaptedContext := .securityContext -}}
+{{- if .context.Values.global.compatibility -}}
+  {{- if .context.Values.global.compatibility.openshift -}}
+    {{- if or (eq .context.Values.global.compatibility.openshift.adaptSecurityContext "force") (and (eq .context.Values.global.compatibility.openshift.adaptSecurityContext "auto") (include "external-secrets.isOpenShift" .context)) -}}
+      {{/* Remove OpenShift managed fields */}}
+      {{- $adaptedContext = omit $adaptedContext "fsGroup" "runAsUser" "runAsGroup" -}}
+      {{- if not .securityContext.seLinuxOptions -}}
+        {{- $adaptedContext = omit $adaptedContext "seLinuxOptions" -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- omit $adaptedContext "enabled" | toYaml -}}
+{{- end -}}

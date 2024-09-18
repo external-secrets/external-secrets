@@ -17,6 +17,7 @@ package fake
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -31,8 +32,8 @@ import (
 )
 
 var (
-	errMissingStore        = fmt.Errorf("missing store provider")
-	errMissingFakeProvider = fmt.Errorf("missing store provider fake")
+	errMissingStore        = errors.New("missing store provider")
+	errMissingFakeProvider = errors.New("missing store provider fake")
 	errMissingKeyField     = "key must be set in data %v"
 	errMissingValueField   = "at least one of value or valueMap must be set in data %v"
 )
@@ -112,6 +113,11 @@ func (p *Provider) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteR
 	return nil
 }
 
+func (p *Provider) SecretExists(_ context.Context, ref esv1beta1.PushSecretRemoteRef) (bool, error) {
+	_, ok := p.config[ref.GetRemoteKey()]
+	return ok, nil
+}
+
 func (p *Provider) PushSecret(_ context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
 	value := secret.Data[data.GetSecretKey()]
 	currentData, ok := p.config[data.GetRemoteKey()]
@@ -122,10 +128,12 @@ func (p *Provider) PushSecret(_ context.Context, secret *corev1.Secret, data esv
 		}
 		return nil
 	}
+
 	if currentData.Origin != FakeSetSecret {
-		return fmt.Errorf("key already exists")
+		return errors.New("key already exists")
 	}
 	currentData.Value = string(value)
+
 	return nil
 }
 

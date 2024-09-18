@@ -16,7 +16,9 @@ package v1beta1
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"regexp"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -34,7 +36,7 @@ type GenericStoreValidator struct{}
 func (r *GenericStoreValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	st, ok := obj.(GenericStore)
 	if !ok {
-		return nil, fmt.Errorf(errInvalidStore)
+		return nil, errors.New(errInvalidStore)
 	}
 	return validateStore(st)
 }
@@ -43,7 +45,7 @@ func (r *GenericStoreValidator) ValidateCreate(_ context.Context, obj runtime.Ob
 func (r *GenericStoreValidator) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
 	st, ok := newObj.(GenericStore)
 	if !ok {
-		return nil, fmt.Errorf(errInvalidStore)
+		return nil, errors.New(errInvalidStore)
 	}
 	return validateStore(st)
 }
@@ -54,9 +56,27 @@ func (r *GenericStoreValidator) ValidateDelete(_ context.Context, _ runtime.Obje
 }
 
 func validateStore(store GenericStore) (admission.Warnings, error) {
+	if err := validateConditions(store); err != nil {
+		return nil, err
+	}
+
 	provider, err := GetProvider(store)
 	if err != nil {
 		return nil, err
 	}
+
 	return provider.ValidateStore(store)
+}
+
+func validateConditions(store GenericStore) error {
+	var errs error
+	for ci, condition := range store.GetSpec().Conditions {
+		for ri, r := range condition.NamespaceRegexes {
+			if _, err := regexp.Compile(r); err != nil {
+				errs = errors.Join(errs, fmt.Errorf("failed to compile %dth namespace regex in %dth condition: %w", ri, ci, err))
+			}
+		}
+	}
+
+	return errs
 }

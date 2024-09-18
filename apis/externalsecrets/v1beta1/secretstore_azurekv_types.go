@@ -61,7 +61,7 @@ type AzureKVProvider struct {
 	// Vault Url from which the secrets to be fetched from.
 	VaultURL *string `json:"vaultUrl"`
 
-	// TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type.
+	// TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type. Optional for WorkloadIdentity.
 	// +optional
 	TenantID *string `json:"tenantId,omitempty"`
 
@@ -72,7 +72,7 @@ type AzureKVProvider struct {
 	// +kubebuilder:default=PublicCloud
 	EnvironmentType AzureEnvironmentType `json:"environmentType,omitempty"`
 
-	// Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type.
+	// Auth configures how the operator authenticates with Azure. Required for ServicePrincipal auth type. Optional for WorkloadIdentity.
 	// +optional
 	AuthSecretRef *AzureKVAuth `json:"authSecretRef,omitempty"`
 
@@ -88,11 +88,19 @@ type AzureKVProvider struct {
 
 // Configuration used to authenticate with Azure.
 type AzureKVAuth struct {
-	// The Azure clientId of the service principle used for authentication.
+	// The Azure clientId of the service principle or managed identity used for authentication.
 	// +optional
 	ClientID *smmeta.SecretKeySelector `json:"clientId,omitempty"`
+
+	// The Azure tenantId of the managed identity used for authentication.
+	// +optional
+	TenantID *smmeta.SecretKeySelector `json:"tenantId,omitempty"`
 
 	// The Azure ClientSecret of the service principle used for authentication.
 	// +optional
 	ClientSecret *smmeta.SecretKeySelector `json:"clientSecret,omitempty"`
+
+	// The Azure ClientCertificate of the service principle used for authentication.
+	// +optional
+	ClientCertificate *smmeta.SecretKeySelector `json:"clientCertificate,omitempty"`
 }

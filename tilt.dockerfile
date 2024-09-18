@@ -1,4 +1,4 @@
-FROM alpine@sha256:51b67269f354137895d43f3b3d810bfacd3945438e94dc5ac55fdac340352f48
+FROM alpine@sha256:beefdbd8a1da6d2915566fde36db9db0b524eb737fc57cd1367effd16dc0d06d
 WORKDIR /
 COPY ./bin/external-secrets /external-secrets
 

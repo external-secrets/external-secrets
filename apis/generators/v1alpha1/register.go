@@ -68,6 +68,14 @@ var (
 	PasswordGroupVersionKind = SchemeGroupVersion.WithKind(PasswordKind)
 )
 
+// Webhook type metadata.
+var (
+	WebhookKind             = reflect.TypeOf(Webhook{}).Name()
+	WebhookGroupKind        = schema.GroupKind{Group: Group, Kind: WebhookKind}.String()
+	WebhookKindAPIVersion   = WebhookKind + "." + SchemeGroupVersion.String()
+	WebhookGroupVersionKind = SchemeGroupVersion.WithKind(WebhookKind)
+)
+
 // Fake type metadata.
 var (
 	FakeKind             = reflect.TypeOf(Fake{}).Name()
@@ -84,11 +92,29 @@ var (
 	VaultDynamicSecretGroupVersionKind = SchemeGroupVersion.WithKind(VaultDynamicSecretKind)
 )
 
+// GithubAccessToken type metadata.
+var (
+	GithubAccessTokenKind             = reflect.TypeOf(GithubAccessToken{}).Name()
+	GithubAccessTokenGroupKind        = schema.GroupKind{Group: Group, Kind: GithubAccessTokenKind}.String()
+	GithubAccessTokenKindAPIVersion   = GithubAccessTokenKind + "." + SchemeGroupVersion.String()
+	GithubAccessTokenGroupVersionKind = SchemeGroupVersion.WithKind(GithubAccessTokenKind)
+)
+
+// Uuid type metadata.
+var (
+	UUIDKind             = reflect.TypeOf(UUID{}).Name()
+	UUIDGroupKind        = schema.GroupKind{Group: Group, Kind: UUIDKind}.String()
+	UUIDKindAPIVersion   = UUIDKind + "." + SchemeGroupVersion.String()
+	UUIDGroupVersionKind = SchemeGroupVersion.WithKind(UUIDKind)
+)
+
 func init() {
 	SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationToken{})
 	SchemeBuilder.Register(&GCRAccessToken{}, &GCRAccessTokenList{})
+	SchemeBuilder.Register(&GithubAccessToken{}, &GithubAccessTokenList{})
 	SchemeBuilder.Register(&ACRAccessToken{}, &ACRAccessTokenList{})
 	SchemeBuilder.Register(&Fake{}, &FakeList{})
 	SchemeBuilder.Register(&VaultDynamicSecret{}, &VaultDynamicSecretList{})
 	SchemeBuilder.Register(&Password{}, &PasswordList{})
+	SchemeBuilder.Register(&Webhook{}, &WebhookList{})
 }

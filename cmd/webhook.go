@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package cmd
 
 import (
@@ -210,10 +211,10 @@ func waitForCerts(c crds.CertInfo, timeout time.Duration) error {
 		if err == nil {
 			return nil
 		}
-		if err != nil {
-			setupLog.Error(err, "invalid certs. retrying...")
-			<-time.After(time.Second * 10)
-		}
+
+		setupLog.Error(err, "invalid certs. retrying...")
+		<-time.After(time.Second * 10)
+
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}

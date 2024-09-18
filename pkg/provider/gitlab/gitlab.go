@@ -11,11 +11,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package gitlab
 
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sort"
@@ -39,7 +41,7 @@ const (
 	errGitlabCredSecretName                   = "credentials are empty"
 	errInvalidClusterStoreMissingSAKNamespace = "invalid clusterStore missing SAK namespace"
 	errFetchSAKSecret                         = "couldn't find secret on cluster: %w"
-	errList                                   = "could not verify whether the gilabClient is valid: %w"
+	errList                                   = "could not verify whether the gitlabClient is valid: %w"
 	errProjectAuth                            = "gitlabClient is not allowed to get secrets for project id [%s]"
 	errGroupAuth                              = "gitlabClient is not allowed to get secrets for group id [%s]"
 	errUninitializedGitlabProvider            = "provider gitlab is not initialized"
@@ -48,6 +50,7 @@ const (
 	errTagsOnlyEnvironmentSupported           = "'find.tags' only supports 'environment_scope'"
 	errPathNotImplemented                     = "'find.path' is not implemented in the GitLab provider"
 	errJSONSecretUnmarshal                    = "unable to unmarshal secret: %w"
+	errNotImplemented                         = "not implemented"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -55,17 +58,17 @@ var _ esv1beta1.SecretsClient = &gitlabBase{}
 var _ esv1beta1.Provider = &Provider{}
 
 type ProjectsClient interface {
-	ListProjectsGroups(pid interface{}, opt *gitlab.ListProjectGroupOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectGroup, *gitlab.Response, error)
+	ListProjectsGroups(pid any, opt *gitlab.ListProjectGroupOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectGroup, *gitlab.Response, error)
 }
 
 type ProjectVariablesClient interface {
-	GetVariable(pid interface{}, key string, opt *gitlab.GetProjectVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
-	ListVariables(pid interface{}, opt *gitlab.ListProjectVariablesOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectVariable, *gitlab.Response, error)
+	GetVariable(pid any, key string, opt *gitlab.GetProjectVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.ProjectVariable, *gitlab.Response, error)
+	ListVariables(pid any, opt *gitlab.ListProjectVariablesOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectVariable, *gitlab.Response, error)
 }
 
 type GroupVariablesClient interface {
-	GetVariable(gid interface{}, key string, options ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error)
-	ListVariables(gid interface{}, opt *gitlab.ListGroupVariablesOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error)
+	GetVariable(gid any, key string, opts *gitlab.GetGroupVariableOptions, options ...gitlab.RequestOptionFunc) (*gitlab.GroupVariable, *gitlab.Response, error)
+	ListVariables(gid any, opt *gitlab.ListGroupVariablesOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.GroupVariable, *gitlab.Response, error)
 }
 
 type ProjectGroupPathSorter []*gitlab.ProjectGroup
@@ -87,17 +90,21 @@ func (g *gitlabBase) getAuth(ctx context.Context) (string, error) {
 }
 
 func (g *gitlabBase) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf("not implemented")
+	return errors.New(errNotImplemented)
+}
+
+func (g *gitlabBase) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+	return false, errors.New(errNotImplemented)
 }
 
 func (g *gitlabBase) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return fmt.Errorf("not implemented")
+	return errors.New(errNotImplemented)
 }
 
 // GetAllSecrets syncs all gitlab project and group variables into a single Kubernetes Secret.
 func (g *gitlabBase) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if utils.IsNil(g.projectVariablesClient) {
-		return nil, fmt.Errorf(errUninitializedGitlabProvider)
+		return nil, errors.New(errUninitializedGitlabProvider)
 	}
 	var effectiveEnvironment = g.store.Environment
 	if ref.Tags != nil {
@@ -106,15 +113,15 @@ func (g *gitlabBase) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecr
 			return nil, err
 		}
 		if !isEmptyOrWildcard(effectiveEnvironment) && !isEmptyOrWildcard(environment) {
-			return nil, fmt.Errorf(errEnvironmentIsConstricted)
+			return nil, errors.New(errEnvironmentIsConstricted)
 		}
 		effectiveEnvironment = environment
 	}
 	if ref.Path != nil {
-		return nil, fmt.Errorf(errPathNotImplemented)
+		return nil, errors.New(errPathNotImplemented)
 	}
 	if ref.Name == nil {
-		return nil, fmt.Errorf(errNameNotDefined)
+		return nil, errors.New(errNameNotDefined)
 	}
 
 	var matcher *find.Matcher
@@ -187,7 +194,7 @@ func ExtractTag(tags map[string]string) (string, error) {
 	var environmentScope string
 	for tag, value := range tags {
 		if tag != "environment_scope" {
-			return "", fmt.Errorf(errTagsOnlyEnvironmentSupported)
+			return "", errors.New(errTagsOnlyEnvironmentSupported)
 		}
 		environmentScope = value
 	}
@@ -196,7 +203,7 @@ func ExtractTag(tags map[string]string) (string, error) {
 
 func (g *gitlabBase) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(g.projectVariablesClient) || utils.IsNil(g.groupVariablesClient) {
-		return nil, fmt.Errorf(errUninitializedGitlabProvider)
+		return nil, errors.New(errUninitializedGitlabProvider)
 	}
 
 	// Need to replace hyphens with underscores to work with GitLab API

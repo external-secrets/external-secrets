@@ -11,10 +11,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package util
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
@@ -34,14 +36,14 @@ const (
 // it returns the aws provider or an error.
 func GetAWSProvider(store esv1beta1.GenericStore) (*esv1beta1.AWSProvider, error) {
 	if store == nil {
-		return nil, fmt.Errorf(errNilStore)
+		return nil, errors.New(errNilStore)
 	}
 	spc := store.GetSpec()
 	if spc == nil {
-		return nil, fmt.Errorf(errMissingStoreSpec)
+		return nil, errors.New(errMissingStoreSpec)
 	}
 	if spc.Provider == nil {
-		return nil, fmt.Errorf(errMissingProvider)
+		return nil, errors.New(errMissingProvider)
 	}
 	prov := spc.Provider.AWS
 	if prov == nil {

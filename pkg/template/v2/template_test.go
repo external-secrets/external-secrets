@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package template
 
 import (
@@ -369,6 +370,14 @@ func TestExecute(t *testing.T) {
 			expErr: "unable to parse template",
 		},
 		{
+			name: "unknown key error",
+			tpl: map[string][]byte{
+				"key": []byte(`{{ .unknown }}`),
+			},
+			data:   map[string][]byte{},
+			expErr: "unable to execute template at key key",
+		},
+		{
 			name: "jwk rsa pub pem",
 			tpl: map[string][]byte{
 				"fn": []byte(`{{ .secret | jwkPublicKeyPem }}`),
@@ -509,6 +518,85 @@ func TestExecute(t *testing.T) {
 			}
 			if row.expectedAnnotations != nil {
 				assert.EqualValues(t, row.expectedAnnotations, sec.ObjectMeta.Annotations)
+			}
+		})
+	}
+}
+
+func TestScopeValuesWithSecretFieldsNil(t *testing.T) {
+	tbl := []struct {
+		name               string
+		tpl                map[string][]byte
+		target             esapi.TemplateTarget
+		data               map[string][]byte
+		expectedData       map[string][]byte
+		expectedStringData map[string]string
+		expErr             string
+	}{
+		{
+			name:   "test empty",
+			tpl:    map[string][]byte{},
+			target: esapi.TemplateTargetData,
+			data:   nil,
+		},
+		{
+			name:   "test byte",
+			tpl:    map[string][]byte{"foo": []byte("bar")},
+			target: esapi.TemplateTargetData,
+			data: map[string][]byte{
+				"key":   []byte("foo"),
+				"value": []byte("bar"),
+			},
+			expectedData: map[string][]byte{
+				"foo": []byte("bar"),
+			},
+		},
+		{
+			name:   "test Annotations",
+			tpl:    map[string][]byte{"foo": []byte("bar")},
+			target: esapi.TemplateTargetAnnotations,
+			data: map[string][]byte{
+				"key":   []byte("foo"),
+				"value": []byte("bar"),
+			},
+			expectedStringData: map[string]string{
+				"foo": "bar",
+			},
+		},
+		{
+			name:   "test Labels",
+			tpl:    map[string][]byte{"foo": []byte("bar")},
+			target: esapi.TemplateTargetLabels,
+			data: map[string][]byte{
+				"key":   []byte("foo"),
+				"value": []byte("bar"),
+			},
+			expectedStringData: map[string]string{
+				"foo": "bar",
+			},
+		},
+	}
+	for i := range tbl {
+		row := tbl[i]
+		t.Run(row.name, func(t *testing.T) {
+			sec := &corev1.Secret{}
+			err := Execute(row.tpl, row.data, esapi.TemplateScopeValues, row.target, sec)
+			if !ErrorContains(err, row.expErr) {
+				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
+			}
+			switch row.target {
+			case esapi.TemplateTargetData:
+				if row.expectedData != nil {
+					assert.EqualValues(t, row.expectedData, sec.Data)
+				}
+			case esapi.TemplateTargetLabels:
+				if row.expectedStringData != nil {
+					assert.EqualValues(t, row.expectedStringData, sec.Labels)
+				}
+			case esapi.TemplateTargetAnnotations:
+				if row.expectedStringData != nil {
+					assert.EqualValues(t, row.expectedStringData, sec.Annotations)
+				}
 			}
 		})
 	}

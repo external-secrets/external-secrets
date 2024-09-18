@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package addon
 
 import (
@@ -21,19 +22,21 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/types"
 	"math/big"
 	"net"
 	"net/http"
 	"os"
 	"time"
 
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/golang-jwt/jwt/v4"
 	vault "github.com/hashicorp/vault/api"
 
 	// nolint
-	ginkgo "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -319,7 +322,7 @@ func genVaultCertificates(namespace string) ([]byte, []byte, []byte, []byte, []b
 		"vault-" + namespace,
 		fmt.Sprintf("vault-%s.%s.svc.cluster.local", namespace, namespace)})
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, fmt.Errorf("unable to generate vault server cert")
+		return nil, nil, nil, nil, nil, nil, errors.New("unable to generate vault server cert")
 	}
 	serverKeyPem := pem.EncodeToMemory(&pem.Block{
 		Type:  privatePemType,
@@ -332,7 +335,7 @@ func genVaultCertificates(namespace string) ([]byte, []byte, []byte, []byte, []b
 	}
 	clientPem, clientKey, err := genPeerCert(clientRootCert, clientRootKey, "vault-client", nil)
 	if err != nil {
-		return nil, nil, nil, nil, nil, nil, fmt.Errorf("unable to generate vault server cert")
+		return nil, nil, nil, nil, nil, nil, errors.New("unable to generate vault server cert")
 	}
 	clientKeyPem := pem.EncodeToMemory(&pem.Block{
 		Type:  privatePemType,

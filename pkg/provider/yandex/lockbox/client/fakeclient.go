@@ -11,11 +11,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package client
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -116,20 +117,20 @@ func (s *FakeLockboxServer) NewIamToken(authorizedKey *iamkey.Key) *common.IamTo
 
 func (s *FakeLockboxServer) getEntries(iamToken, secretID, versionID string) ([]*api.Payload_Entry, error) {
 	if _, ok := s.secretMap[secretKey{secretID}]; !ok {
-		return nil, fmt.Errorf("secret not found")
+		return nil, errors.New("secret not found")
 	}
 	if _, ok := s.versionMap[versionKey{secretID, versionID}]; !ok {
-		return nil, fmt.Errorf("version not found")
+		return nil, errors.New("version not found")
 	}
 	if _, ok := s.tokenMap[tokenKey{iamToken}]; !ok {
-		return nil, fmt.Errorf("unauthenticated")
+		return nil, errors.New("unauthenticated")
 	}
 
 	if s.tokenMap[tokenKey{iamToken}].expiresAt.Before(s.clock.CurrentTime()) {
-		return nil, fmt.Errorf("iam token expired")
+		return nil, errors.New("iam token expired")
 	}
 	if !cmp.Equal(s.tokenMap[tokenKey{iamToken}].authorizedKey, s.secretMap[secretKey{secretID}].expectedAuthorizedKey, cmpopts.IgnoreUnexported(iamkey.Key{})) {
-		return nil, fmt.Errorf("permission denied")
+		return nil, errors.New("permission denied")
 	}
 
 	return s.versionMap[versionKey{secretID, versionID}].entries, nil

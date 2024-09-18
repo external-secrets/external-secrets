@@ -16,9 +16,11 @@ package fake
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 
 	vault "github.com/hashicorp/vault/api"
 
@@ -36,7 +38,7 @@ func (f Auth) Login(ctx context.Context, authMethod vault.AuthMethod) (*vault.Se
 
 type ReadWithDataWithContextFn func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error)
 type ListWithContextFn func(ctx context.Context, path string) (*vault.Secret, error)
-type WriteWithContextFn func(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error)
+type WriteWithContextFn func(ctx context.Context, path string, data map[string]any) (*vault.Secret, error)
 type DeleteWithContextFn func(ctx context.Context, path string) (*vault.Secret, error)
 type Logical struct {
 	ReadWithDataWithContextFn ReadWithDataWithContextFn
@@ -48,7 +50,7 @@ type Logical struct {
 func (f Logical) DeleteWithContext(ctx context.Context, path string) (*vault.Secret, error) {
 	return f.DeleteWithContextFn(ctx, path)
 }
-func NewDeleteWithContextFn(secret map[string]interface{}, err error) DeleteWithContextFn {
+func NewDeleteWithContextFn(secret map[string]any, err error) DeleteWithContextFn {
 	return func(ctx context.Context, path string) (*vault.Secret, error) {
 		vault := &vault.Secret{
 			Data: secret,
@@ -57,7 +59,7 @@ func NewDeleteWithContextFn(secret map[string]interface{}, err error) DeleteWith
 	}
 }
 
-func NewReadWithContextFn(secret map[string]interface{}, err error) ReadWithDataWithContextFn {
+func NewReadWithContextFn(secret map[string]any, err error) ReadWithDataWithContextFn {
 	return func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
 		if secret == nil {
 			return nil, err
@@ -69,12 +71,12 @@ func NewReadWithContextFn(secret map[string]interface{}, err error) ReadWithData
 	}
 }
 
-func NewReadMetadataWithContextFn(secret map[string]interface{}, err error) ReadWithDataWithContextFn {
+func NewReadMetadataWithContextFn(secret map[string]any, err error) ReadWithDataWithContextFn {
 	return func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
 		if secret == nil {
 			return nil, err
 		}
-		metadata := make(map[string]interface{})
+		metadata := make(map[string]any)
 		metadata["custom_metadata"] = secret
 		vault := &vault.Secret{
 			Data: metadata,
@@ -83,14 +85,14 @@ func NewReadMetadataWithContextFn(secret map[string]interface{}, err error) Read
 	}
 }
 
-func NewWriteWithContextFn(secret map[string]interface{}, err error) WriteWithContextFn {
-	return func(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error) {
+func NewWriteWithContextFn(secret map[string]any, err error) WriteWithContextFn {
+	return func(ctx context.Context, path string, data map[string]any) (*vault.Secret, error) {
 		return &vault.Secret{Data: secret}, err
 	}
 }
 
-func ExpectWriteWithContextValue(expected map[string]interface{}) WriteWithContextFn {
-	return func(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error) {
+func ExpectWriteWithContextValue(expected map[string]any) WriteWithContextFn {
+	return func(ctx context.Context, path string, data map[string]any) (*vault.Secret, error) {
 		if strings.Contains(path, "metadata") {
 			return &vault.Secret{Data: data}, nil
 		}
@@ -102,21 +104,21 @@ func ExpectWriteWithContextValue(expected map[string]interface{}) WriteWithConte
 }
 
 func ExpectWriteWithContextNoCall() WriteWithContextFn {
-	return func(_ context.Context, path string, data map[string]interface{}) (*vault.Secret, error) {
-		return nil, fmt.Errorf("fail")
+	return func(_ context.Context, path string, data map[string]any) (*vault.Secret, error) {
+		return nil, errors.New("fail")
 	}
 }
 
 func ExpectDeleteWithContextNoCall() DeleteWithContextFn {
 	return func(ctx context.Context, path string) (*vault.Secret, error) {
-		return nil, fmt.Errorf("fail")
+		return nil, errors.New("fail")
 	}
 }
-func WriteChangingReadContext(secret map[string]interface{}, l Logical) WriteWithContextFn {
+func WriteChangingReadContext(secret map[string]any, l Logical) WriteWithContextFn {
 	v := &vault.Secret{
 		Data: secret,
 	}
-	return func(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error) {
+	return func(ctx context.Context, path string, data map[string]any) (*vault.Secret, error) {
 		l.ReadWithDataWithContextFn = func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
 			return v, nil
 		}
@@ -130,7 +132,7 @@ func (f Logical) ReadWithDataWithContext(ctx context.Context, path string, data 
 func (f Logical) ListWithContext(ctx context.Context, path string) (*vault.Secret, error) {
 	return f.ListWithContextFn(ctx, path)
 }
-func (f Logical) WriteWithContext(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error) {
+func (f Logical) WriteWithContext(ctx context.Context, path string, data map[string]any) (*vault.Secret, error) {
 	return f.WriteWithContextFn(ctx, path, data)
 }
 
@@ -154,6 +156,8 @@ type MockSetTokenFn func(v string)
 type MockTokenFn func() string
 
 type MockClearTokenFn func()
+
+type MockNamespaceFn func() string
 
 type MockSetNamespaceFn func(namespace string)
 
@@ -188,10 +192,6 @@ func NewClearTokenFn() MockClearTokenFn {
 	return func() {}
 }
 
-func NewSetNamespaceFn() MockSetNamespaceFn {
-	return func(namespace string) {}
-}
-
 func NewAddHeaderFn() MockAddHeaderFn {
 	return func(key, value string) {}
 }
@@ -203,8 +203,12 @@ type VaultClient struct {
 	MockSetToken     MockSetTokenFn
 	MockToken        MockTokenFn
 	MockClearToken   MockClearTokenFn
+	MockNamespace    MockNamespaceFn
 	MockSetNamespace MockSetNamespaceFn
 	MockAddHeader    MockAddHeaderFn
+
+	namespace string
+	lock      sync.RWMutex
 }
 
 func (c *VaultClient) Logical() Logical {
@@ -219,7 +223,7 @@ func NewVaultLogical() Logical {
 		ListWithContextFn: func(ctx context.Context, path string) (*vault.Secret, error) {
 			return nil, nil
 		},
-		WriteWithContextFn: func(ctx context.Context, path string, data map[string]interface{}) (*vault.Secret, error) {
+		WriteWithContextFn: func(ctx context.Context, path string, data map[string]any) (*vault.Secret, error) {
 			return nil, nil
 		},
 	}
@@ -253,8 +257,17 @@ func (c *VaultClient) ClearToken() {
 	c.MockClearToken()
 }
 
+func (c *VaultClient) Namespace() string {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	ns := c.namespace
+	return ns
+}
+
 func (c *VaultClient) SetNamespace(namespace string) {
-	c.MockSetNamespace(namespace)
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.namespace = namespace
 }
 
 func (c *VaultClient) AddHeader(key, value string) {
@@ -269,18 +282,16 @@ func ClientWithLoginMock(_ *vault.Config) (util.Client, error) {
 		MockAuth:      NewVaultAuth(),
 		MockLogical:   NewVaultLogical(),
 	}
-	auth := cl.Auth()
-	token := cl.AuthToken()
-	logical := cl.Logical()
-	out := util.VClient{
+
+	return &util.VaultClient{
 		SetTokenFunc:     cl.SetToken,
 		TokenFunc:        cl.Token,
 		ClearTokenFunc:   cl.ClearToken,
-		AuthField:        auth,
-		AuthTokenField:   token,
-		LogicalField:     logical,
+		AuthField:        cl.Auth(),
+		AuthTokenField:   cl.AuthToken(),
+		LogicalField:     cl.Logical(),
+		NamespaceFunc:    cl.Namespace,
 		SetNamespaceFunc: cl.SetNamespace,
 		AddHeaderFunc:    cl.AddHeader,
-	}
-	return out, nil
+	}, nil
 }

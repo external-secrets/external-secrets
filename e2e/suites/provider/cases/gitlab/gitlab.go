@@ -30,7 +30,7 @@ var _ = Describe("[gitlab]", Label("gitlab"), func() {
 	f := framework.New("eso-gitlab")
 	prov := newFromEnv(f)
 
-	DescribeTable("sync secrets", framework.TableFunc(f, prov),
+	DescribeTable("sync secrets", framework.TableFuncWithExternalSecret(f, prov),
 		Entry(common.SimpleDataSync(f)),
 		Entry(common.JSONDataWithProperty(f)),
 		Entry(common.JSONDataFromSync(f)),

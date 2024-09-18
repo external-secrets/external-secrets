@@ -21,9 +21,17 @@ rules:
     resources:
     - "validatingwebhookconfigurations"
     verbs:
-    - "get"
     - "list"
     - "watch"
+    - "get"
+  - apiGroups:
+    - "admissionregistration.k8s.io"
+    resources:
+    - "validatingwebhookconfigurations"
+    resourceNames:
+    - "secretstore-validate"
+    - "externalsecret-validate"
+    verbs:
     - "update"
     - "patch"
   - apiGroups:
@@ -73,6 +81,6 @@ roleRef:
   name: {{ include "external-secrets.fullname" . }}-cert-controller
 subjects:
   - name: {{ include "external-secrets-cert-controller.serviceAccountName" . }}
-    namespace: {{ .Release.Namespace | quote }}
+    namespace: {{ template "external-secrets.namespace" . }}
     kind: ServiceAccount
 {{- end }}

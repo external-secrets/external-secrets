@@ -17,6 +17,7 @@ package vaultdynamic
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	vault "github.com/hashicorp/vault/api"
@@ -42,7 +43,7 @@ const (
 )
 
 func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, error) {
-	c := &provider.Connector{NewVaultClient: provider.NewVaultClient}
+	c := &provider.Provider{NewVaultClient: provider.NewVaultClient}
 
 	// controller-runtime/client does not support TokenRequest or other subresource APIs
 	// so we need to construct our own client and use it to fetch tokens
@@ -59,16 +60,16 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 	return g.generate(ctx, c, jsonSpec, kube, clientset.CoreV1(), namespace)
 }
 
-func (g *Generator) generate(ctx context.Context, c *provider.Connector, jsonSpec *apiextensions.JSON, kube client.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (map[string][]byte, error) {
+func (g *Generator) generate(ctx context.Context, c *provider.Provider, jsonSpec *apiextensions.JSON, kube client.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (map[string][]byte, error) {
 	if jsonSpec == nil {
-		return nil, fmt.Errorf(errNoSpec)
+		return nil, errors.New(errNoSpec)
 	}
 	res, err := parseSpec(jsonSpec.Raw)
 	if err != nil {
 		return nil, fmt.Errorf(errParseSpec, err)
 	}
 	if res == nil || res.Spec.Provider == nil {
-		return nil, fmt.Errorf("no Vault provider config in spec")
+		return nil, errors.New("no Vault provider config in spec")
 	}
 	cl, err := c.NewGeneratorClient(ctx, kube, corev1, res.Spec.Provider, namespace)
 	if err != nil {
@@ -83,7 +84,7 @@ func (g *Generator) generate(ctx context.Context, c *provider.Connector, jsonSpe
 	} else if res.Spec.Method == "DELETE" {
 		result, err = cl.Logical().DeleteWithContext(ctx, res.Spec.Path)
 	} else {
-		params := make(map[string]interface{})
+		params := make(map[string]any)
 		if res.Spec.Parameters != nil {
 			err = json.Unmarshal(res.Spec.Parameters.Raw, &params)
 			if err != nil {
@@ -96,10 +97,10 @@ func (g *Generator) generate(ctx context.Context, c *provider.Connector, jsonSpe
 		return nil, err
 	}
 	if result == nil {
-		return nil, fmt.Errorf(errGetSecret, fmt.Errorf("empty response from Vault"))
+		return nil, fmt.Errorf(errGetSecret, errors.New("empty response from Vault"))
 	}
 
-	data := make(map[string]interface{})
+	data := make(map[string]any)
 	response := make(map[string][]byte)
 	if res.Spec.ResultType == genv1alpha1.VaultDynamicSecretResultTypeAuth {
 		authJSON, err := json.Marshal(result.Auth)

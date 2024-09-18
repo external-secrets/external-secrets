@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "external-secrets.fullname" . }}-webhook
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ template "external-secrets.namespace" . }}
   labels:
     {{- include "external-secrets-webhook.labels" . | nindent 4 }}
   {{- with .Values.webhook.deploymentAnnotations }}
@@ -36,25 +36,31 @@ spec:
       serviceAccountName: {{ include "external-secrets-webhook.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.webhook.serviceAccount.automount }}
       {{- with .Values.webhook.podSecurityContext }}
+      {{- if and (.enabled) (gt (keys . | len) 1) }}
       securityContext:
-        {{- toYaml . | nindent 8 }}
+        {{- include "external-secrets.renderSecurityContext" (dict "securityContext" . "context" $) | nindent 8 }}
+      {{- end }}
       {{- end }}
       containers:
         - name: webhook
           {{- with .Values.webhook.securityContext }}
+          {{- if and (.enabled) (gt (keys . | len) 1) }}
           securityContext:
-            {{- toYaml . | nindent 12 }}
+            {{- include "external-secrets.renderSecurityContext" (dict "securityContext" . "context" $) | nindent 12 }}
+          {{- end }}
           {{- end }}
           image: {{ include "external-secrets.image" (dict "chartAppVersion" .Chart.AppVersion "image" .Values.webhook.image) | trim }}
           imagePullPolicy: {{ .Values.webhook.image.pullPolicy }}
           args:
           - webhook
           - --port={{ .Values.webhook.port }}
-          - --dns-name={{ include "external-secrets.fullname" . }}-webhook.{{ .Release.Namespace }}.svc
+          - --dns-name={{ include "external-secrets.fullname" . }}-webhook.{{ template "external-secrets.namespace" . }}.svc
           - --cert-dir={{ .Values.webhook.certDir }}
           - --check-interval={{ .Values.webhook.certCheckInterval }}
           - --metrics-addr=:{{ .Values.webhook.metrics.listen.port }}
           - --healthz-addr={{ .Values.webhook.readinessProbe.address }}:{{ .Values.webhook.readinessProbe.port }}
+          - --loglevel={{ .Values.webhook.log.level }}
+          - --zap-time-encoding={{ .Values.webhook.log.timeEncoding }}
           {{- if .Values.webhook.lookaheadInterval }}
           - --lookahead-interval={{ .Values.webhook.lookaheadInterval }}
           {{- end }}
@@ -100,19 +106,19 @@ spec:
       {{- if .Values.webhook.extraVolumes }}
       {{- toYaml .Values.webhook.extraVolumes | nindent 8 }}
       {{- end }}
-      {{- with .Values.webhook.nodeSelector }}
+      {{- with .Values.webhook.nodeSelector | default .Values.global.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.webhook.affinity }}
+      {{- with .Values.webhook.affinity | default .Values.global.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.webhook.tolerations }}
+      {{- with .Values.webhook.tolerations | default .Values.global.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.webhook.topologySpreadConstraints }}
+      {{- with .Values.webhook.topologySpreadConstraints | default .Values.global.topologySpreadConstraints }}
       topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
       {{- end }}

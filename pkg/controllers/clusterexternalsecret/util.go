@@ -21,8 +21,8 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
 )
 
-func NewClusterExternalSecretCondition(failedNamespaces map[string]error, namespaceList *v1.NamespaceList) *esv1beta1.ClusterExternalSecretStatusCondition {
-	if len(namespaceList.Items) > 0 && len(failedNamespaces) == 0 {
+func NewClusterExternalSecretCondition(failedNamespaces map[string]error) *esv1beta1.ClusterExternalSecretStatusCondition {
+	if len(failedNamespaces) == 0 {
 		return &esv1beta1.ClusterExternalSecretStatusCondition{
 			Type:   esv1beta1.ClusterExternalSecretReady,
 			Status: v1.ConditionTrue,
@@ -33,9 +33,6 @@ func NewClusterExternalSecretCondition(failedNamespaces map[string]error, namesp
 		Type:    esv1beta1.ClusterExternalSecretReady,
 		Status:  v1.ConditionFalse,
 		Message: errNamespacesFailed,
-	}
-	if len(failedNamespaces) == 0 {
-		condition.Message = errNamespaceNotFound
 	}
 
 	return condition

@@ -29,6 +29,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"time"
 
@@ -68,6 +69,7 @@ type Reconciler struct {
 	CrdResources    []string
 	dnsName         string
 	CAName          string
+	CAChainName     string
 	CAOrganization  string
 	RequeueInterval time.Duration
 
@@ -106,18 +108,9 @@ type CertInfo struct {
 	CAName   string
 }
 
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
-
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("CustomResourceDefinition", req.NamespacedName)
-	if contains(r.CrdResources, req.NamespacedName.Name) {
+	if slices.Contains(r.CrdResources, req.NamespacedName.Name) {
 		err := r.updateCRD(ctx, req)
 		if err != nil {
 			log.Error(err, "failed to inject conversion webhook")
@@ -152,7 +145,7 @@ func (r *Reconciler) ReadyCheck(_ *http.Request) error {
 	return r.checkEndpoints()
 }
 
-func (r Reconciler) checkCRDs() error {
+func (r *Reconciler) checkCRDs() error {
 	for _, res := range r.CrdResources {
 		r.readyStatusMapMu.Lock()
 		rdy := r.readyStatusMap[res]
@@ -164,7 +157,7 @@ func (r Reconciler) checkCRDs() error {
 	return nil
 }
 
-func (r Reconciler) checkEndpoints() error {
+func (r *Reconciler) checkEndpoints() error {
 	var eps corev1.Endpoints
 	err := r.Get(context.TODO(), types.NamespacedName{
 		Name:      r.SvcName,
@@ -174,10 +167,10 @@ func (r Reconciler) checkEndpoints() error {
 		return err
 	}
 	if len(eps.Subsets) == 0 {
-		return fmt.Errorf(errSubsetsNotReady)
+		return errors.New(errSubsetsNotReady)
 	}
 	if len(eps.Subsets[0].Addresses) == 0 {
-		return fmt.Errorf(errAddressesNotReady)
+		return errors.New(errAddressesNotReady)
 	}
 	return nil
 }
@@ -233,7 +226,7 @@ func injectService(crd *apiext.CustomResourceDefinition, svc types.NamespacedNam
 		crd.Spec.Conversion.Webhook == nil ||
 		crd.Spec.Conversion.Webhook.ClientConfig == nil ||
 		crd.Spec.Conversion.Webhook.ClientConfig.Service == nil {
-		return fmt.Errorf("unexpected crd conversion webhook config")
+		return errors.New("unexpected crd conversion webhook config")
 	}
 	crd.Spec.Conversion.Webhook.ClientConfig.Service.Namespace = svc.Namespace
 	crd.Spec.Conversion.Webhook.ClientConfig.Service.Name = svc.Name
@@ -244,7 +237,7 @@ func injectCert(crd *apiext.CustomResourceDefinition, certPem []byte) error {
 	if crd.Spec.Conversion == nil ||
 		crd.Spec.Conversion.Webhook == nil ||
 		crd.Spec.Conversion.Webhook.ClientConfig == nil {
-		return fmt.Errorf("unexpected crd conversion webhook config")
+		return errors.New("unexpected crd conversion webhook config")
 	}
 	crd.Spec.Conversion.Webhook.ClientConfig.CABundle = certPem
 	return nil
@@ -288,9 +281,17 @@ func ValidCert(caCert, cert, key []byte, dnsName string, at time.Time) (bool, er
 		return false, err
 	}
 
-	b, _ := pem.Decode(cert)
+	b, rest := pem.Decode(cert)
 	if b == nil {
 		return false, err
+	}
+	if len(rest) > 0 {
+		intermediate, _ := pem.Decode(rest)
+		inter, err := x509.ParseCertificate(intermediate.Bytes)
+		if err != nil {
+			return false, err
+		}
+		pool.AddCert(inter)
 	}
 
 	crt, err := x509.ParseCertificate(b.Bytes)
@@ -423,6 +424,42 @@ func (r *Reconciler) CreateCACert(begin, end time.Time) (*KeyPairArtifacts, erro
 		return nil, err
 	}
 	der, err := x509.CreateCertificate(rand.Reader, templ, templ, key.Public(), key)
+	if err != nil {
+		return nil, err
+	}
+	certPEM, keyPEM, err := pemEncode(der, key)
+	if err != nil {
+		return nil, err
+	}
+	cert, err := x509.ParseCertificate(der)
+	if err != nil {
+		return nil, err
+	}
+
+	return &KeyPairArtifacts{Cert: cert, Key: key, CertPEM: certPEM, KeyPEM: keyPEM}, nil
+}
+
+func (r *Reconciler) CreateCAChain(ca *KeyPairArtifacts, begin, end time.Time) (*KeyPairArtifacts, error) {
+	templ := &x509.Certificate{
+		SerialNumber: big.NewInt(2),
+		Subject: pkix.Name{
+			CommonName:   r.CAChainName,
+			Organization: []string{r.CAOrganization},
+		},
+		DNSNames: []string{
+			r.CAChainName,
+		},
+		NotBefore:             begin,
+		NotAfter:              end,
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+	}
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, err
+	}
+	der, err := x509.CreateCertificate(rand.Reader, templ, ca.Cert, key.Public(), ca.Key)
 	if err != nil {
 		return nil, err
 	}

@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package v1beta1
 
 import (
@@ -44,6 +45,11 @@ func (p *PP) PushSecret(_ context.Context, _ *corev1.Secret, _ PushSecretData) e
 // DeleteSecret deletes a single secret from a provider.
 func (p *PP) DeleteSecret(_ context.Context, _ PushSecretRemoteRef) error {
 	return nil
+}
+
+// Exists checks if a secret is already present in the provider at the given location.
+func (p *PP) SecretExists(_ context.Context, _ PushSecretRemoteRef) (bool, error) {
+	return false, nil
 }
 
 // GetSecret returns a single secret from the provider.

@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package addon
 
 import (
@@ -42,12 +43,24 @@ func NewESO(mutators ...MutationFunc) *ESO {
 					Value: os.Getenv("VERSION"),
 				},
 				{
+					Key:   "webhook.image.repository",
+					Value: "ghcr.io/external-secrets/external-secrets",
+				},
+				{
 					Key:   "certController.image.tag",
 					Value: os.Getenv("VERSION"),
 				},
 				{
+					Key:   "certController.image.repository",
+					Value: "ghcr.io/external-secrets/external-secrets",
+				},
+				{
 					Key:   "image.tag",
 					Value: os.Getenv("VERSION"),
+				},
+				{
+					Key:   "image.repository",
+					Value: "ghcr.io/external-secrets/external-secrets",
 				},
 				{
 					Key:   "extraArgs.loglevel",

@@ -17,7 +17,6 @@ package vaultdynamic
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -91,7 +90,7 @@ spec:
 				kube: clientfake.NewClientBuilder().Build(),
 			},
 			want: want{
-				err: fmt.Errorf("unable to setup Vault client: no role name was provided"),
+				err: errors.New("unable to setup Vault client: no role name was provided"),
 			},
 		},
 		"EmptyVaultResponse": {
@@ -124,7 +123,7 @@ spec:
 				}).Build(),
 			},
 			want: want{
-				err: fmt.Errorf("unable to get dynamic secret: empty response from Vault"),
+				err: errors.New("unable to get dynamic secret: empty response from Vault"),
 			},
 		},
 		"EmptyVaultPOST": {
@@ -159,14 +158,14 @@ spec:
 				}).Build(),
 			},
 			want: want{
-				err: fmt.Errorf("unable to get dynamic secret: empty response from Vault"),
+				err: errors.New("unable to get dynamic secret: empty response from Vault"),
 			},
 		},
 	}
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			c := &provider.Connector{NewVaultClient: fake.ClientWithLoginMock}
+			c := &provider.Provider{NewVaultClient: fake.ClientWithLoginMock}
 			gen := &Generator{}
 			val, err := gen.generate(context.Background(), c, tc.args.jsonSpec, tc.args.kube, tc.args.corev1, "testing")
 			if diff := cmp.Diff(tc.want.err.Error(), err.Error()); diff != "" {
