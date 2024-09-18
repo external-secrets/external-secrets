@@ -432,6 +432,14 @@ func (a *Akeyless) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRem
 	return ok, nil
 }
 
+func initMapIfNotExist(psd esv1beta1.PushSecretData, secretMapSize int) map[string]any {
+	mapSize := 1
+	if psd.GetProperty() == "" {
+		mapSize = secretMapSize
+	}
+	return make(map[string]any, mapSize)
+}
+
 func (a *Akeyless) PushSecret(ctx context.Context, secret *corev1.Secret, psd esv1beta1.PushSecretData) error {
 	if utils.IsNil(a.Client) {
 		return errors.New(errUninitalizedAkeylessProvider)
@@ -447,12 +455,8 @@ func (a *Akeyless) PushSecret(ctx context.Context, secret *corev1.Secret, psd es
 	}
 	var data map[string]any
 	if isNotExists {
+		data = initMapIfNotExist(psd, len(secret.Data))
 		err = nil
-		mapSize := 1
-		if psd.GetProperty() == "" {
-			mapSize = len(secret.Data)
-		}
-		data = make(map[string]any, mapSize)
 	} else {
 		err = json.Unmarshal(secretRemote, &data)
 	}
@@ -460,7 +464,6 @@ func (a *Akeyless) PushSecret(ctx context.Context, secret *corev1.Secret, psd es
 		return err
 	}
 	if psd.GetProperty() == "" {
-		data = make(map[string]any, len(secret.Data))
 		for k, v := range secret.Data {
 			data[k] = string(v)
 		}
