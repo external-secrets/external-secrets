@@ -82,6 +82,8 @@ var _ = Describe("[vault]", Label("vault"), func() {
 		framework.Compose(withApprole, f, common.DataPropertyDockerconfigJSON, useApproleAuth),
 		framework.Compose(withApprole, f, common.JSONDataWithoutTargetName, useApproleAuth),
 		// use v1 provider
+		framework.Compose(withV1, f, common.FindByName, useV1Provider),
+		framework.Compose(withV1, f, common.FindByNameAndRewrite, useV1Provider),
 		framework.Compose(withV1, f, common.JSONDataFromSync, useV1Provider),
 		framework.Compose(withV1, f, common.JSONDataFromRewrite, useV1Provider),
 		framework.Compose(withV1, f, common.JSONDataWithProperty, useV1Provider),
