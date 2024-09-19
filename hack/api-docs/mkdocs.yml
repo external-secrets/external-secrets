@@ -7,6 +7,17 @@ edit_uri: ./edit/main/docs/
 remote_branch: gh-pages
 theme:
   name: material
+  palette:
+    - scheme: default
+      media: "(prefers-color-scheme: light)"
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      media: "(prefers-color-scheme: dark)"
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode  
   features:
     - navigation.tabs
     - navigation.indexes
@@ -63,6 +74,7 @@ nav:
       - Fake: api/generator/fake.md
       - Webhook: api/generator/webhook.md
       - Github: api/generator/github.md
+      - UUID: api/generator/uuid.md
     - Reference Docs:
       - API specification: api/spec.md
       - Controller Options: api/controller-options.md
@@ -93,6 +105,7 @@ nav:
       - AWS Secrets Manager: provider/aws-secrets-manager.md
       - AWS Parameter Store: provider/aws-parameter-store.md
       - Azure Key Vault: provider/azure-key-vault.md
+      - BeyondTrust: provider/beyondtrust.md
       - Bitwarden Secrets Manager: provider/bitwarden-secrets-manager.md
       - Chef: provider/chef.md
       - CyberArk Conjur: provider/conjur.md
@@ -116,7 +129,7 @@ nav:
       - Cloak End 2 End Encrypted Secrets: provider/cloak.md
       - Scaleway: provider/scaleway.md
       - Delinea: provider/delinea.md
-      - Secret Server: provider/delinea.md
+      - Secret Server: provider/secretserver.md
       - Passbolt: provider/passbolt.md
       - Pulumi ESC: provider/pulumi.md
       - Onboardbase: provider/onboardbase.md
@@ -139,5 +152,4 @@ nav:
           - Talks: eso-talks.md
           - Demos: eso-demos.md
           - Blogs: eso-blogs.md
-  - References:
-      - API specification: spec.md
+          - Tools: eso-tools.md

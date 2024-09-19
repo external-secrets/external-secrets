@@ -2,6 +2,7 @@
     <img src="assets/eso-logo-large.png" width="30%" align="center" alt="external-secrets">
 </p>
 
+
 # External Secrets
 
 ![ci](https://github.com/external-secrets/external-secrets/actions/workflows/ci.yml/badge.svg?branch=main)
@@ -64,9 +65,10 @@ You can find the roadmap in our documentation: https://external-secrets.io/main/
 
 ## Sponsored by
 
-![](assets/CS_logo_1.png)
-![](assets/form3_logo.png)
-![](assets/pento_logo.png)
+![External Secrets Inc.](assets/ESI_Logo.svg)
+![Container Solutions](assets/CS_logo_1.png)
+![Form 3](assets/form3_logo.png)
+![Pento ](assets/pento_logo.png)
 
 
 ## License
