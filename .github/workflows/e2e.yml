@@ -54,6 +54,7 @@ env:
   SECRETSERVER_USERNAME: ${{ secrets.SECRETSERVER_USERNAME }}
   SECRETSERVER_PASSWORD: ${{ secrets.SECRETSERVER_PASSWORD }}
   SECRETSERVER_URL: ${{ secrets.SECRETSERVER_URL }}
+  TOKEN: ${{ secrets.GITHUB_TOKEN }}
 jobs:
 
   integration-trusted:
@@ -88,13 +89,6 @@ jobs:
       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       with:
         ref: '${{ env.TARGET_SHA }}'
-
-    - name: Login to GHCR
-      uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Fetch History
       run: git fetch --prune --unshallow
