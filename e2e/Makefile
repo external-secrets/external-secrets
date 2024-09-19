@@ -9,6 +9,13 @@ export E2E_IMAGE_NAME ?= ghcr.io/external-secrets/external-secrets-e2e
 export GINKGO_LABELS ?= !managed
 export TEST_SUITES ?= provider generator flux argocd
 
+# Image registry for build/push image targets
+# Overwrite what is being set in the main Makeilfe because
+# this is what the Helm chart is using.
+export IMAGE_REGISTRY = oci.external-secrets.io
+export IMAGE_REPO     = external-secrets/external-secrets
+export IMAGE_NAME = $(IMAGE_REGISTRY)/$(IMAGE_REPO)
+
 start-kind: ## Start kind cluster
 	kind create cluster \
 	  --name external-secrets \
