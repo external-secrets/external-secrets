@@ -54,7 +54,6 @@ env:
   SECRETSERVER_USERNAME: ${{ secrets.SECRETSERVER_USERNAME }}
   SECRETSERVER_PASSWORD: ${{ secrets.SECRETSERVER_PASSWORD }}
   SECRETSERVER_URL: ${{ secrets.SECRETSERVER_URL }}
-  TOKEN: ${{ secrets.GITHUB_TOKEN }}
 jobs:
 
   integration-trusted:
@@ -95,6 +94,8 @@ jobs:
 
     - id: e2e
       uses: ./.github/actions/e2e
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
     - id: create_token
       uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a # v2.1.0
       with:
