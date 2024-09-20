@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
@@ -46,6 +47,17 @@ func init() {
 	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
 		Fortanix: &esv1beta1.FortanixProvider{},
 	})
+}
+func (p *Provider) ApplyReferent(spec kubeclient.Object, _ esmeta.ReferentCallOrigin, _ string) (kubeclient.Object, error) {
+	return spec, nil
+}
+
+func (p *Provider) Convert(_ esv1beta1.GenericStore) (kubeclient.Object, error) {
+	return nil, nil
+}
+
+func (p *Provider) NewClientFromObj(_ context.Context, _ kubeclient.Object, _ kubeclient.Client, _ string) (esv1beta1.SecretsClient, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
 func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {

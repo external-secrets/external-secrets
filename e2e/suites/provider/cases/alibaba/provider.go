@@ -105,8 +105,8 @@ func (s *alibabaProvider) BeforeEach() {
 		Spec: esv1beta1.SecretStoreSpec{
 			Provider: &esv1beta1.SecretStoreProvider{
 				Alibaba: &esv1beta1.AlibabaProvider{
-					Auth: &esv1beta1.AlibabaAuth{
-						SecretRef: esv1beta1.AlibabaAuthSecretRef{
+					Auth: esv1beta1.AlibabaAuth{
+						SecretRef: &esv1beta1.AlibabaAuthSecretRef{
 							AccessKeyID: esmeta.SecretKeySelector{
 								Name: "kms-secret",
 								Key:  "keyid",

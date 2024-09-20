@@ -17,8 +17,8 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	prov "github.com/external-secrets/external-secrets/apis/providers/v1alpha1"
 )
 
 // ACRAccessTokenSpec defines how to generate the access token
@@ -50,7 +50,7 @@ type ACRAccessTokenSpec struct {
 	// The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152
 	// PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
 	// +kubebuilder:default=PublicCloud
-	EnvironmentType v1beta1.AzureEnvironmentType `json:"environmentType,omitempty"`
+	EnvironmentType prov.AzureEnvironmentType `json:"environmentType,omitempty"`
 }
 
 type ACRAuth struct {

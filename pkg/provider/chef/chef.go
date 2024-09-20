@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
@@ -94,6 +95,18 @@ func init() {
 	v1beta1.Register(&Providerchef{}, &v1beta1.SecretStoreProvider{
 		Chef: &v1beta1.ChefProvider{},
 	})
+}
+
+func (providerchef *Providerchef) ApplyReferent(spec kclient.Object, _ esmeta.ReferentCallOrigin, _ string) (kclient.Object, error) {
+	return spec, nil
+}
+
+func (providerchef *Providerchef) Convert(_ v1beta1.GenericStore) (kclient.Object, error) {
+	return nil, nil
+}
+
+func (providerchef *Providerchef) NewClientFromObj(_ context.Context, _ kclient.Object, _ kclient.Client, _ string) (v1beta1.SecretsClient, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
 func (providerchef *Providerchef) NewClient(ctx context.Context, store v1beta1.GenericStore, kube kclient.Client, namespace string) (v1beta1.SecretsClient, error) {

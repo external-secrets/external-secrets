@@ -35,6 +35,7 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	esprov "github.com/external-secrets/external-secrets/apis/providers/v1alpha1"
 	esoazkv "github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault"
 )
 
@@ -120,7 +121,7 @@ func newFromWorkloadIdentity(f *framework.Framework) *azureProvider {
 			}
 
 			// exchange the federated token for an access token
-			aadEndpoint := esoazkv.AadEndpointForType(esv1beta1.AzureEnvironmentPublicCloud)
+			aadEndpoint := esoazkv.AadEndpointForType(esprov.AzureEnvironmentPublicCloud)
 			kvResource := strings.TrimSuffix(azure.PublicCloud.KeyVaultEndpoint, "/")
 			tokenProvider, err := esoazkv.NewTokenProvider(context.Background(), string(token), clientID, tenantID, aadEndpoint, kvResource)
 			if err != nil {

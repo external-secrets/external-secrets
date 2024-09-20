@@ -38,9 +38,9 @@ import (
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/yaml"
 
-	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	prov "github.com/external-secrets/external-secrets/apis/providers/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault"
 )
 
@@ -227,7 +227,7 @@ func fetchACRRefreshToken(aadAccessToken, tenantID, registryURL string) (string,
 	return refreshToken, nil
 }
 
-func accessTokenForWorkloadIdentity(ctx context.Context, crClient client.Client, kubeClient kcorev1.CoreV1Interface, envType v1beta1.AzureEnvironmentType, serviceAccountRef *smmeta.ServiceAccountSelector, namespace string) (string, error) {
+func accessTokenForWorkloadIdentity(ctx context.Context, crClient client.Client, kubeClient kcorev1.CoreV1Interface, envType prov.AzureEnvironmentType, serviceAccountRef *smmeta.ServiceAccountSelector, namespace string) (string, error) {
 	aadEndpoint := keyvault.AadEndpointForType(envType)
 	scope := keyvault.ServiceManagementEndpointForType(envType)
 	// if no serviceAccountRef was provided
@@ -281,7 +281,7 @@ func accessTokenForWorkloadIdentity(ctx context.Context, crClient client.Client,
 	return tp.OAuthToken(), nil
 }
 
-func accessTokenForManagedIdentity(ctx context.Context, envType v1beta1.AzureEnvironmentType, identityID string) (string, error) {
+func accessTokenForManagedIdentity(ctx context.Context, envType prov.AzureEnvironmentType, identityID string) (string, error) {
 	// handle workload identity
 	creds, err := azidentity.NewManagedIdentityCredential(
 		&azidentity.ManagedIdentityCredentialOptions{
@@ -301,7 +301,7 @@ func accessTokenForManagedIdentity(ctx context.Context, envType v1beta1.AzureEnv
 	return accessToken.Token, nil
 }
 
-func (g *Generator) accessTokenForServicePrincipal(ctx context.Context, crClient client.Client, namespace string, envType v1beta1.AzureEnvironmentType, tenantID string, idRef, secretRef smmeta.SecretKeySelector) (string, error) {
+func (g *Generator) accessTokenForServicePrincipal(ctx context.Context, crClient client.Client, namespace string, envType prov.AzureEnvironmentType, tenantID string, idRef, secretRef smmeta.SecretKeySelector) (string, error) {
 	cid, err := secretKeyRef(ctx, crClient, namespace, idRef)
 	if err != nil {
 		return "", err
@@ -350,16 +350,16 @@ func secretKeyRef(ctx context.Context, crClient client.Client, namespace string,
 	return value, nil
 }
 
-func audienceForType(t v1beta1.AzureEnvironmentType) string {
+func audienceForType(t prov.AzureEnvironmentType) string {
 	suffix := ".default"
 	switch t {
-	case v1beta1.AzureEnvironmentChinaCloud:
+	case prov.AzureEnvironmentChinaCloud:
 		return azure.ChinaCloud.TokenAudience + suffix
-	case v1beta1.AzureEnvironmentGermanCloud:
+	case prov.AzureEnvironmentGermanCloud:
 		return azure.GermanCloud.TokenAudience + suffix
-	case v1beta1.AzureEnvironmentUSGovernmentCloud:
+	case prov.AzureEnvironmentUSGovernmentCloud:
 		return azure.USGovernmentCloud.TokenAudience + suffix
-	case v1beta1.AzureEnvironmentPublicCloud, "":
+	case prov.AzureEnvironmentPublicCloud, "":
 		return azure.PublicCloud.TokenAudience + suffix
 	}
 	return azure.PublicCloud.TokenAudience + suffix

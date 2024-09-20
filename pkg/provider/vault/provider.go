@@ -29,6 +29,7 @@ import (
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/cache"
 	"github.com/external-secrets/external-secrets/pkg/feature"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
@@ -78,6 +79,18 @@ func NewVaultClient(config *vault.Config) (util.Client, error) {
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadWrite
+}
+
+func (p *Provider) ApplyReferent(spec kclient.Object, _ esmeta.ReferentCallOrigin, _ string) (kclient.Object, error) {
+	return spec, nil
+}
+
+func (p *Provider) Convert(_ esv1beta1.GenericStore) (kclient.Object, error) {
+	return nil, nil
+}
+
+func (p *Provider) NewClientFromObj(_ context.Context, _ kclient.Object, _ kclient.Client, _ string) (esv1beta1.SecretsClient, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
 // NewClient implements the Client interface.
@@ -174,7 +187,7 @@ func (p *Provider) initClient(ctx context.Context, c *client, client util.Client
 	return c, nil
 }
 
-func (p *Provider) prepareConfig(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, retrySettings *esv1beta1.SecretStoreRetrySettings, namespace, storeKind string) (*client, *vault.Config, error) {
+func (p *Provider) prepareConfig(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, retrySettings *esmeta.RetrySettings, namespace, storeKind string) (*client, *vault.Config, error) {
 	c := &client{
 		kube:      kube,
 		corev1:    corev1,

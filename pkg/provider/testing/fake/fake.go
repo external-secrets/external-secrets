@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 var _ esv1beta1.Provider = &Client{}
@@ -173,6 +174,18 @@ func (v *Client) NewClient(ctx context.Context, store esv1beta1.GenericStore, ku
 		return nil, err
 	}
 	return c, nil
+}
+
+func (v *Client) Convert(_ esv1beta1.GenericStore) (client.Object, error) {
+	return nil, nil
+}
+
+func (v *Client) ApplyReferent(spec client.Object, _ esmeta.ReferentCallOrigin, _ string) (client.Object, error) {
+	return spec, nil
+}
+
+func (v *Client) NewClientFromObj(_ context.Context, _ client.Object, _ client.Client, _ string) (esv1beta1.SecretsClient, error) {
+	return nil, nil
 }
 
 func (v *Client) Reset() {

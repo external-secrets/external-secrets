@@ -560,8 +560,8 @@ are used to validate the TLS connection.</p>
 <td>
 <code>caProvider</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.CAProvider">
-CAProvider
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#CAProvider">
+External Secrets meta/v1.CAProvider
 </a>
 </em>
 </td>
@@ -1337,8 +1337,8 @@ can be performed.</p>
 <td>
 <code>caProvider</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.CAProvider">
-CAProvider
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#CAProvider">
+External Secrets meta/v1.CAProvider
 </a>
 </em>
 </td>
@@ -1416,100 +1416,6 @@ External Secrets meta/v1.SecretKeySelector
 </td>
 </tr>
 </tbody>
-</table>
-<h3 id="external-secrets.io/v1beta1.CAProvider">CAProvider
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.AkeylessProvider">AkeylessProvider</a>, 
-<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider</a>, 
-<a href="#external-secrets.io/v1beta1.ConjurProvider">ConjurProvider</a>, 
-<a href="#external-secrets.io/v1beta1.KubernetesServer">KubernetesServer</a>, 
-<a href="#external-secrets.io/v1beta1.VaultProvider">VaultProvider</a>)
-</p>
-<p>
-<p>Used to provide custom certificate authority (CA) certificates
-for a secret store. The CAProvider points to a Secret or ConfigMap resource
-that contains a PEM-encoded certificate.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>type</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.CAProviderType">
-CAProviderType
-</a>
-</em>
-</td>
-<td>
-<p>The type of provider to use such as &ldquo;Secret&rdquo;, or &ldquo;ConfigMap&rdquo;.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>name</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>The name of the object located at the provider type.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>key</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>The key where the CA certificate can be found in the Secret or ConfigMap.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>namespace</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>The namespace the Provider type is in.
-Can only be defined when used in a ClusterSecretStore.</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1beta1.CAProviderType">CAProviderType
-(<code>string</code> alias)</p></h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.CAProvider">CAProvider</a>)
-</p>
-<p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Value</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody><tr><td><p>&#34;ConfigMap&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;Secret&#34;</p></td>
-<td></td>
-</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.CertAuth">CertAuth
 </h3>
@@ -2178,15 +2084,30 @@ SecretStoreProvider
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Used to configure the provider. Only one provider may be set</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>providerRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ProviderRef">
+External Secrets meta/v1.ProviderRef
+</a>
+</em>
+</td>
+<td>
+<p>Used to reference a CRD-based provider. Only one of ProviderRef or provider may be set.
+providerRef takes precedence over provider.</p>
 </td>
 </tr>
 <tr>
 <td>
 <code>retrySettings</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.SecretStoreRetrySettings">
-SecretStoreRetrySettings
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#RetrySettings">
+External Secrets meta/v1.RetrySettings
 </a>
 </em>
 </td>
@@ -2515,8 +2436,8 @@ string
 <td>
 <code>caProvider</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.CAProvider">
-CAProvider
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#CAProvider">
+External Secrets meta/v1.CAProvider
 </a>
 </em>
 </td>
@@ -5211,8 +5132,8 @@ string
 <td>
 <code>caProvider</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.CAProvider">
-CAProvider
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#CAProvider">
+External Secrets meta/v1.CAProvider
 </a>
 </em>
 </td>
@@ -6351,15 +6272,30 @@ SecretStoreProvider
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Used to configure the provider. Only one provider may be set</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>providerRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ProviderRef">
+External Secrets meta/v1.ProviderRef
+</a>
+</em>
+</td>
+<td>
+<p>Used to reference a CRD-based provider. Only one of ProviderRef or provider may be set.
+providerRef takes precedence over provider.</p>
 </td>
 </tr>
 <tr>
 <td>
 <code>retrySettings</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.SecretStoreRetrySettings">
-SecretStoreRetrySettings
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#RetrySettings">
+External Secrets meta/v1.RetrySettings
 </a>
 </em>
 </td>
@@ -6966,44 +6902,6 @@ Defaults to <code>SecretStore</code></p>
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1beta1.SecretStoreRetrySettings">SecretStoreRetrySettings
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.SecretStoreSpec">SecretStoreSpec</a>)
-</p>
-<p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>maxRetries</code></br>
-<em>
-int32
-</em>
-</td>
-<td>
-</td>
-</tr>
-<tr>
-<td>
-<code>retryInterval</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
 <h3 id="external-secrets.io/v1beta1.SecretStoreSpec">SecretStoreSpec
 </h3>
 <p>
@@ -7045,15 +6943,30 @@ SecretStoreProvider
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Used to configure the provider. Only one provider may be set</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>providerRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ProviderRef">
+External Secrets meta/v1.ProviderRef
+</a>
+</em>
+</td>
+<td>
+<p>Used to reference a CRD-based provider. Only one of ProviderRef or provider may be set.
+providerRef takes precedence over provider.</p>
 </td>
 </tr>
 <tr>
 <td>
 <code>retrySettings</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.SecretStoreRetrySettings">
-SecretStoreRetrySettings
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#RetrySettings">
+External Secrets meta/v1.RetrySettings
 </a>
 </em>
 </td>
@@ -8864,8 +8777,8 @@ which is available under the <code>auth.cert</code> section.</p>
 <td>
 <code>caProvider</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.CAProvider">
-CAProvider
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#CAProvider">
+External Secrets meta/v1.CAProvider
 </a>
 </em>
 </td>

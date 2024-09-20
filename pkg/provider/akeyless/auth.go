@@ -31,11 +31,7 @@ const (
 )
 
 func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
-	prov, err := GetAKeylessProvider(a.store)
-	if err != nil {
-		return "", err
-	}
-
+	prov := a.store
 	if prov.Auth.KubernetesAuth != nil {
 		auth := prov.Auth.KubernetesAuth
 		return a.GetToken(auth.AccessID, "k8s", auth.K8sConfName, auth)

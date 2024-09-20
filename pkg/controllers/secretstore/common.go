@@ -69,7 +69,13 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 		log.Error(err, "unable to validate store")
 		return ctrl.Result{}, err
 	}
-	storeProvider, err := esapi.GetProvider(ss)
+
+	var storeProvider esapi.Provider
+	if ss.GetSpec().ProviderRef != nil {
+		storeProvider, err = esapi.GetProviderByRef(*ss.GetSpec().ProviderRef)
+	} else {
+		storeProvider, err = esapi.GetProvider(ss)
+	}
 	if err != nil {
 		return ctrl.Result{}, err
 	}

@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	awsauth "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager"
@@ -49,6 +50,24 @@ const (
 	errInitAWSProvider        = "unable to initialize aws provider: %s"
 	errInvalidSecretsManager  = "invalid SecretsManager settings: %s"
 )
+
+// Convert converts a generic store into a provider object
+// Not Implemented.
+func (p *Provider) Convert(_ esv1beta1.GenericStore) (client.Object, error) {
+	return nil, nil
+}
+
+// ApplyReferent applies referent logic to provider object
+// Not Implemented.
+func (p *Provider) ApplyReferent(spec client.Object, _ esmeta.ReferentCallOrigin, _ string) (client.Object, error) {
+	return spec, nil
+}
+
+// NewClientFromObj is the new way to get Provider from object
+// Not Implemented.
+func (p *Provider) NewClientFromObj(_ context.Context, _ client.Object, _ client.Client, _ string) (esv1beta1.SecretsClient, error) {
+	return nil, fmt.Errorf("not implemented")
+}
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {

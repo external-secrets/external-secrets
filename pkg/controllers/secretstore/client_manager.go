@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -30,6 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmetav1 "github.com/external-secrets/external-secrets/apis/meta/v1"
+	prov "github.com/external-secrets/external-secrets/apis/providers/v1alpha1"
 )
 
 const (
@@ -75,8 +78,41 @@ func NewManager(ctrlClient client.Client, controllerClass string, enableFloodgat
 	}
 }
 
+func (m *Manager) getProviderSpec(ctx context.Context, ref *esmetav1.ProviderRef, _ string) (client.Object, error) {
+	p, err := prov.GetManifestByKind(ref)
+	if err != nil {
+		return nil, fmt.Errorf("could not get a provider for kind %v", ref.Kind)
+	}
+	spec := reflect.New(reflect.ValueOf(p).Elem().Type()).Interface().(client.Object) // New Copy
+	key := types.NamespacedName{Name: ref.Name}
+	err = m.client.Get(ctx, key, spec)
+	if err != nil {
+		return nil, fmt.Errorf("could not get Provider %v: %w", ref.Name, err)
+	}
+	return spec, nil
+}
+
 func (m *Manager) GetFromStore(ctx context.Context, store esv1beta1.GenericStore, namespace string) (esv1beta1.SecretsClient, error) {
-	storeProvider, err := esv1beta1.GetProvider(store)
+	var storeProvider esv1beta1.Provider
+	var err error
+	var spec client.Object
+	prov := store.GetSpec().ProviderRef
+	if prov != nil {
+		storeProvider, _ = esv1beta1.GetProviderByRef(*prov)
+		spec, err = m.getProviderSpec(ctx, store.GetSpec().ProviderRef, namespace)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		storeProvider, err = esv1beta1.GetProvider(store)
+		if err != nil {
+			return nil, err
+		}
+		spec, err = storeProvider.Convert(store)
+		if err != nil {
+			return nil, err
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -87,9 +123,29 @@ func (m *Manager) GetFromStore(ctx context.Context, store esv1beta1.GenericStore
 	m.log.V(1).Info("creating new client",
 		"provider", fmt.Sprintf("%T", storeProvider),
 		"store", fmt.Sprintf("%s/%s", store.GetNamespace(), store.GetName()))
-	// secret client is created only if we are going to refresh
-	// this skip an unnecessary check/request in the case we are not going to do anything
-	secretClient, err = storeProvider.NewClient(ctx, store, m.client, namespace)
+	// Compatibility - not break the code while methods are not implemented
+	if spec == nil {
+		secretClient, err = storeProvider.NewClient(ctx, store, m.client, namespace)
+		if err != nil {
+			return nil, err
+		}
+		idx := storeKey(storeProvider)
+		m.clientMap[idx] = &clientVal{
+			client: secretClient,
+			store:  store,
+		}
+		return secretClient, nil
+	}
+	caller := esmetav1.ReferentCallSecretStore
+	storeKind := store.GetObjectKind().GroupVersionKind().Kind
+	if storeKind == esv1beta1.ClusterSecretStoreKind {
+		caller = esmetav1.ReferentCallClusterSecretStore
+	}
+	referredSpec, err := storeProvider.ApplyReferent(spec, caller, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("could not apply referrent logic to spec on %v: %w", store.GetName(), err)
+	}
+	secretClient, err = storeProvider.NewClientFromObj(ctx, referredSpec, m.client, namespace)
 	if err != nil {
 		return nil, err
 	}

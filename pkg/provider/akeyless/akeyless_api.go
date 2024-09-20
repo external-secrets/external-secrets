@@ -35,6 +35,7 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	prov "github.com/external-secrets/external-secrets/apis/providers/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
@@ -44,7 +45,7 @@ var apiErr akeyless.GenericOpenAPIError
 
 const DefServiceAccountFile = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
-func (a *akeylessBase) GetToken(accessID, accType, accTypeParam string, k8sAuth *esv1beta1.AkeylessKubernetesAuth) (string, error) {
+func (a *akeylessBase) GetToken(accessID, accType, accTypeParam string, k8sAuth *prov.AkeylessKubernetesAuth) (string, error) {
 	ctx := context.Background()
 	authBody := akeyless.NewAuthWithDefaults()
 	authBody.AccessId = akeyless.PtrString(accessID)
@@ -325,7 +326,7 @@ func (a *akeylessBase) ListSecrets(ctx context.Context, path, tag, token string)
 	return listNames, nil
 }
 
-func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAuth *esv1beta1.AkeylessKubernetesAuth) (string, error) {
+func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAuth *prov.AkeylessKubernetesAuth) (string, error) {
 	if kubernetesAuth != nil {
 		if kubernetesAuth.ServiceAccountRef != nil {
 			// Kubernetes <v1.24 fetch token via ServiceAccount.Secrets[]

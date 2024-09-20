@@ -4,7 +4,7 @@ templates:
   - webhook-secret.yaml
   - webhook-certificate.yaml
   - validatingwebhook.yaml
-  - crds/externalsecret.yaml
+  - crds/externalsecrets_external-secrets_io.yaml
 tests:
   - it: should match snapshot of default values
     asserts:
@@ -148,7 +148,7 @@ tests:
           value: "NAMESPACE/RELEASE-NAME-external-secrets-webhook"
     templates:
       - validatingwebhook.yaml
-      - crds/externalsecret.yaml
+      - crds/externalsecrets_external-secrets_io.yaml
   - it: should not add annotations to the webhook
     set:
       webhook.create: true
@@ -160,7 +160,7 @@ tests:
           # value: "NAMESPACE/RELEASE-NAME-external-secrets-webhook"
     templates:
       - validatingwebhook.yaml
-      - crds/externalsecret.yaml
+      - crds/externalsecrets_external-secrets_io.yaml
   - it: should override metrics port
     set:
       webhook.metrics.listen.port: 8888

@@ -35,7 +35,7 @@ type AkeylessProvider struct {
 
 	// The provider for the CA bundle to use to validate Akeyless Gateway certificate.
 	// +optional
-	CAProvider *CAProvider `json:"caProvider,omitempty"`
+	CAProvider *esmeta.CAProvider `json:"caProvider,omitempty"`
 }
 
 type AkeylessAuth struct {

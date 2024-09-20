@@ -111,7 +111,7 @@ func makeValidSecretStoreWithCerts() *esv1beta1.SecretStore {
 
 func makeValidSecretStoreWithK8sCerts(isSecret bool) *esv1beta1.SecretStore {
 	store := makeSecretStore()
-	caProvider := &esv1beta1.CAProvider{
+	caProvider := &esmeta.CAProvider{
 		Name: vaultCert,
 		Key:  "cert",
 	}
@@ -150,7 +150,7 @@ func makeInvalidClusterSecretStoreWithK8sCerts() *esv1beta1.ClusterSecretStore {
 							},
 						},
 					},
-					CAProvider: &esv1beta1.CAProvider{
+					CAProvider: &esmeta.CAProvider{
 						Name: vaultCert,
 						Key:  "cert",
 						Type: "Secret",
@@ -270,7 +270,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			reason: "Should return error if given an invalid Retry Interval.",
 			args: args{
 				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
-					s.Spec.RetrySettings = &esv1beta1.SecretStoreRetrySettings{
+					s.Spec.RetrySettings = &esmeta.RetrySettings{
 						MaxRetries:    ptr.To(int32(3)),
 						RetryInterval: ptr.To("not-an-interval"),
 					}
@@ -284,7 +284,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			reason: "Should return a Vault provider with custom retry settings",
 			args: args{
 				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
-					s.Spec.RetrySettings = &esv1beta1.SecretStoreRetrySettings{
+					s.Spec.RetrySettings = &esmeta.RetrySettings{
 						MaxRetries:    ptr.To(int32(3)),
 						RetryInterval: ptr.To("10m"),
 					}

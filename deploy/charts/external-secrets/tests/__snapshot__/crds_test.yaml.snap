@@ -4545,6 +4545,22 @@ should match snapshot of default values:
                             - auth
                           type: object
                       type: object
+                    providerRef:
+                      description: |-
+                        Used to reference a CRD-based provider. Only one of ProviderRef or provider may be set.
+                        providerRef takes precedence over provider.
+                      properties:
+                        apiVersion:
+                          type: string
+                        kind:
+                          type: string
+                        name:
+                          type: string
+                      required:
+                        - apiVersion
+                        - kind
+                        - name
+                      type: object
                     refreshInterval:
                       description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
                       type: integer
@@ -4557,8 +4573,6 @@ should match snapshot of default values:
                         retryInterval:
                           type: string
                       type: object
-                  required:
-                    - provider
                   type: object
                 status:
                   description: SecretStoreStatus defines the observed state of the SecretStore.

@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -53,8 +54,19 @@ A Mutex was implemented to make sure only one connection can be in place at a ti
 */
 var useMu = sync.Mutex{}
 
+func (p *Provider) Convert(_ esv1beta1.GenericStore) (kclient.Object, error) {
+	return nil, nil
+}
+
 func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadWrite
+}
+
+func (p Provider) ApplyReferent(spec kclient.Object, _ esmeta.ReferentCallOrigin, _ string) (kclient.Object, error) {
+	return spec, nil
+}
+func (p *Provider) NewClientFromObj(_ context.Context, _ kclient.Object, _ kclient.Client, _ string) (esv1beta1.SecretsClient, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
 // NewClient constructs a GCP Provider.

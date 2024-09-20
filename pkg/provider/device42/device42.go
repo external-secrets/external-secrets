@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -45,6 +46,18 @@ type Client interface {
 // Device42 Provider struct with reference to a Device42 client.
 type Device42 struct {
 	client Client
+}
+
+func (p *Device42) ApplyReferent(spec kclient.Object, _ esmeta.ReferentCallOrigin, _ string) (kclient.Object, error) {
+	return spec, nil
+}
+
+func (p *Device42) Convert(_ esv1beta1.GenericStore) (kclient.Object, error) {
+	return nil, nil
+}
+
+func (p *Device42) NewClientFromObj(_ context.Context, _ kclient.Object, _ kclient.Client, _ string) (esv1beta1.SecretsClient, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
 func (p *Device42) ValidateStore(esv1beta1.GenericStore) (admission.Warnings, error) {

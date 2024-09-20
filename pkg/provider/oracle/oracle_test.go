@@ -372,7 +372,7 @@ func TestVaultManagementService_NewClient(t *testing.T) {
 							Auth:   auth,
 						},
 					},
-					RetrySettings: &esv1beta1.SecretStoreRetrySettings{
+					RetrySettings: &esmeta.RetrySettings{
 						RetryInterval: ptr.To("1s"),
 						MaxRetries:    ptr.To(int32(5)),
 					},
@@ -390,7 +390,7 @@ func TestVaultManagementService_NewClient(t *testing.T) {
 							Auth:   auth,
 						},
 					},
-					RetrySettings: &esv1beta1.SecretStoreRetrySettings{
+					RetrySettings: &esmeta.RetrySettings{
 						RetryInterval: ptr.To("1s"),
 					},
 				},
@@ -407,7 +407,7 @@ func TestVaultManagementService_NewClient(t *testing.T) {
 							Auth:   auth,
 						},
 					},
-					RetrySettings: &esv1beta1.SecretStoreRetrySettings{
+					RetrySettings: &esmeta.RetrySettings{
 						MaxRetries: ptr.To(int32(5)),
 					},
 				},
@@ -437,7 +437,7 @@ func TestVaultManagementService_NewClient(t *testing.T) {
 							},
 						},
 					},
-					RetrySettings: &esv1beta1.SecretStoreRetrySettings{
+					RetrySettings: &esmeta.RetrySettings{
 						RetryInterval: ptr.To("invalid"),
 					},
 				},
@@ -455,7 +455,7 @@ func TestVaultManagementService_NewClient(t *testing.T) {
 							Auth:   auth,
 						},
 					},
-					RetrySettings: &esv1beta1.SecretStoreRetrySettings{
+					RetrySettings: &esmeta.RetrySettings{
 						RetryInterval: ptr.To("invalid"),
 					},
 				},
