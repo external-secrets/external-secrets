@@ -18,38 +18,79 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/akeylesslabs/akeyless-go/v3"
+	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakeakeyless "github.com/external-secrets/external-secrets/pkg/provider/akeyless/fake"
+	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
 
 type akeylessTestCase struct {
+	testName       string
 	mockClient     *fakeakeyless.AkeylessMockClient
 	apiInput       *fakeakeyless.Input
 	apiOutput      *fakeakeyless.Output
 	ref            *esv1beta1.ExternalSecretDataRemoteRef
+	input          any
+	input2         any
 	expectError    string
+	expectedVal    any
 	expectedSecret string
-	// for testing secretmap
-	expectedData map[string][]byte
 }
 
-func makeValidAkeylessTestCase() *akeylessTestCase {
+const fmtExpectedError = "unexpected error: %s, expected: '%s'"
+
+func (a *akeylessTestCase) SetMockClient(c *fakeakeyless.AkeylessMockClient) *akeylessTestCase {
+	a.mockClient = c
+	return a
+}
+
+func (a *akeylessTestCase) SetExpectErr(err string) *akeylessTestCase {
+	a.expectError = err
+	return a
+}
+
+func (a *akeylessTestCase) SetExpectVal(val any) *akeylessTestCase {
+	a.expectedVal = val
+	return a
+}
+
+func (a *akeylessTestCase) SetExpectInput(input any) *akeylessTestCase {
+	a.input = input
+	return a
+}
+
+func (a *akeylessTestCase) SetExpectInput2(input any) *akeylessTestCase {
+	a.input2 = input
+	return a
+}
+
+func makeValidAkeylessTestCase(testName string) *akeylessTestCase {
 	smtc := akeylessTestCase{
+		testName:       testName,
 		mockClient:     &fakeakeyless.AkeylessMockClient{},
 		apiInput:       makeValidInput(),
 		ref:            makeValidRef(),
 		apiOutput:      makeValidOutput(),
 		expectError:    "",
 		expectedSecret: "",
-		expectedData:   map[string][]byte{},
 	}
 	smtc.mockClient.WithValue(smtc.apiInput, smtc.apiOutput)
 	return &smtc
+}
+
+func nilProviderTestCase() *akeylessTestCase {
+	return makeValidAkeylessTestCase("nil provider").SetMockClient(nil).SetExpectErr(errUninitalizedAkeylessProvider)
+}
+func failGetTestCase() *akeylessTestCase {
+	return makeValidAkeylessTestCase("fail GetSecret").SetExpectVal(false).SetExpectErr("fail get").
+		SetMockClient(fakeakeyless.New().SetGetSecretFn(func(secretName string, version int32) (string, error) { return "", errors.New("fail get") }))
 }
 
 func makeValidRef() *esv1beta1.ExternalSecretDataRemoteRef {
@@ -75,7 +116,7 @@ func makeValidOutput() *fakeakeyless.Output {
 }
 
 func makeValidAkeylessTestCaseCustom(tweaks ...func(smtc *akeylessTestCase)) *akeylessTestCase {
-	smtc := makeValidAkeylessTestCase()
+	smtc := makeValidAkeylessTestCase("")
 	for _, fn := range tweaks {
 		fn(smtc)
 	}
@@ -114,16 +155,12 @@ func TestAkeylessGetSecret(t *testing.T) {
 	}
 
 	sm := Akeyless{}
-	for k, v := range successCases {
+	for _, v := range successCases {
 		sm.Client = v.mockClient
 		fmt.Println(*v.ref)
 		out, err := sm.GetSecret(context.Background(), *v.ref)
-		if !ErrorContains(err, v.expectError) {
-			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
-		}
-		if string(out) != v.expectedSecret {
-			t.Errorf("[%d] unexpected secret: expected %s, got %s", k, v.expectedSecret, string(out))
-		}
+		require.Truef(t, ErrorContains(err, v.expectError), fmtExpectedError, err, v.expectError)
+		require.Equal(t, string(out), v.expectedSecret)
 	}
 }
 
@@ -160,9 +197,7 @@ func TestValidateStore(t *testing.T) {
 		}
 
 		_, err := provider.ValidateStore(store)
-		if err != nil {
-			t.Error(err.Error())
-		}
+		require.NoError(t, err)
 	})
 
 	t.Run("k8s auth", func(t *testing.T) {
@@ -186,9 +221,7 @@ func TestValidateStore(t *testing.T) {
 		}
 
 		_, err := provider.ValidateStore(store)
-		if err != nil {
-			t.Error(err.Error())
-		}
+		require.NoError(t, err)
 	})
 
 	t.Run("bad conf auth", func(t *testing.T) {
@@ -204,9 +237,7 @@ func TestValidateStore(t *testing.T) {
 		}
 
 		_, err := provider.ValidateStore(store)
-		if err == nil {
-			t.Errorf("expected an error")
-		}
+		require.Error(t, err)
 	})
 
 	t.Run("bad k8s conf auth", func(t *testing.T) {
@@ -229,9 +260,7 @@ func TestValidateStore(t *testing.T) {
 		}
 
 		_, err := provider.ValidateStore(store)
-		if err == nil {
-			t.Errorf("expected an error")
-		}
+		require.Error(t, err)
 	})
 }
 
@@ -239,7 +268,7 @@ func TestGetSecretMap(t *testing.T) {
 	// good case: default version & deserialization
 	setDeserialization := func(smtc *akeylessTestCase) {
 		smtc.apiOutput.Value = `{"foo":"bar"}`
-		smtc.expectedData["foo"] = []byte("bar")
+		smtc.expectedVal = map[string][]byte{"foo": []byte("bar")}
 	}
 
 	// bad case: invalid json
@@ -250,21 +279,17 @@ func TestGetSecretMap(t *testing.T) {
 
 	successCases := []*akeylessTestCase{
 		makeValidAkeylessTestCaseCustom(setDeserialization),
-		makeValidAkeylessTestCaseCustom(setInvalidJSON),
-		makeValidAkeylessTestCaseCustom(setAPIErr),
-		makeValidAkeylessTestCaseCustom(setNilMockClient),
+		makeValidAkeylessTestCaseCustom(setInvalidJSON).SetExpectVal(map[string][]byte(nil)),
+		makeValidAkeylessTestCaseCustom(setAPIErr).SetExpectVal(map[string][]byte(nil)),
+		makeValidAkeylessTestCaseCustom(setNilMockClient).SetExpectVal(map[string][]byte(nil)),
 	}
 
 	sm := Akeyless{}
-	for k, v := range successCases {
+	for _, v := range successCases {
 		sm.Client = v.mockClient
 		out, err := sm.GetSecretMap(context.Background(), *v.ref)
-		if !ErrorContains(err, v.expectError) {
-			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
-		}
-		if err == nil && !reflect.DeepEqual(out, v.expectedData) {
-			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
-		}
+		require.Truef(t, ErrorContains(err, v.expectError), fmtExpectedError, err, v.expectError)
+		require.Equal(t, v.expectedVal.(map[string][]byte), out)
 	}
 }
 
@@ -276,4 +301,151 @@ func ErrorContains(out error, want string) bool {
 		return false
 	}
 	return strings.Contains(out.Error(), want)
+}
+
+func TestSecretExists(t *testing.T) {
+	testCases := []*akeylessTestCase{
+		nilProviderTestCase().SetExpectVal(false),
+		makeValidAkeylessTestCase("no secret").SetExpectVal(false).
+			SetMockClient(fakeakeyless.New().SetGetSecretFn(func(secretName string, version int32) (string, error) { return "", ErrItemNotExists })),
+		failGetTestCase(),
+		makeValidAkeylessTestCase("success without property").SetExpectVal(true).SetExpectInput(&testingfake.PushSecretData{Property: ""}).
+			SetMockClient(fakeakeyless.New().SetGetSecretFn(func(secretName string, version int32) (string, error) { return "my secret", nil })),
+		makeValidAkeylessTestCase("fail unmarshal").SetExpectVal(false).SetExpectErr("invalid character 'd' looking for beginning of value").SetExpectInput(&testingfake.PushSecretData{Property: "prop"}).
+			SetMockClient(fakeakeyless.New().SetGetSecretFn(func(secretName string, version int32) (string, error) { return "daenerys", nil })),
+		makeValidAkeylessTestCase("no property").SetExpectVal(false).SetExpectInput(&testingfake.PushSecretData{Property: "prop"}).
+			SetMockClient(fakeakeyless.New().SetGetSecretFn(func(secretName string, version int32) (string, error) { return `{"propa": "a"}`, nil })),
+		makeValidAkeylessTestCase("success with property").SetExpectVal(true).SetExpectInput(&testingfake.PushSecretData{Property: "prop"}).
+			SetMockClient(fakeakeyless.New().SetGetSecretFn(func(secretName string, version int32) (string, error) { return `{"prop": "a"}`, nil })),
+	}
+
+	sm := Akeyless{}
+	t.Parallel()
+	for _, v := range testCases {
+		t.Run(v.testName, func(t *testing.T) {
+			sm.Client = v.mockClient
+			if v.input == nil {
+				v.input = &testingfake.PushSecretData{}
+			}
+			out, err := sm.SecretExists(context.Background(), v.input.(esv1beta1.PushSecretRemoteRef))
+			require.Truef(t, ErrorContains(err, v.expectError), fmtExpectedError, err, v.expectError)
+			require.Equal(t, out, v.expectedVal.(bool))
+		})
+	}
+}
+
+func TestPushSecret(t *testing.T) {
+	testCases := []*akeylessTestCase{
+		nilProviderTestCase(),
+		failGetTestCase(),
+		makeValidAkeylessTestCase("fail unmarshal").SetExpectErr("invalid character 'm' looking for beginning of value").
+			SetMockClient(fakeakeyless.New().SetGetSecretFn(func(secretName string, version int32) (string, error) { return "morgoth", nil })),
+		makeValidAkeylessTestCase("create new secret").SetExpectInput(&corev1.Secret{Data: map[string][]byte{"test": []byte("test")}}).
+			SetMockClient(fakeakeyless.New().SetGetSecretFn(func(secretName string, version int32) (string, error) { return "", ErrItemNotExists }).
+				SetCreateSecretFn(func(ctx context.Context, remoteKey string, data string) error {
+					if data != `{"test":"test"}` {
+						return errors.New("secret is not good")
+					}
+					return nil
+				})),
+		makeValidAkeylessTestCase("update secret").SetExpectInput(&corev1.Secret{Data: map[string][]byte{"test2": []byte("test2")}}).
+			SetMockClient(fakeakeyless.New().SetGetSecretFn(func(secretName string, version int32) (string, error) { return `{"test2":"untest"}`, nil }).
+				SetUpdateSecretFn(func(ctx context.Context, remoteKey string, data string) error {
+					if data != `{"test2":"test2"}` {
+						return errors.New("secret is not good")
+					}
+					return nil
+				})),
+		makeValidAkeylessTestCase("shouldnt update").SetExpectInput(&corev1.Secret{Data: map[string][]byte{"test": []byte("test")}}).
+			SetMockClient(fakeakeyless.New().SetGetSecretFn(func(secretName string, version int32) (string, error) { return `{"test":"test"}`, nil })),
+		makeValidAkeylessTestCase("merge secret maps").SetExpectInput(&corev1.Secret{Data: map[string][]byte{"test": []byte("test")}}).
+			SetExpectInput2(&testingfake.PushSecretData{Property: "test", SecretKey: "test"}).
+			SetMockClient(fakeakeyless.New().SetGetSecretFn(func(secretName string, version int32) (string, error) { return `{"test2":"test2"}`, nil }).
+				SetUpdateSecretFn(func(ctx context.Context, remoteKey string, data string) error {
+					expected := `{"test":"test","test2":"test2"}`
+					if data != expected {
+						return fmt.Errorf("secret %s expected %s", data, expected)
+					}
+					return nil
+				})),
+	}
+
+	sm := Akeyless{}
+	t.Parallel()
+	for _, v := range testCases {
+		t.Run(v.testName, func(t *testing.T) {
+			sm.Client = v.mockClient
+			if v.input == nil {
+				v.input = &corev1.Secret{}
+			}
+			if v.input2 == nil {
+				v.input2 = &testingfake.PushSecretData{}
+			}
+			err := sm.PushSecret(context.Background(), v.input.(*corev1.Secret), v.input2.(esv1beta1.PushSecretData))
+			require.Truef(t, ErrorContains(err, v.expectError), fmtExpectedError, err, v.expectError)
+		})
+	}
+}
+
+func TestDeleteSecret(t *testing.T) {
+	testCases := []*akeylessTestCase{
+		nilProviderTestCase(),
+		makeValidAkeylessTestCase("fail describe").SetExpectErr("err desc").
+			SetMockClient(fakeakeyless.New().SetDescribeItemFn(func(ctx context.Context, itemName string) (*akeyless.Item, error) { return nil, errors.New("err desc") })),
+		makeValidAkeylessTestCase("no such item").
+			SetMockClient(fakeakeyless.New().SetDescribeItemFn(func(ctx context.Context, itemName string) (*akeyless.Item, error) { return nil, nil })),
+		makeValidAkeylessTestCase("tags nil").
+			SetMockClient(fakeakeyless.New().SetDescribeItemFn(func(ctx context.Context, itemName string) (*akeyless.Item, error) { return &akeyless.Item{}, nil })),
+		makeValidAkeylessTestCase("no external secret managed tags").
+			SetMockClient(fakeakeyless.New().SetDescribeItemFn(func(ctx context.Context, itemName string) (*akeyless.Item, error) {
+				return &akeyless.Item{ItemTags: &[]string{"some-random-tag"}}, nil
+			})),
+		makeValidAkeylessTestCase("delete whole secret").SetExpectInput(&testingfake.PushSecretData{RemoteKey: "42"}).
+			SetMockClient(fakeakeyless.New().SetDescribeItemFn(func(ctx context.Context, itemName string) (*akeyless.Item, error) {
+				return &akeyless.Item{ItemTags: &[]string{ExtSecretManagedTag}}, nil
+			}).SetDeleteSecretFn(func(ctx context.Context, remoteKey string) error {
+				if remoteKey != "42" {
+					return fmt.Errorf("remote key %s expected %s", remoteKey, "42")
+				}
+				return nil
+			})),
+		makeValidAkeylessTestCase("delete property of secret").SetExpectInput(&testingfake.PushSecretData{Property: "Foo"}).
+			SetMockClient(fakeakeyless.New().SetDescribeItemFn(func(ctx context.Context, itemName string) (*akeyless.Item, error) {
+				return &akeyless.Item{ItemTags: &[]string{ExtSecretManagedTag}}, nil
+			}).SetGetSecretFn(func(secretName string, version int32) (string, error) {
+				return `{"Dio": "Brando", "Foo": "Fighters"}`, nil
+			}).
+				SetUpdateSecretFn(func(ctx context.Context, remoteKey string, data string) error {
+					expected := `{"Dio":"Brando"}`
+					if data != expected {
+						return fmt.Errorf("secret %s expected %s", data, expected)
+					}
+					return nil
+				})),
+		makeValidAkeylessTestCase("delete secret if one property left").SetExpectInput(&testingfake.PushSecretData{RemoteKey: "Rings", Property: "Annatar"}).
+			SetMockClient(fakeakeyless.New().SetDescribeItemFn(func(ctx context.Context, itemName string) (*akeyless.Item, error) {
+				return &akeyless.Item{ItemTags: &[]string{ExtSecretManagedTag}}, nil
+			}).SetGetSecretFn(func(secretName string, version int32) (string, error) {
+				return `{"Annatar": "The Lord of Gifts"}`, nil
+			}).
+				SetDeleteSecretFn(func(ctx context.Context, remoteKey string) error {
+					if remoteKey != "Rings" {
+						return fmt.Errorf("remote key %s expected %s", remoteKey, "Annatar")
+					}
+					return nil
+				})),
+	}
+
+	sm := Akeyless{}
+	t.Parallel()
+	for _, v := range testCases {
+		t.Run(v.testName, func(t *testing.T) {
+			sm.Client = v.mockClient
+			if v.input == nil {
+				v.input = &testingfake.PushSecretData{}
+			}
+			err := sm.DeleteSecret(context.Background(), v.input.(esv1beta1.PushSecretData))
+			require.Truef(t, ErrorContains(err, v.expectError), fmtExpectedError, err, v.expectError)
+		})
+	}
 }
