@@ -1,11 +1,6 @@
 name: "e2e"
 description: "runs our e2e test suite"
 
-inputs:
-  token:
-    description: Github token
-    required: true
-
 runs:
   using: composite
   steps:
@@ -63,15 +58,11 @@ runs:
         go version
         ginkgo version
         cd e2e && go mod tidy && git status && git diff
-    - name: Install Helm
-      uses: azure/setup-helm@v4
     - name: Run e2e Tests
       shell: bash
       env:
-        GITHUB_TOKEN: ${{ inputs.token }}
         DOCKER_BUILD_ARGS: --load
       run: |
-        helm registry login ghcr.io -u ${{ github.actor }} -p ${{ env.GITHUB_TOKEN }}
         export PATH=$PATH:$(go env GOPATH)/bin
         go install github.com/onsi/ginkgo/v2/ginkgo@${{ env.GINKGO_VERSION }}
         make test.e2e

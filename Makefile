@@ -169,7 +169,7 @@ HELM_VERSION ?= $(shell helm show chart $(HELM_DIR) | grep 'version:' | sed 's/v
 
 helm.build: helm.generate ## Build helm chart
 	@$(INFO) helm package
-	@helm package $(HELM_DIR) --dependency-update --destination $(OUTPUT_DIR)/chart
+	@helm package $(HELM_DIR) --destination $(OUTPUT_DIR)/chart
 	@mv $(OUTPUT_DIR)/chart/external-secrets-$(HELM_VERSION).tgz $(OUTPUT_DIR)/chart/external-secrets.tgz
 	@$(OK) helm package
 
