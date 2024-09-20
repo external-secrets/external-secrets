@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "bitwarden-sdk-server.fullname" . }}
+  labels:
+    {{- include "bitwarden-sdk-server.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      name: http
+  selector:
+    {{- include "bitwarden-sdk-server.selectorLabels" . | nindent 4 }}

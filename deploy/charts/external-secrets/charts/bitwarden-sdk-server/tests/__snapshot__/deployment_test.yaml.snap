@@ -1,0 +1,60 @@
+deployment should match snapshot:
+  1: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app.kubernetes.io/instance: RELEASE-NAME
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/name: bitwarden-sdk-server
+        app.kubernetes.io/version: 1.16.0
+        helm.sh/chart: bitwarden-sdk-server-0.1.0
+      name: bitwarden-sdk-server
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: bitwarden-sdk-server
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/name: bitwarden-sdk-server
+        spec:
+          containers:
+            - image: ghcr.io/external-secrets/bitwarden-sdk-server:v0.8.0
+              imagePullPolicy: IfNotPresent
+              livenessProbe:
+                httpGet:
+                  path: /live
+                  port: http
+                  scheme: HTTPS
+              name: bitwarden-sdk-server
+              ports:
+                - containerPort: 9998
+                  name: http
+                  protocol: TCP
+              readinessProbe:
+                httpGet:
+                  path: /ready
+                  port: http
+                  scheme: HTTPS
+              resources: {}
+              securityContext: {}
+              volumeMounts:
+                - mountPath: /certs
+                  name: bitwarden-tls-certs
+          securityContext: {}
+          serviceAccountName: bitwarden-sdk-server
+          volumes:
+            - name: bitwarden-tls-certs
+              secret:
+                items:
+                  - key: tls.crt
+                    path: cert.pem
+                  - key: tls.key
+                    path: key.pem
+                  - key: ca.crt
+                    path: ca.pem
+                secretName: bitwarden-tls-certs

@@ -1,0 +1,9 @@
+suite: test deployment
+templates:
+  - deployment.yaml
+tests:
+  - it: deployment should match snapshot
+    set:
+      image.tag: v0.8.0
+    asserts:
+      - matchSnapshot: {}

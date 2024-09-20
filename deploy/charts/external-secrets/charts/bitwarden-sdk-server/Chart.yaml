@@ -1,0 +1,6 @@
+apiVersion: v2
+appVersion: v0.3.1
+description: A Helm chart for Kubernetes
+name: bitwarden-sdk-server
+type: application
+version: v0.3.1
