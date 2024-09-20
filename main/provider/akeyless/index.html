@@ -2264,7 +2264,7 @@
           <li class="md-nav__item">
   <a href="#create-secret-store" class="md-nav__link">
     <span class="md-ellipsis">
-      Create Secret Store:
+      Create Secret Store
     </span>
   </a>
   
@@ -2273,11 +2273,11 @@
           <li class="md-nav__item">
   <a href="#authentication-with-kubernetes" class="md-nav__link">
     <span class="md-ellipsis">
-      Authentication with Kubernetes:
+      Authentication with Kubernetes
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Authentication with Kubernetes:">
+    <nav class="md-nav" aria-label="Authentication with Kubernetes">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -2364,6 +2364,15 @@
   <a href="#getting-the-kubernetes-secret" class="md-nav__link">
     <span class="md-ellipsis">
       Getting the Kubernetes Secret
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pushing-a-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pushing a secret
     </span>
   </a>
   
@@ -3369,7 +3378,7 @@
           <li class="md-nav__item">
   <a href="#create-secret-store" class="md-nav__link">
     <span class="md-ellipsis">
-      Create Secret Store:
+      Create Secret Store
     </span>
   </a>
   
@@ -3378,11 +3387,11 @@
           <li class="md-nav__item">
   <a href="#authentication-with-kubernetes" class="md-nav__link">
     <span class="md-ellipsis">
-      Authentication with Kubernetes:
+      Authentication with Kubernetes
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Authentication with Kubernetes:">
+    <nav class="md-nav" aria-label="Authentication with Kubernetes">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -3474,6 +3483,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#pushing-a-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pushing a secret
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3501,12 +3519,12 @@
 
 <h2 id="akeyless-secrets-management-platform">Akeyless Secrets Management Platform</h2>
 <p>External Secrets Operator integrates with the <a href="https://www.akeyless.io/">Akeyless Secrets Management Platform</a>.</p>
-<h3 id="create-secret-store">Create Secret Store:</h3>
+<h3 id="create-secret-store">Create Secret Store</h3>
 <p>SecretStore resource specifies how to access Akeyless. This resource is namespaced.</p>
 <p><strong>NOTE:</strong> Make sure the Akeyless provider is listed in the Kind=SecretStore.
 If you use a customer fragment, define the value of akeylessGWApiURL as the URL of your Akeyless Gateway in the following format: https://your.akeyless.gw:8080/v2.</p>
 <p>Akeyelss provide several Authentication Methods:</p>
-<h3 id="authentication-with-kubernetes">Authentication with Kubernetes:</h3>
+<h3 id="authentication-with-kubernetes">Authentication with Kubernetes</h3>
 <p>Options for obtaining Kubernetes credentials include:</p>
 <ol>
 <li>Using a service account jwt referenced in serviceAccountRef</li>
@@ -3514,7 +3532,7 @@ If you use a customer fragment, define the value of akeylessGWApiURL as the URL 
 <li>Using transient credentials from the mounted service account token within the external-secrets operator</li>
 </ol>
 <h4 id="create-the-akeyless-secret-store-provider-with-kubernetes-auth-method">Create the Akeyless Secret Store Provider with Kubernetes Auth-Method</h4>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">akeyless-secret-store</span>
@@ -3539,7 +3557,7 @@ If you use a customer fragment, define the value of akeylessGWApiURL as the URL 
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret&quot;</span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;token&quot;</span>
 </code></pre></div>
-<strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> for <code>serviceAccountRef</code> and <code>secretRef</code> according to  the namespaces where the secrets reside.</p>
+<p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> for <code>serviceAccountRef</code> and <code>secretRef</code> according to  the namespaces where the secrets reside.</p>
 <h3 id="authentication-with-cloud-identity-or-api-access-key">Authentication With Cloud-Identity or Api-Access-Key</h3>
 <p>Akeyless providers require an access-id, access-type and access-Type-param
 To set your SecretStore with an authentication method from Akeyless.</p>
@@ -3572,12 +3590,9 @@ To set your SecretStore with an authentication method from Akeyless.</p>
 <td><code>k8s</code></td>
 <td>The k8s configuration name</td>
 </tr>
-<tr>
-<td>For more information see <a href="https://docs.akeyless.io/docs/access-and-authentication-methods">Akeyless Authentication Methods</a></td>
-<td></td>
-</tr>
 </tbody>
 </table>
+<p>For more information see <a href="https://docs.akeyless.io/docs/access-and-authentication-methods">Akeyless Authentication Methods</a></p>
 <h4 id="creating-an-akeyless-credentials-secret">Creating an Akeyless Credentials Secret</h4>
 <p>Create a secret containing your credentials using the following example as a guide:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
@@ -3591,7 +3606,7 @@ To set your SecretStore with an authentication method from Akeyless.</p>
 <span class="w">  </span><span class="nt">accessTypeParam</span><span class="p">:</span><span class="w">  </span><span class="c1"># optional: can be one of the following: gcp-audience/azure-obj-id/access-key/k8s-conf-name</span>
 </code></pre></div>
 <h4 id="create-the-akeyless-secret-store-provider-with-the-credentials-secret">Create the Akeyless Secret Store Provider with the Credentials Secret</h4>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">akeyless-secret-store</span>
@@ -3612,7 +3627,7 @@ To set your SecretStore with an authentication method from Akeyless.</p>
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">akeyless-secret-creds</span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">accessTypeParam</span>
 </code></pre></div>
-<strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, be sure to provide <code>namespace</code> for <code>accessID</code>, <code>accessType</code> and <code>accessTypeParam</code>  according to the namespaces where the secrets reside.</p>
+<p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, be sure to provide <code>namespace</code> for <code>accessID</code>, <code>accessType</code> and <code>accessTypeParam</code>  according to the namespaces where the secrets reside.</p>
 <h4 id="create-the-akeyless-secret-store-with-cas-for-tls-handshake">Create the Akeyless Secret Store With CAs for TLS handshake</h4>
 <div class="highlight"><pre><span></span><code><span class="l l-Scalar l-Scalar-Plain">....</span>
 <span class="l l-Scalar l-Scalar-Plain">spec</span><span class="p p-Indicator">:</span>
@@ -3681,11 +3696,35 @@ To set your SecretStore with an authentication method from Akeyless.</p>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span><span class="w"> </span><span class="c1"># Full path of the secret on Akeyless</span>
 </code></pre></div>
 <h3 id="getting-the-kubernetes-secret">Getting the Kubernetes Secret</h3>
-<p>The operator will fetch the secret and inject it as a <code>Kind=Secret</code>.
-<div class="highlight"><pre><span></span><code>kubectl get secret database-credentials -o jsonpath=&#39;{.data.db-password}&#39; | base64 -d
-</code></pre></div></p>
-<div class="highlight"><pre><span></span><code>kubectl get secret database-credentials-json -o jsonpath=&#39;{.data}&#39;
+<p>The operator will fetch the secret and inject it as a <code>Kind=Secret</code>.</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>secret<span class="w"> </span>database-credentials<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.data.db-password}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span>-d
 </code></pre></div>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>secret<span class="w"> </span>database-credentials-json<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.data}&#39;</span>
+</code></pre></div>
+<h3 id="pushing-a-secret">Pushing a secret</h3>
+<p>To push a secret from Kubernetes cluster and create it as a secret to Akeyless, a <code>Kind=PushSecret</code> resource is needed.</p>
+<p>apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+ name: push-secret
+spec:
+ refreshInterval: 5s
+ updatePolicy: Replace
+ deletionPolicy: Delete
+ secretStoreRefs:
+   - name: akeyless-secret-store
+     kind: SecretStore
+ selector:
+   secret:
+     name: k8s-created-secret
+ data:
+   - match:
+      remoteRef:
+        remoteKey: eso-created/my-secret</p>
+<p>Then when you create a matching secret as follows:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>--from-literal<span class="o">=</span>cache-pass<span class="o">=</span>mypassword<span class="w"> </span>k8s-created-secret
+</code></pre></div>
+<p>Then it will create a secret in akeyless <code>eso-created/my-secret</code> with value <code>{"cache-pass":"mypassword"}</code></p>
 
 
 
