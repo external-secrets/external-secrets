@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/1Password/connect-sdk-go/connect"
@@ -63,6 +64,9 @@ const (
 	errExpectedOneFieldMsgF = "%w: '%s' in '%s', got %d"
 
 	documentCategory = "DOCUMENT"
+	fieldPrefix      = "field"
+	filePrefix       = "file"
+	prefixSplitter   = "/"
 )
 
 // Custom Errors //.
@@ -329,6 +333,22 @@ func (provider *ProviderOnePassword) PushSecret(ctx context.Context, secret *cor
 	return nil
 }
 
+// Clean property string by removing property prefix if needed.
+func getObjType(documentType onepassword.ItemCategory, property string) (string, string) {
+	if strings.HasPrefix(property, fieldPrefix+prefixSplitter) {
+		return fieldPrefix, property[6:]
+	}
+	if strings.HasPrefix(property, filePrefix+prefixSplitter) {
+		return filePrefix, property[5:]
+	}
+
+	if documentType == documentCategory {
+		return filePrefix, property
+	}
+
+	return fieldPrefix, property
+}
+
 // GetSecret returns a single secret from the provider.
 func (provider *ProviderOnePassword) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if ref.Version != "" {
@@ -340,14 +360,11 @@ func (provider *ProviderOnePassword) GetSecret(_ context.Context, ref esv1beta1.
 		return nil, err
 	}
 
-	// handle files
-	if item.Category == documentCategory {
-		// default to the first file when ref.Property is empty
-		return provider.getFile(item, ref.Property)
+	propertyType, property := getObjType(item.Category, ref.Property)
+	if propertyType == filePrefix {
+		return provider.getFile(item, property)
 	}
-
-	// handle fields
-	return provider.getField(item, ref.Property)
+	return provider.getField(item, property)
 }
 
 // Validate checks if the client is configured correctly
@@ -374,13 +391,11 @@ func (provider *ProviderOnePassword) GetSecretMap(_ context.Context, ref esv1bet
 		return nil, err
 	}
 
-	// handle files
-	if item.Category == documentCategory {
-		return provider.getFiles(item, ref.Property)
+	propertyType, property := getObjType(item.Category, ref.Property)
+	if propertyType == filePrefix {
+		return provider.getFiles(item, property)
 	}
-
-	// handle fields
-	return provider.getFields(item, ref.Property)
+	return provider.getFields(item, property)
 }
 
 // GetAllSecrets syncs multiple 1Password Items into a single Kubernetes Secret, for dataFrom.find.
@@ -568,13 +583,9 @@ func (provider *ProviderOnePassword) getAllForVault(vaultID string, ref esv1beta
 		}
 
 		// handle files
-		if item.Category == documentCategory {
-			err = provider.getAllFiles(item, ref, secretData)
-			if err != nil {
-				return err
-			}
-
-			continue
+		err = provider.getAllFiles(item, ref, secretData)
+		if err != nil {
+			return err
 		}
 
 		// handle fields

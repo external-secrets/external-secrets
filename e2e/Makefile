@@ -9,6 +9,8 @@ export E2E_IMAGE_NAME ?= ghcr.io/external-secrets/external-secrets-e2e
 export GINKGO_LABELS ?= !managed
 export TEST_SUITES ?= provider generator flux argocd
 
+export OCI_IMAGE_NAME = oci.external-secrets.io/external-secrets/external-secrets
+
 start-kind: ## Start kind cluster
 	kind create cluster \
 	  --name external-secrets \
@@ -22,7 +24,13 @@ test: e2e-image ## Run e2e tests against current kube context
 		VERSION=$(VERSION) \
 		ARCH=amd64 \
 		DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
+	$(MAKE) -C ../ docker.build \
+		IMAGE_NAME=$(OCI_IMAGE_NAME) \
+		VERSION=$(VERSION) \
+		ARCH=amd64 \
+		DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
 	kind load docker-image --name="external-secrets" $(IMAGE_NAME):$(VERSION)
+	kind load docker-image --name="external-secrets" $(OCI_IMAGE_NAME):$(VERSION)
 	kind load docker-image --name="external-secrets" $(E2E_IMAGE_NAME):$(VERSION)
 	./run.sh
 
@@ -31,7 +39,15 @@ test.managed: e2e-image ## Run e2e tests against current kube context
 		VERSION=$(VERSION) \
 		ARCH=amd64 \
 		DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
+	$(MAKE) -C ../ docker.build \
+		IMAGE_NAME=$(OCI_IMAGE_NAME) \
+		VERSION=$(VERSION) \
+		ARCH=amd64 \
+		DOCKER_BUILD_ARGS="${DOCKER_BUILD_ARGS} --build-arg TARGETARCH=amd64 --build-arg TARGETOS=linux"
 	$(MAKE) -C ../ docker.push \
+		VERSION=$(VERSION)
+	$(MAKE) -C ../ docker.push \
+		IMAGE_NAME=$(OCI_IMAGE_NAME) \
 		VERSION=$(VERSION)
 	$(MAKE) -C ../ docker.push \
 		IMAGE_NAME=$(E2E_IMAGE_NAME) \
