@@ -56,8 +56,45 @@ func filterPEM(pemType, input string) (string, error) {
 	return string(blocks), nil
 }
 
-func pemEncode(thing, kind string) (string, error) {
+func filterCertChain(certType, input string) (string, error) {
+	ordered, err := fetchX509CertChains([]byte(input))
+	if err != nil {
+		return "", err
+	}
+
+	switch certType {
+	case "leaf":
+		cert := ordered[0]
+		if cert.AuthorityKeyId != nil && !bytes.Equal(cert.AuthorityKeyId, cert.SubjectKeyId) {
+			return pemEncode(ordered[0].Raw, pemTypeCertificate)
+		}
+	case "intermediate":
+		if len(ordered) >= 2 {
+			var pemData []byte
+			for _, cert := range ordered[1:] {
+				if cert.AuthorityKeyId == nil || bytes.Equal(cert.AuthorityKeyId, cert.SubjectKeyId) {
+					break
+				}
+				b := &pem.Block{
+					Type:  pemTypeCertificate,
+					Bytes: cert.Raw,
+				}
+				pemData = append(pemData, pem.EncodeToMemory(b)...)
+			}
+			return string(pemData), nil
+		}
+	case "root":
+		cert := ordered[len(ordered)-1]
+		if cert.AuthorityKeyId == nil || bytes.Equal(cert.AuthorityKeyId, cert.SubjectKeyId) {
+			return pemEncode(cert.Raw, pemTypeCertificate)
+		}
+	}
+
+	return "", nil
+}
+
+func pemEncode(thing []byte, kind string) (string, error) {
 	buf := bytes.NewBuffer(nil)
-	err := pem.Encode(buf, &pem.Block{Type: kind, Bytes: []byte(thing)})
+	err := pem.Encode(buf, &pem.Block{Type: kind, Bytes: thing})
 	return buf.String(), err
 }
