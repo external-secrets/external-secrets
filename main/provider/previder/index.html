@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../device42/">
+        <link rel="prev" href="../infisical/">
       
       
-        <link rel="next" href="../hashicorp-vault/">
+        <link rel="next" href="../../examples/gitops-using-fluxcd/">
       
       
       <link rel="icon" href="../../pictures/eso-round-logo.svg">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Google Cloud Secret Manager - External Secrets Operator</title>
+        <title>Previder - External Secrets Operator</title>
       
     
     
@@ -82,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#google-cloud-secret-manager" class="md-skip">
+        <a href="#previder-secret-vault-manager" class="md-skip">
           Skip to content
         </a>
       
@@ -131,7 +131,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Google Cloud Secret Manager
+              Previder
             
           </span>
         </div>
@@ -2125,28 +2125,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Google Cloud Secret Manager
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../google-secrets-manager/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2155,123 +2137,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#google-cloud-secret-manager" class="md-nav__link">
-    <span class="md-ellipsis">
-      Google Cloud Secret Manager
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
-    <span class="md-ellipsis">
-      Authentication
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Authentication">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#workload-identity" class="md-nav__link">
-    <span class="md-ellipsis">
-      Workload Identity
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Workload Identity">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#creating-workload-identity-service-accounts" class="md-nav__link">
-    <span class="md-ellipsis">
-      Creating Workload Identity Service Accounts
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#using-service-accounts-directly" class="md-nav__link">
-    <span class="md-ellipsis">
-      Using Service Accounts directly
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#using-pod-based-workload-identity" class="md-nav__link">
-    <span class="md-ellipsis">
-      Using Pod-based Workload Identity
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gcp-service-account-authentication" class="md-nav__link">
-    <span class="md-ellipsis">
-      GCP Service Account authentication
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="GCP Service Account authentication">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#update-secret-store" class="md-nav__link">
-    <span class="md-ellipsis">
-      Update secret store
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#creating-external-secret" class="md-nav__link">
-    <span class="md-ellipsis">
-      Creating external secret
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -2806,10 +2671,28 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../previder/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Previder
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -2818,6 +2701,72 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#previder-secret-vault-manager" class="md-nav__link">
+    <span class="md-ellipsis">
+      Previder Secret Vault Manager
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Previder Secret Vault Manager">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      Authentication
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authentication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#access-token-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      Access Token authentication
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-external-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      Creating external secret
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -3356,15 +3305,16 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#google-cloud-secret-manager" class="md-nav__link">
+  <a href="#previder-secret-vault-manager" class="md-nav__link">
     <span class="md-ellipsis">
-      Google Cloud Secret Manager
+      Previder Secret Vault Manager
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
+    <nav class="md-nav" aria-label="Previder Secret Vault Manager">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#authentication" class="md-nav__link">
     <span class="md-ellipsis">
       Authentication
@@ -3375,37 +3325,9 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#workload-identity" class="md-nav__link">
+  <a href="#access-token-authentication" class="md-nav__link">
     <span class="md-ellipsis">
-      Workload Identity
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Workload Identity">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#creating-workload-identity-service-accounts" class="md-nav__link">
-    <span class="md-ellipsis">
-      Creating Workload Identity Service Accounts
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#using-service-accounts-directly" class="md-nav__link">
-    <span class="md-ellipsis">
-      Using Service Accounts directly
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#using-pod-based-workload-identity" class="md-nav__link">
-    <span class="md-ellipsis">
-      Using Pod-based Workload Identity
+      Access Token authentication
     </span>
   </a>
   
@@ -3413,25 +3335,6 @@
         
       </ul>
     </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gcp-service-account-authentication" class="md-nav__link">
-    <span class="md-ellipsis">
-      GCP Service Account authentication
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="GCP Service Account authentication">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#update-secret-store" class="md-nav__link">
-    <span class="md-ellipsis">
-      Update secret store
-    </span>
-  </a>
   
 </li>
         
@@ -3441,11 +3344,6 @@
       Creating external secret
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
         
@@ -3472,157 +3370,55 @@
   
 
 
-  <h1>Google Cloud Secret Manager</h1>
+  <h1>Previder</h1>
 
-<h2 id="google-cloud-secret-manager">Google Cloud Secret Manager</h2>
-<p>External Secrets Operator integrates with <a href="https://cloud.google.com/secret-manager">GCP Secret Manager</a> for secret management.</p>
-<h2 id="authentication">Authentication</h2>
-<h3 id="workload-identity">Workload Identity</h3>
-<p>Your Google Kubernetes Engine (GKE) applications can consume GCP services like Secrets Manager without using static, long-lived authentication tokens. This is our recommended approach of handling credentials in GCP. ESO offers two options for integrating with GKE workload identity: <strong>pod-based workload identity</strong> and <strong>using service accounts directly</strong>. Before using either way you need to create a service account - this is covered below.</p>
-<h4 id="creating-workload-identity-service-accounts">Creating Workload Identity Service Accounts</h4>
-<p>You can find the documentation for Workload Identity <a href="https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity">here</a>. We will walk you through how to navigate it here.</p>
-<p>Search <a href="https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity">the document</a> for this editable values and change them to your values:
-<em>Note: If you have installed ESO, a serviceaccount has already been created. You can either patch the existing <code>external-secrets</code> SA or create a new one that fits your needs.</em></p>
-<ul>
-<li><code>CLUSTER_NAME</code>: The name of your cluster</li>
-<li><code>PROJECT_ID</code>: Your project ID (not your Project number nor your Project name)</li>
-<li><code>K8S_NAMESPACE</code>: For us following these steps here it will be <code>es</code>, but this will be the namespace where you deployed the external-secrets operator</li>
-<li><code>KSA_NAME</code>: external-secrets (if you are not creating a new one to attach to the deployment)</li>
-<li><code>GSA_NAME</code>: external-secrets for simplicity, or something else if you have to follow different naming conventions for cloud resources</li>
-<li><code>ROLE_NAME</code>: should be <code>roles/secretmanager.secretAccessor</code> - so you make the pod only be able to access secrets on Secret Manager</li>
-</ul>
-<h4 id="using-service-accounts-directly">Using Service Accounts directly</h4>
-<p>Let's assume you have created a service account correctly and attached a appropriate workload identity. It should roughly look like this:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ServiceAccount</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
-<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">es</span>
-<span class="w">  </span><span class="nt">annotations</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">iam.gke.io/gcp-service-account</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-team-a@my-project.iam.gserviceaccount.com</span>
-</code></pre></div>
-<p>You can reference this particular ServiceAccount in a <code>SecretStore</code> or <code>ClusterSecretStore</code>. It's important that you also set the <code>projectID</code>, <code>clusterLocation</code> and <code>clusterName</code>. The Namespace on the <code>serviceAccountRef</code> is ignored when using a <code>SecretStore</code> resource. This is needed to isolate the namespaces properly.</p>
-<p><em>When filling <code>clusterLocation</code> parameter keep in mind if it is Regional or Zonal cluster.</em></p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcp-store</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">gcpsm</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">alphabet-123</span>
-<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">workloadIdentity</span><span class="p">:</span>
-<span class="w">          </span><span class="c1"># name of the cluster Location, region or zone</span>
-<span class="w">          </span><span class="nt">clusterLocation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">europe-central2</span>
-<span class="w">          </span><span class="c1"># name of the GKE cluster</span>
-<span class="w">          </span><span class="nt">clusterName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">alpha-cluster-42</span>
-<span class="w">          </span><span class="c1"># projectID of the cluster (if omitted defaults to spec.provider.gcpsm.projectID)</span>
-<span class="w">          </span><span class="nt">clusterProjectID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-cluster-project</span>
-<span class="w">          </span><span class="c1"># reference the sa from above</span>
-<span class="w">          </span><span class="nt">serviceAccountRef</span><span class="p">:</span>
-<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">team-a</span>
-<span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">team-a</span>
-</code></pre></div>
-<p><em>You need to give the Google service account the <code>roles/iam.serviceAccountTokenCreator</code> role so it can generate a service account token for you (not necessary in the Pod-based Workload Identity bellow)</em></p>
-<h4 id="using-pod-based-workload-identity">Using Pod-based Workload Identity</h4>
-<p>You can attach a Workload Identity directly to the ESO pod. ESO then has access to all the APIs defined in the attached service account policy. You attach the workload identity by (1) creating a service account with a attached workload identity (described above) and (2) using this particular service account in the pod's <code>serviceAccountName</code> field.</p>
-<p>For this example we will assume that you installed ESO using helm and that you named the chart installation <code>external-secrets</code> and the namespace where it lives <code>es</code> like:</p>
-<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>install<span class="w"> </span>external-secrets<span class="w"> </span>external-secrets/external-secrets<span class="w"> </span>--namespace<span class="w"> </span>es
-</code></pre></div>
-<p>Then most of the resources would have this name, the important one here being the k8s service account attached to the external-secrets operator deployment:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># ...</span>
-<span class="w">      </span><span class="nt">containers</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/external-secrets/external-secrets:vVERSION</span>
-<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
-<span class="w">        </span><span class="nt">ports</span><span class="p">:</span>
-<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8080</span>
-<span class="w">          </span><span class="nt">protocol</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">TCP</span>
-<span class="w">      </span><span class="nt">restartPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Always</span>
-<span class="w">      </span><span class="nt">schedulerName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default-scheduler</span>
-<span class="w">      </span><span class="nt">serviceAccount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
-<span class="w">      </span><span class="nt">serviceAccountName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span><span class="w"> </span><span class="c1"># &lt;--- here</span>
-</code></pre></div>
-<p>The pod now has the identity. Now you need to configure the <code>SecretStore</code>.
-You just need to set the <code>projectID</code>, all other fields can be omitted.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcp-store</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">gcpsm</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">alphabet-123</span>
-</code></pre></div>
-<h3 id="gcp-service-account-authentication">GCP Service Account authentication</h3>
-<p>You can use <a href="https://cloud.google.com/iam/docs/service-accounts">GCP Service Account</a> to authenticate with GCP. These are static, long-lived credentials. A GCP Service Account is a JSON file that needs to be stored in a <code>Kind=Secret</code>. ESO will use that Secret to authenticate with GCP. See here how you <a href="https://cloud.google.com/iam/docs/creating-managing-service-accounts">manage GCP Service Accounts</a>.
-After creating a GCP Service account go to <code>IAM &amp; Admin</code> web UI, click <code>ADD ANOTHER ROLE</code> button, add <code>Secret Manager Secret Accessor</code> role to this service account.
-The <code>Secret Manager Secret Accessor</code> role is required to access secrets.</p>
+<p><img alt="Previder Secret Vault" src="../../pictures/previder-provider.png" /></p>
+<h2 id="previder-secret-vault-manager">Previder Secret Vault Manager</h2>
+<p>External Secrets Operator integrates with <a href="https://vault.previder.io">Previder Secrets Vault</a> for secure secret management.</p>
+<h3 id="authentication">Authentication</h3>
+<p>We support Access Token authentication using a Secrets Vault ReadWrite or ReadOnly token.</p>
+<p>This token can be created with the <a href="https://github.com/previder/vault-cli">vault-cli</a> using an Environment token which can be acquired via the <a href="https://portal.previder.nl">Previder Portal</a>.</p>
+<h4 id="access-token-authentication">Access Token authentication</h4>
+<p>To use the access token, first create it as a regular Kubernetes Secret and then associate it with the Previder Secret Store.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcpsm-secret</span>
-<span class="w">  </span><span class="nt">labels</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcpsm</span>
-<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
-<span class="nt">stringData</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">secret-access-credentials</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|-</span>
-<span class="w">    </span><span class="no">{</span>
-<span class="w">      </span><span class="no">&quot;type&quot;: &quot;service_account&quot;,</span>
-<span class="w">      </span><span class="no">&quot;project_id&quot;: &quot;external-secrets-operator&quot;,</span>
-<span class="w">      </span><span class="no">&quot;private_key_id&quot;: &quot;&quot;,</span>
-<span class="w">      </span><span class="no">&quot;private_key&quot;: &quot;-----BEGIN PRIVATE KEY-----\nA key\n-----END PRIVATE KEY-----\n&quot;,</span>
-<span class="w">      </span><span class="no">&quot;client_email&quot;: &quot;test-service-account@external-secrets-operator.iam.gserviceaccount.com&quot;,</span>
-<span class="w">      </span><span class="no">&quot;client_id&quot;: &quot;client ID&quot;,</span>
-<span class="w">      </span><span class="no">&quot;auth_uri&quot;: &quot;https://accounts.google.com/o/oauth2/auth&quot;,</span>
-<span class="w">      </span><span class="no">&quot;token_uri&quot;: &quot;https://oauth2.googleapis.com/token&quot;,</span>
-<span class="w">      </span><span class="no">&quot;auth_provider_x509_cert_url&quot;: &quot;https://www.googleapis.com/oauth2/v1/certs&quot;,</span>
-<span class="w">      </span><span class="no">&quot;client_x509_cert_url&quot;: &quot;https://www.googleapis.com/robot/v1/metadata/x509/test-service-account%40external-secrets-operator.iam.gserviceaccount.com&quot;</span>
-<span class="w">    </span><span class="no">}</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">previder-vault-sample-secret</span>
+<span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">previder-vault-token</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cHJldmlkZXIgdmF1bHQgZXhhbXBsZQ==</span>
 </code></pre></div>
-<h4 id="update-secret-store">Update secret store</h4>
-<p>Be sure the <code>gcpsm</code> provider is listed in the <code>Kind=SecretStore</code></p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcp-store</span>
-<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">previder-secretstore-sample</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">gcpsm</span><span class="p">:</span><span class="w">                                  </span><span class="c1"># gcpsm provider</span>
+<span class="w">    </span><span class="nt">previder</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">secretAccessKeySecretRef</span><span class="p">:</span>
-<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcpsm-secret</span><span class="w">              </span><span class="c1"># secret name containing SA key</span>
-<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-access-credentials</span><span class="w">  </span><span class="c1"># key name containing SA key</span>
-<span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">alphabet-123</span><span class="w">               </span><span class="c1"># name of Google Cloud project</span>
+<span class="w">          </span><span class="nt">accessToken</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">previder-vault-sample-secret</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">previder-vault-token</span>
 </code></pre></div>
-<p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> for <code>SecretAccessKeyRef</code> with the namespace of the secret that we just created.</p>
-<h4 id="creating-external-secret">Creating external secret</h4>
-<p>To create a kubernetes secret from the GCP Secret Manager secret a <code>Kind=ExternalSecret</code> is needed.</p>
+<h3 id="creating-external-secret">Creating external secret</h3>
+<p>To create a kubernetes secret from the Previder Secret Vault, create an ExternalSecret with a reference to a Vault secret.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w">             </span><span class="c1"># rate SecretManager pulls GCPSM</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
 <span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">previder-secretstore-sample</span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcp-store</span><span class="w">               </span><span class="c1"># name of the SecretStore (or kind specified)</span>
 <span class="w">  </span><span class="nt">target</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span><span class="w">    </span><span class="c1"># name of the k8s Secret to be created</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-secret</span>
 <span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
 <span class="w">  </span><span class="nt">data</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database_username</span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database_username</span><span class="w">      </span><span class="c1"># name of the GCPSM secret key</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database_password</span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database_password</span><span class="w">      </span><span class="c1"># name of the GCPSM secret key</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">local-secret-key</span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token-name-or-id</span>
 </code></pre></div>
-<p>The operator will fetch the GCP Secret Manager secret and inject it as a <code>Kind=Secret</code>
-<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; -o jsonpath=&#39;{.data.dev-secret-test}&#39; | base64 -d
-</code></pre></div></p>
 
 
 
