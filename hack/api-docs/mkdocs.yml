@@ -136,6 +136,7 @@ nav:
       - Password Depot: provider-passworddepot.md
       - Fortanix: provider/fortanix.md
       - Infisical: provider/infisical.md
+      - Previder: provider/previder.md
   - Examples:
       - FluxCD: examples/gitops-using-fluxcd.md
       - Anchore Engine: examples/anchore-engine-credentials.md
