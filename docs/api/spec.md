@@ -6116,6 +6116,17 @@ To create a new organization, visit <a href="https://app.pulumi.com/">https://ap
 </tr>
 <tr>
 <td>
+<code>project</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Project is the name of the Pulumi ESC project the environment belongs to.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>environment</code></br>
 <em>
 string

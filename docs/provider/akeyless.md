@@ -1,7 +1,9 @@
 ## Akeyless Secrets Management Platform
 
 External Secrets Operator integrates with the [Akeyless Secrets Management Platform](https://www.akeyless.io/).
-### Create Secret Store:
+
+### Create Secret Store
+
 SecretStore resource specifies how to access Akeyless. This resource is namespaced.
 
 **NOTE:** Make sure the Akeyless provider is listed in the Kind=SecretStore.
@@ -9,7 +11,7 @@ If you use a customer fragment, define the value of akeylessGWApiURL as the URL 
 
 Akeyelss provide several Authentication Methods:
 
-### Authentication with Kubernetes:
+### Authentication with Kubernetes
 
 Options for obtaining Kubernetes credentials include:
 
@@ -18,11 +20,12 @@ Options for obtaining Kubernetes credentials include:
 3. Using transient credentials from the mounted service account token within the external-secrets operator
 
 #### Create the Akeyless Secret Store Provider with Kubernetes Auth-Method
+
 ```yaml
 {% include 'akeyless-secret-store-k8s-auth.yaml' %}
 ```
-**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `serviceAccountRef` and `secretRef` according to  the namespaces where the secrets reside.
 
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `serviceAccountRef` and `secretRef` according to  the namespaces where the secrets reside.
 
 ### Authentication With Cloud-Identity or Api-Access-Key
 
@@ -38,6 +41,7 @@ The supported auth-methods and their parameters are:
 | `azure_ad` |  azure object id  (optional)                                                          |
 | `api_key`      | The access key.                                                                                                                                     |
 | `k8s`         | The k8s configuration name |
+
 For more information see [Akeyless Authentication Methods](https://docs.akeyless.io/docs/access-and-authentication-methods)
 
 #### Creating an Akeyless Credentials Secret
@@ -61,9 +65,11 @@ stringData:
 ```yaml
 {% include 'akeyless-secret-store.yaml' %}
 ```
+
 **NOTE:** In case of a `ClusterSecretStore`, be sure to provide `namespace` for `accessID`, `accessType` and `accessTypeParam`  according to the namespaces where the secrets reside.
 
 #### Create the Akeyless Secret Store With CAs for TLS handshake
+
 ```yaml
 ....
 spec:
@@ -103,11 +109,27 @@ DataFrom can be used to get a secret as a JSON string and attempt to parse it.
 ```
 
 ### Getting the Kubernetes Secret
+
 The operator will fetch the secret and inject it as a `Kind=Secret`.
-```
+
+```bash
 kubectl get secret database-credentials -o jsonpath='{.data.db-password}' | base64 -d
 ```
 
-```
+```bash
 kubectl get secret database-credentials-json -o jsonpath='{.data}'
 ```
+
+### Pushing a secret
+
+To push a secret from Kubernetes cluster and create it as a secret to Akeyless, a `Kind=PushSecret` resource is needed.
+
+{% include 'akeyless-push-secret.yaml' %}
+
+Then when you create a matching secret as follows:
+
+```bash
+kubectl create secret generic --from-literal=cache-pass=mypassword k8s-created-secret
+```
+
+Then it will create a secret in akeyless `eso-created/my-secret` with value `{"cache-pass":"mypassword"}`

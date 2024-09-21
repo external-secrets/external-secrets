@@ -4223,7 +4223,7 @@ spec:
                               type: object
                           type: object
                         apiUrl:
-                          default: https://api.pulumi.com/api/preview
+                          default: https://api.pulumi.com/api/esc
                           description: APIURL is the URL of the Pulumi API.
                           type: string
                         environment:
@@ -4238,10 +4238,14 @@ spec:
                             Organization are a space to collaborate on shared projects and stacks.
                             To create a new organization, visit https://app.pulumi.com/ and click "New Organization".
                           type: string
+                        project:
+                          description: Project is the name of the Pulumi ESC project the environment belongs to.
+                          type: string
                       required:
                         - accessToken
                         - environment
                         - organization
+                        - project
                       type: object
                     scaleway:
                       description: Scaleway
@@ -10038,7 +10042,7 @@ spec:
                               type: object
                           type: object
                         apiUrl:
-                          default: https://api.pulumi.com/api/preview
+                          default: https://api.pulumi.com/api/esc
                           description: APIURL is the URL of the Pulumi API.
                           type: string
                         environment:
@@ -10053,10 +10057,14 @@ spec:
                             Organization are a space to collaborate on shared projects and stacks.
                             To create a new organization, visit https://app.pulumi.com/ and click "New Organization".
                           type: string
+                        project:
+                          description: Project is the name of the Pulumi ESC project the environment belongs to.
+                          type: string
                       required:
                         - accessToken
                         - environment
                         - organization
+                        - project
                       type: object
                     scaleway:
                       description: Scaleway

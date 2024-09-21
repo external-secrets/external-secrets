@@ -7,6 +7,17 @@ edit_uri: ./edit/main/docs/
 remote_branch: gh-pages
 theme:
   name: material
+  palette:
+    - scheme: default
+      media: "(prefers-color-scheme: light)"
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      media: "(prefers-color-scheme: dark)"
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode  
   features:
     - navigation.tabs
     - navigation.indexes
