@@ -2637,6 +2637,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#creating-a-clustersecretstore" class="md-nav__link">
+    <span class="md-ellipsis">
+      Creating a ClusterSecretStore
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#referencing-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       Referencing Secrets
@@ -3337,6 +3346,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#creating-a-clustersecretstore" class="md-nav__link">
+    <span class="md-ellipsis">
+      Creating a ClusterSecretStore
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#referencing-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       Referencing Secrets
@@ -3405,10 +3423,12 @@
 
 <h2 id="pulumi-esc">Pulumi ESC</h2>
 <p>Sync environments, configs and secrets from <a href="https://www.pulumi.com/product/esc/">Pulumi ESC</a> to Kubernetes using the External Secrets Operator.</p>
+<p><img alt="Pulumi ESC" src="../../pictures/pulumi-esc.png" /></p>
+<p>More information about setting up <a href="https://www.pulumi.com/">Pulumi</a> ESC can be found in the <a href="https://www.pulumi.com/docs/esc/">Pulumi ESC documentation</a>.</p>
 <h3 id="authentication">Authentication</h3>
 <p>Pulumi <a href="https://www.pulumi.com/docs/pulumi-cloud/access-management/access-tokens/">Access Tokens</a> are recommended to access Pulumi ESC.</p>
 <h3 id="creating-a-secretstore">Creating a SecretStore</h3>
-<p>A Pulumi SecretStore can be created by specifying the <code>organization</code> and <code>environment</code> and referencing a Kubernetes secret containing the <code>accessToken</code>.</p>
+<p>A Pulumi <code>SecretStore</code> can be created by specifying the <code>organization</code>, <code>project</code> and <code>environment</code> and referencing a Kubernetes secret containing the <code>accessToken</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -3417,13 +3437,32 @@
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">pulumi</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">organization</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;NAME_OF_THE_ORGANIZATION&gt;</span>
+<span class="w">      </span><span class="nt">project</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;NAME_OF_THE_PROJECT&gt;</span>
 <span class="w">      </span><span class="nt">environment</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;NAME_OF_THE_ENVIRONMENT&gt;</span>
 <span class="w">      </span><span class="nt">accessToken</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;NAME_OF_KUBE_SECRET&gt;</span>
 <span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;KEY_IN_KUBE_SECRET&gt;</span>
 </code></pre></div>
-<p>If required, the API URL (<code>apiUrl</code>) can be customized as well. If not specified, the default value is <code>https://api.pulumi.com/api/preview</code>.</p>
+<p>If required, the API URL (<code>apiUrl</code>) can be customized as well. If not specified, the default value is <code>https://api.pulumi.com/api/esc</code>.</p>
+<h3 id="creating-a-clustersecretstore">Creating a ClusterSecretStore</h3>
+<p>Similarly, a <code>ClusterSecretStore</code> can be created by specifying the <code>namespace</code> and referencing a Kubernetes secret containing the <code>accessToken</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-store</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">pulumi</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">organization</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;NAME_OF_THE_ORGANIZATION&gt;</span>
+<span class="w">      </span><span class="nt">project</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;NAME_OF_THE_PROJECT&gt;</span>
+<span class="w">      </span><span class="nt">environment</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;NAME_OF_THE_ENVIRONMENT&gt;</span>
+<span class="w">      </span><span class="nt">accessToken</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;NAME_OF_KUBE_SECRET&gt;</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;KEY_IN_KUBE_SECRET&gt;</span>
+<span class="w">          </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;NAMESPACE&gt;</span>
+</code></pre></div>
 <h3 id="referencing-secrets">Referencing Secrets</h3>
 <p>Secrets can be referenced by defining the <code>key</code> containing the JSON path to the secret. Pulumi ESC secrets are internally organized as a JSON object.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
