@@ -34,6 +34,9 @@ type MachineIdentityScopeInWorkspace struct {
 	// +kubebuilder:default="/"
 	// +optional
 	SecretsPath string `json:"secretsPath,omitempty"`
+	// +kubebuilder:default="false"
+	// +optional
+	Recursive string `json:"recursive,omitempty"`
 	// +kubebuilder:validation:Required
 	EnvironmentSlug string `json:"environmentSlug"`
 	// +kubebuilder:validation:Required

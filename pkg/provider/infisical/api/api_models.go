@@ -53,6 +53,7 @@ type GetSecretsV3Request struct {
 	EnvironmentSlug string `json:"environment"`
 	ProjectSlug     string `json:"workspaceSlug"`
 	SecretPath      string `json:"secretPath"`
+	Recursive       string `json:"recursive"`
 }
 
 type GetSecretsV3Response struct {
