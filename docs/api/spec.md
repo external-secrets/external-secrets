@@ -1421,10 +1421,10 @@ External Secrets meta/v1.SecretKeySelector
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.AkeylessProvider">AkeylessProvider</a>, 
-<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider</a>, 
-<a href="#external-secrets.io/v1beta1.ConjurProvider">ConjurProvider</a>, 
-<a href="#external-secrets.io/v1beta1.KubernetesServer">KubernetesServer</a>, 
+<a href="#external-secrets.io/v1beta1.AkeylessProvider">AkeylessProvider</a>,
+<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider</a>,
+<a href="#external-secrets.io/v1beta1.ConjurProvider">ConjurProvider</a>,
+<a href="#external-secrets.io/v1beta1.KubernetesServer">KubernetesServer</a>,
 <a href="#external-secrets.io/v1beta1.VaultProvider">VaultProvider</a>)
 </p>
 <p>
@@ -3065,7 +3065,7 @@ ExternalSecretStatus
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
+<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>,
 <a href="#external-secrets.io/v1beta1.ExternalSecretFind">ExternalSecretFind</a>)
 </p>
 <p>
@@ -3258,7 +3258,7 @@ The generator returns a static map of values</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretData">ExternalSecretData</a>, 
+<a href="#external-secrets.io/v1beta1.ExternalSecretData">ExternalSecretData</a>,
 <a href="#external-secrets.io/v1beta1.ExternalSecretDataFromRemoteRef">ExternalSecretDataFromRemoteRef</a>)
 </p>
 <p>
@@ -3355,7 +3355,7 @@ ExternalSecretDecodingStrategy
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
+<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>,
 <a href="#external-secrets.io/v1beta1.ExternalSecretFind">ExternalSecretFind</a>)
 </p>
 <p>
@@ -3680,7 +3680,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ClusterExternalSecretSpec">ClusterExternalSecretSpec</a>, 
+<a href="#external-secrets.io/v1beta1.ClusterExternalSecretSpec">ClusterExternalSecretSpec</a>,
 <a href="#external-secrets.io/v1beta1.ExternalSecret">ExternalSecret</a>)
 </p>
 <p>
@@ -4532,7 +4532,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>, 
+<a href="#external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>,
 <a href="#external-secrets.io/v1beta1.StoreSourceRef">StoreSourceRef</a>)
 </p>
 <p>
@@ -5265,6 +5265,16 @@ string
 <code>projectSlug</code></br>
 <em>
 string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>recursive</code></br>
+<em>
+boolean
 </em>
 </td>
 <td>
@@ -7056,8 +7066,8 @@ BeyondtrustProvider
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretSpec">ExternalSecretSpec</a>, 
-<a href="#external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>, 
+<a href="#external-secrets.io/v1beta1.ExternalSecretSpec">ExternalSecretSpec</a>,
+<a href="#external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>,
 <a href="#external-secrets.io/v1beta1.StoreSourceRef">StoreSourceRef</a>)
 </p>
 <p>
@@ -7139,7 +7149,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore</a>, 
+<a href="#external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore</a>,
 <a href="#external-secrets.io/v1beta1.SecretStore">SecretStore</a>)
 </p>
 <p>
@@ -7225,7 +7235,7 @@ int
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore</a>, 
+<a href="#external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore</a>,
 <a href="#external-secrets.io/v1beta1.SecretStore">SecretStore</a>)
 </p>
 <p>
@@ -8273,7 +8283,7 @@ VaultAwsJWTAuth
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.VaultAwsAuth">VaultAwsAuth</a>, 
+<a href="#external-secrets.io/v1beta1.VaultAwsAuth">VaultAwsAuth</a>,
 <a href="#external-secrets.io/v1beta1.VaultIamAuth">VaultIamAuth</a>)
 </p>
 <p>
@@ -8335,7 +8345,7 @@ see: <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_te
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.VaultAwsAuth">VaultAwsAuth</a>, 
+<a href="#external-secrets.io/v1beta1.VaultAwsAuth">VaultAwsAuth</a>,
 <a href="#external-secrets.io/v1beta1.VaultIamAuth">VaultIamAuth</a>)
 </p>
 <p>

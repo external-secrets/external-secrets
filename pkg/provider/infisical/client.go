@@ -144,6 +144,7 @@ func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
 	_, err := p.apiClient.GetSecretsV3(api.GetSecretsV3Request{
 		EnvironmentSlug: p.apiScope.EnvironmentSlug,
 		ProjectSlug:     p.apiScope.ProjectSlug,
+		Recursive:       p.apiScope.Recursive,
 		SecretPath:      p.apiScope.SecretPath,
 	})
 
