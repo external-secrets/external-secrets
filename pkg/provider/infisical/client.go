@@ -104,6 +104,7 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 		EnvironmentSlug: p.apiScope.EnvironmentSlug,
 		ProjectSlug:     p.apiScope.ProjectSlug,
 		SecretPath:      p.apiScope.SecretPath,
+		Recursive:       p.apiScope.Recursive,
 	})
 	if err != nil {
 		return nil, err
