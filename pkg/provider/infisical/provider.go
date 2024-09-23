@@ -43,7 +43,7 @@ type Provider struct {
 type InfisicalClientScope struct {
 	EnvironmentSlug string
 	ProjectSlug     string
-	Recursive       string
+	Recursive       bool
 	SecretPath      string
 }
 
