@@ -86,11 +86,8 @@ BixHvI/EJ8YK3ta5WdJWKC6hnA==
 )
 
 const (
-	filterPrivateKey       = "private key"
-	filterCert             = "certificate"
-	filterLeafCert         = "leaf"
-	filterIntermediateCert = "intermediate"
-	filterRootCert         = "root"
+	filterPrivateKey = "private key"
+	filterCert       = "certificate"
 )
 
 func TestFilterPEM(t *testing.T) {
@@ -207,7 +204,7 @@ func TestFilterCertChain(t *testing.T) {
 			name: "extract leaf cert / empty cert chain",
 			args: args{
 				input:    []string{},
-				certType: filterLeafCert,
+				certType: certTypeLeaf,
 			},
 			wantErr: true,
 		},
@@ -218,7 +215,7 @@ func TestFilterCertChain(t *testing.T) {
 					leafCertPath,
 					rootKeyPath,
 				},
-				certType: filterLeafCert,
+				certType: certTypeLeaf,
 			},
 			wantErr: true,
 		},
@@ -228,7 +225,7 @@ func TestFilterCertChain(t *testing.T) {
 				input: []string{
 					leafCertPath,
 				},
-				certType: filterLeafCert,
+				certType: certTypeLeaf,
 			},
 			want: leafCertPath,
 		},
@@ -239,7 +236,7 @@ func TestFilterCertChain(t *testing.T) {
 					leafCertPath,
 					intermediateCertPath,
 				},
-				certType: filterLeafCert,
+				certType: certTypeLeaf,
 			},
 			want: leafCertPath,
 		},
@@ -249,7 +246,7 @@ func TestFilterCertChain(t *testing.T) {
 				input: []string{
 					rootCertPath,
 				},
-				certType: filterLeafCert,
+				certType: certTypeLeaf,
 			},
 			want: "",
 		},
@@ -261,7 +258,7 @@ func TestFilterCertChain(t *testing.T) {
 					intermediateCertPath,
 					rootCertPath,
 				},
-				certType: filterLeafCert,
+				certType: certTypeLeaf,
 			},
 			want: leafCertPath,
 		},
@@ -271,7 +268,7 @@ func TestFilterCertChain(t *testing.T) {
 				input: []string{
 					leafCertPath,
 				},
-				certType: filterIntermediateCert,
+				certType: certTypeIntermediate,
 			},
 			want: "",
 		},
@@ -282,7 +279,7 @@ func TestFilterCertChain(t *testing.T) {
 					leafCertPath,
 					intermediateCertPath,
 				},
-				certType: filterIntermediateCert,
+				certType: certTypeIntermediate,
 			},
 			want: intermediateCertPath,
 		},
@@ -294,7 +291,7 @@ func TestFilterCertChain(t *testing.T) {
 					intermediateCertPath,
 					rootCertPath,
 				},
-				certType: filterIntermediateCert,
+				certType: certTypeIntermediate,
 			},
 			want: intermediateCertPath,
 		},
@@ -304,7 +301,7 @@ func TestFilterCertChain(t *testing.T) {
 				input: []string{
 					leafCertPath,
 				},
-				certType: filterRootCert,
+				certType: certTypeRoot,
 			},
 			want: "",
 		},
@@ -314,7 +311,7 @@ func TestFilterCertChain(t *testing.T) {
 				input: []string{
 					rootCertPath,
 				},
-				certType: filterRootCert,
+				certType: certTypeRoot,
 			},
 			want: rootCertPath,
 		},
@@ -326,7 +323,7 @@ func TestFilterCertChain(t *testing.T) {
 					intermediateCertPath,
 					rootCertPath,
 				},
-				certType: filterRootCert,
+				certType: certTypeRoot,
 			},
 			want: rootCertPath,
 		},

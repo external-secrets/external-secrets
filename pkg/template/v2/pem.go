@@ -23,6 +23,10 @@ import (
 
 const (
 	errJunk = "error filtering pem: found junk"
+
+	certTypeLeaf         = "leaf"
+	certTypeIntermediate = "intermediate"
+	certTypeRoot         = "root"
 )
 
 func filterPEM(pemType, input string) (string, error) {
@@ -63,12 +67,12 @@ func filterCertChain(certType, input string) (string, error) {
 	}
 
 	switch certType {
-	case "leaf":
+	case certTypeLeaf:
 		cert := ordered[0]
 		if cert.AuthorityKeyId != nil && !bytes.Equal(cert.AuthorityKeyId, cert.SubjectKeyId) {
 			return pemEncode(ordered[0].Raw, pemTypeCertificate)
 		}
-	case "intermediate":
+	case certTypeIntermediate:
 		if len(ordered) >= 2 {
 			var pemData []byte
 			for _, cert := range ordered[1:] {
@@ -83,7 +87,7 @@ func filterCertChain(certType, input string) (string, error) {
 			}
 			return string(pemData), nil
 		}
-	case "root":
+	case certTypeRoot:
 		cert := ordered[len(ordered)-1]
 		if cert.AuthorityKeyId == nil || bytes.Equal(cert.AuthorityKeyId, cert.SubjectKeyId) {
 			return pemEncode(cert.Raw, pemTypeCertificate)
