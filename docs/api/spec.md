@@ -5951,6 +5951,112 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.PreviderAuth">PreviderAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.PreviderProvider">PreviderProvider</a>)
+</p>
+<p>
+<p>PreviderAuth contains a secretRef for credentials.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.PreviderAuthSecretRef">
+PreviderAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.PreviderAuthSecretRef">PreviderAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.PreviderAuth">PreviderAuth</a>)
+</p>
+<p>
+<p>PreviderAuthSecretRef holds secret references for Previder Vault credentials.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessToken</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>The AccessToken is used for authentication</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.PreviderProvider">PreviderProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>PreviderProvider configures a store to sync secrets using the Previder Secret Manager provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.PreviderAuth">
+PreviderAuth
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>baseUri</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.Provider">Provider
 </h3>
 <p>
@@ -6006,6 +6112,17 @@ string
 <td>
 <p>Organization are a space to collaborate on shared projects and stacks.
 To create a new organization, visit <a href="https://app.pulumi.com/">https://app.pulumi.com/</a> and click &ldquo;New Organization&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>project</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Project is the name of the Pulumi ESC project the environment belongs to.</p>
 </td>
 </tr>
 <tr>
@@ -6735,6 +6852,20 @@ DopplerProvider
 <td>
 <em>(Optional)</em>
 <p>Doppler configures this store to sync secrets using the Doppler provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>previder</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.PreviderProvider">
+PreviderProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Previder configures this store to sync secrets using the Previder provider</p>
 </td>
 </tr>
 <tr>
