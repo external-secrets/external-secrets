@@ -10,6 +10,9 @@ By default, the secret created in the secret provided will not be deleted even a
 {% include 'full-pushsecret.yaml' %}
 ```
 
+!!! note
+    Whenever using the `kind=PushSecret` with an existing secret in AWS, make sure to tag it with `managed-by=external-secrets`. Without this tag, ESO will **not** replace the secret value. This tag is used to determine if ESO has ownership over the resource.
+
 ## Backup use case
 
 An interesting use case for `kind=PushSecret` is backing up your current secret from one provider to another one.
