@@ -187,10 +187,10 @@ func (a *akeylessProvider) GetToken() (string, error) {
 	}
 
 	authOut, _, err := a.restAPIClient.Auth(ctx).Body(*authBody).Execute()
+	if errors.As(err, &apiErr) {
+		return "", fmt.Errorf("authentication failed: %v", string(apiErr.Body()))
+	}
 	if err != nil {
-		if errors.As(err, &apiErr) {
-			return "", fmt.Errorf("authentication failed: %v", string(apiErr.Body()))
-		}
 		return "", fmt.Errorf("authentication failed: %w", err)
 	}
 

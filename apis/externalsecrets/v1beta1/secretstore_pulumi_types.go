@@ -20,7 +20,7 @@ import (
 
 type PulumiProvider struct {
 	// APIURL is the URL of the Pulumi API.
-	// +kubebuilder:default="https://api.pulumi.com/api/preview"
+	// +kubebuilder:default="https://api.pulumi.com/api/esc"
 	APIURL string `json:"apiUrl,omitempty"`
 
 	// AccessToken is the access tokens to sign in to the Pulumi Cloud Console.
@@ -30,6 +30,8 @@ type PulumiProvider struct {
 	// To create a new organization, visit https://app.pulumi.com/ and click "New Organization".
 	Organization string `json:"organization"`
 
+	// Project is the name of the Pulumi ESC project the environment belongs to.
+	Project string `json:"project"`
 	// Environment are YAML documents composed of static key-value pairs, programmatic expressions,
 	// dynamically retrieved values from supported providers including all major clouds,
 	// and other Pulumi ESC environments.
