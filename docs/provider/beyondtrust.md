@@ -28,8 +28,10 @@ BeyondTrust [OAuth Authentication](https://www.beyondtrust.com/docs/beyondinsigh
 kubectl create secret generic bt-secret --from-literal ClientSecret="<your secret>"
 kubectl create secret generic bt-id --from-literal ClientId="<your ID>"
 ```
+
 ### Client Certificate
-Download the pfx certificate from Secrets Safe extract the certificate and create two Kubernetes secret.
+
+If using `retrievalType: MANAGED_ACCOUNT`, you will also need to download the pfx certificate from Secrets Safe, extract that certificate and create two Kubernetes secrets.
 
 ```sh
 openssl pkcs12 -in client_certificate.pfx -nocerts -out ps_key.pem -nodes
@@ -62,30 +64,32 @@ kubectl apply -f secret-store.yml
 apiVersion: external-secrets.io/v1beta1
 kind: SecretStore
 metadata:
- name: secretstore-beyondtrust
+  name: secretstore-beyondtrust
 spec:
- provider:
-   beyondtrust:
-    apiurl: https://example.com:443/BeyondTrust/api/public/v3/
-    certificate:
-      secretRef:
-          name: bt-certificate
-          key: ClientCertificate
-    certificatekey:
-      secretRef:
-          name: bt-certificatekey
-          key: ClientCertificateKey
-    clientsecret:
-      secretRef:
-        name: bt-secret
-        key: ClientSecret
-    clientid:
-      secretRef:
-        name: bt-id
-        key: ClientId
-    retrievaltype: MANAGED_ACCOUNT
-    verifyca: true
-    clienttimeoutseconds: 45
+  provider:
+    beyondtrust:
+      server:
+        apiUrl: https://example.com:443/BeyondTrust/api/public/v3/
+        retrievalType: MANAGED_ACCOUNT # or SECRET
+        verifyCA: true
+        clientTimeOutSeconds: 45
+      auth: 
+        certificate: # omit certificates if retrievalType is SECRET
+          secretRef:
+            name: bt-certificate
+            key: ClientCertificate
+        certificateKey:
+          secretRef:
+            name: bt-certificatekey
+            key: ClientCertificateKey
+        clientSecret:
+          secretRef:
+            name: bt-secret
+            key: ClientSecret
+        clientId:
+          secretRef:
+            name: bt-id
+            key: ClientId
 ```
 
 ### Creating a ExternalSecret
@@ -101,19 +105,19 @@ kubectl apply -f external-secret.yml
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
- name: beyondtrust-external-secret
+  name: beyondtrust-external-secret
 spec:
- refreshInterval: 300s
- secretStoreRef:
-   kind: SecretStore
-   name: secretstore-beyondtrust
- target:
-   name: my-beyondtrust-secret # name of secret to create in k8s secrets (etcd)
-   creationPolicy: Owner
- data:
-   - secretKey: secretKey
-     remoteRef:
-       key: system01/managed_account01
+  refreshInterval: 300s
+  secretStoreRef:
+    kind: SecretStore
+    name: secretstore-beyondtrust
+  target:
+    name: my-beyondtrust-secret # name of secret to create in k8s secrets (etcd)
+    creationPolicy: Owner
+  data:
+    - secretKey: secretKey
+      remoteRef:
+        key: system01/managed_account01
 ```
 
 ### Get the K8s secret
