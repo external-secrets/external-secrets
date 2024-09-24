@@ -3563,7 +3563,7 @@ to be deployed by automation as a good practise. This time, a placeholder called
 <h2 id="creating-the-references-to-repositories">Creating the references to repositories</h2>
 <p>Create a manifest called <code>repositories.yaml</code> to store the references to external repositories for Flux</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Reference to Helm repository</span>
-<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source.toolkit.fluxcd.io/v1beta1</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source.toolkit.fluxcd.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HelmRepository</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
@@ -3572,7 +3572,7 @@ to be deployed by automation as a good practise. This time, a placeholder called
 <span class="w">  </span><span class="nt">interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10m</span>
 <span class="w">  </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://charts.external-secrets.io</span>
 <span class="nn">---</span>
-<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source.toolkit.fluxcd.io/v1beta1</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source.toolkit.fluxcd.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GitRepository</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
@@ -3580,14 +3580,14 @@ to be deployed by automation as a good practise. This time, a placeholder called
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10m</span>
 <span class="w">  </span><span class="nt">ref</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">branch</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">main</span>
+<span class="w">    </span><span class="nt">tag</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v0.10.3</span>
 <span class="w">  </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http://github.com/external-secrets/external-secrets</span>
 </code></pre></div>
 <h2 id="deploy-the-crds">Deploy the CRDs</h2>
 <p>As mentioned, CRDs can be deployed using the official Helm package, but to solve the race condition, they will be deployed
 from our git repository using a Kustomization manifest called <code>deployment-crds.yaml</code> as follows:</p>
 <div class="highlight"><pre><span></span><code><span class="nn">---</span>
-<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kustomize.toolkit.fluxcd.io/v1beta2</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kustomize.toolkit.fluxcd.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Kustomization</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets-crds</span>
@@ -3606,21 +3606,21 @@ the deployment must be disabled in the <code>values</code> of the manifest calle
 <div class="highlight"><pre><span></span><code><span class="c1"># How to manage values files. Ref: https://fluxcd.io/docs/guides/helmreleases/#refer-to-values-inside-the-chart</span>
 <span class="c1"># How to inject values: https://fluxcd.io/docs/guides/helmreleases/#cloud-storage</span>
 <span class="nn">---</span>
-<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">helm.toolkit.fluxcd.io/v2beta1</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">helm.toolkit.fluxcd.io/v2</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HelmRelease</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
 <span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flux-system</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="c1"># Override Release name to avoid the pattern Namespace-Release</span>
-<span class="w">  </span><span class="c1"># Ref: https://fluxcd.io/docs/components/helm/api/#helm.toolkit.fluxcd.io/v2beta1.HelmRelease</span>
+<span class="w">  </span><span class="c1"># Ref: https://fluxcd.io/flux/components/helm/api/v2/#helm.toolkit.fluxcd.io/v2.HelmRelease</span>
 <span class="w">  </span><span class="nt">releaseName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
 <span class="w">  </span><span class="nt">targetNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
 <span class="w">  </span><span class="nt">interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10m</span>
 <span class="w">  </span><span class="nt">chart</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">spec</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">chart</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
-<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.9.4</span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.10.3</span>
 <span class="w">      </span><span class="nt">sourceRef</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HelmRepository</span>
 <span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
@@ -3628,14 +3628,14 @@ the deployment must be disabled in the <code>values</code> of the manifest calle
 <span class="w">  </span><span class="nt">values</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">installCRDs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 
-<span class="w">  </span><span class="c1"># Ref: https://fluxcd.io/docs/components/helm/api/#helm.toolkit.fluxcd.io/v2beta1.Install</span>
+<span class="w">  </span><span class="c1"># Ref: https://fluxcd.io/flux/components/helm/api/v2/#helm.toolkit.fluxcd.io/v2.Install</span>
 <span class="w">  </span><span class="nt">install</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">createNamespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 </code></pre></div>
 <h2 id="deploy-the-crs">Deploy the CRs</h2>
 <p>Now, be ready for the arcane magic. Create a Kustomization manifest called <code>deployment-crs.yaml</code> with the following content:</p>
 <div class="highlight"><pre><span></span><code><span class="nn">---</span>
-<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kustomize.toolkit.fluxcd.io/v1beta2</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kustomize.toolkit.fluxcd.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Kustomization</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets-crs</span>
