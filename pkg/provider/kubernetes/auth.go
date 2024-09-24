@@ -66,8 +66,6 @@ func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
 		if err != nil {
 			return nil, fmt.Errorf("could not fetch Auth.ServiceAccount: %w", err)
 		}
-	} else {
-		return nil, errors.New("no auth provider given")
 	}
 
 	var key, cert []byte
