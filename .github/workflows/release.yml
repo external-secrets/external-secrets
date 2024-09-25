@@ -13,7 +13,7 @@ on:
         default: 'main'
 
 env:
-  IMAGE_NAME: us-central1-docker.pkg.dev/external-secrets-inc-registry/external/${{ github.repository }}
+  IMAGE_NAME: us-central1-docker.pkg.dev/external-secrets-inc-registry/external/external-secrets
 
 jobs:
   release:
@@ -26,20 +26,6 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.source_ref }}
-
-      - name: Create Release
-        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2.0.8
-        with:
-          tag_name: ${{ github.event.inputs.version }}
-          target_commitish: ${{ github.event.inputs.source_ref }}
-          generate_release_notes: true
-          body: |
-            Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}`
-            Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi`
-            Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi-boringssl`
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-
 
   promote:
     name: Promote Container Image
