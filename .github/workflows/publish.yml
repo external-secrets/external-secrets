@@ -112,6 +112,7 @@ jobs:
           else
             TAG=$(make docker.tag)
           fi
+          echo "image-tag=${TAG}"
           echo "image-tag=${TAG}" >> $GITHUB_OUTPUT
 
       - name: Build & Publish Artifacts
@@ -161,3 +162,5 @@ jobs:
           GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IDENTITY_POOL: ${{ vars.DEV_IDENTITY_POOL }}
+          SERVICE_ACCOUNT: ${{ vars.DEV_CI_SERVICE_ACCOUNT }}
