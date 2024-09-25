@@ -161,7 +161,7 @@ jobs:
     with:
       dockerfile: ${{ matrix.dockerfile }}
       tag-suffix: ${{ matrix.tag-suffix }}
-      image-name: us-central1-docker.pkg.dev/external-secrets-inc-registry/external/${{ github.repository }}
+      image-name: us-central1-docker.pkg.dev/external-secrets-inc-registry/external/external-secrets
       build-platform: ${{ matrix.build-platform }}
       build-args: ${{ matrix.build-args }}
       build-arch: ${{ matrix.build-arch }}
