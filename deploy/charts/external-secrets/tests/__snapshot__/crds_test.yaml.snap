@@ -22,7 +22,7 @@ should match snapshot of default values:
       group: external-secrets.io
       names:
         categories:
-          - externalsecrets
+          - external-secrets
         kind: SecretStore
         listKind: SecretStoreList
         plural: secretstores
@@ -3518,6 +3518,41 @@ should match snapshot of default values:
                             - database
                             - host
                           type: object
+                        previder:
+                          description: Previder configures this store to sync secrets using the Previder provider
+                          properties:
+                            auth:
+                              description: PreviderAuth contains a secretRef for credentials.
+                              properties:
+                                secretRef:
+                                  description: PreviderAuthSecretRef holds secret references for Previder Vault credentials.
+                                  properties:
+                                    accessToken:
+                                      description: The AccessToken is used for authentication
+                                      properties:
+                                        key:
+                                          description: |-
+                                            The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                            defaulted, in others it may be required.
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                            to the namespace of the referent.
+                                          type: string
+                                      type: object
+                                  required:
+                                    - accessToken
+                                  type: object
+                              type: object
+                            baseUri:
+                              type: string
+                          required:
+                            - auth
+                          type: object
                         pulumi:
                           description: Pulumi configures this store to sync secrets using the Pulumi provider
                           properties:
@@ -3543,7 +3578,7 @@ should match snapshot of default values:
                                   type: object
                               type: object
                             apiUrl:
-                              default: https://api.pulumi.com/api/preview
+                              default: https://api.pulumi.com/api/esc
                               description: APIURL is the URL of the Pulumi API.
                               type: string
                             environment:
@@ -3558,10 +3593,14 @@ should match snapshot of default values:
                                 Organization are a space to collaborate on shared projects and stacks.
                                 To create a new organization, visit https://app.pulumi.com/ and click "New Organization".
                               type: string
+                            project:
+                              description: Project is the name of the Pulumi ESC project the environment belongs to.
+                              type: string
                           required:
                             - accessToken
                             - environment
                             - organization
+                            - project
                           type: object
                         scaleway:
                           description: Scaleway
