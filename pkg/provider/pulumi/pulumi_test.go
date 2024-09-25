@@ -16,6 +16,7 @@ package pulumi
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -38,7 +39,7 @@ func newTestClient(t *testing.T, _, pattern string, handler func(w http.Response
 	mux := http.NewServeMux()
 
 	mux.HandleFunc(pattern, handler)
-	mux.HandleFunc("/environments/foo/bar/open/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/environments/foo/default/bar/open/", func(w http.ResponseWriter, r *http.Request) {
 		r.Header.Add(contentType, contentTypeValue)
 		w.Header().Add(contentType, contentTypeValue)
 		w.WriteHeader(http.StatusOK)
@@ -65,6 +66,7 @@ func newTestClient(t *testing.T, _, pattern string, handler func(w http.Response
 		authCtx:      ctx,
 		organization: "foo",
 		environment:  "bar",
+		project:      "default",
 	}
 }
 
@@ -73,7 +75,7 @@ func TestGetSecret(t *testing.T) {
 		"b": "world",
 	}
 
-	client := newTestClient(t, http.MethodGet, "/environments/foo/bar/open/session-id", func(w http.ResponseWriter, r *http.Request) {
+	client := newTestClient(t, http.MethodGet, "/environments/foo/default/bar/open/session-id", func(w http.ResponseWriter, r *http.Request) {
 		r.Header.Add(contentType, contentTypeValue)
 		w.Header().Add(contentType, contentTypeValue)
 		err := json.NewEncoder(w).Encode(esc.NewValue(testmap, esc.Trace{}))
@@ -342,13 +344,14 @@ func TestGetSecretMap(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := newTestClient(t, http.MethodGet, "/environments/foo/bar/open/session-id", func(w http.ResponseWriter, r *http.Request) {
+			p := newTestClient(t, http.MethodGet, "/environments/foo/default/bar/open/session-id", func(w http.ResponseWriter, r *http.Request) {
 				r.Header.Add(contentType, contentTypeValue)
 				w.Header().Add(contentType, contentTypeValue)
 				err2 := json.NewEncoder(w).Encode(esc.NewValue(tt.input, esc.Trace{}))
 				require.NoError(t, err2)
 			})
 			got, err := p.GetSecretMap(context.TODO(), tt.ref)
+			fmt.Print(got)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ProviderPulumi.GetSecretMap() error = %v, wantErr %v", err, tt.wantErr)
 				return

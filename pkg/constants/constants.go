@@ -94,6 +94,9 @@ const (
 	CallAKEYLESSSMGetRotatedSecretValue = "GetRotatedSecretValue"
 	CallAKEYLESSSMGetCertificateValue   = "GetCertificateValue"
 	CallAKEYLESSSMGetDynamicSecretValue = "GetDynamicSecretsValue"
+	CallAKEYLESSSMCreateSecret          = "CreateSecret"
+	CallAKEYLESSSMUpdateSecretVal       = "UpdateSecretVal"
+	CallAKEYLESSSMDeleteItem            = "DeleteItem"
 
 	StatusError   = "error"
 	StatusSuccess = "success"

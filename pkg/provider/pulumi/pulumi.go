@@ -31,6 +31,7 @@ import (
 type client struct {
 	escClient    esc.EscClient
 	authCtx      context.Context
+	project      string
 	environment  string
 	organization string
 }
@@ -49,12 +50,11 @@ const (
 var _ esv1beta1.SecretsClient = &client{}
 
 func (c *client) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	env, err := c.escClient.OpenEnvironment(c.authCtx, c.organization, c.environment)
+	env, err := c.escClient.OpenEnvironment(c.authCtx, c.organization, c.project, c.environment)
 	if err != nil {
 		return nil, err
 	}
-
-	value, _, err := c.escClient.ReadEnvironmentProperty(c.authCtx, c.organization, c.environment, env.GetId(), ref.Key)
+	value, _, err := c.escClient.ReadEnvironmentProperty(c.authCtx, c.organization, c.project, c.environment, env.GetId(), ref.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (c *client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1b
 			},
 		},
 	}
-	_, oldValues, err := c.escClient.OpenAndReadEnvironment(c.authCtx, c.organization, c.environment)
+	_, oldValues, err := c.escClient.OpenAndReadEnvironment(c.authCtx, c.organization, c.project, c.environment)
 	if err != nil {
 		return fmt.Errorf(errReadEnvironment, err)
 	}
@@ -105,7 +105,7 @@ func (c *client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1b
 	if err := mergo.Merge(&updatePayload.Values.AdditionalProperties, oldValues); err != nil {
 		return fmt.Errorf(errPushSecrets, err)
 	}
-	_, err = c.escClient.UpdateEnvironment(c.authCtx, c.organization, c.environment, updatePayload)
+	_, err = c.escClient.UpdateEnvironment(c.authCtx, c.organization, c.environment, c.project, updatePayload)
 	if err != nil {
 		return fmt.Errorf(errPushSecrets, err)
 	}
@@ -144,11 +144,11 @@ func GetMapFromInterface(i interface{}) (map[string][]byte, error) {
 }
 
 func (c *client) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	env, err := c.escClient.OpenEnvironment(c.authCtx, c.organization, c.environment)
+	env, err := c.escClient.OpenEnvironment(c.authCtx, c.organization, c.project, c.environment)
 	if err != nil {
 		return nil, err
 	}
-	value, _, err := c.escClient.ReadEnvironmentProperty(c.authCtx, c.organization, c.environment, env.GetId(), ref.Key)
+	value, _, err := c.escClient.ReadEnvironmentProperty(c.authCtx, c.organization, c.project, c.environment, env.GetId(), ref.Key)
 	if err != nil {
 		return nil, err
 	}

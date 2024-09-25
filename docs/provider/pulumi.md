@@ -2,13 +2,17 @@
 
 Sync environments, configs and secrets from [Pulumi ESC](https://www.pulumi.com/product/esc/) to Kubernetes using the External Secrets Operator.
 
+![Pulumi ESC](../pictures/pulumi-esc.png)
+
+More information about setting up [Pulumi](https://www.pulumi.com/) ESC can be found in the [Pulumi ESC documentation](https://www.pulumi.com/docs/esc/).
+
 ### Authentication
 
 Pulumi [Access Tokens](https://www.pulumi.com/docs/pulumi-cloud/access-management/access-tokens/) are recommended to access Pulumi ESC.
 
 ### Creating a SecretStore
 
-A Pulumi SecretStore can be created by specifying the `organization` and `environment` and referencing a Kubernetes secret containing the `accessToken`.
+A Pulumi `SecretStore` can be created by specifying the `organization`, `project` and `environment` and referencing a Kubernetes secret containing the `accessToken`.
 
 ```yaml
 apiVersion: external-secrets.io/v1beta1
@@ -19,6 +23,7 @@ spec:
   provider:
     pulumi:
       organization: <NAME_OF_THE_ORGANIZATION>
+      project: <NAME_OF_THE_PROJECT>
       environment: <NAME_OF_THE_ENVIRONMENT>
       accessToken:
         secretRef:
@@ -26,7 +31,29 @@ spec:
           key: <KEY_IN_KUBE_SECRET>
 ```
 
-If required, the API URL (`apiUrl`) can be customized as well. If not specified, the default value is `https://api.pulumi.com/api/preview`.
+If required, the API URL (`apiUrl`) can be customized as well. If not specified, the default value is `https://api.pulumi.com/api/esc`.
+
+### Creating a ClusterSecretStore
+
+Similarly, a `ClusterSecretStore` can be created by specifying the `namespace` and referencing a Kubernetes secret containing the `accessToken`.
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ClusterSecretStore
+metadata:
+  name: secret-store
+spec:
+  provider:
+    pulumi:
+      organization: <NAME_OF_THE_ORGANIZATION>
+      project: <NAME_OF_THE_PROJECT>
+      environment: <NAME_OF_THE_ENVIRONMENT>
+      accessToken:
+        secretRef:
+          name: <NAME_OF_KUBE_SECRET>
+          key: <KEY_IN_KUBE_SECRET>
+          namespace: <NAMESPACE>
+```
 
 ### Referencing Secrets
 

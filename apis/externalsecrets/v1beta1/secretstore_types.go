@@ -138,6 +138,10 @@ type SecretStoreProvider struct {
 	// +optional
 	Doppler *DopplerProvider `json:"doppler,omitempty"`
 
+	// Previder configures this store to sync secrets using the Previder provider
+	// +optional
+	Previder *PreviderProvider `json:"previder,omitempty"`
+
 	// Onboardbase configures this store to sync secrets using the Onboardbase provider
 	// +optional
 	Onboardbase *OnboardbaseProvider `json:"onboardbase,omitempty"`
@@ -276,7 +280,7 @@ type SecretStoreStatus struct {
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
-// +kubebuilder:resource:scope=Namespaced,categories={externalsecrets},shortName=ss
+// +kubebuilder:resource:scope=Namespaced,categories={external-secrets},shortName=ss
 type SecretStore struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -304,7 +308,7 @@ type SecretStoreList struct {
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
-// +kubebuilder:resource:scope=Cluster,categories={externalsecrets},shortName=css
+// +kubebuilder:resource:scope=Cluster,categories={external-secrets},shortName=css
 type ClusterSecretStore struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

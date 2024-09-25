@@ -685,11 +685,26 @@ func TestGetSecret(t *testing.T) {
 				vaults: map[string]int{myVault: 1},
 				client: fake.NewMockClient().
 					AddPredictableVault(myVault).
-					AddPredictableItemWithField(myVault, myItem, key1, value1).
+					AppendItem(myVaultID, onepassword.Item{
+						ID:    myItemID,
+						Title: myItem,
+						Vault: onepassword.ItemVault{ID: myVaultID},
+						Files: []*onepassword.File{
+							{
+								ID:   myFilePNGID,
+								Name: myFilePNG,
+							},
+						},
+					}).
 					AppendItemField(myVaultID, myItemID, onepassword.ItemField{
 						Label: password,
 						Value: value2,
-					}),
+					}).
+					AppendItemField(myVaultID, myItemID, onepassword.ItemField{
+						Label: key1,
+						Value: value1,
+					}).
+					SetFileContents(myFilePNG, []byte(myContents)),
 			},
 			checks: []check{
 				{
@@ -697,6 +712,15 @@ func TestGetSecret(t *testing.T) {
 					ref: esv1beta1.ExternalSecretDataRemoteRef{
 						Key:      myItem,
 						Property: key1,
+					},
+					expectedValue: value1,
+					expectedErr:   nil,
+				},
+				{
+					checkNote: key1 + " with prefix",
+					ref: esv1beta1.ExternalSecretDataRemoteRef{
+						Key:      myItem,
+						Property: fieldPrefix + prefixSplitter + key1,
 					},
 					expectedValue: value1,
 					expectedErr:   nil,
@@ -718,6 +742,15 @@ func TestGetSecret(t *testing.T) {
 					},
 					expectedErr: errors.New(errVersionNotImplemented),
 				},
+				{
+					checkNote: "file named my-file.png with prefix",
+					ref: esv1beta1.ExternalSecretDataRemoteRef{
+						Key:      myItem,
+						Property: filePrefix + prefixSplitter + myFilePNG,
+					},
+					expectedValue: myContents,
+					expectedErr:   nil,
+				},
 			},
 		},
 		{
@@ -738,14 +771,36 @@ func TestGetSecret(t *testing.T) {
 							},
 						},
 					}).
+					AppendItemField(myVaultID, myItemID, onepassword.ItemField{
+						Label: key1,
+						Value: value2,
+					}).
 					SetFileContents(myFilePNG, []byte(myContents)),
 			},
 			checks: []check{
+				{
+					checkNote: "field named password",
+					ref: esv1beta1.ExternalSecretDataRemoteRef{
+						Key:      myItem,
+						Property: fieldPrefix + prefixSplitter + key1,
+					},
+					expectedValue: value2,
+					expectedErr:   nil,
+				},
 				{
 					checkNote: "file named my-file.png",
 					ref: esv1beta1.ExternalSecretDataRemoteRef{
 						Key:      myItem,
 						Property: myFilePNG,
+					},
+					expectedValue: myContents,
+					expectedErr:   nil,
+				},
+				{
+					checkNote: "file named my-file.png with prefix",
+					ref: esv1beta1.ExternalSecretDataRemoteRef{
+						Key:      myItem,
+						Property: filePrefix + prefixSplitter + myFilePNG,
 					},
 					expectedValue: myContents,
 					expectedErr:   nil,
@@ -766,8 +821,17 @@ func TestGetSecret(t *testing.T) {
 					},
 					expectedErr: fmt.Errorf(errDocumentNotFound, errors.New("'my-item', 'you-cant-find-me.png'")),
 				},
+				{
+					checkNote: "file non existent with prefix",
+					ref: esv1beta1.ExternalSecretDataRemoteRef{
+						Key:      myItem,
+						Property: "file/you-cant-find-me.png",
+					},
+					expectedErr: fmt.Errorf(errDocumentNotFound, errors.New("'my-item', 'you-cant-find-me.png'")),
+				},
 			},
 		},
+
 		{
 			setupNote: "one vault, one item, two fields w/ same Label",
 			provider: &ProviderOnePassword{
@@ -845,11 +909,31 @@ func TestGetSecretMap(t *testing.T) {
 				vaults: map[string]int{myVault: 1},
 				client: fake.NewMockClient().
 					AddPredictableVault(myVault).
-					AddPredictableItemWithField(myVault, myItem, key1, value1).
+					AppendItem(myVaultID, onepassword.Item{
+						ID:    myItemID,
+						Title: myItem,
+						Vault: onepassword.ItemVault{ID: myVaultID},
+						Files: []*onepassword.File{
+							{
+								ID:   myFilePNGID,
+								Name: myFilePNG,
+							},
+							{
+								ID:   myFile2ID,
+								Name: myFile2PNG,
+							},
+						},
+					}).
+					AppendItemField(myVaultID, myItemID, onepassword.ItemField{
+						Label: key1,
+						Value: value1,
+					}).
 					AppendItemField(myVaultID, myItemID, onepassword.ItemField{
 						Label: password,
 						Value: value2,
-					}),
+					}).
+					SetFileContents(myFilePNG, []byte(myContents)).
+					SetFileContents(myFile2PNG, []byte(myContents2)),
 			},
 			checks: []check{
 				{
@@ -883,6 +967,17 @@ func TestGetSecretMap(t *testing.T) {
 					},
 					expectedErr: errors.New(errVersionNotImplemented),
 				},
+				{
+					checkNote: "limit by Property with prefix",
+					ref: esv1beta1.ExternalSecretDataRemoteRef{
+						Key:      myItem,
+						Property: filePrefix + prefixSplitter + myFilePNG,
+					},
+					expectedMap: map[string][]byte{
+						myFilePNG: []byte(myContents),
+					},
+					expectedErr: nil,
+				},
 			},
 		},
 		{
@@ -907,6 +1002,10 @@ func TestGetSecretMap(t *testing.T) {
 							},
 						},
 					}).
+					AppendItemField(myVaultID, myItemID, onepassword.ItemField{
+						Label: key1,
+						Value: value2,
+					}).
 					SetFileContents(myFilePNG, []byte(myContents)).
 					SetFileContents(myFile2PNG, []byte(myContents2)),
 			},
@@ -930,6 +1029,28 @@ func TestGetSecretMap(t *testing.T) {
 					},
 					expectedMap: map[string][]byte{
 						myFilePNG: []byte(myContents),
+					},
+					expectedErr: nil,
+				},
+				{
+					checkNote: "limit by Property with prefix",
+					ref: esv1beta1.ExternalSecretDataRemoteRef{
+						Key:      myItem,
+						Property: filePrefix + prefixSplitter + myFilePNG,
+					},
+					expectedMap: map[string][]byte{
+						myFilePNG: []byte(myContents),
+					},
+					expectedErr: nil,
+				},
+				{
+					checkNote: "get field limit by Property",
+					ref: esv1beta1.ExternalSecretDataRemoteRef{
+						Key:      myItem,
+						Property: fieldPrefix + prefixSplitter + key1,
+					},
+					expectedMap: map[string][]byte{
+						key1: []byte(value2),
 					},
 					expectedErr: nil,
 				},
