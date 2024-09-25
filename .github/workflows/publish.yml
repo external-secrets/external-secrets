@@ -126,7 +126,7 @@ jobs:
             --push
             --platform ${{ inputs.build-platform }}
         run: |
-          DOCKER_BUILDKIT=1 docker build $DOCKER_BUILD_ARGS -f $DOCKERFILE -t $IMAGE_NAME:$IMAGE_TAG
+          DOCKER_BUILDKIT=1 docker build $DOCKER_BUILD_ARGS -f $DOCKERFILE -t $IMAGE_NAME:$IMAGE_TAG .
 
       - name: Build & Publish Artifacts fork
         if: env.IS_FORK == 'true'
