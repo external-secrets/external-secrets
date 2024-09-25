@@ -120,11 +120,13 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
           IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}
+          IMAGE_NAME: ${{ vars.EXTERNAL_REGISTRY}}/external-secret
           BUILD_ARGS: ${{ inputs.build-args }}
           DOCKER_BUILD_ARGS: >-
             --push
             --platform ${{ inputs.build-platform }}
-        run: make docker.build
+        run: |
+          DOCKER_BUILDKIT=1 docker build $DOCKER_BUILD_ARGS . -t $(IMAGE_NAME):$(IMAGE_TAG)
 
       - name: Build & Publish Artifacts fork
         if: env.IS_FORK == 'true'
