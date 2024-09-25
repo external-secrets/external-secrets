@@ -85,15 +85,27 @@ jobs:
         if: ${{ steps.setup-go.outputs.cache-hit != 'true' }}
         run: go mod download
 
-      - name: Login to Docker
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+      - name: Set up Google Cloud authentication
+        id: auth
+        uses: google-github-actions/auth@v2
         with:
-          registry: ghcr.io
-          username: ${{ secrets.GHCR_USERNAME }}
-          password: ${{ secrets.GHCR_TOKEN }}
+          token_format: access_token
+          workload_identity_provider: ${{ vars.DEV_IDENTITY_POOL }}
+          service_account: ${{ vars.DEV_CI_SERVICE_ACCOUNT }}
+          access_token_lifetime: 1800s
+
+
+      - name: Login to Artifact Registry
+        uses: docker/login-action@v1
+        with:
+          registry: us-central1-docker.pkg.dev
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
 
       - name: Promote Container Image
         run: make docker.promote
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
 
       - name: Build release manifests
         run: |
@@ -111,6 +123,8 @@ jobs:
           GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IDENTITY_POOL: ${{ vars.DEV_IDENTITY_POOL }}
+          SERVICE_ACCOUNT: ${{ vars.DEV_CI_SERVICE_ACCOUNT }}
 
       - name: Update Release
         uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2.0.8

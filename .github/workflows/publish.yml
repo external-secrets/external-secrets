@@ -39,7 +39,7 @@ env:
   TAG_SUFFIX: ${{ inputs.tag-suffix }}
   ARCH: ${{ inputs.build-arch }}
   DOCKERFILE: ${{ inputs.dockerfile }}
-  IS_FORK: ${{ secrets.GHCR_USERNAME == '' && 'true' || 'false' }}
+  IS_FORK: "false"
 
 jobs:
   build-publish:
@@ -86,11 +86,11 @@ jobs:
           token_format: access_token
           workload_identity_provider: ${{ vars.DEV_IDENTITY_POOL }}
           service_account: ${{ vars.DEV_CI_SERVICE_ACCOUNT }}
-          access_token_lifetime: 300s
+          access_token_lifetime: 1800s
 
 
       - name: Login to Artifact Registry
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           registry: us-central1-docker.pkg.dev
           username: oauth2accesstoken
@@ -112,12 +112,15 @@ jobs:
           else
             TAG=$(make docker.tag)
           fi
+          echo "image-tag=${TAG}"
           echo "image-tag=${TAG}" >> $GITHUB_OUTPUT
 
       - name: Build & Publish Artifacts
         if: env.IS_FORK == 'false'
         shell: bash
         env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
+          IMAGE_REGISTRY: us-central1-docker.pkg.dev/external-secrets-inc-registry/external
           IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}
           BUILD_ARGS: ${{ inputs.build-args }}
           DOCKER_BUILD_ARGS: >-
@@ -159,3 +162,5 @@ jobs:
           GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IDENTITY_POOL: ${{ vars.DEV_IDENTITY_POOL }}
+          SERVICE_ACCOUNT: ${{ vars.DEV_CI_SERVICE_ACCOUNT }}

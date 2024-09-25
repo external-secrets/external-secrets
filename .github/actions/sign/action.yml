@@ -51,7 +51,7 @@ runs:
         token_format: access_token
         workload_identity_provider: ${{ inputs.IDENTITY_POOL }}
         service_account: ${{ inputs.SERVICE_ACCOUNT }}
-        access_token_lifetime: 1800s 
+        access_token_lifetime: 1800s
 
 
     - name: Login to Artifact Registry
