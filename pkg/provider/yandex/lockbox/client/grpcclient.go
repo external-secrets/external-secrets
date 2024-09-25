@@ -66,7 +66,7 @@ func (c *grpcLockboxClient) GetSecretIDByName(ctx context.Context, iamToken, fol
 		ctx,
 		&api.ListSecretsRequest{
 			FolderId: folderID,
-			PageSize: 500,
+			PageSize: 1000,
 		},
 		grpc.PerRPCCredentials(common.PerRPCCredentials{IamToken: iamToken}),
 	)
