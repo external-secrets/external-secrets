@@ -13,7 +13,7 @@ on:
         default: 'main'
 
 env:
-  IMAGE_NAME: ghcr.io/${{ github.repository }}
+  IMAGE_NAME: us-central1-docker.pkg.dev/external-secrets-inc-registry/external/${{ github.repository }}
 
 jobs:
   release:
@@ -40,16 +40,6 @@ jobs:
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Configure Git
-        run: |
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-
-      - name: Update Docs
-        if: github.ref == 'refs/heads/main'
-        run: make docs.publish DOCS_VERSION=${{ github.event.inputs.version }} DOCS_ALIAS=latest
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
   promote:
     name: Promote Container Image
@@ -125,14 +115,3 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IDENTITY_POOL: ${{ vars.DEV_IDENTITY_POOL }}
           SERVICE_ACCOUNT: ${{ vars.DEV_CI_SERVICE_ACCOUNT }}
-
-      - name: Update Release
-        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2.0.8
-        with:
-          tag_name: ${{ github.event.inputs.version }}
-          files: |
-            provenance.${{ env.RELEASE_TAG }}.intoto.jsonl
-            sbom.${{ env.RELEASE_TAG }}.spdx.json
-            bin/deploy/manifests/external-secrets.yaml
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
