@@ -1,5 +1,5 @@
 # Reference to Helm repository
-apiVersion: source.toolkit.fluxcd.io/v1beta1
+apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
   name: external-secrets
@@ -8,7 +8,7 @@ spec:
   interval: 10m
   url: https://charts.external-secrets.io
 ---
-apiVersion: source.toolkit.fluxcd.io/v1beta1
+apiVersion: source.toolkit.fluxcd.io/v1
 kind: GitRepository
 metadata:
   name: external-secrets
@@ -16,5 +16,5 @@ metadata:
 spec:
   interval: 10m
   ref:
-    branch: main
+    tag: v0.10.3
   url: http://github.com/external-secrets/external-secrets
