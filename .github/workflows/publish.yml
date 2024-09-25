@@ -86,11 +86,11 @@ jobs:
           token_format: access_token
           workload_identity_provider: ${{ vars.DEV_IDENTITY_POOL }}
           service_account: ${{ vars.DEV_CI_SERVICE_ACCOUNT }}
-          access_token_lifetime: 300s
+          access_token_lifetime: 1800s
 
 
       - name: Login to Artifact Registry
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           registry: us-central1-docker.pkg.dev
           username: oauth2accesstoken
@@ -119,6 +119,7 @@ jobs:
         shell: bash
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
+          IMAGE_REGISTRY: us-central1-docker.pkg.dev/external-secrets-inc-registry/external
           IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}
           BUILD_ARGS: ${{ inputs.build-args }}
           DOCKER_BUILD_ARGS: >-
