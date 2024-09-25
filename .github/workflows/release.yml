@@ -92,7 +92,7 @@ jobs:
           token_format: access_token
           workload_identity_provider: ${{ vars.DEV_IDENTITY_POOL }}
           service_account: ${{ vars.DEV_CI_SERVICE_ACCOUNT }}
-          access_token_lifetime: 300s
+          access_token_lifetime: 1800s
 
 
       - name: Login to Artifact Registry
@@ -123,6 +123,8 @@ jobs:
           GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IDENTITY_POOL: ${{ vars.DEV_IDENTITY_POOL }}
+          SERVICE_ACCOUNT: ${{ vars.DEV_CI_SERVICE_ACCOUNT }}
 
       - name: Update Release
         uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2.0.8

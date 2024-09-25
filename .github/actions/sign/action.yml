@@ -20,6 +20,12 @@ inputs:
   GITHUB_TOKEN:
     description: "gh token"
     required: true
+  IDENTITY_POOL:
+    description: "identity pool"
+    required: true
+  SERVICE_ACCOUNT:
+    description: "service account"
+    required: true
 
 runs:
   using: "composite"
@@ -43,9 +49,9 @@ runs:
       uses: google-github-actions/auth@v2
       with:
         token_format: access_token
-        workload_identity_provider: ${{ vars.DEV_IDENTITY_POOL }}
-        service_account: ${{ vars.DEV_CI_SERVICE_ACCOUNT }}
-        access_token_lifetime: 300s
+        workload_identity_provider: ${{ inputs.IDENTITY_POOL }}
+        service_account: ${{ inputs.SERVICE_ACCOUNT }}
+        access_token_lifetime: 1800s
 
 
     - name: Login to Artifact Registry
