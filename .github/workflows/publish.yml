@@ -118,6 +118,7 @@ jobs:
         if: env.IS_FORK == 'false'
         shell: bash
         env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
           IMAGE_TAG: ${{ steps.container_info.outputs.image-tag }}
           BUILD_ARGS: ${{ inputs.build-args }}
           DOCKER_BUILD_ARGS: >-
