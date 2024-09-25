@@ -108,5 +108,5 @@ runs:
         COSIGN_EXPERIMENTAL: "1"
       run: |
         jq '.predicate' provenance.${{ inputs.image-tag }}.intoto.jsonl > provenance-predicate.att
-        cosign attest --predicate provenance-predicate.att --type slsaprovenance "${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}"
+        cosign attest --force --predicate provenance-predicate.att --type slsaprovenance "${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}"
         cosign verify-attestation --type slsaprovenance ${{ inputs.image-name }}@${{ steps.container_info.outputs.digest }}
