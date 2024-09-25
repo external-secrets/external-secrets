@@ -39,7 +39,7 @@ env:
   TAG_SUFFIX: ${{ inputs.tag-suffix }}
   ARCH: ${{ inputs.build-arch }}
   DOCKERFILE: ${{ inputs.dockerfile }}
-  IS_FORK: ${{ secrets.GHCR_USERNAME == '' && 'true' || 'false' }}
+  IS_FORK: "false"
 
 jobs:
   build-publish:

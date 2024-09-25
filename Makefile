@@ -353,3 +353,17 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 tilt: $(TILT) ## Download tilt locally if necessary. Architecture is locked at x86_64.
 $(TILT): $(LOCALBIN)
 	test -s $(LOCALBIN)/tilt || curl -fsSL https://github.com/tilt-dev/tilt/releases/download/v$(TILT_VERSION)/tilt.$(TILT_VERSION).$(detected_OS).$(arch).tar.gz | tar -xz -C $(LOCALBIN) tilt
+
+
+ARTIFACT_REG:=us-central1-docker.pkg.dev
+CHARTS_REPO := oci://$(ARTIFACT_REG)/external-secrets-inc-registry/external/charts
+
+.PHONY: helm.login
+helm.login:
+	gcloud auth print-access-token | helm registry login -u oauth2accesstoken \
+		--password-stdin https://$(ARTIFACT_REG)
+
+.PHONY: helm.push
+helm.push: helm.login ## Push helm chart to the repository
+	@helm package deploy/charts/web-ui
+	helm push *.tgz $(CHARTS_REPO)
