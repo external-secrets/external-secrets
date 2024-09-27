@@ -163,3 +163,33 @@ func certsToPkcs12(cert *x509.Certificate, key string, caCerts []*x509.Certifica
 
 	return base64.StdEncoding.EncodeToString(pfx), nil
 }
+
+func createPkcs12TruststoreFromCert(cert, password string) (string, error) {
+	certPem, rest := pem.Decode([]byte(cert))
+	parsedCert, err := x509.ParseCertificate(certPem.Bytes)
+	if err != nil {
+		return "", err
+	}
+
+	truststoreEntries := make([]gopkcs12.TrustStoreEntry, 0)
+	for len(rest) > 0 {
+		caPem, restBytes := pem.Decode(rest)
+		rest = restBytes
+
+		caCert, err := x509.ParseCertificate(caPem.Bytes)
+		if err != nil {
+			return "", err
+		}
+     	truststoreEntry := gopkcs12.TrustStoreEntry{
+        	Cert: caCert,
+         	FriendlyName: caCert.Subject.CommonName,
+     	}
+     	truststoreEntries = append(truststoreEntries, truststoreEntry)
+	}
+	pfxTruststore, err := gopkcs12.Modern.EncodeTrustStoreEntries(truststoreEntries,password)
+	if err != nil {
+		return "", err
+	}
+	fmt.Printf("Created truststore from certificate with CN=%v\n", string(parsedCert.Subject.CommonName))
+	return base64.StdEncoding.EncodeToString(pfxTruststore), nil
+}

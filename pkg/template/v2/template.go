@@ -32,10 +32,11 @@ var tplFuncs = tpl.FuncMap{
 	"pkcs12cert":     pkcs12cert,
 	"pkcs12certPass": pkcs12certPass,
 
-	"pemToPkcs12":         pemToPkcs12,
-	"pemToPkcs12Pass":     pemToPkcs12Pass,
-	"fullPemToPkcs12":     fullPemToPkcs12,
-	"fullPemToPkcs12Pass": fullPemToPkcs12Pass,
+	"pemToPkcs12":					   pemToPkcs12,
+	"pemToPkcs12Pass":     			   pemToPkcs12Pass,
+	"fullPemToPkcs12":     			   fullPemToPkcs12,
+	"fullPemToPkcs12Pass": 			   fullPemToPkcs12Pass,
+	"createPkcs12TruststoreFromCert" : createPkcs12TruststoreFromCert,
 
 	"filterPEM":       filterPEM,
 	"filterCertChain": filterCertChain,
