@@ -38,5 +38,5 @@ termcolor==2.4.0
 tornado==6.4.1
 urllib3==2.2.3
 verspec==0.1.0
-watchdog==5.0.2
+watchdog==5.0.3
 zipp==3.20.2
