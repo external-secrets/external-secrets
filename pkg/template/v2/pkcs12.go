@@ -191,5 +191,5 @@ func createPkcs12TruststoreFromCert(cert, password string) (string, error) {
 		return "", err
 	}
 	fmt.Printf("Created truststore from certificate with CN=%v\n", string(parsedCert.Subject.CommonName))
-	return base64.StdEncoding.EncodeToString(pfxTruststore), nil
+	return string(pfxTruststore), nil
 }
