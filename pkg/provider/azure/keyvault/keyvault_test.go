@@ -1415,11 +1415,8 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 			Attributes: &enabledAtt,
 		}
 
-		secretList := make([]keyvault.SecretItem, 0)
-		secretList = append(secretList, secretItem)
-
 		list := keyvault.SecretListResult{
-			Value: &secretList,
+			Value: &[]keyvault.SecretItem{secretItem},
 		}
 
 		resultPage := keyvault.NewSecretListResultPage(list, getNextPage)
@@ -1447,11 +1444,8 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 			Attributes: &enabledAtt,
 		}
 
-		secretList := make([]keyvault.SecretItem, 1)
-		secretList = append(secretList, secretItemOne, secretItemTwo)
-
 		list := keyvault.SecretListResult{
-			Value: &secretList,
+			Value: &[]keyvault.SecretItem{secretItemOne, secretItemTwo},
 		}
 
 		resultPage := keyvault.NewSecretListResultPage(list, getNextPage)
@@ -1475,11 +1469,8 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 			Tags:       map[string]*string{"environment": &environment},
 		}
 
-		secretList := make([]keyvault.SecretItem, 0)
-		secretList = append(secretList, secretItem)
-
 		list := keyvault.SecretListResult{
-			Value: &secretList,
+			Value: &[]keyvault.SecretItem{secretItem},
 		}
 
 		resultPage := keyvault.NewSecretListResultPage(list, getNextPage)
@@ -1505,11 +1496,8 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 			Tags:       map[string]*string{"environment": &environment, "author": &author},
 		}
 
-		secretList := make([]keyvault.SecretItem, 0)
-		secretList = append(secretList, secretItem)
-
 		list := keyvault.SecretListResult{
-			Value: &secretList,
+			Value: &[]keyvault.SecretItem{secretItem},
 		}
 
 		resultPage := keyvault.NewSecretListResultPage(list, getNextPage)
