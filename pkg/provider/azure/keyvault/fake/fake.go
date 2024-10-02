@@ -17,7 +17,7 @@ package fake
 import (
 	"context"
 
-	"github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault"
+	"github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault"
 )
 
 type AzureMockClient struct {

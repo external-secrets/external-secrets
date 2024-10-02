@@ -136,7 +136,7 @@ type SecretStoreStatus struct {
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // +kubebuilder:subresource:status
 // +kubebuilder:deprecatedversion
-// +kubebuilder:resource:scope=Namespaced,categories={externalsecrets},shortName=ss
+// +kubebuilder:resource:scope=Namespaced,categories={external-secrets},shortName=ss
 type SecretStore struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -161,7 +161,7 @@ type SecretStoreList struct {
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // +kubebuilder:deprecatedversion
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Cluster,categories={externalsecrets},shortName=css
+// +kubebuilder:resource:scope=Cluster,categories={external-secrets},shortName=css
 type ClusterSecretStore struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

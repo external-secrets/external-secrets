@@ -133,7 +133,7 @@ func genericPushSecretTemplate(f *framework.Framework) (string, func(*framework.
 			Type: v1.SecretTypeOpaque,
 		}
 		tc.PushSecret.Spec.Selector = esv1alpha1.PushSecretSelector{
-			Secret: esv1alpha1.PushSecretSecret{
+			Secret: &esv1alpha1.PushSecretSecret{
 				Name: secretKey1,
 			},
 		}

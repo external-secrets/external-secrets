@@ -92,9 +92,16 @@ type PushSecretSecret struct {
 	Name string `json:"name"`
 }
 
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
 type PushSecretSelector struct {
 	// Select a Secret to Push.
-	Secret PushSecretSecret `json:"secret"`
+	// +optional
+	Secret *PushSecretSecret `json:"secret,omitempty"`
+
+	// Point to a generator to create a Secret.
+	// +optional
+	GeneratorRef *esv1beta1.GeneratorRef `json:"generatorRef,omitempty"`
 }
 
 type PushSecretRemoteRef struct {
@@ -198,7 +205,8 @@ type PushSecretStatus struct {
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Namespaced,categories={pushsecrets}
+// +kubebuilder:metadata:labels="external-secrets.io/component=controller"
+// +kubebuilder:resource:scope=Namespaced,categories={external-secrets}
 
 type PushSecret struct {
 	metav1.TypeMeta   `json:",inline"`

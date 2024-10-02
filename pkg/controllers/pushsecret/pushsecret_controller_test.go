@@ -30,6 +30,7 @@ import (
 
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
@@ -99,6 +100,21 @@ var _ = Describe("PushSecret controller", func() {
 		PushSecretNamespace, err = ctest.CreateNamespace("test-ns", k8sClient)
 		Expect(err).ToNot(HaveOccurred())
 		fakeProvider.Reset()
+
+		Expect(k8sClient.Create(context.Background(), &genv1alpha1.Fake{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Fake",
+				APIVersion: "generators.external-secrets.io/v1alpha1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test",
+				Namespace: PushSecretNamespace,
+			},
+			Spec: genv1alpha1.FakeSpec{
+				Data: map[string]string{
+					"key": "foo-bar-from-generator",
+				},
+			}})).ToNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -162,7 +178,7 @@ var _ = Describe("PushSecret controller", func() {
 						},
 					},
 					Selector: v1alpha1.PushSecretSelector{
-						Secret: v1alpha1.PushSecretSecret{
+						Secret: &v1alpha1.PushSecretSecret{
 							Name: SecretName,
 						},
 					},
@@ -395,7 +411,7 @@ var _ = Describe("PushSecret controller", func() {
 					},
 				},
 				Selector: v1alpha1.PushSecretSelector{
-					Secret: v1alpha1.PushSecretSecret{
+					Secret: &v1alpha1.PushSecretSecret{
 						Name: SecretName,
 					},
 				},
@@ -459,7 +475,7 @@ var _ = Describe("PushSecret controller", func() {
 					},
 				},
 				Selector: v1alpha1.PushSecretSelector{
-					Secret: v1alpha1.PushSecretSecret{
+					Secret: &v1alpha1.PushSecretSecret{
 						Name: SecretName,
 					},
 				},
@@ -515,7 +531,7 @@ var _ = Describe("PushSecret controller", func() {
 					},
 				},
 				Selector: v1alpha1.PushSecretSelector{
-					Secret: v1alpha1.PushSecretSecret{
+					Secret: &v1alpha1.PushSecretSecret{
 						Name: SecretName,
 					},
 				},
@@ -570,7 +586,7 @@ var _ = Describe("PushSecret controller", func() {
 					},
 				},
 				Selector: v1alpha1.PushSecretSelector{
-					Secret: v1alpha1.PushSecretSecret{
+					Secret: &v1alpha1.PushSecretSecret{
 						Name: SecretName,
 					},
 				},
@@ -716,7 +732,7 @@ var _ = Describe("PushSecret controller", func() {
 					},
 				},
 				Selector: v1alpha1.PushSecretSelector{
-					Secret: v1alpha1.PushSecretSecret{
+					Secret: &v1alpha1.PushSecretSecret{
 						Name: SecretName,
 					},
 				},
@@ -782,7 +798,7 @@ var _ = Describe("PushSecret controller", func() {
 					},
 				},
 				Selector: v1alpha1.PushSecretSelector{
-					Secret: v1alpha1.PushSecretSecret{
+					Secret: &v1alpha1.PushSecretSecret{
 						Name: SecretName,
 					},
 				},
@@ -861,6 +877,28 @@ var _ = Describe("PushSecret controller", func() {
 			return bytes.Equal(secretValue, providerValue) && checkCondition(ps.Status, expected)
 		}
 	}
+
+	syncWithGenerator := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		tc.pushsecret.Spec.Selector.Secret = nil
+		tc.pushsecret.Spec.Selector.GeneratorRef = &v1beta1.GeneratorRef{
+			APIVersion: "generators.external-secrets.io/v1alpha1",
+			Kind:       "Fake",
+			Name:       "test",
+		}
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			providerValue := fakeProvider.SetSecretArgs[ps.Spec.Data[0].Match.RemoteRef.RemoteKey].Value
+			expected := v1alpha1.PushSecretStatusCondition{
+				Type:    v1alpha1.PushSecretReady,
+				Status:  v1.ConditionTrue,
+				Reason:  v1alpha1.ReasonSynced,
+				Message: "PushSecret synced successfully",
+			}
+			return bytes.Equal([]byte("foo-bar-from-generator"), providerValue) && checkCondition(ps.Status, expected)
+		}
+	}
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	syncWithClusterStoreMatchingLabels := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
@@ -884,7 +922,7 @@ var _ = Describe("PushSecret controller", func() {
 					},
 				},
 				Selector: v1alpha1.PushSecretSelector{
-					Secret: v1alpha1.PushSecretSecret{
+					Secret: &v1alpha1.PushSecretSecret{
 						Name: SecretName,
 					},
 				},
@@ -1069,6 +1107,7 @@ var _ = Describe("PushSecret controller", func() {
 		Entry("should sync to stores matching labels", syncMatchingLabels),
 		Entry("should sync with ClusterStore", syncWithClusterStore),
 		Entry("should sync with ClusterStore matching labels", syncWithClusterStoreMatchingLabels),
+		Entry("should sync with Generator", syncWithGenerator),
 		Entry("should fail if Secret is not created", failNoSecret),
 		Entry("should fail if Secret Key does not exist", failNoSecretKey),
 		Entry("should fail if SetSecret fails", setSecretFail),
@@ -1168,7 +1207,7 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 						},
 					},
 					Selector: v1alpha1.PushSecretSelector{
-						Secret: v1alpha1.PushSecretSecret{
+						Secret: &v1alpha1.PushSecretSecret{
 							Name: SecretName,
 						},
 					},
