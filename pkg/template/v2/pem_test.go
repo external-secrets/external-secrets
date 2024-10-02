@@ -183,6 +183,18 @@ func TestFilterPEM(t *testing.T) {
 	}
 }
 
+type filterCertChainTestArgs struct {
+	input    []string
+	certType string
+}
+
+type filterCertChainTest struct {
+	name    string
+	args    filterCertChainTestArgs
+	want    string
+	wantErr bool
+}
+
 func TestFilterCertChain(t *testing.T) {
 	const (
 		leafCertPath         = "_testdata/foo.crt"
@@ -190,19 +202,10 @@ func TestFilterCertChain(t *testing.T) {
 		rootCertPath         = "_testdata/root-ca.crt"
 		rootKeyPath          = "_testdata/root-ca.key"
 	)
-	type args struct {
-		input    []string
-		certType string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
+	tests := []filterCertChainTest{
 		{
 			name: "extract leaf cert / empty cert chain",
-			args: args{
+			args: filterCertChainTestArgs{
 				input:    []string{},
 				certType: certTypeLeaf,
 			},
@@ -210,7 +213,7 @@ func TestFilterCertChain(t *testing.T) {
 		},
 		{
 			name: "extract leaf cert / cert chain with pkey",
-			args: args{
+			args: filterCertChainTestArgs{
 				input: []string{
 					leafCertPath,
 					rootKeyPath,
@@ -221,7 +224,7 @@ func TestFilterCertChain(t *testing.T) {
 		},
 		{
 			name: "extract leaf cert / leaf cert only",
-			args: args{
+			args: filterCertChainTestArgs{
 				input: []string{
 					leafCertPath,
 				},
@@ -231,7 +234,7 @@ func TestFilterCertChain(t *testing.T) {
 		},
 		{
 			name: "extract leaf cert / cert chain without root",
-			args: args{
+			args: filterCertChainTestArgs{
 				input: []string{
 					leafCertPath,
 					intermediateCertPath,
@@ -242,7 +245,7 @@ func TestFilterCertChain(t *testing.T) {
 		},
 		{
 			name: "extract leaf cert / root cert only",
-			args: args{
+			args: filterCertChainTestArgs{
 				input: []string{
 					rootCertPath,
 				},
@@ -252,7 +255,7 @@ func TestFilterCertChain(t *testing.T) {
 		},
 		{
 			name: "extract leaf cert / full cert chain",
-			args: args{
+			args: filterCertChainTestArgs{
 				input: []string{
 					leafCertPath,
 					intermediateCertPath,
@@ -264,7 +267,7 @@ func TestFilterCertChain(t *testing.T) {
 		},
 		{
 			name: "extract intermediate cert / leaf cert only",
-			args: args{
+			args: filterCertChainTestArgs{
 				input: []string{
 					leafCertPath,
 				},
@@ -274,7 +277,7 @@ func TestFilterCertChain(t *testing.T) {
 		},
 		{
 			name: "extract intermediate cert / cert chain without root",
-			args: args{
+			args: filterCertChainTestArgs{
 				input: []string{
 					leafCertPath,
 					intermediateCertPath,
@@ -285,7 +288,7 @@ func TestFilterCertChain(t *testing.T) {
 		},
 		{
 			name: "extract intermediate cert / full cert chain",
-			args: args{
+			args: filterCertChainTestArgs{
 				input: []string{
 					leafCertPath,
 					intermediateCertPath,
@@ -297,7 +300,7 @@ func TestFilterCertChain(t *testing.T) {
 		},
 		{
 			name: "extract root cert / leaf cert only",
-			args: args{
+			args: filterCertChainTestArgs{
 				input: []string{
 					leafCertPath,
 				},
@@ -307,7 +310,7 @@ func TestFilterCertChain(t *testing.T) {
 		},
 		{
 			name: "extract root cert / root cert only",
-			args: args{
+			args: filterCertChainTestArgs{
 				input: []string{
 					rootCertPath,
 				},
@@ -317,7 +320,7 @@ func TestFilterCertChain(t *testing.T) {
 		},
 		{
 			name: "extract root cert / full cert chain",
-			args: args{
+			args: filterCertChainTestArgs{
 				input: []string{
 					leafCertPath,
 					intermediateCertPath,
@@ -329,31 +332,43 @@ func TestFilterCertChain(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var chainIn []byte
-			for _, f := range tt.args.input {
-				c, err := os.ReadFile(f)
-				if err != nil {
-					t.Error(err)
-				}
-				chainIn = append(chainIn, c...)
-			}
-			var expOut []byte
-			if tt.want != "" {
-				var err error
-				expOut, err = os.ReadFile(tt.want)
-				if err != nil {
-					t.Error(err)
-				}
-			}
-			got, err := filterCertChain(tt.args.certType, string(chainIn))
-			if (err != nil) != tt.wantErr {
-				t.Errorf("filterCertChain() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != string(expOut) {
-				t.Errorf("filterCertChain() = %v, want %v", got, string(expOut))
-			}
-		})
+		runFilterCertChainTest(t, tt)
 	}
+}
+
+func runFilterCertChainTest(t *testing.T, tt filterCertChainTest) {
+	t.Run(tt.name, func(t *testing.T) {
+		chainIn, err := readCertificates(tt.args.input)
+		if err != nil {
+			t.Error(err)
+		}
+		var expOut []byte
+		if tt.want != "" {
+			var err error
+			expOut, err = os.ReadFile(tt.want)
+			if err != nil {
+				t.Error(err)
+			}
+		}
+		got, err := filterCertChain(tt.args.certType, string(chainIn))
+		if (err != nil) != tt.wantErr {
+			t.Errorf("filterCertChain() error = %v, wantErr %v", err, tt.wantErr)
+			return
+		}
+		if got != string(expOut) {
+			t.Errorf("filterCertChain() = %v, want %v", got, string(expOut))
+		}
+	})
+}
+
+func readCertificates(certFiles []string) ([]byte, error) {
+	var certificates []byte
+	for _, f := range certFiles {
+		c, err := os.ReadFile(f)
+		if err != nil {
+			return nil, err
+		}
+		certificates = append(certificates, c...)
+	}
+	return certificates, nil
 }
