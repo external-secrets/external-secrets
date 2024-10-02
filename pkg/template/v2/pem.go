@@ -73,20 +73,21 @@ func filterCertChain(certType, input string) (string, error) {
 			return pemEncode(ordered[0].Raw, pemTypeCertificate)
 		}
 	case certTypeIntermediate:
-		if len(ordered) >= 2 {
-			var pemData []byte
-			for _, cert := range ordered[1:] {
-				if cert.AuthorityKeyId == nil || bytes.Equal(cert.AuthorityKeyId, cert.SubjectKeyId) {
-					break
-				}
-				b := &pem.Block{
-					Type:  pemTypeCertificate,
-					Bytes: cert.Raw,
-				}
-				pemData = append(pemData, pem.EncodeToMemory(b)...)
-			}
-			return string(pemData), nil
+		if len(ordered) < 2 {
+			return "", nil
 		}
+		var pemData []byte
+		for _, cert := range ordered[1:] {
+			if cert.AuthorityKeyId == nil || bytes.Equal(cert.AuthorityKeyId, cert.SubjectKeyId) {
+				break
+			}
+			b := &pem.Block{
+				Type:  pemTypeCertificate,
+				Bytes: cert.Raw,
+			}
+			pemData = append(pemData, pem.EncodeToMemory(b)...)
+		}
+		return string(pemData), nil
 	case certTypeRoot:
 		cert := ordered[len(ordered)-1]
 		if cert.AuthorityKeyId == nil || bytes.Equal(cert.AuthorityKeyId, cert.SubjectKeyId) {
