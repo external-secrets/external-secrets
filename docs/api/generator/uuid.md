@@ -13,13 +13,13 @@ The UUID generator does not require any additional parameters.
 ## Example Manifest
 
 ```yaml
-{ % include 'generator-uuid.yaml' % }
+{% include 'generator-uuid.yaml' %}
 ```
 
 Example `ExternalSecret` that references the UUID generator:
 
 ```yaml
-{ % include 'generator-uuid-example.yaml' % }
+{% include 'generator-uuid-example.yaml' %}
 ```
 
 Which will generate a `Kind=Secret` with a key called 'uuid' that may look like:

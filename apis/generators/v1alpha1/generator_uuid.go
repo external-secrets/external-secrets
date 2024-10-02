@@ -21,13 +21,12 @@ import (
 // UUIDSpec controls the behavior of the uuid generator.
 type UUIDSpec struct{}
 
-// Password generates a random password based on the
-// configuration parameters in spec.
-// You can specify the length, characterset and other attributes.
+// UUID generates a version 1 UUID (e56657e3-764f-11ef-a397-65231a88c216).
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Namespaced,categories={password},shortName=uuids
+// +kubebuilder:metadata:labels="external-secrets.io/component=controller"
+// +kubebuilder:resource:scope=Namespaced,categories={external-secrets, external-secrets-generators},shortName=uuids
 type UUID struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

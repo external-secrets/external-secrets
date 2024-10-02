@@ -60,7 +60,7 @@ const (
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
-// +kubebuilder:resource:scope=Namespaced,categories={vaultdynamicsecret},shortName=vaultdynamicsecret
+// +kubebuilder:resource:scope=Namespaced,categories={external-secrets, external-secrets-generators},shortName=vaultdynamicsecret
 type VaultDynamicSecret struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

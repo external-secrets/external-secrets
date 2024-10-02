@@ -10,7 +10,7 @@ spec:
   group: external-secrets.io
   names:
     categories:
-      - externalsecrets
+      - external-secrets
     kind: ClusterExternalSecret
     listKind: ClusterExternalSecretList
     plural: clusterexternalsecrets
@@ -667,7 +667,7 @@ spec:
   group: external-secrets.io
   names:
     categories:
-      - externalsecrets
+      - external-secrets
     kind: ClusterSecretStore
     listKind: ClusterSecretStoreList
     plural: clustersecretstores
@@ -5301,7 +5301,7 @@ spec:
   group: external-secrets.io
   names:
     categories:
-      - externalsecrets
+      - external-secrets
     kind: ExternalSecret
     listKind: ExternalSecretList
     plural: externalsecrets
@@ -6105,12 +6105,14 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.16.3
+  labels:
+    external-secrets.io/component: controller
   name: pushsecrets.external-secrets.io
 spec:
   group: external-secrets.io
   names:
     categories:
-      - pushsecrets
+      - external-secrets
     kind: PushSecret
     listKind: PushSecretList
     plural: pushsecrets
@@ -6489,7 +6491,7 @@ spec:
   group: external-secrets.io
   names:
     categories:
-      - externalsecrets
+      - external-secrets
     kind: SecretStore
     listKind: SecretStoreList
     plural: secretstores
@@ -11123,7 +11125,8 @@ spec:
   group: generators.external-secrets.io
   names:
     categories:
-      - acraccesstoken
+      - external-secrets
+      - external-secrets-generators
     kind: ACRAccessToken
     listKind: ACRAccessTokenList
     plural: acraccesstokens
@@ -11317,7 +11320,8 @@ spec:
   group: generators.external-secrets.io
   names:
     categories:
-      - ecrauthorizationtoken
+      - external-secrets
+      - external-secrets-generators
     kind: ECRAuthorizationToken
     listKind: ECRAuthorizationTokenList
     plural: ecrauthorizationtokens
@@ -11485,7 +11489,8 @@ spec:
   group: generators.external-secrets.io
   names:
     categories:
-      - fake
+      - external-secrets
+      - external-secrets-generators
     kind: Fake
     listKind: FakeList
     plural: fakes
@@ -11562,7 +11567,8 @@ spec:
   group: generators.external-secrets.io
   names:
     categories:
-      - gcraccesstoken
+      - external-secrets
+      - external-secrets-generators
     kind: GCRAccessToken
     listKind: GCRAccessTokenList
     plural: gcraccesstokens
@@ -11691,7 +11697,8 @@ spec:
   group: generators.external-secrets.io
   names:
     categories:
-      - githubaccesstoken
+      - external-secrets
+      - external-secrets-generators
     kind: GithubAccessToken
     listKind: GithubAccessTokenList
     plural: githubaccesstokens
@@ -11794,7 +11801,8 @@ spec:
   group: generators.external-secrets.io
   names:
     categories:
-      - password
+      - external-secrets
+      - external-secrets-generators
     kind: Password
     listKind: PasswordList
     plural: passwords
@@ -11886,12 +11894,15 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.16.3
+  labels:
+    external-secrets.io/component: controller
   name: uuids.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
   names:
     categories:
-      - password
+      - external-secrets
+      - external-secrets-generators
     kind: UUID
     listKind: UUIDList
     plural: uuids
@@ -11903,10 +11914,7 @@ spec:
     - name: v1alpha1
       schema:
         openAPIV3Schema:
-          description: |-
-            Password generates a random password based on the
-            configuration parameters in spec.
-            You can specify the length, characterset and other attributes.
+          description: UUID generates a version 1 UUID (e56657e3-764f-11ef-a397-65231a88c216).
           properties:
             apiVersion:
               description: |-
@@ -11956,7 +11964,8 @@ spec:
   group: generators.external-secrets.io
   names:
     categories:
-      - vaultdynamicsecret
+      - external-secrets
+      - external-secrets-generators
     kind: VaultDynamicSecret
     listKind: VaultDynamicSecretList
     plural: vaultdynamicsecrets
@@ -12654,7 +12663,8 @@ spec:
   group: generators.external-secrets.io
   names:
     categories:
-      - webhook
+      - external-secrets
+      - external-secrets-generators
     kind: Webhook
     listKind: WebhookList
     plural: webhooks

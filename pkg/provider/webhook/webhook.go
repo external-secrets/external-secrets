@@ -65,6 +65,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	wh := webhook.Webhook{
 		Kube:      kube,
 		Namespace: namespace,
+		StoreKind: store.GetObjectKind().GroupVersionKind().Kind,
 	}
 	whClient := &WebHook{
 		store:     store,
