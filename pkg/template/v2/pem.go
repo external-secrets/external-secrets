@@ -16,6 +16,7 @@ package template
 
 import (
 	"bytes"
+	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"strings"
@@ -78,7 +79,7 @@ func filterCertChain(certType, input string) (string, error) {
 		}
 		var pemData []byte
 		for _, cert := range ordered[1:] {
-			if cert.AuthorityKeyId == nil || bytes.Equal(cert.AuthorityKeyId, cert.SubjectKeyId) {
+			if isRootCertificate(cert) {
 				break
 			}
 			b := &pem.Block{
@@ -90,12 +91,16 @@ func filterCertChain(certType, input string) (string, error) {
 		return string(pemData), nil
 	case certTypeRoot:
 		cert := ordered[len(ordered)-1]
-		if cert.AuthorityKeyId == nil || bytes.Equal(cert.AuthorityKeyId, cert.SubjectKeyId) {
+		if isRootCertificate(cert) {
 			return pemEncode(cert.Raw, pemTypeCertificate)
 		}
 	}
 
 	return "", nil
+}
+
+func isRootCertificate(cert *x509.Certificate) bool {
+	return cert.AuthorityKeyId == nil || bytes.Equal(cert.AuthorityKeyId, cert.SubjectKeyId)
 }
 
 func pemEncode(thing []byte, kind string) (string, error) {
