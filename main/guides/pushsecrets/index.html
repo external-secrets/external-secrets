@@ -1706,6 +1706,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#rotate-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Rotate Secrets
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3322,6 +3331,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#rotate-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Rotate Secrets
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3360,6 +3378,11 @@
 <span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">secret</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pokedex-credentials</span><span class="w"> </span><span class="c1"># Source Kubernetes secret to be pushed</span>
+<span class="w">    </span><span class="c1"># Alternatively, you can point to a generator that produces values to be pushed</span>
+<span class="w">    </span><span class="nt">generatorRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ECRAuthorizationToken</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">prod-registry-credentials</span>
 <span class="w">  </span><span class="nt">template</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">metadata</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">annotations</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="w"> </span><span class="p p-Indicator">}</span>
@@ -3437,6 +3460,41 @@
 </div>
 <h3 id="key-conversion-strategy">Key conversion strategy</h3>
 <p>You can also set <code>data[*].conversionStrategy: ReverseUnicode</code> to reverse the invalid character replaced by the <code>conversionStrategy: Unicode</code> configuration in the <code>ExternalSecret</code> object as <a href="../getallsecrets/#avoiding-name-conflicts">documented here</a>.</p>
+<h2 id="rotate-secrets">Rotate Secrets</h2>
+<p>You can use ESO to rotate secrets by using the PushSecret and Generator resources. ESO will consult the <code>Kind=Generator</code> to generate a new secret and then ESO will store it.
+Every <code>spec.refreshInterval</code> the secret will be rotated and the value will be replaced in the store unless <code>spec.updatePolicy=IfNotExist</code> is set. Then ESO will generate the secret once and won't rotate it.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Password</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">strong-password</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">length</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">128</span>
+<span class="w">  </span><span class="nt">digits</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<span class="w">  </span><span class="nt">symbols</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<span class="w">  </span><span class="nt">symbolCharacters</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;-_$@&quot;</span>
+<span class="w">  </span><span class="nt">noUpper</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">  </span><span class="nt">allowRepeat</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pushsecret-example</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6h</span>
+<span class="w">  </span><span class="nt">secretStoreRefs</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-parameter-store</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">generatorRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Password</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">strong-password</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span><span class="w"> </span><span class="c1"># property in the generator output</span>
+<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">prod/myql/password</span>
+</code></pre></div>
 
 
 
