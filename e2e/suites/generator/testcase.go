@@ -40,7 +40,7 @@ type testCase struct {
 }
 
 var (
-	generatorName = "myfake"
+	generatorName = "my-generator"
 )
 
 func generatorTableFunc(f *framework.Framework, tweaks ...func(*testCase)) {
