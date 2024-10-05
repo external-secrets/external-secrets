@@ -47,6 +47,7 @@ import (
 	// Metrics.
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 
@@ -198,11 +199,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// 3. if we're still within refresh-interval
 	if !shouldRefresh(externalSecret) && isSecretValid(existingSecret) {
 		refreshInt = (externalSecret.Spec.RefreshInterval.Duration - timeSinceLastRefresh) + 5*time.Second
-		log.V(1).Info("skipping refresh", "rv", getResourceVersion(externalSecret), "nr", refreshInt.Seconds())
+		log.V(1).Info("skipping refresh", "rv", util.GetResourceVersion(externalSecret.ObjectMeta), "nr", refreshInt.Seconds())
 		return ctrl.Result{RequeueAfter: refreshInt}, nil
 	}
 	if !shouldReconcile(externalSecret) {
-		log.V(1).Info("stopping reconciling", "rv", getResourceVersion(externalSecret))
+		log.V(1).Info("stopping reconciling", "rv", util.GetResourceVersion(externalSecret.ObjectMeta))
 		return ctrl.Result{}, nil
 	}
 
@@ -348,7 +349,7 @@ func (r *Reconciler) markAsDone(externalSecret *esv1beta1.ExternalSecret, start 
 	currCond := GetExternalSecretCondition(externalSecret.Status, esv1beta1.ExternalSecretReady)
 	SetExternalSecretCondition(externalSecret, *conditionSynced)
 	externalSecret.Status.RefreshTime = metav1.NewTime(start)
-	externalSecret.Status.SyncedResourceVersion = getResourceVersion(*externalSecret)
+	externalSecret.Status.SyncedResourceVersion = util.GetResourceVersion(externalSecret.ObjectMeta)
 	if currCond == nil || currCond.Status != conditionSynced.Status {
 		log.Info("reconciled secret") // Log once if on success in any verbosity
 	} else {
@@ -508,21 +509,6 @@ func getManagedFieldKeys(
 	return keys, nil
 }
 
-func getResourceVersion(es esv1beta1.ExternalSecret) string {
-	return fmt.Sprintf("%d-%s", es.ObjectMeta.GetGeneration(), hashMeta(es.ObjectMeta))
-}
-
-func hashMeta(m metav1.ObjectMeta) string {
-	type meta struct {
-		annotations map[string]string
-		labels      map[string]string
-	}
-	return utils.ObjectHash(meta{
-		annotations: m.Annotations,
-		labels:      m.Labels,
-	})
-}
-
 func shouldSkipClusterSecretStore(r *Reconciler, es esv1beta1.ExternalSecret) bool {
 	return !r.ClusterSecretStoreEnabled && es.Spec.SecretStoreRef.Kind == esv1beta1.ClusterSecretStoreKind
 }
@@ -592,7 +578,7 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 
 func shouldRefresh(es esv1beta1.ExternalSecret) bool {
 	// refresh if resource version changed
-	if es.Status.SyncedResourceVersion != getResourceVersion(es) {
+	if es.Status.SyncedResourceVersion != util.GetResourceVersion(es.ObjectMeta) {
 		return true
 	}
 

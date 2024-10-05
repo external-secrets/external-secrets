@@ -197,6 +197,25 @@ type PushSecretStatus struct {
 	SyncedPushSecrets SyncedPushSecretsMap `json:"syncedPushSecrets,omitempty"`
 	// +optional
 	Conditions []PushSecretStatusCondition `json:"conditions,omitempty"`
+
+	// +optional
+	GeneratorState PushSecretGeneratorState `json:"generatorState,omitempty"`
+}
+
+type PushSecretGeneratorState struct {
+	Latest *GeneratorState             `json:"latest"`
+	GC     map[string]GeneratorGCState `json:"gc,omitempty"`
+}
+
+type GeneratorState struct {
+	Resource *apiextensionsv1.JSON `json:"resource"`
+	State    *apiextensionsv1.JSON `json:"state"`
+}
+
+type GeneratorGCState struct {
+	Resource         *apiextensionsv1.JSON `json:"resource"`
+	State            *apiextensionsv1.JSON `json:"state"`
+	FlaggedForGCTime metav1.Time           `json:"flaggedForGCTime"`
 }
 
 // +kubebuilder:object:root=true

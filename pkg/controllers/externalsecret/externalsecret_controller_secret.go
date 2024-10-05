@@ -116,7 +116,7 @@ func (r *Reconciler) handleGenerateSecrets(ctx context.Context, namespace string
 	if err != nil {
 		return nil, fmt.Errorf("unable to resolve generator: %w", err)
 	}
-	secretMap, err := gen.Generate(ctx, obj, r.Client, namespace)
+	secretMap, _, err := gen.Generate(ctx, obj, r.Client, namespace)
 	if err != nil {
 		return nil, fmt.Errorf(errGenerate, i, err)
 	}
