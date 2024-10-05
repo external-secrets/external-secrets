@@ -87,6 +87,8 @@ kubectl run --rm \
   --env="SECRETSERVER_USERNAME=${SECRETSERVER_USERNAME:-}" \
   --env="SECRETSERVER_PASSWORD=${SECRETSERVER_PASSWORD:-}" \
   --env="SECRETSERVER_URL=${SECRETSERVER_URL:-}" \
+  --env="GRAFANA_URL=${GRAFANA_URL:-}" \
+  --env="GRAFANA_TOKEN=${GRAFANA_TOKEN:-}" \
   --env="VERSION=${VERSION}" \
   --env="TEST_SUITES=${TEST_SUITES}" \
   --overrides='{ "apiVersion": "v1", "spec":{"serviceAccountName": "external-secrets-e2e"}}' \
