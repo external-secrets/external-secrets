@@ -158,15 +158,11 @@ func (c *ArgoCDApplication) Install() error {
 
 // Uninstall removes the chart aswell as the repo.
 func (c *ArgoCDApplication) Uninstall() error {
-	err := c.dc.Resource(argoApp).Namespace(c.Namespace).Delete(context.Background(), c.Name, metav1.DeleteOptions{})
+	err := uninstallCRDs(c.config)
 	if err != nil {
 		return err
 	}
-	err = uninstallCRDs(c.config)
-	if err != nil {
-		return err
-	}
-	return nil
+	return c.dc.Resource(argoApp).Namespace(c.Namespace).Delete(context.Background(), c.Name, metav1.DeleteOptions{})
 }
 
 func (c *ArgoCDApplication) Logs() error {

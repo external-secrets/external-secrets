@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -424,7 +425,7 @@ type GeneratorRef struct {
 	APIVersion string `json:"apiVersion,omitempty"`
 
 	// Specify the Kind of the generator resource
-	// +kubebuilder:validation:Enum=ACRAccessToken;ClusterGenerator;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;Password;STSSessionToken;UUID;VaultDynamicSecret;Webhook
+	// +kubebuilder:validation:Enum=ACRAccessToken;ClusterGenerator;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;Password;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana
 	Kind string `json:"kind"`
 
 	// Specify the name of the generator resource
@@ -486,6 +487,58 @@ type ExternalSecretStatus struct {
 
 	// Binding represents a servicebinding.io Provisioned Service reference to the secret
 	Binding corev1.LocalObjectReference `json:"binding,omitempty"`
+
+	// +optional
+	GeneratorState GeneratorState `json:"generatorState,omitempty"`
+}
+
+// GeneratorState stores the state of generated resources,
+// though not all generators produce state.
+// It is used by ExternalSecret and PushSecret controller to
+// eventually garbage collect resources that were produced by a generator.
+type GeneratorState struct {
+	// latest contains the state of the most recent resources generated.
+	Latest map[string]*GeneratorResourceState `json:"latest,omitempty"`
+	// GC contains the state of resources that have been flagged for garbage collection.
+	// The resources are flagged for garbage collection when they are no longer
+	// referenced by the ExternalSecret/PushSecret resource or have been rotated.
+	// GC items may pile up if the garbage collection process fails.
+	GC map[string]*GeneratorGCState `json:"gc,omitempty"`
+}
+
+type GeneratorResourceState struct {
+	// Resource is the generator manifest that produced the state.
+	// It is a snapshot of the generator manifest at the time the state was produced.
+	// This manifest will be used to delete the resource. Any configuration that is referenced
+	// in the manifest should be available at the time of garbage collection. If that is not the case deletion will
+	// be blocked by a finalizer.
+	Resource *apiextensions.JSON `json:"resource"`
+	// State is the state that was produced by the generator implementation.
+	State *apiextensions.JSON `json:"state"`
+}
+
+// GeneratorGCState stores both the resource (the generator manifest) as well as the state
+// that was produced by the generator implementation.
+type GeneratorGCState struct {
+	// Resource is the generator manifest that produced the state.
+	// It is a snapshot of the generator manifest at the time the state was produced.
+	// This manifest will be used to delete the resource. Any configuration that is referenced
+	// in the manifest should be available at the time of garbage collection. If that is not the case deletion will
+	// be blocked by a finalizer.
+	Resource *apiextensions.JSON `json:"resource"`
+	// State is the state that was produced by the generator implementation.
+	State *apiextensions.JSON `json:"state"`
+	// FlaggedForGCTime is the time the resource was flagged for garbage collection.
+	FlaggedForGCTime metav1.Time `json:"flaggedForGCTime"`
+}
+
+// +kubebuilder:object:root=false
+// +kubebuilder:object:generate:false
+// +k8s:deepcopy-gen:interfaces=nil
+// +k8s:deepcopy-gen=nil
+type GeneratorStateManagingResource interface {
+	GetGeneratorState() *GeneratorState
+	SetGeneratorState(GeneratorState)
 }
 
 // +kubebuilder:object:root=true
@@ -504,6 +557,14 @@ type ExternalSecret struct {
 
 	Spec   ExternalSecretSpec   `json:"spec,omitempty"`
 	Status ExternalSecretStatus `json:"status,omitempty"`
+}
+
+func (es *ExternalSecret) GetGeneratorState() *GeneratorState {
+	return &es.Status.GeneratorState
+}
+
+func (es *ExternalSecret) SetGeneratorState(state GeneratorState) {
+	es.Status.GeneratorState = state
 }
 
 const (

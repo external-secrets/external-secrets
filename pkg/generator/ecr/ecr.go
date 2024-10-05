@@ -43,8 +43,12 @@ const (
 	errGetToken   = "unable to get authorization token: %w"
 )
 
-func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, error) {
+func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(ctx, jsonSpec, kube, namespace, ecrFactory)
+}
+
+func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, crClient client.Client, namespace string) error {
+	return nil
 }
 
 func (g *Generator) generate(
@@ -53,13 +57,13 @@ func (g *Generator) generate(
 	kube client.Client,
 	namespace string,
 	ecrFunc ecrFactoryFunc,
-) (map[string][]byte, error) {
+) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if jsonSpec == nil {
-		return nil, errors.New(errNoSpec)
+		return nil, nil, errors.New(errNoSpec)
 	}
 	res, err := parseSpec(jsonSpec.Raw)
 	if err != nil {
-		return nil, fmt.Errorf(errParseSpec, err)
+		return nil, nil, fmt.Errorf(errParseSpec, err)
 	}
 	sess, err := awsauth.NewGeneratorSession(
 		ctx,
@@ -74,25 +78,25 @@ func (g *Generator) generate(
 		awsauth.DefaultSTSProvider,
 		awsauth.DefaultJWTProvider)
 	if err != nil {
-		return nil, fmt.Errorf(errCreateSess, err)
+		return nil, nil, fmt.Errorf(errCreateSess, err)
 	}
 	client := ecrFunc(sess)
 	out, err := client.GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{})
 	if err != nil {
-		return nil, fmt.Errorf(errGetToken, err)
+		return nil, nil, fmt.Errorf(errGetToken, err)
 	}
 	if len(out.AuthorizationData) != 1 {
-		return nil, fmt.Errorf("unexpected number of authorization tokens. expected 1, found %d", len(out.AuthorizationData))
+		return nil, nil, fmt.Errorf("unexpected number of authorization tokens. expected 1, found %d", len(out.AuthorizationData))
 	}
 
 	// AuthorizationToken is base64 encoded {username}:{password} string
 	decodedToken, err := base64.StdEncoding.DecodeString(*out.AuthorizationData[0].AuthorizationToken)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	parts := strings.Split(string(decodedToken), ":")
 	if len(parts) != 2 {
-		return nil, errors.New("unexpected token format")
+		return nil, nil, errors.New("unexpected token format")
 	}
 
 	exp := out.AuthorizationData[0].ExpiresAt.UTC().Unix()
@@ -101,7 +105,7 @@ func (g *Generator) generate(
 		"password":       []byte(parts[1]),
 		"proxy_endpoint": []byte(*out.AuthorizationData[0].ProxyEndpoint),
 		"expires_at":     []byte(strconv.FormatInt(exp, 10)),
-	}, nil
+	}, nil, nil
 }
 
 type ecrFactoryFunc func(aws *session.Session) ecriface.ECRAPI

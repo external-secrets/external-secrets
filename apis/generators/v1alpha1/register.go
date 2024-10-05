@@ -116,6 +116,14 @@ var (
 	UUIDGroupVersionKind = SchemeGroupVersion.WithKind(UUIDKind)
 )
 
+// Grafana type metadata.
+var (
+	GrafanaKind             = reflect.TypeOf(Grafana{}).Name()
+	GrafanaGroupKind        = schema.GroupKind{Group: Group, Kind: GrafanaKind}.String()
+	GrafanaKindAPIVersion   = GrafanaKind + "." + SchemeGroupVersion.String()
+	GrafanaGroupVersionKind = SchemeGroupVersion.WithKind(GrafanaKind)
+)
+
 // ClusterGenerator type metadata.
 var (
 	ClusterGeneratorKind             = reflect.TypeOf(ClusterGenerator{}).Name()
@@ -151,4 +159,5 @@ func init() {
 	SchemeBuilder.Register(&UUID{}, &UUIDList{})
 	SchemeBuilder.Register(&VaultDynamicSecret{}, &VaultDynamicSecretList{})
 	SchemeBuilder.Register(&Webhook{}, &WebhookList{})
+	SchemeBuilder.Register(&Grafana{}, &GrafanaList{})
 }

@@ -49,20 +49,24 @@ type generateFunc func(
 	allowRepeat bool,
 ) (string, error)
 
-func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ client.Client, _ string) (map[string][]byte, error) {
+func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ client.Client, _ string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(
 		jsonSpec,
 		generateSafePassword,
 	)
 }
 
-func (g *Generator) generate(jsonSpec *apiextensions.JSON, passGen generateFunc) (map[string][]byte, error) {
+func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
+	return nil
+}
+
+func (g *Generator) generate(jsonSpec *apiextensions.JSON, passGen generateFunc) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if jsonSpec == nil {
-		return nil, errors.New(errNoSpec)
+		return nil, nil, errors.New(errNoSpec)
 	}
 	res, err := parseSpec(jsonSpec.Raw)
 	if err != nil {
-		return nil, fmt.Errorf(errParseSpec, err)
+		return nil, nil, fmt.Errorf(errParseSpec, err)
 	}
 	symbolCharacters := defaultSymbolChars
 	if res.Spec.SymbolCharacters != nil {
@@ -89,11 +93,11 @@ func (g *Generator) generate(jsonSpec *apiextensions.JSON, passGen generateFunc)
 		res.Spec.AllowRepeat,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	return map[string][]byte{
 		"password": []byte(pass),
-	}, nil
+	}, nil, nil
 }
 
 func generateSafePassword(

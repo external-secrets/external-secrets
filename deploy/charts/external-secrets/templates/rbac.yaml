@@ -61,6 +61,7 @@ rules:
     - "uuids"
     - "vaultdynamicsecrets"
     - "webhooks"
+    - "grafanas"
     verbs:
     - "get"
     - "list"
@@ -156,6 +157,7 @@ rules:
     - "passwords"
     - "vaultdynamicsecrets"
     - "webhooks"
+    - "grafanas"
     verbs:
       - "get"
       - "watch"
@@ -202,6 +204,7 @@ rules:
     - "passwords"
     - "vaultdynamicsecrets"
     - "webhooks"
+    - "grafanas"
     verbs:
       - "create"
       - "delete"

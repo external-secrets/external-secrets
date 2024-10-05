@@ -208,6 +208,13 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 		return &genv1alpha1.Webhook{
 			Spec: *gen.Spec.Generator.WebhookSpec,
 		}, nil
+	case genv1alpha1.GeneratorKindGrafana:
+		if gen.Spec.Generator.GrafanaSpec == nil {
+			return nil, fmt.Errorf("when kind is %s, GrafanaSpec must be set", gen.Spec.Kind)
+		}
+		return &genv1alpha1.Grafana{
+			Spec: *gen.Spec.Generator.GrafanaSpec,
+		}, nil
 	default:
 		return nil, fmt.Errorf("unknown kind %s", gen.Spec.Kind)
 	}

@@ -148,7 +148,7 @@ var rootCmd = &cobra.Command{
 			clientCacheDisableFor = append(clientCacheDisableFor, &v1.ConfigMap{})
 		}
 
-		ctrlOpts := ctrl.Options{
+		mgrOpts := ctrl.Options{
 			Scheme: scheme,
 			Metrics: server.Options{
 				BindAddress: metricsAddr,
@@ -165,11 +165,11 @@ var rootCmd = &cobra.Command{
 			LeaderElectionID: "external-secrets-controller",
 		}
 		if namespace != "" {
-			ctrlOpts.Cache.DefaultNamespaces = map[string]cache.Config{
+			mgrOpts.Cache.DefaultNamespaces = map[string]cache.Config{
 				namespace: {},
 			}
 		}
-		mgr, err := ctrl.NewManager(config, ctrlOpts)
+		mgr, err := ctrl.NewManager(config, mgrOpts)
 		if err != nil {
 			setupLog.Error(err, "unable to start manager")
 			os.Exit(1)

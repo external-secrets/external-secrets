@@ -188,7 +188,7 @@ spec:
 			g := &Generator{
 				clientSecretCreds: tt.args.clientSecretCreds,
 			}
-			got, err := g.generate(
+			got, _, err := g.generate(
 				tt.args.ctx,
 				tt.args.jsonSpec,
 				tt.args.crClient,

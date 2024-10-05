@@ -3853,6 +3853,19 @@ Kubernetes core/v1.LocalObjectReference
 <p>Binding represents a servicebinding.io Provisioned Service reference to the secret</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>generatorState</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.GeneratorState">
+GeneratorState
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.ExternalSecretStatusCondition">ExternalSecretStatusCondition
@@ -4547,6 +4560,61 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.GeneratorGCState">GeneratorGCState
+</h3>
+<p>
+<p>GeneratorGCState stores both the resource (the generator manifest) as well as the state
+that was produced by the generator implementation.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>resource</code></br>
+<em>
+k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
+</em>
+</td>
+<td>
+<p>Resource is the generator manifest that produced the state.
+It is a snapshot of the generator manifest at the time the state was produced.
+This manifest will be used to delete the resource. Any configuration that is referenced
+in the manifest should be available at the time of garbage collection. If that is not the case deletion will
+be blocked by a finalizer.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>state</code></br>
+<em>
+k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
+</em>
+</td>
+<td>
+<p>State is the state that was produced by the generator implementation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>flaggedForGCTime</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#time-v1-meta">
+Kubernetes meta/v1.Time
+</a>
+</em>
+</td>
+<td>
+<p>FlaggedForGCTime is the time the resource was flagged for garbage collection.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.GeneratorRef">GeneratorRef
 </h3>
 <p>
@@ -4600,6 +4668,101 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.GeneratorResourceState">GeneratorResourceState
+</h3>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>resource</code></br>
+<em>
+k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
+</em>
+</td>
+<td>
+<p>Resource is the generator manifest that produced the state.
+It is a snapshot of the generator manifest at the time the state was produced.
+This manifest will be used to delete the resource. Any configuration that is referenced
+in the manifest should be available at the time of garbage collection. If that is not the case deletion will
+be blocked by a finalizer.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>state</code></br>
+<em>
+k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
+</em>
+</td>
+<td>
+<p>State is the state that was produced by the generator implementation.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.GeneratorState">GeneratorState
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretStatus">ExternalSecretStatus</a>)
+</p>
+<p>
+<p>GeneratorState stores the state of generated resources,
+though not all generators produce state.
+It is used by ExternalSecret and PushSecret controller to
+eventually garbage collect resources that were produced by a generator.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>latest</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.*github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1.GeneratorResourceState">
+map[string]*github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1.GeneratorResourceState
+</a>
+</em>
+</td>
+<td>
+<p>latest contains the state of the most recent resources generated.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>gc</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.*github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1.GeneratorGCState">
+map[string]*github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1.GeneratorGCState
+</a>
+</em>
+</td>
+<td>
+<p>GC contains the state of resources that have been flagged for garbage collection.
+The resources are flagged for garbage collection when they are no longer
+referenced by the ExternalSecret/PushSecret resource or have been rotated.
+GC items may pile up if the garbage collection process fails.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.GeneratorStateManagingResource">GeneratorStateManagingResource
+</h3>
+<p>
+</p>
 <h3 id="external-secrets.io/v1beta1.GenericStore">GenericStore
 </h3>
 <p>

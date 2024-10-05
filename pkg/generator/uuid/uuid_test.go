@@ -49,7 +49,7 @@ func TestGenerate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := &Generator{}
-			got, err := g.generate(tt.args.jsonSpec, generateUUID)
+			got, _, err := g.generate(tt.args.jsonSpec, generateUUID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Generator.Generate() error = %v, wantErr %v", err, tt.wantErr)
 				return
