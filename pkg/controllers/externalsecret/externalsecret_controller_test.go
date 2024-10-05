@@ -41,6 +41,7 @@ import (
 	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/util"
 	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 
@@ -2394,7 +2395,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 					RefreshTime: metav1.Now(),
 				},
 			}
-			es.Status.SyncedResourceVersion = getResourceVersion(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			// this should not refresh, rv matches object
 			Expect(shouldRefresh(es)).To(BeFalse())
 
@@ -2418,7 +2419,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 					RefreshTime: metav1.Now(),
 				},
 			}
-			es.Status.SyncedResourceVersion = getResourceVersion(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			// this should not refresh, rv matches object
 			Expect(shouldRefresh(es)).To(BeFalse())
 
@@ -2439,7 +2440,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 					RefreshTime: metav1.Now(),
 				},
 			}
-			es.Status.SyncedResourceVersion = getResourceVersion(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeFalse())
 
 			// update gen -> refresh
@@ -2458,7 +2459,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 				Status: esv1beta1.ExternalSecretStatus{},
 			}
 			// resource version matches
-			es.Status.SyncedResourceVersion = getResourceVersion(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeFalse())
 		})
 
@@ -2475,7 +2476,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 				},
 			}
 			// resource version matches
-			es.Status.SyncedResourceVersion = getResourceVersion(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeTrue())
 		})
 
@@ -2490,20 +2491,20 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 				Status: esv1beta1.ExternalSecretStatus{},
 			}
 			// resource version matches
-			es.Status.SyncedResourceVersion = getResourceVersion(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeTrue())
 		})
 
 	})
 	Context("objectmeta hash", func() {
 		It("should produce different hashes for different k/v pairs", func() {
-			h1 := hashMeta(metav1.ObjectMeta{
+			h1 := util.HashMeta(metav1.ObjectMeta{
 				Generation: 1,
 				Annotations: map[string]string{
 					"foo": "bar",
 				},
 			})
-			h2 := hashMeta(metav1.ObjectMeta{
+			h2 := util.HashMeta(metav1.ObjectMeta{
 				Generation: 1,
 				Annotations: map[string]string{
 					"foo": "bing",
@@ -2513,7 +2514,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 		})
 
 		It("should produce different hashes for different generations but same label/annotations", func() {
-			h1 := hashMeta(metav1.ObjectMeta{
+			h1 := util.HashMeta(metav1.ObjectMeta{
 				Generation: 1,
 				Annotations: map[string]string{
 					"foo": "bar",
@@ -2522,7 +2523,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 					"foo": "bar",
 				},
 			})
-			h2 := hashMeta(metav1.ObjectMeta{
+			h2 := util.HashMeta(metav1.ObjectMeta{
 				Generation: 2,
 				Annotations: map[string]string{
 					"foo": "bar",
@@ -2535,21 +2536,21 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 		})
 
 		It("should produce the same hash for the same k/v pairs", func() {
-			h1 := hashMeta(metav1.ObjectMeta{
+			h1 := util.HashMeta(metav1.ObjectMeta{
 				Generation: 1,
 			})
-			h2 := hashMeta(metav1.ObjectMeta{
+			h2 := util.HashMeta(metav1.ObjectMeta{
 				Generation: 1,
 			})
 			Expect(h1).To(Equal(h2))
 
-			h1 = hashMeta(metav1.ObjectMeta{
+			h1 = util.HashMeta(metav1.ObjectMeta{
 				Generation: 1,
 				Annotations: map[string]string{
 					"foo": "bar",
 				},
 			})
-			h2 = hashMeta(metav1.ObjectMeta{
+			h2 = util.HashMeta(metav1.ObjectMeta{
 				Generation: 1,
 				Annotations: map[string]string{
 					"foo": "bar",

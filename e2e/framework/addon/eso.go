@@ -187,8 +187,5 @@ func (l *ESO) Uninstall() error {
 	if err != nil {
 		return err
 	}
-	if l.HelmChart.HasVar(installCRDsVar, "true") {
-		return uninstallCRDs(l.config)
-	}
 	return nil
 }

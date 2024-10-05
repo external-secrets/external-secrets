@@ -128,7 +128,7 @@ spec:
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := &Generator{httpClient: server.Client()}
-			got, err := g.generate(
+			got, _, err := g.generate(
 				tt.args.ctx,
 				tt.args.jsonSpec,
 				tt.args.kube,
