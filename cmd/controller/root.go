@@ -41,6 +41,7 @@ import (
 	ctrlcommon "github.com/external-secrets/external-secrets/pkg/controllers/common"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/generatorstate"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
@@ -131,7 +132,7 @@ var rootCmd = &cobra.Command{
 			clientCacheDisableFor = append(clientCacheDisableFor, &v1.ConfigMap{})
 		}
 
-		ctrlOpts := ctrl.Options{
+		mgrOpts := ctrl.Options{
 			Scheme: scheme,
 			Metrics: server.Options{
 				BindAddress: metricsAddr,
@@ -148,11 +149,11 @@ var rootCmd = &cobra.Command{
 			LeaderElectionID: "external-secrets-controller",
 		}
 		if namespace != "" {
-			ctrlOpts.Cache.DefaultNamespaces = map[string]cache.Config{
+			mgrOpts.Cache.DefaultNamespaces = map[string]cache.Config{
 				namespace: {},
 			}
 		}
-		mgr, err := ctrl.NewManager(config, ctrlOpts)
+		mgr, err := ctrl.NewManager(config, mgrOpts)
 		if err != nil {
 			setupLog.Error(err, "unable to start manager")
 			os.Exit(1)
@@ -200,6 +201,17 @@ var rootCmd = &cobra.Command{
 				setupLog.Error(err, errCreateController, "controller", "ClusterSecretStore")
 				os.Exit(1)
 			}
+		}
+		if err = (&generatorstate.Reconciler{
+			Client:     mgr.GetClient(),
+			Log:        ctrl.Log.WithName("controllers").WithName("GeneratorState"),
+			Scheme:     mgr.GetScheme(),
+			RestConfig: mgr.GetConfig(),
+		}).SetupWithManager(mgr, controller.Options{
+			MaxConcurrentReconciles: concurrent,
+		}); err != nil {
+			setupLog.Error(err, errCreateController, "controller", "GeneratorState")
+			os.Exit(1)
 		}
 		if err = (&externalsecret.Reconciler{
 			Client:                    mgr.GetClient(),

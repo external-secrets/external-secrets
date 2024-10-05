@@ -241,7 +241,7 @@ spec:
 		t.Run(name, func(t *testing.T) {
 			c := &provider.Provider{NewVaultClient: fake.ClientWithLoginMock}
 			gen := &Generator{}
-			val, err := gen.generate(context.Background(), c, tc.args.jsonSpec, tc.args.kube, tc.args.corev1, "testing")
+			val, _, err := gen.generate(context.Background(), c, tc.args.jsonSpec, tc.args.kube, tc.args.corev1, "testing")
 			if err != nil || tc.want.err != nil {
 				if diff := cmp.Diff(tc.want.err.Error(), err.Error()); diff != "" {
 					t.Errorf("\n%s\nvault.GetSecret(...): -want error, +got error:\n%s", tc.reason, diff)

@@ -81,6 +81,7 @@ require (
 	github.com/fortanix/sdkms-client-go v0.4.0
 	github.com/go-openapi/strfmt v0.23.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/grafana/grafana-openapi-client-go v0.0.0-20240826142251-d1c93bae4198
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/hashicorp/vault/api/auth/aws v0.8.0
 	github.com/hashicorp/vault/api/auth/userpass v0.8.0
