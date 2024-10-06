@@ -48,6 +48,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 
 	// Loading registered generators.
 	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
@@ -549,11 +550,11 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 
 		// verify that generator's controllerClass matches
 		if ref.SourceRef != nil && ref.SourceRef.GeneratorRef != nil {
-			genDef, err := r.getGeneratorDefinition(ctx, namespace, ref.SourceRef.GeneratorRef)
+			_, obj, err := resolvers.GeneratorRef(ctx, r.RestConfig, namespace, ref.SourceRef.GeneratorRef)
 			if err != nil {
 				return false, err
 			}
-			skipGenerator, err := shouldSkipGenerator(r, genDef)
+			skipGenerator, err := shouldSkipGenerator(r, obj)
 			if err != nil {
 				return false, err
 			}

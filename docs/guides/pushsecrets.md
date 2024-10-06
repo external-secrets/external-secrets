@@ -43,3 +43,12 @@ This will _marshal_ the entire secret data and push it into this single property
 
 ### Key conversion strategy
 You can also set `data[*].conversionStrategy: ReverseUnicode` to reverse the invalid character replaced by the `conversionStrategy: Unicode` configuration in the `ExternalSecret` object as [documented here](../guides/getallsecrets.md#avoiding-name-conflicts).
+
+## Rotate Secrets
+
+You can use ESO to rotate secrets by using the PushSecret and Generator resources. ESO will consult the `Kind=Generator` to generate a new secret and then ESO will store it.
+Every `spec.refreshInterval` the secret will be rotated and the value will be replaced in the store unless `spec.updatePolicy=IfNotExist` is set. Then ESO will generate the secret once and won't rotate it.
+
+```yaml
+{% include 'pushsecret-generator-rotation-example.yaml' %}
+```

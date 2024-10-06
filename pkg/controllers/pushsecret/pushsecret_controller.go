@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -40,6 +41,10 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/provider/util/locks"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+
+	// load generators.
+	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
 )
 
 const (
@@ -59,6 +64,7 @@ type Reconciler struct {
 	Log             logr.Logger
 	Scheme          *runtime.Scheme
 	recorder        record.EventRecorder
+	RestConfig      *rest.Config
 	RequeueInterval time.Duration
 	ControllerClass string
 }
@@ -148,7 +154,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	default:
 	}
 
-	secret, err := r.GetSecret(ctx, ps)
+	secret, err := r.resolveSecret(ctx, ps)
 	if err != nil {
 		r.markAsFailed(errFailedGetSecret, &ps, nil)
 
@@ -347,14 +353,38 @@ func secretKeyExists(key string, secret *v1.Secret) bool {
 	return key == "" || ok
 }
 
-func (r *Reconciler) GetSecret(ctx context.Context, ps esapi.PushSecret) (*v1.Secret, error) {
-	secretName := types.NamespacedName{Name: ps.Spec.Selector.Secret.Name, Namespace: ps.Namespace}
-	secret := &v1.Secret{}
-	err := r.Client.Get(ctx, secretName, secret)
-	if err != nil {
-		return nil, err
+func (r *Reconciler) resolveSecret(ctx context.Context, ps esapi.PushSecret) (*v1.Secret, error) {
+	if ps.Spec.Selector.Secret != nil {
+		secretName := types.NamespacedName{Name: ps.Spec.Selector.Secret.Name, Namespace: ps.Namespace}
+		secret := &v1.Secret{}
+		err := r.Client.Get(ctx, secretName, secret)
+		if err != nil {
+			return nil, err
+		}
+		return secret, nil
 	}
-	return secret, nil
+	if ps.Spec.Selector.GeneratorRef != nil {
+		return r.resolveSecretFromGenerator(ctx, ps.Namespace, ps.Spec.Selector.GeneratorRef)
+	}
+	return nil, errors.New("no secret selector provided")
+}
+
+func (r *Reconciler) resolveSecretFromGenerator(ctx context.Context, namespace string, generatorRef *v1beta1.GeneratorRef) (*v1.Secret, error) {
+	gen, obj, err := resolvers.GeneratorRef(ctx, r.RestConfig, namespace, generatorRef)
+	if err != nil {
+		return nil, fmt.Errorf("unable to resolve generator: %w", err)
+	}
+	secretMap, err := gen.Generate(ctx, obj, r.Client, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("unable to generate: %w", err)
+	}
+	return &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "___generated-secret",
+			Namespace: namespace,
+		},
+		Data: secretMap,
+	}, err
 }
 
 func (r *Reconciler) GetSecretStores(ctx context.Context, ps esapi.PushSecret) (map[esapi.PushSecretStoreRef]v1beta1.GenericStore, error) {

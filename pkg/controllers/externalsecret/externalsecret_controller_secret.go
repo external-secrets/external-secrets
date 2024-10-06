@@ -22,17 +22,13 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/restmapper"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	// Loading registered providers.
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 
 	// Loading registered generators.
 	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
@@ -116,15 +112,11 @@ func toStoreGenSourceRef(ref *esv1beta1.StoreSourceRef) *esv1beta1.StoreGenerato
 }
 
 func (r *Reconciler) handleGenerateSecrets(ctx context.Context, namespace string, remoteRef esv1beta1.ExternalSecretDataFromRemoteRef, i int) (map[string][]byte, error) {
-	genDef, err := r.getGeneratorDefinition(ctx, namespace, remoteRef.SourceRef.GeneratorRef)
+	gen, obj, err := resolvers.GeneratorRef(ctx, r.RestConfig, namespace, remoteRef.SourceRef.GeneratorRef)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to resolve generator: %w", err)
 	}
-	gen, err := genv1alpha1.GetGenerator(genDef)
-	if err != nil {
-		return nil, err
-	}
-	secretMap, err := gen.Generate(ctx, genDef, r.Client, namespace)
+	secretMap, err := gen.Generate(ctx, obj, r.Client, namespace)
 	if err != nil {
 		return nil, fmt.Errorf(errGenerate, i, err)
 	}
@@ -136,49 +128,6 @@ func (r *Reconciler) handleGenerateSecrets(ctx context.Context, namespace string
 		return nil, fmt.Errorf(errInvalidKeys, "generator", i)
 	}
 	return secretMap, err
-}
-
-// getGeneratorDefinition returns the generator JSON for a given sourceRef
-// when it uses a generatorRef it fetches the resource and returns the JSON.
-func (r *Reconciler) getGeneratorDefinition(ctx context.Context, namespace string, generatorRef *esv1beta1.GeneratorRef) (*apiextensions.JSON, error) {
-	// client-go dynamic client needs a GVR to fetch the resource
-	// But we only have the GVK in our generatorRef.
-	//
-	// TODO: there is no need to discover the GroupVersionResource
-	//       this should be cached.
-	c := discovery.NewDiscoveryClientForConfigOrDie(r.RestConfig)
-	groupResources, err := restmapper.GetAPIGroupResources(c)
-	if err != nil {
-		return nil, err
-	}
-
-	gv, err := schema.ParseGroupVersion(generatorRef.APIVersion)
-	if err != nil {
-		return nil, err
-	}
-	mapper := restmapper.NewDiscoveryRESTMapper(groupResources)
-	mapping, err := mapper.RESTMapping(schema.GroupKind{
-		Group: gv.Group,
-		Kind:  generatorRef.Kind,
-	})
-	if err != nil {
-		return nil, err
-	}
-	d, err := dynamic.NewForConfig(r.RestConfig)
-	if err != nil {
-		return nil, err
-	}
-	res, err := d.Resource(mapping.Resource).
-		Namespace(namespace).
-		Get(ctx, generatorRef.Name, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	jsonRes, err := res.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
-	return &apiextensions.JSON{Raw: jsonRes}, nil
 }
 
 func (r *Reconciler) handleExtractSecrets(ctx context.Context, externalSecret *esv1beta1.ExternalSecret, remoteRef esv1beta1.ExternalSecretDataFromRemoteRef, cmgr *secretstore.Manager, i int) (map[string][]byte, error) {

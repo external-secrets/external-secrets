@@ -216,6 +216,7 @@ var rootCmd = &cobra.Command{
 				Log:             ctrl.Log.WithName("controllers").WithName("PushSecret"),
 				Scheme:          mgr.GetScheme(),
 				ControllerClass: controllerClass,
+				RestConfig:      mgr.GetConfig(),
 				RequeueInterval: time.Hour,
 			}).SetupWithManager(mgr); err != nil {
 				setupLog.Error(err, errCreateController, "controller", "PushSecret")
