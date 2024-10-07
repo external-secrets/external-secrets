@@ -14,7 +14,7 @@ on:
 
 env:
   IMAGE_NAME: us-central1-docker.pkg.dev/external-secrets-inc-registry/external/external-secrets
-  TAG_NAME: ${{ github.event.release.tag_name }}
+  TAG_NAME: ${{ github.event.inputs.version }}
 
 jobs:
   release:
