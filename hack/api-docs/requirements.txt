@@ -27,14 +27,14 @@ pathspec==0.12.1
 pep562==1.1
 platformdirs==4.3.6
 Pygments==2.18.0
-pymdown-extensions==10.11.1
+pymdown-extensions==10.11.2
 python-dateutil==2.9.0.post0
 PyYAML==6.0.2
 pyyaml_env_tag==0.1
 regex==2024.9.11
 requests==2.32.3
 six==1.16.0
-termcolor==2.4.0
+termcolor==2.5.0
 tornado==6.4.1
 urllib3==2.2.3
 verspec==0.1.0
