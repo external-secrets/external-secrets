@@ -32,6 +32,7 @@ import (
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -72,6 +73,8 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	err = esv1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
+	err = genv1alpha1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
 
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme.Scheme,
@@ -90,7 +93,8 @@ var _ = BeforeSuite(func() {
 	err = (&Reconciler{
 		Client:          k8sClient,
 		Scheme:          k8sManager.GetScheme(),
-		Log:             ctrl.Log.WithName("controllers").WithName("ExternalSecrets"),
+		Log:             ctrl.Log.WithName("controllers").WithName("PushSecret"),
+		RestConfig:      cfg,
 		RequeueInterval: time.Second,
 	}).SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())

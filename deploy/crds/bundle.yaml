@@ -6258,7 +6258,26 @@ spec:
                   type: array
                 selector:
                   description: The Secret Selector (k8s source) for the Push Secret
+                  maxProperties: 1
+                  minProperties: 1
                   properties:
+                    generatorRef:
+                      description: Point to a generator to create a Secret.
+                      properties:
+                        apiVersion:
+                          default: generators.external-secrets.io/v1alpha1
+                          description: Specify the apiVersion of the generator resource
+                          type: string
+                        kind:
+                          description: Specify the Kind of the resource, e.g. Password, ACRAccessToken etc.
+                          type: string
+                        name:
+                          description: Specify the name of the generator resource
+                          type: string
+                      required:
+                        - kind
+                        - name
+                      type: object
                     secret:
                       description: Select a Secret to Push.
                       properties:
@@ -6268,8 +6287,6 @@ spec:
                       required:
                         - name
                       type: object
-                  required:
-                    - secret
                   type: object
                 template:
                   description: Template defines a blueprint for the created Secret resource.

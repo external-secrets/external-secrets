@@ -2,6 +2,9 @@
 
 A list of blogs written by people all over the community. Feel free to let us know if you are writing about ESO at some place! We would be happy to mention you here!
 
+## [Pulumi ESC and External Secrets Operator: The Perfect Solution for Today's Cloud-Native Secret Management](https://www.pulumi.com/blog/cloud-native-secret-management-with-pulumi-esc-and-external-secrets-operator/)
+
+[@Engin Diri](https://www.linkedin.com/in/engin-diri/) walks through the integration of ESO with Pulumi ESC, offering a practical guide for enhancing security from cloud-native application development to infrastructure provisioning. This blog provides a hands-on guide to setting up ESO and Pulumi ESC, and demonstrates how to use them together to manage secrets in a Kubernetes cluster.
 
 ## [From vulnerable to unhackable: secrets management in cloud-native environments](https://medium.com/@as_mallem/from-vulnerable-to-unhackable-secrets-management-in-cloud-native-environments-cb341bd97869/)
 
