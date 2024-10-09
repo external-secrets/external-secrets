@@ -26,10 +26,27 @@ import (
 // +k8s:deepcopy-gen:interfaces=nil
 // +k8s:deepcopy-gen=nil
 type Generator interface {
+	// Generate creates a new secret or set of secrets.
+	// The returned map is a mapping of secret names to their respective values.
+	// The status is an optional field that can be used to store any generator-specific
+	// state which can be used during the Cleanup phase.
 	Generate(
 		ctx context.Context,
 		obj *apiextensions.JSON,
 		kube client.Client,
 		namespace string,
-	) (map[string][]byte, error)
+	) (map[string][]byte, GeneratorState, error)
+
+	// Cleanup deletes any resources created during the Generate phase.
+	// Cleanup is idempotent and should not return an error if the resources
+	// have already been deleted.
+	Cleanup(
+		ctx context.Context,
+		obj *apiextensions.JSON,
+		status GeneratorState,
+		kube client.Client,
+		namespace string,
+	) error
 }
+
+type GeneratorState *apiextensions.JSON
