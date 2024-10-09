@@ -278,6 +278,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if secret.Data == nil {
 			secret.Data = make(map[string][]byte)
 		}
+		err = r.applyTemplate(ctx, &externalSecret, secret, dataMap)
+		if err != nil {
+			return fmt.Errorf(errApplyTemplate, err)
+		}
 		// diff existing keys
 		keys, err := getManagedDataKeys(&existingSecret, externalSecret.Name)
 		if err != nil {
@@ -290,10 +294,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				// Sanitizing any templated / updated keys
 				delete(secret.Data, key)
 			}
-		}
-		err = r.applyTemplate(ctx, &externalSecret, secret, dataMap)
-		if err != nil {
-			return fmt.Errorf(errApplyTemplate, err)
 		}
 		if externalSecret.Spec.Target.CreationPolicy == esv1beta1.CreatePolicyOwner {
 			lblValue := utils.ObjectHash(fmt.Sprintf("%v/%v", externalSecret.Namespace, externalSecret.Name))
