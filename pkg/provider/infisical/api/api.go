@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -170,6 +171,7 @@ func (a *InfisicalClient) GetSecretsV3(data GetSecretsV3Request) (map[string]str
 	q.Add("secretPath", data.SecretPath)
 	q.Add("include_imports", "true")
 	q.Add("expandSecretReferences", "true")
+	q.Add("recursive", strconv.FormatBool(data.Recursive))
 	req.URL.RawQuery = q.Encode()
 
 	rawRes, err := a.do(req)

@@ -41,9 +41,10 @@ type Provider struct {
 }
 
 type InfisicalClientScope struct {
-	SecretPath      string
-	ProjectSlug     string
 	EnvironmentSlug string
+	ProjectSlug     string
+	Recursive       bool
+	SecretPath      string
 }
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -93,9 +94,10 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return &Provider{
 			apiClient: apiClient,
 			apiScope: &InfisicalClientScope{
-				SecretPath:      infisicalSpec.SecretsScope.SecretsPath,
-				ProjectSlug:     infisicalSpec.SecretsScope.ProjectSlug,
 				EnvironmentSlug: infisicalSpec.SecretsScope.EnvironmentSlug,
+				ProjectSlug:     infisicalSpec.SecretsScope.ProjectSlug,
+				Recursive:       infisicalSpec.SecretsScope.Recursive,
+				SecretPath:      infisicalSpec.SecretsScope.SecretsPath,
 			},
 		}, nil
 	}
