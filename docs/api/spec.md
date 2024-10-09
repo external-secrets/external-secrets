@@ -3349,6 +3349,20 @@ ExternalSecretDecodingStrategy
 <p>Used to define a decoding Strategy</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>decryptingStrategy</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretDecryptingStrategy">
+ExternalSecretDecryptingStrategy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define a decrypting Strategy</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.ExternalSecretDecodingStrategy">ExternalSecretDecodingStrategy
@@ -3376,6 +3390,135 @@ ExternalSecretDecodingStrategy
 </tr><tr><td><p>&#34;None&#34;</p></td>
 <td></td>
 </tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ExternalSecretDecryptingHash">ExternalSecretDecryptingHash
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretDecryptingStrategy">ExternalSecretDecryptingStrategy</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;None&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;SHA1&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;SHA256&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;SHA512&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ExternalSecretDecryptingPKType">ExternalSecretDecryptingPKType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretDecryptingStrategy">ExternalSecretDecryptingStrategy</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;None&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;PKCS1&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;PKCS8&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ExternalSecretDecryptingScheme">ExternalSecretDecryptingScheme
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretDecryptingStrategy">ExternalSecretDecryptingStrategy</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;None&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;RSA-OAEP&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ExternalSecretDecryptingStrategy">ExternalSecretDecryptingStrategy
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>scheme</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretDecryptingScheme">
+ExternalSecretDecryptingScheme
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define a decrypting Scheme</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>hash</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretDecryptingHash">
+ExternalSecretDecryptingHash
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define a decrypting Hash</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>privateKeyType</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretDecryptingPKType">
+ExternalSecretDecryptingPKType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define a decrypting Private Key type</p>
+</td>
+</tr>
+</tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.ExternalSecretDeletionPolicy">ExternalSecretDeletionPolicy
 (<code>string</code> alias)</p></h3>
@@ -7530,6 +7673,19 @@ bool
 </td>
 <td>
 <p>IgnoreSslCertificate defines if SSL certificate must be ignored</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>privateKeySecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>Usage for cases in which the authorization by application encrypts sensitive data</p>
 </td>
 </tr>
 </tbody>

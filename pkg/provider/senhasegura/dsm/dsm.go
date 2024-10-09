@@ -240,3 +240,10 @@ func (dsm *DSM) Validate() (esv1beta1.ValidationResult, error) {
 
 	return esv1beta1.ValidationResultReady, nil
 }
+
+/*
+GetPrivateKeyDecrypt implements getting the private key used to decrypt sensitive data in senhasegura.
+*/
+func (dsm *DSM) GetPrivateKeyDecrypt() (string, error) {
+	return dsm.isoSession.PrivateKey, nil
+}

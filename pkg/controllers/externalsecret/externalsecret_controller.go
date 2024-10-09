@@ -78,6 +78,7 @@ const (
 	errPolicyMergeGetSecret = "unable to get secret %s: %w"
 	errPolicyMergeMutate    = "unable to mutate secret %s: %w"
 	errPolicyMergePatch     = "unable to patch secret %s: %w"
+	errDecrypt              = "could not apply decripting strategy to %v[%d]: %v"
 )
 
 const externalSecretSecretNameKey = ".spec.target.name"

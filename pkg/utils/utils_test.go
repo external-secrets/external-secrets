@@ -15,6 +15,7 @@ limitations under the License.
 package utils
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"reflect"
@@ -30,6 +31,8 @@ import (
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmetav1 "github.com/external-secrets/external-secrets/apis/meta/v1"
+	senhaseguraAuth "github.com/external-secrets/external-secrets/pkg/provider/senhasegura/auth"
+	"github.com/external-secrets/external-secrets/pkg/provider/senhasegura/dsm"
 )
 
 const (
@@ -1211,6 +1214,83 @@ func TestValidateReferentServiceAccountSelector(t *testing.T) {
 			if !errors.Is(got, tt.expected) {
 				t.Errorf("ValidateReferentServiceAccountSelector() got = %v, want = %v", got, tt.expected)
 				return
+			}
+		})
+	}
+}
+
+func TestDecrypt(t *testing.T) {
+	type args struct {
+		client   esv1beta1.SecretsClient
+		strategy esv1beta1.ExternalSecretDecryptingStrategy
+		in       []byte
+	}
+	dsmClient, _ := dsm.New(&senhaseguraAuth.SenhaseguraIsoSession{
+		URL:                  "",
+		Token:                "",
+		IgnoreSslCertificate: true,
+		PrivateKey:           "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQChzs1R+jA3GoqiropPzF4Ehpbi6VklbeZWP+RoU3rJshONJO6w9tPhbp0YIXrPSM9P5a9xaaNxDR9eu84O05+vq3C4P9I0jb5GSjiuznrmsprFWGaGdd4Vr7Fir1oqfeVc+znQFUCvkq7BEWobOonl6ktQ2OHBK0bEzXB7qY7P4ETI6owDUL+pkAwHzdnwk4sXMDKBLT3WZVRnxPppIJ4VAEph1fJOCIIskxVBh8cAT4QRxsdu8oB7cAuYJLBBKiS/GGIA7vh9sQrb+0BAgLqvy+kiQeQhYgF/Y/uVwkgAphFzSjSjoSFQ50nNE2VJA5J6o7QZ413DlIWrVJKNZJDbAgMBAAECggEAemklU5te1pExyJka8fu+NNZNWCUI2BQoaZ+0gGiHQAeEWwdRvHc/HBC+r/7EFgUTMXKmI7qzd1diIB0caoMXD6M3h2xg7nk9NZf5AeYbfGQqSpnyFk8dUHK2U94s7HCKEKnOtukdIrZplo5CI49Ju7JggC1TvPuscj6pliRUclYYPc6pTVaG+bludDR8YkQ1mGi04wMQHpnisegRpMSjt9uZc1jKM7SSaHggu4/vuewoCFdra50/MjidIOXd5T5iVYY28J+gR8oCCKySTogNJ3JpNMNAW4FHfime5B+uS0IAYI/N8yjT/BPgRt4lQpR+6zi3fpguWNIM71xye1/R4QKBgQDNZNGFOntbFM2NTPYu4APRVu4a0gM+JEA/ozuxTigkgaj6dNeJvaNTxcKG0MmGxQLEcvgCDaWIoM6Qrj1KYVwdiv1MddRDdSHQjGjNM6n7jNfYVQ2gP+1wDwTMN+eyAW8KoZByaQimmjyBj/PsC8VWPxyrw/UeHqzTazyEIZ2fHQKBgQDJrM2/xx7F63C6GaW+5gMeColxkdYb29AwR3xb2rn5lVPLW0BORQQuepZuaI+ZLTb4Op7V4yAC/S9femFXpgkZa56aacwy1jxbR9WO0CWP3QCUCcIBF/4lbJDZ6gQLr51oahXhhjbgGMrlguC/j4R9n3i58EaeukeE+Hsu/hMWVwKBgETsWALFJS/jQzbvZI1GTwGoki4d20i3EXhJZnaRK5dUi0fAfbOTF4O9ERH8biPzaIJTsjW+LpYyoB6c2aRkF20yft1xjNE2NSquc1yowZnQIX5OzEvCKAM6hvmgqPdq08BVhwtdg7GkgDlZ/Rhwur++XfilwVNiJ8yqZ5xPS31hAoGBALnuhB5MMPXd86bPoHyYSMV4h3DaOGCkzpLERUXWKOGOp5tzfJzsikdjo68U3VcmVWiTev7MkCXRUMyg4n/RRtBV5PqNkcJIu4qYdq5c/lRdN3xEZsVlXl0Yc49EbghsFx49uACdIZiHov/oItbZNRgwXzhl6mXKbceM4tzXR7evAoGBALug2beVoVAl2nAB2RkQJy3viDKO+C6Z82gsS5x9Wif9cJTppIarZC+t7w33f4WHJiYT1VDxse08dohC5Nn77WWKdtLMSyUaXE46s37Kl5tkTkROj3wBzSIzwLYAwsthcpQVubwDAMsig8EUAdr/0IwaauEPX9lBYMZDMYuSAR5n\n-----END PRIVATE KEY-----\n",
+	})
+	tests := []struct {
+		name    string
+		args    args
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name: "value decrypted",
+			args: args{
+				client: dsmClient,
+				strategy: esv1beta1.ExternalSecretDecryptingStrategy{
+					Scheme:         esv1beta1.ExternalSecretDecryptSchemeRSAOAEP,
+					Hash:           esv1beta1.ExternalSecretDecryptHashSHA1,
+					PrivateKeyType: esv1beta1.ExternalSecretDecryptPKTypePKCS8,
+				},
+				in: []byte("hAZJktRFdzSkGxxiiSE46T271veCgwvC0GrY+AwDYA/KeuFZFdPgZsJ74awu1WR6x4BrbMLTXNpQw4UqChdbaM7VoKUCkPTcCU1jsveqYNisM2MNF98QjNjvp+9jXHfAsClLA5AvJxe3GjfWIi18E4PieFpATn/BTrmoklx4rSkWmfifZol7Wcny0D2fhrj/JOdxEIqowUB/tNwYzNd+lXgm55wea+G3YnD3Fr4ARaCCaQMUcdW9Kgx7mmZGZE3xDAhs8WMfpe9xVZ17Ca7Sw2r1JKS0o0fYiZNHUmCXVsP9O+//+0sfEtETiVUF0jItrwlK4GL8+bVcXQ9N2TW7+g=="),
+			},
+			want: []byte("a1b2c3d4"),
+		},
+		{
+			name: "invalid decrypt",
+			args: args{
+				client: dsmClient,
+				strategy: esv1beta1.ExternalSecretDecryptingStrategy{
+					Scheme:         esv1beta1.ExternalSecretDecryptSchemeRSAOAEP,
+					Hash:           esv1beta1.ExternalSecretDecryptHashSHA1,
+					PrivateKeyType: esv1beta1.ExternalSecretDecryptPKTypePKCS8,
+				},
+				in: []byte("YTFiMmMzZDQ="),
+			},
+			wantErr: true,
+		},
+		{
+			name: "none",
+			args: args{
+				client: &dsm.DSM{},
+				strategy: esv1beta1.ExternalSecretDecryptingStrategy{
+					Scheme:         esv1beta1.ExternalSecretDecryptSchemeNone,
+					Hash:           esv1beta1.ExternalSecretDecryptHashSHA1,
+					PrivateKeyType: esv1beta1.ExternalSecretDecryptPKTypePKCS8,
+				},
+				in: []byte("YTFiMmMzZDQ="),
+			},
+			want: []byte("a1b2c3d4"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out, err := base64.StdEncoding.DecodeString(string(tt.args.in))
+			if err != nil {
+				t.Errorf("DecodeString() error = %v", err)
+				return
+			}
+			got, err := Decrypt(tt.args.client, tt.args.strategy, out)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Decrypt() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Decrypt() = %v, want %v", got, tt.want)
 			}
 		})
 	}
