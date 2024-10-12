@@ -2297,6 +2297,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#pushsecret-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      PushSecret Metadata
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#implementation-considerations" class="md-nav__link">
     <span class="md-ellipsis">
       Implementation Considerations
@@ -3441,6 +3450,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#pushsecret-metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      PushSecret Metadata
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#implementation-considerations" class="md-nav__link">
     <span class="md-ellipsis">
       Implementation Considerations
@@ -3723,6 +3741,85 @@ You may also define it inline as base64 encoded value using the <code>caBundle</
 <span class="w">  </span><span class="nt">verbs</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">create</span>
 </code></pre></div>
+<h4 id="pushsecret-metadata">PushSecret Metadata</h4>
+<p>The Kubernetes provider is able to manage both <code>metadata.labels</code> and <code>metadata.annotations</code> of the secret on the target cluster.</p>
+<p>Users have different preferences on what metadata should be pushed. ESO by default pushes both labels and annotations to the target secret and merges them with the existing metadata.</p>
+<p>You can specify the metadata in the <code>spec.template.metadata</code> section if you want to decouple it from the existing secret.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="c1"># ...</span>
+<span class="w">  </span><span class="nt">template</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">metadata</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">labels</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">app.kubernetes.io/part-of</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">argocd</span>
+<span class="w">    </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">mysql_connection_string</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;mysql://{{</span><span class="nv"> </span><span class="s">.hostname</span><span class="nv"> </span><span class="s">}}:3306/{{</span><span class="nv"> </span><span class="s">.database</span><span class="nv"> </span><span class="s">}}&quot;</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mysql_connection_string</span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">backend_secrets</span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mysql_connection_string</span>
+</code></pre></div>
+<p>Further, you can leverage the <code>.data[].metadata</code> section to fine-tine the behaviour of the metadata merge strategy. The metadata section is a versioned custom-resource <em>alike</em> structure, the behaviour is detailed below.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="c1"># ...</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-1</span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-remote-secret</span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">url</span>
+
+<span class="w">    </span><span class="nt">metadata</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.external-secrets.io/v1alpha1</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecretMetadata</span>
+<span class="w">      </span><span class="nt">spec</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">sourceMergePolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Merge</span><span class="w"> </span><span class="c1"># or Replace</span>
+<span class="w">        </span><span class="nt">targetMergePolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Merge</span><span class="w"> </span><span class="c1"># or Replace / Ignore</span>
+<span class="w">        </span><span class="nt">labels</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">color</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">red</span>
+<span class="w">        </span><span class="nt">annotations</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">yes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">please</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>sourceMergePolicy</td>
+<td>string: <code>Merge</code>, <code>Replace</code></td>
+<td>The sourceMergePolicy defines how the metadata of the source secret is merged. <code>Merge</code> will merge the metadata of the source secret with the  metadata defined in <code>.data[].metadata</code>. With <code>Replace</code>, the metadata in <code>.data[].metadata</code> replaces the source metadata.</td>
+</tr>
+<tr>
+<td>targetMergePolicy</td>
+<td>string: <code>Merge</code>, <code>Replace</code>, <code>Ignore</code></td>
+<td>The targetMergePolicy defines how ESO merges the metadata produced by the sourceMergePolicy with the target secret. With <code>Merge</code>, the source metadata is merged with the existing metadata from the target secret. <code>Replace</code> will replace the target metadata with the metadata defined in the source. <code>Ignore</code> leaves the target metadata as is.</td>
+</tr>
+<tr>
+<td>labels</td>
+<td><code>map[string]string</code></td>
+<td>The labels.</td>
+</tr>
+<tr>
+<td>annotations</td>
+<td><code>map[string]string</code></td>
+<td>The annotations.</td>
+</tr>
+</tbody>
+</table>
 <h4 id="implementation-considerations">Implementation Considerations</h4>
 <p>When utilizing the PushSecret feature and configuring the permissions for the SecretStore, consider the following:</p>
 <ul>
