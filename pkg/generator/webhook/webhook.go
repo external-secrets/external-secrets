@@ -31,7 +31,7 @@ type Webhook struct {
 	url string
 }
 
-func (w *Webhook) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kclient client.Client, ns string) (map[string][]byte, genv1alpha1.GeneratorState, error) {
+func (w *Webhook) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kclient client.Client, ns string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	w.wh.EnforceLabels = true
 	w.wh.ClusterScoped = false
 	provider, err := parseSpec(jsonSpec.Raw)
@@ -50,7 +50,7 @@ func (w *Webhook) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kc
 	return data, nil, err
 }
 
-func (w *Webhook) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorState, _ client.Client, _ string) error {
+func (w *Webhook) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
 	return nil
 }
 

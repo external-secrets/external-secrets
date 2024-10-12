@@ -1842,7 +1842,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			&Reconciler{
 				ClusterSecretStoreEnabled: false,
 			},
-			*tc.externalSecret,
+			tc.externalSecret,
 		)).To(BeTrue())
 
 		tc.checkCondition = func(es *esv1beta1.ExternalSecret) bool {
@@ -2316,7 +2316,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 var _ = Describe("ExternalSecret refresh logic", func() {
 	Context("secret refresh", func() {
 		It("should refresh when resource version does not match", func() {
-			Expect(shouldRefresh(esv1beta1.ExternalSecret{
+			Expect(shouldRefresh(&esv1beta1.ExternalSecret{
 				Status: esv1beta1.ExternalSecretStatus{
 					SyncedResourceVersion: "some resource version",
 				},
@@ -2339,11 +2339,11 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 			}
 			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			// this should not refresh, rv matches object
-			Expect(shouldRefresh(es)).To(BeFalse())
+			Expect(shouldRefresh(&es)).To(BeFalse())
 
 			// change labels without changing the syncedResourceVersion and expect refresh
 			es.ObjectMeta.Labels["new"] = "w00t"
-			Expect(shouldRefresh(es)).To(BeTrue())
+			Expect(shouldRefresh(&es)).To(BeTrue())
 		})
 
 		It("should refresh when annotations change", func() {
@@ -2363,11 +2363,11 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 			}
 			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			// this should not refresh, rv matches object
-			Expect(shouldRefresh(es)).To(BeFalse())
+			Expect(shouldRefresh(&es)).To(BeFalse())
 
 			// change annotations without changing the syncedResourceVersion and expect refresh
 			es.ObjectMeta.Annotations["new"] = "w00t"
-			Expect(shouldRefresh(es)).To(BeTrue())
+			Expect(shouldRefresh(&es)).To(BeTrue())
 		})
 
 		It("should refresh when generation has changed", func() {
@@ -2383,11 +2383,11 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 				},
 			}
 			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
-			Expect(shouldRefresh(es)).To(BeFalse())
+			Expect(shouldRefresh(&es)).To(BeFalse())
 
 			// update gen -> refresh
 			es.ObjectMeta.Generation = 2
-			Expect(shouldRefresh(es)).To(BeTrue())
+			Expect(shouldRefresh(&es)).To(BeTrue())
 		})
 
 		It("should skip refresh when refreshInterval is 0", func() {
@@ -2402,7 +2402,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 			}
 			// resource version matches
 			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
-			Expect(shouldRefresh(es)).To(BeFalse())
+			Expect(shouldRefresh(&es)).To(BeFalse())
 		})
 
 		It("should refresh when refresh interval has passed", func() {
@@ -2419,7 +2419,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 			}
 			// resource version matches
 			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
-			Expect(shouldRefresh(es)).To(BeTrue())
+			Expect(shouldRefresh(&es)).To(BeTrue())
 		})
 
 		It("should refresh when no refresh time was set", func() {
@@ -2434,7 +2434,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 			}
 			// resource version matches
 			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
-			Expect(shouldRefresh(es)).To(BeTrue())
+			Expect(shouldRefresh(&es)).To(BeTrue())
 		})
 
 	})
@@ -2506,7 +2506,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 var _ = Describe("Controller Reconcile logic", func() {
 	Context("controller reconcile", func() {
 		It("should reconcile when resource is not synced", func() {
-			Expect(shouldReconcile(esv1beta1.ExternalSecret{
+			Expect(shouldReconcile(&esv1beta1.ExternalSecret{
 				Status: esv1beta1.ExternalSecretStatus{
 					SyncedResourceVersion: "some resource version",
 					Conditions:            []esv1beta1.ExternalSecretStatusCondition{{Reason: "NotASecretSynced"}},
@@ -2515,7 +2515,7 @@ var _ = Describe("Controller Reconcile logic", func() {
 		})
 
 		It("should reconcile when secret isn't immutable", func() {
-			Expect(shouldReconcile(esv1beta1.ExternalSecret{
+			Expect(shouldReconcile(&esv1beta1.ExternalSecret{
 				Spec: esv1beta1.ExternalSecretSpec{
 					Target: esv1beta1.ExternalSecretTarget{
 						Immutable: false,
@@ -2525,7 +2525,7 @@ var _ = Describe("Controller Reconcile logic", func() {
 		})
 
 		It("should not reconcile if secret is immutable and has synced condition", func() {
-			Expect(shouldReconcile(esv1beta1.ExternalSecret{
+			Expect(shouldReconcile(&esv1beta1.ExternalSecret{
 				Spec: esv1beta1.ExternalSecretSpec{
 					Target: esv1beta1.ExternalSecretTarget{
 						Immutable: true,

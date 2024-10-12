@@ -70,7 +70,7 @@ const (
 // * access tokens are scoped to a specific repository or action (pull,push)
 // * refresh tokens can are scoped to whatever policy is attached to the identity that creates the acr refresh token
 // details can be found here: https://github.com/Azure/acr/blob/main/docs/AAD-OAuth.md#overview
-func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, crClient client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorState, error) {
+func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, crClient client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	cfg, err := ctrlcfg.GetConfig()
 	if err != nil {
 		return nil, nil, err
@@ -93,7 +93,7 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 		fetchACRRefreshToken)
 }
 
-func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorState, crClient client.Client, namespace string) error {
+func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, crClient client.Client, namespace string) error {
 	return nil
 }
 
@@ -104,7 +104,7 @@ func (g *Generator) generate(
 	namespace string,
 	kubeClient kubernetes.Interface,
 	fetchAccessToken accessTokenFetcher,
-	fetchRefreshToken refreshTokenFetcher) (map[string][]byte, genv1alpha1.GeneratorState, error) {
+	fetchRefreshToken refreshTokenFetcher) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if jsonSpec == nil {
 		return nil, nil, errors.New(errNoSpec)
 	}

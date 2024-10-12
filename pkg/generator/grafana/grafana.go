@@ -35,7 +35,7 @@ import (
 
 type Grafana struct{}
 
-func (w *Grafana) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kclient client.Client, ns string) (map[string][]byte, genv1alpha1.GeneratorState, error) {
+func (w *Grafana) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kclient client.Client, ns string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	gen, err := parseSpec(jsonSpec.Raw)
 	if err != nil {
 		return nil, nil, err
@@ -76,7 +76,7 @@ func (w *Grafana) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kc
 	return tokenResponse(state, res.Payload.Key)
 }
 
-func (w *Grafana) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, previousStatus genv1alpha1.GeneratorState, kclient client.Client, ns string) error {
+func (w *Grafana) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, previousStatus genv1alpha1.GeneratorProviderState, kclient client.Client, ns string) error {
 	if previousStatus == nil {
 		return fmt.Errorf("missing previous status")
 	}
@@ -158,7 +158,7 @@ func createOrGetServiceAccount(cl *grafanaclient.GrafanaHTTPAPI, gen *genv1alpha
 	return nil, err
 }
 
-func tokenResponse(state *genv1alpha1.GrafanaServiceAccountTokenState, token string) (map[string][]byte, genv1alpha1.GeneratorState, error) {
+func tokenResponse(state *genv1alpha1.GrafanaServiceAccountTokenState, token string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	newStateJSON, err := json.Marshal(state)
 	if err != nil {
 		return nil, nil, err

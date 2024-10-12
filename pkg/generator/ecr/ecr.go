@@ -43,11 +43,11 @@ const (
 	errGetToken   = "unable to get authorization token: %w"
 )
 
-func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorState, error) {
+func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(ctx, jsonSpec, kube, namespace, ecrFactory)
 }
 
-func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorState, crClient client.Client, namespace string) error {
+func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, crClient client.Client, namespace string) error {
 	return nil
 }
 
@@ -57,7 +57,7 @@ func (g *Generator) generate(
 	kube client.Client,
 	namespace string,
 	ecrFunc ecrFactoryFunc,
-) (map[string][]byte, genv1alpha1.GeneratorState, error) {
+) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if jsonSpec == nil {
 		return nil, nil, errors.New(errNoSpec)
 	}
