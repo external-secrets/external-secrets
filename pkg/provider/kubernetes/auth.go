@@ -44,6 +44,14 @@ func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
 		return clientcmd.RESTConfigFromKubeConfig(cfg)
 	}
 
+	if c.store.Server.URL == "" {
+		return nil, errors.New("no server URL provided")
+	}
+
+	cfg := &rest.Config{
+		Host: c.store.Server.URL,
+	}
+
 	ca, err := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
 		CABundle:   c.store.Server.CABundle,
 		CAProvider: c.store.Server.CAProvider,
@@ -55,43 +63,39 @@ func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
 		return nil, err
 	}
 
-	var token []byte
-	if c.store.Auth.Token != nil {
-		token, err = c.fetchSecretKey(ctx, c.store.Auth.Token.BearerToken)
+	cfg.TLSClientConfig = rest.TLSClientConfig{
+		Insecure: false,
+		CAData:   ca,
+	}
+
+	switch {
+	case c.store.Auth.Token != nil:
+		token, err := c.fetchSecretKey(ctx, c.store.Auth.Token.BearerToken)
 		if err != nil {
 			return nil, fmt.Errorf("could not fetch Auth.Token.BearerToken: %w", err)
 		}
-	} else if c.store.Auth.ServiceAccount != nil {
-		token, err = c.serviceAccountToken(ctx, c.store.Auth.ServiceAccount)
+
+		cfg.BearerToken = string(token)
+	case c.store.Auth.ServiceAccount != nil:
+		token, err := c.serviceAccountToken(ctx, c.store.Auth.ServiceAccount)
 		if err != nil {
 			return nil, fmt.Errorf("could not fetch Auth.ServiceAccount: %w", err)
 		}
-	} else {
-		return nil, errors.New("no auth provider given")
-	}
 
-	var key, cert []byte
-	if c.store.Auth.Cert != nil {
-		key, cert, err = c.getClientKeyAndCert(ctx)
+		cfg.BearerToken = string(token)
+	case c.store.Auth.Cert != nil:
+		key, cert, err := c.getClientKeyAndCert(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("could not fetch client key and cert: %w", err)
 		}
+
+		cfg.TLSClientConfig.KeyData = key
+		cfg.TLSClientConfig.CertData = cert
+	default:
+		return nil, errors.New("no auth provider given")
 	}
 
-	if c.store.Server.URL == "" {
-		return nil, errors.New("no server URL provided")
-	}
-
-	return &rest.Config{
-		Host:        c.store.Server.URL,
-		BearerToken: string(token),
-		TLSClientConfig: rest.TLSClientConfig{
-			Insecure: false,
-			CertData: cert,
-			KeyData:  key,
-			CAData:   ca,
-		},
-	}, nil
+	return cfg, nil
 }
 
 func (c *Client) getClientKeyAndCert(ctx context.Context) ([]byte, []byte, error) {

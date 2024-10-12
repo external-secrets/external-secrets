@@ -250,14 +250,6 @@ func TestSetAuth(t *testing.T) {
 						"cert": []byte("my-cert"),
 						"key":  []byte("my-key"),
 					},
-				}, &corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foobar",
-						Namespace: "default",
-					},
-					Data: map[string][]byte{
-						"token": []byte("mytoken"),
-					},
 				}).Build(),
 				store: &esv1beta1.KubernetesProvider{
 					Server: esv1beta1.KubernetesServer{
@@ -265,13 +257,6 @@ func TestSetAuth(t *testing.T) {
 						CABundle: []byte(caCert),
 					},
 					Auth: esv1beta1.KubernetesAuth{
-						Token: &esv1beta1.TokenAuth{
-							BearerToken: v1.SecretKeySelector{
-								Name:      "foobar",
-								Namespace: pointer.To("shouldnotberelevant"),
-								Key:       "token",
-							},
-						},
 						Cert: &esv1beta1.CertAuth{
 							ClientCert: v1.SecretKeySelector{
 								Name: "mycert",
@@ -286,8 +271,7 @@ func TestSetAuth(t *testing.T) {
 				},
 			},
 			want: &want{
-				Host:        "https://my.test.tld",
-				BearerToken: "mytoken",
+				Host: "https://my.test.tld",
 				TLSClientConfig: rest.TLSClientConfig{
 					CAData:   []byte(caCert),
 					CertData: []byte("my-cert"),
