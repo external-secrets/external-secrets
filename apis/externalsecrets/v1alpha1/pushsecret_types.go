@@ -199,23 +199,7 @@ type PushSecretStatus struct {
 	Conditions []PushSecretStatusCondition `json:"conditions,omitempty"`
 
 	// +optional
-	GeneratorState PushSecretGeneratorState `json:"generatorState,omitempty"`
-}
-
-type PushSecretGeneratorState struct {
-	Latest *GeneratorState             `json:"latest"`
-	GC     map[string]GeneratorGCState `json:"gc,omitempty"`
-}
-
-type GeneratorState struct {
-	Resource *apiextensionsv1.JSON `json:"resource"`
-	State    *apiextensionsv1.JSON `json:"state"`
-}
-
-type GeneratorGCState struct {
-	Resource         *apiextensionsv1.JSON `json:"resource"`
-	State            *apiextensionsv1.JSON `json:"state"`
-	FlaggedForGCTime metav1.Time           `json:"flaggedForGCTime"`
+	GeneratorState esv1beta1.GeneratorState `json:"generatorState,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -233,6 +217,14 @@ type PushSecret struct {
 
 	Spec   PushSecretSpec   `json:"spec,omitempty"`
 	Status PushSecretStatus `json:"status,omitempty"`
+}
+
+func (ps *PushSecret) GetGeneratorState() esv1beta1.GeneratorState {
+	return ps.Status.GeneratorState
+}
+
+func (ps *PushSecret) SetGeneratorState(state esv1beta1.GeneratorState) {
+	ps.Status.GeneratorState = state
 }
 
 // +kubebuilder:object:root=true

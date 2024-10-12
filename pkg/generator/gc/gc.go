@@ -35,7 +35,7 @@ var scheduler gocron.Scheduler
 
 func init() {
 	fs := pflag.NewFlagSet("gc", pflag.ExitOnError)
-	fs.DurationVar(&gcGracePeriod, "generator-gc-grace-period", time.Second*5, "Duration after which generated secrets are cleaned up after they have been flagged for gc.")
+	fs.DurationVar(&gcGracePeriod, "generator-gc-grace-period", time.Minute*15, "Duration after which generated secrets are cleaned up after they have been flagged for gc.")
 	feature.Register(feature.Feature{
 		Flags: fs,
 	})
@@ -50,7 +50,7 @@ func init() {
 type Entry struct {
 	Resource *apiextensions.JSON
 	Impl     genv1alpha1.Generator
-	State    genv1alpha1.GeneratorState
+	State    genv1alpha1.GeneratorProviderState
 }
 
 func (e Entry) Key() string {

@@ -35,7 +35,7 @@ type Generator interface {
 		obj *apiextensions.JSON,
 		kube client.Client,
 		namespace string,
-	) (map[string][]byte, GeneratorState, error)
+	) (map[string][]byte, GeneratorProviderState, error)
 
 	// Cleanup deletes any resources created during the Generate phase.
 	// Cleanup is idempotent and should not return an error if the resources
@@ -43,10 +43,10 @@ type Generator interface {
 	Cleanup(
 		ctx context.Context,
 		obj *apiextensions.JSON,
-		status GeneratorState,
+		status GeneratorProviderState,
 		kube client.Client,
 		namespace string,
 	) error
 }
 
-type GeneratorState *apiextensions.JSON
+type GeneratorProviderState *apiextensions.JSON

@@ -24,7 +24,6 @@ import (
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
-	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,14 +36,11 @@ import (
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/controllers/util"
-
-	// load generators.
-	"github.com/external-secrets/external-secrets/pkg/generator/gc"
+	"github.com/external-secrets/external-secrets/pkg/generator/statemanager"
 	"github.com/external-secrets/external-secrets/pkg/provider/util/locks"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
@@ -140,7 +136,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 					return ctrl.Result{}, err
 				}
 
-				if err := r.cleanupAllGeneratorState(ctx, &ps); err != nil {
+				if err := statemanager.CleanupImmediate(ctx, &ps, r.Client, ps.Namespace); err != nil {
 					msg := fmt.Sprintf("Failed to cleanup generator state: %v", err)
 					r.markAsFailed(msg, &ps, nil)
 					return ctrl.Result{}, err
@@ -226,7 +222,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	default:
 	}
 
-	r.cleanupExpiredGeneratorState(ctx, &ps)
+	if err := statemanager.GarbageCollect(ctx, &ps, r.Client, ps.Namespace); err != nil {
+		msg := fmt.Sprintf("Failed to cleanup generator state: %v", err)
+		r.markAsFailed(msg, &ps, syncedSecrets)
+		return ctrl.Result{}, err
+	}
 
 	r.markAsDone(&ps, syncedSecrets, start)
 
@@ -244,47 +244,6 @@ func shouldRefresh(ps esapi.PushSecret) bool {
 		return true
 	}
 	return ps.Status.RefreshTime.Add(ps.Spec.RefreshInterval.Duration).Before(time.Now())
-}
-
-// clean up does not block the main reconcile loop.
-// it is best effort and will not return an error.
-func (r *Reconciler) cleanupExpiredGeneratorState(ctx context.Context, ps *esapi.PushSecret) {
-	newGCState := make(map[string]esapi.GeneratorGCState)
-	for idx, gcState := range ps.Status.GeneratorState.GC {
-		genImpl, err := v1alpha1.GetGenerator(gcState.Resource)
-		if err != nil {
-			r.Log.Error(err, "unable to get generator", "gcState", gcState)
-			continue
-		}
-		deleted, err := gc.Cleanup(ctx, gcState.FlaggedForGCTime.Time, gc.Entry{
-			Resource: gcState.Resource,
-			Impl:     genImpl,
-			State:    gcState.State,
-		}, r.Client, ps.Namespace)
-		if err != nil {
-			r.Log.Error(err, "failed to cleanup generator state", "gcState", gcState)
-		}
-		if !deleted {
-			newGCState[idx] = gcState
-		}
-	}
-	ps.Status.GeneratorState.GC = newGCState
-}
-
-func (r *Reconciler) cleanupAllGeneratorState(ctx context.Context, ps *esapi.PushSecret) error {
-	var errs []error
-	for _, gcState := range ps.Status.GeneratorState.GC {
-		genImpl, err := v1alpha1.GetGenerator(gcState.Resource)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("unable to get generator: %w", err))
-			continue
-		}
-		err = genImpl.Cleanup(ctx, gcState.Resource, gcState.State, r.Client, ps.Namespace)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("failed to cleanup generator state: %w", err))
-		}
-	}
-	return errors.Join(errs...)
 }
 
 func (r *Reconciler) markAsFailed(msg string, ps *esapi.PushSecret, syncState esapi.SyncedPushSecretsMap) {
@@ -431,7 +390,23 @@ func secretKeyExists(key string, secret *v1.Secret) bool {
 	return key == "" || ok
 }
 
+const defaultGeneratorStateKey = "__pushsecret"
+
 func (r *Reconciler) resolveSecret(ctx context.Context, ps *esapi.PushSecret) (*v1.Secret, error) {
+	var err error
+	generatorState := statemanager.New(ps)
+	defer func() {
+		if err != nil {
+			if err := generatorState.Rollback(); err != nil {
+				r.Log.Error(err, "error rolling back generator state")
+			}
+
+			return
+		}
+		if err := generatorState.Commit(); err != nil {
+			r.Log.Error(err, "error committing generator state")
+		}
+	}()
 	if ps.Spec.Selector.Secret != nil {
 		secretName := types.NamespacedName{Name: ps.Spec.Selector.Secret.Name, Namespace: ps.Namespace}
 		secret := &v1.Secret{}
@@ -439,40 +414,28 @@ func (r *Reconciler) resolveSecret(ctx context.Context, ps *esapi.PushSecret) (*
 		if err != nil {
 			return nil, err
 		}
-		state := ps.Status.GeneratorState.Latest
-		if state != nil {
-			gen, err := v1alpha1.GetGenerator(state.Resource)
-			if err != nil {
-				return nil, fmt.Errorf("unable to get generator: %w", err)
-			}
-			if err := flagGeneratorStateForGC(ps, state.Resource, gen, state.State); err != nil {
-				return nil, err
-			}
-		}
+		generatorState.FlagLatestStateForGC(defaultGeneratorStateKey)
 		return secret, nil
 	}
 	if ps.Spec.Selector.GeneratorRef != nil {
-		return r.resolveSecretFromGenerator(ctx, ps)
+		return r.resolveSecretFromGenerator(ctx, ps, generatorState)
 	}
 	return nil, errors.New("no secret selector provided")
 }
 
-func (r *Reconciler) resolveSecretFromGenerator(ctx context.Context, ps *esapi.PushSecret) (*v1.Secret, error) {
+func (r *Reconciler) resolveSecretFromGenerator(ctx context.Context, ps *esapi.PushSecret, generatorState *statemanager.Manager) (*v1.Secret, error) {
 	gen, genResource, err := resolvers.GeneratorRef(ctx, r.RestConfig, ps.Namespace, ps.Spec.Selector.GeneratorRef)
 	if err != nil {
 		return nil, fmt.Errorf("unable to resolve generator: %w", err)
 	}
-	state := getGeneratorState(ps, genResource)
-	if state != nil {
-		if err := flagGeneratorStateForGC(ps, genResource, gen, state); err != nil {
-			return nil, err
-		}
-	}
-	secretMap, state, err := gen.Generate(ctx, genResource, r.Client, ps.Namespace)
+	prevState := generatorState.GetLatest(defaultGeneratorStateKey)
+	secretMap, newState, err := gen.Generate(ctx, genResource, r.Client, ps.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate: %w", err)
 	}
-	updateGeneratorState(ps, genResource, state)
+	if prevState != nil {
+		generatorState.SetLatest(ctx, r.Client, defaultGeneratorStateKey, ps.Namespace, genResource, gen, newState)
+	}
 	return &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "___generated-secret",
@@ -480,49 +443,6 @@ func (r *Reconciler) resolveSecretFromGenerator(ctx context.Context, ps *esapi.P
 		},
 		Data: secretMap,
 	}, err
-}
-
-func flagGeneratorStateForGC(ps *esapi.PushSecret, resource *apiextensions.JSON, gen v1alpha1.Generator, state v1alpha1.GeneratorState) error {
-	entry := gc.Entry{
-		Resource: resource,
-		Impl:     gen,
-		State:    state,
-	}
-	if err := gc.Enqueue(entry); err != nil {
-		return fmt.Errorf("unable to enqueue generator state for GC: %w", err)
-	}
-	if ps.Status.GeneratorState.GC == nil {
-		ps.Status.GeneratorState.GC = make(map[string]esapi.GeneratorGCState)
-	}
-	ps.Status.GeneratorState.GC[entry.Key()] = esapi.GeneratorGCState{
-		Resource:         resource,
-		State:            state,
-		FlaggedForGCTime: metav1.Now(),
-	}
-	return nil
-}
-
-func getGeneratorState(ps *esapi.PushSecret, gen *apiextensions.JSON) v1alpha1.GeneratorState {
-	state := ps.Status.GeneratorState.Latest
-	if state == nil {
-		return nil
-	}
-	stateRes := strings.TrimRight(string(state.Resource.Raw), "\n")
-	genRes := strings.TrimRight(string(gen.Raw), "\n")
-	if stateRes == genRes {
-		return state.State
-	}
-	return nil
-}
-
-func updateGeneratorState(ps *esapi.PushSecret, genResource, generatorState *apiextensions.JSON) {
-	if generatorState == nil {
-		return
-	}
-	ps.Status.GeneratorState.Latest = &esapi.GeneratorState{
-		Resource: genResource,
-		State:    generatorState,
-	}
 }
 
 func (r *Reconciler) GetSecretStores(ctx context.Context, ps esapi.PushSecret) (map[esapi.PushSecretStoreRef]v1beta1.GenericStore, error) {

@@ -3833,6 +3833,19 @@ Kubernetes core/v1.LocalObjectReference
 <p>Binding represents a servicebinding.io Provisioned Service reference to the secret</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>generatorState</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.GeneratorState">
+GeneratorState
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.ExternalSecretStatusCondition">ExternalSecretStatusCondition
@@ -4528,6 +4541,56 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.GeneratorGCState">GeneratorGCState
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.GeneratorState">GeneratorState</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>resource</code></br>
+<em>
+k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>state</code></br>
+<em>
+k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>flaggedForGCTime</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#time-v1-meta">
+Kubernetes meta/v1.Time
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.GeneratorRef">GeneratorRef
 </h3>
 <p>
@@ -4581,6 +4644,86 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.GeneratorResourceState">GeneratorResourceState
+</h3>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>resource</code></br>
+<em>
+k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>state</code></br>
+<em>
+k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.GeneratorState">GeneratorState
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretStatus">ExternalSecretStatus</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>latest</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.*github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1.GeneratorResourceState">
+map[string]*github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1.GeneratorResourceState
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>gc</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.GeneratorGCState">
+map[string]github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1.GeneratorGCState
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.GeneratorStateManagingResource">GeneratorStateManagingResource
+</h3>
+<p>
+</p>
 <h3 id="external-secrets.io/v1beta1.GenericStore">GenericStore
 </h3>
 <p>

@@ -49,18 +49,18 @@ type generateFunc func(
 	allowRepeat bool,
 ) (string, error)
 
-func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ client.Client, _ string) (map[string][]byte, genv1alpha1.GeneratorState, error) {
+func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ client.Client, _ string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(
 		jsonSpec,
 		generateSafePassword,
 	)
 }
 
-func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorState, _ client.Client, _ string) error {
+func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
 	return nil
 }
 
-func (g *Generator) generate(jsonSpec *apiextensions.JSON, passGen generateFunc) (map[string][]byte, genv1alpha1.GeneratorState, error) {
+func (g *Generator) generate(jsonSpec *apiextensions.JSON, passGen generateFunc) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if jsonSpec == nil {
 		return nil, nil, errors.New(errNoSpec)
 	}
