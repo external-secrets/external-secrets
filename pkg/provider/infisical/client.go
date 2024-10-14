@@ -19,9 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 
-	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -31,18 +29,10 @@ import (
 
 var (
 	errNotImplemented          = errors.New("not implemented")
-	errPropertyNotFound        = "property %s does not exist in secret %s"
+	errMissingProperty         = errors.New("missing property")
 	errTagsNotImplemented      = errors.New("find by tags not supported")
 	errPushWholeNotImplemented = errors.New("push whole secret not implemented")
 )
-
-func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
-	result := gjson.Get(jsonData, propertyName)
-	if !result.Exists() {
-		return nil, fmt.Errorf(errPropertyNotFound, propertyName, keyName)
-	}
-	return []byte(result.Str), nil
-}
 
 // if GetSecret returns an error with type NoSecretError.
 // then the secret entry will be deleted depending on the deletionPolicy.
@@ -50,21 +40,12 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 	secret, err := p.apiClient.GetSecretByKeyV3(api.GetSecretByKeyV3Request{
 		EnvironmentSlug: p.apiScope.EnvironmentSlug,
 		ProjectSlug:     p.apiScope.ProjectSlug,
-		SecretPath:      p.apiScope.SecretPath,
-		SecretKey:       ref.Key,
+		SecretPath:      ref.Key,
+		SecretKey:       ref.Property,
 	})
 
 	if err != nil {
 		return nil, err
-	}
-
-	if ref.Property != "" {
-		propertyValue, err := getPropertyValue(secret, ref.Property, ref.Key)
-		if err != nil {
-			return nil, err
-		}
-
-		return propertyValue, nil
 	}
 
 	return []byte(secret), nil
@@ -80,7 +61,7 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 	kv := make(map[string]json.RawMessage)
 	err = json.Unmarshal(secret, &kv)
 	if err != nil {
-		return nil, fmt.Errorf("unable to unmarshal secret %s: %w", ref.Key, err)
+		return nil, fmt.Errorf("unable to unmarshal secret %s/%s: %w", ref.Key, ref.Property, err)
 	}
 	secretData := make(map[string][]byte)
 	for k, v := range kv {
@@ -104,7 +85,7 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 	secrets, err := p.apiClient.GetSecretsV3(api.GetSecretsV3Request{
 		EnvironmentSlug: p.apiScope.EnvironmentSlug,
 		ProjectSlug:     p.apiScope.ProjectSlug,
-		SecretPath:      p.apiScope.SecretPath,
+		SecretPath:      *ref.Path,
 	})
 	if err != nil {
 		return nil, err
@@ -114,7 +95,7 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 	for key, value := range secrets {
 		secretMap[key] = []byte(value)
 	}
-	if ref.Name == nil && ref.Path == nil {
+	if ref.Name == nil {
 		return secretMap, nil
 	}
 
@@ -129,7 +110,7 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 
 	selected := map[string][]byte{}
 	for key, value := range secrets {
-		if (matcher != nil && !matcher.MatchName(key)) || (ref.Path != nil && !strings.HasPrefix(key, *ref.Path)) {
+		if matcher != nil && !matcher.MatchName(key) {
 			continue
 		}
 		selected[key] = []byte(value)
@@ -145,11 +126,10 @@ func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
 	_, err := p.apiClient.GetSecretsV3(api.GetSecretsV3Request{
 		EnvironmentSlug: p.apiScope.EnvironmentSlug,
 		ProjectSlug:     p.apiScope.ProjectSlug,
-		SecretPath:      p.apiScope.SecretPath,
 	})
 
 	if err != nil {
-		return esv1beta1.ValidationResultError, fmt.Errorf("cannot read secrets with provided project scope project:%s environment:%s secret-path:%s, %w", p.apiScope.ProjectSlug, p.apiScope.EnvironmentSlug, p.apiScope.SecretPath, err)
+		return esv1beta1.ValidationResultError, fmt.Errorf("cannot read secrets with provided project scope project:%s environment:%s, %w", p.apiScope.ProjectSlug, p.apiScope.EnvironmentSlug, err)
 	}
 
 	return esv1beta1.ValidationResultReady, nil
@@ -162,11 +142,16 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data e
 		return errPushWholeNotImplemented
 	}
 
+	key := data.GetProperty()
+	if key == "" {
+		return errMissingProperty
+	}
+
 	req := api.ChangeSecretV3Request{
 		EnvironmentSlug: p.apiScope.EnvironmentSlug,
 		ProjectSlug:     p.apiScope.ProjectSlug,
-		SecretPath:      p.apiScope.SecretPath,
-		SecretKey:       data.GetRemoteKey(),
+		SecretPath:      data.GetRemoteKey(),
+		SecretKey:       key,
 		SecretValue:     string(val),
 	}
 

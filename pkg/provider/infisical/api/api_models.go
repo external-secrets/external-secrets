@@ -40,8 +40,8 @@ type RevokeMachineIdentityAccessTokenResponse struct {
 
 type GetSecretByKeyV3Request struct {
 	EnvironmentSlug string `json:"environment"`
-	ProjectSlug     string `json:"workspaceSlug"`
-	SecretPath      string `json:"secretPath"`
+	ProjectSlug     string `json:"workspaceId"`
+	SecretPath      string `json:"secretPath,omitempty"`
 	SecretKey       string `json:"secretKey"`
 }
 
@@ -51,8 +51,8 @@ type GetSecretByKeyV3Response struct {
 
 type GetSecretsV3Request struct {
 	EnvironmentSlug string `json:"environment"`
-	ProjectSlug     string `json:"workspaceSlug"`
-	SecretPath      string `json:"secretPath"`
+	ProjectSlug     string `json:"workspaceId"`
+	SecretPath      string `json:"secretPath,omitempty"`
 }
 
 type GetSecretsV3Response struct {
@@ -65,7 +65,7 @@ type GetSecretsV3Response struct {
 type ChangeSecretV3Request struct {
 	EnvironmentSlug string `json:"environment"`
 	ProjectSlug     string `json:"workspaceId"`
-	SecretPath      string `json:"secretPath"`
+	SecretPath      string `json:"secretPath,omitempty"`
 	SecretKey       string `json:"secretKey"`
 	SecretValue     string `json:"secretValue"`
 }
@@ -84,7 +84,7 @@ type SecretsV3 struct {
 type ImportedSecretV3 struct {
 	Environment string      `json:"environment"`
 	FolderID    string      `json:"folderId"`
-	SecretPath  string      `json:"secretPath"`
+	SecretPath  string      `json:"secretPath,omitempty"`
 	Secrets     []SecretsV3 `json:"secrets"`
 }
 
