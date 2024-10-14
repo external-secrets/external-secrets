@@ -27,6 +27,8 @@ var (
 type MockInfisicalClient struct {
 	MockedGetSecretV3      func(data api.GetSecretsV3Request) (map[string]string, error)
 	MockedGetSecretByKeyV3 func(data api.GetSecretByKeyV3Request) (string, error)
+	MockedCreateSecretV3   func(data api.ChangeSecretV3Request) error
+	MockedUpdateSecretV3   func(data api.ChangeSecretV3Request) error
 }
 
 func (a *MockInfisicalClient) MachineIdentityLoginViaUniversalAuth(data api.MachineIdentityUniversalAuthLoginRequest) (*api.MachineIdentityDetailsResponse, error) {
@@ -51,6 +53,20 @@ func (a *MockInfisicalClient) GetSecretByKeyV3(data api.GetSecretByKeyV3Request)
 		return "", ErrMissingMockImplementation
 	}
 	return a.MockedGetSecretByKeyV3(data)
+}
+
+func (a *MockInfisicalClient) CreateSecretV3(data api.ChangeSecretV3Request) error {
+	if a.MockedCreateSecretV3 == nil {
+		return ErrMissingMockImplementation
+	}
+	return a.MockedCreateSecretV3(data)
+}
+
+func (a *MockInfisicalClient) UpdateSecretV3(data api.ChangeSecretV3Request) error {
+	if a.MockedUpdateSecretV3 == nil {
+		return ErrMissingMockImplementation
+	}
+	return a.MockedUpdateSecretV3(data)
 }
 
 func (a *MockInfisicalClient) RevokeAccessToken() error {

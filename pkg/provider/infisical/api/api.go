@@ -38,6 +38,8 @@ type InfisicalApis interface {
 	MachineIdentityLoginViaUniversalAuth(data MachineIdentityUniversalAuthLoginRequest) (*MachineIdentityDetailsResponse, error)
 	GetSecretsV3(data GetSecretsV3Request) (map[string]string, error)
 	GetSecretByKeyV3(data GetSecretByKeyV3Request) (string, error)
+	CreateSecretV3(data ChangeSecretV3Request) error
+	UpdateSecretV3(data ChangeSecretV3Request) error
 	RevokeAccessToken() error
 }
 
@@ -165,7 +167,7 @@ func (a *InfisicalClient) GetSecretsV3(data GetSecretsV3Request) (map[string]str
 	}
 
 	q := req.URL.Query()
-	q.Add("workspaceSlug", data.ProjectSlug)
+	q.Add("workspaceId", data.ProjectSlug)
 	q.Add("environment", data.EnvironmentSlug)
 	q.Add("secretPath", data.SecretPath)
 	q.Add("include_imports", "true")
@@ -206,7 +208,7 @@ func (a *InfisicalClient) GetSecretByKeyV3(data GetSecretByKeyV3Request) (string
 	}
 
 	q := req.URL.Query()
-	q.Add("workspaceSlug", data.ProjectSlug)
+	q.Add("workspaceId", data.ProjectSlug)
 	q.Add("environment", data.EnvironmentSlug)
 	q.Add("secretPath", data.SecretPath)
 	q.Add("include_imports", "true")
@@ -236,6 +238,72 @@ func (a *InfisicalClient) GetSecretByKeyV3(data GetSecretByKeyV3Request) (string
 	}
 
 	return res.Secret.SecretValue, nil
+}
+
+func (a *InfisicalClient) CreateSecretV3(data ChangeSecretV3Request) error {
+	endpointURL := a.resolveEndpoint(fmt.Sprintf("api/v3/secrets/raw/%s", data.SecretKey))
+	body, err := MarshalReqBody(data)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, endpointURL, body)
+	metrics.ObserveAPICall(constants.ProviderName, "CreateSecretV3", err)
+	if err != nil {
+		return err
+	}
+
+	rawRes, err := a.do(req)
+	if err != nil {
+		return err
+	}
+	if rawRes.StatusCode == 400 {
+		var errRes InfisicalAPIErrorResponse
+		err = ReadAndUnmarshal(rawRes, &errRes)
+		if err != nil {
+			return fmt.Errorf(errJSONSecretUnmarshal, err)
+		}
+
+		if errRes.Message == "Secret not found" {
+			return esv1beta1.NoSecretError{}
+		}
+		return errors.New(errRes.Message)
+	}
+
+	return nil
+}
+
+func (a *InfisicalClient) UpdateSecretV3(data ChangeSecretV3Request) error {
+	endpointURL := a.resolveEndpoint(fmt.Sprintf("api/v3/secrets/raw/%s", data.SecretKey))
+	body, err := MarshalReqBody(data)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPatch, endpointURL, body)
+	metrics.ObserveAPICall(constants.ProviderName, "UpdateSecretV3", err)
+	if err != nil {
+		return err
+	}
+
+	rawRes, err := a.do(req)
+	if err != nil {
+		return err
+	}
+	if rawRes.StatusCode == 400 {
+		var errRes InfisicalAPIErrorResponse
+		err = ReadAndUnmarshal(rawRes, &errRes)
+		if err != nil {
+			return fmt.Errorf(errJSONSecretUnmarshal, err)
+		}
+
+		if errRes.Message == "Secret not found" {
+			return esv1beta1.NoSecretError{}
+		}
+		return errors.New(errRes.Message)
+	}
+
+	return nil
 }
 
 func MarshalReqBody(data any) (*bytes.Reader, error) {

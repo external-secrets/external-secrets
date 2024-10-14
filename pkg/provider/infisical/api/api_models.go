@@ -62,6 +62,14 @@ type GetSecretsV3Response struct {
 	ETag            string             `json:"ETag,omitempty"`
 }
 
+type ChangeSecretV3Request struct {
+	EnvironmentSlug string `json:"environment"`
+	ProjectSlug     string `json:"workspaceId"`
+	SecretPath      string `json:"secretPath"`
+	SecretKey       string `json:"secretKey"`
+	SecretValue     string `json:"secretValue"`
+}
+
 type SecretsV3 struct {
 	ID            string `json:"id"`
 	Workspace     string `json:"workspace"`

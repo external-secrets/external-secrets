@@ -30,9 +30,10 @@ import (
 )
 
 var (
-	errNotImplemented     = errors.New("not implemented")
-	errPropertyNotFound   = "property %s does not exist in secret %s"
-	errTagsNotImplemented = errors.New("find by tags not supported")
+	errNotImplemented          = errors.New("not implemented")
+	errPropertyNotFound        = "property %s does not exist in secret %s"
+	errTagsNotImplemented      = errors.New("find by tags not supported")
+	errPushWholeNotImplemented = errors.New("push whole secret not implemented")
 )
 
 func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
@@ -156,7 +157,29 @@ func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
 
 // PushSecret will write a single secret into the provider.
 func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
-	return errNotImplemented
+	val, ok := secret.Data[data.GetSecretKey()]
+	if !ok {
+		return errPushWholeNotImplemented
+	}
+
+	req := api.ChangeSecretV3Request{
+		EnvironmentSlug: p.apiScope.EnvironmentSlug,
+		ProjectSlug:     p.apiScope.ProjectSlug,
+		SecretPath:      p.apiScope.SecretPath,
+		SecretKey:       data.GetRemoteKey(),
+		SecretValue:     string(val),
+	}
+
+	err := p.apiClient.UpdateSecretV3(req)
+	if errors.Is(err, esv1beta1.NoSecretErr) {
+		if err = p.apiClient.CreateSecretV3(req); err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // DeleteSecret will delete the secret from a provider.
