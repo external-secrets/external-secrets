@@ -225,7 +225,7 @@ func (a *InfisicalClient) GetSecretByKeyV3(data GetSecretByKeyV3Request) (string
 			return "", fmt.Errorf(errJSONSecretUnmarshal, err)
 		}
 
-		if errRes.Message == "Secret not found" {
+		if errRes.Message == "Secret not found" || errRes.Message == "Folder not found for the given environment slug & secret path" {
 			return "", esv1beta1.NoSecretError{}
 		}
 		return "", errors.New(errRes.Message)
@@ -264,7 +264,7 @@ func (a *InfisicalClient) CreateSecretV3(data ChangeSecretV3Request) error {
 			return fmt.Errorf(errJSONSecretUnmarshal, err)
 		}
 
-		if errRes.Message == "Secret not found" {
+		if errRes.Message == "Secret not found" || errRes.Message == "Folder not found for the given environment slug & secret path" {
 			return esv1beta1.NoSecretError{}
 		}
 		return errors.New(errRes.Message)
@@ -297,7 +297,7 @@ func (a *InfisicalClient) UpdateSecretV3(data ChangeSecretV3Request) error {
 			return fmt.Errorf(errJSONSecretUnmarshal, err)
 		}
 
-		if errRes.Message == "Secret not found" {
+		if errRes.Message == "Secret not found" || errRes.Message == "Folder not found for the given environment slug & secret path" {
 			return esv1beta1.NoSecretError{}
 		}
 		return errors.New(errRes.Message)

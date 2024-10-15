@@ -40,7 +40,7 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 	secret, err := p.apiClient.GetSecretByKeyV3(api.GetSecretByKeyV3Request{
 		EnvironmentSlug: p.apiScope.EnvironmentSlug,
 		ProjectSlug:     p.apiScope.ProjectSlug,
-		SecretPath:      ref.Key,
+		SecretPath:      "/" + ref.Key,
 		SecretKey:       ref.Property,
 	})
 
@@ -85,7 +85,7 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 	secrets, err := p.apiClient.GetSecretsV3(api.GetSecretsV3Request{
 		EnvironmentSlug: p.apiScope.EnvironmentSlug,
 		ProjectSlug:     p.apiScope.ProjectSlug,
-		SecretPath:      *ref.Path,
+		SecretPath:      "/" + *ref.Path,
 	})
 	if err != nil {
 		return nil, err
@@ -150,7 +150,7 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data e
 	req := api.ChangeSecretV3Request{
 		EnvironmentSlug: p.apiScope.EnvironmentSlug,
 		ProjectSlug:     p.apiScope.ProjectSlug,
-		SecretPath:      data.GetRemoteKey(),
+		SecretPath:      "/" + data.GetRemoteKey(),
 		SecretKey:       key,
 		SecretValue:     string(val),
 	}
