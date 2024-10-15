@@ -257,7 +257,10 @@ func (a *InfisicalClient) CreateSecretV3(data ChangeSecretV3Request) error {
 	if err != nil {
 		return err
 	}
-	if rawRes.StatusCode == 400 {
+
+	if rawRes.StatusCode == 200 {
+		return nil
+	} else {
 		var errRes InfisicalAPIErrorResponse
 		err = ReadAndUnmarshal(rawRes, &errRes)
 		if err != nil {
@@ -269,8 +272,6 @@ func (a *InfisicalClient) CreateSecretV3(data ChangeSecretV3Request) error {
 		}
 		return errors.New(errRes.Message)
 	}
-
-	return nil
 }
 
 func (a *InfisicalClient) UpdateSecretV3(data ChangeSecretV3Request) error {
@@ -290,7 +291,10 @@ func (a *InfisicalClient) UpdateSecretV3(data ChangeSecretV3Request) error {
 	if err != nil {
 		return err
 	}
-	if rawRes.StatusCode == 400 {
+
+	if rawRes.StatusCode == 200 {
+		return nil
+	} else {
 		var errRes InfisicalAPIErrorResponse
 		err = ReadAndUnmarshal(rawRes, &errRes)
 		if err != nil {
@@ -302,8 +306,6 @@ func (a *InfisicalClient) UpdateSecretV3(data ChangeSecretV3Request) error {
 		}
 		return errors.New(errRes.Message)
 	}
-
-	return nil
 }
 
 func MarshalReqBody(data any) (*bytes.Reader, error) {
