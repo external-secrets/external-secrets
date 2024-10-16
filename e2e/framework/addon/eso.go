@@ -16,6 +16,7 @@ package addon
 
 import (
 	"os"
+	"time"
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
@@ -37,6 +38,10 @@ func NewESO(mutators ...MutationFunc) *ESO {
 				{
 					Key:   "webhook.port",
 					Value: "9443",
+				},
+				{
+					Key:   "webhook.failurePolicy",
+					Value: "Ignore",
 				},
 				{
 					Key:   "webhook.image.tag",
@@ -172,7 +177,7 @@ func WithCRDs() MutationFunc {
 }
 
 func (l *ESO) Install() error {
-	By("Installing eso\n")
+	By("Installing eso")
 	err := l.HelmChart.Install()
 	if err != nil {
 		return err
@@ -182,13 +187,23 @@ func (l *ESO) Install() error {
 }
 
 func (l *ESO) Uninstall() error {
+	// uninstalling CRDs will trigger the deletion of all CRs. They block the deletion of the CRDs if
+	// a finalizer is present.
+	// We must uninstall the CRDs before the eso chart,
+	// otherwise ESO will note remove the finalizer.
+	if l.HelmChart.HasVar(installCRDsVar, "true") {
+		By("Uninstalling eso CRDs")
+		err := uninstallCRDs(l.config)
+		if err != nil {
+			return err
+		}
+		// Give ESO a grace period to clean up the CRs
+		<-time.After(time.Minute)
+	}
 	By("Uninstalling eso")
 	err := l.HelmChart.Uninstall()
 	if err != nil {
 		return err
-	}
-	if l.HelmChart.HasVar(installCRDsVar, "true") {
-		return uninstallCRDs(l.config)
 	}
 	return nil
 }
