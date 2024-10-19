@@ -49,8 +49,8 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 	secret, err := p.apiClient.GetSecretByKeyV3(api.GetSecretByKeyV3Request{
 		EnvironmentSlug: p.apiScope.EnvironmentSlug,
 		ProjectSlug:     p.apiScope.ProjectSlug,
-		SecretPath:      p.apiScope.SecretPath,
 		SecretKey:       ref.Key,
+		SecretPath:      p.apiScope.SecretPath,
 	})
 
 	if err != nil {
@@ -104,6 +104,7 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 		EnvironmentSlug: p.apiScope.EnvironmentSlug,
 		ProjectSlug:     p.apiScope.ProjectSlug,
 		SecretPath:      p.apiScope.SecretPath,
+		Recursive:       p.apiScope.Recursive,
 	})
 	if err != nil {
 		return nil, err
@@ -144,11 +145,12 @@ func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
 	_, err := p.apiClient.GetSecretsV3(api.GetSecretsV3Request{
 		EnvironmentSlug: p.apiScope.EnvironmentSlug,
 		ProjectSlug:     p.apiScope.ProjectSlug,
+		Recursive:       p.apiScope.Recursive,
 		SecretPath:      p.apiScope.SecretPath,
 	})
 
 	if err != nil {
-		return esv1beta1.ValidationResultError, fmt.Errorf("cannot read secrets with provided project scope project:%s environment:%s secret-path:%s, %w", p.apiScope.ProjectSlug, p.apiScope.EnvironmentSlug, p.apiScope.SecretPath, err)
+		return esv1beta1.ValidationResultError, fmt.Errorf("cannot read secrets with provided project scope project:%s environment:%s secret-path:%s recursive:%t, %w", p.apiScope.ProjectSlug, p.apiScope.EnvironmentSlug, p.apiScope.SecretPath, p.apiScope.Recursive, err)
 	}
 
 	return esv1beta1.ValidationResultReady, nil

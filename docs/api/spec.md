@@ -5252,6 +5252,17 @@ string
 </tr>
 <tr>
 <td>
+<code>recursive</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
 <code>environmentSlug</code></br>
 <em>
 string
