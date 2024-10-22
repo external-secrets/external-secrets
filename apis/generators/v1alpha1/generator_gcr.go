@@ -49,6 +49,7 @@ type GCPWorkloadIdentity struct {
 
 // GCRAccessToken generates an GCP access token
 // that can be used to authenticate with GCR.
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status

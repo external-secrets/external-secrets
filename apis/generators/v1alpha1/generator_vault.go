@@ -56,6 +56,7 @@ const (
 	VaultDynamicSecretResultTypeAuth VaultDynamicSecretResultType = "Auth"
 )
 
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status

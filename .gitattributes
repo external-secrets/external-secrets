@@ -2,3 +2,5 @@
 *.png binary
 *.jpg binary
 *.pfx binary
+
+pkg/client linguist-generated=true

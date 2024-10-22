@@ -22,6 +22,7 @@ import (
 type UUIDSpec struct{}
 
 // UUID generates a version 1 UUID (e56657e3-764f-11ef-a397-65231a88c216).
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status

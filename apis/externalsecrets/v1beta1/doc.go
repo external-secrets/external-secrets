@@ -15,5 +15,6 @@ limitations under the License.
 // Package v1beta1 contains resources for external-secrets
 // +kubebuilder:object:generate=true
 // +groupName=external-secrets.io
+// +groupGoName=ExternalSecrets
 // +versionName=v1beta1
 package v1beta1

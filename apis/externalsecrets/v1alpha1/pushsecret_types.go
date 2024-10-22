@@ -199,6 +199,7 @@ type PushSecretStatus struct {
 	Conditions []PushSecretStatusCondition `json:"conditions,omitempty"`
 }
 
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // PushSecrets is the Schema for the PushSecrets API.
