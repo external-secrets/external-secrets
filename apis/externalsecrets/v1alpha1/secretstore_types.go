@@ -129,6 +129,7 @@ type SecretStoreStatus struct {
 	Conditions []SecretStoreStatusCondition `json:"conditions,omitempty"`
 }
 
+// +genclient
 // +kubebuilder:object:root=true
 
 // SecretStore represents a secure external location for storing secrets, which can be referenced as part of `storeRef` fields.
@@ -154,6 +155,7 @@ type SecretStoreList struct {
 	Items           []SecretStore `json:"items"`
 }
 
+// +genclient
 // +kubebuilder:object:root=true
 
 // ClusterSecretStore represents a secure external location for storing secrets, which can be referenced as part of `storeRef` fields.

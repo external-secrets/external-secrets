@@ -49,6 +49,7 @@ type PasswordSpec struct {
 // Password generates a random password based on the
 // configuration parameters in spec.
 // You can specify the length, characterset and other attributes.
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status

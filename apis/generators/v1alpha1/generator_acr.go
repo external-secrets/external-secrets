@@ -101,6 +101,7 @@ type AzureACRServicePrincipalAuthSecretRef struct {
 //
 // See docs: https://github.com/Azure/acr/blob/main/docs/AAD-OAuth.md
 //
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status

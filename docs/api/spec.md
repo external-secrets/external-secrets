@@ -9,7 +9,291 @@
 <p>Package v1beta1 contains resources for external-secrets</p>
 </p>
 Resource Types:
-<ul></ul>
+<ul><li>
+<a href="#external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore</a>
+</li><li>
+<a href="#external-secrets.io/v1beta1.SecretStore">SecretStore</a>
+</li></ul>
+<h3 id="external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore
+</h3>
+<p>
+<p>ClusterSecretStore represents a secure external location for storing secrets, which can be referenced as part of <code>storeRef</code> fields.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+external-secrets.io/v1beta1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>ClusterSecretStore</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretStoreSpec">
+SecretStoreSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>controller</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to select the correct ESO controller (think: ingress.ingressClassName)
+The ESO controller is instantiated with a specific controller name and filters ES based on this property</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>provider</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">
+SecretStoreProvider
+</a>
+</em>
+</td>
+<td>
+<p>Used to configure the provider. Only one provider may be set</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>retrySettings</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretStoreRetrySettings">
+SecretStoreRetrySettings
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to configure http retries if failed</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>refreshInterval</code></br>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ClusterSecretStoreCondition">
+[]ClusterSecretStoreCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretStoreStatus">
+SecretStoreStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.SecretStore">SecretStore
+</h3>
+<p>
+<p>SecretStore represents a secure external location for storing secrets, which can be referenced as part of <code>storeRef</code> fields.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+external-secrets.io/v1beta1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>SecretStore</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretStoreSpec">
+SecretStoreSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>controller</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to select the correct ESO controller (think: ingress.ingressClassName)
+The ESO controller is instantiated with a specific controller name and filters ES based on this property</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>provider</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">
+SecretStoreProvider
+</a>
+</em>
+</td>
+<td>
+<p>Used to configure the provider. Only one provider may be set</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>retrySettings</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretStoreRetrySettings">
+SecretStoreRetrySettings
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to configure http retries if failed</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>refreshInterval</code></br>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ClusterSecretStoreCondition">
+[]ClusterSecretStoreCondition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SecretStoreStatus">
+SecretStoreStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.AWSAuth">AWSAuth
 </h3>
 <p>
@@ -2111,129 +2395,6 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore
-</h3>
-<p>
-<p>ClusterSecretStore represents a secure external location for storing secrets, which can be referenced as part of <code>storeRef</code> fields.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>metadata</code></br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
-Kubernetes meta/v1.ObjectMeta
-</a>
-</em>
-</td>
-<td>
-Refer to the Kubernetes API documentation for the fields of the
-<code>metadata</code> field.
-</td>
-</tr>
-<tr>
-<td>
-<code>spec</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.SecretStoreSpec">
-SecretStoreSpec
-</a>
-</em>
-</td>
-<td>
-<br/>
-<br/>
-<table>
-<tr>
-<td>
-<code>controller</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Used to select the correct ESO controller (think: ingress.ingressClassName)
-The ESO controller is instantiated with a specific controller name and filters ES based on this property</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>provider</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.SecretStoreProvider">
-SecretStoreProvider
-</a>
-</em>
-</td>
-<td>
-<p>Used to configure the provider. Only one provider may be set</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>retrySettings</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.SecretStoreRetrySettings">
-SecretStoreRetrySettings
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Used to configure http retries if failed</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>refreshInterval</code></br>
-<em>
-int
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>conditions</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.ClusterSecretStoreCondition">
-[]ClusterSecretStoreCondition
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-<tr>
-<td>
-<code>status</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.SecretStoreStatus">
-SecretStoreStatus
-</a>
-</em>
-</td>
-<td>
 </td>
 </tr>
 </tbody>
@@ -6412,129 +6573,6 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <em>(Optional)</em>
 <p>SecretRef references a key in a secret that will be used as value.</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1beta1.SecretStore">SecretStore
-</h3>
-<p>
-<p>SecretStore represents a secure external location for storing secrets, which can be referenced as part of <code>storeRef</code> fields.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>metadata</code></br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
-Kubernetes meta/v1.ObjectMeta
-</a>
-</em>
-</td>
-<td>
-Refer to the Kubernetes API documentation for the fields of the
-<code>metadata</code> field.
-</td>
-</tr>
-<tr>
-<td>
-<code>spec</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.SecretStoreSpec">
-SecretStoreSpec
-</a>
-</em>
-</td>
-<td>
-<br/>
-<br/>
-<table>
-<tr>
-<td>
-<code>controller</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Used to select the correct ESO controller (think: ingress.ingressClassName)
-The ESO controller is instantiated with a specific controller name and filters ES based on this property</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>provider</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.SecretStoreProvider">
-SecretStoreProvider
-</a>
-</em>
-</td>
-<td>
-<p>Used to configure the provider. Only one provider may be set</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>retrySettings</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.SecretStoreRetrySettings">
-SecretStoreRetrySettings
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Used to configure http retries if failed</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>refreshInterval</code></br>
-<em>
-int
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>conditions</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.ClusterSecretStoreCondition">
-[]ClusterSecretStoreCondition
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Used to constraint a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore</p>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-<tr>
-<td>
-<code>status</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.SecretStoreStatus">
-SecretStoreStatus
-</a>
-</em>
-</td>
-<td>
 </td>
 </tr>
 </tbody>

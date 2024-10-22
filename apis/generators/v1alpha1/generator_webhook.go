@@ -109,6 +109,7 @@ type SecretKeySelector struct {
 // configuration parameters in spec.
 // You can specify the server, the token, and additional body parameters.
 // See documentation for the full API specification for requests and responses.
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status

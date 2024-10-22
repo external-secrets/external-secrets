@@ -270,6 +270,7 @@ type SecretStoreStatus struct {
 	Capabilities SecretStoreCapabilities `json:"capabilities,omitempty"`
 }
 
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 
@@ -298,6 +299,7 @@ type SecretStoreList struct {
 	Items           []SecretStore `json:"items"`
 }
 
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 

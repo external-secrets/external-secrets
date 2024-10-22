@@ -71,6 +71,7 @@ type AWSJWTAuth struct {
 // The authorizationToken returned is a base64 encoded string that can be decoded
 // and used in a docker login command to authenticate to a registry.
 // For more information, see Registry authentication (https://docs.aws.amazon.com/AmazonECR/latest/userguide/Registries.html#registry_auth) in the Amazon Elastic Container Registry User Guide.
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status

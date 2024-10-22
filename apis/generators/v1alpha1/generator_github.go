@@ -38,6 +38,7 @@ type GithubSecretRef struct {
 }
 
 // GithubAccessToken generates ghs_ accessToken
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status

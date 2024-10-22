@@ -72,7 +72,6 @@ type ClusterExternalSecretStatusCondition struct {
 
 // ClusterExternalSecretNamespaceFailure represents a failed namespace deployment and it's reason.
 type ClusterExternalSecretNamespaceFailure struct {
-
 	// Namespace is the namespace that failed when trying to apply an ExternalSecret
 	Namespace string `json:"namespace"`
 
@@ -98,6 +97,7 @@ type ClusterExternalSecretStatus struct {
 	Conditions []ClusterExternalSecretStatusCondition `json:"conditions,omitempty"`
 }
 
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:resource:scope=Cluster,categories={external-secrets},shortName=ces

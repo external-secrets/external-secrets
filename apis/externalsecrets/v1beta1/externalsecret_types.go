@@ -449,6 +449,7 @@ type ExternalSecretStatus struct {
 	Binding corev1.LocalObjectReference `json:"binding,omitempty"`
 }
 
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // ExternalSecret is the Schema for the external-secrets API.
