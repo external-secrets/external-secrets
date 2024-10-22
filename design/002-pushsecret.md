@@ -4,7 +4,7 @@ title: PushSecret
 version: v1alpha1
 authors:
 creation-date: 2022-01-25
-status: draft
+status: implemented
 ---
 ```
 
