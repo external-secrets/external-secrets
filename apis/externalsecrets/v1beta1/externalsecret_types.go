@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -447,6 +448,33 @@ type ExternalSecretStatus struct {
 
 	// Binding represents a servicebinding.io Provisioned Service reference to the secret
 	Binding corev1.LocalObjectReference `json:"binding,omitempty"`
+
+	// +optional
+	GeneratorState GeneratorState `json:"generatorState,omitempty"`
+}
+
+type GeneratorState struct {
+	Latest map[string]*GeneratorResourceState `json:"latest,omitempty"`
+	GC     map[string]GeneratorGCState        `json:"gc,omitempty"`
+}
+
+type GeneratorResourceState struct {
+	Resource *apiextensions.JSON `json:"resource"`
+	State    *apiextensions.JSON `json:"state"`
+}
+type GeneratorGCState struct {
+	Resource         *apiextensions.JSON `json:"resource"`
+	State            *apiextensions.JSON `json:"state"`
+	FlaggedForGCTime metav1.Time         `json:"flaggedForGCTime"`
+}
+
+// +kubebuilder:object:root=false
+// +kubebuilder:object:generate:false
+// +k8s:deepcopy-gen:interfaces=nil
+// +k8s:deepcopy-gen=nil
+type GeneratorStateManagingResource interface {
+	GetGeneratorState() GeneratorState
+	SetGeneratorState(GeneratorState)
 }
 
 // +kubebuilder:object:root=true
@@ -465,6 +493,14 @@ type ExternalSecret struct {
 
 	Spec   ExternalSecretSpec   `json:"spec,omitempty"`
 	Status ExternalSecretStatus `json:"status,omitempty"`
+}
+
+func (es *ExternalSecret) GetGeneratorState() GeneratorState {
+	return es.Status.GeneratorState
+}
+
+func (es *ExternalSecret) SetGeneratorState(state GeneratorState) {
+	es.Status.GeneratorState = state
 }
 
 const (

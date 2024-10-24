@@ -197,6 +197,9 @@ type PushSecretStatus struct {
 	SyncedPushSecrets SyncedPushSecretsMap `json:"syncedPushSecrets,omitempty"`
 	// +optional
 	Conditions []PushSecretStatusCondition `json:"conditions,omitempty"`
+
+	// +optional
+	GeneratorState esv1beta1.GeneratorState `json:"generatorState,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -214,6 +217,14 @@ type PushSecret struct {
 
 	Spec   PushSecretSpec   `json:"spec,omitempty"`
 	Status PushSecretStatus `json:"status,omitempty"`
+}
+
+func (ps *PushSecret) GetGeneratorState() esv1beta1.GeneratorState {
+	return ps.Status.GeneratorState
+}
+
+func (ps *PushSecret) SetGeneratorState(state esv1beta1.GeneratorState) {
+	ps.Status.GeneratorState = state
 }
 
 // +kubebuilder:object:root=true

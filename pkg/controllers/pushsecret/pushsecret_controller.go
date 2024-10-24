@@ -39,11 +39,12 @@ import (
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
+	"github.com/external-secrets/external-secrets/pkg/controllers/util"
+	"github.com/external-secrets/external-secrets/pkg/generator/statemanager"
 	"github.com/external-secrets/external-secrets/pkg/provider/util/locks"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 
-	// load generators.
 	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
 )
 
@@ -132,7 +133,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				if err != nil {
 					msg := fmt.Sprintf("Failed to Delete Secrets from Provider: %v", err)
 					r.markAsFailed(msg, &ps, badState)
+					return ctrl.Result{}, err
+				}
 
+				if err := statemanager.CleanupImmediate(ctx, &ps, r.Client, ps.Namespace); err != nil {
+					msg := fmt.Sprintf("Failed to cleanup generator state: %v", err)
+					r.markAsFailed(msg, &ps, nil)
 					return ctrl.Result{}, err
 				}
 
@@ -154,7 +160,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	default:
 	}
 
-	secret, err := r.resolveSecret(ctx, ps)
+	timeSinceLastRefresh := 0 * time.Second
+	if !ps.Status.RefreshTime.IsZero() {
+		timeSinceLastRefresh = time.Since(ps.Status.RefreshTime.Time)
+	}
+	if !shouldRefresh(ps) {
+		refreshInt = (ps.Spec.RefreshInterval.Duration - timeSinceLastRefresh) + 5*time.Second
+		log.V(1).Info("skipping refresh", "rv", util.GetResourceVersion(ps.ObjectMeta), "nr", refreshInt.Seconds())
+		return ctrl.Result{RequeueAfter: refreshInt}, nil
+	}
+
+	secret, err := r.resolveSecret(ctx, &ps)
 	if err != nil {
 		r.markAsFailed(errFailedGetSecret, &ps, nil)
 
@@ -206,9 +222,28 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	default:
 	}
 
-	r.markAsDone(&ps, syncedSecrets)
+	if err := statemanager.GarbageCollect(ctx, &ps, r.Client, ps.Namespace); err != nil {
+		msg := fmt.Sprintf("Failed to cleanup generator state: %v", err)
+		r.markAsFailed(msg, &ps, syncedSecrets)
+		return ctrl.Result{}, err
+	}
+
+	r.markAsDone(&ps, syncedSecrets, start)
 
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
+}
+
+func shouldRefresh(ps esapi.PushSecret) bool {
+	if ps.Status.SyncedResourceVersion != util.GetResourceVersion(ps.ObjectMeta) {
+		return true
+	}
+	if ps.Spec.RefreshInterval.Duration == 0 && ps.Status.SyncedResourceVersion != "" {
+		return false
+	}
+	if ps.Status.RefreshTime.IsZero() {
+		return true
+	}
+	return ps.Status.RefreshTime.Add(ps.Spec.RefreshInterval.Duration).Before(time.Now())
 }
 
 func (r *Reconciler) markAsFailed(msg string, ps *esapi.PushSecret, syncState esapi.SyncedPushSecretsMap) {
@@ -220,7 +255,7 @@ func (r *Reconciler) markAsFailed(msg string, ps *esapi.PushSecret, syncState es
 	r.recorder.Event(ps, v1.EventTypeWarning, esapi.ReasonErrored, msg)
 }
 
-func (r *Reconciler) markAsDone(ps *esapi.PushSecret, secrets esapi.SyncedPushSecretsMap) {
+func (r *Reconciler) markAsDone(ps *esapi.PushSecret, secrets esapi.SyncedPushSecretsMap, start time.Time) {
 	msg := "PushSecret synced successfully"
 	if ps.Spec.UpdatePolicy == esapi.PushSecretUpdatePolicyIfNotExists {
 		msg += ". Existing secrets in providers unchanged."
@@ -228,6 +263,8 @@ func (r *Reconciler) markAsDone(ps *esapi.PushSecret, secrets esapi.SyncedPushSe
 	cond := newPushSecretCondition(esapi.PushSecretReady, v1.ConditionTrue, esapi.ReasonSynced, msg)
 	setPushSecretCondition(ps, *cond)
 	r.setSecrets(ps, secrets)
+	ps.Status.RefreshTime = metav1.NewTime(start)
+	ps.Status.SyncedResourceVersion = util.GetResourceVersion(ps.ObjectMeta)
 	r.recorder.Event(ps, v1.EventTypeNormal, esapi.ReasonSynced, msg)
 }
 
@@ -353,7 +390,23 @@ func secretKeyExists(key string, secret *v1.Secret) bool {
 	return key == "" || ok
 }
 
-func (r *Reconciler) resolveSecret(ctx context.Context, ps esapi.PushSecret) (*v1.Secret, error) {
+const defaultGeneratorStateKey = "__pushsecret"
+
+func (r *Reconciler) resolveSecret(ctx context.Context, ps *esapi.PushSecret) (*v1.Secret, error) {
+	var err error
+	generatorState := statemanager.New(ps)
+	defer func() {
+		if err != nil {
+			if err := generatorState.Rollback(); err != nil {
+				r.Log.Error(err, "error rolling back generator state")
+			}
+
+			return
+		}
+		if err := generatorState.Commit(); err != nil {
+			r.Log.Error(err, "error committing generator state")
+		}
+	}()
 	if ps.Spec.Selector.Secret != nil {
 		secretName := types.NamespacedName{Name: ps.Spec.Selector.Secret.Name, Namespace: ps.Namespace}
 		secret := &v1.Secret{}
@@ -361,27 +414,32 @@ func (r *Reconciler) resolveSecret(ctx context.Context, ps esapi.PushSecret) (*v
 		if err != nil {
 			return nil, err
 		}
+		generatorState.FlagLatestStateForGC(defaultGeneratorStateKey)
 		return secret, nil
 	}
 	if ps.Spec.Selector.GeneratorRef != nil {
-		return r.resolveSecretFromGenerator(ctx, ps.Namespace, ps.Spec.Selector.GeneratorRef)
+		return r.resolveSecretFromGenerator(ctx, ps, generatorState)
 	}
 	return nil, errors.New("no secret selector provided")
 }
 
-func (r *Reconciler) resolveSecretFromGenerator(ctx context.Context, namespace string, generatorRef *v1beta1.GeneratorRef) (*v1.Secret, error) {
-	gen, obj, err := resolvers.GeneratorRef(ctx, r.RestConfig, namespace, generatorRef)
+func (r *Reconciler) resolveSecretFromGenerator(ctx context.Context, ps *esapi.PushSecret, generatorState *statemanager.Manager) (*v1.Secret, error) {
+	gen, genResource, err := resolvers.GeneratorRef(ctx, r.RestConfig, ps.Namespace, ps.Spec.Selector.GeneratorRef)
 	if err != nil {
 		return nil, fmt.Errorf("unable to resolve generator: %w", err)
 	}
-	secretMap, err := gen.Generate(ctx, obj, r.Client, namespace)
+	prevState := generatorState.GetLatest(defaultGeneratorStateKey)
+	secretMap, newState, err := gen.Generate(ctx, genResource, r.Client, ps.Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate: %w", err)
+	}
+	if prevState != nil {
+		generatorState.SetLatest(ctx, r.Client, defaultGeneratorStateKey, ps.Namespace, genResource, gen, newState)
 	}
 	return &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "___generated-secret",
-			Namespace: namespace,
+			Namespace: ps.Namespace,
 		},
 		Data: secretMap,
 	}, err

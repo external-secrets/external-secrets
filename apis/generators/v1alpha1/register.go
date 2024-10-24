@@ -108,6 +108,14 @@ var (
 	UUIDGroupVersionKind = SchemeGroupVersion.WithKind(UUIDKind)
 )
 
+// Grafana type metadata.
+var (
+	GrafanaKind             = reflect.TypeOf(Grafana{}).Name()
+	GrafanaGroupKind        = schema.GroupKind{Group: Group, Kind: GrafanaKind}.String()
+	GrafanaKindAPIVersion   = GrafanaKind + "." + SchemeGroupVersion.String()
+	GrafanaGroupVersionKind = SchemeGroupVersion.WithKind(GrafanaKind)
+)
+
 func init() {
 	SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationToken{})
 	SchemeBuilder.Register(&GCRAccessToken{}, &GCRAccessTokenList{})

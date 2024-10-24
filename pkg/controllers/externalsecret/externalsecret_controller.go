@@ -47,10 +47,11 @@ import (
 	// Metrics.
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/util"
+	"github.com/external-secrets/external-secrets/pkg/generator/statemanager"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 
-	// Loading registered generators.
 	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
@@ -58,6 +59,7 @@ import (
 
 const (
 	fieldOwnerTemplate      = "externalsecrets.external-secrets.io/%v"
+	externalSecretFinalizer = "externalsecret.externalsecrets.io/finalizer"
 	errGetES                = "could not get ExternalSecret"
 	errConvert              = "could not apply conversion strategy to keys: %v"
 	errDecode               = "could not apply decoding strategy to %v[%d]: %v"
@@ -134,6 +136,33 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
+	if externalSecret.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !controllerutil.ContainsFinalizer(&externalSecret, externalSecretFinalizer) {
+			controllerutil.AddFinalizer(&externalSecret, externalSecretFinalizer)
+			if err := r.Client.Update(ctx, &externalSecret, &client.UpdateOptions{}); err != nil {
+				return ctrl.Result{}, fmt.Errorf("could not update finalizers: %w", err)
+			}
+
+			return ctrl.Result{}, nil
+		}
+	} else {
+		if controllerutil.ContainsFinalizer(&externalSecret, externalSecretFinalizer) {
+			if err := statemanager.CleanupImmediate(ctx, &externalSecret, r.Client, externalSecret.Namespace); err != nil {
+				msg := fmt.Sprintf("Failed to cleanup generator state: %v", err)
+				r.markAsFailed(log, msg, err, &externalSecret, syncCallsError.With(resourceLabels))
+				return ctrl.Result{}, err
+			}
+
+			r.Log.Info("removing finalizer")
+			controllerutil.RemoveFinalizer(&externalSecret, externalSecretFinalizer)
+			if err := r.Client.Update(ctx, &externalSecret, &client.UpdateOptions{}); err != nil {
+				return ctrl.Result{}, fmt.Errorf("could not update finalizers: %w", err)
+			}
+
+			return ctrl.Result{}, nil
+		}
+	}
+
 	// See https://github.com/external-secrets/external-secrets/issues/3604
 	// We fetch the ExternalSecret resource above, however the status subresource is inconsistent.
 	// We have to explicitly fetch it, otherwise it may be missing and will cause
@@ -158,13 +187,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// if extended metrics is enabled, refine the time series vector
 	resourceLabels = ctrlmetrics.RefineLabels(resourceLabels, externalSecret.Labels)
 
-	if shouldSkipClusterSecretStore(r, externalSecret) {
+	if shouldSkipClusterSecretStore(r, &externalSecret) {
 		log.Info("skipping cluster secret store as it is disabled")
 		return ctrl.Result{}, nil
 	}
 
 	// skip when pointing to an unmanaged store
-	skip, err := shouldSkipUnmanagedStore(ctx, req.Namespace, r, externalSecret)
+	skip, err := shouldSkipUnmanagedStore(ctx, req.Namespace, r, &externalSecret)
 	if skip {
 		log.Info("skipping unmanaged store as it points to a unmanaged controllerClass")
 		return ctrl.Result{}, nil
@@ -196,13 +225,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// 1. resource generation hasn't changed
 	// 2. refresh interval is 0
 	// 3. if we're still within refresh-interval
-	if !shouldRefresh(externalSecret) && isSecretValid(existingSecret) {
+	if !shouldRefresh(&externalSecret) && isSecretValid(existingSecret) {
 		refreshInt = (externalSecret.Spec.RefreshInterval.Duration - timeSinceLastRefresh) + 5*time.Second
-		log.V(1).Info("skipping refresh", "rv", getResourceVersion(externalSecret), "nr", refreshInt.Seconds())
+		log.V(1).Info("skipping refresh", "rv", util.GetResourceVersion(externalSecret.ObjectMeta), "nr", refreshInt.Seconds())
 		return ctrl.Result{RequeueAfter: refreshInt}, nil
 	}
-	if !shouldReconcile(externalSecret) {
-		log.V(1).Info("stopping reconciling", "rv", getResourceVersion(externalSecret))
+	if !shouldReconcile(&externalSecret) {
+		log.V(1).Info("stopping reconciling", "rv", util.GetResourceVersion(externalSecret.ObjectMeta))
 		return ctrl.Result{}, nil
 	}
 
@@ -336,6 +365,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
+	if err := statemanager.GarbageCollect(ctx, &externalSecret, r.Client, externalSecret.Namespace); err != nil {
+		msg := fmt.Sprintf("failed to garbage collect generator state: %v", err)
+		r.markAsFailed(log, msg, err, &externalSecret, syncCallsError.With(resourceLabels))
+		return ctrl.Result{}, err
+	}
 	r.markAsDone(&externalSecret, start, log)
 
 	return ctrl.Result{
@@ -348,7 +382,7 @@ func (r *Reconciler) markAsDone(externalSecret *esv1beta1.ExternalSecret, start 
 	currCond := GetExternalSecretCondition(externalSecret.Status, esv1beta1.ExternalSecretReady)
 	SetExternalSecretCondition(externalSecret, *conditionSynced)
 	externalSecret.Status.RefreshTime = metav1.NewTime(start)
-	externalSecret.Status.SyncedResourceVersion = getResourceVersion(*externalSecret)
+	externalSecret.Status.SyncedResourceVersion = util.GetResourceVersion(externalSecret.ObjectMeta)
 	if currCond == nil || currCond.Status != conditionSynced.Status {
 		log.Info("reconciled secret") // Log once if on success in any verbosity
 	} else {
@@ -508,29 +542,14 @@ func getManagedFieldKeys(
 	return keys, nil
 }
 
-func getResourceVersion(es esv1beta1.ExternalSecret) string {
-	return fmt.Sprintf("%d-%s", es.ObjectMeta.GetGeneration(), hashMeta(es.ObjectMeta))
-}
-
-func hashMeta(m metav1.ObjectMeta) string {
-	type meta struct {
-		annotations map[string]string
-		labels      map[string]string
-	}
-	return utils.ObjectHash(meta{
-		annotations: m.Annotations,
-		labels:      m.Labels,
-	})
-}
-
-func shouldSkipClusterSecretStore(r *Reconciler, es esv1beta1.ExternalSecret) bool {
+func shouldSkipClusterSecretStore(r *Reconciler, es *esv1beta1.ExternalSecret) bool {
 	return !r.ClusterSecretStoreEnabled && es.Spec.SecretStoreRef.Kind == esv1beta1.ClusterSecretStoreKind
 }
 
 // shouldSkipUnmanagedStore iterates over all secretStore references in the externalSecret spec,
 // fetches the store and evaluates the controllerClass property.
 // Returns true if any storeRef points to store with a non-matching controllerClass.
-func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconciler, es esv1beta1.ExternalSecret) (bool, error) {
+func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconciler, es *esv1beta1.ExternalSecret) (bool, error) {
 	var storeList []esv1beta1.SecretStoreRef
 
 	if es.Spec.SecretStoreRef.Name != "" {
@@ -590,9 +609,9 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 	return false, nil
 }
 
-func shouldRefresh(es esv1beta1.ExternalSecret) bool {
+func shouldRefresh(es *esv1beta1.ExternalSecret) bool {
 	// refresh if resource version changed
-	if es.Status.SyncedResourceVersion != getResourceVersion(es) {
+	if es.Status.SyncedResourceVersion != util.GetResourceVersion(es.ObjectMeta) {
 		return true
 	}
 
@@ -606,14 +625,14 @@ func shouldRefresh(es esv1beta1.ExternalSecret) bool {
 	return es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).Before(time.Now())
 }
 
-func shouldReconcile(es esv1beta1.ExternalSecret) bool {
+func shouldReconcile(es *esv1beta1.ExternalSecret) bool {
 	if es.Spec.Target.Immutable && hasSyncedCondition(es) {
 		return false
 	}
 	return true
 }
 
-func hasSyncedCondition(es esv1beta1.ExternalSecret) bool {
+func hasSyncedCondition(es *esv1beta1.ExternalSecret) bool {
 	for _, condition := range es.Status.Conditions {
 		if condition.Reason == "SecretSynced" {
 			return true
