@@ -25,6 +25,11 @@ type GithubAccessTokenSpec struct {
 	URL       string `json:"url,omitempty"`
 	AppID     string `json:"appID"`
 	InstallID string `json:"installID"`
+	// List of repositories the token will have access to. If ommited, defaults to all repositories the GitHub App
+	// is installed to.
+	Repositories []string `json:"repositories,omitempty"`
+	// Map of permissions the token will have. If ommited, defaults to all permissions the GitHub App has.
+	Permissions map[string]string `json:"permissions,omitempty"`
 	// Auth configures how ESO authenticates with a Github instance.
 	Auth GithubAuth `json:"auth"`
 }

@@ -15,6 +15,7 @@ limitations under the License.
 package github
 
 import (
+	"bytes"
 	"context"
 	"crypto/rsa"
 	"encoding/json"
@@ -37,11 +38,13 @@ type Generator struct {
 }
 
 type Github struct {
-	HTTP       *http.Client
-	Kube       client.Client
-	Namespace  string
-	URL        string
-	InstallTkn string
+	HTTP         *http.Client
+	Kube         client.Client
+	Namespace    string
+	URL          string
+	InstallTkn   string
+	Repositories []string
+	Permissions  map[string]string
 }
 
 const (
@@ -80,8 +83,21 @@ func (g *Generator) generate(
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
+
+	body := make(map[string]interface{})
+	if gh.Permissions != nil {
+		body["permissions"] = gh.Permissions
+	}
+	if len(gh.Repositories) > 0 {
+		body["repositories"] = gh.Repositories
+	}
+	bodyBytes, err := json.Marshal(body)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %w", err)
+	}
+
 	// Github api expects POST request
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, gh.URL, http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, gh.URL, bytes.NewReader(bodyBytes))
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
@@ -120,7 +136,8 @@ func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client
 	if err != nil {
 		return nil, fmt.Errorf(errParseSpec, err)
 	}
-	gh := &Github{Kube: k, Namespace: n, HTTP: hc}
+	gh := &Github{Kube: k, Namespace: n, HTTP: hc,
+		Repositories: res.Spec.Repositories, Permissions: res.Spec.Permissions}
 
 	ghPath := fmt.Sprintf("/app/installations/%s/access_tokens", res.Spec.InstallID)
 	gh.URL = defaultGithubAPI + ghPath
