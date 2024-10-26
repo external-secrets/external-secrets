@@ -44,6 +44,14 @@ var (
 	ECRAuthorizationTokenGroupVersionKind = SchemeGroupVersion.WithKind(ECRAuthorizationTokenKind)
 )
 
+// STSSessionToken type metadata.
+var (
+	STSSessionTokenKind             = reflect.TypeOf(STSSessionToken{}).Name()
+	STSSessionTokenGroupKind        = schema.GroupKind{Group: Group, Kind: STSSessionTokenKind}.String()
+	STSSessionTokenKindAPIVersion   = STSSessionTokenKind + "." + SchemeGroupVersion.String()
+	STSSessionTokenGroupVersionKind = SchemeGroupVersion.WithKind(STSSessionTokenKind)
+)
+
 // GCRAccessToken type metadata.
 var (
 	GCRAccessTokenKind             = reflect.TypeOf(GCRAccessToken{}).Name()
