@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -84,20 +85,28 @@ func (g *Generator) generate(
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 
-	body := make(map[string]interface{})
+	payload := make(map[string]interface{})
 	if gh.Permissions != nil {
-		body["permissions"] = gh.Permissions
+		payload["permissions"] = gh.Permissions
 	}
 	if len(gh.Repositories) > 0 {
-		body["repositories"] = gh.Repositories
+		payload["repositories"] = gh.Repositories
 	}
-	bodyBytes, err := json.Marshal(body)
-	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
+
+	var body io.Reader
+	if len(payload) > 0 {
+		bodyBytes, err := json.Marshal(payload)
+		if err != nil {
+			return nil, fmt.Errorf("error marshalling payload: %w", err)
+		}
+
+		body = bytes.NewReader(bodyBytes)
+	} else {
+		body = http.NoBody
 	}
 
 	// Github api expects POST request
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, gh.URL, bytes.NewReader(bodyBytes))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, gh.URL, body)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
@@ -136,8 +145,13 @@ func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client
 	if err != nil {
 		return nil, fmt.Errorf(errParseSpec, err)
 	}
-	gh := &Github{Kube: k, Namespace: n, HTTP: hc,
-		Repositories: res.Spec.Repositories, Permissions: res.Spec.Permissions}
+	gh := &Github{
+		Kube:         k,
+		Namespace:    n,
+		HTTP:         hc,
+		Repositories: res.Spec.Repositories,
+		Permissions:  res.Spec.Permissions,
+	}
 
 	ghPath := fmt.Sprintf("/app/installations/%s/access_tokens", res.Spec.InstallID)
 	gh.URL = defaultGithubAPI + ghPath
