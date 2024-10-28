@@ -97,7 +97,7 @@ func (g *Generator) generate(
 	if len(payload) > 0 {
 		bodyBytes, err := json.Marshal(payload)
 		if err != nil {
-			return nil, fmt.Errorf("error marshalling payload: %w", err)
+			return nil, fmt.Errorf("error marshaling payload: %w", err)
 		}
 
 		body = bytes.NewReader(bodyBytes)
