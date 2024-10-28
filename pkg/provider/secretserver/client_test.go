@@ -179,6 +179,22 @@ func TestGetSecretSecretServer(t *testing.T) {
 			},
 			want: []byte(`passwordvalue`),
 		},
+		"Secret from code: 'name' not found and password slug returns error": {
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:      "Secretnameerror",
+				Property: "password",
+			},
+			want: []byte(nil),
+			err:  errNotFound,
+		},
+		"Secret from code: 'name' found and non-existent attribute slug returns noSecretError": {
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:      "Secretname",
+				Property: "passwordkey",
+			},
+			want: []byte(nil),
+			err:  esv1beta1.NoSecretError{},
+		},
 	}
 
 	for name, tc := range testCases {
