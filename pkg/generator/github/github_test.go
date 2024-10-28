@@ -38,7 +38,7 @@ const (
 func testHTTPSrv(t *testing.T, r []byte) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		assert.Equal(t, "POST", req.Method, "Expected POST request")
-		assert.Empty(t, req.Body)
+		assert.NotEmpty(t, req.Body)
 		assert.NotEmpty(t, req.Header.Get("Authorization"))
 		assert.Equal(t, "application/vnd.github.v3+json", req.Header.Get("Accept"))
 
@@ -60,9 +60,13 @@ func TestGenerate(t *testing.T) {
 		"token": "ghs_16C7e42F292c6912E7710c838347Ae178B4a",
 		"expires_at": "2016-07-11T22:14:10Z",
 		"permissions": {
-		  "issues": "write",
 		  "contents": "read"
 		},
+		"repositories": [
+			{
+				"id": 10000
+			}
+		],
 		"repository_selection": "selected"
 	  }`)
 
@@ -103,6 +107,10 @@ spec:
   appID: "0000000"
   installID: "00000000"
   URL: %q
+  repositories:
+  - "Hello-World"
+  permissions:
+    contents: "read"
   auth:
     privateKey:
       secretRef:
