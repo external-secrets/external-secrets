@@ -93,7 +93,7 @@ func (g *Generator) generate(
 		payload["repositories"] = gh.Repositories
 	}
 
-	var body io.Reader
+	var body io.Reader = http.NoBody
 	if len(payload) > 0 {
 		bodyBytes, err := json.Marshal(payload)
 		if err != nil {
@@ -101,8 +101,6 @@ func (g *Generator) generate(
 		}
 
 		body = bytes.NewReader(bodyBytes)
-	} else {
-		body = http.NoBody
 	}
 
 	// Github api expects POST request
