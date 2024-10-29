@@ -31,22 +31,37 @@ import (
 
 // merge template in the following order:
 // * template.Data (highest precedence)
-// * template.templateFrom
-// * secret via es.data or es.dataFrom.
+// * template.TemplateFrom
+// * secret via es.data or es.dataFrom (if template.MergePolicy is Merge, or there is no template)
+// * existing secret keys (if CreationPolicy is Merge).
 func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSecret, secret *v1.Secret, dataMap map[string][]byte) error {
+	// update metadata (labels, annotations) of the secret
 	if err := setMetadata(secret, es); err != nil {
 		return err
 	}
 
+	// we only keep existing keys if creation policy is Merge, otherwise we clear the secret
+	if es.Spec.Target.CreationPolicy != esv1beta1.CreatePolicyMerge {
+		secret.Data = make(map[string][]byte)
+	}
+
 	// no template: copy data and return
 	if es.Spec.Target.Template == nil {
-		secret.Data = dataMap
+		maps.Insert(secret.Data, maps.All(dataMap))
 		return nil
 	}
-	// Merge Policy should merge secrets
-	if es.Spec.Target.Template.MergePolicy == esv1beta1.MergePolicyMerge {
+
+	// set the secret type if it is defined in the template, otherwise keep the existing type
+	if es.Spec.Target.Template.Type != "" {
+		secret.Type = es.Spec.Target.Template.Type
+	}
+
+	// when TemplateMergePolicy is Merge, or there is no data template, we include the keys from `dataMap`
+	noTemplate := len(es.Spec.Target.Template.Data) == 0 && len(es.Spec.Target.Template.TemplateFrom) == 0
+	if es.Spec.Target.Template.MergePolicy == esv1beta1.MergePolicyMerge || noTemplate {
 		maps.Insert(secret.Data, maps.All(dataMap))
 	}
+
 	execute, err := template.EngineForVersion(es.Spec.Target.Template.EngineVersion)
 	if err != nil {
 		return err
@@ -58,6 +73,7 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 		DataMap:      dataMap,
 		Exec:         execute,
 	}
+
 	// apply templates defined in template.templateFrom
 	err = p.MergeTemplateFrom(ctx, es.Namespace, es.Spec.Target.Template)
 	if err != nil {
@@ -79,24 +95,23 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 	if err != nil {
 		return fmt.Errorf(errExecTpl, err)
 	}
-	// if no data was provided by template fallback
-	// to value from the provider
-	if len(es.Spec.Target.Template.Data) == 0 && len(es.Spec.Target.Template.TemplateFrom) == 0 {
-		secret.Data = dataMap
-	}
+
 	return nil
 }
 
 // setMetadata sets Labels and Annotations to the given secret.
 func setMetadata(secret *v1.Secret, es *esv1beta1.ExternalSecret) error {
+	// ensure that Labels and Annotations are not nil
+	// so it is safe to merge them
 	if secret.Labels == nil {
 		secret.Labels = make(map[string]string)
 	}
 	if secret.Annotations == nil {
 		secret.Annotations = make(map[string]string)
 	}
-	// Clean up Labels and Annotations added by the operator
-	// so that it won't leave outdated ones
+
+	// remove any existing labels managed by this external secret
+	// this is to ensure that we don't have any stale labels
 	labelKeys, err := templating.GetManagedLabelKeys(secret, es.Name)
 	if err != nil {
 		return err
@@ -104,7 +119,6 @@ func setMetadata(secret *v1.Secret, es *esv1beta1.ExternalSecret) error {
 	for _, key := range labelKeys {
 		delete(secret.ObjectMeta.Labels, key)
 	}
-
 	annotationKeys, err := templating.GetManagedAnnotationKeys(secret, es.Name)
 	if err != nil {
 		return err
@@ -113,14 +127,15 @@ func setMetadata(secret *v1.Secret, es *esv1beta1.ExternalSecret) error {
 		delete(secret.ObjectMeta.Annotations, key)
 	}
 
+	// if no template is defined, copy labels and annotations from the ExternalSecret
+	// otherwise copy from the template
 	if es.Spec.Target.Template == nil {
 		utils.MergeStringMap(secret.ObjectMeta.Labels, es.ObjectMeta.Labels)
 		utils.MergeStringMap(secret.ObjectMeta.Annotations, es.ObjectMeta.Annotations)
-		return nil
+	} else {
+		utils.MergeStringMap(secret.ObjectMeta.Labels, es.Spec.Target.Template.Metadata.Labels)
+		utils.MergeStringMap(secret.ObjectMeta.Annotations, es.Spec.Target.Template.Metadata.Annotations)
 	}
 
-	secret.Type = es.Spec.Target.Template.Type
-	utils.MergeStringMap(secret.ObjectMeta.Labels, es.Spec.Target.Template.Metadata.Labels)
-	utils.MergeStringMap(secret.ObjectMeta.Annotations, es.Spec.Target.Template.Metadata.Annotations)
 	return nil
 }
