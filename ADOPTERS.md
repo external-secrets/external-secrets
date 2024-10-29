@@ -13,6 +13,7 @@
 - [GoTo](https://www.goto.com/)
 - [Grafana Labs](https://grafana.com/)
 - [Heureka Group](https://heureka.group)
+- [Hostinger](https://www.hostinger.com/)
 - [K8S Website Infra](https://k8s.io/)
 - [Mercedes-Benz Tech Innovation](https://www.mercedes-benz-techinnovation.com/)
 - [Mixpanel](https://mixpanel.com)
