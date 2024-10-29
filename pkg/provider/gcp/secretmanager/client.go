@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -222,33 +223,25 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 		return err
 	}
 
-	annotations, labels, err := builder.buildMetadata(gcpSecret.Annotations, gcpSecret.Labels)
+	annotations, labels, topics, err := builder.buildMetadata(gcpSecret.Annotations, gcpSecret.Labels, gcpSecret.Topics)
 	if err != nil {
 		return err
 	}
 
-	if !maps.Equal(gcpSecret.Annotations, annotations) || !maps.Equal(gcpSecret.Labels, labels) {
+	// Comparing with a pointer based slice doesn't work so we are converting
+	// it to a string slice.
+	existingTopics := make([]string, 0, len(gcpSecret.Topics))
+	for _, t := range gcpSecret.Topics {
+		existingTopics = append(existingTopics, t.Name)
+	}
+
+	if !maps.Equal(gcpSecret.Annotations, annotations) || !maps.Equal(gcpSecret.Labels, labels) || !slices.Equal(existingTopics, topics) {
 		scrt := &secretmanagerpb.Secret{
 			Name:        gcpSecret.Name,
 			Etag:        gcpSecret.Etag,
 			Labels:      labels,
 			Annotations: annotations,
-		}
-
-		topics, err := utils.FetchValueFromMetadata(topicsKey, pushSecretData.GetMetadata(), []any{})
-		if err != nil {
-			return fmt.Errorf("failed to fetch topics from metadata: %w", err)
-		}
-
-		for _, t := range topics {
-			name, ok := t.(string)
-			if !ok {
-				return fmt.Errorf("invalid topic type")
-			}
-
-			scrt.Topics = append(scrt.Topics, &secretmanagerpb.Topic{
-				Name: name,
-			})
+			Topics:      gcpSecret.Topics,
 		}
 
 		if c.store.Location != "" {
