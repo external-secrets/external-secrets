@@ -67,8 +67,6 @@ func (b *psBuilder) buildMetadata(_, labels map[string]string) (map[string]strin
 	var metadata Metadata
 	if b.pushSecretData.GetMetadata() != nil {
 		decoder := json.NewDecoder(bytes.NewReader(b.pushSecretData.GetMetadata().Raw))
-		// Want to return an error if unknown fields exist
-		decoder.DisallowUnknownFields()
 
 		if err := decoder.Decode(&metadata); err != nil {
 			return nil, nil, fmt.Errorf("failed to decode PushSecret metadata: %w", err)
