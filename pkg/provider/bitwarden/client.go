@@ -141,6 +141,10 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 		return nil, fmt.Errorf("error getting secret: %w", err)
 	}
 
+	if secret == nil {
+		return nil, fmt.Errorf("no secret found for project id %s and name %s", spec.Provider.BitwardenSecretsManager.ProjectID, ref.Key)
+	}
+
 	// we found our secret, return the value for it
 	return []byte(secret.Value), nil
 }
@@ -202,7 +206,6 @@ func (p *Provider) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRem
 	}
 
 	secret, err := p.findSecretByRef(ctx, ref.GetRemoteKey(), spec.Provider.BitwardenSecretsManager.ProjectID)
-
 	if err != nil {
 		return false, fmt.Errorf("error getting secret: %w", err)
 	}
