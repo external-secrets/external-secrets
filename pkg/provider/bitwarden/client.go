@@ -160,6 +160,10 @@ func (p *Provider) DeleteSecret(ctx context.Context, ref esv1beta1.PushSecretRem
 		return fmt.Errorf("error getting secret: %w", err)
 	}
 
+	if secret == nil {
+		return fmt.Errorf("no secret found for project id %s and name %s", spec.Provider.BitwardenSecretsManager.ProjectID, ref.GetRemoteKey())
+	}
+
 	return p.deleteSecret(ctx, secret.ID)
 }
 
@@ -197,8 +201,14 @@ func (p *Provider) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRem
 		return false, errors.New("store does not have a provider")
 	}
 
-	if _, err := p.findSecretByRef(ctx, ref.GetRemoteKey(), spec.Provider.BitwardenSecretsManager.ProjectID); err != nil {
+	secret, err := p.findSecretByRef(ctx, ref.GetRemoteKey(), spec.Provider.BitwardenSecretsManager.ProjectID)
+
+	if err != nil {
 		return false, fmt.Errorf("error getting secret: %w", err)
+	}
+
+	if secret == nil {
+		return false, nil
 	}
 
 	return true, nil
@@ -300,10 +310,6 @@ func (p *Provider) findSecretByRef(ctx context.Context, key, projectID string) (
 			// such secret.
 			remoteSecret = sec
 		}
-	}
-
-	if remoteSecret == nil {
-		return nil, fmt.Errorf("no secret found for project id %s and name %s", projectID, key)
 	}
 
 	return remoteSecret, nil
