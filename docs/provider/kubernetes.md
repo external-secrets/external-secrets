@@ -298,6 +298,74 @@ rules:
   - create
 ```
 
+#### PushSecret Metadata
+
+The Kubernetes provider is able to manage both `metadata.labels` and `metadata.annotations` of the secret on the target cluster.
+
+Users have different preferences on what metadata should be pushed. ESO by default pushes both labels and annotations to the target secret and merges them with the existing metadata.
+
+You can specify the metadata in the `spec.template.metadata` section if you want to decouple it from the existing secret.
+
+```yaml
+{% raw %}
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: example
+spec:
+  # ...
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: argocd
+    data:
+      mysql_connection_string: "mysql://{{ .hostname }}:3306/{{ .database }}"
+  data:
+  - match:
+      secretKey: mysql_connection_string
+      remoteRef:
+        remoteKey: backend_secrets
+        property: mysql_connection_string
+{% endraw %}
+```
+
+Further, you can leverage the `.data[].metadata` section to fine-tine the behaviour of the metadata merge strategy. The metadata section is a versioned custom-resource _alike_ structure, the behaviour is detailed below.
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: example
+spec:
+  # ...
+  data:
+  - match:
+      secretKey: example-1
+      remoteRef:
+        remoteKey: example-remote-secret
+        property: url
+        
+    metadata:
+      apiVersion: kubernetes.external-secrets.io/v1alpha1
+      kind: PushSecretMetadata
+      spec:
+        sourceMergePolicy: Merge # or Replace
+        targetMergePolicy: Merge # or Replace / Ignore
+        labels:
+          color: red
+        annotations:
+          yes: please
+
+```
+
+
+| Field             | Type                                 | Description                                                                                                                                                                                                                                                                                                                                       |
+| ----------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| sourceMergePolicy | string: `Merge`, `Replace`           | The sourceMergePolicy defines how the metadata of the source secret is merged. `Merge` will merge the metadata of the source secret with the  metadata defined in `.data[].metadata`. With `Replace`, the metadata in `.data[].metadata` replaces the source metadata.                                                                            |
+| targetMergePolicy | string: `Merge`, `Replace`, `Ignore` | The targetMergePolicy defines how ESO merges the metadata produced by the sourceMergePolicy with the target secret. With `Merge`, the source metadata is merged with the existing metadata from the target secret. `Replace` will replace the target metadata with the metadata defined in the source. `Ignore` leaves the target metadata as is. |
+| labels            | `map[string]string`                  | The labels.                                                                                                                                                                                                                                                                                                                                       |
+| annotations       | `map[string]string`                  | The annotations.                                                                                                                                                                                                                                                                                                                                  |
+
 #### Implementation Considerations
 
 When utilizing the PushSecret feature and configuring the permissions for the SecretStore, consider the following:
