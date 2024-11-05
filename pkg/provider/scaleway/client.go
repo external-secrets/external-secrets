@@ -339,7 +339,7 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 			return nil, err
 		}
 
-		totalFetched := uint64(*request.Page-1)*uint64(*request.PageSize) + uint64(len(response.Secrets))
+		totalFetched := c.safeConvertInt32(request.Page)*uint64(*request.PageSize) + uint64(len(response.Secrets))
 		done = totalFetched == response.TotalCount
 
 		*request.Page++
@@ -366,6 +366,14 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 	}
 
 	return results, nil
+}
+
+func (c *client) safeConvertInt32(page *int32) uint64 {
+	if *page-1 < 0 {
+		return 0
+	}
+
+	return uint64(*page - 1) //nolint:gosec // already checked above
 }
 
 func (c *client) Close(context.Context) error {
