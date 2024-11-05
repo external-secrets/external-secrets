@@ -46,7 +46,7 @@ const (
 	errInvalidJSONSecret                        = "invalid Secret. Secret %s can not be converted to JSON. %w"
 	errInvalidRegex                             = "find.name.regex. Invalid Regular expresion %s. %w"
 	errInvalidRemoteRefKey                      = "match.remoteRef.remoteKey. Invalid format. Format should match secretName/key got %s"
-	errInvalidSecretType                        = "ESO can only push/delete %s record types. Secret %s is type %s"
+	errInvalidSecretType                        = "ESO can only push/delete records of type %s. Secret %s is type %s"
 	errFieldNotFound                            = "secret %s does not contain any custom field with label %s"
 
 	externalSecretType = "externalSecrets"
@@ -172,24 +172,22 @@ func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1b
 	if err != nil {
 		return err
 	}
+
 	record, err := c.findSecretByName(parts[0])
 	if err != nil {
-		_, err = c.createSecret(parts[0], parts[1], value)
-		if err != nil {
-			return err
-		}
-	}
-	if record != nil {
-		if record.Type() != externalSecretType {
-			return fmt.Errorf(errInvalidSecretType, externalSecretType, record.Title(), record.Type())
-		}
-		err = c.updateSecret(record, parts[1], value)
-		if err != nil {
-			return err
-		}
+		return err
 	}
 
-	return nil
+	if record != nil {
+		if record.Type() == externalSecretType {
+			return c.updateSecret(record, parts[1], value)
+		} else {
+			return fmt.Errorf(errInvalidSecretType, externalSecretType, record.Title(), record.Type())
+		}
+	} else {
+		_, err = c.createSecret(parts[0], parts[1], value)
+		return err
+	}
 }
 
 func (c *Client) DeleteSecret(_ context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
