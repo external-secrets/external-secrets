@@ -3369,11 +3369,16 @@
 <span class="w">        </span><span class="c1"># AppRole auth: https://www.vaultproject.io/docs/auth/approle</span>
 <span class="w">        </span><span class="nt">appRole</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;approle&quot;</span>
-<span class="w">          </span><span class="nt">roleId</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;db02de05-fa39-4855-059b-67221c5c2f63&quot;</span>
+<span class="w">          </span><span class="c1"># Instead of referencing the AppRole&#39;s ID from the secret, you can also specify it directly</span>
+<span class="w">          </span><span class="c1"># roleId: &quot;db02de05-fa39-4855-059b-67221c5c2f63&quot;</span>
+<span class="w">          </span><span class="nt">roleRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret&quot;</span>
+<span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret-admin&quot;</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;vault-role-id&quot;</span>
 <span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span>
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret&quot;</span>
 <span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret-admin&quot;</span>
-<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;vault-token&quot;</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;vault-role-secret&quot;</span>
 
 <span class="w">        </span><span class="c1"># Kubernetes auth: https://www.vaultproject.io/docs/auth/kubernetes</span>
 <span class="w">        </span><span class="nt">kubernetes</span><span class="p">:</span>
