@@ -9,25 +9,25 @@
       
       
       
-        <link rel="prev" href="../gitops-using-fluxcd/">
+        <link rel="prev" href="../ecr/">
       
       
-        <link rel="next" href="../jenkins-kubernetes-credentials/">
+        <link rel="next" href="../gcr/">
       
       
-      <link rel="icon" href="../../pictures/eso-round-logo.svg">
+      <link rel="icon" href="../../../pictures/eso-round-logo.svg">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.43">
     
     
       
-        <title>Anchore Engine - External Secrets Operator</title>
+        <title>AWS STS Session Token - External Secrets Operator</title>
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.0253249f.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.0253249f.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -46,7 +46,7 @@
       
     
     
-    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
   
@@ -82,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#getting-started" class="md-skip">
+        <a href="#output-keys-and-values" class="md-skip">
           Skip to content
         </a>
       
@@ -97,7 +97,7 @@
             <div class="md-banner__inner md-grid md-typeset">
               
   You're not viewing the latest version.
-  <a href="../../..">
+  <a href="../../../..">
     <strong>Click here to go to latest.</strong>
   </a>
 
@@ -112,9 +112,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="External Secrets Operator" class="md-header__button md-logo" aria-label="External Secrets Operator" data-md-component="logo">
+    <a href="../../.." title="External Secrets Operator" class="md-header__button md-logo" aria-label="External Secrets Operator" data-md-component="logo">
       
-  <img src="../../pictures/eso-round-logo.svg" alt="logo">
+  <img src="../../../pictures/eso-round-logo.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -131,7 +131,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Anchore Engine
+              AWS STS Session Token
             
           </span>
         </div>
@@ -240,7 +240,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../.." class="md-tabs__link">
+        <a href="../../.." class="md-tabs__link">
           
   
     
@@ -256,11 +256,13 @@
         
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../api/components/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../components/" class="md-tabs__link">
           
   
     
@@ -280,7 +282,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../guides/introduction/" class="md-tabs__link">
+        <a href="../../../guides/introduction/" class="md-tabs__link">
           
   
     
@@ -300,7 +302,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../provider/aws-secrets-manager/" class="md-tabs__link">
+        <a href="../../../provider/aws-secrets-manager/" class="md-tabs__link">
           
   
     
@@ -316,13 +318,11 @@
         
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../gitops-using-fluxcd/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../../examples/gitops-using-fluxcd/" class="md-tabs__link">
           
   
     
@@ -348,7 +348,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../contributing/devguide/" class="md-tabs__link">
+        <a href="../../../contributing/devguide/" class="md-tabs__link">
           
   
     
@@ -386,9 +386,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="External Secrets Operator" class="md-nav__button md-logo" aria-label="External Secrets Operator" data-md-component="logo">
+    <a href="../../.." title="External Secrets Operator" class="md-nav__button md-logo" aria-label="External Secrets Operator" data-md-component="logo">
       
-  <img src="../../pictures/eso-round-logo.svg" alt="logo">
+  <img src="../../../pictures/eso-round-logo.svg" alt="logo">
 
     </a>
     External Secrets Operator
@@ -448,7 +448,7 @@
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../.." class="md-nav__link ">
+            <a href="../../.." class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -481,7 +481,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../introduction/overview/" class="md-nav__link">
+      <a href="../../../introduction/overview/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -502,7 +502,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../introduction/getting-started/" class="md-nav__link">
+      <a href="../../../introduction/getting-started/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -523,7 +523,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../introduction/faq/" class="md-nav__link">
+      <a href="../../../introduction/faq/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -544,7 +544,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../introduction/stability-support/" class="md-nav__link">
+      <a href="../../../introduction/stability-support/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -565,7 +565,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../introduction/deprecation-policy/" class="md-nav__link">
+      <a href="../../../introduction/deprecation-policy/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -590,8 +590,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -606,19 +608,20 @@
     
     
       
+        
+        
+      
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
-        
-          
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
             
   
   <span class="md-ellipsis">
@@ -629,7 +632,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             API
@@ -643,7 +646,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/components/" class="md-nav__link">
+      <a href="../../components/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -716,7 +719,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/externalsecret/" class="md-nav__link">
+      <a href="../../externalsecret/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -737,7 +740,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/secretstore/" class="md-nav__link">
+      <a href="../../secretstore/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -758,7 +761,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/clustersecretstore/" class="md-nav__link">
+      <a href="../../clustersecretstore/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -779,7 +782,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/clusterexternalsecret/" class="md-nav__link">
+      <a href="../../clusterexternalsecret/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -800,7 +803,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/pushsecret/" class="md-nav__link">
+      <a href="../../pushsecret/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -826,6 +829,8 @@
                 
   
   
+    
+  
   
   
     
@@ -861,18 +866,16 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" checked>
         
           
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../api/generator/" class="md-nav__link ">
+            <a href="../" class="md-nav__link ">
               
   
   <span class="md-ellipsis">
@@ -889,7 +892,7 @@
             
           </div>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2_3">
             <span class="md-nav__icon md-icon"></span>
             Generators
@@ -905,7 +908,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/acr/" class="md-nav__link">
+      <a href="../acr/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -926,7 +929,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/ecr/" class="md-nav__link">
+      <a href="../ecr/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -944,10 +947,28 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../api/generator/sts/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    AWS STS Session Token
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -956,6 +977,60 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#output-keys-and-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      Output Keys and Values
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      Authentication
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#request-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      Request Parameters
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-manifest" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example Manifest
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -968,7 +1043,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/gcr/" class="md-nav__link">
+      <a href="../gcr/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -989,7 +1064,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/vault/" class="md-nav__link">
+      <a href="../vault/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1010,7 +1085,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/password/" class="md-nav__link">
+      <a href="../password/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1031,7 +1106,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/fake/" class="md-nav__link">
+      <a href="../fake/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1052,7 +1127,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/webhook/" class="md-nav__link">
+      <a href="../webhook/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1073,7 +1148,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/github/" class="md-nav__link">
+      <a href="../github/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1094,7 +1169,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/generator/uuid/" class="md-nav__link">
+      <a href="../uuid/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1171,7 +1246,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/spec/" class="md-nav__link">
+      <a href="../../spec/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1192,7 +1267,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/controller-options/" class="md-nav__link">
+      <a href="../../controller-options/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1213,7 +1288,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../api/metrics/" class="md-nav__link">
+      <a href="../../metrics/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1301,7 +1376,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/introduction/" class="md-nav__link">
+      <a href="../../../guides/introduction/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1380,7 +1455,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/all-keys-one-secret/" class="md-nav__link">
+      <a href="../../../guides/all-keys-one-secret/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1401,7 +1476,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/getallsecrets/" class="md-nav__link">
+      <a href="../../../guides/getallsecrets/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1422,7 +1497,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/datafrom-rewrite/" class="md-nav__link">
+      <a href="../../../guides/datafrom-rewrite/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1489,7 +1564,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/templating/" class="md-nav__link">
+      <a href="../../../guides/templating/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1510,7 +1585,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/templating-v1/" class="md-nav__link">
+      <a href="../../../guides/templating-v1/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1539,7 +1614,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/common-k8s-secret-types/" class="md-nav__link">
+      <a href="../../../guides/common-k8s-secret-types/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1560,7 +1635,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/ownership-deletion-policy/" class="md-nav__link">
+      <a href="../../../guides/ownership-deletion-policy/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1581,7 +1656,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/decoding-strategy/" class="md-nav__link">
+      <a href="../../../guides/decoding-strategy/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1602,7 +1677,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/controller-class/" class="md-nav__link">
+      <a href="../../../guides/controller-class/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1631,7 +1706,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/generator/" class="md-nav__link">
+      <a href="../../../guides/generator/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1652,7 +1727,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/pushsecrets/" class="md-nav__link">
+      <a href="../../../guides/pushsecrets/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1727,7 +1802,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/multi-tenancy/" class="md-nav__link">
+      <a href="../../../guides/multi-tenancy/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1748,7 +1823,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/security-best-practices/" class="md-nav__link">
+      <a href="../../../guides/security-best-practices/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1769,7 +1844,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/threat-model/" class="md-nav__link">
+      <a href="../../../guides/threat-model/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1790,7 +1865,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/v1beta1/" class="md-nav__link">
+      <a href="../../../guides/v1beta1/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1811,7 +1886,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/using-latest-image/" class="md-nav__link">
+      <a href="../../../guides/using-latest-image/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1832,7 +1907,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../guides/disable-cluster-features/" class="md-nav__link">
+      <a href="../../../guides/disable-cluster-features/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1980,7 +2055,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/aws-secrets-manager/" class="md-nav__link">
+      <a href="../../../provider/aws-secrets-manager/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2001,7 +2076,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/aws-parameter-store/" class="md-nav__link">
+      <a href="../../../provider/aws-parameter-store/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2022,7 +2097,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/azure-key-vault/" class="md-nav__link">
+      <a href="../../../provider/azure-key-vault/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2043,7 +2118,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/beyondtrust/" class="md-nav__link">
+      <a href="../../../provider/beyondtrust/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2064,7 +2139,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/bitwarden-secrets-manager/" class="md-nav__link">
+      <a href="../../../provider/bitwarden-secrets-manager/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2085,7 +2160,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/chef/" class="md-nav__link">
+      <a href="../../../provider/chef/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2106,7 +2181,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/conjur/" class="md-nav__link">
+      <a href="../../../provider/conjur/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2127,7 +2202,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/device42/" class="md-nav__link">
+      <a href="../../../provider/device42/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2148,7 +2223,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/google-secrets-manager/" class="md-nav__link">
+      <a href="../../../provider/google-secrets-manager/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2169,7 +2244,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/hashicorp-vault/" class="md-nav__link">
+      <a href="../../../provider/hashicorp-vault/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2190,7 +2265,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/kubernetes/" class="md-nav__link">
+      <a href="../../../provider/kubernetes/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2211,7 +2286,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/ibm-secrets-manager/" class="md-nav__link">
+      <a href="../../../provider/ibm-secrets-manager/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2232,7 +2307,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/akeyless/" class="md-nav__link">
+      <a href="../../../provider/akeyless/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2253,7 +2328,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/yandex-certificate-manager/" class="md-nav__link">
+      <a href="../../../provider/yandex-certificate-manager/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2274,7 +2349,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/yandex-lockbox/" class="md-nav__link">
+      <a href="../../../provider/yandex-lockbox/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2295,7 +2370,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/alibaba/" class="md-nav__link">
+      <a href="../../../provider/alibaba/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2316,7 +2391,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/gitlab-variables/" class="md-nav__link">
+      <a href="../../../provider/gitlab-variables/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2337,7 +2412,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/oracle-vault/" class="md-nav__link">
+      <a href="../../../provider/oracle-vault/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2358,7 +2433,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/1password-automation/" class="md-nav__link">
+      <a href="../../../provider/1password-automation/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2379,7 +2454,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/webhook/" class="md-nav__link">
+      <a href="../../../provider/webhook/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2400,7 +2475,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/fake/" class="md-nav__link">
+      <a href="../../../provider/fake/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2421,7 +2496,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/senhasegura-dsm/" class="md-nav__link">
+      <a href="../../../provider/senhasegura-dsm/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2442,7 +2517,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/doppler/" class="md-nav__link">
+      <a href="../../../provider/doppler/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2463,7 +2538,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/keeper-security/" class="md-nav__link">
+      <a href="../../../provider/keeper-security/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2484,7 +2559,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/cloak/" class="md-nav__link">
+      <a href="../../../provider/cloak/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2505,7 +2580,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/scaleway/" class="md-nav__link">
+      <a href="../../../provider/scaleway/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2526,7 +2601,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/delinea/" class="md-nav__link">
+      <a href="../../../provider/delinea/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2547,7 +2622,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/secretserver/" class="md-nav__link">
+      <a href="../../../provider/secretserver/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2568,7 +2643,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/passbolt/" class="md-nav__link">
+      <a href="../../../provider/passbolt/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2589,7 +2664,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/pulumi/" class="md-nav__link">
+      <a href="../../../provider/pulumi/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2610,7 +2685,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/onboardbase/" class="md-nav__link">
+      <a href="../../../provider/onboardbase/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2631,7 +2706,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider-passworddepot/" class="md-nav__link">
+      <a href="../../../provider-passworddepot/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2652,7 +2727,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/fortanix/" class="md-nav__link">
+      <a href="../../../provider/fortanix/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2673,7 +2748,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/infisical/" class="md-nav__link">
+      <a href="../../../provider/infisical/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2694,7 +2769,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../provider/previder/" class="md-nav__link">
+      <a href="../../../provider/previder/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2719,10 +2794,8 @@
       
   
   
-    
   
   
-  
     
     
       
@@ -2737,20 +2810,19 @@
     
     
       
-        
-        
-      
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   <span class="md-ellipsis">
@@ -2761,7 +2833,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             Examples
@@ -2775,7 +2847,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../gitops-using-fluxcd/" class="md-nav__link">
+      <a href="../../../examples/gitops-using-fluxcd/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2793,30 +2865,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Anchore Engine
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../../examples/anchore-engine-credentials/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2825,59 +2877,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#installing-with-helm" class="md-nav__link">
-    <span class="md-ellipsis">
-      Installing with Helm
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Installing with Helm">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#hashicorp-vault" class="md-nav__link">
-    <span class="md-ellipsis">
-      Hashicorp Vault
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#aws-secrets-manager" class="md-nav__link">
-    <span class="md-ellipsis">
-      AWS Secrets Manager
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -2890,7 +2889,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../jenkins-kubernetes-credentials/" class="md-nav__link">
+      <a href="../../../examples/jenkins-kubernetes-credentials/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -2911,7 +2910,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../bitwarden/" class="md-nav__link">
+      <a href="../../../examples/bitwarden/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -3037,7 +3036,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/devguide/" class="md-nav__link">
+      <a href="../../../contributing/devguide/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -3058,7 +3057,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/process/" class="md-nav__link">
+      <a href="../../../contributing/process/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -3079,7 +3078,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/release/" class="md-nav__link">
+      <a href="../../../contributing/release/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -3100,7 +3099,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/coc/" class="md-nav__link">
+      <a href="../../../contributing/coc/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -3121,7 +3120,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../contributing/roadmap/" class="md-nav__link">
+      <a href="../../../contributing/roadmap/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -3200,7 +3199,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../eso-talks/" class="md-nav__link">
+      <a href="../../../eso-talks/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -3221,7 +3220,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../eso-demos/" class="md-nav__link">
+      <a href="../../../eso-demos/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -3242,7 +3241,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../eso-blogs/" class="md-nav__link">
+      <a href="../../../eso-blogs/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -3263,7 +3262,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../eso-tools/" class="md-nav__link">
+      <a href="../../../eso-tools/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -3309,8 +3308,6 @@
   
   
   
-    
-  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -3319,35 +3316,38 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installing-with-helm" class="md-nav__link">
+  <a href="#output-keys-and-values" class="md-nav__link">
     <span class="md-ellipsis">
-      Installing with Helm
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Installing with Helm">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#hashicorp-vault" class="md-nav__link">
-    <span class="md-ellipsis">
-      Hashicorp Vault
+      Output Keys and Values
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#aws-secrets-manager" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
     <span class="md-ellipsis">
-      AWS Secrets Manager
+      Authentication
     </span>
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
+      
+        <li class="md-nav__item">
+  <a href="#request-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      Request Parameters
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-manifest" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example Manifest
+    </span>
+  </a>
   
 </li>
       
@@ -3369,90 +3369,108 @@
   
 
 
-<h1 id="getting-started">Getting started</h1>
-<p>Anchore Engine is an open-source project that provides a centralized service for inspection, analysis, and certification of container images. With Kubernetes, it also brings nice features like preventing unscanned images from being deployed into your clusters</p>
-<h2 id="installing-with-helm">Installing with Helm</h2>
-<p>There are several parts of the installation that require credentials these being :-</p>
-<p>ANCHORE_ADMIN_USERNAME
-ANCHORE_ADMIN_PASSWORD
-ANCHORE_DB_PASSWORD
-db-url
-db-user
-postgres-password</p>
-<p>Creating the following external secret ensure the credentials are drawn from the backend provider of choice. The example shown here works with Hashicorp Vault and AWS Secrets Manager providers.</p>
-<h4 id="hashicorp-vault">Hashicorp Vault</h4>
+  <h1>AWS STS Session Token</h1>
+
+<p>STSSessionToken uses the GetSessionToken API to retrieve a temporary session token.</p>
+<h2 id="output-keys-and-values">Output Keys and Values</h2>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>access_key_id</td>
+<td>The access key ID that identifies the temporary security credentials.</td>
+</tr>
+<tr>
+<td>secret_access_key</td>
+<td>The secret access key that can be used to sign requests.</td>
+</tr>
+<tr>
+<td>session_token</td>
+<td>The token that users must pass to the service API to use the temporary credentials.</td>
+</tr>
+<tr>
+<td>expiration</td>
+<td>The date on which the current credentials expire.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="authentication">Authentication</h2>
+<p>You can choose from three authentication mechanisms:</p>
+<ul>
+<li>static credentials using <code>spec.auth.secretRef</code></li>
+<li>point to a IRSA Service Account with <code>spec.auth.jwt</code></li>
+<li>use credentials from the <a href="https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default">SDK default credentials chain</a> from the controller environment</li>
+</ul>
+<h2 id="request-parameters">Request Parameters</h2>
+<p>Following request parameters can be provided:</p>
+<ul>
+<li>duration seconds -&gt; can specify the TTL of the generated token</li>
+<li>serial number -&gt; define the serial number of the MFA device used by the user</li>
+<li>token code -&gt; possible code generated by the above referenced MFA device</li>
+</ul>
+<h2 id="example-manifest">Example Manifest</h2>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">STSSessionToken</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sts-gen</span>
+<span class="nt">spec</span><span class="p">:</span>
+
+<span class="w">  </span><span class="c1"># specify aws region (mandatory)</span>
+<span class="w">  </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eu-west-1</span>
+
+<span class="w">  </span><span class="c1"># assume role with the given authentication credentials</span>
+<span class="w">  </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-role&quot;</span>
+
+<span class="w">  </span><span class="c1"># choose an authentication strategy</span>
+<span class="w">  </span><span class="c1"># if no auth strategy is defined it falls back to using</span>
+<span class="w">  </span><span class="c1"># credentials from the environment of the controller.</span>
+<span class="w">  </span><span class="nt">auth</span><span class="p">:</span>
+
+<span class="w">    </span><span class="c1"># 1: static credentials</span>
+<span class="w">    </span><span class="c1"># point to a secret that contains static credentials</span>
+<span class="w">    </span><span class="c1"># like AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY</span>
+<span class="w">    </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">accessKeyIDSecretRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-aws-creds&quot;</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;key-id&quot;</span>
+<span class="w">      </span><span class="nt">secretAccessKeySecretRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-aws-creds&quot;</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;access-secret&quot;</span>
+
+<span class="w">    </span><span class="c1"># option 2: IAM Roles for Service Accounts</span>
+<span class="w">    </span><span class="c1"># point to a service account that should be used</span>
+<span class="w">    </span><span class="c1"># that is configured for IAM Roles for Service Accounts (IRSA)</span>
+<span class="w">    </span><span class="nt">jwt</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">serviceAccountRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;oci-token-sync&quot;</span>
+
+<span class="w">  </span><span class="c1"># optional request parameters for further fine-tuning the Token generation.</span>
+<span class="w">  </span><span class="nt">requestParameters</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">serialNumber</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">arn:aws:iam::123456789012:mfa/user</span>
+<span class="w">    </span><span class="nt">sessionDuration</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">900</span>
+<span class="w">    </span><span class="nt">tokenCode</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;123456&quot;</span>
+</code></pre></div>
+<p>Example <code>ExternalSecret</code> that references the STS Session Token generator:
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">anchore-access-credentials</span>
-<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">security</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;sts-secret&quot;</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1m</span>
-<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1h&quot;</span>
 <span class="w">  </span><span class="nt">target</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">anchore-access-credentials</span>
-<span class="w">    </span><span class="nt">template</span><span class="p">:</span>
-
-<span class="w">      </span><span class="nt">data</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">ANCHORE_ADMIN_USERNAME</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;-</span>
-<span class="w">          </span><span class="no">{{ printf &quot;{{ .username | toString }}&quot; }}</span>
-<span class="w">        </span><span class="nt">ANCHORE_ADMIN_PASSWORD</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;-</span>
-<span class="w">          </span><span class="no">{{ printf &quot;{{ .password | toString }}&quot; }}</span>
-<span class="w">        </span><span class="nt">ANCHORE_DB_PASSWORD</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;-</span>
-<span class="w">          </span><span class="no">{{ printf &quot;{{ .dbPassword | toString }}&quot; }}</span>
-<span class="w">        </span><span class="nt">db-url</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;-</span>
-<span class="w">          </span><span class="no">{{ printf &quot;{{ .dbUrl | toString }}&quot; }}</span>
-<span class="w">        </span><span class="nt">db-user</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;-</span>
-<span class="w">          </span><span class="no">{{ printf &quot;{{ .dbUser | toString }}&quot; }}</span>
-<span class="w">        </span><span class="nt">postgres-password</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">&gt;-</span>
-<span class="w">          </span><span class="no">{{ printf &quot;{{ .postgresPassword | toString }}&quot; }}</span>
-
-<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
-<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">anchore-engine</span>
-<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ANCHORE_ADMIN_PASSWORD</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span>
-<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">anchore-engine</span>
-<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ANCHORE_ADMIN_USERNAME</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dbPassword</span>
-<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">anchore-engine</span>
-<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ANCHORE_DB_PASSWORD</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dbUrl</span>
-<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">anchore-engine</span>
-<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">db-url</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dbUser</span>
-<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">anchore-engine</span>
-<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">db-user</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">postgresPassword</span>
-<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">anchore-engine</span>
-<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">postgres-password</span>
-</code></pre></div>
-<h4 id="aws-secrets-manager">AWS Secrets Manager</h4>
-<div class="highlight"><pre><span></span><code><span class="nn">---</span>
-<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">anchore-access-credentials</span>
-<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ci</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1m</span>
-<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cluster-secrets-store</span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">anchore-access-credentials</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sts-secret</span>
 <span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">service/anchore-engine/engineAccess</span>
-</code></pre></div>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">sourceRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">generatorRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">STSSessionToken</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;sts-gen&quot;</span>
+</code></pre></div></p>
 
 
 
@@ -3512,10 +3530,10 @@ For a list of trademarks of The Linux Foundation, please see our <a href="https:
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.tabs", "navigation.indexes", "navigation.expand"], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.tabs", "navigation.indexes", "navigation.expand"], "search": "../../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.83f73b43.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.83f73b43.min.js"></script>
       
     
   </body>
