@@ -11,7 +11,7 @@ require (
 	github.com/Azure/go-autorest/autorest v0.11.29
 	github.com/Azure/go-autorest/autorest/adal v0.9.24
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.13
-	github.com/AzureAD/microsoft-authentication-library-for-go v1.2.2
+	github.com/AzureAD/microsoft-authentication-library-for-go v1.2.3
 	github.com/IBM/go-sdk-core/v5 v5.18.1
 	github.com/IBM/secrets-manager-go-sdk/v2 v2.0.8
 	github.com/Masterminds/goutils v1.1.1 // indirect
@@ -30,7 +30,7 @@ require (
 	github.com/hashicorp/vault/api/auth/kubernetes v0.8.0
 	github.com/hashicorp/vault/api/auth/ldap v0.8.0
 	github.com/huandu/xstrings v1.5.0 // indirect
-	github.com/onsi/ginkgo/v2 v2.20.2
+	github.com/onsi/ginkgo/v2 v2.21.0
 	github.com/onsi/gomega v1.34.2
 	github.com/oracle/oci-go-sdk/v65 v65.77.1
 	github.com/prometheus/client_golang v1.20.5
@@ -39,13 +39,13 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/tidwall/gjson v1.18.0
 	github.com/xanzy/go-gitlab v0.112.0
-	github.com/yandex-cloud/go-genproto v0.0.0-20241021132621-28bb61d00c2f
-	github.com/yandex-cloud/go-sdk v0.0.0-20241021153520-213d4c625eca
+	github.com/yandex-cloud/go-genproto v0.0.0-20241101135610-76a0cfc1a773
+	github.com/yandex-cloud/go-sdk v0.0.0-20241101143304-947cf519f6bd
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.28.0
 	golang.org/x/oauth2 v0.23.0
-	google.golang.org/api v0.203.0
+	google.golang.org/api v0.204.0
 	google.golang.org/genproto v0.0.0-20241021214115-324edc3d5d38
 	google.golang.org/grpc v1.67.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -75,10 +75,10 @@ require (
 	github.com/alibabacloud-go/openapi-util v0.1.1
 	github.com/alibabacloud-go/tea v1.2.2
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.7
-	github.com/aliyun/credentials-go v1.3.11
+	github.com/aliyun/credentials-go v1.4.0
 	github.com/avast/retry-go/v4 v4.6.0
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/cyberark/conjur-api-go v0.12.5
+	github.com/cyberark/conjur-api-go v0.12.6
 	github.com/fortanix/sdkms-client-go v0.4.0
 	github.com/go-openapi/strfmt v0.23.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
@@ -90,7 +90,7 @@ require (
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.10.0
 	github.com/passbolt/go-passbolt v0.7.1
 	github.com/previder/vault-cli v0.1.2
-	github.com/pulumi/esc-sdk/sdk v0.10.2
+	github.com/pulumi/esc-sdk/sdk v0.10.3
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.30
 	github.com/sethvargo/go-password v0.3.1
 	github.com/spf13/pflag v1.0.5
@@ -102,8 +102,8 @@ require (
 
 require (
 	al.essio.dev/pkg/shellescape v1.5.1 // indirect
-	cloud.google.com/go/auth v0.9.9 // indirect
-	cloud.google.com/go/auth/oauth2adapt v0.2.4 // indirect
+	cloud.google.com/go/auth v0.10.0 // indirect
+	cloud.google.com/go/auth/oauth2adapt v0.2.5 // indirect
 	cloud.google.com/go/compute/metadata v0.5.2 // indirect
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
 	github.com/ProtonMail/go-mime v0.0.0-20230322103455-7d82a3887f2f // indirect
@@ -177,7 +177,7 @@ require (
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.9.0 // indirect
 	github.com/fatih/color v1.18.0 // indirect
-	github.com/fsnotify/fsnotify v1.7.0 // indirect
+	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-chef/chef v0.30.1
 	github.com/go-logr/zapr v1.3.0 // indirect
@@ -190,12 +190,12 @@ require (
 	github.com/gobuffalo/flect v1.0.3 // indirect
 	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
+	github.com/golang-jwt/jwt/v4 v4.5.1 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/pprof v0.0.0-20241023014458-598669927662 // indirect
+	github.com/google/pprof v0.0.0-20241101162523-b92577c0c142 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.4 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
@@ -206,7 +206,7 @@ require (
 	github.com/hashicorp/go-secure-stdlib/parseutil v0.1.8 // indirect
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.7 // indirect
-	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
+	github.com/hashicorp/hcl v1.0.1-vault-6 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
