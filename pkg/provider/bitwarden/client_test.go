@@ -765,8 +765,7 @@ func TestProviderSecretExists(t *testing.T) {
 					},
 				},
 			},
-			want:    false,
-			wantErr: true, // secret not found
+			want: false,
 		},
 		{
 			name: "invalid name format should error",
