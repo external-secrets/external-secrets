@@ -34,6 +34,7 @@ type MockSMClient struct {
 	CreateSecretCalledWithN map[int]*secretmanagerpb.CreateSecretRequest
 	createSecretCallN       int
 	updateSecretFn          func(ctx context.Context, req *secretmanagerpb.UpdateSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
+	UpdateSecretCallN       int
 	closeFn                 func() error
 	GetSecretFn             func(ctx context.Context, req *secretmanagerpb.GetSecretRequest, opts ...gax.CallOption) (*secretmanagerpb.Secret, error)
 	DeleteSecretFn          func(ctx context.Context, req *secretmanagerpb.DeleteSecretRequest, opts ...gax.CallOption) error
@@ -183,6 +184,7 @@ func (mc *MockSMClient) AccessSecretVersionWithError(err error) {
 }
 
 func (mc *MockSMClient) UpdateSecret(ctx context.Context, req *secretmanagerpb.UpdateSecretRequest, _ ...gax.CallOption) (*secretmanagerpb.Secret, error) {
+	mc.UpdateSecretCallN++
 	return mc.updateSecretFn(ctx, req)
 }
 
