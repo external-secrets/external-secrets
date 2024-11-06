@@ -66,6 +66,7 @@ type Client struct {
 type SecurityClient interface {
 	GetSecrets(filter []string) ([]*ksm.Record, error)
 	GetSecretByTitle(recordTitle string) (*ksm.Record, error)
+	GetSecretsByTitle(recordTitle string) (records []*ksm.Record, err error)
 	CreateSecretWithRecordData(recUID, folderUID string, recordData *ksm.RecordCreate) (string, error)
 	DeleteSecrets(recrecordUids []string) (map[string]string, error)
 	Save(record *ksm.Record) error
@@ -198,16 +199,15 @@ func (c *Client) DeleteSecret(_ context.Context, remoteRef esv1beta1.PushSecretR
 	secret, err := c.findSecretByName(parts[0])
 	if err != nil {
 		return err
+	} else if secret == nil {
+		return nil // not found == already deleted (success)
 	}
+
 	if secret.Type() != externalSecretType {
 		return fmt.Errorf(errInvalidSecretType, externalSecretType, secret.Title(), secret.Type())
 	}
 	_, err = c.ksmClient.DeleteSecrets([]string{secret.Uid})
-	if err != nil {
-		return nil
-	}
-
-	return nil
+	return err
 }
 
 func (c *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
@@ -323,12 +323,34 @@ func (c *Client) findSecretByID(id string) (*ksm.Record, error) {
 }
 
 func (c *Client) findSecretByName(name string) (*ksm.Record, error) {
-	record, err := c.ksmClient.GetSecretByTitle(name)
+	records, err := c.ksmClient.GetSecretsByTitle(name)
 	if err != nil {
 		return nil, err
 	}
 
-	return record, nil
+	// record not found is not an error - handled differently:
+	// PushSecret will create new record instead
+	// PushSecret will consider record already deleted (no error)
+	if len(records) == 0 {
+		return nil, nil
+	}
+
+	// filter in-place, preserve only records of type externalSecretType
+	n := 0
+	for _, record := range records {
+		if record.Type() == externalSecretType {
+			records[n] = record
+			n++
+		}
+	}
+	records = records[:n]
+
+	if len(records) == 1 {
+		return records[0], nil
+	}
+
+	// len(records) > 1
+	return nil, fmt.Errorf(errKeeperSecuritySecretNotUnique, name)
 }
 
 func (s *Secret) validate() error {
