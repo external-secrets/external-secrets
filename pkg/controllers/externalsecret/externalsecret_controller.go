@@ -358,7 +358,7 @@ func (r *Reconciler) markAsDone(externalSecret *esv1beta1.ExternalSecret, start 
 
 func (r *Reconciler) markAsFailed(log logr.Logger, msg string, err error, externalSecret *esv1beta1.ExternalSecret, counter prometheus.Counter) {
 	log.Error(err, msg)
-	r.recorder.Event(externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, err.Error())
+	r.recorder.Event(externalSecret, v1.EventTypeWarning, esv1beta1.ConditionReasonSecretSyncedError, err.Error())
 	conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, msg)
 	SetExternalSecretCondition(externalSecret, *conditionSynced)
 	counter.Inc()

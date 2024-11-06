@@ -68,9 +68,11 @@ type ParameterStore struct {
 // see: https://docs.aws.amazon.com/sdk-for-go/api/service/ssm/ssmiface/
 type PMInterface interface {
 	GetParameterWithContext(aws.Context, *ssm.GetParameterInput, ...request.Option) (*ssm.GetParameterOutput, error)
+	GetParametersByPathPagesWithContext(aws.Context, *ssm.GetParametersByPathInput, func(*ssm.GetParametersByPathOutput, bool) bool, ...request.Option) error
 	GetParametersByPathWithContext(aws.Context, *ssm.GetParametersByPathInput, ...request.Option) (*ssm.GetParametersByPathOutput, error)
 	PutParameterWithContext(aws.Context, *ssm.PutParameterInput, ...request.Option) (*ssm.PutParameterOutput, error)
 	DescribeParametersWithContext(aws.Context, *ssm.DescribeParametersInput, ...request.Option) (*ssm.DescribeParametersOutput, error)
+	DescribeParametersPagesWithContext(aws.Context, *ssm.DescribeParametersInput, func(*ssm.DescribeParametersOutput, bool) bool, ...request.Option) error
 	ListTagsForResourceWithContext(aws.Context, *ssm.ListTagsForResourceInput, ...request.Option) (*ssm.ListTagsForResourceOutput, error)
 	DeleteParameterWithContext(ctx aws.Context, input *ssm.DeleteParameterInput, opts ...request.Option) (*ssm.DeleteParameterOutput, error)
 }
@@ -287,40 +289,42 @@ func (pm *ParameterStore) findByName(ctx context.Context, ref esv1beta1.External
 		ref.Path = aws.String("/")
 	}
 	data := make(map[string][]byte)
-	var nextToken *string
-	for {
-		it, err := pm.client.GetParametersByPathWithContext(
-			ctx,
-			&ssm.GetParametersByPathInput{
-				NextToken:      nextToken,
-				Path:           ref.Path,
-				Recursive:      aws.Bool(true),
-				WithDecryption: aws.Bool(true),
-			})
-		metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSGetParametersByPath, err)
-		if err != nil {
-			/*
-				Check for AccessDeniedException when calling `GetParametersByPathWithContext`. If so,
-				use fallbackFindByName and `DescribeParametersWithContext`.
-				https://github.com/external-secrets/external-secrets/issues/1839#issuecomment-1489023522
-			*/
-			var awsError awserr.Error
-			if errors.As(err, &awsError) && awsError.Code() == errAccessDeniedException {
-				logger.Info("GetParametersByPath: access denied. using fallback to describe parameters. It is recommended to add ssm:GetParametersByPath permissions", "path", ref.Path)
-				return pm.fallbackFindByName(ctx, ref)
-			}
-			return nil, err
-		}
-		for _, param := range it.Parameters {
+	err = pm.client.GetParametersByPathPagesWithContext(ctx, &ssm.GetParametersByPathInput{
+		Path:           ref.Path,
+		Recursive:      aws.Bool(true),
+		WithDecryption: aws.Bool(true),
+	}, func(page *ssm.GetParametersByPathOutput, _ bool) bool {
+		for _, param := range page.Parameters {
 			if !matcher.MatchName(*param.Name) {
 				continue
 			}
 			data[*param.Name] = []byte(*param.Value)
 		}
-		nextToken = it.NextToken
-		if nextToken == nil {
-			break
+
+		return true
+	})
+
+	//it, err := pm.client.GetParametersByPathWithContext(
+	//	ctx,
+	//	&ssm.GetParametersByPathInput{
+	//		NextToken:      nextToken,
+	//		Path:           ref.Path,
+	//		Recursive:      aws.Bool(true),
+	//		WithDecryption: aws.Bool(true),
+	//	})
+	metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSGetParametersByPath, err)
+	if err != nil {
+		/*
+			Check for AccessDeniedException when calling `GetParametersByPathWithContext`. If so,
+			use fallbackFindByName and `DescribeParametersWithContext`.
+			https://github.com/external-secrets/external-secrets/issues/1839#issuecomment-1489023522
+		*/
+		var awsError awserr.Error
+		if errors.As(err, &awsError) && awsError.Code() == errAccessDeniedException {
+			logger.Info("GetParametersByPath: access denied. using fallback to describe parameters. It is recommended to add ssm:GetParametersByPath permissions", "path", ref.Path)
+			return pm.fallbackFindByName(ctx, ref)
 		}
+		return nil, err
 	}
 
 	return data, nil
@@ -341,32 +345,43 @@ func (pm *ParameterStore) fallbackFindByName(ctx context.Context, ref esv1beta1.
 		})
 	}
 	data := make(map[string][]byte)
-	var nextToken *string
-	for {
-		it, err := pm.client.DescribeParametersWithContext(
-			ctx,
-			&ssm.DescribeParametersInput{
-				NextToken:        nextToken,
-				ParameterFilters: pathFilter,
-			})
-		metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSDescribeParameter, err)
-		if err != nil {
-			return nil, err
-		}
-		for _, param := range it.Parameters {
+	//var nextToken *string
+	var fetchErr error
+	err = pm.client.DescribeParametersPagesWithContext(ctx, &ssm.DescribeParametersInput{
+		ParameterFilters: pathFilter,
+	}, func(page *ssm.DescribeParametersOutput, _ bool) bool {
+		for _, param := range page.Parameters {
 			if !matcher.MatchName(*param.Name) {
 				continue
 			}
-			err = pm.fetchAndSet(ctx, data, *param.Name)
-			if err != nil {
-				return nil, err
+
+			fetchErr = pm.fetchAndSet(ctx, data, *param.Name)
+			if fetchErr != nil {
+				logger.Error(err, "failed to fetch and set parameter", "path", ref.Path, "parameter", *param.Name)
+
+				return false
 			}
 		}
-		nextToken = it.NextToken
-		if nextToken == nil {
-			break
-		}
+
+		return true
+	})
+
+	//it, err := pm.client.DescribeParametersWithContext(
+	//	ctx,
+	//	&ssm.DescribeParametersInput{
+	//		NextToken:        nextToken,
+	//		ParameterFilters: pathFilter,
+	//	})
+	metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSDescribeParameter, err)
+	if err != nil {
+		return nil, err
 	}
+
+	// make sure we surface any errors that might have occurred during describe.
+	if fetchErr != nil {
+		return nil, fetchErr
+	}
+
 	return data, nil
 }
 
