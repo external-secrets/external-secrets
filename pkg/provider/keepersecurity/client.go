@@ -328,13 +328,6 @@ func (c *Client) findSecretByName(name string) (*ksm.Record, error) {
 		return nil, err
 	}
 
-	// record not found is not an error - handled differently:
-	// PushSecret will create new record instead
-	// PushSecret will consider record already deleted (no error)
-	if len(records) == 0 {
-		return nil, nil
-	}
-
 	// filter in-place, preserve only records of type externalSecretType
 	n := 0
 	for _, record := range records {
@@ -345,7 +338,12 @@ func (c *Client) findSecretByName(name string) (*ksm.Record, error) {
 	}
 	records = records[:n]
 
-	if len(records) == 1 {
+	// record not found is not an error - handled differently:
+	// PushSecret will create new record instead
+	// DeleteSecret will consider record already deleted (no error)
+	if len(records) == 0 {
+		return nil, nil
+	} else if len(records) == 1 {
 		return records[0], nil
 	}
 
