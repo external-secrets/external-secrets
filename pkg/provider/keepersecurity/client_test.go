@@ -85,6 +85,29 @@ func TestClientDeleteSecret(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "Delete secret with multiple matches by Name",
+			fields: fields{
+				ksmClient: &fake.MockKeeperClient{
+					DeleteSecretsFn: func(recrecordUids []string) (map[string]string, error) {
+						return map[string]string{
+							record0: record0,
+						}, nil
+					},
+					GetSecretsByTitleFn: func(recordTitle string) (records []*ksm.Record, err error) {
+						return []*ksm.Record{generateRecords()[0], generateRecords()[0]}, nil
+					},
+				},
+				folderID: folderID,
+			},
+			args: args{
+				context.Background(),
+				&v1alpha1.PushSecretRemoteRef{
+					RemoteKey: validExistingRecord,
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "Delete non existing secret",
 			fields: fields{
 				ksmClient: &fake.MockKeeperClient{
@@ -284,6 +307,24 @@ func TestClientGetSecret(t *testing.T) {
 			},
 			want:    []byte(outputRecord0),
 			wantErr: false,
+		},
+		{
+			name: "Get secret with multiple matches by ID",
+			fields: fields{
+				ksmClient: &fake.MockKeeperClient{
+					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
+						return []*ksm.Record{generateRecords()[0], generateRecords()[0]}, nil
+					},
+				},
+				folderID: folderID,
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: v1beta1.ExternalSecretDataRemoteRef{
+					Key: record0,
+				},
+			},
+			wantErr: true,
 		},
 		{
 			name: "Get non existing secret",
@@ -532,6 +573,25 @@ func TestClientPushSecret(t *testing.T) {
 				value: []byte("foo2"),
 			},
 			wantErr: false,
+		},
+		{
+			name: "Unable to push new valid secret with multiple matches by Name",
+			fields: fields{
+				ksmClient: &fake.MockKeeperClient{
+					GetSecretsByTitleFn: func(recordTitle string) (records []*ksm.Record, err error) {
+						return []*ksm.Record{generateRecords()[0], generateRecords()[0]}, nil
+					},
+				},
+				folderID: folderID,
+			},
+			args: args{
+				data: testingfake.PushSecretData{
+					SecretKey: secretKey,
+					RemoteKey: validExistingRecord,
+				},
+				value: []byte("foo"),
+			},
+			wantErr: true,
 		},
 		{
 			name: "Unable to push new valid secret",
