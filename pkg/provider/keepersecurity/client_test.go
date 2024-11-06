@@ -70,8 +70,8 @@ func TestClientDeleteSecret(t *testing.T) {
 							record0: record0,
 						}, nil
 					},
-					GetSecretByTitleFn: func(recordTitle string) (*ksm.Record, error) {
-						return generateRecords()[0], nil
+					GetSecretsByTitleFn: func(recordTitle string) (records []*ksm.Record, err error) {
+						return generateRecords()[:1], nil
 					},
 				},
 				folderID: folderID,
@@ -85,11 +85,16 @@ func TestClientDeleteSecret(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Delete invalid secret type",
+			name: "Delete secret with multiple matches by Name",
 			fields: fields{
 				ksmClient: &fake.MockKeeperClient{
-					GetSecretByTitleFn: func(recordTitle string) (*ksm.Record, error) {
-						return generateRecords()[1], nil
+					DeleteSecretsFn: func(recrecordUids []string) (map[string]string, error) {
+						return map[string]string{
+							record0: record0,
+						}, nil
+					},
+					GetSecretsByTitleFn: func(recordTitle string) (records []*ksm.Record, err error) {
+						return []*ksm.Record{generateRecords()[0], generateRecords()[0]}, nil
 					},
 				},
 				folderID: folderID,
@@ -106,7 +111,7 @@ func TestClientDeleteSecret(t *testing.T) {
 			name: "Delete non existing secret",
 			fields: fields{
 				ksmClient: &fake.MockKeeperClient{
-					GetSecretByTitleFn: func(recordTitle string) (*ksm.Record, error) {
+					GetSecretsByTitleFn: func(recordTitle string) (records []*ksm.Record, err error) {
 						return nil, errors.New("failed")
 					},
 				},
@@ -302,6 +307,24 @@ func TestClientGetSecret(t *testing.T) {
 			},
 			want:    []byte(outputRecord0),
 			wantErr: false,
+		},
+		{
+			name: "Get secret with multiple matches by ID",
+			fields: fields{
+				ksmClient: &fake.MockKeeperClient{
+					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
+						return []*ksm.Record{generateRecords()[0], generateRecords()[0]}, nil
+					},
+				},
+				folderID: folderID,
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: v1beta1.ExternalSecretDataRemoteRef{
+					Key: record0,
+				},
+			},
+			wantErr: true,
 		},
 		{
 			name: "Get non existing secret",
@@ -511,8 +534,8 @@ func TestClientPushSecret(t *testing.T) {
 			name: "Push new valid secret",
 			fields: fields{
 				ksmClient: &fake.MockKeeperClient{
-					GetSecretByTitleFn: func(recordTitle string) (*ksm.Record, error) {
-						return nil, errors.New("NotFound")
+					GetSecretsByTitleFn: func(recordTitle string) (records []*ksm.Record, err error) {
+						return generateRecords()[0:0], nil
 					},
 					CreateSecretWithRecordDataFn: func(recUID, folderUid string, recordData *ksm.RecordCreate) (string, error) {
 						return "record5", nil
@@ -533,8 +556,8 @@ func TestClientPushSecret(t *testing.T) {
 			name: "Push existing valid secret",
 			fields: fields{
 				ksmClient: &fake.MockKeeperClient{
-					GetSecretByTitleFn: func(recordTitle string) (*ksm.Record, error) {
-						return generateRecords()[0], nil
+					GetSecretsByTitleFn: func(recordTitle string) (records []*ksm.Record, err error) {
+						return generateRecords()[0:1], nil
 					},
 					SaveFn: func(record *ksm.Record) error {
 						return nil
@@ -552,14 +575,11 @@ func TestClientPushSecret(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Push existing invalid secret",
+			name: "Unable to push new valid secret with multiple matches by Name",
 			fields: fields{
 				ksmClient: &fake.MockKeeperClient{
-					GetSecretByTitleFn: func(recordTitle string) (*ksm.Record, error) {
-						return generateRecords()[1], nil
-					},
-					SaveFn: func(record *ksm.Record) error {
-						return nil
+					GetSecretsByTitleFn: func(recordTitle string) (records []*ksm.Record, err error) {
+						return []*ksm.Record{generateRecords()[0], generateRecords()[0]}, nil
 					},
 				},
 				folderID: folderID,
@@ -569,7 +589,7 @@ func TestClientPushSecret(t *testing.T) {
 					SecretKey: secretKey,
 					RemoteKey: validExistingRecord,
 				},
-				value: []byte("foo2"),
+				value: []byte("foo"),
 			},
 			wantErr: true,
 		},
@@ -577,7 +597,7 @@ func TestClientPushSecret(t *testing.T) {
 			name: "Unable to push new valid secret",
 			fields: fields{
 				ksmClient: &fake.MockKeeperClient{
-					GetSecretByTitleFn: func(recordTitle string) (*ksm.Record, error) {
+					GetSecretsByTitleFn: func(recordTitle string) (records []*ksm.Record, err error) {
 						return nil, errors.New("NotFound")
 					},
 					CreateSecretWithRecordDataFn: func(recUID, folderUID string, recordData *ksm.RecordCreate) (string, error) {
@@ -601,6 +621,9 @@ func TestClientPushSecret(t *testing.T) {
 				ksmClient: &fake.MockKeeperClient{
 					GetSecretByTitleFn: func(recordTitle string) (*ksm.Record, error) {
 						return generateRecords()[0], nil
+					},
+					GetSecretsByTitleFn: func(recordTitle string) (records []*ksm.Record, err error) {
+						return generateRecords()[0:1], nil
 					},
 					SaveFn: func(record *ksm.Record) error {
 						return errors.New("Unable to save")
