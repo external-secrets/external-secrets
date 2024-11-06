@@ -23,6 +23,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/oracle/oci-go-sdk/v65/vault"
+	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -734,6 +735,20 @@ func TestFetchValueFromMetadata(t *testing.T) {
 			wantT:   "value",
 			wantErr: false,
 		},
+		{
+			name: "digging for a slice",
+			args: args{
+				key: "topics",
+				data: &apiextensionsv1.JSON{
+					Raw: []byte(
+						`{"topics": ["topic1", "topic2"]}`,
+					),
+				},
+				def: []string{},
+			},
+			wantT:   []any{"topic1", "topic2"}, // we don't have deep type matching so it's not an []string{} but []any.
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -742,9 +757,7 @@ func TestFetchValueFromMetadata(t *testing.T) {
 				t.Errorf("FetchValueFromMetadata() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(gotT, tt.wantT) {
-				t.Errorf("FetchValueFromMetadata() gotT = %v, want %v", gotT, tt.wantT)
-			}
+			assert.Equal(t, tt.wantT, gotT)
 		})
 	}
 }
