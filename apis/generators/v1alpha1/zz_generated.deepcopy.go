@@ -1035,6 +1035,11 @@ func (in *VaultDynamicSecretSpec) DeepCopyInto(out *VaultDynamicSecretSpec) {
 		*out = new(apiextensionsv1.JSON)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.RetrySettings != nil {
+		in, out := &in.RetrySettings, &out.RetrySettings
+		*out = new(v1beta1.SecretStoreRetrySettings)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Provider != nil {
 		in, out := &in.Provider, &out.Provider
 		*out = new(v1beta1.VaultProvider)

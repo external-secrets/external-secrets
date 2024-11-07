@@ -12894,6 +12894,15 @@ spec:
                     - Data
                     - Auth
                   type: string
+                retrySettings:
+                  description: Used to configure http retries if failed
+                  properties:
+                    maxRetries:
+                      format: int32
+                      type: integer
+                    retryInterval:
+                      type: string
+                  type: object
               required:
                 - path
                 - provider
