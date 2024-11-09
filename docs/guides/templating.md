@@ -130,6 +130,29 @@ You can achieve that by using the `filterPEM` function to extract a specific typ
 {% include 'filterpem-template-v2-external-secret.yaml' %}
 ```
 
+Consider you have a secret that contains a certificate with the full trust chain which needs to be broken out.
+
+```
+-----BEGIN CERTIFICATE-----
+MIIDMDCCAhigAwIBAgIQabPaXuZCQaCg+eQAVptGGDANBgkqhkiG9w0BAQsFADAV
+ . . .
+NtFUGA95RGN9s+pl6XY0YARPHf5O76ErC1OZtDTR5RdyQfcM+94gYZsexsXl0aQO
+9YD3Wg==
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+MIIDMDCCAhigAwIBAgIQabPaXuZCQaCg+eQAVptGGDANBgkqhkiG9w0BAQsFADAV
+ . . .
+NtFUGA95RGN9s+pl6XY0YARPHf5O76ErC1OZtDTR5RdyQfcM+94gYZsexsXl0aQO
+9YD3Wg==
+-----END CERTIFICATE-----
+```
+
+You can achieve that by using the `filterPEMChain` and `filterPEMServer` functions
+
+```yaml
+{% include 'filterpem-misc-template-v2-external-secret.yaml' %}
+```
+
 ## Templating with PushSecret
 
 `PushSecret` templating is much like `ExternalSecrets` templating. In-fact under the hood, it's using the same data structure.

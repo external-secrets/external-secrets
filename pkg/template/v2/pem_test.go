@@ -17,6 +17,8 @@ package template
 import "testing"
 
 const (
+	// Issuer: O = Acme Co
+	// Subject: O = Acme Co
 	certData = `-----BEGIN CERTIFICATE-----
 MIIDHTCCAgWgAwIBAgIRAKC4yxy9QGocND+6avTf7BgwDQYJKoZIhvcNAQELBQAw
 EjEQMA4GA1UEChMHQWNtZSBDbzAeFw0yMTAzMjAyMDA4MDhaFw0yMTAzMjAyMDM4
@@ -38,6 +40,8 @@ QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
 -----END CERTIFICATE-----
 `
 
+	// Issuer: CN = intermediate-ca
+	// Subject: CN = foo
 	otherCert = `-----BEGIN CERTIFICATE-----
 MIIBqjCCAU+gAwIBAgIRAPnGGsBUMbZhmh5QdnYdBmUwCgYIKoZIzj0EAwIwGjEY
 MBYGA1UEAxMPaW50ZXJtZWRpYXRlLWNhMB4XDTIyMDIwOTEwMjUzMVoXDTIyMDIx
@@ -175,6 +179,72 @@ func TestFilterPEM(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("filterPEM() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFilterPEMChain(t *testing.T) {
+	type args struct {
+		input   string
+		pemType string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "extract cert",
+			args: args{
+				input: certData + otherCert,
+			},
+			want: certData,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := filterPEMChain(tt.args.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("filterPEMChain() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("filterPEMChain() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFilterPEMServer(t *testing.T) {
+	type args struct {
+		input   string
+		pemType string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "extract cert",
+			args: args{
+				input: certData + otherCert,
+			},
+			want: otherCert,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := filterPEMServer(tt.args.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("filterPEMServer() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("filterPEMServer() = %v, want %v", got, tt.want)
 			}
 		})
 	}

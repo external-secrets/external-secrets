@@ -56,6 +56,57 @@ func filterPEM(pemType, input string) (string, error) {
 	return string(blocks), nil
 }
 
+// getCertificates - returns a list of certs from a pem which may contain multiple certs
+func getCertificates(input string) ([]string, error) {
+	certs := make([]string, 0)
+
+	data := []byte(input)
+	var blocks []byte
+	var block *pem.Block
+	var rest []byte
+	for {
+		block, rest = pem.Decode(data)
+		data = rest
+
+		if block == nil {
+			break
+		}
+
+		var buf bytes.Buffer
+		err := pem.Encode(&buf, block)
+		if err != nil {
+			return certs, err
+		}
+		blocks = append(blocks, buf.Bytes()...)
+		certs = append(certs, buf.String())
+	}
+
+	if len(blocks) == 0 && len(rest) != 0 {
+		return certs, errors.New(errJunk)
+	}
+
+	return certs, nil
+}
+
+// filterPEMChain - returns the server certificate
+func filterPEMChain(input string) (string, error) {
+	certs, err := getCertificates(input)
+	if err != nil {
+		return "", err
+	}
+	return certs[0], nil
+}
+
+// filterPEMServer - returns the intermediate certificates
+func filterPEMServer(input string) (string, error) {
+	certs, err := getCertificates(input)
+	if err != nil {
+		return "", err
+	}
+	// return all but the first
+	return strings.Join(certs[1:], "\n"), nil
+}
+
 func pemEncode(thing, kind string) (string, error) {
 	buf := bytes.NewBuffer(nil)
 	err := pem.Encode(buf, &pem.Block{Type: kind, Bytes: []byte(thing)})
