@@ -56,7 +56,7 @@ func filterPEM(pemType, input string) (string, error) {
 	return string(blocks), nil
 }
 
-// getCertificates - returns a list of certs from a pem which may contain multiple certs
+// getCertificates - returns a list of certs from a pem which may contain multiple certs.
 func getCertificates(input string) ([]string, error) {
 	certs := make([]string, 0)
 
@@ -88,7 +88,7 @@ func getCertificates(input string) ([]string, error) {
 	return certs, nil
 }
 
-// filterPEMChain - returns the server certificate
+// filterPEMChain - returns the server certificate.
 func filterPEMChain(input string) (string, error) {
 	certs, err := getCertificates(input)
 	if err != nil {
@@ -97,7 +97,7 @@ func filterPEMChain(input string) (string, error) {
 	return certs[0], nil
 }
 
-// filterPEMServer - returns the intermediate certificates
+// filterPEMServer - returns the intermediate certificates.
 func filterPEMServer(input string) (string, error) {
 	certs, err := getCertificates(input)
 	if err != nil {

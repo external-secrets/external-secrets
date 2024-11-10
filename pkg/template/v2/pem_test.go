@@ -17,8 +17,8 @@ package template
 import "testing"
 
 const (
-	// Issuer: O = Acme Co
-	// Subject: O = Acme Co
+	// Issuer: O = Acme Co.
+	// Subject: O = Acme Co.
 	certData = `-----BEGIN CERTIFICATE-----
 MIIDHTCCAgWgAwIBAgIRAKC4yxy9QGocND+6avTf7BgwDQYJKoZIhvcNAQELBQAw
 EjEQMA4GA1UEChMHQWNtZSBDbzAeFw0yMTAzMjAyMDA4MDhaFw0yMTAzMjAyMDM4
@@ -40,8 +40,8 @@ QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
 -----END CERTIFICATE-----
 `
 
-	// Issuer: CN = intermediate-ca
-	// Subject: CN = foo
+	// Issuer: CN = intermediate-ca.
+	// Subject: CN = foo.
 	otherCert = `-----BEGIN CERTIFICATE-----
 MIIBqjCCAU+gAwIBAgIRAPnGGsBUMbZhmh5QdnYdBmUwCgYIKoZIzj0EAwIwGjEY
 MBYGA1UEAxMPaW50ZXJtZWRpYXRlLWNhMB4XDTIyMDIwOTEwMjUzMVoXDTIyMDIx
@@ -186,8 +186,7 @@ func TestFilterPEM(t *testing.T) {
 
 func TestFilterPEMChain(t *testing.T) {
 	type args struct {
-		input   string
-		pemType string
+		input string
 	}
 	tests := []struct {
 		name    string
@@ -219,8 +218,7 @@ func TestFilterPEMChain(t *testing.T) {
 
 func TestFilterPEMServer(t *testing.T) {
 	type args struct {
-		input   string
-		pemType string
+		input string
 	}
 	tests := []struct {
 		name    string
