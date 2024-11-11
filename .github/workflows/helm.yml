@@ -71,6 +71,8 @@ jobs:
     permissions:
       contents: write  # for helm/chart-releaser-action to push chart release and create a release
       packages: write  # to push OCI chart package to GitHub Registry
+      id-token: write  # gives the action the ability to mint the OIDC token necessary to request a Sigstore signing certificate
+      attestations: write # this permission is necessary to persist the attestation
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
