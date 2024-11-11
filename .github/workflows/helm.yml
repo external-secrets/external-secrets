@@ -137,5 +137,7 @@ jobs:
             if [ -z "${pkg:-}" ]; then
               break
             fi
-            helm push "${pkg}" "oci://ghcr.io/${GITHUB_REPOSITORY_OWNER}/charts"
+            lowercase_github_repository_owner=$(echo $GITHUB_REPOSITORY_OWNER |  tr '[:upper:]' '[:lower:]') # helm push fails when registry path contains Uppercase letters
+            chart_registry="ghcr.io/${lowercase_github_repository_owner}/charts"
+            helm push "${pkg}" "oci://${chart_registry}"
           done
