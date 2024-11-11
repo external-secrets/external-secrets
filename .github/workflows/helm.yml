@@ -133,6 +133,7 @@ jobs:
           cosign-release: 'v2.4.1'
 
       - name: Push chart to GHCR
+        id: push_chart
         run: |
           shopt -s nullglob
           for pkg in .cr-release-packages/*.tgz; do
@@ -146,4 +147,15 @@ jobs:
             digest=$(echo "$helm_push_output" | grep -o 'sha256:[a-z0-9]*')
             echo "$helm_push_output"
             cosign sign --yes "${chart_registry}/${chart_name}@${digest}"
+
+            echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+            echo "chart_name=${chart_name}" >> "$GITHUB_OUTPUT"
+            echo "registry=${chart_registry}" >> "$GITHUB_OUTPUT"
           done
+
+      - name: Generate provenance attestation and push to OCI registry
+        uses: actions/attest-build-provenance@v1.4.4
+        with:
+          push-to-registry: true
+          subject-name: ${{ steps.push_chart.outputs.registry }}/${{ steps.push_chart.outputs.chart_name }}
+          subject-digest: ${{ steps.push_chart.outputs.digest }}
