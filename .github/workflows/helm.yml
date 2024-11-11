@@ -148,7 +148,11 @@ jobs:
             digest=$(echo "$helm_push_output" | grep -o 'sha256:[a-z0-9]*')
             echo "$helm_push_output"
             
-            cosign sign --yes "${chart_registry}/${chart_name}@${digest}"
+            artifact_digest_uri="${chart_registry}/${chart_name}@${digest}"
+            cosign sign --yes "$artifact_digest_uri"
+            cosign verify "$artifact_digest_uri" \
+                --certificate-identity-regexp "https://github.com/$GITHUB_REPOSITORY/*" \
+                --certificate-oidc-issuer https://token.actions.githubusercontent.com
 
             echo "digest=${digest}" >> "$GITHUB_OUTPUT"
             echo "chart_name=${chart_name}" >> "$GITHUB_OUTPUT"
