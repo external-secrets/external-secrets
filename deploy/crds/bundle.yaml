@@ -2837,7 +2837,7 @@ spec:
                                   type: string
                               type: object
                             certificate:
-                              description: Content of the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.
+                              description: Content o f the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.
                               properties:
                                 secretRef:
                                   description: SecretRef references a key in a secret that will be used as value.
@@ -8701,7 +8701,7 @@ spec:
                                   type: string
                               type: object
                             certificate:
-                              description: Content of the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.
+                              description: Content o f the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.
                               properties:
                                 secretRef:
                                   description: SecretRef references a key in a secret that will be used as value.

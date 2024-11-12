@@ -1123,7 +1123,7 @@ BeyondTrustProviderSecretRef
 </em>
 </td>
 <td>
-<p>Content of the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.</p>
+<p>Content o f the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.</p>
 </td>
 </tr>
 <tr>
