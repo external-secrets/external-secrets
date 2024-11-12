@@ -30,7 +30,7 @@ type BeyondTrustProviderSecretRef struct {
 // Configures a store to sync secrets using BeyondTrust Password Safe.
 type BeyondtrustAuth struct {
 	// API Key. If API key is not provided then ClientID/ClientSecret become required.
-	ApiKey *BeyondTrustProviderSecretRef `json:"apiKey,omitempty"`
+	APIKey *BeyondTrustProviderSecretRef `json:"apiKey,omitempty"`
 	// API OAuth Client ID.
 	ClientID *BeyondTrustProviderSecretRef `json:"clientId,omitempty"`
 	// API OAuth Client Secret.
