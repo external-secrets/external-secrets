@@ -102,8 +102,6 @@ github.com/AzureAD/microsoft-authentication-extensions-for-go/cache v0.1.1/go.mo
 github.com/AzureAD/microsoft-authentication-library-for-go v1.1.1/go.mod h1:wP83P5OoQ5p6ip3ScPr0BAq0BvuPAvacpEuSzyouqAI=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.2.2 h1:XHOnouVk1mxXfQidrMEnLlPk9UMeRtyBTnEFtxkV0kU=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.2.2/go.mod h1:wP83P5OoQ5p6ip3ScPr0BAq0BvuPAvacpEuSzyouqAI=
-github.com/BeyondTrust/go-client-library-passwordsafe v0.8.1 h1:duuYLAx4xsdVgibSap1nHoLyYIj/IXdzmnUXjZw7Dmw=
-github.com/BeyondTrust/go-client-library-passwordsafe v0.8.1/go.mod h1:TnbBwWYg9rtfDxQGF7pmD0gCPcbWgCUQIqum3dFMRTk=
 github.com/BeyondTrust/go-client-library-passwordsafe v0.9.1 h1:4mDFg59G33h74UrvXln2oAz2ojXsKVoEI6XUMtOkBXw=
 github.com/BeyondTrust/go-client-library-passwordsafe v0.9.1/go.mod h1:TnbBwWYg9rtfDxQGF7pmD0gCPcbWgCUQIqum3dFMRTk=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=

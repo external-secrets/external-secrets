@@ -135,8 +135,8 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	backoffDefinition.MaxElapsedTime = time.Duration(retryMaxElapsedTimeMinutes) * time.Second
 	backoffDefinition.RandomizationFactor = 0.5
 
-	if config.Auth.ApiKey != nil {		
-		apiKey, err = loadConfigSecret(ctx, config.Auth.ApiKey, kube, namespace)
+	if config.Auth.APIKey != nil {
+		apiKey, err = loadConfigSecret(ctx, config.Auth.APIKey, kube, namespace)
 		if err != nil {
 			return nil, fmt.Errorf("error loading apiKey: %w", err)
 		}
@@ -145,7 +145,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		if err != nil {
 			return nil, fmt.Errorf("error loading clientID: %w", err)
 		}
-	
+
 		clientSecret, err = loadConfigSecret(ctx, config.Auth.ClientSecret, kube, namespace)
 		if err != nil {
 			return nil, fmt.Errorf("error loading clientSecret: %w", err)
@@ -170,7 +170,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 
 	// Create an instance of ValidationParams
 	params := utils.ValidationParams{
-		ApiKey:                   	apiKey,
+		ApiKey:                     apiKey,
 		ClientID:                   clientID,
 		ClientSecret:               clientSecret,
 		ApiUrl:                     &apiURL,
@@ -202,7 +202,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	// Two authentication methods are supported:
 	// 1. API Key authentication
 	// 2. Client Credentials authentication
-	if config.Auth.ApiKey != nil {
+	if config.Auth.APIKey != nil {
 		authenticate, _ = auth.AuthenticateUsingApiKey(*httpClientObj, backoffDefinition, apiURL, logger, retryMaxElapsedTimeMinutes, apiKey)
 	} else {
 		authenticate, _ = auth.Authenticate(*httpClientObj, backoffDefinition, apiURL, clientID, clientSecret, logger, retryMaxElapsedTimeMinutes)

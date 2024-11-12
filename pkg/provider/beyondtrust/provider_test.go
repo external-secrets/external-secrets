@@ -29,7 +29,7 @@ import (
 const (
 	errTestCase  = "Test case Failed"
 	fakeAPIURL   = "https://example.com:443/BeyondTrust/api/public/v3/"
-	apiKey	 	 = "fakeapikey00fakeapikeydd0000000000065b010f20fakeapikey0000000008700000a93fb5d74fddc0000000000000000000000000000000000000;runas=test_user"
+	apiKey       = "fakeapikey00fakeapikeydd0000000000065b010f20fakeapikey0000000008700000a93fb5d74fddc0000000000000000000000000000000000000;runas=test_user"
 	clientID     = "12345678-25fg-4b05-9ced-35e7dd5093ae"
 	clientSecret = "12345678-25fg-4b05-9ced-35e7dd5093ae"
 )
@@ -283,7 +283,7 @@ func TestNewClient(t *testing.T) {
 								},
 
 								Auth: &esv1beta1.BeyondtrustAuth{
-									ApiKey: &esv1beta1.BeyondTrustProviderSecretRef{
+									APIKey: &esv1beta1.BeyondTrustProviderSecretRef{
 										Value: apiKey,
 									},
 								},
@@ -311,7 +311,7 @@ func TestNewClient(t *testing.T) {
 								},
 
 								Auth: &esv1beta1.BeyondtrustAuth{
-									ApiKey: &esv1beta1.BeyondTrustProviderSecretRef{
+									APIKey: &esv1beta1.BeyondTrustProviderSecretRef{
 										Value: "bad_api_key",
 									},
 								},
