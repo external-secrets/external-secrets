@@ -118,6 +118,10 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	retryMaxElapsedTimeMinutes := 15
 	separator := "/"
 
+	var clientID, clientSecret, apiKey string
+	var err error
+	var authenticate *auth.AuthenticationObj
+
 	if config.Server.Separator != "" {
 		separator = config.Server.Separator
 	}
@@ -131,14 +135,21 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	backoffDefinition.MaxElapsedTime = time.Duration(retryMaxElapsedTimeMinutes) * time.Second
 	backoffDefinition.RandomizationFactor = 0.5
 
-	clientID, err := loadConfigSecret(ctx, config.Auth.ClientID, kube, namespace)
-	if err != nil {
-		return nil, fmt.Errorf("error loading clientID: %w", err)
-	}
-
-	clientSecret, err := loadConfigSecret(ctx, config.Auth.ClientSecret, kube, namespace)
-	if err != nil {
-		return nil, fmt.Errorf("error loading clientSecret: %w", err)
+	if config.Auth.ApiKey != nil {		
+		apiKey, err = loadConfigSecret(ctx, config.Auth.ApiKey, kube, namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error loading apiKey: %w", err)
+		}
+	} else {
+		clientID, err = loadConfigSecret(ctx, config.Auth.ClientID, kube, namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error loading clientID: %w", err)
+		}
+	
+		clientSecret, err = loadConfigSecret(ctx, config.Auth.ClientSecret, kube, namespace)
+		if err != nil {
+			return nil, fmt.Errorf("error loading clientSecret: %w", err)
+		}
 	}
 
 	if config.Auth.Certificate != nil && config.Auth.CertificateKey != nil {
@@ -159,6 +170,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 
 	// Create an instance of ValidationParams
 	params := utils.ValidationParams{
+		ApiKey:                   	apiKey,
 		ClientID:                   clientID,
 		ClientSecret:               clientSecret,
 		ApiUrl:                     &apiURL,
@@ -185,8 +197,16 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return nil, fmt.Errorf("error creating http client: %w", err)
 	}
 
-	// instantiating authenticate obj, injecting httpClient object
-	authenticate, _ := auth.Authenticate(*httpClientObj, backoffDefinition, apiURL, clientID, clientSecret, logger, retryMaxElapsedTimeMinutes)
+	// Instantiate the appropriate authentication object based on the provided authentication method.
+	// The httpClientObj is injected to handle HTTP requests.
+	// Two authentication methods are supported:
+	// 1. API Key authentication
+	// 2. Client Credentials authentication
+	if config.Auth.ApiKey != nil {
+		authenticate, _ = auth.AuthenticateUsingApiKey(*httpClientObj, backoffDefinition, apiURL, logger, retryMaxElapsedTimeMinutes, apiKey)
+	} else {
+		authenticate, _ = auth.Authenticate(*httpClientObj, backoffDefinition, apiURL, clientID, clientSecret, logger, retryMaxElapsedTimeMinutes)
+	}
 
 	return &Provider{
 		apiURL:        config.Server.APIURL,
