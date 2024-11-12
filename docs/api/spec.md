@@ -1076,6 +1076,19 @@ External Secrets meta/v1.SecretKeySelector
 <tbody>
 <tr>
 <td>
+<code>apiKey</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BeyondTrustProviderSecretRef">
+BeyondTrustProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>API Key. If API key is not provided then ClientID/ClientSecret become required.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>clientId</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.BeyondTrustProviderSecretRef">
@@ -1084,6 +1097,7 @@ BeyondTrustProviderSecretRef
 </em>
 </td>
 <td>
+<p>API OAuth Client ID.</p>
 </td>
 </tr>
 <tr>
@@ -1096,6 +1110,7 @@ BeyondTrustProviderSecretRef
 </em>
 </td>
 <td>
+<p>API OAuth Client Secret.</p>
 </td>
 </tr>
 <tr>
@@ -1108,7 +1123,7 @@ BeyondTrustProviderSecretRef
 </em>
 </td>
 <td>
-<p>Content of the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.</p>
+<p>Content o f the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.</p>
 </td>
 </tr>
 <tr>
