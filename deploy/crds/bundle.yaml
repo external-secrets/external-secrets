@@ -2812,8 +2812,32 @@ spec:
                         auth:
                           description: Auth configures how the operator authenticates with Beyondtrust.
                           properties:
+                            apiKey:
+                              description: API Key. If API key is not provided then ClientID/ClientSecret become required.
+                              properties:
+                                secretRef:
+                                  description: SecretRef references a key in a secret that will be used as value.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                value:
+                                  description: Value can be specified directly to set a value without using a secret.
+                                  type: string
+                              type: object
                             certificate:
-                              description: Content of the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.
+                              description: Content o f the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.
                               properties:
                                 secretRef:
                                   description: SecretRef references a key in a secret that will be used as value.
@@ -2861,6 +2885,7 @@ spec:
                                   type: string
                               type: object
                             clientId:
+                              description: API OAuth Client ID.
                               properties:
                                 secretRef:
                                   description: SecretRef references a key in a secret that will be used as value.
@@ -2884,6 +2909,7 @@ spec:
                                   type: string
                               type: object
                             clientSecret:
+                              description: API OAuth Client Secret.
                               properties:
                                 secretRef:
                                   description: SecretRef references a key in a secret that will be used as value.
@@ -2906,9 +2932,6 @@ spec:
                                   description: Value can be specified directly to set a value without using a secret.
                                   type: string
                               type: object
-                          required:
-                            - clientId
-                            - clientSecret
                           type: object
                         server:
                           description: Auth configures how API server works.
@@ -8653,8 +8676,32 @@ spec:
                         auth:
                           description: Auth configures how the operator authenticates with Beyondtrust.
                           properties:
+                            apiKey:
+                              description: API Key. If API key is not provided then ClientID/ClientSecret become required.
+                              properties:
+                                secretRef:
+                                  description: SecretRef references a key in a secret that will be used as value.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        The key of the entry in the Secret resource's `data` field to be used. Some instances of this field may be
+                                        defaulted, in others it may be required.
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to. Ignored if referent is not cluster-scoped. cluster-scoped defaults
+                                        to the namespace of the referent.
+                                      type: string
+                                  type: object
+                                value:
+                                  description: Value can be specified directly to set a value without using a secret.
+                                  type: string
+                              type: object
                             certificate:
-                              description: Content of the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.
+                              description: Content o f the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.
                               properties:
                                 secretRef:
                                   description: SecretRef references a key in a secret that will be used as value.
@@ -8702,6 +8749,7 @@ spec:
                                   type: string
                               type: object
                             clientId:
+                              description: API OAuth Client ID.
                               properties:
                                 secretRef:
                                   description: SecretRef references a key in a secret that will be used as value.
@@ -8725,6 +8773,7 @@ spec:
                                   type: string
                               type: object
                             clientSecret:
+                              description: API OAuth Client Secret.
                               properties:
                                 secretRef:
                                   description: SecretRef references a key in a secret that will be used as value.
@@ -8747,9 +8796,6 @@ spec:
                                   description: Value can be specified directly to set a value without using a secret.
                                   type: string
                               type: object
-                          required:
-                            - clientId
-                            - clientSecret
                           type: object
                         server:
                           description: Auth configures how API server works.
