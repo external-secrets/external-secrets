@@ -22,24 +22,25 @@ Imagine you have your secrets in GCP and you want to back them up in Azure Key V
 
 There are two ways to push an entire secret without defining all keys individually.
 
-By leaving off the secret key and remote property options.
+1. By leaving off the secret key and remote property options.
 
-```yaml
-{% include 'full-pushsecret-no-key-no-property.yaml' %}
-```
+    ```yaml
+    {% include 'full-pushsecret-no-key-no-property.yaml' %}
+    ```
+    This will result in all keys being pushed as they are into the remote location.
 
-This will result in all keys being pushed as they are into the remote location.
+2. By leaving off the secret key but setting the remote property option.
 
-By leaving off the secret key but setting the remote property option.
+    ```yaml
+    {% include 'full-pushsecret-no-key-with-property.yaml' %}
+    ```
 
-```yaml
-{% include 'full-pushsecret-no-key-with-property.yaml' %}
-```
+    This will _marshal_ the entire secret data and push it into this single property as a JSON object.
 
-This will _marshal_ the entire secret data and push it into this single property as a JSON object.
+    !!! warning inline
 
-!!! warning inline
-    This should _ONLY_ be done if the secret data is marshal-able. Values like, binary data cannot be marshaled and will result in error or invalid secret data.
+        This should _ONLY_ be done if the secret data is marshal-able. Values like, binary data cannot be marshaled and will result in error or invalid secret data.
+
 
 ### Key conversion strategy
 You can also set `data[*].conversionStrategy: ReverseUnicode` to reverse the invalid character replaced by the `conversionStrategy: Unicode` configuration in the `ExternalSecret` object as [documented here](../guides/getallsecrets.md#avoiding-name-conflicts).
