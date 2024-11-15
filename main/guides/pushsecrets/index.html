@@ -1716,11 +1716,35 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#1-by-leaving-off-the-secret-key-and-remote-property-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. By leaving off the secret key and remote property options.
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-by-leaving-off-the-secret-key-but-setting-the-remote-property-option" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. By leaving off the secret key but setting the remote property option.
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. By leaving off the secret key but setting the remote property option.">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#key-conversion-strategy" class="md-nav__link">
     <span class="md-ellipsis">
       Key conversion strategy
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -3341,11 +3365,35 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#1-by-leaving-off-the-secret-key-and-remote-property-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. By leaving off the secret key and remote property options.
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-by-leaving-off-the-secret-key-but-setting-the-remote-property-option" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. By leaving off the secret key but setting the remote property option.
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. By leaving off the secret key but setting the remote property option.">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#key-conversion-strategy" class="md-nav__link">
     <span class="md-ellipsis">
       Key conversion strategy
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -3433,8 +3481,8 @@
 <p><img alt="PushSecretBackup" src="../../pictures/diagrams-pushsecret-backup.png" /></p>
 <h2 id="pushing-the-whole-secret">Pushing the whole secret</h2>
 <p>There are two ways to push an entire secret without defining all keys individually.</p>
-<p>By leaving off the secret key and remote property options.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<h3 id="1-by-leaving-off-the-secret-key-and-remote-property-options">1. By leaving off the secret key and remote property options.</h3>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pushsecret-example</span><span class="w"> </span><span class="c1"># Customisable</span>
@@ -3453,8 +3501,8 @@
 <span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-first-parameter</span><span class="w"> </span><span class="c1"># Remote reference (where the secret is going to be pushed)</span>
 </code></pre></div>
-<p>This will result in all keys being pushed as they are into the remote location.</p>
-<p>By leaving off the secret key but setting the remote property option.</p>
+This will result in all keys being pushed as they are into the remote location.</p>
+<h3 id="2-by-leaving-off-the-secret-key-but-setting-the-remote-property-option">2. By leaving off the secret key but setting the remote property option.</h3>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -3477,11 +3525,11 @@
 <span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">single-value-secret</span><span class="w"> </span><span class="c1"># the property to use to push into</span>
 </code></pre></div>
 <p>This will <em>marshal</em> the entire secret data and push it into this single property as a JSON object.</p>
-<div class="admonition warning inline">
+<div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>This should <em>ONLY</em> be done if the secret data is marshal-able. Values like, binary data cannot be marshaled and will result in error or invalid secret data.</p>
 </div>
-<h3 id="key-conversion-strategy">Key conversion strategy</h3>
+<h4 id="key-conversion-strategy">Key conversion strategy</h4>
 <p>You can also set <code>data[*].conversionStrategy: ReverseUnicode</code> to reverse the invalid character replaced by the <code>conversionStrategy: Unicode</code> configuration in the <code>ExternalSecret</code> object as <a href="../getallsecrets/#avoiding-name-conflicts">documented here</a>.</p>
 <h2 id="rotate-secrets">Rotate Secrets</h2>
 <p>You can use ESO to rotate secrets by using the PushSecret and Generator resources. ESO will consult the <code>Kind=Generator</code> to generate a new secret and then ESO will store it.
