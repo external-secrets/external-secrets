@@ -142,7 +142,7 @@ jobs:
             fi
             chart_name=$(helm show chart "${pkg}" | yq .name)
             # helm push fails when registry path contains Uppercase letters
-            chart_registry="ghcr.io/$(echo $GITHUB_REPOSITORY_OWNER |  tr '[:upper:]' '[:lower:]')/charts"
+            chart_registry="ghcr.io/${GITHUB_REPOSITORY_OWNER}/charts"
             
             helm_push_output=$(helm push "${pkg}" "oci://${chart_registry}" 2>&1)
             digest=$(echo "$helm_push_output" | grep -o 'sha256:[a-z0-9]*')
