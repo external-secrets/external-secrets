@@ -1,4 +1,4 @@
-## Generic Webhook
+f## Generic Webhook
 
 External Secrets Operator can integrate with simple web apis by specifying the endpoint
 
@@ -48,7 +48,7 @@ kind: ExternalSecret
 metadata:
   name: webhook-example
 spec:
-  refreshInterval: "15s"
+  refreshInterval: "1h"
   secretStoreRef:
     name: webhook-backend
     kind: SecretStore

@@ -63,7 +63,7 @@ kind: ExternalSecret
 metadata:
   name: vault-example
 spec:
-  refreshInterval: "15s"
+  refreshInterval: "1h"
   secretStoreRef:
     name: vault-backend
     kind: SecretStore

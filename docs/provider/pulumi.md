@@ -38,7 +38,7 @@ kind: ExternalSecret
 metadata:
   name: secret
 spec:
-  refreshInterval: 5m
+  refreshInterval: 1h
   secretStoreRef:
     kind: SecretStore
     name: secret-store
@@ -84,7 +84,7 @@ kind: PushSecret
 metadata:
   name: push-secret-example
 spec:
-  refreshInterval: 10s
+  refreshInterval: 1h
   selector:
     secret:
       name: <NAME_OF_KUBE_SECRET>
