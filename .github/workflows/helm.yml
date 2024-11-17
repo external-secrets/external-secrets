@@ -90,22 +90,20 @@ jobs:
       - name: Generate chart
         run: |
           make helm.generate
-      ## Temporarily removing - This is making the release break.
-      # - name: Import GPG key
-      #   run: |
-      #     echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --dearmor --output keyring.gpg
-      #     echo "${{ secrets.GPG_PASSPHRASE }}" > passphrase-file.txt
+      - name: Import GPG key
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --dearmor --output keyring.gpg
+          echo -n "${{ secrets.GPG_PASSPHRASE }}" > passphrase-file.txt
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@a917fd15b20e8b64b94d9158ad54cd6345335584 # v1.6.0
         if: |
           github.ref == 'refs/heads/main' ||
           startsWith(github.ref, 'refs/heads/release-')
         env:
-          ## Temporarily removing - This is making the release break
-          # CR_KEY: external-secrets <external-secrets@external-secrets.io>
-          # CR_KEYRING: keyring.gpg
-          # CR_PASSPHRASE_FILE: passphrase-file.txt
-          # CR_SIGN: true
+          CR_KEY: external-secrets <external-secrets@external-secrets.io>
+          CR_KEYRING: keyring.gpg
+          CR_PASSPHRASE_FILE: passphrase-file.txt
+          CR_SIGN: true
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
           CR_RELEASE_NAME_TEMPLATE: "helm-chart-{{ .Version }}"
         with:
