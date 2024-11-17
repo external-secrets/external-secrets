@@ -97,7 +97,7 @@ metadata:
   labels:
     app.kubernetes.io/name: external-secrets
 spec:
-  refreshInterval: 15m
+  refreshInterval: 1h
   secretStoreRef:
     name: vivid-clustersecretstore # name of ClusterSecretStore
     kind: ClusterSecretStore
