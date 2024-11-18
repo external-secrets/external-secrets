@@ -117,7 +117,7 @@ kind: ExternalSecret
 metadata:
   name: beyondtrust-external-secret
 spec:
-  refreshInterval: 300s
+  refreshInterval: 1h
   secretStoreRef:
     kind: SecretStore
     name: secretstore-beyondtrust
