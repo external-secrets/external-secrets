@@ -65,6 +65,18 @@ type Provider struct {
 	separator     string
 }
 
+type AuthenticatorInput struct {
+    Config                     *esv1beta1.BeyondtrustProvider
+    HttpClientObj              utils.HttpClientObj
+    BackoffDefinition          *backoff.ExponentialBackOff
+    ApiURL                     string
+    ClientID                   string
+    ClientSecret               string
+    ApiKey                     string
+    Logger                     *logging.LogrLogger
+    RetryMaxElapsedTimeMinutes int
+}
+
 // Capabilities implements v1beta1.Provider.
 func (*Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
@@ -121,7 +133,20 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 
 	backoffDefinition := getBackoffDefinition(retryMaxElapsedTimeMinutes)
 
-	params := getValidationParams(config, apiKey, clientID, clientSecret, certificate, certificateKey, clientTimeOutInSeconds, separator, retryMaxElapsedTimeMinutes, logger)
+	params := utils.ValidationParams{
+		ApiKey:                     apiKey,
+		ClientID:                   clientID,
+		ClientSecret:               clientSecret,
+		ApiUrl:                     &config.Server.APIURL,
+		ClientTimeOutInSeconds:     clientTimeOutInSeconds,
+		Separator:                  &separator,
+		VerifyCa:                   config.Server.VerifyCA,
+		Logger:                     logger,
+		Certificate:                certificate,
+		CertificateKey:             certificateKey,
+		RetryMaxElapsedTimeMinutes: &retryMaxElapsedTimeMinutes,
+		MaxFileSecretSizeBytes:     &maxFileSecretSizeBytes,
+	}
 
 	if err := validateInputs(params); err != nil {
 		return nil, fmt.Errorf("error in Inputs: %w", err)
@@ -132,7 +157,20 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return nil, fmt.Errorf("error creating HTTP client: %w", err)
 	}
 
-	authenticate, err := getAuthenticator(config, *httpClient, backoffDefinition, config.Server.APIURL, clientID, clientSecret, apiKey, logger, retryMaxElapsedTimeMinutes)
+	authenticatorInput := AuthenticatorInput{
+		Config:                     config,
+		HttpClientObj:              *httpClient,
+		BackoffDefinition:          backoffDefinition,
+		ApiURL:                     config.Server.APIURL,
+		ClientID:                   clientID,
+		ClientSecret:               clientSecret,
+		ApiKey:                     apiKey,
+		Logger:                     logger,
+		RetryMaxElapsedTimeMinutes: retryMaxElapsedTimeMinutes,
+	}
+	
+	authenticate, err := getAuthenticator(authenticatorInput)
+	
 	if err != nil {
 		return nil, fmt.Errorf("error authenticating: %w", err)
 	}
@@ -207,33 +245,16 @@ func getBackoffDefinition(retryMaxElapsedTimeMinutes int) *backoff.ExponentialBa
 	return backoffDefinition
 }
 
-func getValidationParams(config *esv1beta1.BeyondtrustProvider, apiKey, clientID, clientSecret, certificate, certificateKey string, clientTimeOutInSeconds int, separator string, retryMaxElapsedTimeMinutes int, logger *logging.LogrLogger) utils.ValidationParams {
-	return utils.ValidationParams{
-		ApiKey:                     apiKey,
-		ClientID:                   clientID,
-		ClientSecret:               clientSecret,
-		ApiUrl:                     &config.Server.APIURL,
-		ClientTimeOutInSeconds:     clientTimeOutInSeconds,
-		Separator:                  &separator,
-		VerifyCa:                   config.Server.VerifyCA,
-		Logger:                     logger,
-		Certificate:                certificate,
-		CertificateKey:             certificateKey,
-		RetryMaxElapsedTimeMinutes: &retryMaxElapsedTimeMinutes,
-		MaxFileSecretSizeBytes:     &maxFileSecretSizeBytes,
-	}
-}
-
 func validateInputs(params utils.ValidationParams) error {
 	return utils.ValidateInputs(params)
 }
 
-func getAuthenticator(config *esv1beta1.BeyondtrustProvider, httpClient utils.HttpClientObj, backoffDefinition *backoff.ExponentialBackOff, apiURL, clientID, clientSecret, apiKey string, logger *logging.LogrLogger, retryMaxElapsedTimeMinutes int) (*auth.AuthenticationObj, error) {
-	if config.Auth.APIKey != nil {
-		return auth.AuthenticateUsingApiKey(httpClient, backoffDefinition, apiURL, logger, retryMaxElapsedTimeMinutes, apiKey)
-	} else {
-		return auth.Authenticate(httpClient, backoffDefinition, apiURL, clientID, clientSecret, logger, retryMaxElapsedTimeMinutes)
-	}
+func getAuthenticator(input AuthenticatorInput) (*auth.AuthenticationObj, error) {
+    if input.Config.Auth.APIKey != nil {
+        return auth.AuthenticateUsingApiKey(input.HttpClientObj, input.BackoffDefinition, input.ApiURL, input.Logger, input.RetryMaxElapsedTimeMinutes, input.ApiKey)
+    } else {
+        return auth.Authenticate(input.HttpClientObj, input.BackoffDefinition, input.ApiURL, input.ClientID, input.ClientSecret, input.Logger, input.RetryMaxElapsedTimeMinutes)
+    }
 }
 
 func loadConfigSecret(ctx context.Context, ref *esv1beta1.BeyondTrustProviderSecretRef, kube client.Client, defaultNamespace string) (string, error) {
