@@ -531,6 +531,25 @@ func TestPushSecret(t *testing.T) {
 			"managed-by": "external-secrets",
 		},
 	}
+	secretWithTopics := secretmanagerpb.Secret{
+		Name: "projects/default/secrets/baz",
+		Replication: &secretmanagerpb.Replication{
+			Replication: &secretmanagerpb.Replication_Automatic_{
+				Automatic: &secretmanagerpb.Replication_Automatic{},
+			},
+		},
+		Labels: map[string]string{
+			"managed-by": "external-secrets",
+		},
+		Topics: []*secretmanagerpb.Topic{
+			{
+				Name: "topic1",
+			},
+			{
+				Name: "topic2",
+			},
+		},
+	}
 	wrongLabelSecret := secretmanagerpb.Secret{
 		Name: "projects/default/secrets/foo-bar",
 		Replication: &secretmanagerpb.Replication{
@@ -677,7 +696,7 @@ func TestPushSecret(t *testing.T) {
 
 					user, ok := req.Secret.Replication.Replication.(*secretmanagerpb.Replication_UserManaged_)
 					if !ok {
-						return errors.New("req.Secret.Replication.Replication was not of type *secretmanagerpb.Replication_UserManaged_")
+						return fmt.Errorf("req.Secret.Replication.Replication was not of type *secretmanagerpb.Replication_UserManaged_ but: %T", req.Secret.Replication.Replication)
 					}
 
 					if len(user.UserManaged.Replicas) < 1 {
@@ -693,16 +712,47 @@ func TestPushSecret(t *testing.T) {
 			},
 		},
 		{
-			desc: "failed to push a secret with invalid metadata type",
+			desc: "SetSecret successfully pushes a secret with topics",
 			args: args{
-				store: &esv1beta1.GCPSMProvider{ProjectID: smtc.projectID},
-				mock:  smtc.mockClient,
 				Metadata: &apiextensionsv1.JSON{
-					Raw: []byte(`{"tags":{"tag-key1":"tag-value1"}}`),
+					Raw: []byte(`{"topics":["topic1", "topic2"]}`),
 				},
-				GetSecretMockReturn: fakesm.SecretMockReturn{Secret: &secret, Err: nil}},
+				store:                         &esv1beta1.GCPSMProvider{ProjectID: smtc.projectID},
+				mock:                          &fakesm.MockSMClient{}, // the mock should NOT be shared between test cases
+				CreateSecretMockReturn:        fakesm.SecretMockReturn{Secret: &secretWithTopics, Err: nil},
+				GetSecretMockReturn:           fakesm.SecretMockReturn{Secret: nil, Err: notFoundError},
+				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
+				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil}},
 			want: want{
-				err: errors.New("failed to decode PushSecret metadata"),
+				err: nil,
+				req: func(m *fakesm.MockSMClient) error {
+					scrt, ok := m.CreateSecretCalledWithN[0]
+					if !ok {
+						return errors.New("index 0 for call not found in the list of calls")
+					}
+
+					if scrt.Secret == nil {
+						return errors.New("index 0 for call was nil")
+					}
+
+					if len(scrt.Secret.Topics) != 2 {
+						return fmt.Errorf("secret topics count was not 2 but: %d", len(scrt.Secret.Topics))
+					}
+
+					if scrt.Secret.Topics[0].Name != "topic1" {
+						return fmt.Errorf("secret topic name for 1 was not topic1 but: %s", scrt.Secret.Topics[0].Name)
+					}
+
+					if scrt.Secret.Topics[1].Name != "topic2" {
+						return fmt.Errorf("secret topic name for 2 was not topic2 but: %s", scrt.Secret.Topics[1].Name)
+					}
+
+					if m.UpdateSecretCallN != 0 {
+						return fmt.Errorf("updateSecret called with %d", m.UpdateSecretCallN)
+					}
+
+					return nil
+				},
 			},
 		},
 		{

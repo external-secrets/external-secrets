@@ -41,6 +41,10 @@ type VaultDynamicSecretSpec struct {
 	// +kubebuilder:default=Data
 	ResultType VaultDynamicSecretResultType `json:"resultType,omitempty"`
 
+	// Used to configure http retries if failed
+	// +optional
+	RetrySettings *esv1beta1.SecretStoreRetrySettings `json:"retrySettings,omitempty"`
+
 	// Vault provider common spec
 	Provider *esv1beta1.VaultProvider `json:"provider"`
 

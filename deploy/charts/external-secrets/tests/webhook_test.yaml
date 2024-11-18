@@ -161,6 +161,18 @@ tests:
     templates:
       - validatingwebhook.yaml
       - crds/externalsecret.yaml
+  - it: should have the correct labels
+    set:
+      webhook.create: true
+    templates:
+      - validatingwebhook.yaml
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: "external-secrets-webhook"
+      - equal:
+          path: metadata.labels["app.kubernetes.io/instance"]
+          value: "RELEASE-NAME"
   - it: should override metrics port
     set:
       webhook.metrics.listen.port: 8888
