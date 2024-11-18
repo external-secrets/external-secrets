@@ -218,7 +218,9 @@ var rootCmd = &cobra.Command{
 				ControllerClass: controllerClass,
 				RestConfig:      mgr.GetConfig(),
 				RequeueInterval: time.Hour,
-			}).SetupWithManager(mgr); err != nil {
+			}).SetupWithManager(mgr, controller.Options{
+				MaxConcurrentReconciles: concurrent,
+			}); err != nil {
 				setupLog.Error(err, errCreateController, "controller", "PushSecret")
 				os.Exit(1)
 			}
