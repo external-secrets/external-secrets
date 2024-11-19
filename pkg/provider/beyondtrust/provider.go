@@ -124,7 +124,16 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	config := store.GetSpec().Provider.Beyondtrust
 	logger := logging.NewLogrLogger(&ESOLogger)
 
-	clientID, clientSecret, apiKey, certificate, certificateKey, err := loadSecretsFromConfig(ctx, config, kube, namespace)
+	clientID, clientSecret, apiKey, err := loadCredentialsFromConfig(ctx, config, kube, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error loading credentials: %w", err)
+	}
+
+	certificate, certificateKey, err := loadCertificateFromConfig(ctx, config, kube, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("error loading certificate: %w", err)
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("error loading secrets: %w", err)
 	}
@@ -184,40 +193,47 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	}, nil
 }
 
-func loadSecretsFromConfig(ctx context.Context, config *esv1beta1.BeyondtrustProvider, kube client.Client, namespace string) (string, string, string, string, string, error) {
-	var clientID, clientSecret, apiKey, certificate, certificateKey string
+func loadCredentialsFromConfig(ctx context.Context, config *esv1beta1.BeyondtrustProvider, kube client.Client, namespace string) (string, string, string, error) {
+	var clientID, clientSecret, apiKey string
 	var err error
 
 	if config.Auth.APIKey != nil {
 		apiKey, err = loadConfigSecret(ctx, config.Auth.APIKey, kube, namespace)
 		if err != nil {
-			return "", "", "", "", "", fmt.Errorf("error loading apiKey: %w", err)
+			return "", "", "", fmt.Errorf("error loading apiKey: %w", err)
 		}
 	} else {
 		clientID, err = loadConfigSecret(ctx, config.Auth.ClientID, kube, namespace)
 		if err != nil {
-			return "", "", "", "", "", fmt.Errorf("error loading clientID: %w", err)
+			return "", "", "", fmt.Errorf("error loading clientID: %w", err)
 		}
 
 		clientSecret, err = loadConfigSecret(ctx, config.Auth.ClientSecret, kube, namespace)
 		if err != nil {
-			return "", "", "", "", "", fmt.Errorf("error loading clientSecret: %w", err)
+			return "", "", "", fmt.Errorf("error loading clientSecret: %w", err)
 		}
 	}
+
+	return clientID, clientSecret, apiKey, nil
+}
+
+func loadCertificateFromConfig(ctx context.Context, config *esv1beta1.BeyondtrustProvider, kube client.Client, namespace string) (string, string, error) {
+	var certificate, certificateKey string
+	var err error
 
 	if config.Auth.Certificate != nil && config.Auth.CertificateKey != nil {
 		certificate, err = loadConfigSecret(ctx, config.Auth.Certificate, kube, namespace)
 		if err != nil {
-			return "", "", "", "", "", fmt.Errorf("error loading Certificate: %w", err)
+			return "", "", fmt.Errorf("error loading Certificate: %w", err)
 		}
 
 		certificateKey, err = loadConfigSecret(ctx, config.Auth.CertificateKey, kube, namespace)
 		if err != nil {
-			return "", "", "", "", "", fmt.Errorf("error loading Certificate Key: %w", err)
+			return "", "", fmt.Errorf("error loading Certificate Key: %w", err)
 		}
 	}
 
-	return clientID, clientSecret, apiKey, certificate, certificateKey, nil
+	return certificate, certificateKey, nil
 }
 
 func getConfigValues(config *esv1beta1.BeyondtrustProvider) (int, string, int) {
