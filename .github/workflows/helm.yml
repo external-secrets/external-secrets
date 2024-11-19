@@ -93,6 +93,9 @@ jobs:
         run: |
           make helm.generate
       - name: Import GPG key
+        if: |
+          github.ref == 'refs/heads/main' ||
+          startsWith(github.ref, 'refs/heads/release-')
         run: |
           echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --dearmor --output keyring.gpg
           echo -n "${{ secrets.GPG_PASSPHRASE }}" > passphrase-file.txt
