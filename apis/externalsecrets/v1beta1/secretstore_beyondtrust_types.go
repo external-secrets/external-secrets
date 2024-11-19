@@ -31,7 +31,7 @@ type BeyondTrustProviderSecretRef struct {
 type BeyondtrustAuth struct {
 	// APIKey If not provided then ClientID/ClientSecret become required.
 	APIKey *BeyondTrustProviderSecretRef `json:"apiKey,omitempty"`
-	// API OAuth Client ID.
+	// ClientID is the API OAuth Client ID.
 	ClientID *BeyondTrustProviderSecretRef `json:"clientId,omitempty"`
 	// API OAuth Client Secret.
 	ClientSecret *BeyondTrustProviderSecretRef `json:"clientSecret,omitempty"`
