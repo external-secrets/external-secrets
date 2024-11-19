@@ -33,7 +33,7 @@ type BeyondtrustAuth struct {
 	APIKey *BeyondTrustProviderSecretRef `json:"apiKey,omitempty"`
 	// ClientID is the API OAuth Client ID.
 	ClientID *BeyondTrustProviderSecretRef `json:"clientId,omitempty"`
-	// API OAuth Client Secret.
+	// ClientSecret is the API OAuth Client Secret.
 	ClientSecret *BeyondTrustProviderSecretRef `json:"clientSecret,omitempty"`
 	// Content o f the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.
 	Certificate *BeyondTrustProviderSecretRef `json:"certificate,omitempty"`
