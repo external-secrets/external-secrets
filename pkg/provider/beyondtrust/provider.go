@@ -252,9 +252,9 @@ func validateInputs(params utils.ValidationParams) error {
 func getAuthenticator(input AuthenticatorInput) (*auth.AuthenticationObj, error) {
     if input.Config.Auth.APIKey != nil {
         return auth.AuthenticateUsingApiKey(input.HttpClientObj, input.BackoffDefinition, input.ApiURL, input.Logger, input.RetryMaxElapsedTimeMinutes, input.ApiKey)
-    } else {
-        return auth.Authenticate(input.HttpClientObj, input.BackoffDefinition, input.ApiURL, input.ClientID, input.ClientSecret, input.Logger, input.RetryMaxElapsedTimeMinutes)
     }
+
+    return auth.Authenticate(input.HttpClientObj, input.BackoffDefinition, input.ApiURL, input.ClientID, input.ClientSecret, input.Logger, input.RetryMaxElapsedTimeMinutes)
 }
 
 func loadConfigSecret(ctx context.Context, ref *esv1beta1.BeyondTrustProviderSecretRef, kube client.Client, defaultNamespace string) (string, error) {
