@@ -69,8 +69,7 @@ jobs:
 
   release:
     permissions:
-      contents: write  # for helm/chart-releaser-action to push chart release and create a release
-      packages: write  # to push OCI chart package to GitHub Registry
+      contents: read
     runs-on: ubuntu-latest
     if: |
       github.ref == 'refs/heads/main' ||
@@ -97,6 +96,9 @@ jobs:
           echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --dearmor --output keyring.gpg
           echo -n "${{ secrets.GPG_PASSPHRASE }}" > passphrase-file.txt
       - name: Run chart-releaser
+        permissions:
+          contents: write  # for helm/chart-releaser-action to push chart release and create a release
+          packages: write  # to push OCI chart package to GitHub Registry
         uses: helm/chart-releaser-action@a917fd15b20e8b64b94d9158ad54cd6345335584 # v1.6.0
         env:
           CR_KEY: external-secrets <external-secrets@external-secrets.io>
@@ -158,6 +160,9 @@ jobs:
           done
 
       - name: Generate provenance attestation and push to OCI registry
+        permissions:
+          attestation: write
+          packages: write
         uses: actions/attest-build-provenance@v1.4.4
         with:
           push-to-registry: true
