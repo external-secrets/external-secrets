@@ -575,13 +575,25 @@ func (r *Reconciler) updateSecret(ctx context.Context, existingSecret *v1.Secret
 		// check if the metadata was changed
 		metadataChanged := !equality.Semantic.DeepEqual(existingSecret.ObjectMeta, updatedSecret.ObjectMeta)
 
-		// check if the immutable data was changed
-		existingSecret.ObjectMeta = *updatedSecret.ObjectMeta.DeepCopy()
-		dataChanged := !equality.Semantic.DeepEqual(existingSecret, updatedSecret)
-
-		// even if the immutable data was changed, we should update the metadata
-		// so we can keep track of this secret (we use labels and annotations for this)
+		// check if the immutable data/type was changed
+		var dataChanged bool
 		if metadataChanged {
+			// update the `existingSecret` object with the metadata from `updatedSecret`
+			// this lets us compare the objects to see if the immutable data/type was changed
+			existingSecret.ObjectMeta = *updatedSecret.ObjectMeta.DeepCopy()
+			dataChanged = !equality.Semantic.DeepEqual(existingSecret, updatedSecret)
+		} else {
+			// we know there was some change in the secret (or we would have returned early)
+			// we know the metadata was NOT changed (metadataChanged == false)
+			// so, the only thing that could have changed is the immutable data/type fields
+			dataChanged = true
+		}
+
+		// because we use labels and annotations to keep track of the secret,
+		// we need to update the metadata, even if the data is immutable
+		if metadataChanged {
+			// NOTE: we are using the `existingSecret` object here, as we ONLY want to update the metadata,
+			//       and we previously copied the metadata from the `updatedSecret` object
 			if err := r.Update(ctx, existingSecret, client.FieldOwner(fqdn)); err != nil {
 				// if we get a conflict, we should return early to requeue immediately
 				// note, we don't wrap this error so we can handle it in the caller

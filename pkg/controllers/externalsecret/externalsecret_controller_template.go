@@ -128,14 +128,14 @@ func setMetadata(secret *v1.Secret, es *esv1beta1.ExternalSecret) error {
 	}
 
 	// if no template is defined, copy labels and annotations from the ExternalSecret
-	// otherwise copy from the template
 	if es.Spec.Target.Template == nil {
 		utils.MergeStringMap(secret.ObjectMeta.Labels, es.ObjectMeta.Labels)
 		utils.MergeStringMap(secret.ObjectMeta.Annotations, es.ObjectMeta.Annotations)
-	} else {
-		utils.MergeStringMap(secret.ObjectMeta.Labels, es.Spec.Target.Template.Metadata.Labels)
-		utils.MergeStringMap(secret.ObjectMeta.Annotations, es.Spec.Target.Template.Metadata.Annotations)
+		return nil
 	}
 
+	// copy labels and annotations from the template
+	utils.MergeStringMap(secret.ObjectMeta.Labels, es.Spec.Target.Template.Metadata.Labels)
+	utils.MergeStringMap(secret.ObjectMeta.Annotations, es.Spec.Target.Template.Metadata.Annotations)
 	return nil
 }
