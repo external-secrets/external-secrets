@@ -66,15 +66,15 @@ type Provider struct {
 }
 
 type AuthenticatorInput struct {
-    Config                     *esv1beta1.BeyondtrustProvider
-    HTTPClientObj              utils.HttpClientObj
-    BackoffDefinition          *backoff.ExponentialBackOff
-    APIURL                     string
-    ClientID                   string
-    ClientSecret               string
-    APIKey                     string
-    Logger                     *logging.LogrLogger
-    RetryMaxElapsedTimeMinutes int
+	Config                     *esv1beta1.BeyondtrustProvider
+	HTTPClientObj              utils.HttpClientObj
+	BackoffDefinition          *backoff.ExponentialBackOff
+	APIURL                     string
+	ClientID                   string
+	ClientSecret               string
+	APIKey                     string
+	Logger                     *logging.LogrLogger
+	RetryMaxElapsedTimeMinutes int
 }
 
 // Capabilities implements v1beta1.Provider.
@@ -177,9 +177,9 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		Logger:                     logger,
 		RetryMaxElapsedTimeMinutes: retryMaxElapsedTimeMinutes,
 	}
-	
+
 	authenticate, err := getAuthenticator(authenticatorInput)
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("error authenticating: %w", err)
 	}
@@ -266,11 +266,11 @@ func validateInputs(params utils.ValidationParams) error {
 }
 
 func getAuthenticator(input AuthenticatorInput) (*auth.AuthenticationObj, error) {
-    if input.Config.Auth.APIKey != nil {
-        return auth.AuthenticateUsingApiKey(input.HTTPClientObj, input.BackoffDefinition, input.APIURL, input.Logger, input.RetryMaxElapsedTimeMinutes, input.APIKey)
-    }
+	if input.Config.Auth.APIKey != nil {
+		return auth.AuthenticateUsingApiKey(input.HTTPClientObj, input.BackoffDefinition, input.APIURL, input.Logger, input.RetryMaxElapsedTimeMinutes, input.APIKey)
+	}
 
-    return auth.Authenticate(input.HTTPClientObj, input.BackoffDefinition, input.APIURL, input.ClientID, input.ClientSecret, input.Logger, input.RetryMaxElapsedTimeMinutes)
+	return auth.Authenticate(input.HTTPClientObj, input.BackoffDefinition, input.APIURL, input.ClientID, input.ClientSecret, input.Logger, input.RetryMaxElapsedTimeMinutes)
 }
 
 func loadConfigSecret(ctx context.Context, ref *esv1beta1.BeyondTrustProviderSecretRef, kube client.Client, defaultNamespace string) (string, error) {

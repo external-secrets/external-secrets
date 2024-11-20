@@ -1084,7 +1084,7 @@ BeyondTrustProviderSecretRef
 </em>
 </td>
 <td>
-<p>API Key. If API key is not provided then ClientID/ClientSecret become required.</p>
+<p>APIKey If not provided then ClientID/ClientSecret become required.</p>
 </td>
 </tr>
 <tr>
@@ -1097,7 +1097,7 @@ BeyondTrustProviderSecretRef
 </em>
 </td>
 <td>
-<p>API OAuth Client ID.</p>
+<p>ClientID is the API OAuth Client ID.</p>
 </td>
 </tr>
 <tr>
@@ -1110,7 +1110,7 @@ BeyondTrustProviderSecretRef
 </em>
 </td>
 <td>
-<p>API OAuth Client Secret.</p>
+<p>ClientSecret is the API OAuth Client Secret.</p>
 </td>
 </tr>
 <tr>
@@ -1123,7 +1123,7 @@ BeyondTrustProviderSecretRef
 </em>
 </td>
 <td>
-<p>Content o f the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.</p>
+<p>Certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.</p>
 </td>
 </tr>
 <tr>
