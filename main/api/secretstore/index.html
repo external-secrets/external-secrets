@@ -3390,11 +3390,11 @@ If you want to design cross-namespace SecretStores you must use <a href="../clus
 <span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;cert-key&quot;</span>
 <span class="w">      </span><span class="c1"># client side related TLS communication, when the Vault server requires mutual authentication</span>
 <span class="w">      </span><span class="nt">tls</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">clientCert</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">certSecretRef</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span>
 <span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-cert-secret&quot;</span>
 <span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;tls.crt&quot;</span>
-<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">keySecretRef</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span>
 <span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-cert-secret&quot;</span>
 <span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;tls.key&quot;</span>
