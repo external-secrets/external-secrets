@@ -25,6 +25,8 @@ import (
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/googleapis/gax-go/v2"
 	"github.com/googleapis/gax-go/v2/apierror"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
@@ -920,7 +922,7 @@ func TestSecretExists(t *testing.T) {
 		ref                 esv1beta1.PushSecretRemoteRef
 		getSecretMockReturn fakesm.SecretMockReturn
 		expectedSecret      bool
-		expectedErr         string
+		expectedErr         func(t *testing.T, err error)
 	}{
 		{
 			name: "secret exists",
@@ -934,6 +936,9 @@ func TestSecretExists(t *testing.T) {
 				Err: nil,
 			},
 			expectedSecret: true,
+			expectedErr: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
 		},
 		{
 			name: "secret does not exists",
@@ -944,6 +949,9 @@ func TestSecretExists(t *testing.T) {
 				Err: nil,
 			},
 			expectedSecret: false,
+			expectedErr: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
 		},
 		{
 			name: "unexpected error occurs",
@@ -957,7 +965,9 @@ func TestSecretExists(t *testing.T) {
 				Err: errors.New("some error"),
 			},
 			expectedSecret: false,
-			expectedErr:    "some error",
+			expectedErr: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, "some error")
+			},
 		},
 	}
 
@@ -973,21 +983,7 @@ func TestSecretExists(t *testing.T) {
 				},
 			}
 			got, err := client.SecretExists(context.TODO(), tc.ref)
-			if tc.expectedErr != "" {
-				if err == nil {
-					t.Fatalf("expected to receive an error but got nit")
-				}
-
-				if !ErrorContains(err, tc.expectedErr) {
-					t.Fatalf("unexpected error: %s, expected: '%s'", err.Error(), tc.expectedErr)
-				}
-
-				return
-			}
-
-			if err != nil {
-				t.Fatalf("unexpected error: %s", err)
-			}
+			tc.expectedErr(t, err)
 
 			if got != tc.expectedSecret {
 				t.Fatalf("unexpected secret: expected %t, got %t", tc.expectedSecret, got)
