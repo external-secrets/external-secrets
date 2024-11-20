@@ -222,7 +222,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	}
 
 	// fetch existing secret (from the full cache)
-	// NOTE: we are using the `r.SecretClient` which is a special client we only used for managed secrets
+	// NOTE: we are using the `r.SecretClient` which we only use for managed secrets.
+	//       when `enableManagedSecretsCache` is true, this is a cached client that only sees our managed secrets,
+	//       otherwise it will be the normal controller-runtime client which may be cached or make direct API calls,
+	//       depending on if `enabledSecretCache` is true or false.
 	existingSecret := &v1.Secret{}
 	err = r.SecretClient.Get(ctx, client.ObjectKey{Name: secretName, Namespace: externalSecret.Namespace}, existingSecret)
 	if err != nil && !apierrors.IsNotFound(err) {
@@ -251,31 +254,41 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	}
 
 	// update status of the ExternalSecret when this function returns, if needed.
-	// we use the ability of deferred functions to update named return values `result` and `err`.
+	// NOTE: we use the ability of deferred functions to update named return values `result` and `err`
 	// NOTE: we dereference the DeepCopy of the status field because status fields are NOT pointers,
 	//       so otherwise the `equality.Semantic.DeepEqual` will always return false.
 	currentStatus := *externalSecret.Status.DeepCopy()
 	defer func() {
-		if !equality.Semantic.DeepEqual(currentStatus, externalSecret.Status) {
-			updateErr := r.Status().Update(ctx, externalSecret)
-			if updateErr != nil {
-				// if we got an update conflict, we should requeue immediately
-				if apierrors.IsConflict(updateErr) {
-					log.V(1).Info("conflict while updating status, will requeue")
+		// if the status has not changed, we don't need to update it
+		if equality.Semantic.DeepEqual(currentStatus, externalSecret.Status) {
+			return
+		}
 
-					// only update the result if there was no error, otherwise, we get an annoying log
-					// saying that results are ignored when there is an error, and errors are retried anyway.
-					if err == nil {
-						result = ctrl.Result{Requeue: true}
-					}
-				} else {
-					log.Error(updateErr, logErrorUpdateESStatus)
-					// only update the error if there is no error already
-					if err == nil {
-						err = updateErr
-					}
-				}
+		// update the status of the ExternalSecret, storing any error in a new variable
+		// if there was no new error, we don't need to change the `result` or `err` values
+		updateErr := r.Status().Update(ctx, externalSecret)
+		if updateErr == nil {
+			return
+		}
+
+		// if we got an update conflict, we should requeue immediately
+		if apierrors.IsConflict(updateErr) {
+			log.V(1).Info("conflict while updating status, will requeue")
+
+			// we only explicitly request a requeue if the main function did not return an `err`.
+			// otherwise, we get an annoying log saying that results are ignored when there is an error,
+			// as errors are always retried.
+			if err == nil {
+				result = ctrl.Result{Requeue: true}
 			}
+			return
+		}
+
+		// for other errors, log and update the `err` variable if there is no error already
+		// so the reconciler will requeue the request
+		log.Error(updateErr, logErrorUpdateESStatus)
+		if err == nil {
+			err = updateErr
 		}
 	}()
 
@@ -802,10 +815,9 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 		// if the target name is set, use that as the index
 		if es.Spec.Target.Name != "" {
 			return []string{es.Spec.Target.Name}
-		} else {
-			// otherwise, use the ExternalSecret name
-			return []string{es.Name}
 		}
+		// otherwise, use the ExternalSecret name
+		return []string{es.Name}
 	}); err != nil {
 		return err
 	}
