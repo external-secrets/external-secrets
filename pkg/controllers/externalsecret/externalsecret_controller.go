@@ -81,27 +81,30 @@ const (
 	msgErrorUpdateImmutable = "could not update secret, target is immutable"
 
 	// log messages.
-	logErrorGetES          = "unable to get ExternalSecret"
-	logErrorUpdateESStatus = "unable to update ExternalSecret status"
-	logErrorGetSecret      = "unable to get Secret"
-	logErrorPatchSecret    = "unable to patch Secret"
+	logErrorGetES                = "unable to get ExternalSecret"
+	logErrorUpdateESStatus       = "unable to update ExternalSecret status"
+	logErrorGetSecret            = "unable to get Secret"
+	logErrorPatchSecret          = "unable to patch Secret"
+	logErrorSecretCacheNotSynced = "controller caches for Secret are not in sync"
+	logErrorUnmanagedStore       = "unable to determine if store is managed"
 
 	// error formats.
-	errConvert             = "could not apply conversion strategy to keys: %v"
-	errDecode              = "could not apply decoding strategy to %v[%d]: %v"
-	errGenerate            = "could not generate [%d]: %w"
-	errRewrite             = "could not rewrite spec.dataFrom[%d]: %v"
-	errInvalidKeys         = "secret keys from spec.dataFrom.%v[%d] can only have alphanumeric, '-', '_' or '.' characters. Convert them using rewrite (https://external-secrets.io/latest/guides/datafrom-rewrite/)"
-	errSetCtrlReference    = "could not set controller reference: %w"
-	errRemoveCtrlReference = "could not remove controller reference: %w"
-	errFetchTplFrom        = "error fetching templateFrom data: %w"
-	errApplyTemplate       = "could not apply template: %w"
-	errExecTpl             = "could not execute template: %w"
-	errMutate              = "unable to mutate secret %s: %w"
-	errUpdate              = "unable to update secret %s: %w"
-	errUpdateNotFound      = "unable to update secret %s: not found"
-	errUpdateImmutable     = "unable to update secret %s: immutable"
-	errDeleteCreatePolicy  = "unable to delete secret %s: creationPolicy=%s is not Owner"
+	errConvert               = "could not apply conversion strategy to keys: %v"
+	errDecode                = "could not apply decoding strategy to %v[%d]: %v"
+	errGenerate              = "could not generate [%d]: %w"
+	errRewrite               = "could not rewrite spec.dataFrom[%d]: %v"
+	errInvalidKeys           = "secret keys from spec.dataFrom.%v[%d] can only have alphanumeric, '-', '_' or '.' characters. Convert them using rewrite (https://external-secrets.io/latest/guides/datafrom-rewrite/)"
+	errSetCtrlReference      = "could not set controller reference: %w"
+	errRemoveCtrlReference   = "could not remove controller reference: %w"
+	errFetchTplFrom          = "error fetching templateFrom data: %w"
+	errApplyTemplate         = "could not apply template: %w"
+	errExecTpl               = "could not execute template: %w"
+	errMutate                = "unable to mutate secret %s: %w"
+	errUpdate                = "unable to update secret %s: %w"
+	errUpdateNotFound        = "unable to update secret %s: not found"
+	errUpdateImmutable       = "unable to update secret %s: immutable"
+	errDeleteCreatePolicy    = "unable to delete secret %s: creationPolicy=%s is not Owner"
+	errSecretCachesNotSynced = "controller caches for secret %s are not in sync"
 )
 
 const indexESTargetSecretNameField = ".metadata.targetSecretName"
@@ -162,26 +165,32 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 
 	// skip reconciliation if deletion timestamp is set on external secret
 	if !externalSecret.GetDeletionTimestamp().IsZero() {
-		log.V(1).Info("external secret is marked for deletion, skipping reconciliation")
+		log.V(1).Info("skipping ExternalSecret, it is marked for deletion")
 		return ctrl.Result{}, nil
 	}
 
 	// if extended metrics is enabled, refine the time series vector
 	resourceLabels = ctrlmetrics.RefineLabels(resourceLabels, externalSecret.Labels)
 
+	// skip this ExternalSecret if it uses a ClusterSecretStore and the feature is disabled
 	if shouldSkipClusterSecretStore(r, externalSecret) {
-		log.V(1).Info("skipping cluster secret store as it is disabled")
+		log.V(1).Info("skipping ExternalSecret, ClusterSecretStore feature is disabled")
 		return ctrl.Result{}, nil
 	}
 
-	// skip when pointing to an unmanaged store
+	// skip this ExternalSecret if it uses any SecretStore not managed by this controller
 	skip, err := shouldSkipUnmanagedStore(ctx, req.Namespace, r, externalSecret)
+	if err != nil {
+		log.Error(err, logErrorUnmanagedStore)
+		syncCallsError.With(resourceLabels).Inc()
+		return ctrl.Result{}, err
+	}
 	if skip {
-		log.V(1).Info("skipping unmanaged store as it points to a unmanaged controllerClass")
+		log.V(1).Info("skipping ExternalSecret, uses unmanaged SecretStore")
 		return ctrl.Result{}, nil
 	}
 
-	// Target Secret Name should default to the ExternalSecret name if not explicitly specified
+	// the target secret name defaults to the ExternalSecret name, if not explicitly set
 	secretName := externalSecret.Spec.Target.Name
 	if secretName == "" {
 		secretName = externalSecret.Name
@@ -236,9 +245,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	}
 
 	// ensure the full cache is up-to-date
-	if !equality.Semantic.DeepEqual(secretPartial.GetObjectMeta(), existingSecret.GetObjectMeta()) {
-		log.V(1).Info("secret caches are not in sync, requeueing")
-		return ctrl.Result{Requeue: true}, nil
+	// NOTE: this prevents race conditions between the partial and full cache.
+	//       we return an error so we get an exponential backoff if we end up looping,
+	//       for example, during high cluster load and frequent updates to the target secret by other controllers.
+	if secretPartial.UID != existingSecret.UID || secretPartial.ResourceVersion != existingSecret.ResourceVersion {
+		err = fmt.Errorf(errSecretCachesNotSynced, secretName)
+		log.Error(err, logErrorSecretCacheNotSynced, "secretName", secretName, "secretNamespace", externalSecret.Namespace)
+		syncCallsError.With(resourceLabels).Inc()
+		return ctrl.Result{}, err
 	}
 
 	// refresh will be skipped if ALL the following conditions are met:
@@ -741,6 +755,10 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 		if ref.SourceRef != nil && ref.SourceRef.GeneratorRef != nil {
 			_, obj, err := resolvers.GeneratorRef(ctx, r.RestConfig, namespace, ref.SourceRef.GeneratorRef)
 			if err != nil {
+				if apierrors.IsNotFound(err) {
+					// skip non-existent generators
+					continue
+				}
 				return false, err
 			}
 			skipGenerator, err := shouldSkipGenerator(r, obj)
@@ -769,6 +787,10 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 			Namespace: namespace,
 		}, store)
 		if err != nil {
+			if apierrors.IsNotFound(err) {
+				// skip non-existent stores
+				continue
+			}
 			return false, err
 		}
 		class := store.GetSpec().Controller
