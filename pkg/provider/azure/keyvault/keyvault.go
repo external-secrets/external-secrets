@@ -956,7 +956,7 @@ func NewTokenProvider(ctx context.Context, token, clientID, tenantID, aadEndpoin
 	cred := confidential.NewCredFromAssertionCallback(func(ctx context.Context, aro confidential.AssertionRequestOptions) (string, error) {
 		return token, nil
 	})
-	cClient, err := confidential.New(fmt.Sprintf("%s%s/oauth2/token", aadEndpoint, tenantID), clientID, cred)
+	cClient, err := confidential.New(fmt.Sprintf("%s%s", aadEndpoint, tenantID), clientID, cred)
 	if err != nil {
 		return nil, err
 	}
