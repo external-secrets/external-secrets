@@ -87,20 +87,21 @@ const (
 	logErrorPatchSecret    = "unable to patch Secret"
 
 	// error formats.
-	errConvert            = "could not apply conversion strategy to keys: %v"
-	errDecode             = "could not apply decoding strategy to %v[%d]: %v"
-	errGenerate           = "could not generate [%d]: %w"
-	errRewrite            = "could not rewrite spec.dataFrom[%d]: %v"
-	errInvalidKeys        = "secret keys from spec.dataFrom.%v[%d] can only have alphanumeric, '-', '_' or '.' characters. Convert them using rewrite (https://external-secrets.io/latest/guides/datafrom-rewrite/)"
-	errSetCtrlReference   = "could not set controller reference: %w"
-	errFetchTplFrom       = "error fetching templateFrom data: %w"
-	errApplyTemplate      = "could not apply template: %w"
-	errExecTpl            = "could not execute template: %w"
-	errMutate             = "unable to mutate secret %s: %w"
-	errUpdate             = "unable to update secret %s: %w"
-	errUpdateNotFound     = "unable to update secret %s: not found"
-	errUpdateImmutable    = "unable to update secret %s: immutable"
-	errDeleteCreatePolicy = "unable to delete secret %s: creationPolicy=%s is not Owner"
+	errConvert             = "could not apply conversion strategy to keys: %v"
+	errDecode              = "could not apply decoding strategy to %v[%d]: %v"
+	errGenerate            = "could not generate [%d]: %w"
+	errRewrite             = "could not rewrite spec.dataFrom[%d]: %v"
+	errInvalidKeys         = "secret keys from spec.dataFrom.%v[%d] can only have alphanumeric, '-', '_' or '.' characters. Convert them using rewrite (https://external-secrets.io/latest/guides/datafrom-rewrite/)"
+	errSetCtrlReference    = "could not set controller reference: %w"
+	errRemoveCtrlReference = "could not remove controller reference: %w"
+	errFetchTplFrom        = "error fetching templateFrom data: %w"
+	errApplyTemplate       = "could not apply template: %w"
+	errExecTpl             = "could not execute template: %w"
+	errMutate              = "unable to mutate secret %s: %w"
+	errUpdate              = "unable to update secret %s: %w"
+	errUpdateNotFound      = "unable to update secret %s: not found"
+	errUpdateImmutable     = "unable to update secret %s: immutable"
+	errDeleteCreatePolicy  = "unable to delete secret %s: creationPolicy=%s is not Owner"
 )
 
 const indexESTargetSecretNameField = ".metadata.targetSecretName"
@@ -334,10 +335,20 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 
 	// mutationFunc is a function which can be applied to a secret to make it match the desired state.
 	mutationFunc := func(secret *v1.Secret) error {
+		// if the CreationPolicy is Owner, we should set ourselves as the owner of the secret
 		if externalSecret.Spec.Target.CreationPolicy == esv1beta1.CreatePolicyOwner {
 			err = controllerutil.SetControllerReference(externalSecret, secret, r.Scheme)
 			if err != nil {
 				return fmt.Errorf(errSetCtrlReference, err)
+			}
+		}
+
+		// if the creation policy is not Owner, we should remove ourselves as the owner
+		// this could happen if the policy was changed after the secret was created
+		if externalSecret.Spec.Target.CreationPolicy != esv1beta1.CreatePolicyOwner && metav1.IsControlledBy(secret, externalSecret) {
+			err = controllerutil.RemoveControllerReference(externalSecret, secret, r.Scheme)
+			if err != nil {
+				return fmt.Errorf(errRemoveCtrlReference, err)
 			}
 		}
 
@@ -374,9 +385,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			secret.Immutable = ptr.To(true)
 		}
 
+		// we also use a label to keep track of the owner of the secret
+		// this lets us remove secrets that are no longer needed if the target secret name changes
 		if externalSecret.Spec.Target.CreationPolicy == esv1beta1.CreatePolicyOwner {
 			lblValue := utils.ObjectHash(fmt.Sprintf("%v/%v", externalSecret.Namespace, externalSecret.Name))
 			secret.Labels[esv1beta1.LabelOwner] = lblValue
+		} else {
+			// the label should not be set if the creation policy is not Owner
+			delete(secret.Labels, esv1beta1.LabelOwner)
 		}
 
 		secret.Labels[esv1beta1.LabelManaged] = esv1beta1.LabelManagedValue
