@@ -4569,7 +4569,7 @@ string
 </em>
 </td>
 <td>
-<p>Specify the Kind of the resource, e.g. Password, ACRAccessToken etc.</p>
+<p>Specify the Kind of the resource, e.g. Password, ACRAccessToken, ClusterGenerator etc.</p>
 </td>
 </tr>
 <tr>
