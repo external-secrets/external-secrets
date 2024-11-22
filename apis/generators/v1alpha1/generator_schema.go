@@ -16,7 +16,6 @@ package v1alpha1
 
 import (
 	"fmt"
-	"reflect"
 	"sync"
 
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -79,28 +78,4 @@ func GetGenerator(obj *apiextensions.JSON) (Generator, error) {
 		return nil, fmt.Errorf("failed to find registered generator for: %s", string(obj.Raw))
 	}
 	return gen, nil
-}
-
-func GetKindFromClusterGenerator(spec ClusterGeneratorSpec) (string, error) {
-	// we return the Name of the first struct that is of none-nil value
-	// to select the right kind of generator to return
-	v := reflect.ValueOf(spec)
-	t := v.Type()
-	var kind string
-
-	for i := range v.NumField() {
-		field := t.Field(i)
-		value := v.Field(i)
-		if !value.IsNil() {
-			kind = field.Name
-			break
-		}
-	}
-
-	// if by the end the name didn't change, we didn't find any fields.
-	if kind == "" {
-		return "", fmt.Errorf("cluster generator had no defined generators for: %s", spec)
-	}
-
-	return kind, nil
 }

@@ -40,8 +40,6 @@ func GeneratorRef(ctx context.Context, restConfig *rest.Config, namespace string
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to get generator: %w", err)
 	}
-
-	// TODO: Object here is the cluster generator and not the generator object...
 	return generator, obj, nil
 }
 
@@ -101,6 +99,8 @@ func getGeneratorDefinition(ctx context.Context, restConfig *rest.Config, namesp
 
 			return &apiextensions.JSON{Raw: result}, nil
 		}
+
+		return nil, fmt.Errorf("no defined generators found for cluster generator spec: %v", spec)
 	}
 
 	res, err := d.Resource(mapping.Resource).Namespace(namespace).Get(ctx, generatorRef.Name, metav1.GetOptions{})
