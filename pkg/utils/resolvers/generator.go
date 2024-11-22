@@ -20,6 +20,7 @@ import (
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
@@ -39,6 +40,8 @@ func GeneratorRef(ctx context.Context, restConfig *rest.Config, namespace string
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to get generator: %w", err)
 	}
+
+	// TODO: Object here is the cluster generator and not the generator object...
 	return generator, obj, nil
 }
 
@@ -70,12 +73,41 @@ func getGeneratorDefinition(ctx context.Context, restConfig *rest.Config, namesp
 	if err != nil {
 		return nil, err
 	}
-	res, err := d.Resource(mapping.Resource).
-		Namespace(namespace).
-		Get(ctx, generatorRef.Name, metav1.GetOptions{})
+
+	if generatorRef.Kind == "ClusterGenerator" {
+		res, err := d.Resource(mapping.Resource).Get(ctx, generatorRef.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		spec, ok := res.Object["spec"]
+		if !ok {
+			return nil, fmt.Errorf("no spec found for %s", generatorRef.Kind)
+		}
+
+		specObj, ok := spec.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("spec was empty for cluster generator %s", spec)
+		}
+
+		// find the first value and that's what we are going to take
+		// this will be the generator that has been set by the user
+		var result []byte
+		for _, v := range specObj {
+			result, err = json.Marshal(v)
+			if err != nil {
+				return nil, err
+			}
+
+			return &apiextensions.JSON{Raw: result}, nil
+		}
+	}
+
+	res, err := d.Resource(mapping.Resource).Namespace(namespace).Get(ctx, generatorRef.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
+
 	jsonRes, err := res.MarshalJSON()
 	if err != nil {
 		return nil, err
