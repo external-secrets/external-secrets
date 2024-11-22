@@ -17,6 +17,7 @@ package externalsecret
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -32,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -79,6 +81,8 @@ const (
 	msgErrorDeleteOrphaned  = "could not delete orphaned secrets"
 	msgErrorUpdateSecret    = "could not update secret"
 	msgErrorUpdateImmutable = "could not update secret, target is immutable"
+	msgErrorBecomeOwner     = "failed to take ownership of target secret"
+	msgErrorIsOwned         = "target is owned by another ExternalSecret"
 
 	// log messages.
 	logErrorGetES                = "unable to get ExternalSecret"
@@ -94,17 +98,22 @@ const (
 	errGenerate              = "could not generate [%d]: %w"
 	errRewrite               = "could not rewrite spec.dataFrom[%d]: %v"
 	errInvalidKeys           = "secret keys from spec.dataFrom.%v[%d] can only have alphanumeric, '-', '_' or '.' characters. Convert them using rewrite (https://external-secrets.io/latest/guides/datafrom-rewrite/)"
-	errSetCtrlReference      = "could not set controller reference: %w"
-	errRemoveCtrlReference   = "could not remove controller reference: %w"
 	errFetchTplFrom          = "error fetching templateFrom data: %w"
 	errApplyTemplate         = "could not apply template: %w"
 	errExecTpl               = "could not execute template: %w"
 	errMutate                = "unable to mutate secret %s: %w"
 	errUpdate                = "unable to update secret %s: %w"
 	errUpdateNotFound        = "unable to update secret %s: not found"
-	errUpdateImmutable       = "unable to update secret %s: immutable"
 	errDeleteCreatePolicy    = "unable to delete secret %s: creationPolicy=%s is not Owner"
 	errSecretCachesNotSynced = "controller caches for secret %s are not in sync"
+)
+
+// these errors are explicitly defined so we can detect them with `errors.Is()`.
+var (
+	ErrSecretImmutable     = fmt.Errorf("secret is immutable")
+	ErrSecretIsOwned       = fmt.Errorf("secret is owned by another ExternalSecret")
+	ErrSecretSetCtrlRef    = fmt.Errorf("could not set controller reference on secret")
+	ErrSecretRemoveCtrlRef = fmt.Errorf("could not remove controller reference on secret")
 )
 
 const indexESTargetSecretNameField = ".metadata.targetSecretName"
@@ -319,13 +328,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		switch externalSecret.Spec.Target.DeletionPolicy {
 		// delete secret and return early.
 		case esv1beta1.DeletionPolicyDelete:
-			// safeguard that we only can delete secrets we own
-			// this is also implemented in the es validation webhook
+			// safeguard that we only can delete secrets we own.
+			// this is also implemented in the es validation webhook.
+			// NOTE: this error cant be fixed by retrying so we don't return an error (which would requeue immediately)
 			creationPolicy := externalSecret.Spec.Target.CreationPolicy
 			if creationPolicy != esv1beta1.CreatePolicyOwner {
 				err := fmt.Errorf(errDeleteCreatePolicy, secretName, creationPolicy)
 				r.markAsFailed(msgErrorDeleteSecret, err, externalSecret, syncCallsError.With(resourceLabels))
-				return ctrl.Result{}, err
+				return ctrl.Result{}, nil
 			}
 
 			// delete the secret, if it exists
@@ -349,20 +359,39 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 
 	// mutationFunc is a function which can be applied to a secret to make it match the desired state.
 	mutationFunc := func(secret *v1.Secret) error {
+		// get information about the current owner of the secret
+		//  - we ignore the API version as it can change over time
+		//  - we ignore the UID for consistency with the SetControllerReference function
+		currentOwner := metav1.GetControllerOf(secret)
+		ownerIsESKind := false
+		ownerIsCurrentES := false
+		if currentOwner != nil {
+			currentOwnerGK := schema.FromAPIVersionAndKind(currentOwner.APIVersion, currentOwner.Kind).GroupKind()
+			ownerIsESKind = currentOwnerGK.String() == esv1beta1.ExtSecretGroupKind
+			ownerIsCurrentES = ownerIsESKind && currentOwner.Name == externalSecret.Name
+		}
+
+		// if another ExternalSecret is the owner, we should return an error
+		// otherwise the controller will fight with itself to update the secret.
+		// note, this does not prevent other controllers from owning the secret.
+		if ownerIsESKind && !ownerIsCurrentES {
+			return fmt.Errorf("%w: %s", ErrSecretIsOwned, currentOwner.Name)
+		}
+
 		// if the CreationPolicy is Owner, we should set ourselves as the owner of the secret
 		if externalSecret.Spec.Target.CreationPolicy == esv1beta1.CreatePolicyOwner {
 			err = controllerutil.SetControllerReference(externalSecret, secret, r.Scheme)
 			if err != nil {
-				return fmt.Errorf(errSetCtrlReference, err)
+				return fmt.Errorf("%w: %w", ErrSecretSetCtrlRef, err)
 			}
 		}
 
 		// if the creation policy is not Owner, we should remove ourselves as the owner
-		// this could happen if the policy was changed after the secret was created
-		if externalSecret.Spec.Target.CreationPolicy != esv1beta1.CreatePolicyOwner && metav1.IsControlledBy(secret, externalSecret) {
+		// this could happen if the creation policy was changed after the secret was created
+		if externalSecret.Spec.Target.CreationPolicy != esv1beta1.CreatePolicyOwner && ownerIsCurrentES {
 			err = controllerutil.RemoveControllerReference(externalSecret, secret, r.Scheme)
 			if err != nil {
-				return fmt.Errorf(errRemoveCtrlReference, err)
+				return fmt.Errorf("%w: %w", ErrSecretRemoveCtrlRef, err)
 			}
 		}
 
@@ -389,6 +418,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			delete(secret.Data, key)
 		}
 
+		// WARNING: this will remove any labels or annotations managed by this ExternalSecret
+		//          so any updates to labels and annotations should be done AFTER this point
 		err = r.applyTemplate(ctx, externalSecret, secret, dataMap)
 		if err != nil {
 			return fmt.Errorf(errApplyTemplate, err)
@@ -455,9 +486,23 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			return ctrl.Result{Requeue: true}, nil
 		}
 
-		// if the secret is immutable, we will never be able to update it
-		// so we don't return an error (which would requeue immediately)
-		if strings.Contains(err.Error(), fmt.Sprintf(errUpdateImmutable, secretName)) {
+		// detect errors indicating that we failed to set ourselves as the owner of the secret
+		// NOTE: this error cant be fixed by retrying so we don't return an error (which would requeue immediately)
+		if errors.Is(err, ErrSecretSetCtrlRef) {
+			r.markAsFailed(msgErrorBecomeOwner, err, externalSecret, syncCallsError.With(resourceLabels))
+			return ctrl.Result{}, nil
+		}
+
+		// detect errors indicating that the secret has another ExternalSecret as owner
+		// NOTE: this error cant be fixed by retrying so we don't return an error (which would requeue immediately)
+		if errors.Is(err, ErrSecretIsOwned) {
+			r.markAsFailed(msgErrorIsOwned, err, externalSecret, syncCallsError.With(resourceLabels))
+			return ctrl.Result{}, nil
+		}
+
+		// detect errors indicating that the secret is immutable
+		// NOTE: this error cant be fixed by retrying so we don't return an error (which would requeue immediately)
+		if errors.Is(err, ErrSecretImmutable) {
 			r.markAsFailed(msgErrorUpdateImmutable, err, externalSecret, syncCallsError.With(resourceLabels))
 			return ctrl.Result{}, nil
 		}
@@ -649,7 +694,7 @@ func (r *Reconciler) updateSecret(ctx context.Context, existingSecret *v1.Secret
 
 		// if the immutable data was changed, we should return an error
 		if dataChanged {
-			return fmt.Errorf(errUpdateImmutable, existingSecret.Name)
+			return fmt.Errorf(errUpdate, existingSecret.Name, ErrSecretImmutable)
 		}
 	}
 
