@@ -18,6 +18,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// A couple of constants to define the generator's keys for accessing via Resource map values.
+const (
+	GeneratorGeneratorKey = "generator"
+	GeneratorKindKey      = "kind"
+	GeneratorSpecKey      = "spec"
+)
+
 type ControllerClassResource struct {
 	Spec struct {
 		ControllerClass string `json:"controller"`
@@ -38,8 +45,8 @@ type GeneratorSpec struct {
 }
 
 type ClusterGeneratorSpec struct {
-	Kind          string        `json:"kind"`
-	GeneratorSpec GeneratorSpec `json:"generatorSpec"`
+	Kind      string        `json:"kind"`
+	Generator GeneratorSpec `json:"generator"`
 }
 
 type ClusterGeneratorStatus struct{}

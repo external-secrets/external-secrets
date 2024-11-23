@@ -11375,7 +11375,7 @@ spec:
               type: object
             spec:
               properties:
-                generatorSpec:
+                generator:
                   properties:
                     acrAccessTokenSpec:
                       description: |-
@@ -12649,7 +12649,7 @@ spec:
                 kind:
                   type: string
               required:
-                - generatorSpec
+                - generator
                 - kind
               type: object
             status:

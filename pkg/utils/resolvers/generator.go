@@ -101,17 +101,17 @@ func extractGeneratorFromClusterGenerator(
 		return nil, err
 	}
 
-	spec, err := extractValue[map[string]any](res.Object, "spec")
+	spec, err := extractValue[map[string]any](res.Object, genv1alpha1.GeneratorSpecKey)
 	if err != nil {
 		return nil, err
 	}
 
-	generator, err := extractValue[map[string]any](spec, "generatorSpec")
+	generator, err := extractValue[map[string]any](spec, genv1alpha1.GeneratorGeneratorKey)
 	if err != nil {
 		return nil, err
 	}
 
-	kind, err := extractValue[string](spec, "kind")
+	kind, err := extractValue[string](spec, genv1alpha1.GeneratorKindKey)
 	if err != nil {
 		return nil, err
 	}
