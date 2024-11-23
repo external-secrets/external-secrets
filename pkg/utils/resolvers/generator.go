@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -74,62 +75,7 @@ func getGeneratorDefinition(ctx context.Context, restConfig *rest.Config, namesp
 	}
 
 	if generatorRef.Kind == "ClusterGenerator" {
-		res, err := d.Resource(mapping.Resource).Get(ctx, generatorRef.Name, metav1.GetOptions{})
-		if err != nil {
-			return nil, err
-		}
-
-		spec, ok := res.Object["spec"]
-		if !ok {
-			return nil, fmt.Errorf("no spec found for %s", generatorRef.Kind)
-		}
-
-		specObj, ok := spec.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("spec was empty for cluster generator %s", spec)
-		}
-
-		generatorSpec, ok := specObj["generatorSpec"]
-		if !ok {
-			return nil, fmt.Errorf("no generator spec found in spec %s", spec)
-		}
-
-		generatorSpecObj, ok := generatorSpec.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("generator spec was not of object type for cluster generator %s", spec)
-		}
-
-		kind, ok := specObj["kind"]
-		if !ok {
-			return nil, fmt.Errorf("no kind found for cluster generator %s", spec)
-		}
-
-		kindStr, ok := kind.(string)
-		if !ok {
-			return nil, fmt.Errorf("kind was not a string for cluster generator %T", kind)
-		}
-
-		// find the first value and that's what we are going to take
-		// this will be the generator that has been set by the user
-		var result []byte
-		for _, v := range generatorSpecObj {
-			vMap, ok := v.(map[string]interface{})
-			if !ok {
-				return nil, fmt.Errorf("kind was not of object type for cluster generator %T", v)
-			}
-
-			// We set the kind specifically to the provided type.
-			// This is used later to determine what Generator we need to create in generator_schema.go:GetGenerator.
-			vMap["kind"] = kindStr
-			result, err = json.Marshal(vMap)
-			if err != nil {
-				return nil, err
-			}
-
-			return &apiextensions.JSON{Raw: result}, nil
-		}
-
-		return nil, fmt.Errorf("no defined generators found for cluster generator spec: %v", spec)
+		return extractGeneratorFromClusterGenerator(ctx, d, mapping, generatorRef)
 	}
 
 	res, err := d.Resource(mapping.Resource).Namespace(namespace).Get(ctx, generatorRef.Name, metav1.GetOptions{})
@@ -142,4 +88,74 @@ func getGeneratorDefinition(ctx context.Context, restConfig *rest.Config, namesp
 		return nil, err
 	}
 	return &apiextensions.JSON{Raw: jsonRes}, nil
+}
+
+func extractGeneratorFromClusterGenerator(
+	ctx context.Context,
+	d *dynamic.DynamicClient,
+	mapping *meta.RESTMapping,
+	generatorRef *esv1beta1.GeneratorRef,
+) (*apiextensions.JSON, error) {
+	res, err := d.Resource(mapping.Resource).Get(ctx, generatorRef.Name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	spec, err := extractValue[map[string]any](res.Object, "spec")
+	if err != nil {
+		return nil, err
+	}
+
+	generator, err := extractValue[map[string]any](spec, "generatorSpec")
+	if err != nil {
+		return nil, err
+	}
+
+	kind, err := extractValue[string](spec, "kind")
+	if err != nil {
+		return nil, err
+	}
+
+	// find the first value and that's what we are going to take
+	// this will be the generator that has been set by the user
+	var result []byte
+	for _, v := range generator {
+		vMap, ok := v.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("kind was not of object type for cluster generator %T", v)
+		}
+
+		// We set the kind specifically to the provided type.
+		// This is used later to determine what Generator we need to create in generator_schema.go:GetGenerator.
+		vMap["kind"] = kind
+		result, err = json.Marshal(vMap)
+		if err != nil {
+			return nil, err
+		}
+
+		return &apiextensions.JSON{Raw: result}, nil
+	}
+
+	return nil, fmt.Errorf("no defined generators found for cluster generator spec: %v", spec)
+}
+
+// extractValue fetches a specific key value that we are looking for in a map.
+func extractValue[T any](m any, k string) (T, error) {
+	var result T
+	v, ok := m.(map[string]any)
+	if !ok {
+		return result, fmt.Errorf("value was not of type map[string]any but: %T", m)
+	}
+
+	vv, ok := v[k]
+	if !ok {
+		return result, fmt.Errorf("key %s was not found in map", k)
+	}
+
+	vvv, ok := vv.(T)
+	if !ok {
+		return result, fmt.Errorf("value was not of type T but: %T", vvv)
+	}
+
+	return vvv, nil
 }
