@@ -98,6 +98,10 @@ func (r *Reconciler) handleSecretData(ctx context.Context, i int, externalSecret
 	if err != nil {
 		return fmt.Errorf(errDecode, "spec.data", i, err)
 	}
+	secretData, err = utils.Decrypt(client, secretRef.RemoteRef.DecryptingStrategy, secretData)
+	if err != nil {
+		return fmt.Errorf(errDecrypt, "spec.data", i, err)
+	}
 	providerData[secretRef.SecretKey] = secretData
 	return nil
 }
