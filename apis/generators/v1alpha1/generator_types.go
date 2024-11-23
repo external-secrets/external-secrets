@@ -14,7 +14,9 @@ limitations under the License.
 
 package v1alpha1
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 type ControllerClassResource struct {
 	Spec struct {
@@ -22,37 +24,22 @@ type ControllerClassResource struct {
 	} `json:"spec"`
 }
 
+type GeneratorSpec struct {
+	ACRAccessTokenSpec        *ACRAccessTokenSpec        `json:"acrAccessTokenSpec,omitempty"`
+	ECRAuthorizationTokenSpec *ECRAuthorizationTokenSpec `json:"ecrRAuthorizationTokenSpec,omitempty"`
+	FakeSpec                  *FakeSpec                  `json:"fakeSpec,omitempty"`
+	GCRAccessTokenSpec        *GCRAccessTokenSpec        `json:"gcrAccessTokenSpec,omitempty"`
+	GithubAccessTokenSpec     *GithubAccessTokenSpec     `json:"githubAccessTokenSpec,omitempty"`
+	PasswordSpec              *PasswordSpec              `json:"passwordSpec,omitempty"`
+	STSSessionTokenSpec       *STSSessionTokenSpec       `json:"stsSessionTokenSpec,omitempty"`
+	UUIDSpec                  *UUIDSpec                  `json:"uuidSpec,omitempty"`
+	VaultDynamicSecretSpec    *VaultDynamicSecretSpec    `json:"vaultDynamicSecretSpec,omitempty"`
+	WebhookSpec               *WebhookSpec               `json:"webhookSpec,omitempty"`
+}
+
 type ClusterGeneratorSpec struct {
-	// +kubebuilder:pruning:PreserveUnknownFields
-	// +kubebuilder:validation:Schemaless
-	ACRAccessToken *ACRAccessToken `json:"acrAccessToken,omitempty"`
-	// +kubebuilder:pruning:PreserveUnknownFields
-	// +kubebuilder:validation:Schemaless
-	ECRAuthorizationToken *ECRAuthorizationToken `json:"ecrRAuthorizationToken,omitempty"`
-	// +kubebuilder:pruning:PreserveUnknownFields
-	// +kubebuilder:validation:Schemaless
-	Fake *Fake `json:"fake,omitempty"`
-	// +kubebuilder:pruning:PreserveUnknownFields
-	// +kubebuilder:validation:Schemaless
-	GCRAccessToken *GCRAccessToken `json:"gcrAccessToken,omitempty"`
-	// +kubebuilder:pruning:PreserveUnknownFields
-	// +kubebuilder:validation:Schemaless
-	GithubAccessToken *GithubAccessToken `json:"githubAccessToken,omitempty"`
-	// +kubebuilder:pruning:PreserveUnknownFields
-	// +kubebuilder:validation:Schemaless
-	Password *Password `json:"password,omitempty"`
-	// +kubebuilder:pruning:PreserveUnknownFields
-	// +kubebuilder:validation:Schemaless
-	STSSessionToken *STSSessionToken `json:"stsSessionToken,omitempty"`
-	// +kubebuilder:pruning:PreserveUnknownFields
-	// +kubebuilder:validation:Schemaless
-	UUID *UUID `json:"uuid,omitempty"`
-	// +kubebuilder:pruning:PreserveUnknownFields
-	// +kubebuilder:validation:Schemaless
-	VaultDynamicSecret *VaultDynamicSecret `json:"vaultDynamicSecret,omitempty"`
-	// +kubebuilder:pruning:PreserveUnknownFields
-	// +kubebuilder:validation:Schemaless
-	Webhook *Webhook `json:"webhook,omitempty"`
+	Kind          string        `json:"kind"`
+	GeneratorSpec GeneratorSpec `json:"generatorSpec"`
 }
 
 type ClusterGeneratorStatus struct{}

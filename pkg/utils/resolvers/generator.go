@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package resolvers
 
 import (
@@ -88,11 +89,39 @@ func getGeneratorDefinition(ctx context.Context, restConfig *rest.Config, namesp
 			return nil, fmt.Errorf("spec was empty for cluster generator %s", spec)
 		}
 
+		generatorSpec, ok := specObj["generatorSpec"]
+		if !ok {
+			return nil, fmt.Errorf("no generator spec found in spec %s", spec)
+		}
+
+		generatorSpecObj, ok := generatorSpec.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("generator spec was not of object type for cluster generator %s", spec)
+		}
+
+		kind, ok := specObj["kind"]
+		if !ok {
+			return nil, fmt.Errorf("no kind found for cluster generator %s", spec)
+		}
+
+		kindStr, ok := kind.(string)
+		if !ok {
+			return nil, fmt.Errorf("kind was not a string for cluster generator %T", kind)
+		}
+
 		// find the first value and that's what we are going to take
 		// this will be the generator that has been set by the user
 		var result []byte
-		for _, v := range specObj {
-			result, err = json.Marshal(v)
+		for _, v := range generatorSpecObj {
+			vMap, ok := v.(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("kind was not of object type for cluster generator %T", v)
+			}
+
+			// We set the kind specifically to the provided type.
+			// This is used later to determine what Generator we need to create in generator_schema.go:GetGenerator.
+			vMap["kind"] = kindStr
+			result, err = json.Marshal(vMap)
 			if err != nil {
 				return nil, err
 			}
