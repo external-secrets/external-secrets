@@ -80,7 +80,7 @@ There are some limitations using this provider.
 
 ## Push Secrets
 
-Push Secret will only work with a custom KeeperSecurity Record type `ExternalSecret`
+Push Secret will only work with a custom KeeperSecurity Record type `externalSecrets`
 
 ### Behavior
 * `selector`:

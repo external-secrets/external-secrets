@@ -32,6 +32,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -69,10 +70,11 @@ type Reconciler struct {
 	ControllerClass string
 }
 
-func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 	r.recorder = mgr.GetEventRecorderFor("pushsecret")
 
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(opts).
 		For(&esapi.PushSecret{}).
 		Complete(r)
 }
