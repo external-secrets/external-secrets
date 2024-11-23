@@ -529,26 +529,29 @@ func (r *Reconciler) getRequeueResult(externalSecret *esv1beta1.ExternalSecret) 
 		return ctrl.Result{}
 	}
 
-	timeSinceLastRefresh := 0 * time.Second
-	if !externalSecret.Status.RefreshTime.IsZero() {
-		lastRefreshTime := externalSecret.Status.RefreshTime.Time
-		timeSinceLastRefresh = time.Since(lastRefreshTime)
+	// if the last refresh time is not set, requeue after the refresh interval
+	// note, this should not happen, as we only call this function on ExternalSecrets
+	// that have been reconciled at least once
+	if externalSecret.Status.RefreshTime.IsZero() {
+		return ctrl.Result{RequeueAfter: refreshInterval}
 	}
 
+	timeSinceLastRefresh := time.Since(externalSecret.Status.RefreshTime.Time)
+
 	// if the last refresh time is in the future, we should requeue immediately
-	// this should not happen as we call this function after updating the last refresh time
-	// to when the reconciliation started
+	// note, this should not happen, as we always refresh an ExternalSecret
+	// that has a last refresh time in the future
 	if timeSinceLastRefresh < 0 {
 		return ctrl.Result{Requeue: true}
 	}
 
+	// if there is time remaining, requeue after the remaining time
 	if timeSinceLastRefresh < refreshInterval {
-		// requeue after the remaining time
 		return ctrl.Result{RequeueAfter: refreshInterval - timeSinceLastRefresh}
-	} else {
-		// requeue immediately
-		return ctrl.Result{Requeue: true}
 	}
+
+	// otherwise, requeue immediately
+	return ctrl.Result{Requeue: true}
 }
 
 func (r *Reconciler) markAsDone(externalSecret *esv1beta1.ExternalSecret, start time.Time, log logr.Logger, reason, msg string) {
@@ -659,7 +662,7 @@ func (r *Reconciler) updateSecret(ctx context.Context, existingSecret *v1.Secret
 	}
 
 	// if the existing secret is immutable, we can only update the object metadata
-	if existingSecret.Immutable != nil && *existingSecret.Immutable {
+	if ptr.Deref(existingSecret.Immutable, false) {
 		// check if the metadata was changed
 		metadataChanged := !equality.Semantic.DeepEqual(existingSecret.ObjectMeta, updatedSecret.ObjectMeta)
 
@@ -670,16 +673,9 @@ func (r *Reconciler) updateSecret(ctx context.Context, existingSecret *v1.Secret
 			// this lets us compare the objects to see if the immutable data/type was changed
 			existingSecret.ObjectMeta = *updatedSecret.ObjectMeta.DeepCopy()
 			dataChanged = !equality.Semantic.DeepEqual(existingSecret, updatedSecret)
-		} else {
-			// we know there was some change in the secret (or we would have returned early)
-			// we know the metadata was NOT changed (metadataChanged == false)
-			// so, the only thing that could have changed is the immutable data/type fields
-			dataChanged = true
-		}
 
-		// because we use labels and annotations to keep track of the secret,
-		// we need to update the metadata, even if the data is immutable
-		if metadataChanged {
+			// because we use labels and annotations to keep track of the secret,
+			// we need to update the metadata, regardless of if the immutable data was changed
 			// NOTE: we are using the `existingSecret` object here, as we ONLY want to update the metadata,
 			//       and we previously copied the metadata from the `updatedSecret` object
 			if err := r.Update(ctx, existingSecret, client.FieldOwner(fqdn)); err != nil {
@@ -690,6 +686,11 @@ func (r *Reconciler) updateSecret(ctx context.Context, existingSecret *v1.Secret
 				}
 				return fmt.Errorf(errUpdate, existingSecret.Name, err)
 			}
+		} else {
+			// we know there was some change in the secret (or we would have returned early)
+			// we know the metadata was NOT changed (metadataChanged == false)
+			// so, the only thing that could have changed is the immutable data/type fields
+			dataChanged = true
 		}
 
 		// if the immutable data was changed, we should return an error
@@ -859,6 +860,11 @@ func shouldRefresh(es *esv1beta1.ExternalSecret) bool {
 
 	// if the last refresh time is zero, we should refresh
 	if es.Status.RefreshTime.IsZero() {
+		return true
+	}
+
+	// if the last refresh time is in the future, we should refresh
+	if es.Status.RefreshTime.Time.After(time.Now()) {
 		return true
 	}
 
