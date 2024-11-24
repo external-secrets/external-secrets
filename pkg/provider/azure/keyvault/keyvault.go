@@ -26,12 +26,14 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/adal"
 	"github.com/Azure/go-autorest/autorest/azure"
 	kvauth "github.com/Azure/go-autorest/autorest/azure/auth"
+	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/confidential"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/tidwall/gjson"
@@ -411,7 +413,7 @@ func canCreate(tags map[string]*string, err error) (bool, error) {
 	return true, nil
 }
 
-func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value []byte) error {
+func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value []byte, expires *date.UnixTime) error {
 	secret, err := a.baseClient.GetSecret(ctx, *a.provider.VaultURL, secretName, "")
 	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
 	ok, err := canCreate(secret.Tags, err)
@@ -422,9 +424,10 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 		return nil
 	}
 	val := string(value)
-	if secret.Value != nil && val == *secret.Value {
+	if secret.Value != nil && val == *secret.Value && (secret.Attributes.Expires == expires) {
 		return nil
 	}
+
 	secretParams := keyvault.SecretSetParameters{
 		Value: &val,
 		Tags: map[string]*string{
@@ -434,6 +437,11 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 			Enabled: pointer.To(true),
 		},
 	}
+
+	if expires != nil {
+		secretParams.SecretAttributes.Expires = expires
+	}
+
 	_, err = a.baseClient.SetSecret(ctx, *a.provider.VaultURL, secretName, secretParams)
 	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
 	if err != nil {
@@ -534,8 +542,9 @@ func (a *Azure) setKeyVaultKey(ctx context.Context, secretName string, value []b
 // PushSecret stores secrets into a Key vault instance.
 func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
 	var (
-		value []byte
-		err   error
+		value   []byte
+		err     error
+		expires *date.UnixTime
 	)
 	if data.GetSecretKey() == "" {
 		// Must convert secret values to string, otherwise data will be sent as base64 to Vault
@@ -551,10 +560,19 @@ func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1
 		value = secret.Data[data.GetSecretKey()]
 	}
 
+	if secretAnnotation, ok := secret.Annotations["azure.external-secrets.io/expiration-date"]; ok && secretAnnotation != "" {
+		t, err := time.Parse(time.RFC3339, secretAnnotation)
+		if err != nil {
+			return fmt.Errorf("error parsing expiration date annotation in secret: %w", err)
+		}
+		unixTime := date.UnixTime(t)
+		expires = &unixTime
+	}
+
 	objectType, secretName := getObjType(esv1beta1.ExternalSecretDataRemoteRef{Key: data.GetRemoteKey()})
 	switch objectType {
 	case defaultObjType:
-		return a.setKeyVaultSecret(ctx, secretName, value)
+		return a.setKeyVaultSecret(ctx, secretName, value, expires)
 	case objectTypeCert:
 		return a.setKeyVaultCertificate(ctx, secretName, value)
 	case objectTypeKey:
