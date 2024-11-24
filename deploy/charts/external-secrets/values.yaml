@@ -43,6 +43,7 @@ crds:
   createPushSecret: true
   annotations: {}
   conversion:
+    # -- If webhook is set to false this also needs to be set to false otherwise the kubeapi will be hammered because the conversion is looking for a webhook endpoint.
     enabled: true
 
 imagePullSecrets: []
