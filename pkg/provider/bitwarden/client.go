@@ -15,11 +15,13 @@ limitations under the License.
 package bitwarden
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 
+	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/kube-openapi/pkg/validation/strfmt"
 
@@ -238,9 +240,12 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 		return nil, err
 	}
 
+	if err := yaml.Unmarshal(data, map[string]any{}); err == nil {
+		return p.parseYamlSecretData(data)
+	}
+
 	kv := make(map[string]json.RawMessage)
-	err = json.Unmarshal(data, &kv)
-	if err != nil {
+	if err := json.Unmarshal(data, &kv); err != nil {
 		return nil, fmt.Errorf("error unmarshalling secret: %w", err)
 	}
 
@@ -252,6 +257,33 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 			secretData[k] = []byte(strVal)
 		} else {
 			secretData[k] = v
+		}
+	}
+
+	return secretData, nil
+}
+
+func (p *Provider) parseYamlSecretData(data []byte) (map[string][]byte, error) {
+	kv := make(map[string]any)
+	if err := yaml.Unmarshal(data, &kv); err != nil {
+		return nil, fmt.Errorf("error unmarshalling secret: %w", err)
+	}
+
+	secretData := make(map[string][]byte)
+	for k, v := range kv {
+		switch t := v.(type) {
+		case string:
+			secretData[k] = []byte(t)
+		case []byte:
+			secretData[k] = t
+		case map[string]any:
+			d, err := yaml.Marshal(t)
+			if err != nil {
+				return nil, fmt.Errorf("error marshaling secret: %w", err)
+			}
+			secretData[k] = bytes.TrimSpace(d)
+		default:
+			secretData[k] = []byte(fmt.Sprintf("%v", t)) // Convert to string and then []byte
 		}
 	}
 

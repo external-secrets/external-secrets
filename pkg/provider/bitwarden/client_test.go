@@ -935,6 +935,92 @@ func TestProviderGetSecretMap(t *testing.T) {
 			want: []byte("value"),
 		},
 		{
+			name: "get secret map with yaml",
+			fields: fields{
+				kube: func() client.Client {
+					return fake.NewFakeClient()
+				},
+				namespace: "default",
+				store:     &v1beta1.SecretStore{},
+				mock: func(c *FakeClient) {
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						Key:            "key",
+						Note:           "note",
+						OrganizationID: "org",
+						Value:          `key: value`,
+					})
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: v1beta1.ExternalSecretDataRemoteRef{
+					Key:      "d8f29773-3019-4973-9bbc-66327d077fe2",
+					Property: "key",
+				},
+				key: "key",
+			},
+			want: []byte("value"),
+		},
+		{
+			name: "get secret map with nested yaml",
+			fields: fields{
+				kube: func() client.Client {
+					return fake.NewFakeClient()
+				},
+				namespace: "default",
+				store:     &v1beta1.SecretStore{},
+				mock: func(c *FakeClient) {
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						Key:            "key",
+						Note:           "note",
+						OrganizationID: "org",
+						Value: `key:
+  key2: value`,
+					})
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: v1beta1.ExternalSecretDataRemoteRef{
+					Key:      "d8f29773-3019-4973-9bbc-66327d077fe2",
+					Property: "key",
+				},
+				key: "key",
+			},
+			want: []byte("key2: value"),
+		},
+		{
+			name: "get secret map with binary yaml data",
+			fields: fields{
+				kube: func() client.Client {
+					return fake.NewFakeClient()
+				},
+				namespace: "default",
+				store:     &v1beta1.SecretStore{},
+				mock: func(c *FakeClient) {
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						Key:            "key",
+						Note:           "note",
+						OrganizationID: "org",
+						Value: `key: value
+key2: !!binary VGhpcyBpcyBhIHRlc3Q=`,
+					})
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: v1beta1.ExternalSecretDataRemoteRef{
+					Key:      "d8f29773-3019-4973-9bbc-66327d077fe2",
+					Property: "key2",
+				},
+				key: "key2",
+			},
+			want: []byte(`This is a test`),
+		},
+		{
 			name: "get secret map - missing key",
 			fields: fields{
 				kube: func() client.Client {

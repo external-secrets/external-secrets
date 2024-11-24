@@ -25,12 +25,15 @@ import (
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/googleapis/gax-go/v2"
 	"github.com/googleapis/gax-go/v2/apierror"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	pointer "k8s.io/utils/ptr"
 
+	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager/fake"
@@ -908,6 +911,82 @@ func TestPushSecret(t *testing.T) {
 				if err := tc.want.req(tc.args.mock); err != nil {
 					t.Errorf("received an unexpected error while checking request: %v", err)
 				}
+			}
+		})
+	}
+}
+
+func TestSecretExists(t *testing.T) {
+	tests := []struct {
+		name                string
+		ref                 esv1beta1.PushSecretRemoteRef
+		getSecretMockReturn fakesm.SecretMockReturn
+		expectedSecret      bool
+		expectedErr         func(t *testing.T, err error)
+	}{
+		{
+			name: "secret exists",
+			ref: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "bar",
+			},
+			getSecretMockReturn: fakesm.SecretMockReturn{
+				Secret: &secretmanagerpb.Secret{
+					Name: "projects/foo/secret/bar",
+				},
+				Err: nil,
+			},
+			expectedSecret: true,
+			expectedErr: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+		{
+			name: "secret does not exists",
+			ref: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "bar",
+			},
+			getSecretMockReturn: fakesm.SecretMockReturn{
+				Err: nil,
+			},
+			expectedSecret: false,
+			expectedErr: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+		{
+			name: "unexpected error occurs",
+			ref: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "bar2",
+			},
+			getSecretMockReturn: fakesm.SecretMockReturn{
+				Secret: &secretmanagerpb.Secret{
+					Name: "projects/foo/secret/bar",
+				},
+				Err: errors.New("some error"),
+			},
+			expectedSecret: false,
+			expectedErr: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, "some error")
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			smClient := fakesm.MockSMClient{}
+			smClient.NewGetSecretFn(tc.getSecretMockReturn)
+
+			client := Client{
+				smClient: &smClient,
+				store: &esv1beta1.GCPSMProvider{
+					ProjectID: "foo",
+				},
+			}
+			got, err := client.SecretExists(context.TODO(), tc.ref)
+			tc.expectedErr(t, err)
+
+			if got != tc.expectedSecret {
+				t.Fatalf("unexpected secret: expected %t, got %t", tc.expectedSecret, got)
 			}
 		})
 	}

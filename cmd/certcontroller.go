@@ -64,19 +64,27 @@ var certcontrollerCmd = &cobra.Command{
 		logger := zap.New(zap.UseFlagOptions(&opts))
 		ctrl.SetLogger(logger)
 
-		cacheOptions := cache.Options{}
+		// completely disable caching of Secrets and ConfigMaps to save memory
+		// see: https://github.com/external-secrets/external-secrets/issues/721
+		clientCacheDisableFor := make([]client.Object, 0)
+		clientCacheDisableFor = append(clientCacheDisableFor, &v1.Secret{}, &v1.ConfigMap{})
+
+		// in large clusters, the CRDs and ValidatingWebhookConfigurations can take up a lot of memory
+		// see: https://github.com/external-secrets/external-secrets/pull/3588
+		cacheByObject := make(map[client.Object]cache.ByObject)
 		if enablePartialCache {
-			cacheOptions.ByObject = map[client.Object]cache.ByObject{
-				&admissionregistration.ValidatingWebhookConfiguration{}: {
-					Label: labels.SelectorFromSet(map[string]string{
-						constants.WellKnownLabelKey: constants.WellKnownLabelValueWebhook,
-					}),
-				},
-				&apiextensions.CustomResourceDefinition{}: {
-					Label: labels.SelectorFromSet(map[string]string{
-						constants.WellKnownLabelKey: constants.WellKnownLabelValueController,
-					}),
-				},
+			// only cache ValidatingWebhookConfiguration with "external-secrets.io/component=webhook" label
+			cacheByObject[&admissionregistration.ValidatingWebhookConfiguration{}] = cache.ByObject{
+				Label: labels.SelectorFromSet(labels.Set{
+					constants.WellKnownLabelKey: constants.WellKnownLabelValueWebhook,
+				}),
+			}
+
+			// only cache CustomResourceDefinition with "external-secrets.io/component=controller" label
+			cacheByObject[&apiextensions.CustomResourceDefinition{}] = cache.ByObject{
+				Label: labels.SelectorFromSet(labels.Set{
+					constants.WellKnownLabelKey: constants.WellKnownLabelValueController,
+				}),
 			}
 		}
 
@@ -91,18 +99,12 @@ var certcontrollerCmd = &cobra.Command{
 			HealthProbeBindAddress: healthzAddr,
 			LeaderElection:         enableLeaderElection,
 			LeaderElectionID:       "crd-certs-controller",
-			Cache:                  cacheOptions,
+			Cache: cache.Options{
+				ByObject: cacheByObject,
+			},
 			Client: client.Options{
 				Cache: &client.CacheOptions{
-					DisableFor: []client.Object{
-						// the client creates a ListWatch for all resource kinds that
-						// are requested with .Get().
-						// We want to avoid to cache all secrets or configmaps in memory.
-						// The ES controller uses v1.PartialObjectMetadata for the secrets
-						// that he owns.
-						// see #721
-						&v1.Secret{},
-					},
+					DisableFor: clientCacheDisableFor,
 				},
 			},
 		})
