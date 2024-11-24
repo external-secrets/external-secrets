@@ -3421,13 +3421,19 @@
 <td><code>--enable-secrets-caching</code></td>
 <td>boolean</td>
 <td>false</td>
-<td>Enables the secrets caching for external-secrets pod.</td>
+<td>Enable secrets caching for ALL secrets in the cluster (WARNING: can increase memory usage).</td>
 </tr>
 <tr>
 <td><code>--enable-configmaps-caching</code></td>
 <td>boolean</td>
 <td>false</td>
-<td>Enables the ConfigMap caching for external-secrets pod.</td>
+<td>Enable configmaps caching for ALL configmaps in the cluster (WARNING: can increase memory usage).</td>
+</tr>
+<tr>
+<td><code>--enable-managed-secrets-caching</code></td>
+<td>boolean</td>
+<td>true</td>
+<td>Enable secrets caching for secrets managed by an ExternalSecret.</td>
 </tr>
 <tr>
 <td><code>--enable-flood-gate</code></td>
