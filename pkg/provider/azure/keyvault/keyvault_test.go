@@ -447,7 +447,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 				Expires: smtc.newExpiry,
 			},
 		}
-	}	
+	}
 	secretWrongTags := func(smtc *secretManagerTestCase) {
 		smtc.setValue = []byte(goodSecret)
 		smtc.pushData = testingfake.PushSecretData{
