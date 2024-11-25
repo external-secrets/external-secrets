@@ -27,7 +27,9 @@ import (
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/date"
+	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	pointer "k8s.io/utils/ptr"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -423,11 +425,22 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 	secretExpiryChange := func(smtc *secretManagerTestCase) {
 		newExpiry := date.UnixTime(time.Now().Add(24 * time.Hour))
 		oldExpiry := date.UnixTime(time.Now().Add(-1 * time.Hour))
+		metadata := &PushSecretMetadata{
+			APIVersion: metadataAPIVersion,
+			Kind:       metadataKind,
+			Spec: PushSecretMetadataSpec{
+				ExpirationDate: time.Now().Add(24 * time.Hour).Format(time.RFC3339),
+			},
+		}
+		metadataRaw, _ := yaml.Marshal(metadata)
 		smtc.newExpiry = &newExpiry
 		smtc.setValue = []byte(goodSecret)
 		smtc.pushData = testingfake.PushSecretData{
 			SecretKey: secretKey,
 			RemoteKey: secretName,
+			Metadata: &apiextensionsv1.JSON{
+				Raw: metadataRaw,
+			},
 		}
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: map[string]*string{

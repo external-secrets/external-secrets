@@ -40,6 +40,7 @@ import (
 	"golang.org/x/crypto/sha3"
 	authv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -48,6 +49,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	"sigs.k8s.io/yaml"
 	gopkcs12 "software.sslmate.com/src/go-pkcs12"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -119,6 +121,42 @@ type Azure struct {
 	provider   *esv1beta1.AzureKVProvider
 	baseClient SecretClient
 	namespace  string
+}
+
+const (
+	metadataAPIVersion = "kubernetes.external-secrets.io/v1alpha1"
+	metadataKind       = "PushSecretMetadata"
+)
+
+type PushSecretMetadata struct {
+	APIVersion string                 `json:"apiVersion"`
+	Kind       string                 `json:"kind"`
+	Spec       PushSecretMetadataSpec `json:"spec,omitempty"`
+}
+
+type PushSecretMetadataSpec struct {
+	ExpirationDate string `json:"expirationDate,omitempty"`
+}
+
+func parseMetadataParameters(data *apiextensionsv1.JSON) (*PushSecretMetadata, error) {
+	if data == nil {
+		return nil, nil
+	}
+	var metadata PushSecretMetadata
+	err := yaml.Unmarshal(data.Raw, &metadata, yaml.DisallowUnknownFields)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse %s %s: %w", metadataAPIVersion, metadataKind, err)
+	}
+
+	if metadata.APIVersion != metadataAPIVersion {
+		return nil, fmt.Errorf("unexpected apiVersion %q, expected %q", metadata.APIVersion, metadataAPIVersion)
+	}
+
+	if metadata.Kind != metadataKind {
+		return nil, fmt.Errorf("unexpected kind %q, expected %q", metadata.Kind, metadataKind)
+	}
+
+	return &metadata, nil
 }
 
 func init() {
@@ -565,10 +603,15 @@ func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1
 		value = secret.Data[data.GetSecretKey()]
 	}
 
-	if secretAnnotation, ok := secret.Annotations["azure.external-secrets.io/expiration-date"]; ok && secretAnnotation != "" {
-		t, err := time.Parse(time.RFC3339, secretAnnotation)
+	metadata, err := parseMetadataParameters(data.GetMetadata())
+	if err != nil {
+		return fmt.Errorf("failed to parse push secret metadata: %w", err)
+	}
+
+	if metadata != nil && metadata.Spec.ExpirationDate != "" {
+		t, err := time.Parse(time.RFC3339, metadata.Spec.ExpirationDate)
 		if err != nil {
-			return fmt.Errorf("error parsing expiration date annotation in secret: %w", err)
+			return fmt.Errorf("error parsing expiration date in metadata: %w. Expected format: YYYY-MM-DDTHH:MM:SSZ (RFC3339). Example: 2024-12-31T20:00:00Z", err)
 		}
 		unixTime := date.UnixTime(t)
 		expires = &unixTime
