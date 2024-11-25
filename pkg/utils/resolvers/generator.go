@@ -125,10 +125,11 @@ func extractGeneratorFromClusterGenerator(
 			return nil, fmt.Errorf("kind was not of object type for cluster generator %T", v)
 		}
 
-		// We set the kind specifically to the provided type.
-		// This is used later to determine what Generator we need to create in generator_schema.go:GetGenerator.
-		vMap["kind"] = kind
-		result, err = json.Marshal(vMap)
+		// Construct our generator object so it can be later unmarshalled into a valid Generator Spec.
+		object := map[string]interface{}{}
+		object["kind"] = kind
+		object["spec"] = vMap
+		result, err = json.Marshal(object)
 		if err != nil {
 			return nil, err
 		}
