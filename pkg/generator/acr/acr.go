@@ -282,10 +282,10 @@ func accessTokenForWorkloadIdentity(ctx context.Context, crClient client.Client,
 }
 
 func accessTokenForManagedIdentity(ctx context.Context, envType v1beta1.AzureEnvironmentType, identityID string) (string, error) {
-	// handle workload identity
+	// handle managed identity
 	creds, err := azidentity.NewManagedIdentityCredential(
 		&azidentity.ManagedIdentityCredentialOptions{
-			ID: azidentity.ResourceID(identityID),
+			ID: azidentity.ClientID(identityID),
 		},
 	)
 	if err != nil {
