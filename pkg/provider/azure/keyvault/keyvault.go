@@ -424,8 +424,13 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 		return nil
 	}
 	val := string(value)
-	if secret.Value != nil && val == *secret.Value && (secret.Attributes.Expires == expires) {
-		return nil
+	if secret.Value != nil && val == *secret.Value {
+		if secret.Attributes != nil {
+			if (secret.Attributes.Expires == nil && expires == nil) ||
+				(secret.Attributes.Expires != nil && expires != nil && *secret.Attributes.Expires == *expires) {
+				return nil
+			}
+		}
 	}
 
 	secretParams := keyvault.SecretSetParameters{
