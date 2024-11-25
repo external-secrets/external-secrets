@@ -11,7 +11,7 @@ require (
 	github.com/Azure/go-autorest/autorest v0.11.29
 	github.com/Azure/go-autorest/autorest/adal v0.9.24
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.13
-	github.com/AzureAD/microsoft-authentication-library-for-go v1.3.1
+	github.com/AzureAD/microsoft-authentication-library-for-go v1.3.2
 	github.com/IBM/go-sdk-core/v5 v5.18.1
 	github.com/IBM/secrets-manager-go-sdk/v2 v2.0.8
 	github.com/Masterminds/goutils v1.1.1 // indirect
@@ -30,32 +30,32 @@ require (
 	github.com/hashicorp/vault/api/auth/kubernetes v0.8.0
 	github.com/hashicorp/vault/api/auth/ldap v0.8.0
 	github.com/huandu/xstrings v1.5.0 // indirect
-	github.com/onsi/ginkgo/v2 v2.21.0
+	github.com/onsi/ginkgo/v2 v2.22.0
 	github.com/onsi/gomega v1.34.2
-	github.com/oracle/oci-go-sdk/v65 v65.78.1
+	github.com/oracle/oci-go-sdk/v65 v65.79.0
 	github.com/prometheus/client_golang v1.20.5
 	github.com/prometheus/client_model v0.6.1
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
 	github.com/tidwall/gjson v1.18.0
-	github.com/xanzy/go-gitlab v0.113.0
-	github.com/yandex-cloud/go-genproto v0.0.0-20241114125552-204702d61ed0
-	github.com/yandex-cloud/go-sdk v0.0.0-20241114131935-2a8bbd3c67f1
+	github.com/xanzy/go-gitlab v0.114.0
+	github.com/yandex-cloud/go-genproto v0.0.0-20241125092406-f84a9a79c742
+	github.com/yandex-cloud/go-sdk v0.0.0-20241125093903-abc9da85b811
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.29.0
 	golang.org/x/oauth2 v0.24.0
-	google.golang.org/api v0.206.0
-	google.golang.org/genproto v0.0.0-20241113202542-65e8d215514f
+	google.golang.org/api v0.209.0
+	google.golang.org/genproto v0.0.0-20241118233622-e639e219e697
 	google.golang.org/grpc v1.68.0
 	gopkg.in/yaml.v3 v3.0.1
 	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919
-	k8s.io/api v0.31.2
-	k8s.io/apiextensions-apiserver v0.31.2
-	k8s.io/apimachinery v0.31.2
-	k8s.io/client-go v0.31.2
+	k8s.io/api v0.31.3
+	k8s.io/apiextensions-apiserver v0.31.3
+	k8s.io/apimachinery v0.31.3
+	k8s.io/client-go v0.31.3
 	k8s.io/utils v0.0.0-20241104163129-6fe5fd82f078
-	sigs.k8s.io/controller-runtime v0.19.1
+	sigs.k8s.io/controller-runtime v0.19.2
 	sigs.k8s.io/controller-tools v0.16.5
 )
 
@@ -67,7 +67,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.8.0
 	github.com/BeyondTrust/go-client-library-passwordsafe v0.9.1
 	github.com/DelineaXPM/dsv-sdk-go/v2 v2.1.2
-	github.com/DelineaXPM/tss-sdk-go/v2 v2.0.1
+	github.com/DelineaXPM/tss-sdk-go/v2 v2.0.3
 	github.com/Onboardbase/go-cryptojs-aes-decrypt v0.0.0-20230430095000-27c0d3a9016d
 	github.com/akeylesslabs/akeyless-go/v3 v3.6.3
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.0.10
@@ -75,10 +75,10 @@ require (
 	github.com/alibabacloud-go/openapi-util v0.1.1
 	github.com/alibabacloud-go/tea v1.2.2
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.7
-	github.com/aliyun/credentials-go v1.4.2
+	github.com/aliyun/credentials-go v1.4.3
 	github.com/avast/retry-go/v4 v4.6.0
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/cyberark/conjur-api-go v0.12.6
+	github.com/cyberark/conjur-api-go v0.12.7
 	github.com/fortanix/sdkms-client-go v0.4.0
 	github.com/go-openapi/strfmt v0.23.0
 	github.com/golang-jwt/jwt/v5 v5.2.1
@@ -86,7 +86,7 @@ require (
 	github.com/hashicorp/vault/api/auth/aws v0.8.0
 	github.com/hashicorp/vault/api/auth/userpass v0.8.0
 	github.com/keeper-security/secrets-manager-go/core v1.6.4
-	github.com/lestrrat-go/jwx/v2 v2.1.2
+	github.com/lestrrat-go/jwx/v2 v2.1.3
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.10.0
 	github.com/passbolt/go-passbolt v0.7.1
 	github.com/previder/vault-cli v0.1.2
@@ -102,8 +102,8 @@ require (
 
 require (
 	al.essio.dev/pkg/shellescape v1.5.1 // indirect
-	cloud.google.com/go/auth v0.10.2 // indirect
-	cloud.google.com/go/auth/oauth2adapt v0.2.5 // indirect
+	cloud.google.com/go/auth v0.11.0 // indirect
+	cloud.google.com/go/auth/oauth2adapt v0.2.6 // indirect
 	cloud.google.com/go/compute/metadata v0.5.2 // indirect
 	github.com/ProtonMail/go-crypto v1.1.2 // indirect
 	github.com/ProtonMail/go-mime v0.0.0-20230322103455-7d82a3887f2f // indirect
@@ -124,7 +124,7 @@ require (
 	github.com/danieljoos/wincred v1.2.2 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.6 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.7 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-playground/validator/v10 v10.23.0 // indirect
@@ -149,8 +149,8 @@ require (
 	go.opentelemetry.io/otel/metric v1.32.0 // indirect
 	go.opentelemetry.io/otel/trace v1.32.0 // indirect
 	golang.org/x/sync v0.9.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20241113202542-65e8d215514f // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20241113202542-65e8d215514f // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20241118233622-e639e219e697 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20241118233622-e639e219e697 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/ghodss/yaml.v1 v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.3 // indirect
@@ -165,7 +165,7 @@ require (
 	github.com/Azure/go-autorest/autorest/validation v0.3.1 // indirect
 	github.com/Azure/go-autorest/logger v0.2.1 // indirect
 	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
-	github.com/Masterminds/semver/v3 v3.3.0 // indirect
+	github.com/Masterminds/semver/v3 v3.3.1 // indirect
 	github.com/PaesslerAG/gval v1.2.3 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -195,7 +195,7 @@ require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/pprof v0.0.0-20241101162523-b92577c0c142 // indirect
+	github.com/google/pprof v0.0.0-20241122213907-cbe949e5a41b // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.4 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
