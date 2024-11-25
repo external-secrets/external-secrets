@@ -427,6 +427,8 @@ const (
 	ConditionReasonSecretSyncedError = "SecretSyncedError"
 	// ConditionReasonSecretDeleted indicates that the secret has been deleted.
 	ConditionReasonSecretDeleted = "SecretDeleted"
+	// ConditionReasonSecretMissing indicates that the secret is missing.
+	ConditionReasonSecretMissing = "SecretMissing"
 
 	ReasonUpdateFailed = "UpdateFailed"
 	ReasonDeprecated   = "ParameterDeprecated"
@@ -470,10 +472,14 @@ type ExternalSecret struct {
 }
 
 const (
-	// AnnotationDataHash is used to ensure consistency.
+	// AnnotationDataHash all secrets managed by an ExternalSecret have this annotation with the hash of their data.
 	AnnotationDataHash = "reconcile.external-secrets.io/data-hash"
-	// LabelOwner points to the owning ExternalSecret resource
-	//  and is used to manage the lifecycle of a Secret
+
+	// LabelManaged all secrets managed by an ExternalSecret will have this label equal to "true".
+	LabelManaged      = "reconcile.external-secrets.io/managed"
+	LabelManagedValue = "true"
+
+	// LabelOwner points to the owning ExternalSecret resource when CreationPolicy=Owner.
 	LabelOwner = "reconcile.external-secrets.io/created-by"
 )
 
