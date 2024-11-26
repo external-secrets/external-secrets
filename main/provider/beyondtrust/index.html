@@ -2157,9 +2157,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#creating-a-externalsecret" class="md-nav__link">
+  <a href="#creating-an-externalsecret" class="md-nav__link">
     <span class="md-ellipsis">
-      Creating a ExternalSecret
+      Creating an ExternalSecret
     </span>
   </a>
   
@@ -3418,9 +3418,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#creating-a-externalsecret" class="md-nav__link">
+  <a href="#creating-an-externalsecret" class="md-nav__link">
     <span class="md-ellipsis">
-      Creating a ExternalSecret
+      Creating an ExternalSecret
     </span>
   </a>
   
@@ -3478,11 +3478,15 @@
 <li>Add the Secrets Safe Feature to the group</li>
 </ol>
 <blockquote>
-<p>NOTE: The ClentID and ClientSecret must be stored in a Kubernetes secret in order for the SecretStore to read the configuration.</p>
+<p>NOTE: The ClientID and ClientSecret must be stored in a Kubernetes secret in order for the SecretStore to read the configuration.</p>
 </blockquote>
+<p>If you're using client credentials authentication:
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>bt-secret<span class="w"> </span>--from-literal<span class="w"> </span><span class="nv">ClientSecret</span><span class="o">=</span><span class="s2">&quot;&lt;your secret&gt;&quot;</span>
 kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>bt-id<span class="w"> </span>--from-literal<span class="w"> </span><span class="nv">ClientId</span><span class="o">=</span><span class="s2">&quot;&lt;your ID&gt;&quot;</span>
-</code></pre></div>
+</code></pre></div></p>
+<p>If you're using API Key authentication:
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>bt-apikey<span class="w"> </span>--from-literal<span class="w"> </span><span class="nv">ApiKey</span><span class="o">=</span><span class="s2">&quot;&lt;your apikey&gt;&quot;</span>
+</code></pre></div></p>
 <h3 id="client-certificate">Client Certificate</h3>
 <p>If using <code>retrievalType: MANAGED_ACCOUNT</code>, you will also need to download the pfx certificate from Secrets Safe, extract that certificate and create two Kubernetes secrets.</p>
 <div class="highlight"><pre><span></span><code>openssl<span class="w"> </span>pkcs12<span class="w"> </span>-in<span class="w"> </span>client_certificate.pfx<span class="w"> </span>-nocerts<span class="w"> </span>-out<span class="w"> </span>ps_key.pem<span class="w"> </span>-nodes
@@ -3515,7 +3519,7 @@ You can also use a <code>ClusterSecretStore</code> allowing you to reference sec
 <span class="w">    </span><span class="nt">beyondtrust</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">server</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">apiUrl</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://example.com:443/BeyondTrust/api/public/v3/</span>
-<span class="w">        </span><span class="nt">retrievalType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MANAGED_ACCOUNT</span><span class="w"> </span><span class="c1"># or SECRET</span>
+<span class="w">        </span><span class="nt">retrievalType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MANAGED_ACCOUNT</span><span class="w">  </span><span class="c1"># or SECRET</span>
 <span class="w">        </span><span class="nt">verifyCA</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <span class="w">        </span><span class="nt">clientTimeOutSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">45</span>
 <span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"> </span>
@@ -3527,16 +3531,20 @@ You can also use a <code>ClusterSecretStore</code> allowing you to reference sec
 <span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span>
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bt-certificatekey</span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClientCertificateKey</span>
-<span class="w">        </span><span class="nt">clientSecret</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">clientSecret</span><span class="p">:</span><span class="w"> </span><span class="c1"># define this section if using client credentials authentication</span>
 <span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span>
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bt-secret</span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClientSecret</span>
-<span class="w">        </span><span class="nt">clientId</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">clientId</span><span class="p">:</span><span class="w"> </span><span class="c1"># define this section if using client credentials authentication</span>
 <span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span>
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bt-id</span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClientId</span>
+<span class="w">        </span><span class="nt">apiKey</span><span class="p">:</span><span class="w"> </span><span class="c1"># define this section if using Api Key authentication</span>
+<span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bt-apikey</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ApiKey</span>
 </code></pre></div>
-<h3 id="creating-a-externalsecret">Creating a ExternalSecret</h3>
+<h3 id="creating-an-externalsecret">Creating an ExternalSecret</h3>
 <p>You can follow the below example to create a <code>ExternalSecret</code> resource. Secrets can be referenced by path.
 You can also use a <code>ClusterExternalSecret</code> allowing you to reference secrets from all namespaces.</p>
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>external-secret.yml
