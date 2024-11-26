@@ -37,6 +37,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault/fake"
 	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
 type secretManagerTestCase struct {
@@ -425,14 +426,14 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 	secretExpiryChange := func(smtc *secretManagerTestCase) {
 		newExpiry := date.UnixTime(time.Now().Add(24 * time.Hour))
 		oldExpiry := date.UnixTime(time.Now().Add(-1 * time.Hour))
-		metadata := &PushSecretMetadata{
-			APIVersion: metadataAPIVersion,
-			Kind:       metadataKind,
+		mdata := &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
+			APIVersion: metadata.APIVersion,
+			Kind:       metadata.Kind,
 			Spec: PushSecretMetadataSpec{
 				ExpirationDate: time.Now().Add(24 * time.Hour).Format(time.RFC3339),
 			},
 		}
-		metadataRaw, _ := yaml.Marshal(metadata)
+		metadataRaw, _ := yaml.Marshal(mdata)
 		smtc.newExpiry = &newExpiry
 		smtc.setValue = []byte(goodSecret)
 		smtc.pushData = testingfake.PushSecretData{

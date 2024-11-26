@@ -40,7 +40,6 @@ import (
 	"golang.org/x/crypto/sha3"
 	authv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -49,13 +48,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-	"sigs.k8s.io/yaml"
 	gopkcs12 "software.sslmate.com/src/go-pkcs12"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
@@ -123,40 +122,8 @@ type Azure struct {
 	namespace  string
 }
 
-const (
-	metadataAPIVersion = "kubernetes.external-secrets.io/v1alpha1"
-	metadataKind       = "PushSecretMetadata"
-)
-
-type PushSecretMetadata struct {
-	APIVersion string                 `json:"apiVersion"`
-	Kind       string                 `json:"kind"`
-	Spec       PushSecretMetadataSpec `json:"spec,omitempty"`
-}
-
 type PushSecretMetadataSpec struct {
 	ExpirationDate string `json:"expirationDate,omitempty"`
-}
-
-func parseMetadataParameters(data *apiextensionsv1.JSON) (*PushSecretMetadata, error) {
-	if data == nil {
-		return nil, nil
-	}
-	var metadata PushSecretMetadata
-	err := yaml.Unmarshal(data.Raw, &metadata, yaml.DisallowUnknownFields)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse %s %s: %w", metadataAPIVersion, metadataKind, err)
-	}
-
-	if metadata.APIVersion != metadataAPIVersion {
-		return nil, fmt.Errorf("unexpected apiVersion %q, expected %q", metadata.APIVersion, metadataAPIVersion)
-	}
-
-	if metadata.Kind != metadataKind {
-		return nil, fmt.Errorf("unexpected kind %q, expected %q", metadata.Kind, metadataKind)
-	}
-
-	return &metadata, nil
 }
 
 func init() {
@@ -603,7 +570,7 @@ func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1
 		value = secret.Data[data.GetSecretKey()]
 	}
 
-	metadata, err := parseMetadataParameters(data.GetMetadata())
+	metadata, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](data.GetMetadata())
 	if err != nil {
 		return fmt.Errorf("failed to parse push secret metadata: %w", err)
 	}
