@@ -650,6 +650,45 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(string(secret.Data[secretKey])).To(Equal(secretVal))
 		}
 	}
+	syncWithClusterGeneratorRef := func(tc *testCase) {
+		const secretKey = "somekey2"
+		const secretVal = "someValue2"
+		Expect(k8sClient.Create(context.Background(), &genv1alpha1.ClusterGenerator{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "mytestfake",
+			},
+			Spec: genv1alpha1.ClusterGeneratorSpec{
+				Kind: "Fake",
+				Generator: genv1alpha1.GeneratorSpec{
+					FakeSpec: &genv1alpha1.FakeSpec{
+						Data: map[string]string{
+							secretKey: secretVal,
+						},
+					},
+				},
+			},
+		})).To(Succeed())
+
+		// reset secretStoreRef
+		tc.externalSecret.Spec.SecretStoreRef = esv1beta1.SecretStoreRef{}
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
+			{
+				SourceRef: &esv1beta1.StoreGeneratorSourceRef{
+					GeneratorRef: &esv1beta1.GeneratorRef{
+						APIVersion: genv1alpha1.Group + "/" + genv1alpha1.Version,
+						Kind:       "ClusterGenerator",
+						Name:       "mytestfake",
+					},
+				},
+			},
+		}
+
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// check values
+			Expect(string(secret.Data[secretKey])).To(Equal(secretVal))
+		}
+	}
 
 	deleteOrphanedSecrets := func(tc *testCase) {
 		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
@@ -2280,6 +2319,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		Entry("should not resolve conflicts with creationPolicy=Merge", mergeWithConflict),
 		Entry("should not update unchanged secret using creationPolicy=Merge", mergeWithSecretNoChange),
 		Entry("should not delete pre-existing secret with creationPolicy=Orphan", createSecretPolicyOrphan),
+		Entry("should sync cluster generator ref", syncWithClusterGeneratorRef),
 		Entry("should sync with generatorRef", syncWithGeneratorRef),
 		Entry("should not process generatorRef with mismatching controller field", ignoreMismatchControllerForGeneratorRef),
 		Entry("should sync with multiple secret stores via sourceRef", syncWithMultipleSecretStores),

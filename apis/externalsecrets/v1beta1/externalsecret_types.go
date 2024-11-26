@@ -393,7 +393,7 @@ type GeneratorRef struct {
 	// Specify the apiVersion of the generator resource
 	// +kubebuilder:default="generators.external-secrets.io/v1alpha1"
 	APIVersion string `json:"apiVersion,omitempty"`
-	// Specify the Kind of the resource, e.g. Password, ACRAccessToken etc.
+	// Specify the Kind of the resource, e.g. Password, ACRAccessToken, ClusterGenerator etc.
 	Kind string `json:"kind"`
 	// Specify the name of the generator resource
 	Name string `json:"name"`

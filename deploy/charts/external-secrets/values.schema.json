@@ -270,6 +270,9 @@
                 "createClusterExternalSecret": {
                     "type": "boolean"
                 },
+                "createClusterGenerator": {
+                    "type": "boolean"
+                },
                 "createClusterSecretStore": {
                     "type": "boolean"
                 },
