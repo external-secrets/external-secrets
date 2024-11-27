@@ -58,6 +58,13 @@ This includes, but insn't limited to :
 * Image Signature (including provenance, providers, keys)
 * OLM-specific builds
 
+## Including features and behaviors to the Deprecation Policy
+Any maintainer may propose including a feature, component, or behavior out of scope to be in scope of the deprecation policy. 
+
+The proposal must clearly outline the rationale for inclusion, the impact on users, stability, long term maintenance plan, and day-to-day activities, if such.
+
+The proposal must be formalized by submiting a `design` document as a Pull Request.
+
 ## Deprecation Process
 ### Nomination of Deprecation
 
