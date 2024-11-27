@@ -59,7 +59,7 @@ func GetGeneratorByName(kind string) (Generator, bool) {
 	return f, ok
 }
 
-// GetGenerator returns a implementation from a generator
+// GetGenerator returns an implementation from a generator
 // defined as json.
 func GetGenerator(obj *apiextensions.JSON) (Generator, error) {
 	type unknownGenerator struct {
@@ -75,7 +75,7 @@ func GetGenerator(obj *apiextensions.JSON) (Generator, error) {
 	defer buildlock.RUnlock()
 	gen, ok := builder[res.Kind]
 	if !ok {
-		return nil, fmt.Errorf("failed to find registered generator for: %s", string(obj.Raw))
+		return nil, fmt.Errorf("failed to find registered generator for: %s with kind: %s", string(obj.Raw), res.Kind)
 	}
 	return gen, nil
 }

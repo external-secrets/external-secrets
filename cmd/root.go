@@ -64,6 +64,7 @@ var (
 	enableLeaderElection                  bool
 	enableSecretsCache                    bool
 	enableConfigMapsCache                 bool
+	enableManagedSecretsCache             bool
 	enablePartialCache                    bool
 	concurrent                            int
 	port                                  int
@@ -107,19 +108,6 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var lvl zapcore.Level
 		var enc zapcore.TimeEncoder
-		// the client creates a ListWatch for all resource kinds that
-		// are requested with .Get().
-		// We want to avoid to cache all secrets or configmaps in memory.
-		// The ES controller uses v1.PartialObjectMetadata for the secrets
-		// that he owns.
-		// see #721
-		cacheList := make([]client.Object, 0)
-		if !enableSecretsCache {
-			cacheList = append(cacheList, &v1.Secret{})
-		}
-		if !enableConfigMapsCache {
-			cacheList = append(cacheList, &v1.ConfigMap{})
-		}
 		lvlErr := lvl.UnmarshalText([]byte(loglevel))
 		if lvlErr != nil {
 			setupLog.Error(lvlErr, "error unmarshalling loglevel")
@@ -141,6 +129,21 @@ var rootCmd = &cobra.Command{
 		config := ctrl.GetConfigOrDie()
 		config.QPS = clientQPS
 		config.Burst = clientBurst
+
+		// the client creates a ListWatch for resources that are requested with .Get() or .List()
+		// some users might want to completely disable caching of Secrets and ConfigMaps
+		// to decrease memory usage at the expense of high Kubernetes API usage
+		// see: https://github.com/external-secrets/external-secrets/issues/721
+		clientCacheDisableFor := make([]client.Object, 0)
+		if !enableSecretsCache {
+			// dont cache any secrets
+			clientCacheDisableFor = append(clientCacheDisableFor, &v1.Secret{})
+		}
+		if !enableConfigMapsCache {
+			// dont cache any configmaps
+			clientCacheDisableFor = append(clientCacheDisableFor, &v1.ConfigMap{})
+		}
+
 		ctrlOpts := ctrl.Options{
 			Scheme: scheme,
 			Metrics: server.Options{
@@ -151,7 +154,7 @@ var rootCmd = &cobra.Command{
 			}),
 			Client: client.Options{
 				Cache: &client.CacheOptions{
-					DisableFor: cacheList,
+					DisableFor: clientCacheDisableFor,
 				},
 			},
 			LeaderElection:   enableLeaderElection,
@@ -166,6 +169,19 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			setupLog.Error(err, "unable to start manager")
 			os.Exit(1)
+		}
+
+		// we create a special client for accessing secrets in the ExternalSecret reconcile loop.
+		// by default, it is the same as the normal client, but if `--enable-managed-secrets-caching`
+		// is set, we use a special client that only caches secrets managed by an ExternalSecret.
+		// if we are already caching all secrets, we don't need to use the special client.
+		secretClient := mgr.GetClient()
+		if enableManagedSecretsCache && !enableSecretsCache {
+			secretClient, err = externalsecret.BuildManagedSecretClient(mgr)
+			if err != nil {
+				setupLog.Error(err, "unable to create managed secret client")
+				os.Exit(1)
+			}
 		}
 
 		ssmetrics.SetUpMetrics()
@@ -189,13 +205,16 @@ var rootCmd = &cobra.Command{
 				Scheme:          mgr.GetScheme(),
 				ControllerClass: controllerClass,
 				RequeueInterval: storeRequeueInterval,
-			}).SetupWithManager(mgr); err != nil {
+			}).SetupWithManager(mgr, controller.Options{
+				MaxConcurrentReconciles: concurrent,
+			}); err != nil {
 				setupLog.Error(err, errCreateController, "controller", "ClusterSecretStore")
 				os.Exit(1)
 			}
 		}
 		if err = (&externalsecret.Reconciler{
 			Client:                    mgr.GetClient(),
+			SecretClient:              secretClient,
 			Log:                       ctrl.Log.WithName("controllers").WithName("ExternalSecret"),
 			Scheme:                    mgr.GetScheme(),
 			RestConfig:                mgr.GetConfig(),
@@ -218,7 +237,9 @@ var rootCmd = &cobra.Command{
 				ControllerClass: controllerClass,
 				RestConfig:      mgr.GetConfig(),
 				RequeueInterval: time.Hour,
-			}).SetupWithManager(mgr); err != nil {
+			}).SetupWithManager(mgr, controller.Options{
+				MaxConcurrentReconciles: concurrent,
+			}); err != nil {
 				setupLog.Error(err, errCreateController, "controller", "PushSecret")
 				os.Exit(1)
 			}
@@ -273,8 +294,9 @@ func init() {
 	rootCmd.Flags().BoolVar(&enableClusterStoreReconciler, "enable-cluster-store-reconciler", true, "Enable cluster store reconciler.")
 	rootCmd.Flags().BoolVar(&enableClusterExternalSecretReconciler, "enable-cluster-external-secret-reconciler", true, "Enable cluster external secret reconciler.")
 	rootCmd.Flags().BoolVar(&enablePushSecretReconciler, "enable-push-secret-reconciler", true, "Enable push secret reconciler.")
-	rootCmd.Flags().BoolVar(&enableSecretsCache, "enable-secrets-caching", false, "Enable secrets caching for external-secrets pod.")
-	rootCmd.Flags().BoolVar(&enableConfigMapsCache, "enable-configmaps-caching", false, "Enable secrets caching for external-secrets pod.")
+	rootCmd.Flags().BoolVar(&enableSecretsCache, "enable-secrets-caching", false, "Enable secrets caching for ALL secrets in the cluster (WARNING: can increase memory usage).")
+	rootCmd.Flags().BoolVar(&enableConfigMapsCache, "enable-configmaps-caching", false, "Enable configmaps caching for ALL configmaps in the cluster (WARNING: can increase memory usage).")
+	rootCmd.Flags().BoolVar(&enableManagedSecretsCache, "enable-managed-secrets-caching", true, "Enable secrets caching for secrets managed by an ExternalSecret")
 	rootCmd.Flags().DurationVar(&storeRequeueInterval, "store-requeue-interval", time.Minute*5, "Default Time duration between reconciling (Cluster)SecretStores")
 	rootCmd.Flags().BoolVar(&enableFloodGate, "enable-flood-gate", true, "Enable flood gate. External secret will be reconciled only if the ClusterStore or Store have an healthy or unknown state.")
 	rootCmd.Flags().BoolVar(&enableExtendedMetricLabels, "enable-extended-metric-labels", false, "Enable recommended kubernetes annotations as labels in metrics.")

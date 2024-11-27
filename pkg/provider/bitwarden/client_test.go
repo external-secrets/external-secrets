@@ -482,6 +482,70 @@ func TestProviderPushSecret(t *testing.T) {
 			},
 		},
 		{
+			name: "push entire secret succeeds",
+			args: args{
+				ctx: context.Background(),
+				secret: &corev1.Secret{
+					Data: map[string][]byte{
+						"key": []byte("value"),
+					},
+				},
+				data: v1alpha1.PushSecretData{
+					Match: v1alpha1.PushSecretMatch{
+						RemoteRef: v1alpha1.PushSecretRemoteRef{
+							RemoteKey: "this-is-a-name",
+						},
+					},
+				},
+			},
+			fields: fields{
+				kube: func() client.Client {
+					return fake.NewFakeClient()
+				},
+				namespace: "default",
+				store: &v1beta1.SecretStore{
+					Spec: v1beta1.SecretStoreSpec{
+						Provider: &v1beta1.SecretStoreProvider{
+							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+								OrganizationID: "orgid",
+								ProjectID:      projectID,
+							},
+						},
+					},
+				},
+				mock: func(c *FakeClient) {
+					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
+						Data: []SecretIdentifierResponse{
+							{
+								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+								Key:            "this-is-a-name",
+								OrganizationID: "orgid",
+							},
+						},
+					})
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						Key:            "no-match", // if this is this-is-a-name it would match
+						Note:           "",
+						OrganizationID: "orgid",
+						Value:          "value",
+						ProjectID:      &projectID,
+					})
+					c.CreateSecretReturnsOnCallN(0, &SecretResponse{})
+				},
+				assertMock: func(t *testing.T, c *FakeClient) {
+					cargs := c.createSecretCallArguments[0]
+					assert.Equal(t, SecretCreateRequest{
+						Key:            "this-is-a-name",
+						Note:           "",
+						OrganizationID: "orgid",
+						ProjectIDS:     []string{projectID},
+						Value:          `{"key":"value"}`,
+					}, cargs)
+				},
+			},
+		},
+		{
 			name: "push secret is successful for a existing remote secret but only the value differs will call update",
 			args: args{
 				ctx: context.Background(),
@@ -869,6 +933,92 @@ func TestProviderGetSecretMap(t *testing.T) {
 				key: "key",
 			},
 			want: []byte("value"),
+		},
+		{
+			name: "get secret map with yaml",
+			fields: fields{
+				kube: func() client.Client {
+					return fake.NewFakeClient()
+				},
+				namespace: "default",
+				store:     &v1beta1.SecretStore{},
+				mock: func(c *FakeClient) {
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						Key:            "key",
+						Note:           "note",
+						OrganizationID: "org",
+						Value:          `key: value`,
+					})
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: v1beta1.ExternalSecretDataRemoteRef{
+					Key:      "d8f29773-3019-4973-9bbc-66327d077fe2",
+					Property: "key",
+				},
+				key: "key",
+			},
+			want: []byte("value"),
+		},
+		{
+			name: "get secret map with nested yaml",
+			fields: fields{
+				kube: func() client.Client {
+					return fake.NewFakeClient()
+				},
+				namespace: "default",
+				store:     &v1beta1.SecretStore{},
+				mock: func(c *FakeClient) {
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						Key:            "key",
+						Note:           "note",
+						OrganizationID: "org",
+						Value: `key:
+  key2: value`,
+					})
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: v1beta1.ExternalSecretDataRemoteRef{
+					Key:      "d8f29773-3019-4973-9bbc-66327d077fe2",
+					Property: "key",
+				},
+				key: "key",
+			},
+			want: []byte("key2: value"),
+		},
+		{
+			name: "get secret map with binary yaml data",
+			fields: fields{
+				kube: func() client.Client {
+					return fake.NewFakeClient()
+				},
+				namespace: "default",
+				store:     &v1beta1.SecretStore{},
+				mock: func(c *FakeClient) {
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						Key:            "key",
+						Note:           "note",
+						OrganizationID: "org",
+						Value: `key: value
+key2: !!binary VGhpcyBpcyBhIHRlc3Q=`,
+					})
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: v1beta1.ExternalSecretDataRemoteRef{
+					Key:      "d8f29773-3019-4973-9bbc-66327d077fe2",
+					Property: "key2",
+				},
+				key: "key2",
+			},
+			want: []byte(`This is a test`),
 		},
 		{
 			name: "get secret map - missing key",

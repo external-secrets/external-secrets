@@ -255,7 +255,7 @@ kind: PushSecret
 metadata:
   name: example
 spec:
-  refreshInterval: 10s
+  refreshInterval: 1h
   secretStoreRefs:
     - name: k8s-store-remote-ns
       kind: SecretStore

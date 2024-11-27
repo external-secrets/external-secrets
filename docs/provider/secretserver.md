@@ -53,7 +53,7 @@ kind: ExternalSecret
 metadata:
     name: secret-server-external-secret
 spec:
-    refreshInterval: 15s
+    refreshInterval: 1h
     secretStoreRef:
         kind: SecretStore
         name: secret-server-store

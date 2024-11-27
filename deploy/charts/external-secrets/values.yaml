@@ -39,10 +39,13 @@ crds:
   createClusterExternalSecret: true
   # -- If true, create CRDs for Cluster Secret Store.
   createClusterSecretStore: true
+  # -- If true, create CRDs for Cluster Generator.
+  createClusterGenerator: true
   # -- If true, create CRDs for Push Secret.
   createPushSecret: true
   annotations: {}
   conversion:
+    # -- If webhook is set to false this also needs to be set to false otherwise the kubeapi will be hammered because the conversion is looking for a webhook endpoint.
     enabled: true
 
 imagePullSecrets: []

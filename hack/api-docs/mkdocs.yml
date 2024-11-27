@@ -69,6 +69,7 @@ nav:
       - Azure Container Registry: api/generator/acr.md
       - AWS Elastic Container Registry: api/generator/ecr.md
       - AWS STS Session Token: api/generator/sts.md
+      - Cluster Generator: api/generator/cluster.md
       - Google Container Registry: api/generator/gcr.md
       - Vault Dynamic Secret: api/generator/vault.md
       - Password: api/generator/password.md

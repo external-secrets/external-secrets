@@ -56,7 +56,7 @@ linters:
     - errcheck
     - errorlint
     - exhaustive
-    - exportloopref
+    - copyloopvar
     - gci
     - goheader
     - goconst

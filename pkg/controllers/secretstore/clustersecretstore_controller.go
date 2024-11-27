@@ -24,6 +24,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
@@ -66,10 +67,11 @@ func (r *ClusterStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request
 }
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.
-func (r *ClusterStoreReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ClusterStoreReconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 	r.recorder = mgr.GetEventRecorderFor("cluster-secret-store")
 
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(opts).
 		For(&esapi.ClusterSecretStore{}).
 		Complete(r)
 }

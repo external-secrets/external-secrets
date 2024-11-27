@@ -105,8 +105,9 @@ func equalSecrets(exp, ts *v1.Secret) bool {
 		return false
 	}
 
-	// secret contains label owner which must be ignored
+	// secret contains labels which must be ignored
 	delete(ts.ObjectMeta.Labels, esv1beta1.LabelOwner)
+	delete(ts.ObjectMeta.Labels, esv1beta1.LabelManaged)
 	if len(ts.ObjectMeta.Labels) == 0 {
 		ts.ObjectMeta.Labels = nil
 	}

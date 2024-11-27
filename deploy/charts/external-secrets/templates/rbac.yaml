@@ -51,6 +51,7 @@ rules:
     - "generators.external-secrets.io"
     resources:
     - "acraccesstokens"
+    - "clustergenerators"
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
@@ -145,6 +146,7 @@ rules:
     - "generators.external-secrets.io"
     resources:
     - "acraccesstokens"
+    - "clustergenerators"
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
@@ -190,6 +192,7 @@ rules:
     - "generators.external-secrets.io"
     resources:
     - "acraccesstokens"
+    - "clustergenerators"
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"

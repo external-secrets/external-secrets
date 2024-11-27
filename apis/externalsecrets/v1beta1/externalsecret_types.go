@@ -342,8 +342,10 @@ type ExternalSecretSpec struct {
 	// +optional
 	Target ExternalSecretTarget `json:"target,omitempty"`
 
-	// RefreshInterval is the amount of time before the values are read again from the SecretStore provider
+	// RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
+	// specified as Golang Duration strings.
 	// Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
+	// Example values: "1h", "2h30m", "5d", "10s"
 	// May be set to zero to fetch and create it once. Defaults to 1h.
 	// +kubebuilder:default="1h"
 	RefreshInterval *metav1.Duration `json:"refreshInterval,omitempty"`
@@ -391,7 +393,7 @@ type GeneratorRef struct {
 	// Specify the apiVersion of the generator resource
 	// +kubebuilder:default="generators.external-secrets.io/v1alpha1"
 	APIVersion string `json:"apiVersion,omitempty"`
-	// Specify the Kind of the resource, e.g. Password, ACRAccessToken etc.
+	// Specify the Kind of the resource, e.g. Password, ACRAccessToken, ClusterGenerator etc.
 	Kind string `json:"kind"`
 	// Specify the name of the generator resource
 	Name string `json:"name"`
@@ -425,6 +427,8 @@ const (
 	ConditionReasonSecretSyncedError = "SecretSyncedError"
 	// ConditionReasonSecretDeleted indicates that the secret has been deleted.
 	ConditionReasonSecretDeleted = "SecretDeleted"
+	// ConditionReasonSecretMissing indicates that the secret is missing.
+	ConditionReasonSecretMissing = "SecretMissing"
 
 	ReasonUpdateFailed = "UpdateFailed"
 	ReasonDeprecated   = "ParameterDeprecated"
@@ -468,10 +472,14 @@ type ExternalSecret struct {
 }
 
 const (
-	// AnnotationDataHash is used to ensure consistency.
+	// AnnotationDataHash all secrets managed by an ExternalSecret have this annotation with the hash of their data.
 	AnnotationDataHash = "reconcile.external-secrets.io/data-hash"
-	// LabelOwner points to the owning ExternalSecret resource
-	//  and is used to manage the lifecycle of a Secret
+
+	// LabelManaged all secrets managed by an ExternalSecret will have this label equal to "true".
+	LabelManaged      = "reconcile.external-secrets.io/managed"
+	LabelManagedValue = "true"
+
+	// LabelOwner points to the owning ExternalSecret resource when CreationPolicy=Owner.
 	LabelOwner = "reconcile.external-secrets.io/created-by"
 )
 
