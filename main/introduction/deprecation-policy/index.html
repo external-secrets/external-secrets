@@ -646,6 +646,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#depreaction-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      Depreaction Process:
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3374,6 +3383,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#depreaction-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      Depreaction Process:
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3427,14 +3445,23 @@
 <li>Enums and constant values</li>
 <li>Controller Configuration: CLI flags &amp; environment variables</li>
 <li>Metrics as defined in the <a href="https://kubernetes.io/docs/reference/using-api/deprecation-policy/#deprecating-a-metric">Kubernetes docs</a></li>
-<li>a feature or specific behavior:<ul>
+<li>The following features or specific behavior:<ul>
 <li><code>ExternalSecret</code> <a href="http://localhost:8000/api-externalsecret/#update-behavior">update mechanics</a></li>
 </ul>
 </li>
 </ul>
 <h3 id="non-scope">Non-Scope</h3>
-<p>We do not provide stability guarantee for <strong>source code imports</strong>. The Interfaces and the behavior will change in a unexpected and backwards-incompatible way. However,
-The maintained helm chart is not part of this deprecation policy.</p>
+<p>Everything not listed in scope is not subject to this deprecation policy and it is subject to breaking changes, updates at any point in time, and deprecation - <strong>as long as it follows the Deprecation Process listed below</strong>.</p>
+<p>This includes, but insn't limited to :
+* Any feature / specific behavior not in Scope.
+* Source code imports
+* Helm Charts
+* Release process
+* Docker Images (including multi-arch builds)
+* Image Signature (including provenance, providers, keys)
+* OLM-specific builds</p>
+<h2 id="depreaction-process">Depreaction Process:</h2>
+<p>Deprecation process is described within the <a href="https://github.com/external-secrets/external-secrets/blob/main/DEPRECATING.md">project github repository</a></p>
 
 
 
