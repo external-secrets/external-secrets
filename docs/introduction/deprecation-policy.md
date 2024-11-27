@@ -27,9 +27,9 @@ We define the following scope that is covered by our deprecation policy. We foll
 * Enums and constant values
 * Controller Configuration: CLI flags & environment variables
 * Metrics as defined in the [Kubernetes docs](https://kubernetes.io/docs/reference/using-api/deprecation-policy/#deprecating-a-metric)
-* a feature or specific behavior:
+* The following features or specific behavior:
     * `ExternalSecret` [update mechanics](http://localhost:8000/api-externalsecret/#update-behavior)
 
-### Non-Scope
-We do not provide stability guarantee for **source code imports**. The Interfaces and the behavior will change in a unexpected and backwards-incompatible way. However,
-The maintained helm chart is not part of this deprecation policy.
+## Depreaction Process:
+
+Deprecation process is described within the [project github repository](https://github.com/external-secrets/external-secrets/blob/main/DEPRECATING.md)
