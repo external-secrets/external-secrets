@@ -63,7 +63,7 @@ Any maintainer may propose including a feature, component, or behavior out of sc
 
 The proposal must clearly outline the rationale for inclusion, the impact on users, stability, long term maintenance plan, and day-to-day activities, if such.
 
-The proposal must be formalized by submiting a `design` document as a Pull Request.
+The proposal must be formalized by submitting a `design` document as a Pull Request.
 
 ## Deprecation Process
 ### Nomination of Deprecation
