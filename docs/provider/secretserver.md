@@ -134,7 +134,7 @@ returns: The entire secret in JSON format as displayed below
 
 ### Referencing Secrets in multiple Items secrets
 
-If there is more then one Item in the secret, it supports to retrieve them (all Item.\*.ItemValue) looking up by Item.\*.FieldName or Item.\*.Slug, instead of the above behaviour to use gjon only on the first item Items.0.ItemValue only.
+If there is more then one Item in the secret, it supports to retrieve them (all Item.\*.ItemValue) looking up by Item.\*.FieldName or Item.\*.Slug, instead of the above behaviour to use gjson only on the first item Items.0.ItemValue only.
 
 #### Examples
 
