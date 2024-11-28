@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/tidwall/sjson"
@@ -26,10 +27,18 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
+type PushSecretMetadataMergePolicy string
+
+const (
+	PushSecretMetadataMergePolicyReplace PushSecretMetadataMergePolicy = "Replace"
+	PushSecretMetadataMergePolicyMerge   PushSecretMetadataMergePolicy = "Merge"
+)
+
 type Metadata struct {
-	Annotations map[string]string `json:"annotations"`
-	Labels      map[string]string `json:"labels"`
-	Topics      []string          `json:"topics,omitempty"`
+	Annotations map[string]string             `json:"annotations"`
+	Labels      map[string]string             `json:"labels"`
+	Topics      []string                      `json:"topics,omitempty"`
+	MergePolicy PushSecretMetadataMergePolicy `json:"mergePolicy,omitempty"`
 }
 
 func newPushSecretBuilder(payload []byte, data esv1beta1.PushSecretData) (pushSecretBuilder, error) {
@@ -75,11 +84,18 @@ func (b *psBuilder) buildMetadata(_, labels map[string]string, _ []*secretmanage
 		if err := decoder.Decode(&metadata); err != nil {
 			return nil, nil, nil, fmt.Errorf("failed to decode PushSecret metadata: %w", err)
 		}
+
+		if metadata.MergePolicy == "" {
+			// Set default MergePolicy to be Replace
+			metadata.MergePolicy = PushSecretMetadataMergePolicyReplace
+		}
 	}
 
 	newLabels := map[string]string{}
-	if metadata.Labels != nil {
-		newLabels = metadata.Labels
+	maps.Copy(newLabels, metadata.Labels)
+	if metadata.MergePolicy == PushSecretMetadataMergePolicyMerge {
+		// Keep labels from the existing GCP Secret Manager Secret
+		maps.Copy(newLabels, labels)
 	}
 	newLabels[managedByKey] = managedByValue
 
