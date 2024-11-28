@@ -33,6 +33,8 @@ env:
 
   AWS_REGION: "eu-central-1"
   AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+  AWS_SA_NAME: ${{ secrets.AWS_SA_NAME }}
+  AWS_SA_NAMESPACE: ${{ secrets.AWS_SA_NAMESPACE }}
 
   TFC_AZURE_CLIENT_ID: ${{ secrets.TFC_AZURE_CLIENT_ID}}
   TFC_AZURE_CLIENT_SECRET: ${{ secrets.TFC_AZURE_CLIENT_SECRET }}
