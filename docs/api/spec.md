@@ -1747,7 +1747,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>The name of the external secrets to be created defaults to the name of the ClusterExternalSecret</p>
+<p>The name of the external secrets to be created.
+Defaults to the name of the ClusterExternalSecret</p>
 </td>
 </tr>
 <tr>
@@ -1935,7 +1936,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>The name of the external secrets to be created defaults to the name of the ClusterExternalSecret</p>
+<p>The name of the external secrets to be created.
+Defaults to the name of the ClusterExternalSecret</p>
 </td>
 </tr>
 <tr>
@@ -3156,8 +3158,7 @@ string
 </em>
 </td>
 <td>
-<p>SecretKey defines the key in which the controller stores
-the value. This is the key in the Kind=Secret</p>
+<p>The key in the Kubernetes Secret to store the value.</p>
 </td>
 </tr>
 <tr>
@@ -3185,7 +3186,7 @@ StoreSourceRef
 </td>
 <td>
 <p>SourceRef allows you to override the source
-from which the value will pulled from.</p>
+from which the value will be pulled.</p>
 </td>
 </tr>
 </tbody>
@@ -3958,8 +3959,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Name defines the name of the Secret resource to be managed
-This field is immutable
+<p>The name of the Secret resource to be managed.
 Defaults to the .metadata.name of the ExternalSecret resource</p>
 </td>
 </tr>
@@ -3974,8 +3974,8 @@ ExternalSecretCreationPolicy
 </td>
 <td>
 <em>(Optional)</em>
-<p>CreationPolicy defines rules on how to create the resulting Secret
-Defaults to &lsquo;Owner&rsquo;</p>
+<p>CreationPolicy defines rules on how to create the resulting Secret.
+Defaults to &ldquo;Owner&rdquo;</p>
 </td>
 </tr>
 <tr>
@@ -3989,8 +3989,8 @@ ExternalSecretDeletionPolicy
 </td>
 <td>
 <em>(Optional)</em>
-<p>DeletionPolicy defines rules on how to delete the resulting Secret
-Defaults to &lsquo;Retain&rsquo;</p>
+<p>DeletionPolicy defines rules on how to delete the resulting Secret.
+Defaults to &ldquo;Retain&rdquo;</p>
 </td>
 </tr>
 <tr>
@@ -7827,6 +7827,7 @@ string
 </em>
 </td>
 <td>
+<p>The name of the ConfigMap/Secret resource</p>
 </td>
 </tr>
 <tr>
@@ -7839,6 +7840,7 @@ string
 </em>
 </td>
 <td>
+<p>A list of keys in the ConfigMap/Secret to use as templates for Secret data</p>
 </td>
 </tr>
 </tbody>
@@ -7867,6 +7869,7 @@ string
 </em>
 </td>
 <td>
+<p>A key in the ConfigMap/Secret</p>
 </td>
 </tr>
 <tr>
@@ -9187,7 +9190,7 @@ string
 </em>
 </td>
 <td>
-<p>The key the value inside of the provider type to use, only used with &ldquo;Secret&rdquo; type</p>
+<p>The key where the CA certificate can be found in the Secret or ConfigMap.</p>
 </td>
 </tr>
 <tr>
