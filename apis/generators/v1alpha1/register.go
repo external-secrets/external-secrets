@@ -125,7 +125,7 @@ var (
 )
 
 func init() {
-	SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationToken{})
+	SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationTokenList{})
 	SchemeBuilder.Register(&GCRAccessToken{}, &GCRAccessTokenList{})
 	SchemeBuilder.Register(&GithubAccessToken{}, &GithubAccessTokenList{})
 	SchemeBuilder.Register(&ACRAccessToken{}, &ACRAccessTokenList{})

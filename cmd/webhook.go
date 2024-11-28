@@ -29,6 +29,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"go.uber.org/zap/zapcore"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -45,9 +46,12 @@ const (
 )
 
 func init() {
-	_ = clientgoscheme.AddToScheme(scheme)
-	_ = esv1beta1.AddToScheme(scheme)
-	_ = esv1alpha1.AddToScheme(scheme)
+	// kubernetes schemes
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+
+	// external-secrets schemes
+	utilruntime.Must(esv1beta1.AddToScheme(scheme))
+	utilruntime.Must(esv1alpha1.AddToScheme(scheme))
 }
 
 var webhookCmd = &cobra.Command{

@@ -372,7 +372,7 @@ func (r *Reconciler) resolveSecret(ctx context.Context, ps esapi.PushSecret) (*v
 }
 
 func (r *Reconciler) resolveSecretFromGenerator(ctx context.Context, namespace string, generatorRef *v1beta1.GeneratorRef) (*v1.Secret, error) {
-	gen, obj, err := resolvers.GeneratorRef(ctx, r.RestConfig, namespace, generatorRef)
+	gen, obj, err := resolvers.GeneratorRef(ctx, r.Client, r.Scheme, namespace, generatorRef)
 	if err != nil {
 		return nil, fmt.Errorf("unable to resolve generator: %w", err)
 	}
