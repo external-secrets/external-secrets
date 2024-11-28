@@ -25,6 +25,7 @@ import (
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -96,7 +97,9 @@ var _ = BeforeSuite(func() {
 		Log:             ctrl.Log.WithName("controllers").WithName("PushSecret"),
 		RestConfig:      cfg,
 		RequeueInterval: time.Second,
-	}).SetupWithManager(k8sManager)
+	}).SetupWithManager(k8sManager, controller.Options{
+		MaxConcurrentReconciles: 1,
+	})
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {

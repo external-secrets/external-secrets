@@ -116,8 +116,16 @@ var (
 	UUIDGroupVersionKind = SchemeGroupVersion.WithKind(UUIDKind)
 )
 
+// ClusterGenerator type metadata.
+var (
+	ClusterGeneratorKind             = reflect.TypeOf(ClusterGenerator{}).Name()
+	ClusterGeneratorGroupKind        = schema.GroupKind{Group: Group, Kind: ClusterGeneratorKind}.String()
+	ClusterGeneratorKindAPIVersion   = ClusterGeneratorKind + "." + SchemeGroupVersion.String()
+	ClusterGeneratorGroupVersionKind = SchemeGroupVersion.WithKind(ClusterGeneratorKind)
+)
+
 func init() {
-	SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationToken{})
+	SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationTokenList{})
 	SchemeBuilder.Register(&GCRAccessToken{}, &GCRAccessTokenList{})
 	SchemeBuilder.Register(&GithubAccessToken{}, &GithubAccessTokenList{})
 	SchemeBuilder.Register(&ACRAccessToken{}, &ACRAccessTokenList{})
@@ -125,4 +133,5 @@ func init() {
 	SchemeBuilder.Register(&VaultDynamicSecret{}, &VaultDynamicSecretList{})
 	SchemeBuilder.Register(&Password{}, &PasswordList{})
 	SchemeBuilder.Register(&Webhook{}, &WebhookList{})
+	SchemeBuilder.Register(&ClusterGenerator{}, &ClusterGeneratorList{})
 }

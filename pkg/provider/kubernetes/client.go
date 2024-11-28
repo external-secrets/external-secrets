@@ -34,6 +34,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
 const (
@@ -133,7 +134,7 @@ func (c *Client) mergePushSecretData(remoteRef esv1beta1.PushSecretData, remoteS
 		remoteSecret.Data = make(map[string][]byte)
 	}
 
-	pushMeta, err := parseMetadataParameters(remoteRef.GetMetadata())
+	pushMeta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](remoteRef.GetMetadata())
 	if err != nil {
 		return fmt.Errorf("unable to parse metadata parameters: %w", err)
 	}

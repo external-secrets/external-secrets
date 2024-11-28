@@ -22,10 +22,14 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault"
 	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/date"
+	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	pointer "k8s.io/utils/ptr"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -33,6 +37,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault/fake"
 	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
 type secretManagerTestCase struct {
@@ -65,6 +70,8 @@ type secretManagerTestCase struct {
 	expectedExistence bool
 	// for testing pushing multi-key k8s secrets
 	secret *corev1.Secret
+	// for testing changes in expiration date for akv secrets
+	newExpiry *date.UnixTime
 }
 
 func makeValidSecretManagerTestCase() *secretManagerTestCase {
@@ -414,6 +421,45 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 				"managed-by": pointer.To("external-secrets"),
 			},
 			Value: &goodSecret,
+		}
+	}
+	secretExpiryChange := func(smtc *secretManagerTestCase) {
+		newExpiry := date.UnixTime(time.Now().Add(24 * time.Hour))
+		oldExpiry := date.UnixTime(time.Now().Add(-1 * time.Hour))
+		mdata := &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
+			APIVersion: metadata.APIVersion,
+			Kind:       metadata.Kind,
+			Spec: PushSecretMetadataSpec{
+				ExpirationDate: time.Now().Add(24 * time.Hour).Format(time.RFC3339),
+			},
+		}
+		metadataRaw, _ := yaml.Marshal(mdata)
+		smtc.newExpiry = &newExpiry
+		smtc.setValue = []byte(goodSecret)
+		smtc.pushData = testingfake.PushSecretData{
+			SecretKey: secretKey,
+			RemoteKey: secretName,
+			Metadata: &apiextensionsv1.JSON{
+				Raw: metadataRaw,
+			},
+		}
+		smtc.secretOutput = keyvault.SecretBundle{
+			Tags: map[string]*string{
+				"managed-by": pointer.To("external-secrets"),
+			},
+			Value: &goodSecret,
+			Attributes: &keyvault.SecretAttributes{
+				Expires: &oldExpiry,
+			},
+		}
+		smtc.setSecretOutput = keyvault.SecretBundle{
+			Tags: map[string]*string{
+				"managed-by": pointer.To("external-secrets"),
+			},
+			Value: &goodSecret,
+			Attributes: &keyvault.SecretAttributes{
+				Expires: smtc.newExpiry,
+			},
 		}
 	}
 	secretWrongTags := func(smtc *secretManagerTestCase) {
@@ -814,6 +860,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(wrongTags),
 		makeValidSecretManagerTestCaseCustom(secretSuccess),
 		makeValidSecretManagerTestCaseCustom(secretNoChange),
+		makeValidSecretManagerTestCaseCustom(secretExpiryChange),
 		makeValidSecretManagerTestCaseCustom(secretWrongTags),
 		makeValidSecretManagerTestCaseCustom(secretNoTags),
 		makeValidSecretManagerTestCaseCustom(secretNotFound),

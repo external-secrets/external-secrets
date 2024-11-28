@@ -93,7 +93,7 @@ var _ = BeforeSuite(func() {
 		Scheme:          k8sManager.GetScheme(),
 		ControllerClass: defaultControllerClass,
 		Log:             ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
-	}).SetupWithManager(k8sManager)
+	}).SetupWithManager(k8sManager, controller.Options{})
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {

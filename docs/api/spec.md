@@ -1076,6 +1076,19 @@ External Secrets meta/v1.SecretKeySelector
 <tbody>
 <tr>
 <td>
+<code>apiKey</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.BeyondTrustProviderSecretRef">
+BeyondTrustProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>APIKey If not provided then ClientID/ClientSecret become required.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>clientId</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.BeyondTrustProviderSecretRef">
@@ -1084,6 +1097,7 @@ BeyondTrustProviderSecretRef
 </em>
 </td>
 <td>
+<p>ClientID is the API OAuth Client ID.</p>
 </td>
 </tr>
 <tr>
@@ -1096,6 +1110,7 @@ BeyondTrustProviderSecretRef
 </em>
 </td>
 <td>
+<p>ClientSecret is the API OAuth Client Secret.</p>
 </td>
 </tr>
 <tr>
@@ -1108,7 +1123,7 @@ BeyondTrustProviderSecretRef
 </em>
 </td>
 <td>
-<p>Content of the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.</p>
+<p>Certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.</p>
 </td>
 </tr>
 <tr>
@@ -4569,7 +4584,7 @@ string
 </em>
 </td>
 <td>
-<p>Specify the Kind of the resource, e.g. Password, ACRAccessToken etc.</p>
+<p>Specify the Kind of the resource, e.g. Password, ACRAccessToken, ClusterGenerator etc.</p>
 </td>
 </tr>
 <tr>

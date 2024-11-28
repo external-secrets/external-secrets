@@ -65,6 +65,18 @@ type Provider struct {
 	separator     string
 }
 
+type AuthenticatorInput struct {
+	Config                     *esv1beta1.BeyondtrustProvider
+	HTTPClientObj              utils.HttpClientObj
+	BackoffDefinition          *backoff.ExponentialBackOff
+	APIURL                     string
+	ClientID                   string
+	ClientSecret               string
+	APIKey                     string
+	Logger                     *logging.LogrLogger
+	RetryMaxElapsedTimeMinutes int
+}
+
 // Capabilities implements v1beta1.Provider.
 func (*Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
@@ -111,57 +123,30 @@ func (*Provider) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	config := store.GetSpec().Provider.Beyondtrust
 	logger := logging.NewLogrLogger(&ESOLogger)
-	apiURL := config.Server.APIURL
-	certificate := ""
-	certificateKey := ""
-	clientTimeOutInSeconds := 45
-	retryMaxElapsedTimeMinutes := 15
-	separator := "/"
 
-	if config.Server.Separator != "" {
-		separator = config.Server.Separator
-	}
-
-	if config.Server.ClientTimeOutSeconds != 0 {
-		clientTimeOutInSeconds = config.Server.ClientTimeOutSeconds
-	}
-
-	backoffDefinition := backoff.NewExponentialBackOff()
-	backoffDefinition.InitialInterval = 1 * time.Second
-	backoffDefinition.MaxElapsedTime = time.Duration(retryMaxElapsedTimeMinutes) * time.Second
-	backoffDefinition.RandomizationFactor = 0.5
-
-	clientID, err := loadConfigSecret(ctx, config.Auth.ClientID, kube, namespace)
+	clientID, clientSecret, apiKey, err := loadCredentialsFromConfig(ctx, config, kube, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("error loading clientID: %w", err)
+		return nil, fmt.Errorf("error loading credentials: %w", err)
 	}
 
-	clientSecret, err := loadConfigSecret(ctx, config.Auth.ClientSecret, kube, namespace)
+	certificate, certificateKey, err := loadCertificateFromConfig(ctx, config, kube, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("error loading clientSecret: %w", err)
+		return nil, fmt.Errorf("error loading certificate: %w", err)
 	}
 
-	if config.Auth.Certificate != nil && config.Auth.CertificateKey != nil {
-		loadedCertificate, err := loadConfigSecret(ctx, config.Auth.Certificate, kube, namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error loading Certificate: %w", err)
-		}
-
-		certificate = loadedCertificate
-
-		loadedCertificateKey, err := loadConfigSecret(ctx, config.Auth.CertificateKey, kube, namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error loading Certificate Key: %w", err)
-		}
-
-		certificateKey = loadedCertificateKey
+	if err != nil {
+		return nil, fmt.Errorf("error loading secrets: %w", err)
 	}
 
-	// Create an instance of ValidationParams
+	clientTimeOutInSeconds, separator, retryMaxElapsedTimeMinutes := getConfigValues(config)
+
+	backoffDefinition := getBackoffDefinition(retryMaxElapsedTimeMinutes)
+
 	params := utils.ValidationParams{
+		ApiKey:                     apiKey,
 		ClientID:                   clientID,
 		ClientSecret:               clientSecret,
-		ApiUrl:                     &apiURL,
+		ApiUrl:                     &config.Server.APIURL,
 		ClientTimeOutInSeconds:     clientTimeOutInSeconds,
 		Separator:                  &separator,
 		VerifyCa:                   config.Server.VerifyCA,
@@ -172,21 +157,32 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		MaxFileSecretSizeBytes:     &maxFileSecretSizeBytes,
 	}
 
-	errorsInInputs := utils.ValidateInputs(params)
-
-	if errorsInInputs != nil {
-		return nil, fmt.Errorf("error in Inputs: %w", errorsInInputs)
+	if err := validateInputs(params); err != nil {
+		return nil, fmt.Errorf("error in Inputs: %w", err)
 	}
 
-	// creating a http client
-	httpClientObj, err := utils.GetHttpClient(clientTimeOutInSeconds, config.Server.VerifyCA, certificate, certificateKey, logger)
+	httpClient, err := utils.GetHttpClient(clientTimeOutInSeconds, config.Server.VerifyCA, certificate, certificateKey, logger)
+	if err != nil {
+		return nil, fmt.Errorf("error creating HTTP client: %w", err)
+	}
+
+	authenticatorInput := AuthenticatorInput{
+		Config:                     config,
+		HTTPClientObj:              *httpClient,
+		BackoffDefinition:          backoffDefinition,
+		APIURL:                     config.Server.APIURL,
+		ClientID:                   clientID,
+		ClientSecret:               clientSecret,
+		APIKey:                     apiKey,
+		Logger:                     logger,
+		RetryMaxElapsedTimeMinutes: retryMaxElapsedTimeMinutes,
+	}
+
+	authenticate, err := getAuthenticator(authenticatorInput)
 
 	if err != nil {
-		return nil, fmt.Errorf("error creating http client: %w", err)
+		return nil, fmt.Errorf("error authenticating: %w", err)
 	}
-
-	// instantiating authenticate obj, injecting httpClient object
-	authenticate, _ := auth.Authenticate(*httpClientObj, backoffDefinition, apiURL, clientID, clientSecret, logger, retryMaxElapsedTimeMinutes)
 
 	return &Provider{
 		apiURL:        config.Server.APIURL,
@@ -195,6 +191,86 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		log:           *logger,
 		separator:     separator,
 	}, nil
+}
+
+func loadCredentialsFromConfig(ctx context.Context, config *esv1beta1.BeyondtrustProvider, kube client.Client, namespace string) (string, string, string, error) {
+	var clientID, clientSecret, apiKey string
+	var err error
+
+	if config.Auth.APIKey != nil {
+		apiKey, err = loadConfigSecret(ctx, config.Auth.APIKey, kube, namespace)
+		if err != nil {
+			return "", "", "", fmt.Errorf("error loading apiKey: %w", err)
+		}
+	} else {
+		clientID, err = loadConfigSecret(ctx, config.Auth.ClientID, kube, namespace)
+		if err != nil {
+			return "", "", "", fmt.Errorf("error loading clientID: %w", err)
+		}
+
+		clientSecret, err = loadConfigSecret(ctx, config.Auth.ClientSecret, kube, namespace)
+		if err != nil {
+			return "", "", "", fmt.Errorf("error loading clientSecret: %w", err)
+		}
+	}
+
+	return clientID, clientSecret, apiKey, nil
+}
+
+func loadCertificateFromConfig(ctx context.Context, config *esv1beta1.BeyondtrustProvider, kube client.Client, namespace string) (string, string, error) {
+	var certificate, certificateKey string
+	var err error
+
+	if config.Auth.Certificate != nil && config.Auth.CertificateKey != nil {
+		certificate, err = loadConfigSecret(ctx, config.Auth.Certificate, kube, namespace)
+		if err != nil {
+			return "", "", fmt.Errorf("error loading Certificate: %w", err)
+		}
+
+		certificateKey, err = loadConfigSecret(ctx, config.Auth.CertificateKey, kube, namespace)
+		if err != nil {
+			return "", "", fmt.Errorf("error loading Certificate Key: %w", err)
+		}
+	}
+
+	return certificate, certificateKey, nil
+}
+
+func getConfigValues(config *esv1beta1.BeyondtrustProvider) (int, string, int) {
+	clientTimeOutInSeconds := 45
+	separator := "/"
+	retryMaxElapsedTimeMinutes := 15
+
+	if config.Server.ClientTimeOutSeconds != 0 {
+		clientTimeOutInSeconds = config.Server.ClientTimeOutSeconds
+	}
+
+	if config.Server.Separator != "" {
+		separator = config.Server.Separator
+	}
+
+	return clientTimeOutInSeconds, separator, retryMaxElapsedTimeMinutes
+}
+
+func getBackoffDefinition(retryMaxElapsedTimeMinutes int) *backoff.ExponentialBackOff {
+	backoffDefinition := backoff.NewExponentialBackOff()
+	backoffDefinition.InitialInterval = 1 * time.Second
+	backoffDefinition.MaxElapsedTime = time.Duration(retryMaxElapsedTimeMinutes) * time.Minute
+	backoffDefinition.RandomizationFactor = 0.5
+
+	return backoffDefinition
+}
+
+func validateInputs(params utils.ValidationParams) error {
+	return utils.ValidateInputs(params)
+}
+
+func getAuthenticator(input AuthenticatorInput) (*auth.AuthenticationObj, error) {
+	if input.Config.Auth.APIKey != nil {
+		return auth.AuthenticateUsingApiKey(input.HTTPClientObj, input.BackoffDefinition, input.APIURL, input.Logger, input.RetryMaxElapsedTimeMinutes, input.APIKey)
+	}
+
+	return auth.Authenticate(input.HTTPClientObj, input.BackoffDefinition, input.APIURL, input.ClientID, input.ClientSecret, input.Logger, input.RetryMaxElapsedTimeMinutes)
 }
 
 func loadConfigSecret(ctx context.Context, ref *esv1beta1.BeyondTrustProviderSecretRef, kube client.Client, defaultNamespace string) (string, error) {
