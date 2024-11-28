@@ -125,13 +125,29 @@ var (
 )
 
 func init() {
+	/*
+		===============================================================================
+		 NOTE: when adding support for new kinds of generators:
+		  1. register the struct types in `SchemeBuilder` (right below this note)
+		  2. update the `kubebuilder:validation:Enum` annotation for GeneratorRef.Kind (apis/externalsecrets/v1beta1/externalsecret_types.go)
+		  3. add it to the imports of (pkg/generator/register/register.go)
+		  4. support it in ClusterGenerator:
+			  - add a new GeneratorKind enum value (apis/generators/v1alpha1/types_cluster.go)
+			  - update the `kubebuilder:validation:Enum` annotation for the GeneratorKind enum
+			  - add a spec field to GeneratorSpec (apis/generators/v1alpha1/types_cluster.go)
+			  - update the clusterGeneratorToVirtual() function (pkg/utils/resolvers/generator.go)
+		===============================================================================
+	*/
+
+	SchemeBuilder.Register(&ACRAccessToken{}, &ACRAccessTokenList{})
+	SchemeBuilder.Register(&ClusterGenerator{}, &ClusterGeneratorList{})
 	SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationTokenList{})
+	SchemeBuilder.Register(&Fake{}, &FakeList{})
 	SchemeBuilder.Register(&GCRAccessToken{}, &GCRAccessTokenList{})
 	SchemeBuilder.Register(&GithubAccessToken{}, &GithubAccessTokenList{})
-	SchemeBuilder.Register(&ACRAccessToken{}, &ACRAccessTokenList{})
-	SchemeBuilder.Register(&Fake{}, &FakeList{})
-	SchemeBuilder.Register(&VaultDynamicSecret{}, &VaultDynamicSecretList{})
 	SchemeBuilder.Register(&Password{}, &PasswordList{})
+	SchemeBuilder.Register(&STSSessionToken{}, &STSSessionTokenList{})
+	SchemeBuilder.Register(&UUID{}, &UUIDList{})
+	SchemeBuilder.Register(&VaultDynamicSecret{}, &VaultDynamicSecretList{})
 	SchemeBuilder.Register(&Webhook{}, &WebhookList{})
-	SchemeBuilder.Register(&ClusterGenerator{}, &ClusterGeneratorList{})
 }
