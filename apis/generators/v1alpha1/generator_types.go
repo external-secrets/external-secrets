@@ -32,6 +32,10 @@ type ControllerClassResource struct {
 }
 
 type GeneratorSpec struct {
+	// NOTE: when adding new supported generators, make sure to also update
+	//       clusterGeneratorToVirtual() function in pkg/utils/resolvers/generator.go
+	//       so they can be unpacked correctly.
+
 	ACRAccessTokenSpec        *ACRAccessTokenSpec        `json:"acrAccessTokenSpec,omitempty"`
 	ECRAuthorizationTokenSpec *ECRAuthorizationTokenSpec `json:"ecrRAuthorizationTokenSpec,omitempty"`
 	FakeSpec                  *FakeSpec                  `json:"fakeSpec,omitempty"`
