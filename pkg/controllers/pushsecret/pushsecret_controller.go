@@ -161,7 +161,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{RequeueAfter: refreshInt}, nil
 	}
 
-	secret, err := r.resolveSecret(ctx, &ps)
+	secrets, err := r.resolveSecrets(ctx, &ps)
 	if err != nil {
 		r.markAsFailed(errFailedGetSecret, &ps, nil)
 
@@ -171,10 +171,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err != nil {
 		r.markAsFailed(err.Error(), &ps, nil)
 
-		return ctrl.Result{}, err
-	}
-
-	if err := r.applyTemplate(ctx, &ps, secret); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -188,32 +184,41 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
-	syncedSecrets, err := r.PushSecretToProviders(ctx, secretStores, ps, secret, mgr)
-	if err != nil {
-		if errors.Is(err, locks.ErrConflict) {
-			log.Info("retry to acquire lock to update the secret later", "error", err)
-			return ctrl.Result{Requeue: true}, nil
-		}
-
-		totalSecrets := mergeSecretState(syncedSecrets, ps.Status.SyncedPushSecrets)
-		msg := fmt.Sprintf(errFailedSetSecret, err)
-		r.markAsFailed(msg, &ps, totalSecrets)
-
-		return ctrl.Result{}, err
-	}
-	switch ps.Spec.DeletionPolicy {
-	case esapi.PushSecretDeletionPolicyDelete:
-		badSyncState, err := r.DeleteSecretFromProviders(ctx, &ps, syncedSecrets, mgr)
-		if err != nil {
-			msg := fmt.Sprintf("Failed to Delete Secrets from Provider: %v", err)
-			r.markAsFailed(msg, &ps, badSyncState)
+	var allSyncedSecrets esapi.SyncedPushSecretsMap
+	for _, secret := range secrets {
+		if err := r.applyTemplate(ctx, &ps, &secret); err != nil {
 			return ctrl.Result{}, err
 		}
-	case esapi.PushSecretDeletionPolicyNone:
-	default:
+
+		syncedSecrets, err := r.PushSecretToProviders(ctx, secretStores, ps, &secret, mgr)
+		if err != nil {
+			if errors.Is(err, locks.ErrConflict) {
+				log.Info("retry to acquire lock to update the secret later", "error", err)
+				return ctrl.Result{Requeue: true}, nil
+			}
+
+			totalSecrets := mergeSecretState(syncedSecrets, ps.Status.SyncedPushSecrets)
+			msg := fmt.Sprintf(errFailedSetSecret, err)
+			r.markAsFailed(msg, &ps, totalSecrets)
+
+			return ctrl.Result{}, err
+		}
+		switch ps.Spec.DeletionPolicy {
+		case esapi.PushSecretDeletionPolicyDelete:
+			badSyncState, err := r.DeleteSecretFromProviders(ctx, &ps, syncedSecrets, mgr)
+			if err != nil {
+				msg := fmt.Sprintf("Failed to Delete Secrets from Provider: %v", err)
+				r.markAsFailed(msg, &ps, badSyncState)
+				return ctrl.Result{}, err
+			}
+		case esapi.PushSecretDeletionPolicyNone:
+		default:
+		}
+
+		allSyncedSecrets = mergeSecretState(allSyncedSecrets, syncedSecrets)
 	}
 
-	r.markAsDone(&ps, syncedSecrets, start)
+	r.markAsDone(&ps, allSyncedSecrets, start)
 
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
@@ -377,7 +382,7 @@ func secretKeyExists(key string, secret *v1.Secret) bool {
 
 const defaultGeneratorStateKey = "__pushsecret"
 
-func (r *Reconciler) resolveSecret(ctx context.Context, ps *esapi.PushSecret) (*v1.Secret, error) {
+func (r *Reconciler) resolveSecrets(ctx context.Context, ps *esapi.PushSecret) ([]v1.Secret, error) {
 	var err error
 	generatorState := statemanager.New(ctx, r.Client, r.Scheme, ps.Namespace, ps)
 	defer func() {
@@ -392,19 +397,39 @@ func (r *Reconciler) resolveSecret(ctx context.Context, ps *esapi.PushSecret) (*
 			r.Log.Error(err, "error committing generator state")
 		}
 	}()
-	if ps.Spec.Selector.Secret != nil {
+
+	switch {
+	case ps.Spec.Selector.Secret != nil && ps.Spec.Selector.Secret.Name != "":
 		secretName := types.NamespacedName{Name: ps.Spec.Selector.Secret.Name, Namespace: ps.Namespace}
 		secret := &v1.Secret{}
-		err := r.Client.Get(ctx, secretName, secret)
-		if err != nil {
+		if err := r.Client.Get(ctx, secretName, secret); err != nil {
 			return nil, err
 		}
 		generatorState.EnqueueFlagLatestStateForGC(defaultGeneratorStateKey)
-		return secret, nil
+
+		return []v1.Secret{*secret}, nil
+	case ps.Spec.Selector.GeneratorRef != nil:
+		secret, err := r.resolveSecretFromGenerator(ctx, ps.Namespace, ps.Spec.Selector.GeneratorRef, generatorState)
+		if err != nil {
+			return nil, fmt.Errorf("could not resolve secret from generator ref %v: %w", ps.Spec.Selector.GeneratorRef, err)
+		}
+
+		return []v1.Secret{*secret}, nil
+	case ps.Spec.Selector.Secret != nil && ps.Spec.Selector.Secret.SecretSelector != nil:
+		labelSelector, err := metav1.LabelSelectorAsSelector(ps.Spec.Selector.Secret.SecretSelector)
+		if err != nil {
+			return nil, err
+		}
+
+		var secretList v1.SecretList
+		err = r.List(ctx, &secretList, &client.ListOptions{LabelSelector: labelSelector})
+		if err != nil {
+			return nil, err
+		}
+
+		return secretList.Items, err
 	}
-	if ps.Spec.Selector.GeneratorRef != nil {
-		return r.resolveSecretFromGenerator(ctx, ps.Namespace, ps.Spec.Selector.GeneratorRef, generatorState)
-	}
+
 	return nil, errors.New("no secret selector provided")
 }
 
