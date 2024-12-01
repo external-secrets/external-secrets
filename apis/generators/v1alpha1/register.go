@@ -131,7 +131,8 @@ func init() {
 		  1. register the struct types in `SchemeBuilder` (right below this note)
 		  2. update the `kubebuilder:validation:Enum` annotation for GeneratorRef.Kind (apis/externalsecrets/v1beta1/externalsecret_types.go)
 		  3. add it to the imports of (pkg/generator/register/register.go)
-		  4. support it in ClusterGenerator:
+		  4. add it to the ClusterRole called "*-controller" (deploy/charts/external-secrets/templates/rbac.yaml)
+		  5. support it in ClusterGenerator:
 			  - add a new GeneratorKind enum value (apis/generators/v1alpha1/types_cluster.go)
 			  - update the `kubebuilder:validation:Enum` annotation for the GeneratorKind enum
 			  - add a spec field to GeneratorSpec (apis/generators/v1alpha1/types_cluster.go)

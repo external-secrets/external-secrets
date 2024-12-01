@@ -50,7 +50,17 @@ rules:
   - apiGroups:
     - "generators.external-secrets.io"
     resources:
-    - "*"
+    - "acraccesstokens"
+    - "clustergenerators"
+    - "ecrauthorizationtokens"
+    - "fakes"
+    - "gcraccesstokens"
+    - "githubaccesstokens"
+    - "passwords"
+    - "stssessiontokens"
+    - "uuids"
+    - "vaultdynamicsecrets"
+    - "webhooks"
     verbs:
     - "get"
     - "list"
