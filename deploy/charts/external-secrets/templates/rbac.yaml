@@ -57,6 +57,8 @@ rules:
     - "gcraccesstokens"
     - "githubaccesstokens"
     - "passwords"
+    - "stssessiontokens"
+    - "uuids"
     - "vaultdynamicsecrets"
     - "webhooks"
     verbs:
