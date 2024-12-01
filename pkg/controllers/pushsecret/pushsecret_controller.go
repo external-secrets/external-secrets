@@ -184,7 +184,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
-	var allSyncedSecrets esapi.SyncedPushSecretsMap
+	allSyncedSecrets := make(esapi.SyncedPushSecretsMap)
 	for _, secret := range secrets {
 		if err := r.applyTemplate(ctx, &ps, &secret); err != nil {
 			return ctrl.Result{}, err
@@ -263,6 +263,10 @@ func (r *Reconciler) setSecrets(ps *esapi.PushSecret, status esapi.SyncedPushSec
 }
 
 func mergeSecretState(newMap, old esapi.SyncedPushSecretsMap) esapi.SyncedPushSecretsMap {
+	if newMap == nil {
+		return old
+	}
+
 	out := newMap.DeepCopy()
 	for k, v := range old {
 		_, ok := out[k]
