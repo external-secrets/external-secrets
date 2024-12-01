@@ -391,6 +391,7 @@ type ExternalSecretSpec struct {
 // from which the secret will be pulled from.
 // You can define at maximum one property.
 // +kubebuilder:validation:MaxProperties=1
+// +kubebuilder:validation:MinProperties=1
 type StoreSourceRef struct {
 	// +optional
 	SecretStoreRef SecretStoreRef `json:"storeRef,omitempty"`
@@ -406,6 +407,7 @@ type StoreSourceRef struct {
 // from which the secret will be pulled from.
 // You can define at maximum one property.
 // +kubebuilder:validation:MaxProperties=1
+// +kubebuilder:validation:MinProperties=1
 type StoreGeneratorSourceRef struct {
 	// +optional
 	SecretStoreRef *SecretStoreRef `json:"storeRef,omitempty"`
@@ -420,7 +422,9 @@ type GeneratorRef struct {
 	// Specify the apiVersion of the generator resource
 	// +kubebuilder:default="generators.external-secrets.io/v1alpha1"
 	APIVersion string `json:"apiVersion,omitempty"`
-	// Specify the Kind of the resource, e.g. Password, ACRAccessToken, ClusterGenerator etc.
+
+	// Specify the Kind of the generator resource
+	// +kubebuilder:validation:Enum=ACRAccessToken;ClusterGenerator;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;Password;STSSessionToken;UUID;VaultDynamicSecret;Webhook
 	Kind string `json:"kind"`
 
 	// Specify the name of the generator resource

@@ -53,7 +53,7 @@ type GCPWorkloadIdentity struct {
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
-// +kubebuilder:resource:scope=Namespaced,categories={external-secrets, external-secrets-generators},shortName=gcraccesstoken
+// +kubebuilder:resource:scope=Namespaced,categories={external-secrets, external-secrets-generators}
 type GCRAccessToken struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

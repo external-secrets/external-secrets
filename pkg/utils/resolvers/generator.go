@@ -94,7 +94,7 @@ func getGenerator(ctx context.Context, cl client.Client, scheme *runtime.Scheme,
 
 		// get the generator interface
 		var ok bool
-		generator, ok = genv1alpha1.GetGeneratorByName(clusterGenerator.Spec.Kind)
+		generator, ok = genv1alpha1.GetGeneratorByName(string(clusterGenerator.Spec.Kind))
 		if !ok {
 			return nil, nil, reconcile.TerminalError(fmt.Errorf("ClusterGenerator has unknown kind %s", clusterGenerator.Spec.Kind))
 		}
@@ -138,70 +138,70 @@ func getGenerator(ctx context.Context, cl client.Client, scheme *runtime.Scheme,
 // clusterGeneratorToVirtual converts a ClusterGenerator to a "virtual" namespaced generator that doesn't actually exist in the API.
 func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object, error) {
 	switch gen.Spec.Kind {
-	case genv1alpha1.ACRAccessTokenKind:
+	case genv1alpha1.GeneratorKindACRAccessToken:
 		if gen.Spec.Generator.ACRAccessTokenSpec == nil {
 			return nil, fmt.Errorf("when kind is %s, ACRAccessTokenSpec must be set", gen.Spec.Kind)
 		}
 		return &genv1alpha1.ACRAccessToken{
 			Spec: *gen.Spec.Generator.ACRAccessTokenSpec,
 		}, nil
-	case genv1alpha1.ECRAuthorizationTokenKind:
+	case genv1alpha1.GeneratorKindECRAuthorizationToken:
 		if gen.Spec.Generator.ECRAuthorizationTokenSpec == nil {
 			return nil, fmt.Errorf("when kind is %s, ECRAuthorizationTokenSpec must be set", gen.Spec.Kind)
 		}
 		return &genv1alpha1.ECRAuthorizationToken{
 			Spec: *gen.Spec.Generator.ECRAuthorizationTokenSpec,
 		}, nil
-	case genv1alpha1.FakeKind:
+	case genv1alpha1.GeneratorKindFake:
 		if gen.Spec.Generator.FakeSpec == nil {
 			return nil, fmt.Errorf("when kind is %s, FakeSpec must be set", gen.Spec.Kind)
 		}
 		return &genv1alpha1.Fake{
 			Spec: *gen.Spec.Generator.FakeSpec,
 		}, nil
-	case genv1alpha1.GCRAccessTokenKind:
+	case genv1alpha1.GeneratorKindGCRAccessToken:
 		if gen.Spec.Generator.GCRAccessTokenSpec == nil {
 			return nil, fmt.Errorf("when kind is %s, GCRAccessTokenSpec must be set", gen.Spec.Kind)
 		}
 		return &genv1alpha1.GCRAccessToken{
 			Spec: *gen.Spec.Generator.GCRAccessTokenSpec,
 		}, nil
-	case genv1alpha1.GithubAccessTokenKind:
+	case genv1alpha1.GeneratorKindGithubAccessToken:
 		if gen.Spec.Generator.GithubAccessTokenSpec == nil {
 			return nil, fmt.Errorf("when kind is %s, GithubAccessTokenSpec must be set", gen.Spec.Kind)
 		}
 		return &genv1alpha1.GithubAccessToken{
 			Spec: *gen.Spec.Generator.GithubAccessTokenSpec,
 		}, nil
-	case genv1alpha1.PasswordKind:
+	case genv1alpha1.GeneratorKindPassword:
 		if gen.Spec.Generator.PasswordSpec == nil {
 			return nil, fmt.Errorf("when kind is %s, PasswordSpec must be set", gen.Spec.Kind)
 		}
 		return &genv1alpha1.Password{
 			Spec: *gen.Spec.Generator.PasswordSpec,
 		}, nil
-	case genv1alpha1.STSSessionTokenKind:
+	case genv1alpha1.GeneratorKindSTSSessionToken:
 		if gen.Spec.Generator.STSSessionTokenSpec == nil {
 			return nil, fmt.Errorf("when kind is %s, STSSessionTokenSpec must be set", gen.Spec.Kind)
 		}
 		return &genv1alpha1.STSSessionToken{
 			Spec: *gen.Spec.Generator.STSSessionTokenSpec,
 		}, nil
-	case genv1alpha1.UUIDKind:
+	case genv1alpha1.GeneratorKindUUID:
 		if gen.Spec.Generator.UUIDSpec == nil {
 			return nil, fmt.Errorf("when kind is %s, UUIDSpec must be set", gen.Spec.Kind)
 		}
 		return &genv1alpha1.UUID{
 			Spec: *gen.Spec.Generator.UUIDSpec,
 		}, nil
-	case genv1alpha1.VaultDynamicSecretKind:
+	case genv1alpha1.GeneratorKindVaultDynamicSecret:
 		if gen.Spec.Generator.VaultDynamicSecretSpec == nil {
 			return nil, fmt.Errorf("when kind is %s, VaultDynamicSecretSpec must be set", gen.Spec.Kind)
 		}
 		return &genv1alpha1.VaultDynamicSecret{
 			Spec: *gen.Spec.Generator.VaultDynamicSecretSpec,
 		}, nil
-	case genv1alpha1.WebhookKind:
+	case genv1alpha1.GeneratorKindWebhook:
 		if gen.Spec.Generator.WebhookSpec == nil {
 			return nil, fmt.Errorf("when kind is %s, WebhookSpec must be set", gen.Spec.Kind)
 		}

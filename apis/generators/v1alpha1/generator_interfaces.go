@@ -25,6 +25,8 @@ import (
 // +kubebuilder:object:generate:false
 // +k8s:deepcopy-gen:interfaces=nil
 // +k8s:deepcopy-gen=nil
+
+// Generator is the common interface for all generators that is actually used to generate whatever is needed.
 type Generator interface {
 	Generate(
 		ctx context.Context,
