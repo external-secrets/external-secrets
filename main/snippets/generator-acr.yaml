@@ -28,9 +28,9 @@ spec:
           name: az-secret
           key: clientid
 
-    # option 2: use a managed identity Client ID
+    # option 2:
     managedIdentity:
-      identityId: 11111111-2222-3333-4444-111111111111
+      identityId: "xxxxx"
 
     # option 3:
     workloadIdentity:
