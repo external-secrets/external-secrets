@@ -318,6 +318,9 @@ type ClusterPushSecretStatus struct {
 	// +optional
 	ProvisionedNamespaces []string `json:"provisionedNamespaces,omitempty"`
 	PushSecretName        string   `json:"pushSecretName,omitempty"`
+
+	// +optional
+	Conditions []PushSecretStatusCondition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
