@@ -108,7 +108,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 				log.Error(err, "could not delete ExternalSecret")
 				failedNamespaces[ns] = err
 			}
-
 		}
 		if len(failedNamespaces) > 0 {
 			condition := NewClusterExternalSecretCondition(failedNamespaces)
