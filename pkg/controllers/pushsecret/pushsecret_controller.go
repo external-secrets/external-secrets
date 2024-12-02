@@ -543,7 +543,7 @@ func newPushSecretCondition(condType esapi.PushSecretConditionType, status v1.Co
 }
 
 func setPushSecretCondition(ps *esapi.PushSecret, condition esapi.PushSecretStatusCondition) {
-	currentCond := getPushSecretCondition(ps.Status, condition.Type)
+	currentCond := getPushSecretCondition(ps.Status.Conditions, condition.Type)
 	if currentCond != nil && currentCond.Status == condition.Status &&
 		currentCond.Reason == condition.Reason && currentCond.Message == condition.Message {
 		return
@@ -570,9 +570,9 @@ func filterOutCondition(conditions []esapi.PushSecretStatusCondition, condType e
 }
 
 // getPushSecretCondition returns the condition with the provided type.
-func getPushSecretCondition(status esapi.PushSecretStatus, condType esapi.PushSecretConditionType) *esapi.PushSecretStatusCondition {
-	for i := range status.Conditions {
-		c := status.Conditions[i]
+func getPushSecretCondition(conditions []esapi.PushSecretStatusCondition, condType esapi.PushSecretConditionType) *esapi.PushSecretStatusCondition {
+	for i := range conditions {
+		c := conditions[i]
 		if c.Type == condType {
 			return &c
 		}
