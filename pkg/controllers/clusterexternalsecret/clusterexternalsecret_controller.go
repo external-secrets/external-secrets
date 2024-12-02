@@ -102,11 +102,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	if prevName := clusterExternalSecret.Status.ExternalSecretName; prevName != esName {
 		// ExternalSecretName has changed, so remove the old ones
+		failedNamespaces := map[string]error{}
 		for _, ns := range clusterExternalSecret.Status.ProvisionedNamespaces {
 			if err := r.deleteExternalSecret(ctx, prevName, clusterExternalSecret.Name, ns); err != nil {
 				log.Error(err, "could not delete ExternalSecret")
-				return ctrl.Result{}, err
+				failedNamespaces[ns] = err
 			}
+		}
+		if len(failedNamespaces) > 0 {
+			condition := NewClusterExternalSecretCondition(failedNamespaces)
+			SetClusterExternalSecretCondition(&clusterExternalSecret, *condition)
+			clusterExternalSecret.Status.FailedNamespaces = toNamespaceFailures(failedNamespaces)
+			return ctrl.Result{}, err
 		}
 	}
 	clusterExternalSecret.Status.ExternalSecretName = esName
@@ -114,6 +121,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	namespaces, err := r.getTargetNamespaces(ctx, &clusterExternalSecret)
 	if err != nil {
 		log.Error(err, "failed to get target Namespaces")
+		failedNamespaces := map[string]error{
+			"unknown": err,
+		}
+		condition := NewClusterExternalSecretCondition(failedNamespaces)
+		SetClusterExternalSecretCondition(&clusterExternalSecret, *condition)
+
+		clusterExternalSecret.Status.FailedNamespaces = toNamespaceFailures(failedNamespaces)
+
 		return ctrl.Result{}, err
 	}
 
