@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,6 +50,7 @@ type ClusterPushSecretReconciler struct {
 	Log             logr.Logger
 	Scheme          *runtime.Scheme
 	RequeueInterval time.Duration
+	Recorder        record.EventRecorder
 }
 
 const (
@@ -92,11 +94,18 @@ func (r *ClusterPushSecretReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 	if prevName := cps.Status.PushSecretName; prevName != esName {
 		// PushSecretName has changed, so remove the old ones
+		failedNamespaces := map[string]error{}
 		for _, ns := range cps.Status.ProvisionedNamespaces {
 			if err := r.deletePushSecret(ctx, prevName, cps.Name, ns); err != nil {
 				log.Error(err, "could not delete PushSecret")
-				return ctrl.Result{}, err
+				failedNamespaces[ns] = err
 			}
+		}
+
+		if len(failedNamespaces) > 0 {
+			r.markAsFailed("failed to delete push secret", &cps)
+			cps.Status.FailedNamespaces = toNamespaceFailures(failedNamespaces)
+			return ctrl.Result{}, err
 		}
 	}
 	cps.Status.PushSecretName = esName
@@ -104,6 +113,7 @@ func (r *ClusterPushSecretReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	namespaces, err := utils.GetTargetNamespaces(ctx, r.Client, cps.Spec.Namespaces, cps.Spec.NamespaceSelectors)
 	if err != nil {
 		log.Error(err, "failed to get target Namespaces")
+		r.markAsFailed("failed to get target Namespaces", &cps)
 		return ctrl.Result{}, err
 	}
 
@@ -141,6 +151,27 @@ func (r *ClusterPushSecretReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	cps.Status.ProvisionedNamespaces = provisionedNamespaces
 
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
+}
+
+func (r *ClusterPushSecretReconciler) markAsFailed(msg string, ps *v1alpha1.ClusterPushSecret) {
+	cond := newPushSecretCondition(v1alpha1.PushSecretReady, v1.ConditionFalse, v1alpha1.ReasonErrored, msg)
+	setClusterPushSecretCondition(ps, *cond)
+	r.Recorder.Event(ps, v1.EventTypeWarning, v1alpha1.ReasonErrored, msg)
+}
+
+func setClusterPushSecretCondition(ps *v1alpha1.ClusterPushSecret, condition v1alpha1.PushSecretStatusCondition) {
+	currentCond := getPushSecretCondition(ps.Status.Conditions, condition.Type)
+	if currentCond != nil && currentCond.Status == condition.Status &&
+		currentCond.Reason == condition.Reason && currentCond.Message == condition.Message {
+		return
+	}
+
+	// Do not update lastTransitionTime if the status of the condition doesn't change.
+	if currentCond != nil && currentCond.Status == condition.Status {
+		condition.LastTransitionTime = currentCond.LastTransitionTime
+	}
+
+	ps.Status.Conditions = append(filterOutCondition(ps.Status.Conditions, condition.Type), condition)
 }
 
 func (r *ClusterPushSecretReconciler) createOrUpdatePushSecret(ctx context.Context, csp *v1alpha1.ClusterPushSecret, namespace v1.Namespace, esName string, esMetadata v1alpha1.PushSecretMetadata) error {
