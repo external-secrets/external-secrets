@@ -93,11 +93,11 @@ const (
 	logErrorUnmanagedStore       = "unable to determine if store is managed"
 
 	// error formats.
-	errConvert               = "could not apply conversion strategy to keys: %v"
-	errDecode                = "could not apply decoding strategy to %v[%d]: %v"
-	errGenerate              = "could not generate [%d]: %w"
-	errRewrite               = "could not rewrite spec.dataFrom[%d]: %v"
-	errInvalidKeys           = "secret keys from spec.dataFrom.%v[%d] can only have alphanumeric, '-', '_' or '.' characters. Convert them using rewrite (https://external-secrets.io/latest/guides/datafrom-rewrite/)"
+	errConvert               = "error applying conversion strategy %s to keys: %w"
+	errRewrite               = "error applying rewrite to keys: %w"
+	errDecode                = "error applying decoding strategy %s to data: %w"
+	errGenerate              = "error using generator: %w"
+	errInvalidKeys           = "invalid secret keys (TIP: use rewrite or conversionStrategy to change keys): %w"
 	errFetchTplFrom          = "error fetching templateFrom data: %w"
 	errApplyTemplate         = "could not apply template: %w"
 	errExecTpl               = "could not execute template: %w"
@@ -106,6 +106,14 @@ const (
 	errUpdateNotFound        = "unable to update secret %s: not found"
 	errDeleteCreatePolicy    = "unable to delete secret %s: creationPolicy=%s is not Owner"
 	errSecretCachesNotSynced = "controller caches for secret %s are not in sync"
+
+	// event messages.
+	eventCreated                  = "secret created"
+	eventUpdated                  = "secret updated"
+	eventDeleted                  = "secret deleted due to DeletionPolicy=Delete"
+	eventDeletedOrphaned          = "secret deleted because it was orphaned"
+	eventMissingProviderSecret    = "secret does not exist at provider using spec.dataFrom[%d]"
+	eventMissingProviderSecretKey = "secret does not exist at provider using spec.dataFrom[%d] (key=%s)"
 )
 
 // these errors are explicitly defined so we can detect them with `errors.Is()`.
@@ -333,17 +341,19 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			// NOTE: this error cant be fixed by retrying so we don't return an error (which would requeue immediately)
 			creationPolicy := externalSecret.Spec.Target.CreationPolicy
 			if creationPolicy != esv1beta1.CreatePolicyOwner {
-				err := fmt.Errorf(errDeleteCreatePolicy, secretName, creationPolicy)
+				err = fmt.Errorf(errDeleteCreatePolicy, secretName, creationPolicy)
 				r.markAsFailed(msgErrorDeleteSecret, err, externalSecret, syncCallsError.With(resourceLabels))
 				return ctrl.Result{}, nil
 			}
 
 			// delete the secret, if it exists
 			if existingSecret.UID != "" {
-				if err := r.Delete(ctx, existingSecret); err != nil && !apierrors.IsNotFound(err) {
+				err = r.Delete(ctx, existingSecret)
+				if err != nil && !apierrors.IsNotFound(err) {
 					r.markAsFailed(msgErrorDeleteSecret, err, externalSecret, syncCallsError.With(resourceLabels))
 					return ctrl.Result{}, err
 				}
+				r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1beta1.ReasonDeleted, eventDeleted)
 			}
 
 			r.markAsDone(externalSecret, start, log, esv1beta1.ConditionReasonSecretDeleted, msgDeleted)
@@ -446,7 +456,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		return nil
 	}
 
-	switch externalSecret.Spec.Target.CreationPolicy { //nolint:exhaustive
+	switch externalSecret.Spec.Target.CreationPolicy {
+	case esv1beta1.CreatePolicyNone:
+		log.V(1).Info("secret creation skipped due to CreationPolicy=None")
+		err = nil
 	case esv1beta1.CreatePolicyMerge:
 		// update the secret, if it exists
 		if existingSecret.UID != "" {
@@ -457,25 +470,28 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			r.markAsDone(externalSecret, start, log, esv1beta1.ConditionReasonSecretMissing, msgMissing)
 			return r.getRequeueResult(externalSecret), nil
 		}
-	case esv1beta1.CreatePolicyNone:
-		log.V(1).Info("secret creation skipped due to creationPolicy=None")
-		err = nil
-	default:
+	case esv1beta1.CreatePolicyOrphan:
 		// create the secret, if it does not exist
 		if existingSecret.UID == "" {
 			err = r.createSecret(ctx, mutationFunc, externalSecret, secretName)
-
-			// we may have orphaned secrets to clean up,
-			// for example, if the target secret name was changed
-			if err == nil {
-				delErr := deleteOrphanedSecrets(ctx, r.Client, externalSecret, secretName)
-				if delErr != nil {
-					r.markAsFailed(msgErrorDeleteOrphaned, delErr, externalSecret, syncCallsError.With(resourceLabels))
-					return ctrl.Result{}, delErr
-				}
-			}
 		} else {
-			// update the secret, if it exists
+			// if the secret exists, we should update it
+			err = r.updateSecret(ctx, existingSecret, mutationFunc, externalSecret, secretName)
+		}
+	case esv1beta1.CreatePolicyOwner:
+		// we may have orphaned secrets to clean up,
+		// for example, if the target secret name was changed
+		err = r.deleteOrphanedSecrets(ctx, externalSecret, secretName)
+		if err != nil {
+			r.markAsFailed(msgErrorDeleteOrphaned, err, externalSecret, syncCallsError.With(resourceLabels))
+			return ctrl.Result{}, err
+		}
+
+		// create the secret, if it does not exist
+		if existingSecret.UID == "" {
+			err = r.createSecret(ctx, mutationFunc, externalSecret, secretName)
+		} else {
+			// if the secret exists, we should update it
 			err = r.updateSecret(ctx, existingSecret, mutationFunc, externalSecret, secretName)
 		}
 	}
@@ -581,9 +597,11 @@ func (r *Reconciler) markAsFailed(msg string, err error, externalSecret *esv1bet
 	counter.Inc()
 }
 
-func deleteOrphanedSecrets(ctx context.Context, cl client.Client, externalSecret *esv1beta1.ExternalSecret, secretName string) error {
+func (r *Reconciler) deleteOrphanedSecrets(ctx context.Context, externalSecret *esv1beta1.ExternalSecret, secretName string) error {
 	ownerLabel := utils.ObjectHash(fmt.Sprintf("%v/%v", externalSecret.Namespace, externalSecret.Name))
 
+	// we use a PartialObjectMetadataList to avoid loading the full secret objects
+	// and because the Secrets partials are always cached due to WatchesMetadata() in SetupWithManager()
 	secretListPartial := &metav1.PartialObjectMetadataList{}
 	secretListPartial.SetGroupVersionKind(v1.SchemeGroupVersion.WithKind("SecretList"))
 	listOpts := &client.ListOptions{
@@ -592,16 +610,18 @@ func deleteOrphanedSecrets(ctx context.Context, cl client.Client, externalSecret
 		}),
 		Namespace: externalSecret.Namespace,
 	}
-	if err := cl.List(ctx, secretListPartial, listOpts); err != nil {
+	if err := r.List(ctx, secretListPartial, listOpts); err != nil {
 		return err
 	}
 
 	// delete all secrets that are not the target secret
 	for _, secretPartial := range secretListPartial.Items {
 		if secretPartial.GetName() != secretName {
-			if err := cl.Delete(ctx, &secretPartial); err != nil {
+			err := r.Delete(ctx, &secretPartial)
+			if err != nil && !apierrors.IsNotFound(err) {
 				return err
 			}
+			r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1beta1.ReasonDeleted, eventDeletedOrphaned)
 		}
 	}
 
@@ -633,7 +653,7 @@ func (r *Reconciler) createSecret(ctx context.Context, mutationFunc func(secret 
 	// https://github.com/external-secrets/external-secrets/pull/2263
 	es.Status.Binding = v1.LocalObjectReference{Name: newSecret.Name}
 
-	r.recorder.Event(es, v1.EventTypeNormal, esv1beta1.ReasonCreated, "Created Secret")
+	r.recorder.Event(es, v1.EventTypeNormal, esv1beta1.ReasonCreated, eventCreated)
 	return nil
 }
 
@@ -709,7 +729,7 @@ func (r *Reconciler) updateSecret(ctx context.Context, existingSecret *v1.Secret
 		return fmt.Errorf(errUpdate, updatedSecret.Name, err)
 	}
 
-	r.recorder.Event(es, v1.EventTypeNormal, esv1beta1.ReasonUpdated, "Updated Secret")
+	r.recorder.Event(es, v1.EventTypeNormal, esv1beta1.ReasonUpdated, eventUpdated)
 	return nil
 }
 

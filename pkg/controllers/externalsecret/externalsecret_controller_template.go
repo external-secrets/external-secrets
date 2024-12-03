@@ -79,18 +79,23 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 	if err != nil {
 		return fmt.Errorf(errFetchTplFrom, err)
 	}
-	// explicitly defined template.Data takes precedence over templateFrom
+
+	// apply data templates
+	// NOTE: explicitly defined template.data templates take precedence over templateFrom
 	err = p.MergeMap(es.Spec.Target.Template.Data, esv1beta1.TemplateTargetData)
 	if err != nil {
 		return fmt.Errorf(errExecTpl, err)
 	}
 
-	// get template data for labels
+	// apply templates for labels
+	// NOTE: this only works for v2 templates
 	err = p.MergeMap(es.Spec.Target.Template.Metadata.Labels, esv1beta1.TemplateTargetLabels)
 	if err != nil {
 		return fmt.Errorf(errExecTpl, err)
 	}
-	// get template data for annotations
+
+	// apply template for annotations
+	// NOTE: this only works for v2 templates
 	err = p.MergeMap(es.Spec.Target.Template.Metadata.Annotations, esv1beta1.TemplateTargetAnnotations)
 	if err != nil {
 		return fmt.Errorf(errExecTpl, err)
