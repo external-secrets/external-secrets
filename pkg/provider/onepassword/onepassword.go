@@ -15,7 +15,9 @@ limitations under the License.
 package onepassword
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -57,11 +59,12 @@ const (
 	errCreateItem            = "error creating 1Password Item: %w"
 	errDeleteItem            = "error deleting 1Password Item: %w"
 	// custom error messages.
-	errKeyNotFoundMsg       = "key not found in 1Password Vaults"
-	errNoVaultsMsg          = "no vaults found"
-	errExpectedOneItemMsg   = "expected one 1Password Item matching"
-	errExpectedOneFieldMsg  = "expected one 1Password ItemField matching"
-	errExpectedOneFieldMsgF = "%w: '%s' in '%s', got %d"
+	errKeyNotFoundMsg             = "key not found in 1Password Vaults"
+	errNoVaultsMsg                = "no vaults found"
+	errMetadataVaultNotinProvider = "metadata vault '%s' not in provider vaults"
+	errExpectedOneItemMsg         = "expected one 1Password Item matching"
+	errExpectedOneFieldMsg        = "expected one 1Password ItemField matching"
+	errExpectedOneFieldMsgF       = "%w: '%s' in '%s', got %d"
 
 	documentCategory = "DOCUMENT"
 	fieldPrefix      = "field"
@@ -85,6 +88,11 @@ var (
 type ProviderOnePassword struct {
 	vaults map[string]int
 	client connect.Client
+}
+
+type Metadata struct {
+	Tags  []string `json:"tags,omitempty"`
+	Vault string   `json:"vault,omitempty"`
 }
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -222,12 +230,34 @@ const (
 
 // createItem creates a new item in the first vault. If no vaults exist, it returns an error.
 func (provider *ProviderOnePassword) createItem(val []byte, ref esv1beta1.PushSecretData) error {
-	// Get the first vault
-	sortedVaults := sortVaults(provider.vaults)
-	if len(sortedVaults) == 0 {
-		return ErrNoVaults
+	var metadata Metadata
+	if ref.GetMetadata() != nil {
+		decoder := json.NewDecoder(bytes.NewReader(ref.GetMetadata().Raw))
+		// Want to return an error if unknown fields exist
+		decoder.DisallowUnknownFields()
+
+		if err := decoder.Decode(&metadata); err != nil {
+			return fmt.Errorf("failed to decode PushSecret metadata: %w", err)
+		}
 	}
-	vaultID := sortedVaults[0]
+
+	// Check if there is a vault is specified in the metadata
+	vaultID := ""
+	if metadata.Vault != "" {
+		// check if metadata.Vault is in provider.vaults
+		if _, ok := provider.vaults[metadata.Vault]; !ok {
+			return fmt.Errorf(errMetadataVaultNotinProvider, metadata.Vault)
+		}
+		vaultID = metadata.Vault
+	} else {
+		// Get the first vault from the provider
+		sortedVaults := sortVaults(provider.vaults)
+		if len(sortedVaults) == 0 {
+			return ErrNoVaults
+		}
+		vaultID = sortedVaults[0]
+	}
+
 	// Get the label
 	label := ref.GetProperty()
 	if label == "" {
@@ -244,6 +274,7 @@ func (provider *ProviderOnePassword) createItem(val []byte, ref esv1beta1.PushSe
 		Fields: []*onepassword.ItemField{
 			generateNewItemField(label, string(val)),
 		},
+		Tags: metadata.Tags,
 	}
 
 	_, err := provider.client.CreateItem(item, vaultID)
@@ -316,6 +347,18 @@ func (provider *ProviderOnePassword) PushSecret(ctx context.Context, secret *cor
 	if label == "" {
 		label = passwordLabel
 	}
+
+	var metadata Metadata
+	if ref.GetMetadata() != nil {
+		decoder := json.NewDecoder(bytes.NewReader(ref.GetMetadata().Raw))
+		// Want to return an error if unknown fields exist
+		decoder.DisallowUnknownFields()
+
+		if err := decoder.Decode(&metadata); err != nil {
+			return fmt.Errorf("failed to decode PushSecret metadata: %w", err)
+		}
+	}
+	providerItem.Tags = metadata.Tags
 
 	providerItem.Fields, err = updateFieldValue(providerItem.Fields, label, string(val))
 	if err != nil {
