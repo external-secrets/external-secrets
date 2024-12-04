@@ -16,6 +16,7 @@ package onepassword
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -30,6 +31,7 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/onepassword/fake"
+	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
 const (
@@ -1579,6 +1581,16 @@ func TestProviderOnePasswordCreateItem(t *testing.T) {
 
 	thridPartyErr := errors.New("third party error")
 
+	metadata := &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
+		APIVersion: metadata.APIVersion,
+		Kind:       metadata.Kind,
+		Spec: PushSecretMetadataSpec{
+			Tags:  []string{"tag1", "tag2"},
+			Vault: fallbackVaultName,
+		},
+	}
+	metadataRaw, _ := json.Marshal(metadata)
+
 	testCases := []testCase{
 		{
 			setupNote: "standard create",
@@ -1676,7 +1688,7 @@ func TestProviderOnePasswordCreateItem(t *testing.T) {
 				key:  "another",
 				prop: "property",
 				metadata: &apiextensionsv1.JSON{
-					Raw: []byte(`{"vault": "` + fallbackVaultName + `", "tags": ["tag1", "tag2"]}`),
+					Raw: metadataRaw,
 				},
 			},
 			vaults: map[string]int{
@@ -2083,6 +2095,16 @@ func TestProviderOnePasswordPushSecret(t *testing.T) {
 			ID: vaultName,
 		}
 	)
+
+	metadata := &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
+		APIVersion: metadata.APIVersion,
+		Kind:       metadata.Kind,
+		Spec: PushSecretMetadataSpec{
+			Tags: []string{"tag1", "tag2"},
+		},
+	}
+	metadataRaw, _ := json.Marshal(metadata)
+
 	testCases := []testCase{
 		{
 			vaults: map[string]int{
@@ -2242,7 +2264,7 @@ func TestProviderOnePasswordPushSecret(t *testing.T) {
 				prop:      "prop",
 				secretKey: key1,
 				metadata: &apiextensionsv1.JSON{
-					Raw: []byte(`{"tags": ["tag1", "tag2"]}`),
+					Raw: metadataRaw,
 				},
 			},
 			vaults: map[string]int{
