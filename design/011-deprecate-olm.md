@@ -3,9 +3,10 @@
 title: Deprecaation of OLM Builds
 authors: @gusfcarvalho
 creation-date: 2024-12-04
-status: draft
+status: approved
 ---
 ```
+This Proposal was approved on community meeting of 4th december 2024 (meeting notes: https://hackmd.io/GSGEpTVdRZCP6LDxV3FHJA?both)
 
 # Deprecaation of OLM Builds
 
@@ -36,5 +37,7 @@ None
 Users might complain - but then they can fork the archived repository to build their own OLM builds locally.
 
 ## Alternatives
-Find community members and separate the repository out of the org. Make this be maintained by other parties than external-secrets maintainers.
+Find community members to handle the maintanence aspect of it. Have a new dedicated OLM repository in/out of the org. Make this be maintained by other parties than external-secrets maintainers.
+
+Do not use the current olm helm operator anymore as anyways this is not really supported.
 
