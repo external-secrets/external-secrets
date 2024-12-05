@@ -29,11 +29,13 @@ type BeyondTrustProviderSecretRef struct {
 
 // Configures a store to sync secrets using BeyondTrust Password Safe.
 type BeyondtrustAuth struct {
-	// +required - API OAuth Client ID.
-	ClientID *BeyondTrustProviderSecretRef `json:"clientId"`
-	// +required - API OAuth Client Secret.
-	ClientSecret *BeyondTrustProviderSecretRef `json:"clientSecret"`
-	// Content of the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.
+	// APIKey If not provided then ClientID/ClientSecret become required.
+	APIKey *BeyondTrustProviderSecretRef `json:"apiKey,omitempty"`
+	// ClientID is the API OAuth Client ID.
+	ClientID *BeyondTrustProviderSecretRef `json:"clientId,omitempty"`
+	// ClientSecret is the API OAuth Client Secret.
+	ClientSecret *BeyondTrustProviderSecretRef `json:"clientSecret,omitempty"`
+	// Certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.
 	Certificate *BeyondTrustProviderSecretRef `json:"certificate,omitempty"`
 	// Certificate private key (key.pem). For use when authenticating with an OAuth client Id
 	CertificateKey *BeyondTrustProviderSecretRef `json:"certificateKey,omitempty"`

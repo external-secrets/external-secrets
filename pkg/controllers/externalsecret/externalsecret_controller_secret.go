@@ -25,7 +25,6 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
-	// Loading registered providers.
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
@@ -112,10 +111,12 @@ func toStoreGenSourceRef(ref *esv1beta1.StoreSourceRef) *esv1beta1.StoreGenerato
 }
 
 func (r *Reconciler) handleGenerateSecrets(ctx context.Context, namespace string, remoteRef esv1beta1.ExternalSecretDataFromRemoteRef, i int) (map[string][]byte, error) {
-	gen, obj, err := resolvers.GeneratorRef(ctx, r.RestConfig, namespace, remoteRef.SourceRef.GeneratorRef)
+	gen, obj, err := resolvers.GeneratorRef(ctx, r.Client, r.Scheme, namespace, remoteRef.SourceRef.GeneratorRef)
 	if err != nil {
 		return nil, fmt.Errorf("unable to resolve generator: %w", err)
 	}
+	// We still pass the namespace to the generate function because it needs to create
+	// namespace based objects.
 	secretMap, err := gen.Generate(ctx, obj, r.Client, namespace)
 	if err != nil {
 		return nil, fmt.Errorf(errGenerate, i, err)

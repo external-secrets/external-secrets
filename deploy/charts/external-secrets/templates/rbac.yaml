@@ -51,11 +51,14 @@ rules:
     - "generators.external-secrets.io"
     resources:
     - "acraccesstokens"
+    - "clustergenerators"
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
     - "githubaccesstokens"
     - "passwords"
+    - "stssessiontokens"
+    - "uuids"
     - "vaultdynamicsecrets"
     - "webhooks"
     verbs:
@@ -145,6 +148,7 @@ rules:
     - "generators.external-secrets.io"
     resources:
     - "acraccesstokens"
+    - "clustergenerators"
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
@@ -190,6 +194,7 @@ rules:
     - "generators.external-secrets.io"
     resources:
     - "acraccesstokens"
+    - "clustergenerators"
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
