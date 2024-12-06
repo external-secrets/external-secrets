@@ -3397,6 +3397,11 @@
 <p class="admonition-title">Warning</p>
 <p>Templating Engine v1 is <strong>deprecated</strong> and will be removed in the future. Please migrate to engine v2 and take a look at our <a href="../templating/#migrating-from-v1">upgrade guide</a> for changes.</p>
 </div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Templating Engine v1 does NOT support templating the <code>spec.target.template.metadata</code> fields, or the keys of the <code>spec.target.template.data</code> map, it will treat them as plain strings.
+To use templates in annotations/labels/data-keys, please use Templating Engine v2.</p>
+</div>
 <p>With External Secrets Operator you can transform the data from the external secret provider before it is stored as <code>Kind=Secret</code>. You can do this with the <code>Spec.Target.Template</code>.</p>
 <p>Each data value is interpreted as a <a href="https://golang.org/pkg/text/template/">Go template</a>. Please note that referencing a non-existing key in the template will raise an error, instead of being suppressed.</p>
 <h2 id="examples">Examples</h2>
@@ -3445,17 +3450,26 @@
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">template</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="c1"># ...</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretstore-sample</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-to-be-created</span>
+<span class="w">    </span><span class="c1"># this is how the Kind=Secret will look like</span>
 <span class="w">    </span><span class="nt">template</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.io/tls</span>
-<span class="w">      </span><span class="nt">engineVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v2</span>
+<span class="w">      </span><span class="nt">engineVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
 <span class="w">      </span><span class="nt">data</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">tls.crt</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pkcs12cert</span><span class="nv"> </span><span class="s">}}&quot;</span>
-<span class="w">        </span><span class="nt">tls.key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pkcs12key</span><span class="nv"> </span><span class="s">}}&quot;</span>
+<span class="w">        </span><span class="nt">tls.crt</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pkcs12cert</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pemCertificate</span><span class="nv"> </span><span class="s">}}&quot;</span>
+<span class="w">        </span><span class="nt">tls.key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pkcs12key</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pemPrivateKey</span><span class="nv"> </span><span class="s">}}&quot;</span>
 
-<span class="w">        </span><span class="c1"># if needed unlock the pkcs12 with the password</span>
-<span class="w">        </span><span class="nt">tls.crt</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.mysecret</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">pkcs12certPass</span><span class="nv"> </span><span class="s">&quot;</span><span class="l l-Scalar l-Scalar-Plain">my-password&quot; }}&quot;</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="c1"># this is a pkcs12 archive that contains</span>
+<span class="w">  </span><span class="c1"># a cert and a private key</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mysecret</span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span>
 </code></pre></div></p>
 <h3 id="templatefrom">TemplateFrom</h3>
 <p>You do not have to define your templates inline in an ExternalSecret but you can pull <code>ConfigMaps</code> or other Secrets that contain a template. Consider the following example:</p>
