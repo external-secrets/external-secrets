@@ -28,14 +28,14 @@ import (
 
 // Client implements the aws secretsmanager interface.
 type Client struct {
-	ExecutionCounter            int
-	valFn                       map[string]func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
-	CreateSecretWithContextFn   CreateSecretWithContextFn
-	GetSecretValueWithContextFn GetSecretValueWithContextFn
-	PutSecretValueWithContextFn PutSecretValueWithContextFn
-	DescribeSecretWithContextFn DescribeSecretWithContextFn
-	DeleteSecretWithContextFn   DeleteSecretWithContextFn
-	ListSecretsFn               ListSecretsFn
+	ExecutionCounter                 int
+	valFn                            map[string]func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
+	CreateSecretWithContextFn        CreateSecretWithContextFn
+	GetSecretValueWithContextFn      GetSecretValueWithContextFn
+	PutSecretValueWithContextFn      PutSecretValueWithContextFn
+	DescribeSecretWithContextFn      DescribeSecretWithContextFn
+	DeleteSecretWithContextFn        DeleteSecretWithContextFn
+	BatchGetSecretValueWithContextFn BatchGetSecretValueWithContextFn
 }
 
 type CreateSecretWithContextFn func(aws.Context, *awssm.CreateSecretInput, ...request.Option) (*awssm.CreateSecretOutput, error)
@@ -43,7 +43,7 @@ type GetSecretValueWithContextFn func(aws.Context, *awssm.GetSecretValueInput, .
 type PutSecretValueWithContextFn func(aws.Context, *awssm.PutSecretValueInput, ...request.Option) (*awssm.PutSecretValueOutput, error)
 type DescribeSecretWithContextFn func(aws.Context, *awssm.DescribeSecretInput, ...request.Option) (*awssm.DescribeSecretOutput, error)
 type DeleteSecretWithContextFn func(ctx aws.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (*awssm.DeleteSecretOutput, error)
-type ListSecretsFn func(ctx aws.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error)
+type BatchGetSecretValueWithContextFn func(aws.Context, *awssm.BatchGetSecretValueInput, ...request.Option) (*awssm.BatchGetSecretValueOutput, error)
 
 func (sm Client) CreateSecretWithContext(ctx aws.Context, input *awssm.CreateSecretInput, options ...request.Option) (*awssm.CreateSecretOutput, error) {
 	return sm.CreateSecretWithContextFn(ctx, input, options...)
@@ -160,8 +160,8 @@ func (sm *Client) GetSecretValue(in *awssm.GetSecretValueInput) (*awssm.GetSecre
 	return nil, errors.New("test case not found")
 }
 
-func (sm *Client) ListSecrets(input *awssm.ListSecretsInput) (*awssm.ListSecretsOutput, error) {
-	return sm.ListSecretsFn(nil, input)
+func (sm *Client) BatchGetSecretValueWithContext(_ aws.Context, in *awssm.BatchGetSecretValueInput, _ ...request.Option) (*awssm.BatchGetSecretValueOutput, error) {
+	return sm.BatchGetSecretValueWithContextFn(nil, in)
 }
 
 func (sm *Client) cacheKeyForInput(in *awssm.GetSecretValueInput) string {

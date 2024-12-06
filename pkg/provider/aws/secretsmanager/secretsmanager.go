@@ -65,7 +65,7 @@ type SecretsManager struct {
 // SMInterface is a subset of the smiface api.
 // see: https://docs.aws.amazon.com/sdk-for-go/api/service/secretsmanager/secretsmanageriface/
 type SMInterface interface {
-	ListSecrets(*awssm.ListSecretsInput) (*awssm.ListSecretsOutput, error)
+	BatchGetSecretValueWithContext(aws.Context, *awssm.BatchGetSecretValueInput, ...request.Option) (*awssm.BatchGetSecretValueOutput, error)
 	GetSecretValue(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
 	CreateSecretWithContext(aws.Context, *awssm.CreateSecretInput, ...request.Option) (*awssm.CreateSecretOutput, error)
 	GetSecretValueWithContext(aws.Context, *awssm.GetSecretValueInput, ...request.Option) (*awssm.GetSecretValueOutput, error)
@@ -354,23 +354,25 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.External
 	var nextToken *string
 
 	for {
-		it, err := sm.client.ListSecrets(&awssm.ListSecretsInput{
+		it, err := sm.client.BatchGetSecretValueWithContext(ctx, &awssm.BatchGetSecretValueInput{
 			Filters:   filters,
 			NextToken: nextToken,
 		})
-		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMListSecrets, err)
+		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMBatchGetSecretValue, err)
 		if err != nil {
 			return nil, err
 		}
-		log.V(1).Info("aws sm findByName found", "secrets", len(it.SecretList))
-		for _, secret := range it.SecretList {
+		log.V(1).Info("aws sm findByName found", "secrets", len(it.SecretValues))
+		for _, secret := range it.SecretValues {
 			if !matcher.MatchName(*secret.Name) {
 				continue
 			}
 			log.V(1).Info("aws sm findByName matches", "name", *secret.Name)
-			err = sm.fetchAndSet(ctx, data, *secret.Name)
-			if err != nil {
-				return nil, err
+			if secret.SecretString != nil {
+				data[*secret.Name] = []byte(*secret.SecretString)
+			}
+			if secret.SecretBinary != nil {
+				data[*secret.Name] = secret.SecretBinary
 			}
 		}
 		nextToken = it.NextToken
@@ -410,19 +412,21 @@ func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.External
 	var nextToken *string
 	for {
 		log.V(1).Info("aws sm findByTag", "nextToken", nextToken)
-		it, err := sm.client.ListSecrets(&awssm.ListSecretsInput{
+		it, err := sm.client.BatchGetSecretValueWithContext(ctx, &awssm.BatchGetSecretValueInput{
 			Filters:   filters,
 			NextToken: nextToken,
 		})
-		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMListSecrets, err)
+		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMBatchGetSecretValue, err)
 		if err != nil {
 			return nil, err
 		}
-		log.V(1).Info("aws sm findByTag found", "secrets", len(it.SecretList))
-		for _, secret := range it.SecretList {
-			err = sm.fetchAndSet(ctx, data, *secret.Name)
-			if err != nil {
-				return nil, err
+		log.V(1).Info("aws sm findByTag found", "secrets", len(it.SecretValues))
+		for _, secret := range it.SecretValues {
+			if secret.SecretString != nil {
+				data[*secret.Name] = []byte(*secret.SecretString)
+			}
+			if secret.SecretBinary != nil {
+				data[*secret.Name] = secret.SecretBinary
 			}
 		}
 		nextToken = it.NextToken
@@ -431,22 +435,6 @@ func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.External
 		}
 	}
 	return data, nil
-}
-
-func (sm *SecretsManager) fetchAndSet(ctx context.Context, data map[string][]byte, name string) error {
-	sec, err := sm.fetch(ctx, esv1beta1.ExternalSecretDataRemoteRef{
-		Key: name,
-	})
-	if err != nil {
-		return err
-	}
-	if sec.SecretString != nil {
-		data[name] = []byte(*sec.SecretString)
-	}
-	if sec.SecretBinary != nil {
-		data[name] = sec.SecretBinary
-	}
-	return nil
 }
 
 // GetSecret returns a single secret from the provider.
