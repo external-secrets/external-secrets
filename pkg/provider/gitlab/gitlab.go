@@ -225,21 +225,16 @@ func (g *gitlabBase) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDa
 	data, resp, err := g.projectVariablesClient.GetVariable(g.store.ProjectID, ref.Key, vopts)
 	metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableGet, err)
 	if err != nil {
-		return nil, err
-	}
-
-	if resp == nil {
-		return nil, errors.New("gitlab response is nil")
-	}
-
-	if !isEmptyOrWildcard(g.store.Environment) && resp.StatusCode == http.StatusNotFound {
-		vopts.Filter.EnvironmentScope = "*"
-		data, resp, err = g.projectVariablesClient.GetVariable(g.store.ProjectID, ref.Key, vopts)
-		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableGet, err)
-	}
-
-	if resp.StatusCode >= 400 && resp.StatusCode != http.StatusNotFound {
-		return nil, fmt.Errorf("gitlab response status code was not OK: %d", resp.StatusCode)
+		if resp != nil && resp.StatusCode == http.StatusNotFound && !isEmptyOrWildcard(g.store.Environment) {
+			vopts.Filter.EnvironmentScope = "*"
+			data, resp, err = g.projectVariablesClient.GetVariable(g.store.ProjectID, ref.Key, vopts)
+			metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableGet, err)
+			if err != nil || resp == nil {
+				return nil, fmt.Errorf("error getting variable %s from GitLab: %w", ref.Key, err)
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	err = g.ResolveGroupIds()
