@@ -14,6 +14,8 @@ limitations under the License.
 package template
 
 import (
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -30,8 +32,5 @@ func EngineForVersion(version esapi.TemplateEngineVersion) (ExecFunc, error) {
 	case esapi.TemplateEngineV2:
 		return v2.Execute, nil
 	}
-
-	// in case we run with a old v1alpha1 CRD
-	// we must return v1 as default
-	return v1.Execute, nil
+	return nil, fmt.Errorf("unsupported template engine version: %s", version)
 }
