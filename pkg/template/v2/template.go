@@ -37,7 +37,8 @@ var tplFuncs = tpl.FuncMap{
 	"fullPemToPkcs12":     fullPemToPkcs12,
 	"fullPemToPkcs12Pass": fullPemToPkcs12Pass,
 
-	"filterPEM": filterPEM,
+	"filterPEM":       filterPEM,
+	"filterCertChain": filterCertChain,
 
 	"jwkPublicKeyPem":  jwkPublicKeyPem,
 	"jwkPrivateKeyPem": jwkPrivateKeyPem,
