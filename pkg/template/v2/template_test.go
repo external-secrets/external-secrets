@@ -51,6 +51,18 @@ mv+AggtK0aRFb9o47z/BypLdk5mhbf3Mmr88C8XBzEnfdYyf4JpTlZrYLBmDCu5d
 QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
 -----END CERTIFICATE-----
 `
+	pkcs12Cert2 = `-----BEGIN CERTIFICATE-----
+MIIBqjCCAU+gAwIBAgIRAPnGGsBUMbZhmh5QdnYdBmUwCgYIKoZIzj0EAwIwGjEY
+MBYGA1UEAxMPaW50ZXJtZWRpYXRlLWNhMB4XDTIyMDIwOTEwMjUzMVoXDTIyMDIx
+MDEwMjUzMVowDjEMMAoGA1UEAxMDZm9vMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcD
+QgAEqnxdeInykx8JZsLi13rZLekoG2cosQ3F+2InVNy7hCQ7soMqdaJsGQ6LFtov
+ogUFtOOTRWrunblqNWGZsowHbKOBgTB/MA4GA1UdDwEB/wQEAwIHgDAdBgNVHSUE
+FjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwHQYDVR0OBBYEFLtundVbuKd73OWzo6SY
+by0Ajeb2MB8GA1UdIwQYMBaAFCLg80J/bZBbOd+Y8+V94l5xM2zEMA4GA1UdEQQH
+MAWCA2ZvbzAKBggqhkjOPQQDAgNJADBGAiEA4K4SbVNqrEtl7RfwBfJFMnWI+X8D
+zMPMc4Xqzp2qTxcCIQDsySgtiakypZfWakpB49zJph0kLwGK8xhWvGMUw1N1/w==
+-----END CERTIFICATE-----
+`
 	pkcs12Key = `-----BEGIN PRIVATE KEY-----
 MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC3o6/JdZEqNbqN
 RkopHhJtJG5c4qS5d0tQ/kZYpfD/v/izAYum4NzjaG15owr92/11W0pxPUliRLti
@@ -432,6 +444,30 @@ func TestExecute(t *testing.T) {
 			},
 			data: map[string][]byte{
 				"secret": []byte(jwkPrivRSAPKCS8 + pkcs12Cert),
+			},
+			expectedData: map[string][]byte{
+				"fn": []byte(pkcs12Cert),
+			},
+		},
+		{
+			name: "filter pem server certificate",
+			tpl: map[string][]byte{
+				"fn": []byte(`{{ .secret | filterPEMServer }}`),
+			},
+			data: map[string][]byte{
+				"secret": []byte(pkcs12Cert + pkcs12Cert2),
+			},
+			expectedData: map[string][]byte{
+				"fn": []byte(pkcs12Cert2),
+			},
+		},
+		{
+			name: "filter pem intermediate certificate",
+			tpl: map[string][]byte{
+				"fn": []byte(`{{ .secret | filterPEMChain }}`),
+			},
+			data: map[string][]byte{
+				"secret": []byte(pkcs12Cert + pkcs12Cert2),
 			},
 			expectedData: map[string][]byte{
 				"fn": []byte(pkcs12Cert),
