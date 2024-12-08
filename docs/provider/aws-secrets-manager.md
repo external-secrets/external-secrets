@@ -16,6 +16,8 @@ way users of the `SecretStore` can only access the secrets necessary.
 
 Create a IAM Policy to pin down access to secrets matching `dev-*`.
 
+For Batch permissions read the following post https://aws.amazon.com/about-aws/whats-new/2023/11/aws-secrets-manager-batch-retrieval-secrets/.
+
 ``` json
 {
   "Version": "2012-10-17",
