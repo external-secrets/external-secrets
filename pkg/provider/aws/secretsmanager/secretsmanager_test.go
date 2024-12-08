@@ -1064,16 +1064,15 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 	}
 	// Test cases
 	testCases := []struct {
-		name string
-		ref  esv1beta1.ExternalSecretFind
-
+		name                             string
+		ref                              esv1beta1.ExternalSecretFind
 		secretName                       string
 		secretVersion                    string
 		secretValue                      string
 		batchGetSecretValueWithContextFn func(aws.Context, *awssm.BatchGetSecretValueInput, ...request.Option) (*awssm.BatchGetSecretValueOutput, error)
-
-		expectedData  map[string][]byte
-		expectedError string
+		listSecretsFn                    func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error)
+		expectedData                     map[string][]byte
+		expectedError                    string
 	}{
 		{
 			name: "Matching secrets found",
@@ -1135,7 +1134,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 					RegExp: secretName,
 				},
 			},
-			batchGetSecretValueWithContextFn: func(aws.Context, *awssm.BatchGetSecretValueInput, ...request.Option) (*awssm.BatchGetSecretValueOutput, error) {
+			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error) {
 				return nil, errBoom
 			},
 			expectedData:  nil,
@@ -1147,6 +1146,15 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				Name: &esv1beta1.FindName{
 					RegExp: secretName,
 				},
+			},
+			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error) {
+				return &awssm.ListSecretsOutput{
+					SecretList: []*awssm.SecretListEntry{
+						{
+							Name: ptr.To("other-secret"),
+						},
+					},
+				}, nil
 			},
 			batchGetSecretValueWithContextFn: func(aws.Context, *awssm.BatchGetSecretValueInput, ...request.Option) (*awssm.BatchGetSecretValueOutput, error) {
 				return &awssm.BatchGetSecretValueOutput{
@@ -1239,6 +1247,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			fc := fakesm.NewClient()
 			fc.BatchGetSecretValueWithContextFn = tc.batchGetSecretValueWithContextFn
+			fc.ListSecretsFn = tc.listSecretsFn
 			sm := SecretsManager{
 				client: fc,
 				cache:  make(map[string]*awssm.GetSecretValueOutput),
