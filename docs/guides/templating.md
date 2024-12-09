@@ -130,6 +130,29 @@ You can achieve that by using the `filterPEM` function to extract a specific typ
 {% include 'filterpem-template-v2-external-secret.yaml' %}
 ```
 
+Consider you have a secret that contains a certificate with the full trust chain which needs to be broken out.
+
+```
+-----BEGIN CERTIFICATE-----
+MIIDMDCCAhigAwIBAgIQabPaXuZCQaCg+eQAVptGGDANBgkqhkiG9w0BAQsFADAV
+ . . .
+NtFUGA95RGN9s+pl6XY0YARPHf5O76ErC1OZtDTR5RdyQfcM+94gYZsexsXl0aQO
+9YD3Wg==
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+MIIDMDCCAhigAwIBAgIQabPaXuZCQaCg+eQAVptGGDANBgkqhkiG9w0BAQsFADAV
+ . . .
+NtFUGA95RGN9s+pl6XY0YARPHf5O76ErC1OZtDTR5RdyQfcM+94gYZsexsXl0aQO
+9YD3Wg==
+-----END CERTIFICATE-----
+```
+
+You can achieve that by using the `filterPEMChain` and `filterPEMServer` functions
+
+```yaml
+{% include 'filterpem-misc-template-v2-external-secret.yaml' %}
+```
+
 ## Templating with PushSecret
 
 `PushSecret` templating is much like `ExternalSecrets` templating. In-fact under the hood, it's using the same data structure.
@@ -163,6 +186,8 @@ In addition to that you can use over 200+ [sprig functions](http://masterminds.g
 | fullPemToPkcs12      | Takes a PEM encoded certificates chain and key and creates a base64 encoded PKCS#12 archive.                                                                                                                                         |
 | fullPemToPkcs12Pass  | Same as `fullPemToPkcs12`. Uses the provided password to encrypt the PKCS#12 archive.                                                                                                                                            |
 | filterPEM        | Filters PEM blocks with a specific type from a list of PEM blocks.                                                                                                                                                           |
+| filterPEMChain        | Filters PEM blocks to strip out the intermediate certificate chain certificates, returning only the server certificate.                                                                                                                                                        |
+| filterPEMServer        | Filters PEM blocks to strip out the server certificate, returing only the intermediate certificate chain certificates.                                                                                                                                                          |
 | jwkPublicKeyPem  | Takes an json-serialized JWK and returns an PEM block of type `PUBLIC KEY` that contains the public key. [See here](https://golang.org/pkg/crypto/x509/#MarshalPKIXPublicKey) for details.                                   |
 | jwkPrivateKeyPem | Takes an json-serialized JWK as `string` and returns an PEM block of type `PRIVATE KEY` that contains the private key in PKCS #8 format. [See here](https://golang.org/pkg/crypto/x509/#MarshalPKCS8PrivateKey) for details. |
 | toYaml           | Takes an interface, marshals it to yaml. It returns a string, even on marshal error (empty string).                                                                                                                          |
