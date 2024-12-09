@@ -12,9 +12,16 @@ way users of the `SecretStore` can only access the secrets necessary.
 {% include 'aws-sm-store.yaml' %}
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `accessKeyIDSecretRef` and `secretAccessKeySecretRef`  with the namespaces where the secrets reside.
+
+**NOTE:** When using `dataFrom` without a `path` defined, the provider will fall back to using `ListSecrets`. `ListSecrets`
+then proceeds to fetch each individual secret in turn. To use `BatchGetSecretValue` and avoid excessive API calls define
+a `path` prefix or use `Tags` filter.
+
 ### IAM Policy
 
 Create a IAM Policy to pin down access to secrets matching `dev-*`.
+
+For Batch permissions read the following post https://aws.amazon.com/about-aws/whats-new/2023/11/aws-secrets-manager-batch-retrieval-secrets/.
 
 ``` json
 {
@@ -27,6 +34,7 @@ Create a IAM Policy to pin down access to secrets matching `dev-*`.
         "secretsmanager:GetSecretValue",
         "secretsmanager:DescribeSecret",
         "secretsmanager:ListSecretVersionIds"
+        "secretsmanager:BatchGetSecretValue"
       ],
       "Resource": [
         "arn:aws:secretsmanager:us-west-2:111122223333:secret:dev-*"
