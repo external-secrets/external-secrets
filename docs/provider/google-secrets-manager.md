@@ -111,3 +111,44 @@ The operator will fetch the GCP Secret Manager secret and inject it as a `Kind=S
 ```
 kubectl get secret secret-to-be-created -n <namespace> -o jsonpath='{.data.dev-secret-test}' | base64 -d
 ```
+
+### PushSecret owning an existing Google Secret Manager Secret
+
+There are some use cases where you want to use PushSecret for an existing Google Secret Manager Secret that already has labels defined. For example when the creation of the secret is managed by another controller like Kubernetes Config Connector (KCC) and the updating of the secret is managed by ESO.
+
+To allow ESO to take ownership of the existing Google Secret Manager Secret, you need to add the label `"managed-by": "external-secrets"`.
+
+By default, the PushSecret spec will replace any existing labels on the existing GCP Secret Manager Secret. To prevent this, a new field was added to the `spec.data.metadata` object called `mergePolicy` which defaults to `Replace` to ensure that there are no breaking changes and is backward compatible. The other option for this field is `Merge` which will merge the existing labels on the Google Secret Manager Secret with the labels defined in the PushSecret spec. This ensures that the existing labels defined on the Google Secret Manager Secret are retained.
+
+Example of using the `mergePolicy` field:
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: pushsecret-example
+  namespace: default
+spec:
+  updatePolicy: Replace
+  deletionPolicy: None
+  refreshInterval: 1h
+  secretStoreRefs:
+    - name: gcp-secretstore
+      kind: SecretStore
+  selector:
+    secret:
+      name: bestpokemon
+  template:
+    data:
+      bestpokemon: "{{ .bestpokemon }}"
+  data:
+    - conversionStrategy: None
+      metadata:
+        mergePolicy: Merge
+        labels:
+          anotherLabel: anotherValue 
+      match:
+        secretKey: bestpokemon
+        remoteRef:
+          remoteKey: best-pokemon
+```
