@@ -352,10 +352,6 @@ type ExternalSecretFind struct {
 	// Used to define a decoding Strategy
 	// +kubebuilder:default="None"
 	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
-
-	// +optional
-	// Used to ignore not found secrets on a path.
-	IgnoreNotFound *bool `json:"ignoreNotFound,omitempty"`
 }
 
 type FindName struct {

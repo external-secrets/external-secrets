@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/utils/ptr"
-
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/find"
@@ -43,7 +41,7 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 	if ref.Path != nil {
 		searchPath = *ref.Path + "/"
 	}
-	potentialSecrets, err := c.listSecrets(ctx, searchPath, ref)
+	potentialSecrets, err := c.listSecrets(ctx, searchPath)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +106,7 @@ func (c *client) findSecretsFromName(ctx context.Context, candidates []string, r
 	return secrets, nil
 }
 
-func (c *client) listSecrets(ctx context.Context, path string, ref esv1beta1.ExternalSecretFind) ([]string, error) {
+func (c *client) listSecrets(ctx context.Context, path string) ([]string, error) {
 	secrets := make([]string, 0)
 	url, err := c.buildMetadataPath(path)
 	if err != nil {
@@ -120,11 +118,7 @@ func (c *client) listSecrets(ctx context.Context, path string, ref esv1beta1.Ext
 		return nil, fmt.Errorf(errReadSecret, err)
 	}
 	if secret == nil {
-		if ptr.Deref(ref.IgnoreNotFound, false) {
-			return secrets, nil
-		}
-
-		return nil, fmt.Errorf("provided path %v does not contain any secrets", url)
+		return nil, esv1beta1.NoSecretError{}
 	}
 	t, ok := secret.Data["keys"]
 	if !ok {
@@ -141,7 +135,7 @@ func (c *client) listSecrets(ctx context.Context, path string, ref esv1beta1.Ext
 		if !strings.HasSuffix(p.(string), "/") {
 			secrets = append(secrets, fullPath)
 		} else {
-			partial, err := c.listSecrets(ctx, fullPath, ref)
+			partial, err := c.listSecrets(ctx, fullPath)
 			if err != nil {
 				return nil, err
 			}

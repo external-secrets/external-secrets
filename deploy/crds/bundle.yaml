@@ -262,9 +262,6 @@ spec:
                                   - Base64URL
                                   - None
                                 type: string
-                              ignoreNotFound:
-                                description: Used to ignore not found secrets on a path.
-                                type: boolean
                               name:
                                 description: Finds secrets based on the name.
                                 properties:
@@ -7049,9 +7046,6 @@ spec:
                               - Base64URL
                               - None
                             type: string
-                          ignoreNotFound:
-                            description: Used to ignore not found secrets on a path.
-                            type: boolean
                           name:
                             description: Finds secrets based on the name.
                             properties:

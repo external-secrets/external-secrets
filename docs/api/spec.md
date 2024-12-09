@@ -3512,18 +3512,6 @@ ExternalSecretDecodingStrategy
 <p>Used to define a decoding Strategy</p>
 </td>
 </tr>
-<tr>
-<td>
-<code>ignoreNotFound</code></br>
-<em>
-bool
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Used to ignore not found secrets on a path.</p>
-</td>
-</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.ExternalSecretMetadata">ExternalSecretMetadata
