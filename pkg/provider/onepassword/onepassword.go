@@ -329,11 +329,6 @@ func (provider *ProviderOnePassword) PushSecret(ctx context.Context, secret *cor
 		return ErrKeyNotFound
 	}
 
-	metadata, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](ref.GetMetadata())
-	if err != nil {
-		return fmt.Errorf("failed to parse push secret metadata: %w", err)
-	}
-
 	title := ref.GetRemoteKey()
 	providerItem, err := provider.findItem(title)
 	if errors.Is(err, ErrKeyNotFound) {
@@ -352,6 +347,10 @@ func (provider *ProviderOnePassword) PushSecret(ctx context.Context, secret *cor
 		label = passwordLabel
 	}
 
+	metadata, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](ref.GetMetadata())
+	if err != nil {
+		return fmt.Errorf("failed to parse push secret metadata: %w", err)
+	}
 	if metadata != nil && metadata.Spec.Tags != nil {
 		providerItem.Tags = metadata.Spec.Tags
 	}
