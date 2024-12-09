@@ -21,6 +21,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	vault "github.com/hashicorp/vault/api"
+	"k8s.io/utils/ptr"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -281,6 +282,25 @@ func TestGetAllSecrets(t *testing.T) {
 					"path/1": path1Bytes,
 					"path/2": path2Bytes,
 				},
+			},
+		},
+		"FilterByPathIgnoreNotFound": {
+			reason: "should filter secrets based on path for kv2 without tags",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ListWithContextFn: func(ctx context.Context, path string) (*vault.Secret, error) {
+						return nil, nil
+					},
+					ReadWithDataWithContextFn: newReadtWithContextFn(map[string]any{}),
+				},
+				data: esv1beta1.ExternalSecretFind{
+					Path:           &path,
+					IgnoreNotFound: ptr.To(true),
+				},
+			},
+			want: want{
+				val: map[string][]byte{}, // empty result since we ignored the not found error.
 			},
 		},
 		"FilterByPathKv1": {
