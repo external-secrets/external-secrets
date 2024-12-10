@@ -2600,6 +2600,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#push-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      Push Secret
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3657,6 +3666,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#push-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      Push Secret
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3756,7 +3774,7 @@
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">onepassword</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">connectHost</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://onepassword-connect-staging</span>
+<span class="w">      </span><span class="nt">connectHost</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://onepassword-connect-staging:8080</span>
 <span class="w">      </span><span class="nt">vaults</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">staging</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w">  </span><span class="c1"># look in this vault first</span>
 <span class="w">        </span><span class="nt">shared</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w">   </span><span class="c1"># next look in here. error if not found</span>
@@ -3910,7 +3928,7 @@
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">onepassword</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">connectHost</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://onepassword-connect-staging</span>
+<span class="w">      </span><span class="nt">connectHost</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://onepassword-connect-staging:8080</span>
 <span class="w">      </span><span class="nt">vaults</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">staging</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w">  </span><span class="c1"># look in this vault first</span>
 <span class="w">        </span><span class="nt">shared</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w">   </span><span class="c1"># next look in here. error if not found</span>
@@ -4026,6 +4044,43 @@
 <span class="w">      </span><span class="no">value: staging</span>
 </code></pre></div></li>
 </ul>
+<h3 id="push-secret">Push Secret</h3>
+<p>To push a secret from Kubernetes cluster and create it as a secret in 1Password, a <code>Kind=PushSecret</code> resource is needed.</p>
+<p>Updating the vault on an existing PushSecret is currently not supported. To update the vault, create a new PushSecret with the updated vault.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source-secret</span>
+<span class="nt">stringData</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">source-key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret&quot;</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pushsecret-example</span><span class="w"> </span><span class="c1"># Customisable</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">deletionPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Delete</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
+<span class="w">  </span><span class="nt">secretStoreRefs</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1password</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">secret</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source-secret</span><span class="w"> </span><span class="c1"># Source Kubernetes secret</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source-key</span><span class="w"> </span><span class="c1"># Source Kubernetes secret key to be pushed</span>
+<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1pw-secret-name</span><span class="w"> </span><span class="c1"># 1Password item/secret name</span>
+<span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span><span class="w">         </span><span class="c1"># (Optional) 1Password field type, default password</span>
+<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.external-secrets.io/v1alpha1</span>
+<span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecretMetadata</span>
+<span class="w">        </span><span class="nt">spec</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">vault</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">staging</span><span class="w">            </span><span class="c1"># Optional the vault the secret is going to be pushed to, defaults to the first defined vault in the (Cluster)SecretStore</span>
+<span class="w">          </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;tag1&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;tag2&quot;</span><span class="p p-Indicator">]</span><span class="w">    </span><span class="c1"># Optional metadata to be pushed with the secret</span>
+</code></pre></div>
+<p>Then it will create an item in onepassword <code>op://staging/1pw-secret-name/password</code> equal to <code>my-secret</code>.</p>
 
 
 
