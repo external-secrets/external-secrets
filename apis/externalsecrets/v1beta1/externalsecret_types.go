@@ -465,11 +465,12 @@ const (
 	// ConditionReasonSecretMissing indicates that the secret is missing.
 	ConditionReasonSecretMissing = "SecretMissing"
 
-	ReasonUpdateFailed = "UpdateFailed"
-	ReasonDeprecated   = "ParameterDeprecated"
-	ReasonCreated      = "Created"
-	ReasonUpdated      = "Updated"
-	ReasonDeleted      = "Deleted"
+	ReasonUpdateFailed          = "UpdateFailed"
+	ReasonDeprecated            = "ParameterDeprecated"
+	ReasonCreated               = "Created"
+	ReasonUpdated               = "Updated"
+	ReasonDeleted               = "Deleted"
+	ReasonMissingProviderSecret = "MissingProviderSecret"
 )
 
 type ExternalSecretStatus struct {
