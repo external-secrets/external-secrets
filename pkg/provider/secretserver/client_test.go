@@ -79,6 +79,20 @@ func getJSONData() (*server.Secret, error) {
 	return s, nil
 }
 
+func createTestSecretFromCode(id int) *server.Secret {
+	s := new(server.Secret)
+	s.ID = id
+	s.Name = "Secretname"
+	s.Fields = make([]server.SecretField, 2)
+	s.Fields[0].ItemValue = "usernamevalue"
+	s.Fields[0].FieldName = "Username"
+	s.Fields[0].Slug = "username"
+	s.Fields[1].FieldName = "Password"
+	s.Fields[1].Slug = "password"
+	s.Fields[1].ItemValue = "passwordvalue"
+	return s
+}
+
 func newTestClient() esv1beta1.SecretsClient {
 	return &client{
 		api: &fakeAPI{
@@ -86,16 +100,18 @@ func newTestClient() esv1beta1.SecretsClient {
 				createSecret(1000, "{ \"user\": \"robertOppenheimer\", \"password\": \"badPassword\",\"server\":\"192.168.1.50\"}"),
 				createSecret(2000, "{ \"user\": \"helloWorld\", \"password\": \"badPassword\",\"server\":[ \"192.168.1.50\",\"192.168.1.51\"] }"),
 				createSecret(3000, "{ \"user\": \"chuckTesta\", \"password\": \"badPassword\",\"server\":\"192.168.1.50\"}"),
+				createTestSecretFromCode(4000),
 			},
 		},
 	}
 }
 
-func TestGetSecret(t *testing.T) {
+func TestGetSecretSecretServer(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient()
 	s, _ := getJSONData()
 	jsonStr, _ := json.Marshal(s)
+	jsonStr2, _ := json.Marshal(createTestSecretFromCode(4000))
 
 	testCases := map[string]struct {
 		ref  esv1beta1.ExternalSecretDataRemoteRef
@@ -116,32 +132,68 @@ func TestGetSecret(t *testing.T) {
 			},
 			want: []byte(`robertOppenheimer`),
 		},
-		"key and password property returns a single value": {
+		"Secret from JSON: key and password property returns a single value": {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key:      "1000",
 				Property: "password",
 			},
 			want: []byte(`badPassword`),
 		},
-		"key and nested property returns a single value": {
+		"Secret from JSON: key and nested property returns a single value": {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key:      "2000",
 				Property: "server.1",
 			},
 			want: []byte(`192.168.1.51`),
 		},
-		"existent key with non-existing propery": {
+		"Secret from JSON: existent key with non-existing propery": {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key:      "3000",
 				Property: "foo.bar",
 			},
 			err: esv1beta1.NoSecretError{},
 		},
-		"existent 'name' key with no propery": {
+		"Secret from JSON: existent 'name' key with no propery": {
 			ref: esv1beta1.ExternalSecretDataRemoteRef{
 				Key: "1000",
 			},
 			want: jsonStr,
+		},
+		"Secret from code: existent key with no property": {
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key: "4000",
+			},
+			want: jsonStr2,
+		},
+		"Secret from code: key and username fieldnamereturns a single value": {
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:      "4000",
+				Property: "Username",
+			},
+			want: []byte(`usernamevalue`),
+		},
+		"Secret from code: 'name' and password slug returns a single value": {
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:      "Secretname",
+				Property: "password",
+			},
+			want: []byte(`passwordvalue`),
+		},
+		"Secret from code: 'name' not found and password slug returns error": {
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:      "Secretnameerror",
+				Property: "password",
+			},
+			want: []byte(nil),
+			err:  errNotFound,
+		},
+		"Secret from code: 'name' found and non-existent attribute slug returns noSecretError": {
+			ref: esv1beta1.ExternalSecretDataRemoteRef{
+				Key:      "Secretname",
+				Property: "passwordkey",
+			},
+			want: []byte(nil),
+			err:  esv1beta1.NoSecretError{},
 		},
 	}
 

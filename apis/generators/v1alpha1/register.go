@@ -44,6 +44,14 @@ var (
 	ECRAuthorizationTokenGroupVersionKind = SchemeGroupVersion.WithKind(ECRAuthorizationTokenKind)
 )
 
+// STSSessionToken type metadata.
+var (
+	STSSessionTokenKind             = reflect.TypeOf(STSSessionToken{}).Name()
+	STSSessionTokenGroupKind        = schema.GroupKind{Group: Group, Kind: STSSessionTokenKind}.String()
+	STSSessionTokenKindAPIVersion   = STSSessionTokenKind + "." + SchemeGroupVersion.String()
+	STSSessionTokenGroupVersionKind = SchemeGroupVersion.WithKind(STSSessionTokenKind)
+)
+
 // GCRAccessToken type metadata.
 var (
 	GCRAccessTokenKind             = reflect.TypeOf(GCRAccessToken{}).Name()
@@ -108,13 +116,39 @@ var (
 	UUIDGroupVersionKind = SchemeGroupVersion.WithKind(UUIDKind)
 )
 
+// ClusterGenerator type metadata.
+var (
+	ClusterGeneratorKind             = reflect.TypeOf(ClusterGenerator{}).Name()
+	ClusterGeneratorGroupKind        = schema.GroupKind{Group: Group, Kind: ClusterGeneratorKind}.String()
+	ClusterGeneratorKindAPIVersion   = ClusterGeneratorKind + "." + SchemeGroupVersion.String()
+	ClusterGeneratorGroupVersionKind = SchemeGroupVersion.WithKind(ClusterGeneratorKind)
+)
+
 func init() {
-	SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationToken{})
+	/*
+		===============================================================================
+		 NOTE: when adding support for new kinds of generators:
+		  1. register the struct types in `SchemeBuilder` (right below this note)
+		  2. update the `kubebuilder:validation:Enum` annotation for GeneratorRef.Kind (apis/externalsecrets/v1beta1/externalsecret_types.go)
+		  3. add it to the imports of (pkg/generator/register/register.go)
+		  4. add it to the ClusterRole called "*-controller" (deploy/charts/external-secrets/templates/rbac.yaml)
+		  5. support it in ClusterGenerator:
+			  - add a new GeneratorKind enum value (apis/generators/v1alpha1/types_cluster.go)
+			  - update the `kubebuilder:validation:Enum` annotation for the GeneratorKind enum
+			  - add a spec field to GeneratorSpec (apis/generators/v1alpha1/types_cluster.go)
+			  - update the clusterGeneratorToVirtual() function (pkg/utils/resolvers/generator.go)
+		===============================================================================
+	*/
+
+	SchemeBuilder.Register(&ACRAccessToken{}, &ACRAccessTokenList{})
+	SchemeBuilder.Register(&ClusterGenerator{}, &ClusterGeneratorList{})
+	SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationTokenList{})
+	SchemeBuilder.Register(&Fake{}, &FakeList{})
 	SchemeBuilder.Register(&GCRAccessToken{}, &GCRAccessTokenList{})
 	SchemeBuilder.Register(&GithubAccessToken{}, &GithubAccessTokenList{})
-	SchemeBuilder.Register(&ACRAccessToken{}, &ACRAccessTokenList{})
-	SchemeBuilder.Register(&Fake{}, &FakeList{})
-	SchemeBuilder.Register(&VaultDynamicSecret{}, &VaultDynamicSecretList{})
 	SchemeBuilder.Register(&Password{}, &PasswordList{})
+	SchemeBuilder.Register(&STSSessionToken{}, &STSSessionTokenList{})
+	SchemeBuilder.Register(&UUID{}, &UUIDList{})
+	SchemeBuilder.Register(&VaultDynamicSecret{}, &VaultDynamicSecretList{})
 	SchemeBuilder.Register(&Webhook{}, &WebhookList{})
 }

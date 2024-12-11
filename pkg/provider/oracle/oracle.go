@@ -311,7 +311,8 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 		opts := []common.RetryPolicyOption{common.WithShouldRetryOperation(common.DefaultShouldRetryOperation)}
 
 		if mr := storeSpec.RetrySettings.MaxRetries; mr != nil {
-			opts = append(opts, common.WithMaximumNumberAttempts(uint(*mr)))
+			attempts := safeConvert(*mr)
+			opts = append(opts, common.WithMaximumNumberAttempts(attempts))
 		}
 
 		if ri := storeSpec.RetrySettings.RetryInterval; ri != nil {
@@ -345,6 +346,14 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 		compartment:    oracleSpec.Compartment,
 		encryptionKey:  oracleSpec.EncryptionKey,
 	}, nil
+}
+
+func safeConvert(i int32) uint {
+	if i < 0 {
+		return 0
+	}
+
+	return uint(i)
 }
 
 func (vms *VaultManagementService) getSecretBundleWithCode(ctx context.Context, secretName string) (secrets.GetSecretBundleByNameResponse, int, error) {

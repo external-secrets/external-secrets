@@ -29,6 +29,7 @@ import (
 const (
 	errTestCase  = "Test case Failed"
 	fakeAPIURL   = "https://example.com:443/BeyondTrust/api/public/v3/"
+	apiKey       = "fakeapikey00fakeapikeydd0000000000065b010f20fakeapikey0000000008700000a93fb5d74fddc0000000000000000000000000000000000000;runas=test_user"
 	clientID     = "12345678-25fg-4b05-9ced-35e7dd5093ae"
 	clientSecret = "12345678-25fg-4b05-9ced-35e7dd5093ae"
 )
@@ -267,6 +268,63 @@ func TestNewClient(t *testing.T) {
 			validateErrorNil:  false,
 			validateErrorText: true,
 			expectedErrorText: "error in Inputs: Key: 'UserInputValidaton.ClientTimeOutinSeconds' Error:Field validation for 'ClientTimeOutinSeconds' failed on the 'lte' tag",
+		},
+		{
+			name:      "ApiKey ok",
+			nameSpace: "test",
+			args: args{
+				store: esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							Beyondtrust: &esv1beta1.BeyondtrustProvider{
+								Server: &esv1beta1.BeyondtrustServer{
+									APIURL:        fakeAPIURL,
+									RetrievalType: "SECRET",
+								},
+
+								Auth: &esv1beta1.BeyondtrustAuth{
+									APIKey: &esv1beta1.BeyondTrustProviderSecretRef{
+										Value: apiKey,
+									},
+								},
+							},
+						},
+					},
+				},
+				kube:     createMockPasswordSafeClient(t),
+				provider: &Provider{},
+			},
+			validateErrorNil:  true,
+			validateErrorText: false,
+		},
+		{
+			name:      "Bad ApiKey",
+			nameSpace: "test",
+			args: args{
+				store: esv1beta1.SecretStore{
+					Spec: esv1beta1.SecretStoreSpec{
+						Provider: &esv1beta1.SecretStoreProvider{
+							Beyondtrust: &esv1beta1.BeyondtrustProvider{
+								Server: &esv1beta1.BeyondtrustServer{
+									APIURL:        fakeAPIURL,
+									RetrievalType: "SECRET",
+								},
+
+								Auth: &esv1beta1.BeyondtrustAuth{
+									APIKey: &esv1beta1.BeyondTrustProviderSecretRef{
+										Value: "bad_api_key",
+									},
+								},
+							},
+						},
+					},
+				},
+				kube:     createMockPasswordSafeClient(t),
+				provider: &Provider{},
+			},
+			validateErrorNil:  false,
+			validateErrorText: true,
+			expectedErrorText: "error in Inputs: Key: 'UserInputValidaton.ApiKey' Error:Field validation for 'ApiKey' failed on the 'min' tag",
 		},
 	}
 

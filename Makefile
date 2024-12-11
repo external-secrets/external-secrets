@@ -332,9 +332,9 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
 
 ## Tool Versions
-GOLANGCI_VERSION := 1.60.1
+GOLANGCI_VERSION := 1.61.0
 KUBERNETES_VERSION := 1.30.x
-TILT_VERSION := 0.33.10
+TILT_VERSION := 0.33.21
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.

@@ -73,14 +73,23 @@ type WebhookCAProvider struct {
 	Type WebhookCAProviderType `json:"type"`
 
 	// The name of the object located at the provider type.
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	Name string `json:"name"`
 
-	// The key the value inside of the provider type to use, only used with "Secret" type
+	// The key where the CA certificate can be found in the Secret or ConfigMap.
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$
 	Key string `json:"key,omitempty"`
 
 	// The namespace the Provider type is in.
 	// +optional
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=63
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
 	Namespace *string `json:"namespace,omitempty"`
 }
 
@@ -100,8 +109,15 @@ type WebhookSecret struct {
 
 type SecretKeySelector struct {
 	// The name of the Secret resource being referred to.
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	Name string `json:"name,omitempty"`
+
 	// The key where the token is found.
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$
 	Key string `json:"key,omitempty"`
 }
 
@@ -113,7 +129,7 @@ type SecretKeySelector struct {
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
-// +kubebuilder:resource:scope=Namespaced,categories={external-secrets, external-secrets-generators},shortName=webhookl
+// +kubebuilder:resource:scope=Namespaced,categories={external-secrets, external-secrets-generators}
 type Webhook struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

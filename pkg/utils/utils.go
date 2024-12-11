@@ -192,19 +192,23 @@ func Decode(strategy esv1beta1.ExternalSecretDecodingStrategy, in []byte) ([]byt
 	}
 }
 
-func ValidateKeys(in map[string][]byte) bool {
+// ValidateKeys checks if the keys in the secret map are valid keys for a Kubernetes secret.
+func ValidateKeys(in map[string][]byte) error {
 	for key := range in {
-		for _, v := range key {
-			if !unicode.IsNumber(v) &&
-				!unicode.IsLetter(v) &&
-				v != '-' &&
-				v != '.' &&
-				v != '_' {
-				return false
+		keyLength := len(key)
+		if keyLength == 0 {
+			return fmt.Errorf("found empty key")
+		}
+		if keyLength > 253 {
+			return fmt.Errorf("key has length %d but max is 253: (following is truncated): %s", keyLength, key[:253])
+		}
+		for _, c := range key {
+			if !unicode.IsLetter(c) && !unicode.IsNumber(c) && c != '-' && c != '.' && c != '_' {
+				return fmt.Errorf("key has invalid character %c, only alphanumeric, '-', '.' and '_' are allowed: %s", c, key)
 			}
 		}
 	}
-	return true
+	return nil
 }
 
 // ConvertKeys converts a secret map into a valid key.

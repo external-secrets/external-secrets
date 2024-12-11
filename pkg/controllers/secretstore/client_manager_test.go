@@ -25,6 +25,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -35,9 +36,13 @@ import (
 
 func TestManagerGet(t *testing.T) {
 	scheme := runtime.NewScheme()
-	_ = clientgoscheme.AddToScheme(scheme)
-	_ = esv1beta1.AddToScheme(scheme)
-	_ = apiextensionsv1.AddToScheme(scheme)
+
+	// add kubernetes schemes
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
+
+	// add external-secrets schemes
+	utilruntime.Must(esv1beta1.AddToScheme(scheme))
 
 	// We have a test provider to control
 	// the behavior of the NewClient func.
@@ -312,9 +317,13 @@ func TestManagerGet(t *testing.T) {
 
 func TestShouldProcessSecret(t *testing.T) {
 	scheme := runtime.NewScheme()
-	_ = clientgoscheme.AddToScheme(scheme)
-	_ = esv1beta1.AddToScheme(scheme)
-	_ = apiextensionsv1.AddToScheme(scheme)
+
+	// add kubernetes schemes
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
+
+	// add external-secrets schemes
+	utilruntime.Must(esv1beta1.AddToScheme(scheme))
 
 	testNamespace := "test-a"
 	testCases := []struct {

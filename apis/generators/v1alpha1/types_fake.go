@@ -18,27 +18,37 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// UUIDSpec controls the behavior of the uuid generator.
-type UUIDSpec struct{}
+// FakeSpec contains the static data.
+type FakeSpec struct {
+	// Used to select the correct ESO controller (think: ingress.ingressClassName)
+	// The ESO controller is instantiated with a specific controller name and filters VDS based on this property
+	// +optional
+	Controller string `json:"controller,omitempty"`
 
-// UUID generates a version 1 UUID (e56657e3-764f-11ef-a397-65231a88c216).
+	// Data defines the static data returned
+	// by this generator.
+	Data map[string]string `json:"data,omitempty"`
+}
+
+// Fake generator is used for testing. It lets you define
+// a static set of credentials that is always returned.
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
-// +kubebuilder:resource:scope=Namespaced,categories={external-secrets, external-secrets-generators},shortName=uuids
-type UUID struct {
+// +kubebuilder:resource:scope=Namespaced,categories={external-secrets, external-secrets-generators}
+type Fake struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec UUIDSpec `json:"spec,omitempty"`
+	Spec FakeSpec `json:"spec,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// UUIDList contains a list of ExternalSecret resources.
-type UUIDList struct {
+// FakeList contains a list of ExternalSecret resources.
+type FakeList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Password `json:"items"`
+	Items           []Fake `json:"items"`
 }

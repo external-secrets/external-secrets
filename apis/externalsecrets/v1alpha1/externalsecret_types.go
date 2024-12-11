@@ -22,11 +22,15 @@ import (
 // SecretStoreRef defines which SecretStore to fetch the ExternalSecret data.
 type SecretStoreRef struct {
 	// Name of the SecretStore resource
-	Name string `json:"name"`
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+	Name string `json:"name,omitempty"`
 
 	// Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
 	// Defaults to `SecretStore`
 	// +optional
+	// +kubebuilder:validation:Enum=SecretStore;ClusterSecretStore
 	Kind string `json:"kind,omitempty"`
 }
 
@@ -92,25 +96,37 @@ type TemplateFrom struct {
 }
 
 type TemplateRef struct {
-	Name  string            `json:"name"`
+	// The name of the ConfigMap/Secret resource
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+	Name string `json:"name"`
+
+	// A list of keys in the ConfigMap/Secret to use as templates for Secret data
 	Items []TemplateRefItem `json:"items"`
 }
 
 type TemplateRefItem struct {
+	// A key in the ConfigMap/Secret
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$
 	Key string `json:"key"`
 }
 
 // ExternalSecretTarget defines the Kubernetes Secret to be created
 // There can be only one target per ExternalSecret.
 type ExternalSecretTarget struct {
-	// Name defines the name of the Secret resource to be managed
-	// This field is immutable
+	// The name of the Secret resource to be managed.
 	// Defaults to the .metadata.name of the ExternalSecret resource
 	// +optional
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	Name string `json:"name,omitempty"`
 
-	// CreationPolicy defines rules on how to create the resulting Secret
-	// Defaults to 'Owner'
+	// CreationPolicy defines rules on how to create the resulting Secret.
+	// Defaults to "Owner"
 	// +optional
 	// +kubebuilder:default="Owner"
 	CreationPolicy ExternalSecretCreationPolicy `json:"creationPolicy,omitempty"`
@@ -126,6 +142,10 @@ type ExternalSecretTarget struct {
 
 // ExternalSecretData defines the connection between the Kubernetes Secret key (spec.data.<key>) and the Provider data.
 type ExternalSecretData struct {
+	// The key in the Kubernetes Secret to store the value.
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$
 	SecretKey string `json:"secretKey"`
 
 	RemoteRef ExternalSecretDataRemoteRef `json:"remoteRef"`
@@ -140,11 +160,12 @@ type ExternalSecretDataRemoteRef struct {
 	// +optional
 	Version string `json:"version,omitempty"`
 
-	// +optional
 	// Used to select a specific property of the Provider value (if a map), if supported
-	Property string `json:"property,omitempty"`
 	// +optional
+	Property string `json:"property,omitempty"`
+
 	// Used to define a conversion Strategy
+	// +optional
 	// +kubebuilder:default="Default"
 	ConversionStrategy ExternalSecretConversionStrategy `json:"conversionStrategy,omitempty"`
 }

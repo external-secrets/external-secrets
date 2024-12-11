@@ -8,11 +8,13 @@ resources:
   - external-secrets.io_pushsecrets.yaml
   - external-secrets.io_secretstores.yaml
   - generators.external-secrets.io_acraccesstokens.yaml
+  - generators.external-secrets.io_clustergenerators.yaml
   - generators.external-secrets.io_ecrauthorizationtokens.yaml
   - generators.external-secrets.io_fakes.yaml
   - generators.external-secrets.io_gcraccesstokens.yaml
   - generators.external-secrets.io_githubaccesstokens.yaml
   - generators.external-secrets.io_passwords.yaml
+  - generators.external-secrets.io_stssessiontokens.yaml
   - generators.external-secrets.io_uuids.yaml
   - generators.external-secrets.io_vaultdynamicsecrets.yaml
   - generators.external-secrets.io_webhooks.yaml

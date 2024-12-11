@@ -41,6 +41,10 @@ type VaultDynamicSecretSpec struct {
 	// +kubebuilder:default=Data
 	ResultType VaultDynamicSecretResultType `json:"resultType,omitempty"`
 
+	// Used to configure http retries if failed
+	// +optional
+	RetrySettings *esv1beta1.SecretStoreRetrySettings `json:"retrySettings,omitempty"`
+
 	// Vault provider common spec
 	Provider *esv1beta1.VaultProvider `json:"provider"`
 
@@ -60,7 +64,7 @@ const (
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
-// +kubebuilder:resource:scope=Namespaced,categories={external-secrets, external-secrets-generators},shortName=vaultdynamicsecret
+// +kubebuilder:resource:scope=Namespaced,categories={external-secrets, external-secrets-generators}
 type VaultDynamicSecret struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
