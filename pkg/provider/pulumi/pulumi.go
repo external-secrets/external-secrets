@@ -105,7 +105,7 @@ func (c *client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1b
 	if err := mergo.Merge(&updatePayload.Values.AdditionalProperties, oldValues); err != nil {
 		return fmt.Errorf(errPushSecrets, err)
 	}
-	_, err = c.escClient.UpdateEnvironment(c.authCtx, c.organization, c.environment, c.project, updatePayload)
+	_, err = c.escClient.UpdateEnvironment(c.authCtx, c.organization, c.project, c.environment, updatePayload)
 	if err != nil {
 		return fmt.Errorf(errPushSecrets, err)
 	}
