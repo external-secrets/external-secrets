@@ -118,7 +118,7 @@ func (c *client) listSecrets(ctx context.Context, path string) ([]string, error)
 		return nil, fmt.Errorf(errReadSecret, err)
 	}
 	if secret == nil {
-		return nil, fmt.Errorf("provided path %v does not contain any secrets", url)
+		return nil, esv1beta1.NoSecretError{}
 	}
 	t, ok := secret.Data["keys"]
 	if !ok {
