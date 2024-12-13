@@ -868,6 +868,180 @@ func TestPushSecret(t *testing.T) {
 			},
 			secret: &corev1.Secret{Data: map[string][]byte{"key1": []byte(`value1`), "key2": []byte(`value2`)}},
 		},
+		{
+			desc: "successfully pushes a secret with CMEK",
+			args: args{
+				store: &esv1beta1.GCPSMProvider{
+					ProjectID:   smtc.projectID,
+					Location:    "us-east-1",
+					CMEKKeyName: "projects/my-project/locations/us-east-1/keyRings/my-keyring/cryptoKeys/my-key",
+				},
+				mock:                smtc.mockClient,
+				GetSecretMockReturn: fakesm.SecretMockReturn{Secret: nil, Err: notFoundError},
+				CreateSecretMockReturn: fakesm.SecretMockReturn{
+					Secret: &secretmanagerpb.Secret{
+						Name: "projects/default/secrets/baz",
+						Replication: &secretmanagerpb.Replication{
+							Replication: &secretmanagerpb.Replication_UserManaged_{
+								UserManaged: &secretmanagerpb.Replication_UserManaged{
+									Replicas: []*secretmanagerpb.Replication_UserManaged_Replica{
+										{
+											Location: "us-east-1",
+											CustomerManagedEncryption: &secretmanagerpb.CustomerManagedEncryption{
+												KmsKeyName: "projects/my-project/locations/us-east-1/keyRings/my-keyring/cryptoKeys/my-key",
+											},
+										},
+									},
+								},
+							},
+						},
+						Labels: map[string]string{
+							"managed-by": "external-secrets",
+						},
+					},
+					Err: nil,
+				},
+				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
+				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil},
+			},
+			want: want{
+				err: nil,
+				req: func(m *fakesm.MockSMClient) error {
+					req, ok := m.CreateSecretCalledWithN[0]
+					if !ok {
+						return errors.New("index 0 for call not found in the list of calls")
+					}
+
+					user, ok := req.Secret.Replication.Replication.(*secretmanagerpb.Replication_UserManaged_)
+					if !ok {
+						return fmt.Errorf("req.Secret.Replication.Replication was not of type *secretmanagerpb.Replication_UserManaged_ but: %T", req.Secret.Replication.Replication)
+					}
+
+					if len(user.UserManaged.Replicas) < 1 {
+						return errors.New("req.Secret.Replication.Replication.Replicas was empty")
+					}
+
+					replica := user.UserManaged.Replicas[0]
+					if replica.Location != "us-east-1" {
+						return fmt.Errorf("replica.Location was not equal to us-east-1 but was %s", replica.Location)
+					}
+
+					if replica.CustomerManagedEncryption == nil {
+						return errors.New("CustomerManagedEncryption was nil")
+					}
+
+					if replica.CustomerManagedEncryption.KmsKeyName != "projects/my-project/locations/us-east-1/keyRings/my-keyring/cryptoKeys/my-key" {
+						return fmt.Errorf("KmsKeyName was not equal to expected value but was %s", replica.CustomerManagedEncryption.KmsKeyName)
+					}
+
+					return nil
+				},
+			},
+		},
+		{
+			desc: "successfully pushes a secret without CMEK",
+			args: args{
+				store: &esv1beta1.GCPSMProvider{
+					ProjectID: smtc.projectID,
+					Location:  "us-east1",
+				},
+				mock:                smtc.mockClient,
+				GetSecretMockReturn: fakesm.SecretMockReturn{Secret: nil, Err: notFoundError},
+				CreateSecretMockReturn: fakesm.SecretMockReturn{
+					Secret: &secretmanagerpb.Secret{
+						Name: "projects/default/secrets/baz",
+						Replication: &secretmanagerpb.Replication{
+							Replication: &secretmanagerpb.Replication_UserManaged_{
+								UserManaged: &secretmanagerpb.Replication_UserManaged{
+									Replicas: []*secretmanagerpb.Replication_UserManaged_Replica{
+										{
+											Location: "us-east1",
+										},
+									},
+								},
+							},
+						},
+						Labels: map[string]string{
+							"managed-by": "external-secrets",
+						},
+					},
+					Err: nil,
+				},
+				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
+				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil},
+			},
+			want: want{
+				err: nil,
+				req: func(m *fakesm.MockSMClient) error {
+					req, ok := m.CreateSecretCalledWithN[0]
+					if !ok {
+						return errors.New("index 0 for call not found in the list of calls")
+					}
+
+					user, ok := req.Secret.Replication.Replication.(*secretmanagerpb.Replication_UserManaged_)
+					if !ok {
+						return fmt.Errorf("req.Secret.Replication.Replication was not of type *secretmanagerpb.Replication_UserManaged_ but: %T", req.Secret.Replication.Replication)
+					}
+
+					if len(user.UserManaged.Replicas) < 1 {
+						return errors.New("req.Secret.Replication.Replication.Replicas was empty")
+					}
+
+					replica := user.UserManaged.Replicas[0]
+					if replica.Location != "us-east1" {
+						return fmt.Errorf("replica.Location was not equal to us-east1 but was %s", replica.Location)
+					}
+
+					if replica.CustomerManagedEncryption != nil {
+						return errors.New("CustomerManagedEncryption should be nil when not specified")
+					}
+
+					return nil
+				},
+			},
+		},
+		{
+			desc: "successfully pushes a secret with automatic replication (no location)",
+			args: args{
+				store: &esv1beta1.GCPSMProvider{
+					ProjectID: smtc.projectID,
+				},
+				mock:                smtc.mockClient,
+				GetSecretMockReturn: fakesm.SecretMockReturn{Secret: nil, Err: notFoundError},
+				CreateSecretMockReturn: fakesm.SecretMockReturn{
+					Secret: &secretmanagerpb.Secret{
+						Name: "projects/default/secrets/baz",
+						Replication: &secretmanagerpb.Replication{
+							Replication: &secretmanagerpb.Replication_Automatic_{
+								Automatic: &secretmanagerpb.Replication_Automatic{},
+							},
+						},
+						Labels: map[string]string{
+							"managed-by": "external-secrets",
+						},
+					},
+					Err: nil,
+				},
+				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
+				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil},
+			},
+			want: want{
+				err: nil,
+				req: func(m *fakesm.MockSMClient) error {
+					req, ok := m.CreateSecretCalledWithN[0]
+					if !ok {
+						return errors.New("index 0 for call not found in the list of calls")
+					}
+
+					_, ok = req.Secret.Replication.Replication.(*secretmanagerpb.Replication_Automatic_)
+					if !ok {
+						return fmt.Errorf("req.Secret.Replication.Replication was not of type *secretmanagerpb.Replication_Automatic_ but: %T", req.Secret.Replication.Replication)
+					}
+
+					return nil
+				},
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.desc, func(t *testing.T) {

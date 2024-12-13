@@ -146,9 +146,52 @@ spec:
       metadata:
         mergePolicy: Merge
         labels:
-          anotherLabel: anotherValue 
+          anotherLabel: anotherValue
       match:
         secretKey: bestpokemon
         remoteRef:
           remoteKey: best-pokemon
 ```
+
+### Secret Replication and Encryption Configuration
+
+#### Location and Replication
+
+By default, secrets are automatically replicated across multiple regions. You can specify a single location for your secrets by setting the `location` field:
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: gcp-secret-store
+spec:
+  provider:
+    gcpsm:
+      projectID: my-project
+      location: us-east1  # Specify a single location
+```
+
+#### Customer-Managed Encryption Keys (CMEK)
+
+You can use your own encryption keys to encrypt the secrets at rest. To use Customer-Managed Encryption Keys (CMEK), you need to:
+
+1. Create a Cloud KMS key
+2. Grant the service account the `roles/cloudkms.cryptoKeyEncrypterDecrypter` role on the key
+3. Specify the key in the SecretStore configuration
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: gcp-secret-store
+spec:
+  provider:
+    gcpsm:
+      projectID: my-project
+      location: us-east1  # CMEK requires a specific location
+      cmekKeyName: projects/my-project/locations/us-east1/keyRings/my-keyring/cryptoKeys/my-key
+```
+
+The `cmekKeyName` field is optional. If not specified, Google-managed encryption keys will be used.
+
+Note: When using CMEK, you must specify a location as customer-managed encryption keys are region-specific.

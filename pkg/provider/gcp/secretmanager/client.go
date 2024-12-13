@@ -183,13 +183,23 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 		}
 
 		if c.store.Location != "" {
+			var replica *secretmanagerpb.Replication_UserManaged_Replica
+			replica = &secretmanagerpb.Replication_UserManaged_Replica{
+				Location: c.store.Location,
+			}
+
+			// Add CMEK if specified
+			if c.store.CMEKKeyName != "" {
+				replica.CustomerManagedEncryption = &secretmanagerpb.CustomerManagedEncryption{
+					KmsKeyName: c.store.CMEKKeyName,
+				}
+			}
+
 			replication = &secretmanagerpb.Replication{
 				Replication: &secretmanagerpb.Replication_UserManaged_{
 					UserManaged: &secretmanagerpb.Replication_UserManaged{
 						Replicas: []*secretmanagerpb.Replication_UserManaged_Replica{
-							{
-								Location: c.store.Location,
-							},
+							replica,
 						},
 					},
 				},
