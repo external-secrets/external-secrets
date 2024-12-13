@@ -183,8 +183,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 		}
 
 		if c.store.Location != "" {
-			var replica *secretmanagerpb.Replication_UserManaged_Replica
-			replica = &secretmanagerpb.Replication_UserManaged_Replica{
+			replica := &secretmanagerpb.Replication_UserManaged_Replica{
 				Location: c.store.Location,
 			}
 
