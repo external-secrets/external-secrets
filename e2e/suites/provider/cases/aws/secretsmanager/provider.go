@@ -69,10 +69,21 @@ func NewProvider(f *framework.Framework, kid, sak, st, region, saName, saNamespa
 	}
 
 	BeforeEach(func() {
-		awscommon.SetupStaticStore(f, kid, sak, st, region, esv1beta1.AWSServiceSecretsManager)
-		awscommon.SetupExternalIDStore(f, kid, sak, st, region, awscommon.IAMRoleExternalID, awscommon.IAMTrustedExternalID, nil, esv1beta1.AWSServiceSecretsManager)
-		awscommon.SetupSessionTagsStore(f, kid, sak, st, region, awscommon.IAMRoleSessionTags, nil, esv1beta1.AWSServiceSecretsManager)
-		awscommon.CreateReferentStaticStore(f, kid, sak, st, region, esv1beta1.AWSServiceSecretsManager)
+		awscommon.SetupStaticStore(f, awscommon.AccessOpts{KID: kid, SAK: sak, ST: st, Region: region}, esv1beta1.AWSServiceSecretsManager)
+		awscommon.SetupExternalIDStore(
+			f,
+			awscommon.AccessOpts{KID: kid, SAK: sak, ST: st, Region: region, Role: awscommon.IAMRoleExternalID},
+			awscommon.IAMTrustedExternalID,
+			nil,
+			esv1beta1.AWSServiceSecretsManager,
+		)
+		awscommon.SetupSessionTagsStore(
+			f,
+			awscommon.AccessOpts{KID: kid, SAK: sak, ST: st, Region: region, Role: awscommon.IAMRoleSessionTags},
+			nil,
+			esv1beta1.AWSServiceSecretsManager,
+		)
+		awscommon.CreateReferentStaticStore(f, awscommon.AccessOpts{KID: kid, SAK: sak, ST: st, Region: region}, esv1beta1.AWSServiceSecretsManager)
 		prov.SetupReferencedIRSAStore()
 		prov.SetupMountedIRSAStore()
 	})

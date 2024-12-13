@@ -26,7 +26,7 @@ import (
 // The rest of the tests much look the same, it would be nice if I could find a way
 // to nicely unify the tests for all of them.
 
-func TestSdkClient_CreateSecret(t *testing.T) {
+func TestSdkClientCreateSecret(t *testing.T) {
 	type fields struct {
 		apiURL                func(c *httptest.Server) string
 		identityURL           func(c *httptest.Server) string

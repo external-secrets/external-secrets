@@ -62,6 +62,7 @@ const (
 	tagvalue1 = "tagvalue1"
 	tagname2  = "tagname2"
 	tagvalue2 = "tagvalue2"
+	fakeKey   = "fake-key"
 )
 
 func makeValidSecretsManagerTestCase() *secretsManagerTestCase {
@@ -464,11 +465,11 @@ func TestSetSecret(t *testing.T) {
 		ARN: &arn,
 	}
 
-	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: secretKey, RemoteKey: "fake-key", Property: ""}
-	pushSecretDataWithMetadata := fake.PushSecretData{SecretKey: secretKey, RemoteKey: "fake-key", Property: "", Metadata: &apiextensionsv1.JSON{
+	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: ""}
+	pushSecretDataWithMetadata := fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "", Metadata: &apiextensionsv1.JSON{
 		Raw: []byte(`{"secretPushFormat": "string"}`),
 	}}
-	pushSecretDataWithProperty := fake.PushSecretData{SecretKey: secretKey, RemoteKey: "fake-key", Property: "other-fake-property"}
+	pushSecretDataWithProperty := fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "other-fake-property"}
 
 	type args struct {
 		store          *esv1beta1.AWSProvider
@@ -655,7 +656,7 @@ func TestSetSecret(t *testing.T) {
 						Version:      &defaultUpdatedVersion,
 					}),
 				},
-				pushSecretData: fake.PushSecretData{SecretKey: secretKey, RemoteKey: "fake-key", Property: "fake-property.other-fake-property"},
+				pushSecretData: fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "fake-property.other-fake-property"},
 			},
 			want: want{
 				err: nil,
@@ -992,7 +993,7 @@ func TestDeleteSecret(t *testing.T) {
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			ref := fake.PushSecretData{RemoteKey: "fake-key"}
+			ref := fake.PushSecretData{RemoteKey: fakeKey}
 			sm := SecretsManager{
 				client: &tc.args.client,
 				config: &tc.args.config,
@@ -1333,7 +1334,7 @@ func TestSecretExists(t *testing.T) {
 	getSecretCorrectErr := awssm.ResourceNotFoundException{}
 	getSecretWrongErr := awssm.InvalidRequestException{}
 
-	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: "fake-secret-key", RemoteKey: "fake-key", Property: ""}
+	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: "fake-secret-key", RemoteKey: fakeKey, Property: ""}
 
 	type args struct {
 		store          *esv1beta1.AWSProvider

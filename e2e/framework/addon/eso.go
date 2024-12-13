@@ -25,7 +25,10 @@ type ESO struct {
 	*HelmChart
 }
 
-const installCRDsVar = "installCRDs"
+const (
+	installCRDsVar = "installCRDs"
+	esoImage       = "ghcr.io/external-secrets/external-secrets"
+)
 
 func NewESO(mutators ...MutationFunc) *ESO {
 	eso := &ESO{
@@ -44,7 +47,7 @@ func NewESO(mutators ...MutationFunc) *ESO {
 				},
 				{
 					Key:   "webhook.image.repository",
-					Value: "ghcr.io/external-secrets/external-secrets",
+					Value: esoImage,
 				},
 				{
 					Key:   "certController.image.tag",
@@ -52,7 +55,7 @@ func NewESO(mutators ...MutationFunc) *ESO {
 				},
 				{
 					Key:   "certController.image.repository",
-					Value: "ghcr.io/external-secrets/external-secrets",
+					Value: esoImage,
 				},
 				{
 					Key:   "image.tag",
@@ -60,7 +63,7 @@ func NewESO(mutators ...MutationFunc) *ESO {
 				},
 				{
 					Key:   "image.repository",
-					Value: "ghcr.io/external-secrets/external-secrets",
+					Value: esoImage,
 				},
 				{
 					Key:   "extraArgs.loglevel",

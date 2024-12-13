@@ -109,6 +109,41 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 	return nil, nil
 }
 
+func (p *Provider) updateRemoteSecret(ctx context.Context, secret *SecretIdentifierResponse, note string, data esv1beta1.PushSecretData, value []byte, spec *esv1beta1.SecretStoreSpec) error {
+	sec, err := p.bitwardenSdkClient.GetSecret(ctx, secret.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get secret: %w", err)
+	}
+
+	// If all pushed data matches, we won't push this secret.
+	if sec.Key == data.GetRemoteKey() &&
+		sec.Value == string(value) &&
+		sec.Note == note &&
+		sec.ProjectID != nil &&
+		*sec.ProjectID == spec.Provider.BitwardenSecretsManager.ProjectID {
+		// we have a complete match, skip pushing.
+		return nil
+	} else if sec.Key == data.GetRemoteKey() &&
+		sec.Value != string(value) &&
+		sec.Note == note &&
+		sec.ProjectID != nil &&
+		*sec.ProjectID == spec.Provider.BitwardenSecretsManager.ProjectID {
+		// only the value is different, update the existing secret.
+		_, err = p.bitwardenSdkClient.UpdateSecret(ctx, SecretPutRequest{
+			ID:             sec.ID,
+			Key:            data.GetRemoteKey(),
+			Note:           note,
+			OrganizationID: spec.Provider.BitwardenSecretsManager.OrganizationID,
+			ProjectIDS:     []string{spec.Provider.BitwardenSecretsManager.ProjectID},
+			Value:          string(value),
+		})
+
+		return err
+	}
+
+	return nil
+}
+
 // newHTTPSClient creates a new HTTPS client with the given cert.
 func newHTTPSClient(ctx context.Context, c client.Client, storeKind, namespace string, provider *esv1beta1.BitwardenSecretsManagerProvider) (*http.Client, error) {
 	cert, err := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{

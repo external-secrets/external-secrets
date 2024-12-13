@@ -115,7 +115,14 @@ var certcontrollerCmd = &cobra.Command{
 
 		crdctrl := crds.New(mgr.GetClient(), mgr.GetScheme(), mgr.Elected(),
 			ctrl.Log.WithName("controllers").WithName("webhook-certs-updater"),
-			crdRequeueInterval, serviceName, serviceNamespace, secretName, secretNamespace, crdNames)
+			crdRequeueInterval,
+			crds.Opts{
+				SvcName:         serviceName,
+				SvcNamespace:    serviceNamespace,
+				SecretName:      secretName,
+				SecretNamespace: secretNamespace,
+				Resources:       crdNames,
+			})
 		if err := crdctrl.SetupWithManager(mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
 		}); err != nil {
@@ -125,8 +132,13 @@ var certcontrollerCmd = &cobra.Command{
 
 		whc := webhookconfig.New(mgr.GetClient(), mgr.GetScheme(), mgr.Elected(),
 			ctrl.Log.WithName("controllers").WithName("webhook-certs-updater"),
-			serviceName, serviceNamespace,
-			secretName, secretNamespace, crdRequeueInterval)
+			webhookconfig.Opts{
+				SvcName:         serviceName,
+				SvcNamespace:    serviceNamespace,
+				SecretName:      secretName,
+				SecretNamespace: secretNamespace,
+				RequeueInterval: crdRequeueInterval,
+			})
 		if err := whc.SetupWithManager(mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
 		}); err != nil {
