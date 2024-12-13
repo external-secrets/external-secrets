@@ -179,7 +179,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 		}
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.To("external-secrets"),
+				managedBy: pointer.To(externalSecrets),
 			},
 			Value: pointer.To("foo"),
 		}
@@ -219,7 +219,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 		}
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.To("external-secrets"),
+				managedBy: pointer.To(externalSecrets),
 			},
 			Value: pointer.To("foo"),
 		}
@@ -241,7 +241,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.To("external-secrets"),
+				managedBy: pointer.To(externalSecrets),
 			},
 		}
 		smtc.deleteCertificateOutput = keyvault.DeletedCertificateBundle{}
@@ -277,7 +277,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.To("external-secrets"),
+				managedBy: pointer.To(externalSecrets),
 			},
 		}
 		smtc.expectError = "No certificate delete Permissions"
@@ -298,7 +298,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 		}
 		smtc.keyOutput = keyvault.KeyBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.To("external-secrets"),
+				managedBy: pointer.To(externalSecrets),
 			},
 		}
 		smtc.deleteKeyOutput = keyvault.DeletedKeyBundle{}
@@ -334,7 +334,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 		}
 		smtc.keyOutput = keyvault.KeyBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.To("external-secrets"),
+				managedBy: pointer.To(externalSecrets),
 			},
 		}
 		smtc.expectError = errNoPermission
@@ -1737,7 +1737,7 @@ func TestAzureKeyVaultSecretExists(t *testing.T) {
 		}
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.To("external-secrets"),
+				"managed-by": pointer.To(externalSecrets),
 			},
 			Value: pointer.To("foo"),
 		}

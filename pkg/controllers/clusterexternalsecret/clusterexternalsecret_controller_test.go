@@ -335,7 +335,7 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 					Labels:      map[string]string{testLabelKey: testLabelValue},
 					Annotations: map[string]string{testAnnotationKey: testAnnotationValue},
 				}
-				copied.Spec.ExternalSecretSpec.SecretStoreRef.Name = updatedTestStore //nolint:goconst
+				copied.Spec.ExternalSecretSpec.SecretStoreRef.Name = updatedTestStore
 				Expect(k8sClient.Patch(ctx, copied, crclient.MergeFrom(created.DeepCopy()))).ShouldNot(HaveOccurred())
 			},
 			expectedClusterExternalSecret: func(namespaces []v1.Namespace, created esv1beta1.ClusterExternalSecret) esv1beta1.ClusterExternalSecret {
