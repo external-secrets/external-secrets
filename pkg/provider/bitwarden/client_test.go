@@ -551,7 +551,7 @@ func TestProviderPushSecret(t *testing.T) {
 			},
 		},
 		{
-			name: "push secret is successful for a existing remote secret but only the value differs will call update",
+			name: "push secret is successful for an existing remote secret but only the value differs will call update",
 			args: args{
 				ctx: context.Background(),
 				secret: &corev1.Secret{

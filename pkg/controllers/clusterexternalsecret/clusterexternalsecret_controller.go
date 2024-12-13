@@ -106,7 +106,7 @@ func (r *Reconciler) reconcile(ctx context.Context, log logr.Logger, clusterExte
 	}
 	if prevName := clusterExternalSecret.Status.ExternalSecretName; prevName != esName {
 		// ExternalSecretName has changed, so remove the old ones
-		if err := r.removeOldSecrets(ctx, log, *clusterExternalSecret, prevName); err != nil {
+		if err := r.removeOldSecrets(ctx, log, clusterExternalSecret, prevName); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -177,7 +177,7 @@ func (r *Reconciler) gatherProvisionedNamespaces(
 	return provisionedNamespaces
 }
 
-func (r *Reconciler) removeOldSecrets(ctx context.Context, log logr.Logger, clusterExternalSecret esv1beta1.ClusterExternalSecret, prevName string) error {
+func (r *Reconciler) removeOldSecrets(ctx context.Context, log logr.Logger, clusterExternalSecret *esv1beta1.ClusterExternalSecret, prevName string) error {
 	var (
 		failedNamespaces = map[string]error{}
 		lastErr          error
@@ -191,7 +191,7 @@ func (r *Reconciler) removeOldSecrets(ctx context.Context, log logr.Logger, clus
 	}
 	if len(failedNamespaces) > 0 {
 		condition := NewClusterExternalSecretCondition(failedNamespaces)
-		SetClusterExternalSecretCondition(&clusterExternalSecret, *condition)
+		SetClusterExternalSecretCondition(clusterExternalSecret, *condition)
 		clusterExternalSecret.Status.FailedNamespaces = toNamespaceFailures(failedNamespaces)
 		return lastErr
 	}
@@ -369,12 +369,13 @@ func (r *Reconciler) findObjectsForNamespace(ctx context.Context, namespace clie
 		return []reconcile.Request{}
 	}
 
-	return r.queueRequestsForItem(clusterExternalSecrets, namespace)
+	return r.queueRequestsForItem(&clusterExternalSecrets, namespace)
 }
 
-func (r *Reconciler) queueRequestsForItem(clusterExternalSecrets esv1beta1.ClusterExternalSecretList, namespace client.Object) []reconcile.Request {
+func (r *Reconciler) queueRequestsForItem(clusterExternalSecrets *esv1beta1.ClusterExternalSecretList, namespace client.Object) []reconcile.Request {
 	var requests []reconcile.Request
-	for _, clusterExternalSecret := range clusterExternalSecrets.Items {
+	for i := range clusterExternalSecrets.Items {
+		clusterExternalSecret := clusterExternalSecrets.Items[i]
 		var selectors []*metav1.LabelSelector
 		if s := clusterExternalSecret.Spec.NamespaceSelector; s != nil {
 			selectors = append(selectors, s)

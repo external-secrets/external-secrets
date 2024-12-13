@@ -24,6 +24,7 @@ import (
 	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/kube-openapi/pkg/validation/strfmt"
+	"k8s.io/utils/ptr"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -94,16 +95,33 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data e
 		return fmt.Errorf(errFailedToGetAllSecrets, err)
 	}
 
-	var remoteSecret *SecretIdentifierResponse
 	for _, d := range remoteSecrets.Data {
-		if d.Key == data.GetRemoteKey() {
-			remoteSecret = &d
-			break
+		if d.Key != data.GetRemoteKey() {
+			continue
 		}
-	}
 
-	if remoteSecret != nil {
-		return p.updateRemoteSecret(ctx, remoteSecret, note, data, value, spec)
+		sec, err := p.bitwardenSdkClient.GetSecret(ctx, d.ID)
+		if err != nil {
+			return fmt.Errorf("failed to get secret: %w", err)
+		}
+
+		// If all pushed data matches, we won't push this secret.
+		if p.isExactlySameSecret(sec, data.GetRemoteKey(), note, spec.Provider.BitwardenSecretsManager.ProjectID, value) {
+			// we have a complete match, skip pushing.
+			return nil
+		} else if p.isOnlyValueDifferent(sec, data.GetRemoteKey(), note, spec.Provider.BitwardenSecretsManager.ProjectID, value) {
+			// only the value is different, update the existing secret.
+			_, err = p.bitwardenSdkClient.UpdateSecret(ctx, SecretPutRequest{
+				ID:             sec.ID,
+				Key:            data.GetRemoteKey(),
+				Note:           note,
+				OrganizationID: spec.Provider.BitwardenSecretsManager.OrganizationID,
+				ProjectIDS:     []string{spec.Provider.BitwardenSecretsManager.ProjectID},
+				Value:          string(value),
+			})
+
+			return err
+		}
 	}
 
 	// no matching secret found, let's create it
@@ -116,6 +134,20 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data e
 	})
 
 	return err
+}
+
+func (p *Provider) isExactlySameSecret(sec *SecretResponse, remoteKey, note, projectID string, value []byte) bool {
+	return sec.Key == remoteKey &&
+		sec.Value == string(value) &&
+		sec.Note == note &&
+		ptr.Deref(sec.ProjectID, "") == projectID
+}
+
+func (p *Provider) isOnlyValueDifferent(sec *SecretResponse, remoteKey, note, projectID string, value []byte) bool {
+	return sec.Key == remoteKey &&
+		sec.Value != string(value) &&
+		sec.Note == note &&
+		ptr.Deref(sec.ProjectID, "") == projectID
 }
 
 // GetSecret returns a single secret from the provider.
