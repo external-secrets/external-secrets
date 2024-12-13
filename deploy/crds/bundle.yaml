@@ -14037,7 +14037,7 @@ spec:
                         - auth
                         - registry
                       type: object
-                    ecrRAuthorizationTokenSpec:
+                    ecrAuthorizationTokenSpec:
                       properties:
                         auth:
                           description: Auth defines how to authenticate with AWS
