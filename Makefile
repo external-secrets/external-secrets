@@ -238,8 +238,8 @@ docker.tag:  ## Emit IMAGE_TAG
 .PHONY: docker.build
 docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
 	@$(INFO) docker build
-	echo docker build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
-	DOCKER_BUILDKIT=1 docker build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
+	echo docker build $(if $(PLATFORM),--platform $(PLATFORM),) -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
+	DOCKER_BUILDKIT=1 docker build $(if $(PLATFORM),--platform $(PLATFORM),) -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
 	@$(OK) docker build
 
 .PHONY: docker.push
@@ -353,3 +353,6 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 tilt: $(TILT) ## Download tilt locally if necessary. Architecture is locked at x86_64.
 $(TILT): $(LOCALBIN)
 	test -s $(LOCALBIN)/tilt || curl -fsSL https://github.com/tilt-dev/tilt/releases/download/v$(TILT_VERSION)/tilt.$(TILT_VERSION).$(detected_OS).$(arch).tar.gz | tar -xz -C $(LOCALBIN) tilt
+
+# Add PLATFORM variable without a default value
+PLATFORM ?=
