@@ -188,23 +188,16 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 				Location: c.store.Location,
 			}
 
-			var meta *metadata.PushSecretMetadata[PushSecretMetadataSpec]
 			if pushSecretData.GetMetadata() != nil {
 				var err error
-				meta, err = metadata.ParseMetadataParameters[PushSecretMetadataSpec](pushSecretData.GetMetadata())
+				meta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](pushSecretData.GetMetadata())
 				if err != nil {
 					return fmt.Errorf("failed to parse PushSecret metadata: %w", err)
 				}
-			}
-
-			var cmekKeyName string
-			if meta != nil {
-				cmekKeyName = meta.Spec.CMEKKeyName
-			}
-
-			if cmekKeyName != "" {
-				replica.CustomerManagedEncryption = &secretmanagerpb.CustomerManagedEncryption{
-					KmsKeyName: cmekKeyName,
+				if meta != nil && meta.Spec.CMEKKeyName != "" {
+					replica.CustomerManagedEncryption = &secretmanagerpb.CustomerManagedEncryption{
+						KmsKeyName: cmekKeyName,
+					}
 				}
 			}
 
