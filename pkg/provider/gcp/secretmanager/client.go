@@ -196,7 +196,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 				}
 				if meta != nil && meta.Spec.CMEKKeyName != "" {
 					replica.CustomerManagedEncryption = &secretmanagerpb.CustomerManagedEncryption{
-						KmsKeyName: cmekKeyName,
+						KmsKeyName: meta.Spec.CMEKKeyName,
 					}
 				}
 			}
