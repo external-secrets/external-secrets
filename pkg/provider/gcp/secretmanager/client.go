@@ -187,10 +187,15 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 				Location: c.store.Location,
 			}
 
-			// Add CMEK if specified
-			if c.store.CMEKKeyName != "" {
+			// Get CMEK from metadata if specified
+			cmekKeyName, err := utils.FetchValueFromMetadata("cmekKeyName", pushSecretData.GetMetadata(), "")
+			if err != nil {
+				return fmt.Errorf("failed to fetch CMEK key name from metadata: %w", err)
+			}
+
+			if cmekKeyName != "" {
 				replica.CustomerManagedEncryption = &secretmanagerpb.CustomerManagedEncryption{
-					KmsKeyName: c.store.CMEKKeyName,
+					KmsKeyName: cmekKeyName,
 				}
 			}
 

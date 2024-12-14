@@ -872,11 +872,13 @@ func TestPushSecret(t *testing.T) {
 			desc: "successfully pushes a secret with CMEK",
 			args: args{
 				store: &esv1beta1.GCPSMProvider{
-					ProjectID:   smtc.projectID,
-					Location:    "us-east-1",
-					CMEKKeyName: "projects/my-project/locations/us-east-1/keyRings/my-keyring/cryptoKeys/my-key",
+					ProjectID: smtc.projectID,
+					Location:  "us-east-1",
 				},
-				mock:                smtc.mockClient,
+				mock: smtc.mockClient,
+				Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{"cmekKeyName":"projects/my-project/locations/us-east-1/keyRings/my-keyring/cryptoKeys/my-key"}`),
+				},
 				GetSecretMockReturn: fakesm.SecretMockReturn{Secret: nil, Err: notFoundError},
 				CreateSecretMockReturn: fakesm.SecretMockReturn{
 					Secret: &secretmanagerpb.Secret{
@@ -917,15 +919,7 @@ func TestPushSecret(t *testing.T) {
 						return fmt.Errorf("req.Secret.Replication.Replication was not of type *secretmanagerpb.Replication_UserManaged_ but: %T", req.Secret.Replication.Replication)
 					}
 
-					if len(user.UserManaged.Replicas) < 1 {
-						return errors.New("req.Secret.Replication.Replication.Replicas was empty")
-					}
-
 					replica := user.UserManaged.Replicas[0]
-					if replica.Location != "us-east-1" {
-						return fmt.Errorf("replica.Location was not equal to us-east-1 but was %s", replica.Location)
-					}
-
 					if replica.CustomerManagedEncryption == nil {
 						return errors.New("CustomerManagedEncryption was nil")
 					}

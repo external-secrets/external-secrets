@@ -173,11 +173,29 @@ spec:
 
 #### Customer-Managed Encryption Keys (CMEK)
 
-You can use your own encryption keys to encrypt the secrets at rest. To use Customer-Managed Encryption Keys (CMEK), you need to:
+You can use your own encryption keys to encrypt secrets at rest. To use Customer-Managed Encryption Keys (CMEK), you need to:
 
 1. Create a Cloud KMS key
 2. Grant the service account the `roles/cloudkms.cryptoKeyEncrypterDecrypter` role on the key
-3. Specify the key in the SecretStore configuration
+3. Specify the key in the PushSecret metadata
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: pushsecret-example
+spec:
+  # ... other fields ...
+  data:
+    - match:
+        secretKey: mykey
+        remoteRef:
+          remoteKey: my-secret
+      metadata:
+        cmekKeyName: "projects/my-project/locations/us-east1/keyRings/my-keyring/cryptoKeys/my-key"
+```
+
+Note: When using CMEK, you must specify a location in the SecretStore as customer-managed encryption keys are region-specific.
 
 ```yaml
 apiVersion: external-secrets.io/v1beta1
@@ -188,10 +206,5 @@ spec:
   provider:
     gcpsm:
       projectID: my-project
-      location: us-east1  # CMEK requires a specific location
-      cmekKeyName: projects/my-project/locations/us-east1/keyRings/my-keyring/cryptoKeys/my-key
+      location: us-east1  # Required when using CMEK
 ```
-
-The `cmekKeyName` field is optional. If not specified, Google-managed encryption keys will be used.
-
-Note: When using CMEK, you must specify a location as customer-managed encryption keys are region-specific.

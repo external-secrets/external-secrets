@@ -47,11 +47,6 @@ type GCPSMProvider struct {
 	// +optional
 	Location string `json:"location,omitempty"`
 
-	// CMEKKeyName is the name of the Cloud KMS key to use for customer-managed encryption
-	// Format: projects/*/locations/*/keyRings/*/cryptoKeys/*
-	// +optional
-	CMEKKeyName string `json:"cmekKeyName,omitempty"`
-
 	// Auth defines the information necessary to authenticate against GCP
 	// +optional
 	Auth GCPSMAuth `json:"auth,omitempty"`

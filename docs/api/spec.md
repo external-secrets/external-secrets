@@ -4474,19 +4474,6 @@ string
 </tr>
 <tr>
 <td>
-<code>cmekKeyName</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>CMEKKeyName is the name of the Cloud KMS key to use for customer-managed encryption
-Format: projects/<em>/locations/</em>/keyRings/<em>/cryptoKeys/</em></p>
-</td>
-</tr>
-<tr>
-<td>
 <code>auth</code></br>
 <em>
 <a href="#external-secrets.io/v1beta1.GCPSMAuth">

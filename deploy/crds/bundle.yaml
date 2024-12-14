@@ -4254,11 +4254,6 @@ spec:
                                 - serviceAccountRef
                               type: object
                           type: object
-                        cmekKeyName:
-                          description: |-
-                            CMEKKeyName is the name of the Cloud KMS key to use for customer-managed encryption
-                            Format: projects/*/locations/*/keyRings/*/cryptoKeys/*
-                          type: string
                         location:
                           description: Location represents the geographical location of the secret
                           type: string
@@ -11378,11 +11373,6 @@ spec:
                                 - serviceAccountRef
                               type: object
                           type: object
-                        cmekKeyName:
-                          description: |-
-                            CMEKKeyName is the name of the Cloud KMS key to use for customer-managed encryption
-                            Format: projects/*/locations/*/keyRings/*/cryptoKeys/*
-                          type: string
                         location:
                           description: Location represents the geographical location of the secret
                           type: string
