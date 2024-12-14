@@ -4255,13 +4255,11 @@ spec:
                               type: object
                           type: object
                         location:
-                          description: Location represents the geographical location of the secret
+                          description: Location optionally defines a location for a secret
                           type: string
                         projectID:
                           description: ProjectID project where secret is located
                           type: string
-                      required:
-                        - projectID
                       type: object
                     gitlab:
                       description: GitLab configures this store to sync secrets using GitLab Variables provider
@@ -11374,13 +11372,11 @@ spec:
                               type: object
                           type: object
                         location:
-                          description: Location represents the geographical location of the secret
+                          description: Location optionally defines a location for a secret
                           type: string
                         projectID:
                           description: ProjectID project where secret is located
                           type: string
-                      required:
-                        - projectID
                       type: object
                     gitlab:
                       description: GitLab configures this store to sync secrets using GitLab Variables provider

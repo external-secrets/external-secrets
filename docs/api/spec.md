@@ -4451,6 +4451,20 @@ External Secrets meta/v1.SecretKeySelector
 <tbody>
 <tr>
 <td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.GCPSMAuth">
+GCPSMAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth defines the information necessary to authenticate against GCP</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>projectID</code></br>
 <em>
 string
@@ -4468,22 +4482,7 @@ string
 </em>
 </td>
 <td>
-<em>(Optional)</em>
-<p>Location represents the geographical location of the secret</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>auth</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.GCPSMAuth">
-GCPSMAuth
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Auth defines the information necessary to authenticate against GCP</p>
+<p>Location optionally defines a location for a secret</p>
 </td>
 </tr>
 </tbody>

@@ -40,14 +40,13 @@ type GCPWorkloadIdentity struct {
 
 // GCPSMProvider Configures a store to sync secrets using the GCP Secret Manager provider.
 type GCPSMProvider struct {
-	// ProjectID project where secret is located
-	ProjectID string `json:"projectID"`
-
-	// Location represents the geographical location of the secret
-	// +optional
-	Location string `json:"location,omitempty"`
-
 	// Auth defines the information necessary to authenticate against GCP
 	// +optional
 	Auth GCPSMAuth `json:"auth,omitempty"`
+
+	// ProjectID project where secret is located
+	ProjectID string `json:"projectID,omitempty"`
+
+	// Location optionally defines a location for a secret
+	Location string `json:"location,omitempty"`
 }
