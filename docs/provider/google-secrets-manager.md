@@ -192,7 +192,10 @@ spec:
         remoteRef:
           remoteKey: my-secret
       metadata:
-        cmekKeyName: "projects/my-project/locations/us-east1/keyRings/my-keyring/cryptoKeys/my-key"
+        apiVersion: kubernetes.external-secrets.io/v1alpha1
+        kind: PushSecretMetadata
+        spec:
+          cmekKeyName: "projects/my-project/locations/us-east1/keyRings/my-keyring/cryptoKeys/my-key"
 ```
 
 Note: When using CMEK, you must specify a location in the SecretStore as customer-managed encryption keys are region-specific.

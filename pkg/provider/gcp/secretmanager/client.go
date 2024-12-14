@@ -43,6 +43,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/util/locks"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
 const (
@@ -187,10 +188,18 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 				Location: c.store.Location,
 			}
 
-			// Get CMEK from metadata if specified
-			cmekKeyName, err := utils.FetchValueFromMetadata("cmekKeyName", pushSecretData.GetMetadata(), "")
-			if err != nil {
-				return fmt.Errorf("failed to fetch CMEK key name from metadata: %w", err)
+			var meta *metadata.PushSecretMetadata[PushSecretMetadataSpec]
+			if pushSecretData.GetMetadata() != nil {
+				var err error
+				meta, err = metadata.ParseMetadataParameters[PushSecretMetadataSpec](pushSecretData.GetMetadata())
+				if err != nil {
+					return fmt.Errorf("failed to parse PushSecret metadata: %w", err)
+				}
+			}
+
+			var cmekKeyName string
+			if meta != nil {
+				cmekKeyName = meta.Spec.CMEKKeyName
 			}
 
 			if cmekKeyName != "" {
