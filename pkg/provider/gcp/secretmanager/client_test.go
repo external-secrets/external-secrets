@@ -40,6 +40,13 @@ import (
 	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
 
+const (
+	errCallNotFoundAtIndex0   = "index 0 for call not found in the list of calls"
+	usEast1Location           = "us-east-1"
+	usEast1                   = "us-east1"
+	errInvalidReplicationType = "req.Secret.Replication.Replication was not of type *secretmanagerpb.Replication_UserManaged_ but: %T"
+)
+
 type secretManagerTestCase struct {
 	mockClient     *fakesm.MockSMClient
 	apiInput       *secretmanagerpb.AccessSecretVersionRequest
@@ -663,7 +670,7 @@ func TestPushSecret(t *testing.T) {
 		{
 			desc: "successfully pushes a secret with defined region",
 			args: args{
-				store:               &esv1beta1.GCPSMProvider{ProjectID: smtc.projectID, Location: "us-east-1"},
+				store:               &esv1beta1.GCPSMProvider{ProjectID: smtc.projectID, Location: usEast1Location},
 				mock:                smtc.mockClient,
 				GetSecretMockReturn: fakesm.SecretMockReturn{Secret: nil, Err: notFoundError},
 				CreateSecretMockReturn: fakesm.SecretMockReturn{Secret: &secretmanagerpb.Secret{
@@ -673,7 +680,7 @@ func TestPushSecret(t *testing.T) {
 							UserManaged: &secretmanagerpb.Replication_UserManaged{
 								Replicas: []*secretmanagerpb.Replication_UserManaged_Replica{
 									{
-										Location: "us-east-1",
+										Location: usEast1Location,
 									},
 								},
 							},
@@ -694,19 +701,19 @@ func TestPushSecret(t *testing.T) {
 				req: func(m *fakesm.MockSMClient) error {
 					req, ok := m.CreateSecretCalledWithN[0]
 					if !ok {
-						return errors.New("index 0 for call not found in the list of calls")
+						return errors.New(errCallNotFoundAtIndex0)
 					}
 
 					user, ok := req.Secret.Replication.Replication.(*secretmanagerpb.Replication_UserManaged_)
 					if !ok {
-						return fmt.Errorf("req.Secret.Replication.Replication was not of type *secretmanagerpb.Replication_UserManaged_ but: %T", req.Secret.Replication.Replication)
+						return fmt.Errorf(errInvalidReplicationType, req.Secret.Replication.Replication)
 					}
 
 					if len(user.UserManaged.Replicas) < 1 {
 						return errors.New("req.Secret.Replication.Replication.Replicas was not empty")
 					}
 
-					if user.UserManaged.Replicas[0].Location != "us-east-1" {
+					if user.UserManaged.Replicas[0].Location != usEast1Location {
 						return fmt.Errorf("req.Secret.Replication.Replicas[0].Location was not equal to us-east-1 but was %s", user.UserManaged.Replicas[0].Location)
 					}
 
@@ -731,7 +738,7 @@ func TestPushSecret(t *testing.T) {
 				req: func(m *fakesm.MockSMClient) error {
 					scrt, ok := m.CreateSecretCalledWithN[0]
 					if !ok {
-						return errors.New("index 0 for call not found in the list of calls")
+						return errors.New(errCallNotFoundAtIndex0)
 					}
 
 					if scrt.Secret == nil {
@@ -873,7 +880,7 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: &esv1beta1.GCPSMProvider{
 					ProjectID: smtc.projectID,
-					Location:  "us-east-1",
+					Location:  usEast1Location,
 				},
 				mock: smtc.mockClient,
 				Metadata: &apiextensionsv1.JSON{
@@ -888,7 +895,7 @@ func TestPushSecret(t *testing.T) {
 								UserManaged: &secretmanagerpb.Replication_UserManaged{
 									Replicas: []*secretmanagerpb.Replication_UserManaged_Replica{
 										{
-											Location: "us-east-1",
+											Location: usEast1Location,
 											CustomerManagedEncryption: &secretmanagerpb.CustomerManagedEncryption{
 												KmsKeyName: "projects/my-project/locations/us-east-1/keyRings/my-keyring/cryptoKeys/my-key",
 											},
@@ -911,12 +918,12 @@ func TestPushSecret(t *testing.T) {
 				req: func(m *fakesm.MockSMClient) error {
 					req, ok := m.CreateSecretCalledWithN[0]
 					if !ok {
-						return errors.New("index 0 for call not found in the list of calls")
+						return errors.New(errCallNotFoundAtIndex0)
 					}
 
 					user, ok := req.Secret.Replication.Replication.(*secretmanagerpb.Replication_UserManaged_)
 					if !ok {
-						return fmt.Errorf("req.Secret.Replication.Replication was not of type *secretmanagerpb.Replication_UserManaged_ but: %T", req.Secret.Replication.Replication)
+						return fmt.Errorf(errInvalidReplicationType, req.Secret.Replication.Replication)
 					}
 
 					replica := user.UserManaged.Replicas[0]
@@ -937,7 +944,7 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: &esv1beta1.GCPSMProvider{
 					ProjectID: smtc.projectID,
-					Location:  "us-east1",
+					Location:  usEast1,
 				},
 				mock:                smtc.mockClient,
 				GetSecretMockReturn: fakesm.SecretMockReturn{Secret: nil, Err: notFoundError},
@@ -949,7 +956,7 @@ func TestPushSecret(t *testing.T) {
 								UserManaged: &secretmanagerpb.Replication_UserManaged{
 									Replicas: []*secretmanagerpb.Replication_UserManaged_Replica{
 										{
-											Location: "us-east1",
+											Location: usEast1,
 										},
 									},
 								},
@@ -969,12 +976,12 @@ func TestPushSecret(t *testing.T) {
 				req: func(m *fakesm.MockSMClient) error {
 					req, ok := m.CreateSecretCalledWithN[0]
 					if !ok {
-						return errors.New("index 0 for call not found in the list of calls")
+						return errors.New(errCallNotFoundAtIndex0)
 					}
 
 					user, ok := req.Secret.Replication.Replication.(*secretmanagerpb.Replication_UserManaged_)
 					if !ok {
-						return fmt.Errorf("req.Secret.Replication.Replication was not of type *secretmanagerpb.Replication_UserManaged_ but: %T", req.Secret.Replication.Replication)
+						return fmt.Errorf(errInvalidReplicationType, req.Secret.Replication.Replication)
 					}
 
 					if len(user.UserManaged.Replicas) < 1 {
@@ -982,7 +989,7 @@ func TestPushSecret(t *testing.T) {
 					}
 
 					replica := user.UserManaged.Replicas[0]
-					if replica.Location != "us-east1" {
+					if replica.Location != usEast1 {
 						return fmt.Errorf("replica.Location was not equal to us-east1 but was %s", replica.Location)
 					}
 
@@ -1024,12 +1031,12 @@ func TestPushSecret(t *testing.T) {
 				req: func(m *fakesm.MockSMClient) error {
 					req, ok := m.CreateSecretCalledWithN[0]
 					if !ok {
-						return errors.New("index 0 for call not found in the list of calls")
+						return errors.New(errCallNotFoundAtIndex0)
 					}
 
 					_, ok = req.Secret.Replication.Replication.(*secretmanagerpb.Replication_Automatic_)
 					if !ok {
-						return fmt.Errorf("req.Secret.Replication.Replication was not of type *secretmanagerpb.Replication_Automatic_ but: %T", req.Secret.Replication.Replication)
+						return fmt.Errorf(errInvalidReplicationType, req.Secret.Replication.Replication)
 					}
 
 					return nil
