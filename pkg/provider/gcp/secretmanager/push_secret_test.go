@@ -79,6 +79,28 @@ func TestBuildMetadata(t *testing.T) {
 			},
 			expectedTopics: nil,
 		},
+		{
+			name: "metadata with CMEK key name",
+			labels: map[string]string{
+				managedByKey: managedByValue,
+			},
+			metadata: &apiextensionsv1.JSON{
+				Raw: []byte(`{
+					"annotations": {"key1":"value1"},
+					"labels": {"key2":"value2"},
+					"cmekKeyName": "projects/my-project/locations/us-east1/keyRings/my-keyring/cryptoKeys/my-key"
+				}`),
+			},
+			expectedError: false,
+			expectedLabels: map[string]string{
+				managedByKey: managedByValue,
+				"key2":       "value2",
+			},
+			expectedAnnotations: map[string]string{
+				"key1": "value1",
+			},
+			expectedTopics: nil,
+		},
 	}
 
 	for _, tt := range tests {

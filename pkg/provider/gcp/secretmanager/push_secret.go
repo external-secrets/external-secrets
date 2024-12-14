@@ -39,6 +39,7 @@ type Metadata struct {
 	Labels      map[string]string             `json:"labels"`
 	Topics      []string                      `json:"topics,omitempty"`
 	MergePolicy PushSecretMetadataMergePolicy `json:"mergePolicy,omitempty"`
+	CMEKKeyName string                        `json:"cmekKeyName,omitempty"`
 }
 
 func newPushSecretBuilder(payload []byte, data esv1beta1.PushSecretData) (pushSecretBuilder, error) {

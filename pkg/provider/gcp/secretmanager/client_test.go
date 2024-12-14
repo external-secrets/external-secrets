@@ -42,7 +42,6 @@ import (
 
 const (
 	errCallNotFoundAtIndex0   = "index 0 for call not found in the list of calls"
-	usEast1Location           = "us-east-1"
 	usEast1                   = "us-east1"
 	errInvalidReplicationType = "req.Secret.Replication.Replication was not of type *secretmanagerpb.Replication_UserManaged_ but: %T"
 )
@@ -670,7 +669,7 @@ func TestPushSecret(t *testing.T) {
 		{
 			desc: "successfully pushes a secret with defined region",
 			args: args{
-				store:               &esv1beta1.GCPSMProvider{ProjectID: smtc.projectID, Location: usEast1Location},
+				store:               &esv1beta1.GCPSMProvider{ProjectID: smtc.projectID, Location: usEast1},
 				mock:                smtc.mockClient,
 				GetSecretMockReturn: fakesm.SecretMockReturn{Secret: nil, Err: notFoundError},
 				CreateSecretMockReturn: fakesm.SecretMockReturn{Secret: &secretmanagerpb.Secret{
@@ -680,7 +679,7 @@ func TestPushSecret(t *testing.T) {
 							UserManaged: &secretmanagerpb.Replication_UserManaged{
 								Replicas: []*secretmanagerpb.Replication_UserManaged_Replica{
 									{
-										Location: usEast1Location,
+										Location: usEast1,
 									},
 								},
 							},
@@ -713,7 +712,7 @@ func TestPushSecret(t *testing.T) {
 						return errors.New("req.Secret.Replication.Replication.Replicas was not empty")
 					}
 
-					if user.UserManaged.Replicas[0].Location != usEast1Location {
+					if user.UserManaged.Replicas[0].Location != usEast1 {
 						return fmt.Errorf("req.Secret.Replication.Replicas[0].Location was not equal to us-east-1 but was %s", user.UserManaged.Replicas[0].Location)
 					}
 
@@ -880,11 +879,11 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: &esv1beta1.GCPSMProvider{
 					ProjectID: smtc.projectID,
-					Location:  usEast1Location,
+					Location:  usEast1,
 				},
 				mock: smtc.mockClient,
 				Metadata: &apiextensionsv1.JSON{
-					Raw: []byte(`{"cmekKeyName":"projects/my-project/locations/us-east-1/keyRings/my-keyring/cryptoKeys/my-key"}`),
+					Raw: []byte(`{"cmekKeyName":"projects/my-project/locations/us-east1/keyRings/my-keyring/cryptoKeys/my-key"}`),
 				},
 				GetSecretMockReturn: fakesm.SecretMockReturn{Secret: nil, Err: notFoundError},
 				CreateSecretMockReturn: fakesm.SecretMockReturn{
@@ -895,9 +894,9 @@ func TestPushSecret(t *testing.T) {
 								UserManaged: &secretmanagerpb.Replication_UserManaged{
 									Replicas: []*secretmanagerpb.Replication_UserManaged_Replica{
 										{
-											Location: usEast1Location,
+											Location: usEast1,
 											CustomerManagedEncryption: &secretmanagerpb.CustomerManagedEncryption{
-												KmsKeyName: "projects/my-project/locations/us-east-1/keyRings/my-keyring/cryptoKeys/my-key",
+												KmsKeyName: "projects/my-project/locations/us-east1/keyRings/my-keyring/cryptoKeys/my-key",
 											},
 										},
 									},
@@ -926,13 +925,26 @@ func TestPushSecret(t *testing.T) {
 						return fmt.Errorf(errInvalidReplicationType, req.Secret.Replication.Replication)
 					}
 
+					if user.UserManaged == nil {
+						return errors.New("UserManaged replication config was nil")
+					}
+
+					if len(user.UserManaged.Replicas) != 1 {
+						return fmt.Errorf("expected 1 replica but got %d", len(user.UserManaged.Replicas))
+					}
+
 					replica := user.UserManaged.Replicas[0]
+					if replica.Location != usEast1 {
+						return fmt.Errorf("expected location %s but got %s", usEast1, replica.Location)
+					}
+
 					if replica.CustomerManagedEncryption == nil {
 						return errors.New("CustomerManagedEncryption was nil")
 					}
 
-					if replica.CustomerManagedEncryption.KmsKeyName != "projects/my-project/locations/us-east-1/keyRings/my-keyring/cryptoKeys/my-key" {
-						return fmt.Errorf("KmsKeyName was not equal to expected value but was %s", replica.CustomerManagedEncryption.KmsKeyName)
+					expectedKmsKey := "projects/my-project/locations/us-east1/keyRings/my-keyring/cryptoKeys/my-key"
+					if replica.CustomerManagedEncryption.KmsKeyName != expectedKmsKey {
+						return fmt.Errorf("expected KMS key %s but got %s", expectedKmsKey, replica.CustomerManagedEncryption.KmsKeyName)
 					}
 
 					return nil
@@ -1034,9 +1046,21 @@ func TestPushSecret(t *testing.T) {
 						return errors.New(errCallNotFoundAtIndex0)
 					}
 
-					_, ok = req.Secret.Replication.Replication.(*secretmanagerpb.Replication_Automatic_)
+					if req.Secret == nil {
+						return errors.New("request Secret was nil")
+					}
+
+					if req.Secret.Replication == nil {
+						return errors.New("request Secret Replication was nil")
+					}
+
+					automatic, ok := req.Secret.Replication.Replication.(*secretmanagerpb.Replication_Automatic_)
 					if !ok {
-						return fmt.Errorf(errInvalidReplicationType, req.Secret.Replication.Replication)
+						return fmt.Errorf("expected Replication_Automatic_ but got %T", req.Secret.Replication.Replication)
+					}
+
+					if automatic.Automatic == nil {
+						return errors.New("Automatic replication config was nil")
 					}
 
 					return nil
