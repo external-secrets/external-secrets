@@ -211,3 +211,51 @@ spec:
       projectID: my-project
       location: us-east1  # Required when using CMEK
 ```
+
+### Migration Guide: PushSecret Metadata Format (v0.11.x to v0.12.0)
+
+In version 0.12.0, the metadata format for PushSecrets has been standardized to use a structured format. If you're upgrading from v0.11.x, you'll need to update your PushSecret specifications.
+
+#### Old Format (v0.11.x)
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+spec:
+  data:
+    - match:
+        secretKey: mykey
+        remoteRef:
+          remoteKey: my-secret
+      metadata:
+        annotations:
+          key1: "value1"
+        labels:
+          key2: "value2"
+        topics:
+          - "topic1"
+          - "topic2"
+```
+
+#### New Format (v0.12.0+)
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+spec:
+  data:
+    - match:
+        secretKey: mykey
+        remoteRef:
+          remoteKey: my-secret
+      metadata:
+        apiVersion: kubernetes.external-secrets.io/v1alpha1
+        kind: PushSecretMetadata
+        spec:
+          annotations:
+            key1: "value1"
+          labels:
+            key2: "value2"
+          topics:
+            - "topic1"
+            - "topic2"
+          cmekKeyName: "projects/my-project/locations/us-east1/keyRings/my-keyring/cryptoKeys/my-key"  # Optional: for CMEK
+```
