@@ -29,7 +29,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
-	utilpointer "k8s.io/utils/ptr"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -168,8 +168,6 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 		parameterKeyIDFormat = "alias/aws/ssm"
 	}
 
-	overwrite := true
-
 	key := data.GetSecretKey()
 
 	if key == "" {
@@ -181,14 +179,12 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 		value = secret.Data[key]
 	}
 
-	stringValue := string(value)
 	secretName := pm.prefix + data.GetRemoteKey()
-
 	secretRequest := ssm.PutParameterInput{
-		Name:      &secretName,
-		Value:     &stringValue,
-		Type:      &parameterTypeFormat,
-		Overwrite: &overwrite,
+		Name:      ptr.To(pm.prefix + data.GetRemoteKey()),
+		Value:     ptr.To(string(value)),
+		Type:      ptr.To(parameterTypeFormat),
+		Overwrite: ptr.To(true),
 	}
 
 	if parameterTypeFormat == "SecureString" {
@@ -382,9 +378,9 @@ func (pm *ParameterStore) findByTags(ctx context.Context, ref esv1beta1.External
 	filters := make([]*ssm.ParameterStringFilter, 0)
 	for k, v := range ref.Tags {
 		filters = append(filters, &ssm.ParameterStringFilter{
-			Key:    utilpointer.To(fmt.Sprintf("tag:%s", k)),
-			Values: []*string{utilpointer.To(v)},
-			Option: utilpointer.To("Equals"),
+			Key:    ptr.To(fmt.Sprintf("tag:%s", k)),
+			Values: []*string{ptr.To(v)},
+			Option: ptr.To("Equals"),
 		})
 	}
 
@@ -426,7 +422,7 @@ func (pm *ParameterStore) findByTags(ctx context.Context, ref esv1beta1.External
 
 func (pm *ParameterStore) fetchAndSet(ctx context.Context, data map[string][]byte, name string) error {
 	out, err := pm.client.GetParameterWithContext(ctx, &ssm.GetParameterInput{
-		Name:           utilpointer.To(name),
+		Name:           ptr.To(name),
 		WithDecryption: aws.Bool(true),
 	})
 	metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSGetParameter, err)
