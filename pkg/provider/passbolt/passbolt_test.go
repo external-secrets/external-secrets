@@ -174,8 +174,8 @@ func TestGetAllSecrets(t *testing.T) {
 				},
 			},
 			expected: map[string][]byte{
-				someKey1: []byte(`{"name":"some-name1","username":"","password":"some-password1","uri":someUri1,"description":"some-description1"}`),
-				someKey2: []byte(`{"name":"some-name2","username":"","password":"some-password2","uri":someUri2,"description":"some-description2"}`),
+				someKey1: []byte(`{"name":"some-name1","username":"","password":"some-password1","uri":"some-uri1","description":"some-description1"}`),
+				someKey2: []byte(`{"name":"some-name2","username":"","password":"some-password2","uri":"some-uri2","description":"some-description2"}`),
 			},
 		},
 		{
@@ -251,7 +251,7 @@ func TestGetSecret(t *testing.T) {
 			request: esv1beta1.ExternalSecretDataRemoteRef{
 				Key: someKey1,
 			},
-			expValue: `{"name":"some-name1","username":"","password":"some-password1","uri":someUri1,"description":"some-description1"}`,
+			expValue: `{"name":"some-name1","username":"","password":"some-password1","uri":"some-uri1","description":"some-description1"}`,
 		},
 		{
 			name: "return err when using invalid property",
