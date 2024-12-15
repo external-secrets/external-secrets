@@ -182,27 +182,50 @@ func (g *gitlabBase) fetchSecretData(effectiveEnvironment string, matcher *find.
 	var gopts = &gitlab.ListGroupVariablesOptions{PerPage: 100}
 	secretData := make(map[string][]byte)
 	for _, groupID := range g.store.GroupIDs {
-		for groupPage := 1; ; groupPage++ {
-			gopts.Page = groupPage
-			groupVars, response, err := g.groupVariablesClient.ListVariables(groupID, gopts)
-			metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupListVariables, err)
-			if err != nil {
-				return nil, err
-			}
-			for _, data := range groupVars {
-				matching, key, isWildcard := matchesFilter(effectiveEnvironment, data.EnvironmentScope, data.Key, matcher)
-				if !matching && !isWildcard {
-					continue
-				}
-				secretData[key] = []byte(data.Value)
-			}
-			if response.CurrentPage >= response.TotalPages {
-				break
-			}
+		if err := g.setVariablesForGroupID(effectiveEnvironment, matcher, gopts, groupID, secretData); err != nil {
+			return nil, err
 		}
 	}
 
 	return secretData, nil
+}
+
+func (g *gitlabBase) setVariablesForGroupID(
+	effectiveEnvironment string,
+	matcher *find.Matcher,
+	gopts *gitlab.ListGroupVariablesOptions,
+	groupID string,
+	secretData map[string][]byte,
+) error {
+	for groupPage := 1; ; groupPage++ {
+		gopts.Page = groupPage
+		groupVars, response, err := g.groupVariablesClient.ListVariables(groupID, gopts)
+		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupListVariables, err)
+		if err != nil {
+			return err
+		}
+		g.setGroupValues(effectiveEnvironment, matcher, groupVars, secretData)
+
+		if response.CurrentPage >= response.TotalPages {
+			break
+		}
+	}
+	return nil
+}
+
+func (g *gitlabBase) setGroupValues(
+	effectiveEnvironment string,
+	matcher *find.Matcher,
+	groupVars []*gitlab.GroupVariable,
+	secretData map[string][]byte,
+) {
+	for _, data := range groupVars {
+		matching, key, isWildcard := matchesFilter(effectiveEnvironment, data.EnvironmentScope, data.Key, matcher)
+		if !matching && !isWildcard {
+			continue
+		}
+		secretData[key] = []byte(data.Value)
+	}
 }
 
 func ExtractTag(tags map[string]string) (string, error) {
