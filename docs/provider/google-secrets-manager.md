@@ -123,6 +123,7 @@ By default, the PushSecret spec will replace any existing labels on the existing
 Example of using the `mergePolicy` field:
 
 ```yaml
+{% raw %}
 apiVersion: external-secrets.io/v1alpha1
 kind: PushSecret
 metadata:
@@ -151,6 +152,7 @@ spec:
         secretKey: bestpokemon
         remoteRef:
           remoteKey: best-pokemon
+{% endraw %}
 ```
 
 ### Secret Replication and Encryption Configuration
