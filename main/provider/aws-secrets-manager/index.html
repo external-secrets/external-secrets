@@ -3604,8 +3604,12 @@ way users of the <code>SecretStore</code> can only access the secrets necessary.
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-access-key</span>
 </code></pre></div>
 <strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>accessKeyIDSecretRef</code> and <code>secretAccessKeySecretRef</code>  with the namespaces where the secrets reside.</p>
+<p><strong>NOTE:</strong> When using <code>dataFrom</code> without a <code>path</code> defined, the provider will fall back to using <code>ListSecrets</code>. <code>ListSecrets</code>
+then proceeds to fetch each individual secret in turn. To use <code>BatchGetSecretValue</code> and avoid excessive API calls define
+a <code>path</code> prefix or use <code>Tags</code> filter.</p>
 <h3 id="iam-policy">IAM Policy</h3>
 <p>Create a IAM Policy to pin down access to secrets matching <code>dev-*</code>.</p>
+<p>For Batch permissions read the following post https://aws.amazon.com/about-aws/whats-new/2023/11/aws-secrets-manager-batch-retrieval-secrets/.</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2012-10-17&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;Statement&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
@@ -3616,6 +3620,7 @@ way users of the <code>SecretStore</code> can only access the secrets necessary.
 <span class="w">        </span><span class="s2">&quot;secretsmanager:GetSecretValue&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="s2">&quot;secretsmanager:DescribeSecret&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="s2">&quot;secretsmanager:ListSecretVersionIds&quot;</span>
+<span class="w">        </span><span class="s2">&quot;secretsmanager:BatchGetSecretValue&quot;</span>
 <span class="w">      </span><span class="p">],</span>
 <span class="w">      </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="s2">&quot;arn:aws:secretsmanager:us-west-2:111122223333:secret:dev-*&quot;</span>
