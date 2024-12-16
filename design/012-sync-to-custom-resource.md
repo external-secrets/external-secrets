@@ -4,7 +4,7 @@ title: Sync to Custom Resources
 version: v1alpha1
 authors: Gustavo Carvalho
 creation-date: 2024-05-03
-status: draft
+status: approved
 ---
 ```
 
