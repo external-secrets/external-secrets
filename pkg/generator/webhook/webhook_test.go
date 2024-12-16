@@ -221,7 +221,7 @@ func runTestCase(tc testCase, t *testing.T) {
 }
 
 func testGenerate(tc testCase, t *testing.T, client genv1alpha1.Generator, testStore *apiextensions.JSON) {
-	secretmap, err := client.Generate(context.Background(), testStore, nil, "testnamespace")
+	secretmap, _, err := client.Generate(context.Background(), testStore, nil, "testnamespace")
 	errStr := ""
 	if err != nil {
 		errStr = err.Error()
