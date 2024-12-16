@@ -43,6 +43,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/util/locks"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
 const (
@@ -183,13 +184,28 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 		}
 
 		if c.store.Location != "" {
+			replica := &secretmanagerpb.Replication_UserManaged_Replica{
+				Location: c.store.Location,
+			}
+
+			if pushSecretData.GetMetadata() != nil {
+				var err error
+				meta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](pushSecretData.GetMetadata())
+				if err != nil {
+					return fmt.Errorf("failed to parse PushSecret metadata: %w", err)
+				}
+				if meta != nil && meta.Spec.CMEKKeyName != "" {
+					replica.CustomerManagedEncryption = &secretmanagerpb.CustomerManagedEncryption{
+						KmsKeyName: meta.Spec.CMEKKeyName,
+					}
+				}
+			}
+
 			replication = &secretmanagerpb.Replication{
 				Replication: &secretmanagerpb.Replication_UserManaged_{
 					UserManaged: &secretmanagerpb.Replication_UserManaged{
 						Replicas: []*secretmanagerpb.Replication_UserManaged_Replica{
-							{
-								Location: c.store.Location,
-							},
+							replica,
 						},
 					},
 				},

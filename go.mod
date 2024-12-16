@@ -43,7 +43,7 @@ require (
 	github.com/yandex-cloud/go-sdk v0.0.0-20241206142255-6c3760d17eea
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.30.0
+	golang.org/x/crypto v0.31.0
 	golang.org/x/oauth2 v0.24.0
 	google.golang.org/api v0.210.0
 	google.golang.org/genproto v0.0.0-20241206012308-a4fef0638583
