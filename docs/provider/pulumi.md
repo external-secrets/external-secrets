@@ -2,13 +2,17 @@
 
 Sync environments, configs and secrets from [Pulumi ESC](https://www.pulumi.com/product/esc/) to Kubernetes using the External Secrets Operator.
 
+![Pulumi ESC](../pictures/pulumi-esc.png)
+
+More information about setting up [Pulumi](https://www.pulumi.com/) ESC can be found in the [Pulumi ESC documentation](https://www.pulumi.com/docs/esc/).
+
 ### Authentication
 
 Pulumi [Access Tokens](https://www.pulumi.com/docs/pulumi-cloud/access-management/access-tokens/) are recommended to access Pulumi ESC.
 
 ### Creating a SecretStore
 
-A Pulumi SecretStore can be created by specifying the `organization` and `environment` and referencing a Kubernetes secret containing the `accessToken`.
+A Pulumi `SecretStore` can be created by specifying the `organization`, `project` and `environment` and referencing a Kubernetes secret containing the `accessToken`.
 
 ```yaml
 apiVersion: external-secrets.io/v1beta1
@@ -19,6 +23,7 @@ spec:
   provider:
     pulumi:
       organization: <NAME_OF_THE_ORGANIZATION>
+      project: <NAME_OF_THE_PROJECT>
       environment: <NAME_OF_THE_ENVIRONMENT>
       accessToken:
         secretRef:
@@ -26,7 +31,29 @@ spec:
           key: <KEY_IN_KUBE_SECRET>
 ```
 
-If required, the API URL (`apiUrl`) can be customized as well. If not specified, the default value is `https://api.pulumi.com`.
+If required, the API URL (`apiUrl`) can be customized as well. If not specified, the default value is `https://api.pulumi.com/api/esc`.
+
+### Creating a ClusterSecretStore
+
+Similarly, a `ClusterSecretStore` can be created by specifying the `namespace` and referencing a Kubernetes secret containing the `accessToken`.
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ClusterSecretStore
+metadata:
+  name: secret-store
+spec:
+  provider:
+    pulumi:
+      organization: <NAME_OF_THE_ORGANIZATION>
+      project: <NAME_OF_THE_PROJECT>
+      environment: <NAME_OF_THE_ENVIRONMENT>
+      accessToken:
+        secretRef:
+          name: <NAME_OF_KUBE_SECRET>
+          key: <KEY_IN_KUBE_SECRET>
+          namespace: <NAMESPACE>
+```
 
 ### Referencing Secrets
 
@@ -38,7 +65,7 @@ kind: ExternalSecret
 metadata:
   name: secret
 spec:
-  refreshInterval: 5m
+  refreshInterval: 1h
   secretStoreRef:
     kind: SecretStore
     name: secret-store
@@ -71,3 +98,61 @@ spec:
 * root.array["*"].field
 
 See [Pulumi's documentation](https://www.pulumi.com/docs/concepts/options/ignorechanges/) for more information.
+
+### PushSecrets
+
+With the latest release of Pulumi ESC, secrets can be pushed to the Pulumi service. This can be done by creating a `PushSecrets` object.
+
+Here is a basic example of how to define a `PushSecret` object:
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: push-secret-example
+spec:
+  refreshInterval: 1h
+  selector:
+    secret:
+      name: <NAME_OF_KUBE_SECRET>
+  secretStoreRefs:
+  - kind: ClusterSecretStore
+    name: secret-store
+  data:
+  - match:
+      secretKey: <KEY_IN_KUBE_SECRET>
+      remoteRef:
+        remoteKey: <PULUMI_PATH_SYNTAX>
+```
+
+This will then push the secret to the Pulumi service. If the secret already exists, it will be updated.
+
+### Limitations
+
+Currently, the Pulumi provider only supports nested objects up to a depth of 1. Any nested objects beyond this depth will be stored as a string with the JSON representation.
+
+This Pulumi ESC example:
+
+```yaml
+values:
+  backstage:
+    my: test
+    test: hello
+    test22:
+      my: hello
+    test33:
+      world: true
+    x: true
+    num: 42
+```
+
+Will result in the following Kubernetes secret:
+
+```yaml
+my: test
+num: "42"
+test: hello
+test22: '{"my":{"trace":{"def":{"begin":{"byte":72,"column":11,"line":6},"end":{"byte":77,"column":16,"line":6},"environment":"tgif-demo"}},"value":"hello"}}'
+test33: '{"world":{"trace":{"def":{"begin":{"byte":103,"column":14,"line":8},"end":{"byte":107,"column":18,"line":8},"environment":"tgif-demo"}},"value":true}}'
+x: "true"
+```

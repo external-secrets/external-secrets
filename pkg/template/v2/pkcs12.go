@@ -19,43 +19,31 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
+	"errors"
 	"fmt"
 
-	"golang.org/x/crypto/pkcs12"
 	gopkcs12 "software.sslmate.com/src/go-pkcs12"
 )
 
 func pkcs12keyPass(pass, input string) (string, error) {
-	blocks, err := pkcs12.ToPEM([]byte(input), pass)
+	privateKey, _, _, err := gopkcs12.DecodeChain([]byte(input), pass)
 	if err != nil {
 		return "", fmt.Errorf(errDecodePKCS12WithPass, err)
 	}
 
-	var pemData []byte
-	for _, block := range blocks {
-		// remove bag attributes like localKeyID, friendlyName
-		block.Headers = nil
-		if block.Type == pemTypeCertificate {
-			continue
-		}
-		key, err := parsePrivateKey(block.Bytes)
-		if err != nil {
-			return "", err
-		}
-		// we use pkcs8 because it supports more key types (ecdsa, ed25519), not just RSA
-		block.Bytes, err = x509.MarshalPKCS8PrivateKey(key)
-		if err != nil {
-			return "", err
-		}
-		// report error if encode fails
-		var buf bytes.Buffer
-		if err := pem.Encode(&buf, block); err != nil {
-			return "", err
-		}
-		pemData = append(pemData, buf.Bytes()...)
+	marshalPrivateKey, err := x509.MarshalPKCS8PrivateKey(privateKey)
+	if err != nil {
+		return "", err
 	}
 
-	return string(pemData), nil
+	var buf bytes.Buffer
+	if err := pem.Encode(&buf, &pem.Block{
+		Type:  pemTypeKey,
+		Bytes: marshalPrivateKey,
+	}); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
 func parsePrivateKey(block []byte) (any, error) {
@@ -68,7 +56,7 @@ func parsePrivateKey(block []byte) (any, error) {
 	if k, err := x509.ParseECPrivateKey(block); err == nil {
 		return k, nil
 	}
-	return nil, fmt.Errorf(errParsePrivKey)
+	return nil, errors.New(errParsePrivKey)
 }
 
 func pkcs12key(input string) (string, error) {
@@ -76,21 +64,28 @@ func pkcs12key(input string) (string, error) {
 }
 
 func pkcs12certPass(pass, input string) (string, error) {
-	blocks, err := pkcs12.ToPEM([]byte(input), pass)
+	_, certificate, caCerts, err := gopkcs12.DecodeChain([]byte(input), pass)
 	if err != nil {
 		return "", fmt.Errorf(errDecodeCertWithPass, err)
 	}
 
 	var pemData []byte
-	for _, block := range blocks {
-		if block.Type != pemTypeCertificate {
-			continue
-		}
-		// remove bag attributes like localKeyID, friendlyName
-		block.Headers = nil
-		// report error if encode fails
+	var buf bytes.Buffer
+	if err := pem.Encode(&buf, &pem.Block{
+		Type:  pemTypeCertificate,
+		Bytes: certificate.Raw,
+	}); err != nil {
+		return "", err
+	}
+
+	pemData = append(pemData, buf.Bytes()...)
+
+	for _, ca := range caCerts {
 		var buf bytes.Buffer
-		if err := pem.Encode(&buf, block); err != nil {
+		if err := pem.Encode(&buf, &pem.Block{
+			Type:  pemTypeCertificate,
+			Bytes: ca.Raw,
+		}); err != nil {
 			return "", err
 		}
 		pemData = append(pemData, buf.Bytes()...)
@@ -117,19 +112,51 @@ func pemToPkcs12(cert, key string) (string, error) {
 
 func pemToPkcs12Pass(cert, key, pass string) (string, error) {
 	certPem, _ := pem.Decode([]byte(cert))
-	keyPem, _ := pem.Decode([]byte(key))
 
 	parsedCert, err := x509.ParseCertificate(certPem.Bytes)
 	if err != nil {
 		return "", err
 	}
 
+	return certsToPkcs12(parsedCert, key, nil, pass)
+}
+
+func fullPemToPkcs12(cert, key string) (string, error) {
+	return fullPemToPkcs12Pass(cert, key, "")
+}
+
+func fullPemToPkcs12Pass(cert, key, pass string) (string, error) {
+	certPem, rest := pem.Decode([]byte(cert))
+
+	parsedCert, err := x509.ParseCertificate(certPem.Bytes)
+	if err != nil {
+		return "", err
+	}
+
+	caCerts := make([]*x509.Certificate, 0)
+	for len(rest) > 0 {
+		caPem, restBytes := pem.Decode(rest)
+		rest = restBytes
+
+		caCert, err := x509.ParseCertificate(caPem.Bytes)
+		if err != nil {
+			return "", err
+		}
+
+		caCerts = append(caCerts, caCert)
+	}
+
+	return certsToPkcs12(parsedCert, key, caCerts, pass)
+}
+
+func certsToPkcs12(cert *x509.Certificate, key string, caCerts []*x509.Certificate, password string) (string, error) {
+	keyPem, _ := pem.Decode([]byte(key))
 	parsedKey, err := parsePrivateKey(keyPem.Bytes)
 	if err != nil {
 		return "", err
 	}
 
-	pfx, err := gopkcs12.Modern.Encode(parsedKey, parsedCert, nil, pass)
+	pfx, err := gopkcs12.Modern.Encode(parsedKey, cert, caCerts, password)
 	if err != nil {
 		return "", err
 	}

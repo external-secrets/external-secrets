@@ -17,6 +17,7 @@ package ecr
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -54,7 +55,7 @@ func (g *Generator) generate(
 	ecrFunc ecrFactoryFunc,
 ) (map[string][]byte, error) {
 	if jsonSpec == nil {
-		return nil, fmt.Errorf(errNoSpec)
+		return nil, errors.New(errNoSpec)
 	}
 	res, err := parseSpec(jsonSpec.Raw)
 	if err != nil {
@@ -91,7 +92,7 @@ func (g *Generator) generate(
 	}
 	parts := strings.Split(string(decodedToken), ":")
 	if len(parts) != 2 {
-		return nil, fmt.Errorf("unexpected token format")
+		return nil, errors.New("unexpected token format")
 	}
 
 	exp := out.AuthorizationData[0].ExpiresAt.UTC().Unix()

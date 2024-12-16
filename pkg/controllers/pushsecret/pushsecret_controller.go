@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 	"time"
 
@@ -27,9 +28,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -39,6 +42,10 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/provider/util/locks"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+
+	// load generators.
+	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
 )
 
 const (
@@ -49,6 +56,7 @@ const (
 	errSetSecretFailed       = "could not write remote ref %v to target secretstore %v: %v"
 	errFailedSetSecret       = "set secret failed: %v"
 	errConvert               = "could not apply conversion strategy to keys: %v"
+	errUnmanagedStores       = "PushSecret %q has no managed stores to push to"
 	pushSecretFinalizer      = "pushsecret.externalsecrets.io/finalizer"
 )
 
@@ -57,14 +65,16 @@ type Reconciler struct {
 	Log             logr.Logger
 	Scheme          *runtime.Scheme
 	recorder        record.EventRecorder
+	RestConfig      *rest.Config
 	RequeueInterval time.Duration
 	ControllerClass string
 }
 
-func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 	r.recorder = mgr.GetEventRecorderFor("pushsecret")
 
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(opts).
 		For(&esapi.PushSecret{}).
 		Complete(r)
 }
@@ -137,10 +147,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			}
 		}
 	case esapi.PushSecretDeletionPolicyNone:
+		if controllerutil.ContainsFinalizer(&ps, pushSecretFinalizer) {
+			controllerutil.RemoveFinalizer(&ps, pushSecretFinalizer)
+			if err := r.Client.Update(ctx, &ps, &client.UpdateOptions{}); err != nil {
+				return ctrl.Result{}, fmt.Errorf("could not update finalizers: %w", err)
+			}
+		}
 	default:
 	}
 
-	secret, err := r.GetSecret(ctx, ps)
+	secret, err := r.resolveSecret(ctx, ps)
 	if err != nil {
 		r.markAsFailed(errFailedGetSecret, &ps, nil)
 
@@ -155,6 +171,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	if err := r.applyTemplate(ctx, &ps, secret); err != nil {
 		return ctrl.Result{}, err
+	}
+
+	secretStores, err = removeUnmanagedStores(ctx, req.Namespace, r, secretStores)
+	if err != nil {
+		r.markAsFailed(err.Error(), &ps, nil)
+		return ctrl.Result{}, err
+	}
+	// if no stores are managed by this controller
+	if len(secretStores) == 0 {
+		return ctrl.Result{}, nil
 	}
 
 	syncedSecrets, err := r.PushSecretToProviders(ctx, secretStores, ps, secret, mgr)
@@ -218,9 +244,7 @@ func mergeSecretState(newMap, old esapi.SyncedPushSecretsMap) esapi.SyncedPushSe
 		if !ok {
 			out[k] = make(map[string]esapi.PushSecretData)
 		}
-		for kk, vv := range v {
-			out[k][kk] = vv
-		}
+		maps.Insert(out[k], maps.All(v))
 	}
 	return out
 }
@@ -331,14 +355,38 @@ func secretKeyExists(key string, secret *v1.Secret) bool {
 	return key == "" || ok
 }
 
-func (r *Reconciler) GetSecret(ctx context.Context, ps esapi.PushSecret) (*v1.Secret, error) {
-	secretName := types.NamespacedName{Name: ps.Spec.Selector.Secret.Name, Namespace: ps.Namespace}
-	secret := &v1.Secret{}
-	err := r.Client.Get(ctx, secretName, secret)
-	if err != nil {
-		return nil, err
+func (r *Reconciler) resolveSecret(ctx context.Context, ps esapi.PushSecret) (*v1.Secret, error) {
+	if ps.Spec.Selector.Secret != nil {
+		secretName := types.NamespacedName{Name: ps.Spec.Selector.Secret.Name, Namespace: ps.Namespace}
+		secret := &v1.Secret{}
+		err := r.Client.Get(ctx, secretName, secret)
+		if err != nil {
+			return nil, err
+		}
+		return secret, nil
 	}
-	return secret, nil
+	if ps.Spec.Selector.GeneratorRef != nil {
+		return r.resolveSecretFromGenerator(ctx, ps.Namespace, ps.Spec.Selector.GeneratorRef)
+	}
+	return nil, errors.New("no secret selector provided")
+}
+
+func (r *Reconciler) resolveSecretFromGenerator(ctx context.Context, namespace string, generatorRef *v1beta1.GeneratorRef) (*v1.Secret, error) {
+	gen, obj, err := resolvers.GeneratorRef(ctx, r.Client, r.Scheme, namespace, generatorRef)
+	if err != nil {
+		return nil, fmt.Errorf("unable to resolve generator: %w", err)
+	}
+	secretMap, err := gen.Generate(ctx, obj, r.Client, namespace)
+	if err != nil {
+		return nil, fmt.Errorf("unable to generate: %w", err)
+	}
+	return &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "___generated-secret",
+			Namespace: namespace,
+		},
+		Data: secretMap,
+	}, err
 }
 
 func (r *Reconciler) GetSecretStores(ctx context.Context, ps esapi.PushSecret) (map[esapi.PushSecretStoreRef]v1beta1.GenericStore, error) {
@@ -389,7 +437,7 @@ func (r *Reconciler) GetSecretStores(ctx context.Context, ps esapi.PushSecret) (
 
 func (r *Reconciler) getSecretStoreFromName(ctx context.Context, refStore esapi.PushSecretStoreRef, ns string) (v1beta1.GenericStore, error) {
 	if refStore.Name == "" {
-		return nil, fmt.Errorf("refStore Name must be provided")
+		return nil, errors.New("refStore Name must be provided")
 	}
 	ref := types.NamespacedName{
 		Name: refStore.Name,
@@ -464,4 +512,33 @@ func statusRef(ref v1beta1.PushSecretData) string {
 		return ref.GetRemoteKey() + "/" + ref.GetProperty()
 	}
 	return ref.GetRemoteKey()
+}
+
+// removeUnmanagedStores iterates over all SecretStore references and evaluates the controllerClass property.
+// Returns a map containing only managed stores.
+func removeUnmanagedStores(ctx context.Context, namespace string, r *Reconciler, ss map[esapi.PushSecretStoreRef]v1beta1.GenericStore) (map[esapi.PushSecretStoreRef]v1beta1.GenericStore, error) {
+	for ref := range ss {
+		var store v1beta1.GenericStore
+		switch ref.Kind {
+		case v1beta1.SecretStoreKind:
+			store = &v1beta1.SecretStore{}
+		case v1beta1.ClusterSecretStoreKind:
+			store = &v1beta1.ClusterSecretStore{}
+			namespace = ""
+		}
+		err := r.Client.Get(ctx, types.NamespacedName{
+			Name:      ref.Name,
+			Namespace: namespace,
+		}, store)
+
+		if err != nil {
+			return ss, err
+		}
+
+		class := store.GetSpec().Controller
+		if class != "" && class != r.ControllerClass {
+			delete(ss, ref)
+		}
+	}
+	return ss, nil
 }

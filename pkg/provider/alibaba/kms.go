@@ -17,6 +17,7 @@ package alibaba
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
@@ -57,27 +58,27 @@ type SMInterface interface {
 }
 
 func (kms *KeyManagementService) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return fmt.Errorf(errNotImplemented)
+	return errors.New(errNotImplemented)
 }
 
 func (kms *KeyManagementService) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf(errNotImplemented)
+	return errors.New(errNotImplemented)
 }
 
 func (kms *KeyManagementService) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf(errNotImplemented)
+	return false, errors.New(errNotImplemented)
 }
 
 // Empty GetAllSecrets.
 func (kms *KeyManagementService) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
-	return nil, fmt.Errorf(errNotImplemented)
+	return nil, errors.New(errNotImplemented)
 }
 
 // GetSecret returns a single secret from the provider.
 func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(kms.Client) {
-		return nil, fmt.Errorf(errUninitalizedAlibabaProvider)
+		return nil, errors.New(errUninitalizedAlibabaProvider)
 	}
 
 	request := &kmssdk.GetSecretValueRequest{
@@ -199,7 +200,7 @@ func newAuth(ctx context.Context, kube kclient.Client, store esv1beta1.GenericSt
 
 		return credentials, nil
 	default:
-		return nil, fmt.Errorf("alibaba authentication methods wasn't provided")
+		return nil, errors.New("alibaba authentication methods wasn't provided")
 	}
 }
 
@@ -273,7 +274,7 @@ func (kms *KeyManagementService) ValidateStore(store esv1beta1.GenericStore) (ad
 	regionID := alibabaSpec.RegionID
 
 	if regionID == "" {
-		return nil, fmt.Errorf("missing alibaba region")
+		return nil, errors.New("missing alibaba region")
 	}
 
 	return nil, kms.validateStoreAuth(store)
@@ -289,7 +290,7 @@ func (kms *KeyManagementService) validateStoreAuth(store esv1beta1.GenericStore)
 	case alibabaSpec.Auth.SecretRef != nil:
 		return kms.validateStoreAccessKeyAuth(store)
 	default:
-		return fmt.Errorf("missing alibaba auth provider")
+		return errors.New("missing alibaba auth provider")
 	}
 }
 
@@ -298,19 +299,19 @@ func (kms *KeyManagementService) validateStoreRRSAAuth(store esv1beta1.GenericSt
 	alibabaSpec := storeSpec.Provider.Alibaba
 
 	if alibabaSpec.Auth.RRSAAuth.OIDCProviderARN == "" {
-		return fmt.Errorf("missing alibaba OIDC proivder ARN")
+		return errors.New("missing alibaba OIDC proivder ARN")
 	}
 
 	if alibabaSpec.Auth.RRSAAuth.OIDCTokenFilePath == "" {
-		return fmt.Errorf("missing alibaba OIDC token file path")
+		return errors.New("missing alibaba OIDC token file path")
 	}
 
 	if alibabaSpec.Auth.RRSAAuth.RoleARN == "" {
-		return fmt.Errorf("missing alibaba Assume Role ARN")
+		return errors.New("missing alibaba Assume Role ARN")
 	}
 
 	if alibabaSpec.Auth.RRSAAuth.SessionName == "" {
-		return fmt.Errorf("missing alibaba session name")
+		return errors.New("missing alibaba session name")
 	}
 
 	return nil
@@ -327,11 +328,11 @@ func (kms *KeyManagementService) validateStoreAccessKeyAuth(store esv1beta1.Gene
 	}
 
 	if accessKeyID.Name == "" {
-		return fmt.Errorf("missing alibaba access ID name")
+		return errors.New("missing alibaba access ID name")
 	}
 
 	if accessKeyID.Key == "" {
-		return fmt.Errorf("missing alibaba access ID key")
+		return errors.New("missing alibaba access ID key")
 	}
 
 	accessKeySecret := alibabaSpec.Auth.SecretRef.AccessKeySecret
@@ -341,11 +342,11 @@ func (kms *KeyManagementService) validateStoreAccessKeyAuth(store esv1beta1.Gene
 	}
 
 	if accessKeySecret.Name == "" {
-		return fmt.Errorf("missing alibaba access key secret name")
+		return errors.New("missing alibaba access key secret name")
 	}
 
 	if accessKeySecret.Key == "" {
-		return fmt.Errorf("missing alibaba access key secret key")
+		return errors.New("missing alibaba access key secret key")
 	}
 
 	return nil

@@ -26,8 +26,8 @@ import (
 
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/youmark/pkcs8"
-	"golang.org/x/crypto/pkcs12"
 	corev1 "k8s.io/api/core/v1"
+	"software.sslmate.com/src/go-pkcs12"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
@@ -73,22 +73,35 @@ const (
 )
 
 // Execute renders the secret data as template. If an error occurs processing is stopped immediately.
-func Execute(tpl, data map[string][]byte, _ esapi.TemplateScope, _ esapi.TemplateTarget, secret *corev1.Secret) error {
-	if tpl == nil {
+func Execute(tpl, data map[string][]byte, scope esapi.TemplateScope, target esapi.TemplateTarget, secret *corev1.Secret) error {
+	if len(tpl) == 0 {
 		return nil
 	}
-	for k, v := range tpl {
-		val, err := execute(k, string(v), data)
-		if err != nil {
-			return fmt.Errorf(errExecute, k, err)
+
+	if scope != "" && scope != esapi.TemplateScopeValues {
+		return fmt.Errorf("template scope %s is not supported in v1 templates, please only use Values", scope)
+	}
+
+	switch target {
+	case esapi.TemplateTargetAnnotations:
+		// Annotations are not supported in v1 templates
+	case esapi.TemplateTargetLabels:
+		// Labels are not supported in v1 templates
+	case esapi.TemplateTargetData, "":
+		for k, v := range tpl {
+			val, err := execute(k, string(v), data)
+			if err != nil {
+				return fmt.Errorf(errExecute, k, err)
+			}
+			secret.Data[k] = val
 		}
-		secret.Data[k] = val
 	}
 	return nil
 }
 
 func execute(k, val string, data map[string][]byte) ([]byte, error) {
 	t, err := tpl.New(k).
+		Option("missingkey=error").
 		Funcs(tplFuncs).
 		Parse(val)
 	if err != nil {

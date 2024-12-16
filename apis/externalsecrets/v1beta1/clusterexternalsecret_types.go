@@ -24,8 +24,12 @@ type ClusterExternalSecretSpec struct {
 	// The spec for the ExternalSecrets to be created
 	ExternalSecretSpec ExternalSecretSpec `json:"externalSecretSpec"`
 
-	// The name of the external secrets to be created defaults to the name of the ClusterExternalSecret
+	// The name of the external secrets to be created.
+	// Defaults to the name of the ClusterExternalSecret
 	// +optional
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	ExternalSecretName string `json:"externalSecretName,omitempty"`
 
 	// The metadata of the external secrets to be created
@@ -43,6 +47,9 @@ type ClusterExternalSecretSpec struct {
 
 	// Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
 	// +optional
+	// +kubebuilder:validation:items:MinLength:=1
+	// +kubebuilder:validation:items:MaxLength:=63
+	// +kubebuilder:validation:items:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
 	Namespaces []string `json:"namespaces,omitempty"`
 
 	// The time in which the controller should reconcile its objects and recheck namespaces for labels.
@@ -100,8 +107,9 @@ type ClusterExternalSecretStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
-// +kubebuilder:resource:scope=Cluster,categories={externalsecrets},shortName=ces
+// +kubebuilder:resource:scope=Cluster,categories={external-secrets},shortName=ces
 // +kubebuilder:subresource:status
+// +kubebuilder:metadata:labels="external-secrets.io/component=controller"
 // +kubebuilder:printcolumn:name="Store",type=string,JSONPath=`.spec.externalSecretSpec.secretStoreRef.name`
 // +kubebuilder:printcolumn:name="Refresh Interval",type=string,JSONPath=`.spec.refreshTime`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`

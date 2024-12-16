@@ -16,6 +16,7 @@ package secretmanager
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -60,7 +61,7 @@ func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.GCPSM == nil {
-		return nil, fmt.Errorf(errGCPSMStore)
+		return nil, errors.New(errGCPSMStore)
 	}
 	gcpStore := storeSpec.Provider.GCPSM
 
@@ -113,18 +114,18 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 
 func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
-		return nil, fmt.Errorf(errInvalidStore)
+		return nil, errors.New(errInvalidStore)
 	}
 	spc := store.GetSpec()
 	if spc == nil {
-		return nil, fmt.Errorf(errInvalidStoreSpec)
+		return nil, errors.New(errInvalidStoreSpec)
 	}
 	if spc.Provider == nil {
-		return nil, fmt.Errorf(errInvalidStoreProv)
+		return nil, errors.New(errInvalidStoreProv)
 	}
 	g := spc.Provider.GCPSM
 	if p == nil {
-		return nil, fmt.Errorf(errInvalidGCPProv)
+		return nil, errors.New(errInvalidGCPProv)
 	}
 	if g.Auth.SecretRef != nil {
 		if err := utils.ValidateReferentSecretSelector(store, g.Auth.SecretRef.SecretAccessKey); err != nil {
@@ -145,7 +146,7 @@ func clusterProjectID(spec *esv1beta1.SecretStoreSpec) (string, error) {
 	} else if spec.Provider.GCPSM.ProjectID != "" {
 		return spec.Provider.GCPSM.ProjectID, nil
 	} else {
-		return "", fmt.Errorf(errNoProjectID)
+		return "", errors.New(errNoProjectID)
 	}
 }
 

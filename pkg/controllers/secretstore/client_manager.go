@@ -16,7 +16,9 @@ package secretstore
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -33,7 +35,7 @@ import (
 const (
 	errGetClusterSecretStore = "could not get ClusterSecretStore %q, %w"
 	errGetSecretStore        = "could not get SecretStore %q, %w"
-	errSecretStoreNotReady   = "the desired SecretStore %s is not ready"
+	errSecretStoreNotReady   = "%s %q is not ready"
 	errClusterStoreMismatch  = "using cluster store %q is not allowed from namespace %q: denied by spec.condition"
 )
 
@@ -113,7 +115,7 @@ func (m *Manager) Get(ctx context.Context, storeRef esv1beta1.SecretStoreRef, na
 	}
 	// check if store should be handled by this controller instance
 	if !ShouldProcessStore(store, m.controllerClass) {
-		return nil, fmt.Errorf("can not reference unmanaged store")
+		return nil, errors.New("can not reference unmanaged store")
 	}
 	// when using ClusterSecretStore, validate the ClusterSecretStore namespace conditions
 	shouldProcess, err := m.shouldProcessSecret(store, namespace)
@@ -245,6 +247,18 @@ func (m *Manager) shouldProcessSecret(store esv1beta1.GenericStore, ns string) (
 				return true, nil
 			}
 		}
+
+		for _, reg := range condition.NamespaceRegexes {
+			match, err := regexp.MatchString(reg, ns)
+			if err != nil {
+				// Should not happen since store validation already verified the regexes.
+				return false, fmt.Errorf("failed to compile regex %v: %w", reg, err)
+			}
+
+			if match {
+				return true, nil
+			}
+		}
 	}
 
 	return false, nil
@@ -257,7 +271,7 @@ func assertStoreIsUsable(store esv1beta1.GenericStore) error {
 	}
 	condition := GetSecretStoreCondition(store.GetStatus(), esv1beta1.SecretStoreReady)
 	if condition == nil || condition.Status != v1.ConditionTrue {
-		return fmt.Errorf(errSecretStoreNotReady, store.GetName())
+		return fmt.Errorf(errSecretStoreNotReady, store.GetKind(), store.GetName())
 	}
 	return nil
 }

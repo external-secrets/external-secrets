@@ -66,6 +66,7 @@ func (c *HelmChart) Install() error {
 	}
 
 	args := []string{"install", c.ReleaseName, c.Chart,
+		"--dependency-update",
 		"--debug",
 		"--wait",
 		"--timeout", "600s",

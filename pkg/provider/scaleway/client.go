@@ -59,7 +59,7 @@ func (r scwSecretRef) String() string {
 func decodeScwSecretRef(key string) (*scwSecretRef, error) {
 	sepIndex := strings.IndexRune(key, ':')
 	if sepIndex < 0 {
-		return nil, fmt.Errorf("invalid secret reference: missing colon ':'")
+		return nil, errors.New("invalid secret reference: missing colon ':'")
 	}
 
 	return &scwSecretRef{
@@ -104,7 +104,7 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 
 func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
 	if data.GetSecretKey() == "" {
-		return fmt.Errorf("pushing the whole secret is not yet implemented")
+		return errors.New("pushing the whole secret is not yet implemented")
 	}
 
 	value := secret.Data[data.GetSecretKey()]
@@ -128,14 +128,14 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	case refTypePath:
 		name, path, ok := splitNameAndPath(scwRef.Value)
 		if !ok {
-			return fmt.Errorf("ref is not a path")
+			return errors.New("ref is not a path")
 		}
 		listSecretReq.Name = &name
 		listSecretReq.Path = &path
 		secretName = name
 		secretPath = path
 	default:
-		return fmt.Errorf("secrets can only be pushed by name or path")
+		return errors.New("secrets can only be pushed by name or path")
 	}
 
 	var secretID string
@@ -234,13 +234,13 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecre
 	case refTypePath:
 		name, path, ok := splitNameAndPath(scwRef.Value)
 		if !ok {
-			return fmt.Errorf("ref is not a path")
+			return errors.New("ref is not a path")
 		}
 		listSecretReq.Name = &name
 		listSecretReq.Path = &path
 
 	default:
-		return fmt.Errorf("secrets can only be deleted by name or path")
+		return errors.New("secrets can only be deleted by name or path")
 	}
 
 	listSecrets, err := c.api.ListSecrets(listSecretReq, scw.WithContext(ctx))
@@ -265,7 +265,7 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecre
 }
 
 func (c *client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf("not implemented")
+	return false, errors.New("not implemented")
 }
 
 func (c *client) Validate() (esv1beta1.ValidationResult, error) {
@@ -339,7 +339,7 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 			return nil, err
 		}
 
-		totalFetched := uint64(*request.Page-1)*uint64(*request.PageSize) + uint64(len(response.Secrets))
+		totalFetched := c.safeConvertInt32(request.Page)*uint64(*request.PageSize) + uint64(len(response.Secrets))
 		done = totalFetched == response.TotalCount
 
 		*request.Page++
@@ -366,6 +366,14 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecret
 	}
 
 	return results, nil
+}
+
+func (c *client) safeConvertInt32(page *int32) uint64 {
+	if *page-1 < 0 {
+		return 0
+	}
+
+	return uint64(*page - 1) //nolint:gosec // already checked above
 }
 
 func (c *client) Close(context.Context) error {
@@ -408,7 +416,7 @@ func (c *client) accessSecretVersion(ctx context.Context, secretRef *scwSecretRe
 	case refTypePath:
 		name, path, ok := splitNameAndPath(secretRef.Value)
 		if !ok {
-			return nil, fmt.Errorf("ref is not a path")
+			return nil, errors.New("ref is not a path")
 		}
 
 		request.Name = &name

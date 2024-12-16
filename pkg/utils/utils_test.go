@@ -16,17 +16,21 @@ package utils
 
 import (
 	"encoding/json"
+	"errors"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/oracle/oci-go-sdk/v65/vault"
+	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esmetav1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 const (
@@ -731,6 +735,20 @@ func TestFetchValueFromMetadata(t *testing.T) {
 			wantT:   "value",
 			wantErr: false,
 		},
+		{
+			name: "digging for a slice",
+			args: args{
+				key: "topics",
+				data: &apiextensionsv1.JSON{
+					Raw: []byte(
+						`{"topics": ["topic1", "topic2"]}`,
+					),
+				},
+				def: []string{},
+			},
+			wantT:   []any{"topic1", "topic2"}, // we don't have deep type matching so it's not an []string{} but []any.
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -739,9 +757,7 @@ func TestFetchValueFromMetadata(t *testing.T) {
 				t.Errorf("FetchValueFromMetadata() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(gotT, tt.wantT) {
-				t.Errorf("FetchValueFromMetadata() gotT = %v, want %v", gotT, tt.wantT)
-			}
+			assert.Equal(t, tt.wantT, gotT)
 		})
 	}
 }
@@ -899,6 +915,314 @@ func TestCompareStringAndByteSlices(t *testing.T) {
 			got := CompareStringAndByteSlices(tt.args.stringValue, tt.args.byteValueSlice)
 			if got != tt.wantErr {
 				t.Errorf("CompareStringAndByteSlices() got = %v, want = %v", got, tt.wantErr)
+				return
+			}
+		})
+	}
+}
+
+func TestValidateSecretSelector(t *testing.T) {
+	tests := []struct {
+		desc     string
+		store    esv1beta1.GenericStore
+		ref      esmetav1.SecretKeySelector
+		expected error
+	}{
+		{
+			desc: "cluster secret store with namespace reference",
+			store: &esv1beta1.ClusterSecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: esv1beta1.ClusterSecretStoreKind,
+				},
+			},
+			ref: esmetav1.SecretKeySelector{
+				Namespace: Ptr("test"),
+			},
+			expected: nil,
+		},
+		{
+			desc: "secret store without namespace reference",
+			store: &esv1beta1.SecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: esv1beta1.SecretStoreKind,
+				},
+			},
+			ref:      esmetav1.SecretKeySelector{},
+			expected: nil,
+		},
+		{
+			desc: "secret store with the same namespace reference",
+			store: &esv1beta1.SecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: esv1beta1.SecretStoreKind,
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test",
+				},
+			},
+			ref: esmetav1.SecretKeySelector{
+				Namespace: Ptr("test"),
+			},
+			expected: nil,
+		},
+		{
+			desc: "cluster secret store without namespace reference",
+			store: &esv1beta1.ClusterSecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: esv1beta1.ClusterSecretStoreKind,
+				},
+			},
+			ref:      esmetav1.SecretKeySelector{},
+			expected: errRequireNamespace,
+		},
+		{
+			desc: "secret store with the different namespace reference",
+			store: &esv1beta1.SecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: esv1beta1.SecretStoreKind,
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test",
+				},
+			},
+			ref: esmetav1.SecretKeySelector{
+				Namespace: Ptr("different"),
+			},
+			expected: errNamespaceNotAllowed,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got := ValidateSecretSelector(tt.store, tt.ref)
+			if !errors.Is(got, tt.expected) {
+				t.Errorf("ValidateSecretSelector() got = %v, want = %v", got, tt.expected)
+				return
+			}
+		})
+	}
+}
+
+func TestValidateReferentSecretSelector(t *testing.T) {
+	tests := []struct {
+		desc     string
+		store    esv1beta1.GenericStore
+		ref      esmetav1.SecretKeySelector
+		expected error
+	}{
+		{
+			desc: "cluster secret store with namespace reference",
+			store: &esv1beta1.ClusterSecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: esv1beta1.ClusterSecretStoreKind,
+				},
+			},
+			ref: esmetav1.SecretKeySelector{
+				Namespace: Ptr("test"),
+			},
+			expected: nil,
+		},
+		{
+			desc: "secret store without namespace reference",
+			store: &esv1beta1.SecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: esv1beta1.SecretStoreKind,
+				},
+			},
+			ref:      esmetav1.SecretKeySelector{},
+			expected: nil,
+		},
+		{
+			desc: "secret store with the same namespace reference",
+			store: &esv1beta1.SecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: esv1beta1.SecretStoreKind,
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test",
+				},
+			},
+			ref: esmetav1.SecretKeySelector{
+				Namespace: Ptr("test"),
+			},
+			expected: nil,
+		},
+		{
+			desc: "secret store with the different namespace reference",
+			store: &esv1beta1.SecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: esv1beta1.SecretStoreKind,
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test",
+				},
+			},
+			ref: esmetav1.SecretKeySelector{
+				Namespace: Ptr("different"),
+			},
+			expected: errNamespaceNotAllowed,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got := ValidateReferentSecretSelector(tt.store, tt.ref)
+			if !errors.Is(got, tt.expected) {
+				t.Errorf("ValidateReferentSecretSelector() got = %v, want = %v", got, tt.expected)
+				return
+			}
+		})
+	}
+}
+
+func TestValidateServiceAccountSelector(t *testing.T) {
+	tests := []struct {
+		desc     string
+		store    esv1beta1.GenericStore
+		ref      esmetav1.ServiceAccountSelector
+		expected error
+	}{
+		{
+			desc: "cluster secret store with namespace reference",
+			store: &esv1beta1.ClusterSecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: esv1beta1.ClusterSecretStoreKind,
+				},
+			},
+			ref: esmetav1.ServiceAccountSelector{
+				Namespace: Ptr("test"),
+			},
+			expected: nil,
+		},
+		{
+			desc: "secret store without namespace reference",
+			store: &esv1beta1.SecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: esv1beta1.SecretStoreKind,
+				},
+			},
+			ref:      esmetav1.ServiceAccountSelector{},
+			expected: nil,
+		},
+		{
+			desc: "secret store with the same namespace reference",
+			store: &esv1beta1.SecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: esv1beta1.SecretStoreKind,
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test",
+				},
+			},
+			ref: esmetav1.ServiceAccountSelector{
+				Namespace: Ptr("test"),
+			},
+			expected: nil,
+		},
+		{
+			desc: "cluster secret store without namespace reference",
+			store: &esv1beta1.ClusterSecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: esv1beta1.ClusterSecretStoreKind,
+				},
+			},
+			ref:      esmetav1.ServiceAccountSelector{},
+			expected: errRequireNamespace,
+		},
+		{
+			desc: "secret store with the different namespace reference",
+			store: &esv1beta1.SecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: esv1beta1.SecretStoreKind,
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test",
+				},
+			},
+			ref: esmetav1.ServiceAccountSelector{
+				Namespace: Ptr("different"),
+			},
+			expected: errNamespaceNotAllowed,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got := ValidateServiceAccountSelector(tt.store, tt.ref)
+			if !errors.Is(got, tt.expected) {
+				t.Errorf("ValidateServiceAccountSelector() got = %v, want = %v", got, tt.expected)
+				return
+			}
+		})
+	}
+}
+
+func TestValidateReferentServiceAccountSelector(t *testing.T) {
+	tests := []struct {
+		desc     string
+		store    esv1beta1.GenericStore
+		ref      esmetav1.ServiceAccountSelector
+		expected error
+	}{
+		{
+			desc: "cluster secret store with namespace reference",
+			store: &esv1beta1.ClusterSecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: esv1beta1.ClusterSecretStoreKind,
+				},
+			},
+			ref: esmetav1.ServiceAccountSelector{
+				Namespace: Ptr("test"),
+			},
+			expected: nil,
+		},
+		{
+			desc: "secret store without namespace reference",
+			store: &esv1beta1.SecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: esv1beta1.SecretStoreKind,
+				},
+			},
+			ref:      esmetav1.ServiceAccountSelector{},
+			expected: nil,
+		},
+		{
+			desc: "secret store with the same namespace reference",
+			store: &esv1beta1.SecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: esv1beta1.SecretStoreKind,
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test",
+				},
+			},
+			ref: esmetav1.ServiceAccountSelector{
+				Namespace: Ptr("test"),
+			},
+			expected: nil,
+		},
+		{
+			desc: "secret store with the different namespace reference",
+			store: &esv1beta1.SecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: esv1beta1.SecretStoreKind,
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test",
+				},
+			},
+			ref: esmetav1.ServiceAccountSelector{
+				Namespace: Ptr("different"),
+			},
+			expected: errNamespaceNotAllowed,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got := ValidateReferentServiceAccountSelector(tt.store, tt.ref)
+			if !errors.Is(got, tt.expected) {
+				t.Errorf("ValidateReferentServiceAccountSelector() got = %v, want = %v", got, tt.expected)
 				return
 			}
 		})

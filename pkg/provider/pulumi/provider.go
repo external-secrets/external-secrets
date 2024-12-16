@@ -19,7 +19,7 @@ import (
 	"errors"
 	"fmt"
 
-	esc "github.com/pulumi/esc/cmd/esc/cli/client"
+	esc "github.com/pulumi/esc-sdk/sdk/go"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -39,6 +39,7 @@ const (
 	errNoStoreTypeOrWrongStoreType   = "no store type or wrong store type"
 	errOrganizationIsRequired        = "organization is required"
 	errEnvironmentIsRequired         = "environment is required"
+	errProjectIsRequired             = "project is required"
 	errSecretRefNameIsRequired       = "secretRef.name is required"
 	errSecretRefKeyIsRequired        = "secretRef.key is required"
 )
@@ -52,14 +53,23 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	if storeKind == esv1beta1.ClusterSecretStoreKind && doesConfigDependOnNamespace(cfg) {
 		return nil, errors.New(errClusterStoreRequiresNamespace)
 	}
-
 	accessToken, err := loadAccessTokenSecret(ctx, cfg.AccessToken, kube, storeKind, namespace)
 	if err != nil {
 		return nil, err
 	}
-	escClient := esc.New("external-secrets-operator", cfg.APIURL, accessToken, false)
+	configuration := esc.NewConfiguration()
+	configuration.UserAgent = "external-secrets-operator"
+	configuration.Servers = esc.ServerConfigurations{
+		esc.ServerConfiguration{
+			URL: cfg.APIURL,
+		},
+	}
+	authCtx := esc.NewAuthContext(accessToken)
+	escClient := esc.NewClient(configuration)
 	return &client{
-		escClient:    escClient,
+		escClient:    *escClient,
+		authCtx:      authCtx,
+		project:      cfg.Project,
 		environment:  cfg.Environment,
 		organization: cfg.Organization,
 	}, nil
@@ -91,7 +101,7 @@ func getConfig(store esv1beta1.GenericStore) (*esv1beta1.PulumiProvider, error) 
 	cfg := spec.Provider.Pulumi
 
 	if cfg.APIURL == "" {
-		cfg.APIURL = "https://api.pulumi.com"
+		cfg.APIURL = "https://api.pulumi.com/api/esc"
 	}
 
 	if cfg.Organization == "" {
@@ -99,6 +109,9 @@ func getConfig(store esv1beta1.GenericStore) (*esv1beta1.PulumiProvider, error) 
 	}
 	if cfg.Environment == "" {
 		return nil, errors.New(errEnvironmentIsRequired)
+	}
+	if cfg.Project == "" {
+		return nil, errors.New(errProjectIsRequired)
 	}
 	err := validateStoreSecretRef(store, cfg.AccessToken)
 	if err != nil {

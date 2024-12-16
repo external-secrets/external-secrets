@@ -16,10 +16,13 @@ package vault
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	vault "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
@@ -131,7 +134,7 @@ func TestSetAuthNamespace(t *testing.T) {
 
 			c, cfg, err := prov.prepareConfig(context.Background(), kube, nil, tc.args.store.Spec.Provider.Vault, nil, "default", store.GetObjectKind().GroupVersionKind().Kind)
 			if err != nil {
-				t.Errorf(err.Error())
+				t.Error(err.Error())
 			}
 
 			client, err := getVaultClient(prov, tc.args.store, cfg)
@@ -161,6 +164,115 @@ func TestSetAuthNamespace(t *testing.T) {
 
 			if diff := cmp.Diff(tc.args.expected, actual, cmpopts.EquateComparable()); diff != "" {
 				t.Errorf("\n%s\nvault.useAuthNamepsace(...): -want namespace, +got namespace:\n%s", tc.reason, diff)
+			}
+		})
+	}
+}
+
+func TestCheckTokenErrors(t *testing.T) {
+	cases := map[string]struct {
+		message string
+		secret  *vault.Secret
+		err     error
+	}{
+		"SuccessWithNoData": {
+			message: "should not cache if token lookup returned no data",
+			secret:  &vault.Secret{},
+			err:     nil,
+		},
+		"Error": {
+			message: "should not cache if token lookup errored",
+			secret:  nil,
+			err:     errors.New(""),
+		},
+		// This happens when a token is expired and the Vault server returns:
+		// {"errors":["permission denied"]}
+		"NoDataNorError": {
+			message: "should not cache if token lookup returned no data nor error",
+			secret:  nil,
+			err:     nil,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			token := fake.Token{
+				LookupSelfWithContextFn: func(ctx context.Context) (*vault.Secret, error) {
+					return tc.secret, tc.err
+				},
+			}
+
+			cached, _ := checkToken(context.Background(), token)
+			if cached {
+				t.Errorf("%v", tc.message)
+			}
+		})
+	}
+}
+
+func TestCheckTokenTtl(t *testing.T) {
+	cases := map[string]struct {
+		message string
+		secret  *vault.Secret
+		cache   bool
+	}{
+		"LongTTLExpirable": {
+			message: "should cache if expirable token expires far into the future",
+			secret: &vault.Secret{
+				Data: map[string]interface{}{
+					"expire_time": "2024-01-01T00:00:00.000000000Z",
+					"ttl":         json.Number("3600"),
+					"type":        "service",
+				},
+			},
+			cache: true,
+		},
+		"ShortTTLExpirable": {
+			message: "should not cache if expirable token is about to expire",
+			secret: &vault.Secret{
+				Data: map[string]interface{}{
+					"expire_time": "2024-01-01T00:00:00.000000000Z",
+					"ttl":         json.Number("5"),
+					"type":        "service",
+				},
+			},
+			cache: false,
+		},
+		"ZeroTTLExpirable": {
+			message: "should not cache if expirable token has TTL of 0",
+			secret: &vault.Secret{
+				Data: map[string]interface{}{
+					"expire_time": "2024-01-01T00:00:00.000000000Z",
+					"ttl":         json.Number("0"),
+					"type":        "service",
+				},
+			},
+			cache: false,
+		},
+		"NonExpirable": {
+			message: "should cache if token is non-expirable",
+			secret: &vault.Secret{
+				Data: map[string]interface{}{
+					"expire_time": nil,
+					"ttl":         json.Number("0"),
+					"type":        "service",
+				},
+			},
+			cache: true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			token := fake.Token{
+				LookupSelfWithContextFn: func(ctx context.Context) (*vault.Secret, error) {
+					return tc.secret, nil
+				},
+			}
+
+			cached, err := checkToken(context.Background(), token)
+			if cached != tc.cache || err != nil {
+				t.Errorf("%v: err = %v", tc.message, err)
 			}
 		})
 	}

@@ -218,10 +218,10 @@ func (c *client) buildMetadataPath(path string) (string, error) {
 		url = fmt.Sprintf("%s/%s", *c.store.Path, path)
 	} else { // KV v2 is used
 		if c.store.Path == nil && !strings.Contains(path, "data") {
-			return "", fmt.Errorf(errPathInvalid)
+			return "", errors.New(errPathInvalid)
 		}
 		if c.store.Path == nil {
-			path = strings.Replace(path, "data", "metadata", 1)
+			path = strings.Replace(path, "/data/", "/metadata/", 1)
 			url = path
 		} else {
 			url = fmt.Sprintf("%s/metadata/%s", *c.store.Path, path)

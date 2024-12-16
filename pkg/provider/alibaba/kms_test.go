@@ -16,7 +16,7 @@ package alibaba
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"reflect"
 	"strings"
 	"testing"
@@ -92,7 +92,7 @@ func makeValidKMSTestCaseCustom(tweaks ...func(kmstc *keyManagementServiceTestCa
 }
 
 var setAPIErr = func(kmstc *keyManagementServiceTestCase) {
-	kmstc.apiErr = fmt.Errorf("oh no")
+	kmstc.apiErr = errors.New("oh no")
 	kmstc.expectError = "oh no"
 }
 
@@ -203,7 +203,7 @@ func TestValidateAccessKeyStore(t *testing.T) {
 
 	_, err := kms.ValidateStore(store)
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Error(err.Error())
 	}
 }
 
@@ -230,7 +230,7 @@ func TestValidateRRSAStore(t *testing.T) {
 
 	_, err := kms.ValidateStore(store)
 	if err != nil {
-		t.Errorf(err.Error())
+		t.Error(err.Error())
 	}
 }
 

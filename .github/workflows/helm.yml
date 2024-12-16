@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
@@ -34,7 +34,7 @@ jobs:
         with:
           version: v3.14.2 # remember to also update for the second job (release)
 
-      - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: 3.7
 
@@ -71,10 +71,15 @@ jobs:
     permissions:
       contents: write  # for helm/chart-releaser-action to push chart release and create a release
       packages: write  # to push OCI chart package to GitHub Registry
+      id-token: write  # gives the action the ability to mint the OIDC token necessary to request a Sigstore signing certificate
+      attestations: write # this permission is necessary to persist the attestation
     runs-on: ubuntu-latest
+    if: |
+      github.ref == 'refs/heads/main' ||
+      startsWith(github.ref, 'refs/heads/release-')
     steps:
       - name: Checkout
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
@@ -88,24 +93,18 @@ jobs:
           version: v3.4.2
 
       - name: Generate chart
+        run: make helm.generate
+      - name: Import GPG key
         run: |
-          make helm.generate
-      ## Temporarily removing - This is making the release break.
-      # - name: Import GPG key
-      #   run: |
-      #     echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --dearmor --output keyring.gpg
-      #     echo "${{ secrets.GPG_PASSPHRASE }}" > passphrase-file.txt
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --dearmor --output keyring.gpg
+          echo -n "${{ secrets.GPG_PASSPHRASE }}" > passphrase-file.txt
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@a917fd15b20e8b64b94d9158ad54cd6345335584 # v1.6.0
-        if: |
-          github.ref == 'refs/heads/main' ||
-          startsWith(github.ref, 'refs/heads/release-')
         env:
-          ## Temporarily removing - This is making the release break
-          # CR_KEY: external-secrets <external-secrets@external-secrets.io>
-          # CR_KEYRING: keyring.gpg
-          # CR_PASSPHRASE_FILE: passphrase-file.txt
-          # CR_SIGN: true
+          CR_KEY: external-secrets <external-secrets@external-secrets.io>
+          CR_KEYRING: keyring.gpg
+          CR_PASSPHRASE_FILE: passphrase-file.txt
+          CR_SIGN: true
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
           CR_RELEASE_NAME_TEMPLATE: "helm-chart-{{ .Version }}"
         with:
@@ -119,18 +118,47 @@ jobs:
           version: v3.14.2 # remember to also update for the first job (lint-and-test)
 
       - name: Login to GHCR
-        uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install cosign
+        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3.7.0
+        with:
+          cosign-release: 'v2.4.1'
+
       - name: Push chart to GHCR
+        id: push_chart
         run: |
           shopt -s nullglob
           for pkg in .cr-release-packages/*.tgz; do
             if [ -z "${pkg:-}" ]; then
               break
             fi
-            helm push "${pkg}" "oci://ghcr.io/${GITHUB_REPOSITORY_OWNER}/charts"
+            chart_name=$(helm show chart "${pkg}" | yq .name)
+            # helm push fails when registry path contains Uppercase letters
+            chart_registry="ghcr.io/${GITHUB_REPOSITORY_OWNER}/charts"
+
+            helm_push_output=$(helm push "${pkg}" "oci://${chart_registry}" 2>&1)
+            digest=$(echo "$helm_push_output" | grep -o 'sha256:[a-z0-9]*')
+            echo "$helm_push_output"
+
+            artifact_digest_uri="${chart_registry}/${chart_name}@${digest}"
+            cosign sign --yes "$artifact_digest_uri"
+            cosign verify "$artifact_digest_uri" \
+                --certificate-identity-regexp "https://github.com/$GITHUB_REPOSITORY/*" \
+                --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+            echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+            echo "chart_name=${chart_name}" >> "$GITHUB_OUTPUT"
+            echo "registry=${chart_registry}" >> "$GITHUB_OUTPUT"
           done
+
+      - name: Generate provenance attestation and push to OCI registry
+        uses: actions/attest-build-provenance@c4fbc648846ca6f503a13a2281a5e7b98aa57202 # v2.0.1
+        with:
+          push-to-registry: true
+          subject-name: ${{ steps.push_chart.outputs.registry }}/${{ steps.push_chart.outputs.chart_name }}
+          subject-digest: ${{ steps.push_chart.outputs.digest }}

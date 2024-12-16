@@ -17,6 +17,7 @@ package webhook
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -60,16 +61,18 @@ func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadOnly
 }
 
-func (p *Provider) NewClient(_ context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	wh := webhook.Webhook{
 		Kube:      kube,
 		Namespace: namespace,
+		StoreKind: store.GetObjectKind().GroupVersionKind().Kind,
 	}
 	whClient := &WebHook{
 		store:     store,
 		wh:        wh,
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
 	}
+	whClient.wh.EnforceLabels = true
 	if whClient.storeKind == esv1beta1.ClusterSecretStoreKind {
 		whClient.wh.ClusterScoped = true
 	}
@@ -79,7 +82,7 @@ func (p *Provider) NewClient(_ context.Context, store esv1beta1.GenericStore, ku
 	}
 	whClient.url = provider.URL
 
-	whClient.wh.HTTP, err = whClient.wh.GetHTTPClient(provider)
+	whClient.wh.HTTP, err = whClient.wh.GetHTTPClient(ctx, provider)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +96,7 @@ func (p *Provider) ValidateStore(_ esv1beta1.GenericStore) (admission.Warnings, 
 func getProvider(store esv1beta1.GenericStore) (*webhook.Spec, error) {
 	spc := store.GetSpec()
 	if spc == nil || spc.Provider == nil || spc.Provider.Webhook == nil {
-		return nil, fmt.Errorf("missing store provider webhook")
+		return nil, errors.New("missing store provider webhook")
 	}
 	out := webhook.Spec{}
 	d, err := json.Marshal(spc.Provider.Webhook)
@@ -105,22 +108,22 @@ func getProvider(store esv1beta1.GenericStore) (*webhook.Spec, error) {
 }
 
 func (w *WebHook) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
-	return fmt.Errorf(errNotImplemented)
+	return errors.New(errNotImplemented)
 }
 
 func (w *WebHook) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf(errNotImplemented)
+	return false, errors.New(errNotImplemented)
 }
 
-// Not Implemented PushSecret.
+// PushSecret not implement.
 func (w *WebHook) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return fmt.Errorf(errNotImplemented)
+	return errors.New(errNotImplemented)
 }
 
-// Empty GetAllSecrets.
+// GetAllSecrets Empty .
 func (w *WebHook) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
-	return nil, fmt.Errorf(errNotImplemented)
+	return nil, errors.New(errNotImplemented)
 }
 
 func (w *WebHook) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
@@ -133,7 +136,7 @@ func (w *WebHook) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDat
 		return nil, err
 	}
 	// Only parse as json if we have a jsonpath set
-	data, err := w.wh.GetTemplateData(ctx, &ref, provider.Secrets)
+	data, err := w.wh.GetTemplateData(ctx, &ref, provider.Secrets, false)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +180,7 @@ func extractSecretData(jsondata any) ([]byte, error) {
 	// in case we see a []something we pick the first element and return it
 	case []any:
 		if len(val) == 0 {
-			return nil, fmt.Errorf("filter worked but didn't get any result")
+			return nil, errors.New("filter worked but didn't get any result")
 		}
 		return extractSecretData(val[0])
 

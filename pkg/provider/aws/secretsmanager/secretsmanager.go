@@ -230,14 +230,14 @@ func (sm *SecretsManager) handleSecretError(err error) (bool, error) {
 		return false, err
 	}
 	if aerr.Code() == awssm.ErrCodeResourceNotFoundException {
-		return true, nil
+		return false, nil
 	}
 	return false, err
 }
 
 func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret, psd esv1beta1.PushSecretData) error {
 	if psd.GetSecretKey() == "" {
-		return fmt.Errorf("pushing the whole secret is not yet implemented")
+		return errors.New("pushing the whole secret is not yet implemented")
 	}
 
 	secretName := psd.GetRemoteKey()
@@ -586,7 +586,7 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretI
 		return err
 	}
 	if !isManagedByESO(data) {
-		return fmt.Errorf("secret not managed by external-secrets")
+		return errors.New("secret not managed by external-secrets")
 	}
 	if awsSecret != nil && bytes.Equal(awsSecret.SecretBinary, value) || utils.CompareStringAndByteSlices(awsSecret.SecretString, value) {
 		return nil

@@ -96,11 +96,22 @@ const (
 )
 
 func (vms *VaultManagementService) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	if vms.encryptionKey == "" {
+		return errors.New("SecretStore must reference encryption key")
+	}
+	value := secret.Data[data.GetSecretKey()]
 	if data.GetSecretKey() == "" {
-		return fmt.Errorf("pushing the whole secret is not yet implemented")
+		secretData := map[string]string{}
+		for k, v := range secret.Data {
+			secretData[k] = string(v)
+		}
+		jsonSecret, err := json.Marshal(secretData)
+		if err != nil {
+			return fmt.Errorf("unable to create json %v from value: %v", value, secretData)
+		}
+		value = jsonSecret
 	}
 
-	value := secret.Data[data.GetSecretKey()]
 	secretName := data.GetRemoteKey()
 	encodedValue := base64.StdEncoding.EncodeToString(value)
 	sec, action, err := vms.getSecretBundleWithCode(ctx, secretName)
@@ -160,7 +171,7 @@ func (vms *VaultManagementService) DeleteSecret(ctx context.Context, remoteRef e
 }
 
 func (vms *VaultManagementService) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf("not implemented")
+	return false, errors.New("not implemented")
 }
 
 func (vms *VaultManagementService) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
@@ -187,7 +198,7 @@ func (vms *VaultManagementService) GetAllSecrets(ctx context.Context, ref esv1be
 
 func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(vms.Client) {
-		return nil, fmt.Errorf(errUninitalizedOracleProvider)
+		return nil, errors.New(errUninitalizedOracleProvider)
 	}
 
 	sec, err := vms.Client.GetSecretBundleByName(ctx, secrets.GetSecretBundleByNameRequest{
@@ -218,7 +229,7 @@ func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1beta1.
 func decodeBundle(sec secrets.GetSecretBundleByNameResponse) ([]byte, error) {
 	bt, ok := sec.SecretBundleContent.(secrets.Base64SecretBundleContentDetails)
 	if !ok {
-		return nil, fmt.Errorf(errUnexpectedContent)
+		return nil, errors.New(errUnexpectedContent)
 	}
 	payload, err := base64.StdEncoding.DecodeString(*bt.Content)
 	if err != nil {
@@ -255,11 +266,11 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 	oracleSpec := storeSpec.Provider.Oracle
 
 	if oracleSpec.Vault == "" {
-		return nil, fmt.Errorf(errMissingVault)
+		return nil, errors.New(errMissingVault)
 	}
 
 	if oracleSpec.Region == "" {
-		return nil, fmt.Errorf(errMissingRegion)
+		return nil, errors.New(errMissingRegion)
 	}
 
 	var (
@@ -300,7 +311,8 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 		opts := []common.RetryPolicyOption{common.WithShouldRetryOperation(common.DefaultShouldRetryOperation)}
 
 		if mr := storeSpec.RetrySettings.MaxRetries; mr != nil {
-			opts = append(opts, common.WithMaximumNumberAttempts(uint(*mr)))
+			attempts := safeConvert(*mr)
+			opts = append(opts, common.WithMaximumNumberAttempts(attempts))
 		}
 
 		if ri := storeSpec.RetrySettings.RetryInterval; ri != nil {
@@ -334,6 +346,14 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 		compartment:    oracleSpec.Compartment,
 		encryptionKey:  oracleSpec.EncryptionKey,
 	}, nil
+}
+
+func safeConvert(i int32) uint {
+	if i < 0 {
+		return 0
+	}
+
+	return uint(i)
 }
 
 func (vms *VaultManagementService) getSecretBundleWithCode(ctx context.Context, secretName string) (secrets.GetSecretBundleByNameResponse, int, error) {
@@ -401,7 +421,7 @@ func matchesRef(secretSummary vault.SecretSummary, ref esv1beta1.ExternalSecretF
 
 func getSecretData(ctx context.Context, kube kclient.Client, namespace, storeKind string, secretRef esmeta.SecretKeySelector) (string, error) {
 	if secretRef.Name == "" {
-		return "", fmt.Errorf(errORACLECredSecretName)
+		return "", errors.New(errORACLECredSecretName)
 	}
 	secret, err := resolvers.SecretKeyRef(
 		ctx,
@@ -422,7 +442,7 @@ func getUserAuthConfigurationProvider(ctx context.Context, kube kclient.Client, 
 		return nil, err
 	}
 	if privateKey == "" {
-		return nil, fmt.Errorf(errMissingPK)
+		return nil, errors.New(errMissingPK)
 	}
 
 	fingerprint, err := getSecretData(ctx, kube, namespace, storeKind, store.Auth.SecretRef.Fingerprint)
@@ -430,15 +450,15 @@ func getUserAuthConfigurationProvider(ctx context.Context, kube kclient.Client, 
 		return nil, err
 	}
 	if fingerprint == "" {
-		return nil, fmt.Errorf(errMissingFingerprint)
+		return nil, errors.New(errMissingFingerprint)
 	}
 
 	if store.Auth.User == "" {
-		return nil, fmt.Errorf(errMissingUser)
+		return nil, errors.New(errMissingUser)
 	}
 
 	if store.Auth.Tenancy == "" {
-		return nil, fmt.Errorf(errMissingTenancy)
+		return nil, errors.New(errMissingTenancy)
 	}
 
 	return common.NewRawConfigurationProvider(store.Auth.Tenancy, store.Auth.User, region, fingerprint, privateKey, nil), nil
@@ -489,12 +509,12 @@ func (vms *VaultManagementService) ValidateStore(store esv1beta1.GenericStore) (
 
 	vault := oracleSpec.Vault
 	if vault == "" {
-		return nil, fmt.Errorf("vault cannot be empty")
+		return nil, errors.New("vault cannot be empty")
 	}
 
 	region := oracleSpec.Region
 	if region == "" {
-		return nil, fmt.Errorf("region cannot be empty")
+		return nil, errors.New("region cannot be empty")
 	}
 
 	auth := oracleSpec.Auth
@@ -504,21 +524,21 @@ func (vms *VaultManagementService) ValidateStore(store esv1beta1.GenericStore) (
 
 	user := oracleSpec.Auth.User
 	if user == "" {
-		return nil, fmt.Errorf("user cannot be empty")
+		return nil, errors.New("user cannot be empty")
 	}
 
 	tenant := oracleSpec.Auth.Tenancy
 	if tenant == "" {
-		return nil, fmt.Errorf("tenant cannot be empty")
+		return nil, errors.New("tenant cannot be empty")
 	}
 	privateKey := oracleSpec.Auth.SecretRef.PrivateKey
 
 	if privateKey.Name == "" {
-		return nil, fmt.Errorf("privateKey.name cannot be empty")
+		return nil, errors.New("privateKey.name cannot be empty")
 	}
 
 	if privateKey.Key == "" {
-		return nil, fmt.Errorf("privateKey.key cannot be empty")
+		return nil, errors.New("privateKey.key cannot be empty")
 	}
 
 	err := utils.ValidateSecretSelector(store, privateKey)
@@ -529,11 +549,11 @@ func (vms *VaultManagementService) ValidateStore(store esv1beta1.GenericStore) (
 	fingerprint := oracleSpec.Auth.SecretRef.Fingerprint
 
 	if fingerprint.Name == "" {
-		return nil, fmt.Errorf("fingerprint.name cannot be empty")
+		return nil, errors.New("fingerprint.name cannot be empty")
 	}
 
 	if fingerprint.Key == "" {
-		return nil, fmt.Errorf("fingerprint.key cannot be empty")
+		return nil, errors.New("fingerprint.key cannot be empty")
 	}
 
 	err = utils.ValidateSecretSelector(store, fingerprint)

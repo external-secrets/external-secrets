@@ -50,7 +50,15 @@ type ClusterSecretStoreCondition struct {
 	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
 
 	// Choose namespaces by name
+	// +optional
+	// +kubebuilder:validation:items:MinLength:=1
+	// +kubebuilder:validation:items:MaxLength:=63
+	// +kubebuilder:validation:items:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
 	Namespaces []string `json:"namespaces,omitempty"`
+
+	// Choose namespaces by using regex matching
+	// +optional
+	NamespaceRegexes []string `json:"namespaceRegexes,omitempty"`
 }
 
 // SecretStoreProvider contains the provider-specific configuration.
@@ -68,6 +76,10 @@ type SecretStoreProvider struct {
 	// Akeyless configures this store to sync secrets using Akeyless Vault provider
 	// +optional
 	Akeyless *AkeylessProvider `json:"akeyless,omitempty"`
+
+	// BitwardenSecretsManager configures this store to sync secrets using BitwardenSecretsManager provider
+	// +optional
+	BitwardenSecretsManager *BitwardenSecretsManagerProvider `json:"bitwardensecretsmanager,omitempty"`
 
 	// Vault configures this store to sync secrets using Hashi provider
 	// +optional
@@ -129,6 +141,10 @@ type SecretStoreProvider struct {
 	// +optional
 	Doppler *DopplerProvider `json:"doppler,omitempty"`
 
+	// Previder configures this store to sync secrets using the Previder provider
+	// +optional
+	Previder *PreviderProvider `json:"previder,omitempty"`
+
 	// Onboardbase configures this store to sync secrets using the Onboardbase provider
 	// +optional
 	Onboardbase *OnboardbaseProvider `json:"onboardbase,omitempty"`
@@ -145,6 +161,11 @@ type SecretStoreProvider struct {
 	// https://docs.delinea.com/online-help/products/devops-secrets-vault/current
 	// +optional
 	Delinea *DelineaProvider `json:"delinea,omitempty"`
+
+	// SecretServer configures this store to sync secrets using SecretServer provider
+	// https://docs.delinea.com/online-help/secret-server/start.htm
+	// +optional
+	SecretServer *SecretServerProvider `json:"secretserver,omitempty"`
 
 	// Chef configures this store to sync secrets with chef server
 	// +optional
@@ -163,6 +184,18 @@ type SecretStoreProvider struct {
 
 	// +optional
 	Passbolt *PassboltProvider `json:"passbolt,omitempty"`
+
+	// Device42 configures this store to sync secrets using the Device42 provider
+	// +optional
+	Device42 *Device42Provider `json:"device42,omitempty"`
+
+	// Infisical configures this store to sync secrets using the Infisical provider
+	// +optional
+	Infisical *InfisicalProvider `json:"infisical,omitempty"`
+
+	// Beyondtrust configures this store to sync secrets using Password Safe provider.
+	// +optional
+	Beyondtrust *BeyondtrustProvider `json:"beyondtrust,omitempty"`
 }
 
 type CAProviderType string
@@ -181,15 +214,24 @@ type CAProvider struct {
 	Type CAProviderType `json:"type"`
 
 	// The name of the object located at the provider type.
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	Name string `json:"name"`
 
 	// The key where the CA certificate can be found in the Secret or ConfigMap.
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$
 	Key string `json:"key,omitempty"`
 
 	// The namespace the Provider type is in.
 	// Can only be defined when used in a ClusterSecretStore.
 	// +optional
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=63
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
 	Namespace *string `json:"namespace,omitempty"`
 }
 
@@ -249,7 +291,8 @@ type SecretStoreStatus struct {
 // +kubebuilder:printcolumn:name="Capabilities",type=string,JSONPath=`.status.capabilities`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Namespaced,categories={externalsecrets},shortName=ss
+// +kubebuilder:metadata:labels="external-secrets.io/component=controller"
+// +kubebuilder:resource:scope=Namespaced,categories={external-secrets},shortName=ss
 type SecretStore struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -276,7 +319,8 @@ type SecretStoreList struct {
 // +kubebuilder:printcolumn:name="Capabilities",type=string,JSONPath=`.status.capabilities`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Cluster,categories={externalsecrets},shortName=css
+// +kubebuilder:metadata:labels="external-secrets.io/component=controller"
+// +kubebuilder:resource:scope=Cluster,categories={external-secrets},shortName=css
 type ClusterSecretStore struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

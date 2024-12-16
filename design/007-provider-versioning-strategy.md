@@ -126,7 +126,7 @@ func (g *gitlabBase) getAuth(ctx context.Context) ([]byte, error) {
 
 	credentials := credentialsSecret.Data[g.store.Auth.SecretRef.AccessToken.Key]
 	if len(credentials) == 0 {
-		return nil, fmt.Errorf(errMissingSAK)
+		return nil, errors.New(errMissingSAK)
 	}
 	return credentials, nil
 }

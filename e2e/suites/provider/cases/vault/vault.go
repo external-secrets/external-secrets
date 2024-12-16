@@ -82,6 +82,8 @@ var _ = Describe("[vault]", Label("vault"), func() {
 		framework.Compose(withApprole, f, common.DataPropertyDockerconfigJSON, useApproleAuth),
 		framework.Compose(withApprole, f, common.JSONDataWithoutTargetName, useApproleAuth),
 		// use v1 provider
+		framework.Compose(withV1, f, common.FindByName, useV1Provider),
+		framework.Compose(withV1, f, common.FindByNameAndRewrite, useV1Provider),
 		framework.Compose(withV1, f, common.JSONDataFromSync, useV1Provider),
 		framework.Compose(withV1, f, common.JSONDataFromRewrite, useV1Provider),
 		framework.Compose(withV1, f, common.JSONDataWithProperty, useV1Provider),
@@ -292,7 +294,7 @@ func testInvalidMtlsStore(tc *framework.TestCase) {
 		Expect(string(ss.Status.Conditions[0].Type)).Should(Equal("Ready"))
 		Expect(string(ss.Status.Conditions[0].Status)).Should(Equal("False"))
 		Expect(ss.Status.Conditions[0].Reason).Should(Equal("ValidationFailed"))
-		Expect(ss.Status.Conditions[0].Message).Should(Equal("unable to validate store"))
+		Expect(ss.Status.Conditions[0].Message).Should(ContainSubstring("unable to validate store"))
 		return true, nil
 	})
 	Expect(err).ToNot(HaveOccurred())

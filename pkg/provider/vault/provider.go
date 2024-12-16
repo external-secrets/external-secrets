@@ -43,13 +43,11 @@ var (
 )
 
 const (
-	errVaultStore        = "received invalid Vault SecretStore resource: %w"
-	errVaultClient       = "cannot setup new vault client: %w"
-	errVaultCert         = "cannot set Vault CA certificate: %w"
-	errConfigMapFmt      = "cannot find config map data for key: %q"
-	errClientTLSAuth     = "error from Client TLS Auth: %q"
-	errUnknownCAProvider = "unknown caProvider type given"
-	errCANamespace       = "cannot read secret for CAProvider due to missing namespace on kind ClusterSecretStore"
+	errVaultStore    = "received invalid Vault SecretStore resource: %w"
+	errVaultClient   = "cannot setup new vault client: %w"
+	errVaultCert     = "cannot set Vault CA certificate: %w"
+	errClientTLSAuth = "error from Client TLS Auth: %q"
+	errCANamespace   = "missing namespace on caProvider secret"
 )
 
 type Provider struct {
@@ -98,8 +96,8 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return p.newClient(ctx, store, kube, clientset.CoreV1(), namespace)
 }
 
-func (p *Provider) NewGeneratorClient(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, namespace string) (util.Client, error) {
-	vStore, cfg, err := p.prepareConfig(ctx, kube, corev1, vaultSpec, nil, namespace, resolvers.EmptyStoreKind)
+func (p *Provider) NewGeneratorClient(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, namespace string, retrySettings *esv1beta1.SecretStoreRetrySettings) (util.Client, error) {
+	vStore, cfg, err := p.prepareConfig(ctx, kube, corev1, vaultSpec, retrySettings, namespace, resolvers.EmptyStoreKind)
 	if err != nil {
 		return nil, err
 	}
@@ -149,9 +147,16 @@ func (p *Provider) initClient(ctx context.Context, c *client, client util.Client
 		client.SetNamespace(*vaultSpec.Namespace)
 	}
 
+	if vaultSpec.Headers != nil {
+		for hKey, hValue := range vaultSpec.Headers {
+			client.AddHeader(hKey, hValue)
+		}
+	}
+
 	if vaultSpec.ReadYourWrites && vaultSpec.ForwardInconsistent {
 		client.AddHeader("X-Vault-Inconsistent", "forward-active-node")
 	}
+
 	c.client = client
 	c.auth = client.Auth()
 	c.logical = client.Logical()

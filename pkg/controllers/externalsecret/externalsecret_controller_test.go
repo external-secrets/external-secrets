@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -25,6 +26,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/onsi/gomega/format"
 	"github.com/prometheus/client_golang/prometheus"
 	dto "github.com/prometheus/client_model/go"
 	v1 "k8s.io/api/core/v1"
@@ -88,30 +90,23 @@ var _ = Describe("Kind=secret existence logic", func() {
 	}
 	type testCase struct {
 		Name           string
-		Input          v1.Secret
+		Input          *v1.Secret
 		ExpectedOutput bool
 	}
 	tests := []testCase{
 		{
 			Name:           "Should not be valid in case of missing uid",
-			Input:          v1.Secret{},
+			Input:          &v1.Secret{},
 			ExpectedOutput: false,
 		},
 		{
 			Name: "A nil annotation should not be valid",
-			Input: v1.Secret{
+			Input: &v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
-					UID:         "xxx",
-					Annotations: map[string]string{},
-				},
-			},
-			ExpectedOutput: false,
-		},
-		{
-			Name: "A nil annotation should not be valid",
-			Input: v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					UID:         "xxx",
+					UID: "xxx",
+					Labels: map[string]string{
+						esv1beta1.LabelManaged: esv1beta1.LabelManagedValue,
+					},
 					Annotations: map[string]string{},
 				},
 			},
@@ -119,9 +114,12 @@ var _ = Describe("Kind=secret existence logic", func() {
 		},
 		{
 			Name: "An invalid annotation hash should not be valid",
-			Input: v1.Secret{
+			Input: &v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					UID: "xxx",
+					Labels: map[string]string{
+						esv1beta1.LabelManaged: esv1beta1.LabelManagedValue,
+					},
 					Annotations: map[string]string{
 						esv1beta1.AnnotationDataHash: "xxxxxx",
 					},
@@ -130,10 +128,13 @@ var _ = Describe("Kind=secret existence logic", func() {
 			ExpectedOutput: false,
 		},
 		{
-			Name: "A valid config map should return true",
-			Input: v1.Secret{
+			Name: "A valid secret should return true",
+			Input: &v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					UID: "xxx",
+					Labels: map[string]string{
+						esv1beta1.LabelManaged: esv1beta1.LabelManagedValue,
+					},
 					Annotations: map[string]string{
 						esv1beta1.AnnotationDataHash: utils.ObjectHash(validData),
 					},
@@ -448,9 +449,10 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(string(secret.Data[existingKey])).To(Equal(existingVal))
 			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
 
-			Expect(secret.ObjectMeta.Labels).To(HaveLen(2))
+			Expect(secret.ObjectMeta.Labels).To(HaveLen(3))
 			Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue("existing-label-key", "existing-label-value"))
 			Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue("es-label-key", "es-label-value"))
+			Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue(esv1beta1.LabelManaged, esv1beta1.LabelManagedValue))
 
 			Expect(secret.ObjectMeta.Annotations).To(HaveLen(3))
 			Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue("existing-annotation-key", "existing-annotation-value"))
@@ -459,12 +461,48 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 
 			Expect(ctest.HasOwnerRef(secret.ObjectMeta, "ExternalSecret", ExternalSecretFQDN)).To(BeFalse())
 			Expect(secret.ObjectMeta.ManagedFields).To(HaveLen(2))
-			Expect(ctest.HasFieldOwnership(
-				secret.ObjectMeta,
-				ExternalSecretFQDN,
-				fmt.Sprintf(`{"f:data":{"f:targetProperty":{}},"f:immutable":{},"f:metadata":{"f:annotations":{"f:es-annotation-key":{},"f:%s":{}},"f:labels":{"f:es-label-key":{}}}}`, esv1beta1.AnnotationDataHash)),
-			).To(BeEmpty())
-			Expect(ctest.HasFieldOwnership(secret.ObjectMeta, FakeManager, `{"f:data":{".":{},"f:pre-existing-key":{}},"f:metadata":{"f:annotations":{".":{},"f:existing-annotation-key":{}},"f:labels":{".":{},"f:existing-label-key":{}}},"f:type":{}}`)).To(BeEmpty())
+			oldCharactersAroundMismatchToInclude := format.CharactersAroundMismatchToInclude
+			format.CharactersAroundMismatchToInclude = 10
+			Expect(ctest.FirstManagedFieldForManager(secret.ObjectMeta, ExternalSecretFQDN)).To(
+				Equal(fmt.Sprintf(`{"f:data":{"f:targetProperty":{}},"f:metadata":{"f:annotations":{"f:es-annotation-key":{},"f:%s":{}},"f:labels":{"f:es-label-key":{},"f:%s":{}}}}`, esv1beta1.AnnotationDataHash, esv1beta1.LabelManaged)),
+			)
+			Expect(ctest.FirstManagedFieldForManager(secret.ObjectMeta, FakeManager)).To(
+				Equal(`{"f:data":{".":{},"f:pre-existing-key":{}},"f:metadata":{"f:annotations":{".":{},"f:existing-annotation-key":{}},"f:labels":{".":{},"f:existing-label-key":{}}},"f:type":{}}`),
+			)
+			format.CharactersAroundMismatchToInclude = oldCharactersAroundMismatchToInclude
+		}
+	}
+
+	mergeWithSecretUpdate := func(tc *testCase) {
+		const secretVal = "someValue"
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1beta1.CreatePolicyMerge
+		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Hour}
+
+		Expect(k8sClient.Create(context.Background(), &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ExternalSecretTargetSecretName,
+				Namespace: ExternalSecretNamespace,
+			},
+			Data: map[string][]byte{
+				existingKey: []byte(existingVal),
+			},
+		}, client.FieldOwner(FakeManager))).To(Succeed())
+
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// Overwrite the secret value to check if the change kicks reconciliation and overwrites it again
+			Expect(k8sClient.Update(context.Background(), &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ExternalSecretTargetSecretName,
+					Namespace: ExternalSecretNamespace,
+				},
+				Data: map[string][]byte{
+					existingKey: []byte("differentValue"),
+				},
+			}, client.FieldOwner(FakeManager))).To(Succeed())
+
+			Expect(string(secret.Data[existingKey])).To(Equal(existingVal))
+			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
 		}
 	}
 
@@ -514,8 +552,18 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
 		tc.checkCondition = func(es *esv1beta1.ExternalSecret) bool {
-			cond := GetExternalSecretCondition(es.Status, esv1beta1.ExternalSecretReady)
-			if cond == nil || cond.Status != v1.ConditionFalse || cond.Reason != esv1beta1.ConditionReasonSecretSyncedError {
+			expected := []esv1beta1.ExternalSecretStatusCondition{
+				{
+					Type:    esv1beta1.ExternalSecretReady,
+					Status:  v1.ConditionTrue,
+					Reason:  esv1beta1.ConditionReasonSecretMissing,
+					Message: msgMissing,
+				},
+			}
+
+			opts := cmpopts.IgnoreFields(esv1beta1.ExternalSecretStatusCondition{}, "LastTransitionTime")
+			if diff := cmp.Diff(expected, es.Status.Conditions, opts); diff != "" {
+				GinkgoLogr.Info("(-got, +want)\n%s", "diff", diff)
 				return false
 			}
 			return true
@@ -524,10 +572,10 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Eventually(func() bool {
 				Expect(testSyncCallsError.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
 				Expect(testExternalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
-				return metric.GetCounter().GetValue() >= 2.0 && metricDuration.GetGauge().GetValue() > 0.0
+				return metric.GetCounter().GetValue() == 0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
-			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 1.0)).To(BeTrue())
-			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionTrue, 0.0)).To(BeTrue())
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionFalse, 0.0)).To(BeTrue())
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1beta1.ExternalSecretReady, v1.ConditionTrue, 1.0)).To(BeTrue())
 		}
 	}
 
@@ -557,11 +605,12 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			// check owner/managedFields
 			Expect(ctest.HasOwnerRef(secret.ObjectMeta, "ExternalSecret", ExternalSecretFQDN)).To(BeFalse())
 			Expect(secret.ObjectMeta.ManagedFields).To(HaveLen(2))
-			Expect(ctest.HasFieldOwnership(
-				secret.ObjectMeta,
-				ExternalSecretFQDN,
-				fmt.Sprintf("{\"f:data\":{\"f:targetProperty\":{}},\"f:immutable\":{},\"f:metadata\":{\"f:annotations\":{\"f:%s\":{}}}}", esv1beta1.AnnotationDataHash)),
-			).To(BeEmpty())
+			oldCharactersAroundMismatchToInclude := format.CharactersAroundMismatchToInclude
+			format.CharactersAroundMismatchToInclude = 10
+			Expect(ctest.FirstManagedFieldForManager(secret.ObjectMeta, ExternalSecretFQDN)).To(
+				Equal(fmt.Sprintf(`{"f:data":{"f:targetProperty":{}},"f:metadata":{"f:annotations":{".":{},"f:%s":{}},"f:labels":{".":{},"f:%s":{}}}}`, esv1beta1.AnnotationDataHash, esv1beta1.LabelManaged)),
+			)
+			format.CharactersAroundMismatchToInclude = oldCharactersAroundMismatchToInclude
 		}
 	}
 
@@ -590,6 +639,45 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 					GeneratorRef: &esv1beta1.GeneratorRef{
 						APIVersion: genv1alpha1.Group + "/" + genv1alpha1.Version,
 						Kind:       "Fake",
+						Name:       "mytestfake",
+					},
+				},
+			},
+		}
+
+		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
+			// check values
+			Expect(string(secret.Data[secretKey])).To(Equal(secretVal))
+		}
+	}
+	syncWithClusterGeneratorRef := func(tc *testCase) {
+		const secretKey = "somekey2"
+		const secretVal = "someValue2"
+		Expect(k8sClient.Create(context.Background(), &genv1alpha1.ClusterGenerator{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "mytestfake",
+			},
+			Spec: genv1alpha1.ClusterGeneratorSpec{
+				Kind: "Fake",
+				Generator: genv1alpha1.GeneratorSpec{
+					FakeSpec: &genv1alpha1.FakeSpec{
+						Data: map[string]string{
+							secretKey: secretVal,
+						},
+					},
+				},
+			},
+		})).To(Succeed())
+
+		// reset secretStoreRef
+		tc.externalSecret.Spec.SecretStoreRef = esv1beta1.SecretStoreRef{}
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
+			{
+				SourceRef: &esv1beta1.StoreGeneratorSourceRef{
+					GeneratorRef: &esv1beta1.GeneratorRef{
+						APIVersion: genv1alpha1.Group + "/" + genv1alpha1.Version,
+						Kind:       "ClusterGenerator",
 						Name:       "mytestfake",
 					},
 				},
@@ -1360,7 +1448,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 					Type:    esv1beta1.ExternalSecretReady,
 					Status:  v1.ConditionTrue,
 					Reason:  esv1beta1.ConditionReasonSecretSynced,
-					Message: "Secret was synced",
+					Message: msgSyncedRetain,
 				},
 			}
 
@@ -1691,7 +1779,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	// a error condition must be set.
 	providerErrCondition := func(tc *testCase) {
 		const secretVal = "foobar"
-		fakeProvider.WithGetSecret(nil, fmt.Errorf("boom"))
+		fakeProvider.WithGetSecret(nil, errors.New("boom"))
 		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Millisecond * 100}
 		tc.checkCondition = func(es *esv1beta1.ExternalSecret) bool {
 			cond := GetExternalSecretCondition(es.Status, esv1beta1.ExternalSecretReady)
@@ -1754,7 +1842,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	storeConstructErrCondition := func(tc *testCase) {
 		fakeProvider.WithNew(func(context.Context, esv1beta1.GenericStore, client.Client,
 			string) (esv1beta1.SecretsClient, error) {
-			return nil, fmt.Errorf("artificial constructor error")
+			return nil, errors.New("artificial constructor error")
 		})
 		tc.checkCondition = func(es *esv1beta1.ExternalSecret) bool {
 			// condition must be false
@@ -1807,7 +1895,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			&Reconciler{
 				ClusterSecretStoreEnabled: false,
 			},
-			*tc.externalSecret,
+			tc.externalSecret,
 		)).To(BeTrue())
 
 		tc.checkCondition = func(es *esv1beta1.ExternalSecret) bool {
@@ -2226,10 +2314,12 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		Entry("should removed outdated labels and annotations", removeOutdatedLabelsAnnotations),
 		Entry("should set prometheus counters", checkPrometheusCounters),
 		Entry("should merge with existing secret using creationPolicy=Merge", mergeWithSecret),
+		Entry("should kick reconciliation when secret changes using creationPolicy=Merge", mergeWithSecretUpdate),
 		Entry("should error if secret doesn't exist when using creationPolicy=Merge", mergeWithSecretErr),
 		Entry("should not resolve conflicts with creationPolicy=Merge", mergeWithConflict),
 		Entry("should not update unchanged secret using creationPolicy=Merge", mergeWithSecretNoChange),
 		Entry("should not delete pre-existing secret with creationPolicy=Orphan", createSecretPolicyOrphan),
+		Entry("should sync cluster generator ref", syncWithClusterGeneratorRef),
 		Entry("should sync with generatorRef", syncWithGeneratorRef),
 		Entry("should not process generatorRef with mismatching controller field", ignoreMismatchControllerForGeneratorRef),
 		Entry("should sync with multiple secret stores via sourceRef", syncWithMultipleSecretStores),
@@ -2280,14 +2370,17 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 var _ = Describe("ExternalSecret refresh logic", func() {
 	Context("secret refresh", func() {
 		It("should refresh when resource version does not match", func() {
-			Expect(shouldRefresh(esv1beta1.ExternalSecret{
+			Expect(shouldRefresh(&esv1beta1.ExternalSecret{
+				Spec: esv1beta1.ExternalSecretSpec{
+					RefreshInterval: &metav1.Duration{Duration: time.Minute},
+				},
 				Status: esv1beta1.ExternalSecretStatus{
 					SyncedResourceVersion: "some resource version",
 				},
 			})).To(BeTrue())
 		})
 		It("should refresh when labels change", func() {
-			es := esv1beta1.ExternalSecret{
+			es := &esv1beta1.ExternalSecret{
 				ObjectMeta: metav1.ObjectMeta{
 					Generation: 1,
 					Labels: map[string]string{
@@ -2311,7 +2404,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 		})
 
 		It("should refresh when annotations change", func() {
-			es := esv1beta1.ExternalSecret{
+			es := &esv1beta1.ExternalSecret{
 				ObjectMeta: metav1.ObjectMeta{
 					Generation: 1,
 					Annotations: map[string]string{
@@ -2335,12 +2428,12 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 		})
 
 		It("should refresh when generation has changed", func() {
-			es := esv1beta1.ExternalSecret{
+			es := &esv1beta1.ExternalSecret{
 				ObjectMeta: metav1.ObjectMeta{
 					Generation: 1,
 				},
 				Spec: esv1beta1.ExternalSecretSpec{
-					RefreshInterval: &metav1.Duration{Duration: 0},
+					RefreshInterval: &metav1.Duration{Duration: time.Minute},
 				},
 				Status: esv1beta1.ExternalSecretStatus{
 					RefreshTime: metav1.Now(),
@@ -2355,7 +2448,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 		})
 
 		It("should skip refresh when refreshInterval is 0", func() {
-			es := esv1beta1.ExternalSecret{
+			es := &esv1beta1.ExternalSecret{
 				ObjectMeta: metav1.ObjectMeta{
 					Generation: 1,
 				},
@@ -2370,7 +2463,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 		})
 
 		It("should refresh when refresh interval has passed", func() {
-			es := esv1beta1.ExternalSecret{
+			es := &esv1beta1.ExternalSecret{
 				ObjectMeta: metav1.ObjectMeta{
 					Generation: 1,
 				},
@@ -2387,7 +2480,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 		})
 
 		It("should refresh when no refresh time was set", func() {
-			es := esv1beta1.ExternalSecret{
+			es := &esv1beta1.ExternalSecret{
 				ObjectMeta: metav1.ObjectMeta{
 					Generation: 1,
 				},
@@ -2463,43 +2556,6 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 				},
 			})
 			Expect(h1).To(Equal(h2))
-		})
-	})
-})
-
-var _ = Describe("Controller Reconcile logic", func() {
-	Context("controller reconcile", func() {
-		It("should reconcile when resource is not synced", func() {
-			Expect(shouldReconcile(esv1beta1.ExternalSecret{
-				Status: esv1beta1.ExternalSecretStatus{
-					SyncedResourceVersion: "some resource version",
-					Conditions:            []esv1beta1.ExternalSecretStatusCondition{{Reason: "NotASecretSynced"}},
-				},
-			})).To(BeTrue())
-		})
-
-		It("should reconcile when secret isn't immutable", func() {
-			Expect(shouldReconcile(esv1beta1.ExternalSecret{
-				Spec: esv1beta1.ExternalSecretSpec{
-					Target: esv1beta1.ExternalSecretTarget{
-						Immutable: false,
-					},
-				},
-			})).To(BeTrue())
-		})
-
-		It("should not reconcile if secret is immutable and has synced condition", func() {
-			Expect(shouldReconcile(esv1beta1.ExternalSecret{
-				Spec: esv1beta1.ExternalSecretSpec{
-					Target: esv1beta1.ExternalSecretTarget{
-						Immutable: true,
-					},
-				},
-				Status: esv1beta1.ExternalSecretStatus{
-					SyncedResourceVersion: "some resource version",
-					Conditions:            []esv1beta1.ExternalSecretStatusCondition{{Reason: "SecretSynced"}},
-				},
-			})).To(BeFalse())
 		})
 	})
 })

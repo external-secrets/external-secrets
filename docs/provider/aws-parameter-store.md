@@ -21,6 +21,8 @@ way users of the `SecretStore` can only access the secrets necessary.
 
 ### IAM Policy
 
+#### Fetching Parameters
+
 The example policy below shows the minimum required permissions for fetching SSM parameters. This policy permits pinning down access to secrets with a path matching `dev-*`. Other operations may require additional permission. For example, finding parameters based on tags will also require `ssm:DescribeParameters` and `tag:GetResources` permission with `"Resource": "*"`. Generally, the specific permission required will be logged as an error if an operation fails.
 
 For further information see [AWS Documentation](https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html).
@@ -40,11 +42,29 @@ For further information see [AWS Documentation](https://docs.aws.amazon.com/syst
 }
 ```
 
+#### Pushing Parameters
+
+The example policy below shows the minimum required permissions for pushing SSM parameters. Like with the fetching policy it restricts the path in which it can push secrets too.
+
+``` json
+{
+    "Action": [
+        "ssm:GetParameter*",
+        "ssm:PutParameter*",
+        "ssm:AddTagsToResource",
+        "ssm:ListTagsForResource"
+    ],
+    "Effect": "Allow",
+    "Resource": "arn:aws:ssm:us-east-2:1234567889911:parameter/dev-*"
+}
+```
+
 ### JSON Secret Values
 
 You can store JSON objects in a parameter. You can access nested values or arrays using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md):
 
 Consider the following JSON object that is stored in the Parameter Store key `friendslist`:
+
 ``` json
 {
   "name": {"first": "Tom", "last": "Anderson"},
@@ -57,6 +77,7 @@ Consider the following JSON object that is stored in the Parameter Store key `fr
 ```
 
 This is an example on how you would look up nested keys in the above json object:
+
 ``` yaml
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
@@ -87,6 +108,7 @@ spec:
       key: database-credentials
       property: dev
 ```
+
 ### Parameter Versions
 
 ParameterStore creates a new version of a parameter every time it is updated with a new value. The parameter can be referenced via the `version` property
@@ -100,6 +122,18 @@ The SetSecret method for the Parameter Store allows the user to set the value st
 ```yaml
 {% include "full-pushsecret.yaml" %}
 ```
+
+#### Additional Metadata for PushSecret
+
+Optionally, it is possible to configure additional options for the parameter such as `Type` and encryption Key. To control this behaviour you can set the following provider's `metadata`:
+
+```yaml
+{% include 'aws-pm-push-secret-with-metadata.yaml' %}
+```
+
+`parameterStoreType` takes three options. `String`, `StringList`, and `SecureString`, where `String` is the _default_.
+
+`parameterStoreKeyID` takes a KMS Key `$ID` or `$ARN` (in case a key source is created in another account) as a string, where `alias/aws/ssm` is the _default_. This property is only used if `parameterStoreType` is set as `SecureString`.
 
 #### Check successful secret sync
 

@@ -21,9 +21,17 @@ rules:
     resources:
     - "validatingwebhookconfigurations"
     verbs:
-    - "get"
     - "list"
     - "watch"
+    - "get"
+  - apiGroups:
+    - "admissionregistration.k8s.io"
+    resources:
+    - "validatingwebhookconfigurations"
+    resourceNames:
+    - "secretstore-validate"
+    - "externalsecret-validate"
+    verbs:
     - "update"
     - "patch"
   - apiGroups:

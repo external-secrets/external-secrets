@@ -15,10 +15,13 @@ limitations under the License.
 package github
 
 import (
+	"bytes"
 	"context"
 	"crypto/rsa"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -36,11 +39,13 @@ type Generator struct {
 }
 
 type Github struct {
-	HTTP       *http.Client
-	Kube       client.Client
-	Namespace  string
-	URL        string
-	InstallTkn string
+	HTTP         *http.Client
+	Kube         client.Client
+	Namespace    string
+	URL          string
+	InstallTkn   string
+	Repositories []string
+	Permissions  map[string]string
 }
 
 const (
@@ -70,7 +75,7 @@ func (g *Generator) generate(
 	kube client.Client,
 	namespace string) (map[string][]byte, error) {
 	if jsonSpec == nil {
-		return nil, fmt.Errorf(errNoSpec)
+		return nil, errors.New(errNoSpec)
 	}
 	ctx, cancel := context.WithTimeout(ctx, contextTimeout)
 	defer cancel()
@@ -79,8 +84,27 @@ func (g *Generator) generate(
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
+
+	payload := make(map[string]interface{})
+	if gh.Permissions != nil {
+		payload["permissions"] = gh.Permissions
+	}
+	if len(gh.Repositories) > 0 {
+		payload["repositories"] = gh.Repositories
+	}
+
+	var body io.Reader = http.NoBody
+	if len(payload) > 0 {
+		bodyBytes, err := json.Marshal(payload)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling payload: %w", err)
+		}
+
+		body = bytes.NewReader(bodyBytes)
+	}
+
 	// Github api expects POST request
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, gh.URL, http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, gh.URL, body)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %w", err)
 	}
@@ -101,7 +125,7 @@ func (g *Generator) generate(
 
 	accessToken, ok := gat["token"].(string)
 	if !ok {
-		return nil, fmt.Errorf("token isn't a string or token key doesn't exist")
+		return nil, errors.New("token isn't a string or token key doesn't exist")
 	}
 	return map[string][]byte{
 		defaultLoginUsername: []byte(accessToken),
@@ -119,7 +143,13 @@ func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client
 	if err != nil {
 		return nil, fmt.Errorf(errParseSpec, err)
 	}
-	gh := &Github{Kube: k, Namespace: n, HTTP: hc}
+	gh := &Github{
+		Kube:         k,
+		Namespace:    n,
+		HTTP:         hc,
+		Repositories: res.Spec.Repositories,
+		Permissions:  res.Spec.Permissions,
+	}
 
 	ghPath := fmt.Sprintf("/app/installations/%s/access_tokens", res.Spec.InstallID)
 	gh.URL = defaultGithubAPI + ghPath
@@ -127,11 +157,11 @@ func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client
 		gh.URL = res.Spec.URL + ghPath
 	}
 	secret := &corev1.Secret{}
-	if err := gh.Kube.Get(ctx, client.ObjectKey{Name: res.Spec.Auth.PrivatKey.SecretRef.Name, Namespace: n}, secret); err != nil {
+	if err := gh.Kube.Get(ctx, client.ObjectKey{Name: res.Spec.Auth.PrivateKey.SecretRef.Name, Namespace: n}, secret); err != nil {
 		return nil, fmt.Errorf("error getting GH pem from secret:%w", err)
 	}
 
-	pk, err := jwt.ParseRSAPrivateKeyFromPEM(secret.Data[res.Spec.Auth.PrivatKey.SecretRef.Key])
+	pk, err := jwt.ParseRSAPrivateKeyFromPEM(secret.Data[res.Spec.Auth.PrivateKey.SecretRef.Key])
 	if err != nil {
 		return nil, fmt.Errorf("error parsing RSA private key: %w", err)
 	}

@@ -17,7 +17,7 @@ package webhookconfig
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
+	"errors"
 	"net/http"
 	"strings"
 	"sync"
@@ -33,6 +33,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+
+	"github.com/external-secrets/external-secrets/pkg/constants"
 )
 
 type Reconciler struct {
@@ -75,9 +77,6 @@ func New(k8sClient client.Client, scheme *runtime.Scheme, leaderChan <-chan stru
 }
 
 const (
-	wellKnownLabelKey   = "external-secrets.io/component"
-	wellKnownLabelValue = "webhook"
-
 	ReasonUpdateFailed   = "UpdateFailed"
 	errWebhookNotReady   = "webhook not ready"
 	errSubsetsNotReady   = "subsets not ready"
@@ -98,8 +97,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	if cfg.Labels[wellKnownLabelKey] != wellKnownLabelValue {
-		log.Info("ignoring webhook due to missing labels", wellKnownLabelKey, wellKnownLabelValue)
+	if cfg.Labels[constants.WellKnownLabelKey] != constants.WellKnownLabelValueWebhook {
+		log.Info("ignoring webhook due to missing labels", constants.WellKnownLabelKey, constants.WellKnownLabelValueWebhook)
 		return ctrl.Result{}, nil
 	}
 
@@ -146,7 +145,7 @@ func (r *Reconciler) ReadyCheck(_ *http.Request) error {
 	r.webhookReadyMu.Lock()
 	defer r.webhookReadyMu.Unlock()
 	if !r.webhookReady {
-		return fmt.Errorf(errWebhookNotReady)
+		return errors.New(errWebhookNotReady)
 	}
 	var eps v1.Endpoints
 	err := r.Get(context.TODO(), types.NamespacedName{
@@ -157,10 +156,10 @@ func (r *Reconciler) ReadyCheck(_ *http.Request) error {
 		return err
 	}
 	if len(eps.Subsets) == 0 {
-		return fmt.Errorf(errSubsetsNotReady)
+		return errors.New(errSubsetsNotReady)
 	}
 	if len(eps.Subsets[0].Addresses) == 0 {
-		return fmt.Errorf(errAddressesNotReady)
+		return errors.New(errAddressesNotReady)
 	}
 	return nil
 }
@@ -179,7 +178,7 @@ func (r *Reconciler) updateConfig(ctx context.Context, cfg *admissionregistratio
 
 	crt, ok := secret.Data[caCertName]
 	if !ok {
-		return fmt.Errorf(errCACertNotReady)
+		return errors.New(errCACertNotReady)
 	}
 	if err := r.inject(cfg, r.SvcName, r.SvcNamespace, crt); err != nil {
 		return err

@@ -16,8 +16,8 @@ package conjur
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/cyberark/conjur-api-go/conjurapi"
 	"github.com/cyberark/conjur-api-go/conjurapi/authn"
@@ -26,24 +26,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/conjur/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 var (
-	errConjurClient     = "cannot setup new Conjur client: %w"
-	errBadCertBundle    = "caBundle failed to base64 decode: %w"
-	errBadServiceUser   = "could not get Auth.Apikey.UserRef: %w"
-	errBadServiceAPIKey = "could not get Auth.Apikey.ApiKeyRef: %w"
-
+	errConjurClient          = "cannot setup new Conjur client: %w"
+	errBadServiceUser        = "could not get Auth.Apikey.UserRef: %w"
+	errBadServiceAPIKey      = "could not get Auth.Apikey.ApiKeyRef: %w"
 	errGetKubeSATokenRequest = "cannot request Kubernetes service account token for service account %q: %w"
-
-	errUnableToFetchCAProviderCM     = "unable to fetch Server.CAProvider ConfigMap: %w"
-	errUnableToFetchCAProviderSecret = "unable to fetch Server.CAProvider Secret: %w"
-
-	errSecretKeyFmt = "cannot find secret data for key: %q"
+	errSecretKeyFmt          = "cannot find secret data for key: %q"
 )
 
 // Client is a provider for Conjur.
@@ -68,62 +61,29 @@ func (c *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 		return nil, err
 	}
 
-	cert, getCertErr := c.getCA(ctx, prov)
+	cert, getCertErr := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
+		CABundle:   []byte(prov.CABundle),
+		CAProvider: prov.CAProvider,
+		StoreKind:  c.store.GetKind(),
+		Namespace:  c.namespace,
+		Client:     c.kube,
+	})
 	if getCertErr != nil {
 		return nil, getCertErr
 	}
 
 	config := conjurapi.Config{
 		ApplianceURL: prov.URL,
-		SSLCert:      cert,
+		SSLCert:      string(cert),
 	}
 
 	if prov.Auth.APIKey != nil {
-		config.Account = prov.Auth.APIKey.Account
-		conjUser, secErr := resolvers.SecretKeyRef(
-			ctx,
-			c.kube,
-			c.StoreKind,
-			c.namespace, prov.Auth.APIKey.UserRef)
-		if secErr != nil {
-			return nil, fmt.Errorf(errBadServiceUser, secErr)
-		}
-		conjAPIKey, secErr := resolvers.SecretKeyRef(
-			ctx,
-			c.kube,
-			c.StoreKind,
-			c.namespace,
-			prov.Auth.APIKey.APIKeyRef)
-		if secErr != nil {
-			return nil, fmt.Errorf(errBadServiceAPIKey, secErr)
-		}
-
-		conjur, newClientFromKeyError := c.clientAPI.NewClientFromKey(config,
-			authn.LoginPair{
-				Login:  conjUser,
-				APIKey: conjAPIKey,
-			},
-		)
-
-		if newClientFromKeyError != nil {
-			return nil, fmt.Errorf(errConjurClient, newClientFromKeyError)
-		}
-		c.client = conjur
-		return conjur, nil
+		return c.conjurClientFromAPIKey(ctx, config, prov)
 	} else if prov.Auth.Jwt != nil {
-		config.Account = prov.Auth.Jwt.Account
-
-		conjur, clientFromJwtError := c.newClientFromJwt(ctx, config, prov.Auth.Jwt)
-		if clientFromJwtError != nil {
-			return nil, fmt.Errorf(errConjurClient, clientFromJwtError)
-		}
-
-		c.client = conjur
-
-		return conjur, nil
+		return c.conjurClientFromJWT(ctx, config, prov)
 	} else {
 		// Should not happen because validate func should catch this
-		return nil, fmt.Errorf("no authentication method provided")
+		return nil, errors.New("no authentication method provided")
 	}
 }
 
@@ -139,7 +99,7 @@ func (c *Client) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef
 }
 
 func (c *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf("not implemented")
+	return false, errors.New("not implemented")
 }
 
 // Validate validates the provider.
@@ -152,68 +112,58 @@ func (c *Client) Close(_ context.Context) error {
 	return nil
 }
 
-// configMapKeyRef returns the value of a key in a ConfigMap.
-func (c *Client) configMapKeyRef(ctx context.Context, cmRef *esmeta.SecretKeySelector) (string, error) {
-	configMap := &corev1.ConfigMap{}
-	ref := client.ObjectKey{
-		Namespace: c.namespace,
-		Name:      cmRef.Name,
+func (c *Client) conjurClientFromAPIKey(ctx context.Context, config conjurapi.Config, prov *esv1beta1.ConjurProvider) (SecretsClient, error) {
+	config.Account = prov.Auth.APIKey.Account
+	conjUser, secErr := resolvers.SecretKeyRef(
+		ctx,
+		c.kube,
+		c.StoreKind,
+		c.namespace, prov.Auth.APIKey.UserRef)
+	if secErr != nil {
+		return nil, fmt.Errorf(errBadServiceUser, secErr)
 	}
-	if (c.StoreKind == esv1beta1.ClusterSecretStoreKind) &&
-		(cmRef.Namespace != nil) {
-		ref.Namespace = *cmRef.Namespace
-	}
-	err := c.kube.Get(ctx, ref, configMap)
-	if err != nil {
-		return "", err
+	conjAPIKey, secErr := resolvers.SecretKeyRef(
+		ctx,
+		c.kube,
+		c.StoreKind,
+		c.namespace,
+		prov.Auth.APIKey.APIKeyRef)
+	if secErr != nil {
+		return nil, fmt.Errorf(errBadServiceAPIKey, secErr)
 	}
 
-	keyBytes, ok := configMap.Data[cmRef.Key]
-	if !ok {
-		return "", err
-	}
+	conjur, newClientFromKeyError := c.clientAPI.NewClientFromKey(config,
+		authn.LoginPair{
+			Login:  conjUser,
+			APIKey: conjAPIKey,
+		},
+	)
 
-	valueStr := strings.TrimSpace(keyBytes)
-	return valueStr, nil
+	if newClientFromKeyError != nil {
+		return nil, fmt.Errorf(errConjurClient, newClientFromKeyError)
+	}
+	c.client = conjur
+	return conjur, nil
 }
 
-// getCA try retrieve the CA bundle from the provider CABundle or from the CAProvider.
-func (c *Client) getCA(ctx context.Context, provider *esv1beta1.ConjurProvider) (string, error) {
-	if provider.CAProvider != nil {
-		var ca string
-		var err error
-		switch provider.CAProvider.Type {
-		case esv1beta1.CAProviderTypeConfigMap:
-			keySelector := esmeta.SecretKeySelector{
-				Name:      provider.CAProvider.Name,
-				Namespace: provider.CAProvider.Namespace,
-				Key:       provider.CAProvider.Key,
-			}
-			ca, err = c.configMapKeyRef(ctx, &keySelector)
-			if err != nil {
-				return "", fmt.Errorf(errUnableToFetchCAProviderCM, err)
-			}
-		case esv1beta1.CAProviderTypeSecret:
-			keySelector := esmeta.SecretKeySelector{
-				Name:      provider.CAProvider.Name,
-				Namespace: provider.CAProvider.Namespace,
-				Key:       provider.CAProvider.Key,
-			}
-			ca, err = resolvers.SecretKeyRef(
-				ctx,
-				c.kube,
-				c.StoreKind,
-				c.namespace,
-				&keySelector)
-			if err != nil {
-				return "", fmt.Errorf(errUnableToFetchCAProviderSecret, err)
-			}
-		}
-		return ca, nil
+func (c *Client) conjurClientFromJWT(ctx context.Context, config conjurapi.Config, prov *esv1beta1.ConjurProvider) (SecretsClient, error) {
+	config.AuthnType = "jwt"
+	config.Account = prov.Auth.Jwt.Account
+	config.JWTHostID = prov.Auth.Jwt.HostID
+	config.ServiceID = prov.Auth.Jwt.ServiceID
+
+	jwtToken, getJWTError := c.getJWTToken(ctx, prov.Auth.Jwt)
+	if getJWTError != nil {
+		return nil, getJWTError
 	}
-	certBytes, decodeErr := utils.Decode(esv1beta1.ExternalSecretDecodeBase64, []byte(provider.CABundle))
-	if decodeErr != nil {
-		return "", fmt.Errorf(errBadCertBundle, decodeErr)
+
+	config.JWTContent = jwtToken
+
+	conjur, clientError := c.clientAPI.NewClientFromJWT(config)
+	if clientError != nil {
+		return nil, fmt.Errorf(errConjurClient, clientError)
 	}
-	return string(certBytes), nil
+
+	c.client = conjur
+	return conjur, nil
 }
