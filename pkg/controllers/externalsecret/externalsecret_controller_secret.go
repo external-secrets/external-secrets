@@ -150,7 +150,6 @@ func (r *Reconciler) handleGenerateSecrets(ctx context.Context, namespace string
 	return secretMap, err
 }
 
-//nolint:dupl
 func (r *Reconciler) handleExtractSecrets(ctx context.Context, externalSecret *esv1beta1.ExternalSecret, remoteRef esv1beta1.ExternalSecretDataFromRemoteRef, cmgr *secretstore.Manager) (map[string][]byte, error) {
 	client, err := cmgr.Get(ctx, externalSecret.Spec.SecretStoreRef, externalSecret.Namespace, remoteRef.SourceRef)
 	if err != nil {
@@ -190,7 +189,6 @@ func (r *Reconciler) handleExtractSecrets(ctx context.Context, externalSecret *e
 	return secretMap, err
 }
 
-//nolint:dupl
 func (r *Reconciler) handleFindAllSecrets(ctx context.Context, externalSecret *esv1beta1.ExternalSecret, remoteRef esv1beta1.ExternalSecretDataFromRemoteRef, cmgr *secretstore.Manager) (map[string][]byte, error) {
 	client, err := cmgr.Get(ctx, externalSecret.Spec.SecretStoreRef, externalSecret.Namespace, remoteRef.SourceRef)
 	if err != nil {
@@ -200,7 +198,7 @@ func (r *Reconciler) handleFindAllSecrets(ctx context.Context, externalSecret *e
 	// get all secrets from the store that match the selector
 	secretMap, err := client.GetAllSecrets(ctx, *remoteRef.Find)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting all secrets: %w", err)
 	}
 
 	// rewrite the keys if needed

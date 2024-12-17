@@ -290,8 +290,8 @@ func init() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	rootCmd.Flags().IntVar(&concurrent, "concurrent", 1, "The number of concurrent reconciles.")
-	rootCmd.Flags().Float32Var(&clientQPS, "client-qps", 0, "QPS configuration to be passed to rest.Client")
-	rootCmd.Flags().IntVar(&clientBurst, "client-burst", 0, "Maximum Burst allowed to be passed to rest.Client")
+	rootCmd.Flags().Float32Var(&clientQPS, "client-qps", 50, "QPS configuration to be passed to rest.Client")
+	rootCmd.Flags().IntVar(&clientBurst, "client-burst", 100, "Maximum Burst allowed to be passed to rest.Client")
 	rootCmd.Flags().StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
 	rootCmd.Flags().StringVar(&zapTimeEncoding, "zap-time-encoding", "epoch", "Zap time encoding (one of 'epoch', 'millis', 'nano', 'iso8601', 'rfc3339' or 'rfc3339nano')")
 	rootCmd.Flags().StringVar(&namespace, "namespace", "", "watch external secrets scoped in the provided namespace only. ClusterSecretStore can be used but only work if it doesn't reference resources from other namespaces")

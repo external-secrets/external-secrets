@@ -4,7 +4,7 @@ title: External Secrets CRD promotion
 version: v1beta1
 authors: all of us
 creation-date: 2022-feb-08
-status: approved
+status: implemented
 ---
 ```
 

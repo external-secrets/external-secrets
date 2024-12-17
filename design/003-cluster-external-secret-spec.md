@@ -4,7 +4,7 @@ title: Adding Cluster External Secrets
 version: v1alpha1
 authors: Daniel "ADustyOldMuffin" Hix
 creation-date: 2020-09-01
-status: draft
+status: implemented
 ---
 ```
 
