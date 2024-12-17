@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets-e2e
 
-go 1.23.1
+go 1.23.4
 
 replace (
 	github.com/Masterminds/sprig/v3 => github.com/external-secrets/sprig/v3 v3.3.0
@@ -60,7 +60,7 @@ require (
 	github.com/onsi/gomega v1.35.1
 	github.com/oracle/oci-go-sdk/v65 v65.80.0
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.30
-	github.com/xanzy/go-gitlab v0.115.0
+	gitlab.com/gitlab-org/api/client-go v0.117.0
 	golang.org/x/oauth2 v0.24.0
 	google.golang.org/api v0.211.0
 	k8s.io/api v0.32.0
@@ -205,7 +205,7 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20241209162323-e6fa225c2576 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241209162323-e6fa225c2576 // indirect
 	google.golang.org/grpc v1.69.0 // indirect
-	google.golang.org/protobuf v1.35.2 // indirect
+	google.golang.org/protobuf v1.36.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

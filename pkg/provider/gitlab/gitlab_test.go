@@ -26,8 +26,8 @@ import (
 
 	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
-	"github.com/xanzy/go-gitlab"
 	"github.com/yandex-cloud/go-sdk/iamkey"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
