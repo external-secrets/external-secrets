@@ -113,55 +113,11 @@ func (sm *SecretsManager) fetch(ctx context.Context, ref esv1beta1.ExternalSecre
 		return secretOut, nil
 	}
 
-	var secretOut *awssm.GetSecretValueOutput
-	var err error
-
-	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
-		describeSecretInput := &awssm.DescribeSecretInput{
-			SecretId: &ref.Key,
-		}
-
-		descOutput, err := sm.client.DescribeSecretWithContext(ctx, describeSecretInput)
-		if err != nil {
-			return nil, err
-		}
-		log.Info("found metadata secret", "key", ref.Key, "output", descOutput)
-
-		jsonTags, err := util.SecretTagsToJSONString(descOutput.Tags)
-		if err != nil {
-			return nil, err
-		}
-		secretOut = &awssm.GetSecretValueOutput{
-			ARN:          descOutput.ARN,
-			CreatedDate:  descOutput.CreatedDate,
-			Name:         descOutput.Name,
-			SecretString: &jsonTags,
-			VersionId:    &ver,
-		}
-	} else {
-		var getSecretValueInput *awssm.GetSecretValueInput
-		if strings.HasPrefix(ver, "uuid/") {
-			versionID := strings.TrimPrefix(ver, "uuid/")
-			getSecretValueInput = &awssm.GetSecretValueInput{
-				SecretId:  &ref.Key,
-				VersionId: &versionID,
-			}
-		} else {
-			getSecretValueInput = &awssm.GetSecretValueInput{
-				SecretId:     &ref.Key,
-				VersionStage: &ver,
-			}
-		}
-		secretOut, err = sm.client.GetSecretValue(getSecretValueInput)
-		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
-		var nf *awssm.ResourceNotFoundException
-		if errors.As(err, &nf) {
-			return nil, esv1beta1.NoSecretErr
-		}
-		if err != nil {
-			return nil, err
-		}
+	secretOut, err := sm.constructSecretValue(ctx, ref, ver)
+	if err != nil {
+		return nil, err
 	}
+
 	sm.cache[cacheKey] = secretOut
 
 	return secretOut, nil
@@ -633,4 +589,52 @@ func (sm *SecretsManager) setSecretValues(secret *awssm.SecretValueEntry, data m
 	if secret.SecretBinary != nil {
 		data[*secret.Name] = secret.SecretBinary
 	}
+}
+
+func (sm *SecretsManager) constructSecretValue(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef, ver string) (*awssm.GetSecretValueOutput, error) {
+	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
+		describeSecretInput := &awssm.DescribeSecretInput{
+			SecretId: &ref.Key,
+		}
+
+		descOutput, err := sm.client.DescribeSecretWithContext(ctx, describeSecretInput)
+		if err != nil {
+			return nil, err
+		}
+		log.Info("found metadata secret", "key", ref.Key, "output", descOutput)
+
+		jsonTags, err := util.SecretTagsToJSONString(descOutput.Tags)
+		if err != nil {
+			return nil, err
+		}
+		return &awssm.GetSecretValueOutput{
+			ARN:          descOutput.ARN,
+			CreatedDate:  descOutput.CreatedDate,
+			Name:         descOutput.Name,
+			SecretString: &jsonTags,
+			VersionId:    &ver,
+		}, nil
+	}
+
+	var getSecretValueInput *awssm.GetSecretValueInput
+	if strings.HasPrefix(ver, "uuid/") {
+		versionID := strings.TrimPrefix(ver, "uuid/")
+		getSecretValueInput = &awssm.GetSecretValueInput{
+			SecretId:  &ref.Key,
+			VersionId: &versionID,
+		}
+	} else {
+		getSecretValueInput = &awssm.GetSecretValueInput{
+			SecretId:     &ref.Key,
+			VersionStage: &ver,
+		}
+	}
+	secretOut, err := sm.client.GetSecretValue(getSecretValueInput)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
+	var nf *awssm.ResourceNotFoundException
+	if errors.As(err, &nf) {
+		return nil, esv1beta1.NoSecretErr
+	}
+
+	return secretOut, err
 }

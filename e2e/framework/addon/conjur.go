@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package addon
 
 import (
@@ -127,7 +128,7 @@ func (l *Conjur) initConjur() error {
 		return fmt.Errorf("error fetching admin API key: %w", err)
 	}
 
-	// TODO: ExecCmdWithContainer includes the StdErr output with a warning about config directory.
+	// Note: ExecCmdWithContainer includes the StdErr output with a warning about config directory.
 	// Therefore we need to split the output and only use the first line.
 	l.AdminApiKey = strings.Split(apiKey, "\n")[0]
 

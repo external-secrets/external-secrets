@@ -28,6 +28,11 @@ import (
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
+const (
+	remoteID = "d8f29773-3019-4973-9bbc-66327d077fe2"
+	testKey  = "this-is-a-name"
+)
+
 var projectID = "e8fc8f9c-2208-446e-9e89-9bc358f39b47"
 
 func TestProviderDeleteSecret(t *testing.T) {
@@ -72,7 +77,7 @@ func TestProviderDeleteSecret(t *testing.T) {
 			args: args{
 				ctx: context.TODO(),
 				ref: v1alpha1.PushSecretRemoteRef{
-					RemoteKey: "d8f29773-3019-4973-9bbc-66327d077fe2",
+					RemoteKey: remoteID,
 				},
 			},
 		},
@@ -94,15 +99,15 @@ func TestProviderDeleteSecret(t *testing.T) {
 					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
 						Data: []SecretIdentifierResponse{
 							{
-								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-								Key:            "this-is-a-name",
+								ID:             remoteID,
+								Key:            testKey,
 								OrganizationID: "orgid",
 							},
 						},
 					})
 
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						ID:             remoteID,
 						Key:            "key",
 						Note:           "note",
 						OrganizationID: "org",
@@ -118,7 +123,7 @@ func TestProviderDeleteSecret(t *testing.T) {
 			args: args{
 				ctx: context.TODO(),
 				ref: v1alpha1.PushSecretRemoteRef{
-					RemoteKey: "d8f29773-3019-4973-9bbc-66327d077fe2",
+					RemoteKey: remoteID,
 				},
 			},
 		},
@@ -140,8 +145,8 @@ func TestProviderDeleteSecret(t *testing.T) {
 					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
 						Data: []SecretIdentifierResponse{
 							{
-								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-								Key:            "this-is-a-name",
+								ID:             remoteID,
+								Key:            testKey,
 								OrganizationID: "orgid",
 							},
 						},
@@ -149,8 +154,8 @@ func TestProviderDeleteSecret(t *testing.T) {
 
 					projectID := "another-project"
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-						Key:            "this-is-a-name",
+						ID:             remoteID,
+						Key:            testKey,
 						Note:           "note",
 						OrganizationID: "orgid",
 						Value:          "value",
@@ -165,7 +170,7 @@ func TestProviderDeleteSecret(t *testing.T) {
 			args: args{
 				ctx: context.TODO(),
 				ref: v1alpha1.PushSecretRemoteRef{
-					RemoteKey: "this-is-a-name",
+					RemoteKey: testKey,
 				},
 			},
 		},
@@ -226,7 +231,7 @@ func TestProviderGetAllSecrets(t *testing.T) {
 					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
 						Data: []SecretIdentifierResponse{
 							{
-								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+								ID:             remoteID,
 								Key:            "key1",
 								OrganizationID: "orgid",
 							},
@@ -239,7 +244,7 @@ func TestProviderGetAllSecrets(t *testing.T) {
 					})
 
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:    "d8f29773-3019-4973-9bbc-66327d077fe2",
+						ID:    remoteID,
 						Key:   "key1",
 						Value: "value1",
 					})
@@ -255,7 +260,7 @@ func TestProviderGetAllSecrets(t *testing.T) {
 				ref: v1beta1.ExternalSecretFind{},
 			},
 			want: map[string][]byte{
-				"d8f29773-3019-4973-9bbc-66327d077fe2": []byte("value1"),
+				remoteID:                               []byte("value1"),
 				"7c0d21ec-10d9-4972-bdf8-ec52df99cc86": []byte("value2"),
 			},
 		},
@@ -322,7 +327,7 @@ func TestProviderGetSecret(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				ref: v1beta1.ExternalSecretDataRemoteRef{
-					Key: "d8f29773-3019-4973-9bbc-66327d077fe2",
+					Key: remoteID,
 				},
 			},
 			want: []byte("value"),
@@ -348,15 +353,15 @@ func TestProviderGetSecret(t *testing.T) {
 					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
 						Data: []SecretIdentifierResponse{
 							{
-								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-								Key:            "this-is-a-name",
+								ID:             remoteID,
+								Key:            testKey,
 								OrganizationID: "orgid",
 							},
 						},
 					})
 
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						ID:             remoteID,
 						Key:            "key",
 						Note:           "note",
 						OrganizationID: "org",
@@ -368,7 +373,7 @@ func TestProviderGetSecret(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				ref: v1beta1.ExternalSecretDataRemoteRef{
-					Key: "this-is-a-name",
+					Key: testKey,
 				},
 			},
 			want: []byte("value"),
@@ -429,7 +434,7 @@ func TestProviderPushSecret(t *testing.T) {
 					Match: v1alpha1.PushSecretMatch{
 						SecretKey: "key",
 						RemoteRef: v1alpha1.PushSecretRemoteRef{
-							RemoteKey: "this-is-a-name",
+							RemoteKey: testKey,
 						},
 					},
 				},
@@ -453,14 +458,14 @@ func TestProviderPushSecret(t *testing.T) {
 					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
 						Data: []SecretIdentifierResponse{
 							{
-								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-								Key:            "this-is-a-name",
+								ID:             remoteID,
+								Key:            testKey,
 								OrganizationID: "orgid",
 							},
 						},
 					})
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						ID:             remoteID,
 						Key:            "no-match", // if this is this-is-a-name it would match
 						Note:           "",
 						OrganizationID: "orgid",
@@ -472,7 +477,7 @@ func TestProviderPushSecret(t *testing.T) {
 				assertMock: func(t *testing.T, c *FakeClient) {
 					cargs := c.createSecretCallArguments[0]
 					assert.Equal(t, cargs, SecretCreateRequest{
-						Key:            "this-is-a-name",
+						Key:            testKey,
 						Note:           "",
 						OrganizationID: "orgid",
 						ProjectIDS:     []string{projectID},
@@ -493,7 +498,7 @@ func TestProviderPushSecret(t *testing.T) {
 				data: v1alpha1.PushSecretData{
 					Match: v1alpha1.PushSecretMatch{
 						RemoteRef: v1alpha1.PushSecretRemoteRef{
-							RemoteKey: "this-is-a-name",
+							RemoteKey: testKey,
 						},
 					},
 				},
@@ -517,14 +522,14 @@ func TestProviderPushSecret(t *testing.T) {
 					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
 						Data: []SecretIdentifierResponse{
 							{
-								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-								Key:            "this-is-a-name",
+								ID:             remoteID,
+								Key:            testKey,
 								OrganizationID: "orgid",
 							},
 						},
 					})
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						ID:             remoteID,
 						Key:            "no-match", // if this is this-is-a-name it would match
 						Note:           "",
 						OrganizationID: "orgid",
@@ -536,7 +541,7 @@ func TestProviderPushSecret(t *testing.T) {
 				assertMock: func(t *testing.T, c *FakeClient) {
 					cargs := c.createSecretCallArguments[0]
 					assert.Equal(t, SecretCreateRequest{
-						Key:            "this-is-a-name",
+						Key:            testKey,
 						Note:           "",
 						OrganizationID: "orgid",
 						ProjectIDS:     []string{projectID},
@@ -546,7 +551,7 @@ func TestProviderPushSecret(t *testing.T) {
 			},
 		},
 		{
-			name: "push secret is successful for a existing remote secret but only the value differs will call update",
+			name: "push secret is successful for an existing remote secret but only the value differs will call update",
 			args: args{
 				ctx: context.Background(),
 				secret: &corev1.Secret{
@@ -558,7 +563,7 @@ func TestProviderPushSecret(t *testing.T) {
 					Match: v1alpha1.PushSecretMatch{
 						SecretKey: "key",
 						RemoteRef: v1alpha1.PushSecretRemoteRef{
-							RemoteKey: "this-is-a-name",
+							RemoteKey: testKey,
 						},
 					},
 				},
@@ -582,15 +587,15 @@ func TestProviderPushSecret(t *testing.T) {
 					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
 						Data: []SecretIdentifierResponse{
 							{
-								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-								Key:            "this-is-a-name",
+								ID:             remoteID,
+								Key:            testKey,
 								OrganizationID: "orgid",
 							},
 						},
 					})
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-						Key:            "this-is-a-name",
+						ID:             remoteID,
+						Key:            testKey,
 						Note:           "",
 						OrganizationID: "orgid",
 						Value:          "value",
@@ -601,8 +606,8 @@ func TestProviderPushSecret(t *testing.T) {
 				assertMock: func(t *testing.T, c *FakeClient) {
 					pargs := c.updateSecretCallArguments[0]
 					assert.Equal(t, pargs, SecretPutRequest{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-						Key:            "this-is-a-name",
+						ID:             remoteID,
+						Key:            testKey,
 						Note:           "",
 						OrganizationID: "orgid",
 						ProjectIDS:     []string{projectID},
@@ -624,7 +629,7 @@ func TestProviderPushSecret(t *testing.T) {
 					Match: v1alpha1.PushSecretMatch{
 						SecretKey: "key",
 						RemoteRef: v1alpha1.PushSecretRemoteRef{
-							RemoteKey: "this-is-a-name",
+							RemoteKey: testKey,
 						},
 					},
 				},
@@ -648,15 +653,15 @@ func TestProviderPushSecret(t *testing.T) {
 					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
 						Data: []SecretIdentifierResponse{
 							{
-								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-								Key:            "this-is-a-name",
+								ID:             remoteID,
+								Key:            testKey,
 								OrganizationID: "orgid",
 							},
 						},
 					})
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-						Key:            "this-is-a-name",
+						ID:             remoteID,
+						Key:            testKey,
 						OrganizationID: "orgid",
 						Value:          "value",
 						ProjectID:      &projectID,
@@ -735,7 +740,7 @@ func TestProviderSecretExists(t *testing.T) {
 				ref: v1alpha1.PushSecretData{
 					Match: v1alpha1.PushSecretMatch{
 						RemoteRef: v1alpha1.PushSecretRemoteRef{
-							RemoteKey: "d8f29773-3019-4973-9bbc-66327d077fe2",
+							RemoteKey: remoteID,
 						},
 					},
 				},
@@ -759,14 +764,14 @@ func TestProviderSecretExists(t *testing.T) {
 					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
 						Data: []SecretIdentifierResponse{
 							{
-								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+								ID:             remoteID,
 								Key:            "name",
 								OrganizationID: "orgid",
 							},
 						},
 					})
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						ID:             remoteID,
 						Key:            "name",
 						OrganizationID: "orgid",
 						Value:          "value",
@@ -803,7 +808,7 @@ func TestProviderSecretExists(t *testing.T) {
 					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
 						Data: []SecretIdentifierResponse{
 							{
-								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+								ID:             remoteID,
 								Key:            "name",
 								OrganizationID: "orgid",
 							},
@@ -811,7 +816,7 @@ func TestProviderSecretExists(t *testing.T) {
 					})
 					projectIDDifferent := "different-project"
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						ID:             remoteID,
 						Key:            "name",
 						OrganizationID: "orgid",
 						Value:          "value",
@@ -845,6 +850,7 @@ func TestProviderSecretExists(t *testing.T) {
 					},
 				},
 				mock: func(c *FakeClient) {
+					// no mocking needed
 				},
 				assertMock: func(t *testing.T, c *FakeClient) {
 					assert.Equal(t, 0, c.listSecretsCalledN)
@@ -916,7 +922,7 @@ func TestProviderGetSecretMap(t *testing.T) {
 				store:     &v1beta1.SecretStore{},
 				mock: func(c *FakeClient) {
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						ID:             remoteID,
 						Key:            "key",
 						Note:           "note",
 						OrganizationID: "org",
@@ -927,7 +933,7 @@ func TestProviderGetSecretMap(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				ref: v1beta1.ExternalSecretDataRemoteRef{
-					Key:      "d8f29773-3019-4973-9bbc-66327d077fe2",
+					Key:      remoteID,
 					Property: "key",
 				},
 				key: "key",
@@ -944,7 +950,7 @@ func TestProviderGetSecretMap(t *testing.T) {
 				store:     &v1beta1.SecretStore{},
 				mock: func(c *FakeClient) {
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						ID:             remoteID,
 						Key:            "key",
 						Note:           "note",
 						OrganizationID: "org",
@@ -955,7 +961,7 @@ func TestProviderGetSecretMap(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				ref: v1beta1.ExternalSecretDataRemoteRef{
-					Key:      "d8f29773-3019-4973-9bbc-66327d077fe2",
+					Key:      remoteID,
 					Property: "key",
 				},
 				key: "key",
@@ -972,7 +978,7 @@ func TestProviderGetSecretMap(t *testing.T) {
 				store:     &v1beta1.SecretStore{},
 				mock: func(c *FakeClient) {
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						ID:             remoteID,
 						Key:            "key",
 						Note:           "note",
 						OrganizationID: "org",
@@ -984,7 +990,7 @@ func TestProviderGetSecretMap(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				ref: v1beta1.ExternalSecretDataRemoteRef{
-					Key:      "d8f29773-3019-4973-9bbc-66327d077fe2",
+					Key:      remoteID,
 					Property: "key",
 				},
 				key: "key",
@@ -1001,7 +1007,7 @@ func TestProviderGetSecretMap(t *testing.T) {
 				store:     &v1beta1.SecretStore{},
 				mock: func(c *FakeClient) {
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						ID:             remoteID,
 						Key:            "key",
 						Note:           "note",
 						OrganizationID: "org",
@@ -1013,7 +1019,7 @@ key2: !!binary VGhpcyBpcyBhIHRlc3Q=`,
 			args: args{
 				ctx: context.Background(),
 				ref: v1beta1.ExternalSecretDataRemoteRef{
-					Key:      "d8f29773-3019-4973-9bbc-66327d077fe2",
+					Key:      remoteID,
 					Property: "key2",
 				},
 				key: "key2",
@@ -1030,7 +1036,7 @@ key2: !!binary VGhpcyBpcyBhIHRlc3Q=`,
 				store:     &v1beta1.SecretStore{},
 				mock: func(c *FakeClient) {
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						ID:             remoteID,
 						Key:            "key",
 						Note:           "note",
 						OrganizationID: "org",
@@ -1041,7 +1047,7 @@ key2: !!binary VGhpcyBpcyBhIHRlc3Q=`,
 			args: args{
 				ctx: context.Background(),
 				ref: v1beta1.ExternalSecretDataRemoteRef{
-					Key:      "d8f29773-3019-4973-9bbc-66327d077fe2",
+					Key:      remoteID,
 					Property: "nope",
 				},
 			},

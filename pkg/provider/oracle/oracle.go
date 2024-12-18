@@ -58,6 +58,7 @@ const (
 	errJSONSecretUnmarshal        = "unable to unmarshal secret: %w"
 	errMissingKey                 = "missing Key in secret: %s"
 	errUnexpectedContent          = "unexpected secret bundle content"
+	errSettingOCIEnvVariables     = "unable to set OCI SDK environment variable %s: %w"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -273,20 +274,9 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 		return nil, errors.New(errMissingRegion)
 	}
 
-	var (
-		err                   error
-		configurationProvider common.ConfigurationProvider
-	)
-
-	if oracleSpec.PrincipalType == esv1beta1.WorkloadPrincipal {
-		configurationProvider, err = vms.getWorkloadIdentityProvider(store, oracleSpec.ServiceAccountRef, oracleSpec.Region, namespace)
-	} else if oracleSpec.PrincipalType == esv1beta1.InstancePrincipal || oracleSpec.Auth == nil {
-		configurationProvider, err = auth.InstancePrincipalConfigurationProvider()
-	} else {
-		configurationProvider, err = getUserAuthConfigurationProvider(ctx, kube, oracleSpec, namespace, store.GetObjectKind().GroupVersionKind().Kind, oracleSpec.Region)
-	}
+	configurationProvider, err := vms.constructProvider(ctx, store, oracleSpec, kube, namespace)
 	if err != nil {
-		return nil, fmt.Errorf(errOracleClient, err)
+		return nil, err
 	}
 
 	secretManagementService, err := secrets.NewSecretsClientWithConfigurationProvider(configurationProvider)
@@ -308,34 +298,9 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 	vaultClient.SetRegion(oracleSpec.Region)
 
 	if storeSpec.RetrySettings != nil {
-		opts := []common.RetryPolicyOption{common.WithShouldRetryOperation(common.DefaultShouldRetryOperation)}
-
-		if mr := storeSpec.RetrySettings.MaxRetries; mr != nil {
-			attempts := safeConvert(*mr)
-			opts = append(opts, common.WithMaximumNumberAttempts(attempts))
+		if err := vms.configureRetryPolicy(storeSpec, secretManagementService, kmsVaultClient, vaultClient); err != nil {
+			return nil, fmt.Errorf(errOracleClient, err)
 		}
-
-		if ri := storeSpec.RetrySettings.RetryInterval; ri != nil {
-			i, err := time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
-			if err != nil {
-				return nil, fmt.Errorf(errOracleClient, err)
-			}
-			opts = append(opts, common.WithFixedBackoff(i))
-		}
-
-		customRetryPolicy := common.NewRetryPolicyWithOptions(opts...)
-
-		secretManagementService.SetCustomClientConfiguration(common.CustomClientConfiguration{
-			RetryPolicy: &customRetryPolicy,
-		})
-
-		kmsVaultClient.SetCustomClientConfiguration(common.CustomClientConfiguration{
-			RetryPolicy: &customRetryPolicy,
-		})
-
-		vaultClient.SetCustomClientConfiguration(common.CustomClientConfiguration{
-			RetryPolicy: &customRetryPolicy,
-		})
 	}
 
 	return &VaultManagementService{
@@ -346,6 +311,24 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1beta
 		compartment:    oracleSpec.Compartment,
 		encryptionKey:  oracleSpec.EncryptionKey,
 	}, nil
+}
+
+func (vms *VaultManagementService) constructOptions(storeSpec *esv1beta1.SecretStoreSpec) ([]common.RetryPolicyOption, error) {
+	opts := []common.RetryPolicyOption{common.WithShouldRetryOperation(common.DefaultShouldRetryOperation)}
+
+	if mr := storeSpec.RetrySettings.MaxRetries; mr != nil {
+		attempts := safeConvert(*mr)
+		opts = append(opts, common.WithMaximumNumberAttempts(attempts))
+	}
+
+	if ri := storeSpec.RetrySettings.RetryInterval; ri != nil {
+		i, err := time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
+		if err != nil {
+			return nil, fmt.Errorf(errOracleClient, err)
+		}
+		opts = append(opts, common.WithFixedBackoff(i))
+	}
+	return opts, nil
 }
 
 func safeConvert(i int32) uint {
@@ -573,7 +556,7 @@ func (vms *VaultManagementService) ValidateStore(store esv1beta1.GenericStore) (
 func (vms *VaultManagementService) getWorkloadIdentityProvider(store esv1beta1.GenericStore, serviceAcccountRef *esmeta.ServiceAccountSelector, region, namespace string) (configurationProvider common.ConfigurationProvider, err error) {
 	defer func() {
 		if uerr := os.Unsetenv(auth.ResourcePrincipalVersionEnvVar); uerr != nil {
-			err = errors.Join(err, fmt.Errorf("unable to set OCI SDK environment variable %s: %w", auth.ResourcePrincipalRegionEnvVar, uerr))
+			err = errors.Join(err, fmt.Errorf(errSettingOCIEnvVariables, auth.ResourcePrincipalRegionEnvVar, uerr))
 		}
 		if uerr := os.Unsetenv(auth.ResourcePrincipalRegionEnvVar); uerr != nil {
 			err = errors.Join(err, fmt.Errorf("unabled to unset OCI SDK environment variable %s: %w", auth.ResourcePrincipalVersionEnvVar, uerr))
@@ -583,10 +566,10 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(store esv1beta1.G
 	vms.workloadIdentityMutex.Lock()
 	// OCI SDK requires specific environment variables for workload identity.
 	if err := os.Setenv(auth.ResourcePrincipalVersionEnvVar, auth.ResourcePrincipalVersion2_2); err != nil {
-		return nil, fmt.Errorf("unable to set OCI SDK environment variable %s: %w", auth.ResourcePrincipalVersionEnvVar, err)
+		return nil, fmt.Errorf(errSettingOCIEnvVariables, auth.ResourcePrincipalVersionEnvVar, err)
 	}
 	if err := os.Setenv(auth.ResourcePrincipalRegionEnvVar, region); err != nil {
-		return nil, fmt.Errorf("unable to set OCI SDK environment variable %s: %w", auth.ResourcePrincipalRegionEnvVar, err)
+		return nil, fmt.Errorf(errSettingOCIEnvVariables, auth.ResourcePrincipalRegionEnvVar, err)
 	}
 	// If no service account is specified, use the pod service account to create the Workload Identity provider.
 	if serviceAcccountRef == nil {
@@ -606,6 +589,54 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(store esv1beta1.G
 	}
 	tokenProvider := NewTokenProvider(clientset, serviceAcccountRef, namespace)
 	return auth.OkeWorkloadIdentityConfigurationProviderWithServiceAccountTokenProvider(tokenProvider)
+}
+
+func (vms *VaultManagementService) constructProvider(ctx context.Context, store esv1beta1.GenericStore, oracleSpec *esv1beta1.OracleProvider, kube kclient.Client, namespace string) (common.ConfigurationProvider, error) {
+	var (
+		configurationProvider common.ConfigurationProvider
+		err                   error
+	)
+
+	if oracleSpec.PrincipalType == esv1beta1.WorkloadPrincipal {
+		configurationProvider, err = vms.getWorkloadIdentityProvider(store, oracleSpec.ServiceAccountRef, oracleSpec.Region, namespace)
+	} else if oracleSpec.PrincipalType == esv1beta1.InstancePrincipal || oracleSpec.Auth == nil {
+		configurationProvider, err = auth.InstancePrincipalConfigurationProvider()
+	} else {
+		configurationProvider, err = getUserAuthConfigurationProvider(ctx, kube, oracleSpec, namespace, store.GetObjectKind().GroupVersionKind().Kind, oracleSpec.Region)
+	}
+	if err != nil {
+		return nil, fmt.Errorf(errOracleClient, err)
+	}
+
+	return configurationProvider, nil
+}
+
+func (vms *VaultManagementService) configureRetryPolicy(
+	storeSpec *esv1beta1.SecretStoreSpec,
+	secretManagementService secrets.SecretsClient,
+	kmsVaultClient keymanagement.KmsVaultClient,
+	vaultClient vault.VaultsClient,
+) error {
+	opts, err := vms.constructOptions(storeSpec)
+	if err != nil {
+		return err
+	}
+
+	customRetryPolicy := common.NewRetryPolicyWithOptions(opts...)
+
+	secretManagementService.SetCustomClientConfiguration(common.CustomClientConfiguration{
+		RetryPolicy: &customRetryPolicy,
+	})
+
+	kmsVaultClient.SetCustomClientConfiguration(common.CustomClientConfiguration{
+		RetryPolicy: &customRetryPolicy,
+	})
+
+	vaultClient.SetCustomClientConfiguration(common.CustomClientConfiguration{
+		RetryPolicy: &customRetryPolicy,
+	})
+
+	return err
 }
 
 func sanitizeOCISDKErr(err error) error {

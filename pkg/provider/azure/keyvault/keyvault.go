@@ -66,6 +66,7 @@ const (
 	AnnotationClientID   = "azure.workload.identity/client-id"
 	AnnotationTenantID   = "azure.workload.identity/tenant-id"
 	managerLabel         = "external-secrets"
+	managedBy            = "managed-by"
 
 	errUnexpectedStoreSpec      = "unexpected store spec"
 	errMissingAuthType          = "cannot initialize Azure Client: no valid authType was specified"
@@ -246,7 +247,7 @@ func canDelete(tags map[string]*string, err error) (bool, error) {
 	if aerr.StatusCode == 404 {
 		return false, nil
 	}
-	manager, ok := tags["managed-by"]
+	manager, ok := tags[managedBy]
 	if !ok || manager == nil || *manager != managerLabel {
 		return false, errors.New("not managed by external-secrets")
 	}
@@ -410,7 +411,7 @@ func canCreate(tags map[string]*string, err error) (bool, error) {
 		return false, fmt.Errorf("unexpected api error: %w", err)
 	}
 	if err == nil {
-		manager, ok := tags["managed-by"]
+		manager, ok := tags[managedBy]
 		if !ok || manager == nil || *manager != managerLabel {
 			return false, errors.New("not managed by external-secrets")
 		}
@@ -441,7 +442,7 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 	secretParams := keyvault.SecretSetParameters{
 		Value: &val,
 		Tags: map[string]*string{
-			"managed-by": pointer.To(managerLabel),
+			managedBy: pointer.To(managerLabel),
 		},
 		SecretAttributes: &keyvault.SecretAttributes{
 			Enabled: pointer.To(true),
@@ -482,7 +483,7 @@ func (a *Azure) setKeyVaultCertificate(ctx context.Context, secretName string, v
 	params := keyvault.CertificateImportParameters{
 		Base64EncodedCertificate: &val,
 		Tags: map[string]*string{
-			"managed-by": pointer.To(managerLabel),
+			managedBy: pointer.To(managerLabel),
 		},
 	}
 	_, err = a.baseClient.ImportCertificate(ctx, *a.provider.VaultURL, secretName, params)
@@ -538,7 +539,7 @@ func (a *Azure) setKeyVaultKey(ctx context.Context, secretName string, value []b
 		Key:           &azkey,
 		KeyAttributes: &keyvault.KeyAttributes{},
 		Tags: map[string]*string{
-			"managed-by": pointer.To(managerLabel),
+			managedBy: pointer.To(managerLabel),
 		},
 	}
 	_, err = a.baseClient.ImportKey(ctx, *a.provider.VaultURL, secretName, params)
@@ -698,7 +699,7 @@ func parseError(err error) error {
 	return err
 }
 
-// Implements store.Client.GetSecret Interface.
+// GetSecret implements store.Client.GetSecret Interface.
 // Retrieves a secret/Key/Certificate/Tag with the secret name defined in ref.Name
 // The Object Type is defined as a prefix in the ref.Name , if no prefix is defined , we assume a secret is required.
 func (a *Azure) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {

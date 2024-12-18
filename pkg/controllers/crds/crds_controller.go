@@ -81,18 +81,26 @@ type Reconciler struct {
 	readyStatusMap   map[string]bool
 }
 
+type Opts struct {
+	SvcName         string
+	SvcNamespace    string
+	SecretName      string
+	SecretNamespace string
+	Resources       []string
+}
+
 func New(k8sClient client.Client, scheme *runtime.Scheme, leaderChan <-chan struct{}, logger logr.Logger,
-	interval time.Duration, svcName, svcNamespace, secretName, secretNamespace string, resources []string) *Reconciler {
+	interval time.Duration, opts Opts) *Reconciler {
 	return &Reconciler{
 		Client:           k8sClient,
 		Log:              logger,
 		Scheme:           scheme,
-		SvcName:          svcName,
-		SvcNamespace:     svcNamespace,
-		SecretName:       secretName,
-		SecretNamespace:  secretNamespace,
+		SvcName:          opts.SvcName,
+		SvcNamespace:     opts.SvcNamespace,
+		SecretName:       opts.SecretName,
+		SecretNamespace:  opts.SecretNamespace,
 		RequeueInterval:  interval,
-		CrdResources:     resources,
+		CrdResources:     opts.Resources,
 		CAName:           "external-secrets",
 		CAOrganization:   "external-secrets",
 		leaderChan:       leaderChan,

@@ -63,7 +63,12 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
-	return reconcile(ctx, req, &ss, r.Client, log, r.ControllerClass, ssmetrics.GetGaugeVec, r.recorder, r.RequeueInterval)
+	return reconcile(ctx, req, &ss, r.Client, log, Opts{
+		ControllerClass: r.ControllerClass,
+		GaugeVecGetter:  ssmetrics.GetGaugeVec,
+		Recorder:        r.recorder,
+		RequeueInterval: r.RequeueInterval,
+	})
 }
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.

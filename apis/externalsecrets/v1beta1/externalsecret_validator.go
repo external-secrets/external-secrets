@@ -44,6 +44,59 @@ func validateExternalSecret(obj runtime.Object) (admission.Warnings, error) {
 	}
 
 	var errs error
+	if err := validatePolicies(es); err != nil {
+		errs = errors.Join(errs, err)
+	}
+
+	if len(es.Spec.Data) == 0 && len(es.Spec.DataFrom) == 0 {
+		errs = errors.Join(errs, errors.New("either data or dataFrom should be specified"))
+	}
+
+	for _, ref := range es.Spec.DataFrom {
+		if err := validateExtractFindGenerator(ref); err != nil {
+			errs = errors.Join(errs, err)
+		}
+
+		if err := validateFindExtractSourceRef(ref); err != nil {
+			errs = errors.Join(errs, err)
+		}
+
+		if err := validateSourceRef(ref); err != nil {
+			errs = errors.Join(errs, err)
+		}
+	}
+
+	errs = validateDuplicateKeys(es, errs)
+	return nil, errs
+}
+
+func validateSourceRef(ref ExternalSecretDataFromRemoteRef) error {
+	if ref.SourceRef != nil && ref.SourceRef.GeneratorRef == nil && ref.SourceRef.SecretStoreRef == nil {
+		return errors.New("generatorRef or storeRef must be set when using sourceRef in dataFrom")
+	}
+
+	return nil
+}
+
+func validateFindExtractSourceRef(ref ExternalSecretDataFromRemoteRef) error {
+	if ref.Find == nil && ref.Extract == nil && ref.SourceRef == nil {
+		return errors.New("either extract, find, or sourceRef must be set to dataFrom")
+	}
+
+	return nil
+}
+
+func validateExtractFindGenerator(ref ExternalSecretDataFromRemoteRef) error {
+	generatorRef := ref.SourceRef != nil && ref.SourceRef.GeneratorRef != nil
+	if (ref.Find != nil && (ref.Extract != nil || generatorRef)) || (ref.Extract != nil && (ref.Find != nil || generatorRef)) || (generatorRef && (ref.Find != nil || ref.Extract != nil)) {
+		return errors.New("extract, find, or generatorRef cannot be set at the same time")
+	}
+
+	return nil
+}
+
+func validatePolicies(es *ExternalSecret) error {
+	var errs error
 	if (es.Spec.Target.DeletionPolicy == DeletionPolicyDelete && es.Spec.Target.CreationPolicy == CreatePolicyMerge) ||
 		(es.Spec.Target.DeletionPolicy == DeletionPolicyDelete && es.Spec.Target.CreationPolicy == CreatePolicyNone) {
 		errs = errors.Join(errs, errors.New("deletionPolicy=Delete must not be used when the controller doesn't own the secret. Please set creationPolicy=Owner"))
@@ -53,27 +106,7 @@ func validateExternalSecret(obj runtime.Object) (admission.Warnings, error) {
 		errs = errors.Join(errs, errors.New("deletionPolicy=Merge must not be used with creationPolicy=None. There is no Secret to merge with"))
 	}
 
-	if len(es.Spec.Data) == 0 && len(es.Spec.DataFrom) == 0 {
-		errs = errors.Join(errs, errors.New("either data or dataFrom should be specified"))
-	}
-
-	for _, ref := range es.Spec.DataFrom {
-		generatorRef := ref.SourceRef != nil && ref.SourceRef.GeneratorRef != nil
-		if (ref.Find != nil && (ref.Extract != nil || generatorRef)) || (ref.Extract != nil && (ref.Find != nil || generatorRef)) || (generatorRef && (ref.Find != nil || ref.Extract != nil)) {
-			errs = errors.Join(errs, errors.New("extract, find, or generatorRef cannot be set at the same time"))
-		}
-
-		if ref.Find == nil && ref.Extract == nil && ref.SourceRef == nil {
-			errs = errors.Join(errs, errors.New("either extract, find, or sourceRef must be set to dataFrom"))
-		}
-
-		if ref.SourceRef != nil && ref.SourceRef.GeneratorRef == nil && ref.SourceRef.SecretStoreRef == nil {
-			errs = errors.Join(errs, errors.New("generatorRef or storeRef must be set when using sourceRef in dataFrom"))
-		}
-	}
-
-	errs = validateDuplicateKeys(es, errs)
-	return nil, errs
+	return errs
 }
 
 func validateDuplicateKeys(es *ExternalSecret, errs error) error {
