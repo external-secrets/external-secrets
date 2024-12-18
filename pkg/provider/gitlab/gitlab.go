@@ -25,7 +25,7 @@ import (
 	"strings"
 
 	"github.com/tidwall/gjson"
-	"github.com/xanzy/go-gitlab"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
