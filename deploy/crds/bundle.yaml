@@ -14170,6 +14170,11 @@ spec:
                             You can assume a role before making calls to the
                             desired AWS service.
                           type: string
+                        scope:
+                          description: |-
+                            Scope specifies the ECR service scope.
+                            Valid options are private and public.
+                          type: string
                       required:
                         - region
                       type: object
@@ -15651,6 +15656,11 @@ spec:
                   description: |-
                     You can assume a role before making calls to the
                     desired AWS service.
+                  type: string
+                scope:
+                  description: |-
+                    Scope specifies the ECR service scope.
+                    Valid options are private and public.
                   type: string
               required:
                 - region
