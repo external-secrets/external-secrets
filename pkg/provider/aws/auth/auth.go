@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/spf13/pflag"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -37,6 +38,7 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/cache"
 	"github.com/external-secrets/external-secrets/pkg/feature"
+	"github.com/external-secrets/external-secrets/pkg/provider/aws/auth/anywhere"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
@@ -100,6 +102,15 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 	if secretRef != nil {
 		log.V(1).Info("using credentials from secretRef")
 		creds, err = credsFromSecretRef(ctx, prov.Auth, store.GetKind(), kube, namespace)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	iamAnywhere := prov.Auth.IAMAnywhere
+	if iamAnywhere != nil {
+		log.V(1).Info("using IAM Anywhere credentials")
+		creds, err = credsFromIAMAnywhere(ctx, prov.Auth, isClusterKind, kube, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -227,6 +238,46 @@ func credsFromSecretRef(ctx context.Context, auth esv1beta1.AWSAuth, storeKind s
 	}
 
 	return credentials.NewStaticCredentials(aks, sak, sessionToken), err
+}
+
+func credsFromIAMAnywhere(ctx context.Context, auth esv1beta1.AWSAuth, isClusterKind bool, kube client.Client, namespace string) (*credentials.Credentials, error) {
+	privateKey, err := resolveSecretKey(ctx, auth.IAMAnywhere.PrivateKey, namespace, kube, isClusterKind)
+	if err != nil {
+		return nil, err
+	}
+	cert, err := resolveSecretKey(ctx, auth.IAMAnywhere.Certificate, namespace, kube, isClusterKind)
+	if err != nil {
+		return nil, err
+	}
+
+	return anywhere.Generate(anywhere.Options{
+		Certificate:    string(cert),
+		PrivateKey:     string(privateKey),
+		ProfileArn:     auth.IAMAnywhere.ProfileARN,
+		TrustAnchorArn: auth.IAMAnywhere.TrustAnchorArn,
+		RoleArn:        auth.IAMAnywhere.RoleARN,
+		Region:         auth.IAMAnywhere.Region,
+		Endpoint:       auth.IAMAnywhere.Endpoint,
+	})
+}
+
+func resolveSecretKey(ctx context.Context, ks esmeta.SecretKeySelector, namespace string, kube client.Client, isClusterKind bool) ([]byte, error) {
+	ke := client.ObjectKey{
+		Name:      ks.Name,
+		Namespace: namespace,
+	}
+	if isClusterKind && ks.Namespace != nil {
+		ke.Namespace = *ks.Namespace
+	}
+	sec := v1.Secret{}
+	err := kube.Get(ctx, ke, &sec)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching secret %v: %w", ks, err)
+	}
+	if val, ok := sec.Data[ks.Key]; ok {
+		return val, nil
+	}
+	return nil, fmt.Errorf("key %s not defined in secret %v", ks.Key, ks)
 }
 
 // credsFromServiceAccount uses a Kubernetes Service Account to acquire temporary
