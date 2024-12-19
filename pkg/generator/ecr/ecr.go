@@ -83,9 +83,9 @@ func (g *Generator) generate(
 
 	if res.Spec.Scope == "public" {
 		return fetchECRPublicToken(sess, ecrPublicFunc)
-	} else {
-		return fetchECRPrivateToken(sess, ecrPrivateFunc)
 	}
+
+	return fetchECRPrivateToken(sess, ecrPrivateFunc)
 }
 
 func fetchECRPrivateToken(sess *session.Session, ecrPrivateFunc ecrPrivateFactoryFunc) (map[string][]byte, error) {
