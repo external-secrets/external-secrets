@@ -664,7 +664,9 @@ spec:
                     x-kubernetes-map-type: atomic
                   type: array
                 namespaces:
-                  description: Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
+                  description: |-
+                    Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
+                    Deprecated: Use NamespaceSelectors instead.
                   items:
                     maxLength: 63
                     minLength: 1
@@ -832,14 +834,6 @@ spec:
                         type: object
                     type: object
                     x-kubernetes-map-type: atomic
-                  type: array
-                namespaces:
-                  description: Choose namespaces by name
-                  items:
-                    maxLength: 63
-                    minLength: 1
-                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
-                    type: string
                   type: array
                 pushSecretMetadata:
                   description: The metadata of the external secrets to be created

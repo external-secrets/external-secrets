@@ -18,7 +18,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 	"sort"
 	"time"
 
@@ -110,7 +109,7 @@ func (r *ClusterPushSecretReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 	cps.Status.PushSecretName = esName
 
-	namespaces, err := utils.GetTargetNamespaces(ctx, r.Client, cps.Spec.Namespaces, cps.Spec.NamespaceSelectors)
+	namespaces, err := utils.GetTargetNamespaces(ctx, r.Client, nil, cps.Spec.NamespaceSelectors)
 	if err != nil {
 		log.Error(err, "failed to get target Namespaces")
 		r.markAsFailed("failed to get target Namespaces", &cps)
@@ -307,7 +306,6 @@ func (r *ClusterPushSecretReconciler) findObjectsForNamespace(ctx context.Contex
 	var requests []reconcile.Request
 	for i := range cpsl.Items {
 		cps := &cpsl.Items[i]
-		var selected bool
 		for _, selector := range cps.Spec.NamespaceSelectors {
 			labelSelector, err := metav1.LabelSelectorAsSelector(selector)
 			if err != nil {
@@ -322,24 +320,8 @@ func (r *ClusterPushSecretReconciler) findObjectsForNamespace(ctx context.Contex
 						Namespace: cps.GetNamespace(),
 					},
 				})
-				selected = true
 				break
 			}
-		}
-
-		// Prevent the object from being added twice if it happens to be listed
-		// by Namespaces selector as well.
-		if selected {
-			continue
-		}
-
-		if slices.Contains(cps.Spec.Namespaces, namespace.GetName()) {
-			requests = append(requests, reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      cps.GetName(),
-					Namespace: cps.GetNamespace(),
-				},
-			})
 		}
 	}
 

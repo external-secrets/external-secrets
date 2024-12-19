@@ -289,13 +289,6 @@ type ClusterPushSecretSpec struct {
 	// A list of labels to select by to find the Namespaces to create the ExternalSecrets in. The selectors are ORed.
 	// +optional
 	NamespaceSelectors []*metav1.LabelSelector `json:"namespaceSelectors,omitempty"`
-
-	// Choose namespaces by name
-	// +optional
-	// +kubebuilder:validation:items:MinLength:=1
-	// +kubebuilder:validation:items:MaxLength:=63
-	// +kubebuilder:validation:items:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
-	Namespaces []string `json:"namespaces,omitempty"`
 }
 
 // ClusterPushSecretNamespaceFailure represents a failed namespace deployment and it's reason.
