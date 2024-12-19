@@ -114,7 +114,7 @@ func (a *akeylessBase) GetSecretByType(ctx context.Context, secretName string, v
 }
 
 func SetBodyToken(t Tokener, ctx context.Context) error {
-	token, ok := ctx.Value(AkeylessToken).(string)
+	token, ok := ctx.Value(aKeylessToken).(string)
 	if !ok {
 		return ErrTokenNotExists
 	}
@@ -321,7 +321,7 @@ func (a *akeylessBase) CreateSecret(ctx context.Context, remoteKey, data string)
 	body := akeyless.CreateSecret{
 		Name:  remoteKey,
 		Value: data,
-		Tags:  &[]string{ExtSecretManagedTag},
+		Tags:  &[]string{extSecretManagedTag},
 	}
 	if err := SetBodyToken(&body, ctx); err != nil {
 		return err
@@ -360,33 +360,36 @@ func (a *akeylessBase) DeleteSecret(ctx context.Context, remoteKey string) error
 }
 
 func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAuth *esv1beta1.AkeylessKubernetesAuth) (string, error) {
-	if kubernetesAuth != nil {
-		if kubernetesAuth.ServiceAccountRef != nil {
-			// Kubernetes <v1.24 fetch token via ServiceAccount.Secrets[]
-			jwt, err := a.getJWTFromServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
-			if jwt != "" {
-				return jwt, err
-			}
-			// Kubernetes >=v1.24: fetch token via TokenRequest API
-			jwt, err = a.getJWTfromServiceAccountToken(ctx, *kubernetesAuth.ServiceAccountRef, nil, 600)
-			if err != nil {
-				return "", err
-			}
-			return jwt, nil
-		} else if kubernetesAuth.SecretRef != nil {
-			tokenRef := kubernetesAuth.SecretRef
-			if tokenRef.Key == "" {
-				tokenRef = kubernetesAuth.SecretRef.DeepCopy()
-				tokenRef.Key = "token"
-			}
-			jwt, err := resolvers.SecretKeyRef(ctx, a.kube, a.storeKind, a.namespace, tokenRef)
-			if err != nil {
-				return "", err
-			}
-			return jwt, nil
-		}
+	if kubernetesAuth == nil {
+		return readK8SServiceAccountJWT()
 	}
-	return readK8SServiceAccountJWT()
+
+	switch {
+	case kubernetesAuth.ServiceAccountRef != nil:
+		jwt, err := a.getJWTFromServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
+		if jwt != "" {
+			return jwt, err
+		}
+		// Kubernetes >=v1.24: fetch token via TokenRequest API
+		jwt, err = a.getJWTfromServiceAccountToken(ctx, *kubernetesAuth.ServiceAccountRef, nil, 600)
+		if err != nil {
+			return "", err
+		}
+		return jwt, nil
+	case kubernetesAuth.SecretRef != nil:
+		tokenRef := kubernetesAuth.SecretRef
+		if tokenRef.Key == "" {
+			tokenRef = kubernetesAuth.SecretRef.DeepCopy()
+			tokenRef.Key = "token"
+		}
+		jwt, err := resolvers.SecretKeyRef(ctx, a.kube, a.storeKind, a.namespace, tokenRef)
+		if err != nil {
+			return "", err
+		}
+		return jwt, nil
+	}
+
+	return "", fmt.Errorf("can't determine k8s service account jwt")
 }
 
 func (a *akeylessBase) getJWTFromServiceAccount(ctx context.Context, serviceAccountRef *esmeta.ServiceAccountSelector) (string, error) {

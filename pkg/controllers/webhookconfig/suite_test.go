@@ -87,7 +87,13 @@ var _ = BeforeSuite(func() {
 	Expect(k8sClient).ToNot(BeNil())
 	leaderChan := make(chan struct{})
 	close(leaderChan)
-	reconciler = New(k8sClient, k8sManager.GetScheme(), leaderChan, ctrl.Log, ctrlSvcName, ctrlSvcNamespace, ctrlSecretName, ctrlSecretNamespace, time.Second)
+	reconciler = New(k8sClient, k8sManager.GetScheme(), leaderChan, ctrl.Log, Opts{
+		SvcName:         ctrlSvcName,
+		SvcNamespace:    ctrlSvcNamespace,
+		SecretName:      ctrlSecretName,
+		SecretNamespace: ctrlSecretNamespace,
+		RequeueInterval: time.Second,
+	})
 	reconciler.SetupWithManager(k8sManager, controller.Options{})
 	Expect(err).ToNot(HaveOccurred())
 

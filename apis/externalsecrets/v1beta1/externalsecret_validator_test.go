@@ -20,6 +20,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+const (
+	errExtractFindGenerator = "extract, find, or generatorRef cannot be set at the same time"
+)
+
 func TestValidateExternalSecret(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -80,7 +84,7 @@ func TestValidateExternalSecret(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: "extract, find, or generatorRef cannot be set at the same time",
+			expectedErr: errExtractFindGenerator,
 		},
 		{
 			name: "generator with find",
@@ -96,7 +100,7 @@ func TestValidateExternalSecret(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: "extract, find, or generatorRef cannot be set at the same time",
+			expectedErr: errExtractFindGenerator,
 		},
 		{
 			name: "generator with extract",
@@ -112,7 +116,7 @@ func TestValidateExternalSecret(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: "extract, find, or generatorRef cannot be set at the same time",
+			expectedErr: errExtractFindGenerator,
 		},
 		{
 			name: "empty dataFrom",

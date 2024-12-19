@@ -321,7 +321,7 @@ func TestValidateStore(t *testing.T) {
 	}
 }
 
-func TestVaultManagementService_NewClient(t *testing.T) {
+func TestVaultManagementServiceNewClient(t *testing.T) {
 	t.Parallel()
 
 	namespace := "default"
