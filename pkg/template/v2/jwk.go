@@ -34,7 +34,7 @@ func jwkPublicKeyPem(jwkjson string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return pemEncode(string(mpk), "PUBLIC KEY")
+	return pemEncode(mpk, "PUBLIC KEY")
 }
 
 func jwkPrivateKeyPem(jwkjson string) (string, error) {
@@ -52,5 +52,5 @@ func jwkPrivateKeyPem(jwkjson string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return pemEncode(string(mpk), "PRIVATE KEY")
+	return pemEncode(mpk, "PRIVATE KEY")
 }
