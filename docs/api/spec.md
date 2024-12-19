@@ -3812,8 +3812,7 @@ Kubernetes meta/v1.Time
 </em>
 </td>
 <td>
-<p>refreshTime is the time and date the external secret was fetched and
-the target secret updated</p>
+<p>RefreshTime is the last time we successfully synced the ExternalSecret.</p>
 </td>
 </tr>
 <tr>
@@ -3851,6 +3850,34 @@ Kubernetes core/v1.LocalObjectReference
 </td>
 <td>
 <p>Binding represents a servicebinding.io Provisioned Service reference to the secret</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sources</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretStatusSources">
+ExternalSecretStatusSources
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Sources stores information about the data sources used by the ExternalSecret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>triggers</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretStatusTriggers">
+ExternalSecretStatusTriggers
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Triggers stores information used to trigger a refresh of the ExternalSecret.</p>
 </td>
 </tr>
 </tbody>
@@ -3928,6 +3955,82 @@ Kubernetes meta/v1.Time
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ExternalSecretStatusSources">ExternalSecretStatusSources
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretStatus">ExternalSecretStatus</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretStores</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ProviderSourceInfo">
+[]ProviderSourceInfo
+</a>
+</em>
+</td>
+<td>
+<p>SecretStores lists information about the SecretStores used to fetch the ExternalSecret data.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clusterSecretStores</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ProviderSourceInfo">
+[]ProviderSourceInfo
+</a>
+</em>
+</td>
+<td>
+<p>ClusterSecretStores lists information about the ClusterSecretStores used to fetch the ExternalSecret data.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.ExternalSecretStatusTriggers">ExternalSecretStatusTriggers
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretStatus">ExternalSecretStatus</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>inClusterSecrets</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.TriggerInClusterSecret">
+[]TriggerInClusterSecret
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>InClusterSecrets is a list of in-cluster secrets that will trigger a refresh of the ExternalSecret when updated.</p>
 </td>
 </tr>
 </tbody>
@@ -6092,6 +6195,83 @@ string
 <p>
 <p>Provider is a common interface for interacting with secret backends.</p>
 </p>
+<h3 id="external-secrets.io/v1beta1.ProviderSourceInfo">ProviderSourceInfo
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretStatusSources">ExternalSecretStatusSources</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name is the name of the SecretStore or ClusterSecretStore.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>isReady</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>NotReady indicates if the provider does NOT have the Ready=true condition.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>notExists</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>NotExists indicates if the provider does NOT exist.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>listedKeys</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SourceListedKey">
+[]SourceListedKey
+</a>
+</em>
+</td>
+<td>
+<p>ListedKeys are the remote keys explicitly referenced in <code>data[].remoteRef.key</code> and <code>dataFrom[].extract.key</code>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>foundKeys</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.SourceFoundKey">
+[]SourceFoundKey
+</a>
+</em>
+</td>
+<td>
+<p>FoundKeys are the remote keys found in the provider from <code>dataFrom[].extract.find</code>.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.PulumiProvider">PulumiProvider
 </h3>
 <p>
@@ -7564,6 +7744,76 @@ bool
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.SourceFoundKey">SourceFoundKey
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ProviderSourceInfo">ProviderSourceInfo</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>key</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Key is the key from the Provider.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.SourceListedKey">SourceListedKey
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ProviderSourceInfo">ProviderSourceInfo</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>key</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Key is the key from the Provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>notExists</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<p>NotExists indicates if the key does NOT exist in the Provider.
+Note, if the ExternalSecret does not have the SecretSynced=true condition, this field is not populated.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef
 </h3>
 <p>
@@ -7956,6 +8206,46 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.TriggerInClusterSecret">TriggerInClusterSecret
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretStatusTriggers">ExternalSecretStatusTriggers</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name is the name of the in-cluster secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Namespace is the namespace of the in-cluster secret.</p>
 </td>
 </tr>
 </tbody>

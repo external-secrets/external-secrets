@@ -20,9 +20,11 @@ import (
 	"fmt"
 
 	authenticationv1 "k8s.io/api/authentication/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -31,7 +33,9 @@ import (
 )
 
 const (
-	errUnableCreateToken = "cannot create service account token: %q"
+	errGetServiceAccount         = "could not get service account: %w"
+	errServiceAccountNotExist    = "service account %q does not exist in namespace %q"
+	errCreateServiceAccountToken = "could not create service account token for %q: %w"
 )
 
 func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
@@ -118,16 +122,31 @@ func (c *Client) serviceAccountToken(ctx context.Context, serviceAccountRef *esm
 		namespace = *serviceAccountRef.Namespace
 	}
 	expirationSeconds := int64(3600)
-	tr, err := c.ctrlClientset.ServiceAccounts(namespace).CreateToken(ctx, serviceAccountRef.Name, &authenticationv1.TokenRequest{
+
+	serviceAccount := &corev1.ServiceAccount{}
+	err := c.ctrlClient.Get(ctx, client.ObjectKey{
+		Namespace: namespace,
+		Name:      serviceAccountRef.Name,
+	}, serviceAccount)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, fmt.Errorf(errServiceAccountNotExist, serviceAccountRef.Name, namespace)
+		}
+		return nil, fmt.Errorf(errGetServiceAccount, err)
+	}
+
+	tokenRequest := &authenticationv1.TokenRequest{
 		Spec: authenticationv1.TokenRequestSpec{
 			Audiences:         serviceAccountRef.Audiences,
 			ExpirationSeconds: &expirationSeconds,
 		},
-	}, metav1.CreateOptions{})
-	if err != nil {
-		return nil, fmt.Errorf(errUnableCreateToken, err)
 	}
-	return []byte(tr.Status.Token), nil
+	err = c.ctrlClient.SubResource("token").Create(ctx, serviceAccount, tokenRequest)
+	if err != nil {
+		return nil, fmt.Errorf(errCreateServiceAccountToken, serviceAccountRef.Name, err)
+	}
+
+	return []byte(tokenRequest.Status.Token), nil
 }
 
 func (c *Client) fetchSecretKey(ctx context.Context, ref esmeta.SecretKeySelector) ([]byte, error) {

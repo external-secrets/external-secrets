@@ -16,8 +16,11 @@ package secretstore
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"time"
 
+	"github.com/google/go-cmp/cmp/cmpopts"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -48,25 +51,32 @@ var _ = Describe("SecretStore reconcile", func() {
 	// in the store status condition
 	invalidProvider := func(tc *testCase) {
 		tc.assert = func() {
-			Eventually(func() bool {
+			Eventually(func(g Gomega) error {
 				ss := tc.store.Copy()
 				err := k8sClient.Get(context.Background(), types.NamespacedName{
 					Name:      defaultStoreName,
 					Namespace: ss.GetObjectMeta().Namespace,
 				}, ss)
 				if err != nil {
-					return false
+					return err
 				}
 				status := ss.GetStatus()
-				if len(status.Conditions) != 1 {
-					return false
+				expected := []esapi.SecretStoreStatusCondition{
+					{
+						Type:    esapi.SecretStoreReady,
+						Status:  corev1.ConditionFalse,
+						Reason:  esapi.ReasonInvalidProviderConfig,
+						Message: fmt.Errorf(errStoreClient, errors.New("cannot initialize Vault client: no valid auth method specified")).Error(),
+					},
 				}
-				return status.Conditions[0].Reason == esapi.ReasonInvalidProviderConfig &&
-					hasEvent(tc.store.GetTypeMeta().Kind, ss.GetName(), esapi.ReasonInvalidProviderConfig)
+
+				opts := cmpopts.IgnoreFields(esapi.SecretStoreStatusCondition{}, "LastTransitionTime")
+				g.Expect(status.Conditions).To(BeComparableTo(expected, opts))
+				return nil
 			}).
 				WithTimeout(time.Second * 10).
 				WithPolling(time.Second).
-				Should(BeTrue())
+				Should(Succeed())
 		}
 	}
 
@@ -76,20 +86,23 @@ var _ = Describe("SecretStore reconcile", func() {
 		spc := tc.store.GetSpec()
 		spc.Controller = "something-else"
 		tc.assert = func() {
-			Consistently(func() bool {
+			Consistently(func(g Gomega) error {
 				ss := tc.store.Copy()
 				err := k8sClient.Get(context.Background(), types.NamespacedName{
 					Name:      defaultStoreName,
 					Namespace: ss.GetObjectMeta().Namespace,
 				}, ss)
 				if err != nil {
-					return true
+					return err
 				}
-				return len(ss.GetStatus().Conditions) == 0
+
+				status := ss.GetStatus()
+				g.Expect(status.Conditions).To(BeEmpty())
+				return nil
 			}).
 				WithTimeout(time.Second * 3).
 				WithPolling(time.Millisecond * 500).
-				Should(BeTrue())
+				Should(Succeed())
 		}
 	}
 
@@ -101,28 +114,33 @@ var _ = Describe("SecretStore reconcile", func() {
 		}
 
 		tc.assert = func() {
-			Eventually(func() bool {
+			Eventually(func(g Gomega) error {
 				ss := tc.store.Copy()
 				err := k8sClient.Get(context.Background(), types.NamespacedName{
 					Name:      defaultStoreName,
 					Namespace: ss.GetNamespace(),
 				}, ss)
 				if err != nil {
-					return false
+					return err
 				}
 
-				if len(ss.GetStatus().Conditions) != 1 {
-					return false
+				status := ss.GetStatus()
+				expected := []esapi.SecretStoreStatusCondition{
+					{
+						Type:    esapi.SecretStoreReady,
+						Status:  corev1.ConditionTrue,
+						Reason:  esapi.ReasonStoreValid,
+						Message: msgValid,
+					},
 				}
 
-				return ss.GetStatus().Conditions[0].Reason == esapi.ReasonStoreValid &&
-					ss.GetStatus().Conditions[0].Type == esapi.SecretStoreReady &&
-					ss.GetStatus().Conditions[0].Status == corev1.ConditionTrue &&
-					hasEvent(tc.store.GetTypeMeta().Kind, ss.GetName(), esapi.ReasonStoreValid)
+				opts := cmpopts.IgnoreFields(esapi.SecretStoreStatusCondition{}, "LastTransitionTime")
+				g.Expect(status.Conditions).To(BeComparableTo(expected, opts))
+				return nil
 			}).
 				WithTimeout(time.Second * 10).
 				WithPolling(time.Second).
-				Should(BeTrue())
+				Should(Succeed())
 		}
 
 	}
@@ -135,25 +153,23 @@ var _ = Describe("SecretStore reconcile", func() {
 		}
 
 		tc.assert = func() {
-			Eventually(func() bool {
+			Eventually(func(g Gomega) error {
 				ss := tc.store.Copy()
 				err := k8sClient.Get(context.Background(), types.NamespacedName{
 					Name:      defaultStoreName,
 					Namespace: ss.GetNamespace(),
 				}, ss)
 				if err != nil {
-					return false
+					return err
 				}
 
-				if ss.GetStatus().Capabilities != esapi.SecretStoreReadWrite {
-					return false
-				}
-
-				return true
+				status := ss.GetStatus()
+				g.Expect(status.Capabilities).To(Equal(esapi.SecretStoreReadWrite))
+				return nil
 			}).
 				WithTimeout(time.Second * 10).
 				WithPolling(time.Second).
-				Should(BeTrue())
+				Should(Succeed())
 		}
 
 	}
@@ -228,21 +244,4 @@ func useClusterStore(tc *testCase) {
 		},
 		Spec: *spc,
 	}
-}
-
-func hasEvent(involvedKind, name, reason string) bool {
-	el := &corev1.EventList{}
-	err := k8sClient.List(context.Background(), el)
-	if err != nil {
-		return false
-	}
-	for i := range el.Items {
-		ev := el.Items[i]
-		if ev.InvolvedObject.Kind == involvedKind && ev.InvolvedObject.Name == name {
-			if ev.Reason == reason {
-				return true
-			}
-		}
-	}
-	return false
 }

@@ -117,7 +117,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			RequeueAfter: time.Minute,
 		}, err
 	}
-	log.Info("updated webhook config")
 
 	// right now we only have one single
 	// webhook config we care about
@@ -193,7 +192,7 @@ func (r *Reconciler) updateConfig(ctx context.Context, cfg *admissionregistratio
 }
 
 func (r *Reconciler) inject(cfg *admissionregistration.ValidatingWebhookConfiguration, svcName, svcNamespace string, certData []byte) error {
-	r.Log.Info("injecting ca certificate and service names", "cacrt", base64.StdEncoding.EncodeToString(certData), "name", cfg.Name)
+	r.Log.V(1).Info("injecting ca certificate and service names", "cacrt", base64.StdEncoding.EncodeToString(certData), "name", cfg.Name)
 	for idx, w := range cfg.Webhooks {
 		if !strings.HasSuffix(w.Name, "external-secrets.io") {
 			r.Log.Info("skipping webhook", "name", cfg.Name, "webhook-name", w.Name)

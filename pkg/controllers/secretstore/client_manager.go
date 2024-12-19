@@ -102,37 +102,54 @@ func (m *Manager) GetFromStore(ctx context.Context, store esv1beta1.GenericStore
 }
 
 // Get returns a provider client from the given storeRef or sourceRef.secretStoreRef
-// while sourceRef.SecretStoreRef takes precedence over storeRef.
-// Do not close the client returned from this func, instead close
-// the manager once you're done with recinciling the external secret.
-func (m *Manager) Get(ctx context.Context, storeRef esv1beta1.SecretStoreRef, namespace string, sourceRef *esv1beta1.StoreGeneratorSourceRef) (esv1beta1.SecretsClient, error) {
+//   - sourceRef.storeRef takes precedence over storeRef (which is the default store for this ExternalSecret)
+//   - do NOT close the client returned from this func, instead close
+//     the manager once you're done with reconciling the external secret
+func (m *Manager) Get(ctx context.Context, storeRef esv1beta1.SecretStoreRef, namespace string, sourceRef *esv1beta1.StoreGeneratorSourceRef) (*esv1beta1.SecretStoreRef, esv1beta1.SecretsClient, error) {
 	if sourceRef != nil && sourceRef.SecretStoreRef != nil {
 		storeRef = *sourceRef.SecretStoreRef
 	}
+
+	// ensure store name is set
+	if storeRef.Name == "" {
+		return nil, nil, errors.New("store name was not set")
+	}
+
+	// get the store object from the cluster
 	store, err := m.getStore(ctx, &storeRef, namespace)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+
 	// check if store should be handled by this controller instance
 	if !ShouldProcessStore(store, m.controllerClass) {
-		return nil, errors.New("can not reference unmanaged store")
+		return nil, nil, errors.New("can not reference unmanaged store")
 	}
+
 	// when using ClusterSecretStore, validate the ClusterSecretStore namespace conditions
 	shouldProcess, err := m.shouldProcessSecret(store, namespace)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if !shouldProcess {
-		return nil, fmt.Errorf(errClusterStoreMismatch, store.GetName(), namespace)
+		return nil, nil, fmt.Errorf(errClusterStoreMismatch, store.GetName(), namespace)
 	}
 
+	// check if the store is ready to use
 	if m.enableFloodgate {
 		err := assertStoreIsUsable(store)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
-	return m.GetFromStore(ctx, store, namespace)
+
+	// get or create a client for the store
+	secretClient, err := m.GetFromStore(ctx, store, namespace)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &storeRef, secretClient, nil
 }
 
 // returns a previously stored client from the cache if store and store-version match

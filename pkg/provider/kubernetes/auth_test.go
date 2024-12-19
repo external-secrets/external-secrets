@@ -21,7 +21,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	pointer "k8s.io/utils/ptr"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -72,11 +71,10 @@ users:
 
 func TestSetAuth(t *testing.T) {
 	type fields struct {
-		kube          kclient.Client
-		kubeclientset typedcorev1.CoreV1Interface
-		store         *esv1beta1.KubernetesProvider
-		namespace     string
-		storeKind     string
+		kube      kclient.Client
+		store     *esv1beta1.KubernetesProvider
+		namespace string
+		storeKind string
 	}
 	type want = rest.Config
 	tests := []struct {
@@ -290,8 +288,9 @@ func TestSetAuth(t *testing.T) {
 						Name:      "my-sa",
 						Namespace: "default",
 					},
-				}).Build(),
-				kubeclientset: utilfake.NewCreateTokenMock().WithToken("my-sa-token"),
+				}).WithInterceptorFuncs(
+					utilfake.NewCreateTokenMock().WithToken("my-sa-token").AsInterceptorFuncs(),
+				).Build(),
 				store: &esv1beta1.KubernetesProvider{
 					Server: esv1beta1.KubernetesServer{
 						URL:      serverURL,
@@ -323,8 +322,9 @@ func TestSetAuth(t *testing.T) {
 						Name:      "my-sa",
 						Namespace: "default",
 					},
-				}).Build(),
-				kubeclientset: utilfake.NewCreateTokenMock().WithToken("my-sa-token"),
+				}).WithInterceptorFuncs(
+					utilfake.NewCreateTokenMock().WithToken("my-sa-token").AsInterceptorFuncs(),
+				).Build(),
 				store: &esv1beta1.KubernetesProvider{
 					Server: esv1beta1.KubernetesServer{
 						CABundle: []byte(caCert),
@@ -374,11 +374,10 @@ func TestSetAuth(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			k := &Client{
-				ctrlClientset: tt.fields.kubeclientset,
-				ctrlClient:    tt.fields.kube,
-				store:         tt.fields.store,
-				namespace:     tt.fields.namespace,
-				storeKind:     tt.fields.storeKind,
+				ctrlClient: tt.fields.kube,
+				store:      tt.fields.store,
+				namespace:  tt.fields.namespace,
+				storeKind:  tt.fields.storeKind,
 			}
 			cfg, err := k.getAuth(context.Background())
 			if (err != nil) != tt.wantErr {

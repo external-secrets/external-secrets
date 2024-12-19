@@ -107,13 +107,15 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&Reconciler{
-		Client:                    k8sManager.GetClient(),
-		SecretClient:              secretClient,
-		RestConfig:                cfg,
-		Scheme:                    k8sManager.GetScheme(),
-		Log:                       ctrl.Log.WithName("controllers").WithName("ExternalSecrets"),
-		RequeueInterval:           time.Second,
-		ClusterSecretStoreEnabled: true,
+		Client:                        k8sManager.GetClient(),
+		SecretClient:                  secretClient,
+		RestConfig:                    cfg,
+		Scheme:                        k8sManager.GetScheme(),
+		Log:                           ctrl.Log.WithName("controllers").WithName("ExternalSecrets"),
+		RequeueInterval:               time.Second,
+		ClusterSecretStoreEnabled:     true,
+		EnableFloodGate:               false, // NOTE: we are not running the SecretStore controller, so they will never get the "Ready" condition
+		EnableTriggerInClusterSecrets: true,  // NOTE: this is not enabled by default, but we need to enable it for the tests
 	}).SetupWithManager(k8sManager, controller.Options{
 		MaxConcurrentReconciles: 1,
 	})

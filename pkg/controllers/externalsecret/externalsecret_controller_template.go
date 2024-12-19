@@ -35,12 +35,30 @@ import (
 // * secret via es.data or es.dataFrom (if template.MergePolicy is Merge, or there is no template)
 // * existing secret keys (if CreationPolicy is Merge).
 func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSecret, secret *v1.Secret, dataMap map[string][]byte) error {
-	// update metadata (labels, annotations) of the secret
+	// initialize maps within the secret so it's safe to set values
+	if secret.Annotations == nil {
+		secret.Annotations = make(map[string]string)
+	}
+	if secret.Labels == nil {
+		secret.Labels = make(map[string]string)
+	}
+	if secret.Data == nil {
+		secret.Data = make(map[string][]byte)
+	}
+
+	// remove managed fields from the secret
+	// NOTE: this ensures templated fields are not left behind when they are removed from the template
+	if err := removeManagedFields(secret, es.Name); err != nil {
+		return err
+	}
+
+	// set labels and annotations (either from the template or the ExternalSecret itself)
 	if err := setMetadata(secret, es); err != nil {
 		return err
 	}
 
-	// we only keep existing keys if creation policy is Merge, otherwise we clear the secret
+	// clear data if the creation policy is not merge
+	// NOTE: this is because for other policies, the template is "declarative" and should be the source of truth
 	if es.Spec.Target.CreationPolicy != esv1beta1.CreatePolicyMerge {
 		secret.Data = make(map[string][]byte)
 	}
@@ -52,6 +70,8 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 	}
 
 	// set the secret type if it is defined in the template, otherwise keep the existing type
+	// NOTE: this prevents update loops because Kubernetes sets the type to "Opaque" if it is not defined,
+	//       and so explicitly setting it to "" every time would cause a needless update
 	if es.Spec.Target.Template.Type != "" {
 		secret.Type = es.Spec.Target.Template.Type
 	}
@@ -104,43 +124,49 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 	return nil
 }
 
-// setMetadata sets Labels and Annotations to the given secret.
+// setMetadata sets the labels and annotations on the secret, either from the template or the ExternalSecret itself.
 func setMetadata(secret *v1.Secret, es *esv1beta1.ExternalSecret) error {
-	// ensure that Labels and Annotations are not nil
-	// so it is safe to merge them
-	if secret.Labels == nil {
-		secret.Labels = make(map[string]string)
-	}
-	if secret.Annotations == nil {
-		secret.Annotations = make(map[string]string)
-	}
-
-	// remove any existing labels managed by this external secret
-	// this is to ensure that we don't have any stale labels
-	labelKeys, err := templating.GetManagedLabelKeys(secret, es.Name)
-	if err != nil {
-		return err
-	}
-	for _, key := range labelKeys {
-		delete(secret.ObjectMeta.Labels, key)
-	}
-	annotationKeys, err := templating.GetManagedAnnotationKeys(secret, es.Name)
-	if err != nil {
-		return err
-	}
-	for _, key := range annotationKeys {
-		delete(secret.ObjectMeta.Annotations, key)
-	}
-
 	// if no template is defined, copy labels and annotations from the ExternalSecret
 	if es.Spec.Target.Template == nil {
-		utils.MergeStringMap(secret.ObjectMeta.Labels, es.ObjectMeta.Labels)
-		utils.MergeStringMap(secret.ObjectMeta.Annotations, es.ObjectMeta.Annotations)
+		utils.MergeStringMap(secret.Labels, es.Labels)
+		utils.MergeStringMap(secret.Annotations, es.Annotations)
 		return nil
 	}
 
-	// copy labels and annotations from the template
-	utils.MergeStringMap(secret.ObjectMeta.Labels, es.Spec.Target.Template.Metadata.Labels)
-	utils.MergeStringMap(secret.ObjectMeta.Annotations, es.Spec.Target.Template.Metadata.Annotations)
+	// otherwise, copy labels and annotations from the template
+	utils.MergeStringMap(secret.Labels, es.Spec.Target.Template.Metadata.Labels)
+	utils.MergeStringMap(secret.Annotations, es.Spec.Target.Template.Metadata.Annotations)
+	return nil
+}
+
+// removeManagedFields removes all fields managed by a given fieldOwner from the secret.
+func removeManagedFields(secret *v1.Secret, fieldOwner string) error {
+	// remove managed annotation keys
+	annotationKeys, err := templating.GetManagedAnnotationKeys(secret, fieldOwner)
+	if err != nil {
+		return err
+	}
+	for i := range annotationKeys {
+		delete(secret.Annotations, annotationKeys[i])
+	}
+
+	// remove managed label keys
+	labelKeys, err := templating.GetManagedLabelKeys(secret, fieldOwner)
+	if err != nil {
+		return err
+	}
+	for i := range labelKeys {
+		delete(secret.Labels, labelKeys[i])
+	}
+
+	// remove managed data keys
+	dataKeys, err := templating.GetManagedDataKeys(secret, fieldOwner)
+	if err != nil {
+		return err
+	}
+	for i := range dataKeys {
+		delete(secret.Data, dataKeys[i])
+	}
+
 	return nil
 }

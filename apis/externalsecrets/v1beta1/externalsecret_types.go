@@ -286,6 +286,7 @@ type ExternalSecretDataFromRemoteRef struct {
 	// Note: Extract does not support sourceRef.Generator or sourceRef.GeneratorRef.
 	// +optional
 	Extract *ExternalSecretDataRemoteRef `json:"extract,omitempty"`
+
 	// Used to find secrets based on tags or regular expressions
 	// Note: Find does not support sourceRef.Generator or sourceRef.GeneratorRef.
 	// +optional
@@ -456,27 +457,87 @@ type ExternalSecretStatusCondition struct {
 }
 
 const (
-	// ConditionReasonSecretSynced indicates that the secrets was synced.
+	// ConditionReasonSecretSynced indicates that the target secret has been synced.
 	ConditionReasonSecretSynced = "SecretSynced"
-	// ConditionReasonSecretSyncedError indicates that there was an error syncing the secret.
+	// ConditionReasonSecretSyncedError indicates that there was an error syncing the target secret.
 	ConditionReasonSecretSyncedError = "SecretSyncedError"
-	// ConditionReasonSecretDeleted indicates that the secret has been deleted.
+	// ConditionReasonSecretDeleted indicates that the target secret has been deleted.
 	ConditionReasonSecretDeleted = "SecretDeleted"
-	// ConditionReasonSecretMissing indicates that the secret is missing.
+	// ConditionReasonSecretMissing indicates that the target secret is missing, and will not be created.
 	ConditionReasonSecretMissing = "SecretMissing"
 
-	ReasonUpdateFailed          = "UpdateFailed"
-	ReasonDeprecated            = "ParameterDeprecated"
-	ReasonCreated               = "Created"
-	ReasonUpdated               = "Updated"
-	ReasonDeleted               = "Deleted"
-	ReasonMissingProviderSecret = "MissingProviderSecret"
+	// EventReasonCreated is emitted when the target secret is created.
+	EventReasonCreated = "Created"
+	// EventReasonUpdated is emitted when the target secret is updated.
+	EventReasonUpdated = "Updated"
+	// EventReasonDeleted is emitted when the target secret is deleted.
+	EventReasonDeleted = "Deleted"
 )
 
+type SourceFoundKey struct {
+	// Key is the key from the Provider.
+	Key string `json:"key"`
+}
+
+type SourceListedKey struct {
+	// Key is the key from the Provider.
+	Key string `json:"key"`
+
+	// NotExists indicates if the key does NOT exist in the Provider.
+	// Note, if the ExternalSecret does not have the SecretSynced=true condition, this field is not populated.
+	NotExists bool `json:"notExists,omitempty"`
+}
+
+type ProviderSourceInfo struct {
+	// Name is the name of the SecretStore or ClusterSecretStore.
+	Name string `json:"name"`
+
+	// NotReady indicates if the provider does NOT have the Ready=true condition.
+	NotReady bool `json:"isReady,omitempty"`
+
+	// NotExists indicates if the provider does NOT exist.
+	NotExists bool `json:"notExists,omitempty"`
+
+	// ListedKeys are the remote keys explicitly referenced in `data[].remoteRef.key` and `dataFrom[].extract.key`.
+	// +listType:="map"
+	// +listMapKey:="key"
+	ListedKeys []SourceListedKey `json:"listedKeys"`
+
+	// FoundKeys are the remote keys found in the provider from `dataFrom[].extract.find`.
+	// +listType:="map"
+	// +listMapKey:="key"
+	FoundKeys []SourceFoundKey `json:"foundKeys"`
+}
+
+type ExternalSecretStatusSources struct {
+	// SecretStores lists information about the SecretStores used to fetch the ExternalSecret data.
+	// +listType:="map"
+	// +listMapKey:="name"
+	SecretStores []ProviderSourceInfo `json:"secretStores"`
+
+	// ClusterSecretStores lists information about the ClusterSecretStores used to fetch the ExternalSecret data.
+	// +listType:="map"
+	// +listMapKey:="name"
+	ClusterSecretStores []ProviderSourceInfo `json:"clusterSecretStores"`
+}
+
+type TriggerInClusterSecret struct {
+	// Name is the name of the in-cluster secret.
+	Name string `json:"name"`
+
+	// Namespace is the namespace of the in-cluster secret.
+	Namespace string `json:"namespace"`
+}
+
+type ExternalSecretStatusTriggers struct {
+	// InClusterSecrets is a list of in-cluster secrets that will trigger a refresh of the ExternalSecret when updated.
+	// +optional
+	InClusterSecrets []TriggerInClusterSecret `json:"inClusterSecrets"`
+}
+
 type ExternalSecretStatus struct {
+	// RefreshTime is the last time we successfully synced the ExternalSecret.
 	// +nullable
-	// refreshTime is the time and date the external secret was fetched and
-	// the target secret updated
 	RefreshTime metav1.Time `json:"refreshTime,omitempty"`
 
 	// SyncedResourceVersion keeps track of the last synced version
@@ -487,10 +548,19 @@ type ExternalSecretStatus struct {
 
 	// Binding represents a servicebinding.io Provisioned Service reference to the secret
 	Binding corev1.LocalObjectReference `json:"binding,omitempty"`
+
+	// Sources stores information about the data sources used by the ExternalSecret.
+	// +optional
+	Sources ExternalSecretStatusSources `json:"sources,omitempty"`
+
+	// Triggers stores information used to trigger a refresh of the ExternalSecret.
+	// +optional
+	Triggers ExternalSecretStatusTriggers `json:"triggers,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
+
 // ExternalSecret is the Schema for the external-secrets API.
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
@@ -510,6 +580,9 @@ type ExternalSecret struct {
 const (
 	// AnnotationDataHash all secrets managed by an ExternalSecret have this annotation with the hash of their data.
 	AnnotationDataHash = "reconcile.external-secrets.io/data-hash"
+
+	// AnnotationRefreshTrigger the controller will sometimes set this annotation to trigger a refresh.
+	AnnotationRefreshTrigger = "reconcile.external-secrets.io/refresh-trigger"
 
 	// LabelManaged all secrets managed by an ExternalSecret will have this label equal to "true".
 	LabelManaged      = "reconcile.external-secrets.io/managed"
