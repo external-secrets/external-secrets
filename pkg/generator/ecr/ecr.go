@@ -25,6 +25,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecr"
 	"github.com/aws/aws-sdk-go/service/ecr/ecriface"
+	"github.com/aws/aws-sdk-go/service/ecrpublic"
+	"github.com/aws/aws-sdk-go/service/ecrpublic/ecrpubliciface"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
@@ -37,14 +39,15 @@ import (
 type Generator struct{}
 
 const (
-	errNoSpec     = "no config spec provided"
-	errParseSpec  = "unable to parse spec: %w"
-	errCreateSess = "unable to create aws session: %w"
-	errGetToken   = "unable to get authorization token: %w"
+	errNoSpec          = "no config spec provided"
+	errParseSpec       = "unable to parse spec: %w"
+	errCreateSess      = "unable to create aws session: %w"
+	errGetPrivateToken = "unable to get authorization token: %w"
+	errGetPublicToken  = "unable to get public authorization token: %w"
 )
 
 func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, error) {
-	return g.generate(ctx, jsonSpec, kube, namespace, ecrFactory)
+	return g.generate(ctx, jsonSpec, kube, namespace, ecrPrivateFactory, ecrPublicFactory)
 }
 
 func (g *Generator) generate(
@@ -52,7 +55,8 @@ func (g *Generator) generate(
 	jsonSpec *apiextensions.JSON,
 	kube client.Client,
 	namespace string,
-	ecrFunc ecrFactoryFunc,
+	ecrPrivateFunc ecrPrivateFactoryFunc,
+	ecrPublicFunc ecrPublicFactoryFunc,
 ) (map[string][]byte, error) {
 	if jsonSpec == nil {
 		return nil, errors.New(errNoSpec)
@@ -76,10 +80,19 @@ func (g *Generator) generate(
 	if err != nil {
 		return nil, fmt.Errorf(errCreateSess, err)
 	}
-	client := ecrFunc(sess)
+
+	if res.Spec.Scope == "public" {
+		return fetchECRPublicToken(sess, ecrPublicFunc)
+	}
+
+	return fetchECRPrivateToken(sess, ecrPrivateFunc)
+}
+
+func fetchECRPrivateToken(sess *session.Session, ecrPrivateFunc ecrPrivateFactoryFunc) (map[string][]byte, error) {
+	client := ecrPrivateFunc(sess)
 	out, err := client.GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{})
 	if err != nil {
-		return nil, fmt.Errorf(errGetToken, err)
+		return nil, fmt.Errorf(errGetPrivateToken, err)
 	}
 	if len(out.AuthorizationData) != 1 {
 		return nil, fmt.Errorf("unexpected number of authorization tokens. expected 1, found %d", len(out.AuthorizationData))
@@ -104,10 +117,39 @@ func (g *Generator) generate(
 	}, nil
 }
 
-type ecrFactoryFunc func(aws *session.Session) ecriface.ECRAPI
+func fetchECRPublicToken(sess *session.Session, ecrPublicFunc ecrPublicFactoryFunc) (map[string][]byte, error) {
+	client := ecrPublicFunc(sess)
+	out, err := client.GetAuthorizationToken(&ecrpublic.GetAuthorizationTokenInput{})
+	if err != nil {
+		return nil, fmt.Errorf(errGetPublicToken, err)
+	}
 
-func ecrFactory(aws *session.Session) ecriface.ECRAPI {
+	decodedToken, err := base64.StdEncoding.DecodeString(*out.AuthorizationData.AuthorizationToken)
+	if err != nil {
+		return nil, err
+	}
+	parts := strings.Split(string(decodedToken), ":")
+	if len(parts) != 2 {
+		return nil, errors.New("unexpected token format")
+	}
+
+	exp := out.AuthorizationData.ExpiresAt.UTC().Unix()
+	return map[string][]byte{
+		"username":   []byte(parts[0]),
+		"password":   []byte(parts[1]),
+		"expires_at": []byte(strconv.FormatInt(exp, 10)),
+	}, nil
+}
+
+type ecrPrivateFactoryFunc func(aws *session.Session) ecriface.ECRAPI
+type ecrPublicFactoryFunc func(aws *session.Session) ecrpubliciface.ECRPublicAPI
+
+func ecrPrivateFactory(aws *session.Session) ecriface.ECRAPI {
 	return ecr.New(aws)
+}
+
+func ecrPublicFactory(aws *session.Session) ecrpubliciface.ECRPublicAPI {
+	return ecrpublic.New(aws)
 }
 
 func parseSpec(data []byte) (*genv1alpha1.ECRAuthorizationToken, error) {
