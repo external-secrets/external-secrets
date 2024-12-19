@@ -4,7 +4,7 @@ title: dataFrom key rewrite
 version: v1alpha1
 authors: 
 creation-date: 2022-05-25
-status: draft
+status: implemented
 ---
 ```
 

@@ -47,7 +47,14 @@ func TestBuildMetadata(t *testing.T) {
 				"someOtherKey": "someOtherValue",
 			},
 			metadata: &apiextensionsv1.JSON{
-				Raw: []byte(`{"annotations":{"key1":"value1"},"labels":{"key2":"value2"}}`),
+				Raw: []byte(`{
+					"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+					"kind": "PushSecretMetadata",
+					"spec": {
+						"annotations": {"key1":"value1"},
+						"labels": {"key2":"value2"}
+					}
+				}`),
 			},
 			expectedError: false,
 			expectedLabels: map[string]string{
@@ -66,7 +73,15 @@ func TestBuildMetadata(t *testing.T) {
 				"existingKey": "existingValue",
 			},
 			metadata: &apiextensionsv1.JSON{
-				Raw: []byte(`{"annotations":{"key1":"value1"},"labels":{"key2":"value2"},"mergePolicy":"Merge"}`),
+				Raw: []byte(`{
+					"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+					"kind": "PushSecretMetadata",
+					"spec": {
+						"annotations": {"key1":"value1"},
+						"labels": {"key2":"value2"},
+						"mergePolicy": "Merge"
+					}
+				}`),
 			},
 			expectedError: false,
 			expectedLabels: map[string]string{
@@ -78,6 +93,31 @@ func TestBuildMetadata(t *testing.T) {
 				"key1": "value1",
 			},
 			expectedTopics: nil,
+		},
+		{
+			name: "metadata with CMEK key name",
+			labels: map[string]string{
+				managedByKey: managedByValue,
+			},
+			metadata: &apiextensionsv1.JSON{
+				Raw: []byte(`{
+					"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+					"kind": "PushSecretMetadata",
+					"spec": {
+						"annotations": {"key1":"value1"},
+						"labels": {"key2":"value2"},
+						"cmekKeyName": "projects/my-project/locations/us-east1/keyRings/my-keyring/cryptoKeys/my-key"
+					}
+				}`),
+			},
+			expectedError: false,
+			expectedLabels: map[string]string{
+				managedByKey: managedByValue,
+				"key2":       "value2",
+			},
+			expectedAnnotations: map[string]string{
+				"key1": "value1",
+			},
 		},
 	}
 

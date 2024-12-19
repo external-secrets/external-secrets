@@ -123,6 +123,7 @@ By default, the PushSecret spec will replace any existing labels on the existing
 Example of using the `mergePolicy` field:
 
 ```yaml
+{% raw %}
 apiVersion: external-secrets.io/v1alpha1
 kind: PushSecret
 metadata:
@@ -146,9 +147,117 @@ spec:
       metadata:
         mergePolicy: Merge
         labels:
-          anotherLabel: anotherValue 
+          anotherLabel: anotherValue
       match:
         secretKey: bestpokemon
         remoteRef:
           remoteKey: best-pokemon
+{% endraw %}
+```
+
+### Secret Replication and Encryption Configuration
+
+#### Location and Replication
+
+By default, secrets are automatically replicated across multiple regions. You can specify a single location for your secrets by setting the `location` field:
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: gcp-secret-store
+spec:
+  provider:
+    gcpsm:
+      projectID: my-project
+      location: us-east1  # Specify a single location
+```
+
+#### Customer-Managed Encryption Keys (CMEK)
+
+You can use your own encryption keys to encrypt secrets at rest. To use Customer-Managed Encryption Keys (CMEK), you need to:
+
+1. Create a Cloud KMS key
+2. Grant the service account the `roles/cloudkms.cryptoKeyEncrypterDecrypter` role on the key
+3. Specify the key in the PushSecret metadata
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: pushsecret-example
+spec:
+  # ... other fields ...
+  data:
+    - match:
+        secretKey: mykey
+        remoteRef:
+          remoteKey: my-secret
+      metadata:
+        apiVersion: kubernetes.external-secrets.io/v1alpha1
+        kind: PushSecretMetadata
+        spec:
+          cmekKeyName: "projects/my-project/locations/us-east1/keyRings/my-keyring/cryptoKeys/my-key"
+```
+
+Note: When using CMEK, you must specify a location in the SecretStore as customer-managed encryption keys are region-specific.
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: gcp-secret-store
+spec:
+  provider:
+    gcpsm:
+      projectID: my-project
+      location: us-east1  # Required when using CMEK
+```
+
+### Migration Guide: PushSecret Metadata Format (v0.11.x to v0.12.0)
+
+In version 0.12.0, the metadata format for PushSecrets has been standardized to use a structured format. If you're upgrading from v0.11.x, you'll need to update your PushSecret specifications.
+
+#### Old Format (v0.11.x)
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+spec:
+  data:
+    - match:
+        secretKey: mykey
+        remoteRef:
+          remoteKey: my-secret
+      metadata:
+        annotations:
+          key1: "value1"
+        labels:
+          key2: "value2"
+        topics:
+          - "topic1"
+          - "topic2"
+```
+
+#### New Format (v0.12.0+)
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+spec:
+  data:
+    - match:
+        secretKey: mykey
+        remoteRef:
+          remoteKey: my-secret
+      metadata:
+        apiVersion: kubernetes.external-secrets.io/v1alpha1
+        kind: PushSecretMetadata
+        spec:
+          annotations:
+            key1: "value1"
+          labels:
+            key2: "value2"
+          topics:
+            - "topic1"
+            - "topic2"
+          cmekKeyName: "projects/my-project/locations/us-east1/keyRings/my-keyring/cryptoKeys/my-key"  # Optional: for CMEK
 ```
