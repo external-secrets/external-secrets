@@ -14,7 +14,10 @@ limitations under the License.
 
 package template
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
 const (
 	certData = `-----BEGIN CERTIFICATE-----
@@ -178,4 +181,194 @@ func TestFilterPEM(t *testing.T) {
 			}
 		})
 	}
+}
+
+type filterCertChainTestArgs struct {
+	input    []string
+	certType string
+}
+
+type filterCertChainTest struct {
+	name    string
+	args    filterCertChainTestArgs
+	want    string
+	wantErr bool
+}
+
+func TestFilterCertChain(t *testing.T) {
+	const (
+		leafCertPath         = "_testdata/foo.crt"
+		intermediateCertPath = "_testdata/intermediate-ca.crt"
+		rootCertPath         = "_testdata/root-ca.crt"
+		rootKeyPath          = "_testdata/root-ca.key"
+	)
+	tests := []filterCertChainTest{
+		{
+			name: "extract leaf cert / empty cert chain",
+			args: filterCertChainTestArgs{
+				input:    []string{},
+				certType: certTypeLeaf,
+			},
+			wantErr: true,
+		},
+		{
+			name: "extract leaf cert / cert chain with pkey",
+			args: filterCertChainTestArgs{
+				input: []string{
+					leafCertPath,
+					rootKeyPath,
+				},
+				certType: certTypeLeaf,
+			},
+			wantErr: true,
+		},
+		{
+			name: "extract leaf cert / leaf cert only",
+			args: filterCertChainTestArgs{
+				input: []string{
+					leafCertPath,
+				},
+				certType: certTypeLeaf,
+			},
+			want: leafCertPath,
+		},
+		{
+			name: "extract leaf cert / cert chain without root",
+			args: filterCertChainTestArgs{
+				input: []string{
+					leafCertPath,
+					intermediateCertPath,
+				},
+				certType: certTypeLeaf,
+			},
+			want: leafCertPath,
+		},
+		{
+			name: "extract leaf cert / root cert only",
+			args: filterCertChainTestArgs{
+				input: []string{
+					rootCertPath,
+				},
+				certType: certTypeLeaf,
+			},
+			want: "",
+		},
+		{
+			name: "extract leaf cert / full cert chain",
+			args: filterCertChainTestArgs{
+				input: []string{
+					leafCertPath,
+					intermediateCertPath,
+					rootCertPath,
+				},
+				certType: certTypeLeaf,
+			},
+			want: leafCertPath,
+		},
+		{
+			name: "extract intermediate cert / leaf cert only",
+			args: filterCertChainTestArgs{
+				input: []string{
+					leafCertPath,
+				},
+				certType: certTypeIntermediate,
+			},
+			want: "",
+		},
+		{
+			name: "extract intermediate cert / cert chain without root",
+			args: filterCertChainTestArgs{
+				input: []string{
+					leafCertPath,
+					intermediateCertPath,
+				},
+				certType: certTypeIntermediate,
+			},
+			want: intermediateCertPath,
+		},
+		{
+			name: "extract intermediate cert / full cert chain",
+			args: filterCertChainTestArgs{
+				input: []string{
+					leafCertPath,
+					intermediateCertPath,
+					rootCertPath,
+				},
+				certType: certTypeIntermediate,
+			},
+			want: intermediateCertPath,
+		},
+		{
+			name: "extract root cert / leaf cert only",
+			args: filterCertChainTestArgs{
+				input: []string{
+					leafCertPath,
+				},
+				certType: certTypeRoot,
+			},
+			want: "",
+		},
+		{
+			name: "extract root cert / root cert only",
+			args: filterCertChainTestArgs{
+				input: []string{
+					rootCertPath,
+				},
+				certType: certTypeRoot,
+			},
+			want: rootCertPath,
+		},
+		{
+			name: "extract root cert / full cert chain",
+			args: filterCertChainTestArgs{
+				input: []string{
+					leafCertPath,
+					intermediateCertPath,
+					rootCertPath,
+				},
+				certType: certTypeRoot,
+			},
+			want: rootCertPath,
+		},
+	}
+	for _, tt := range tests {
+		runFilterCertChainTest(t, tt)
+	}
+}
+
+func runFilterCertChainTest(t *testing.T, tt filterCertChainTest) {
+	t.Run(tt.name, func(t *testing.T) {
+		chainIn, err := readCertificates(tt.args.input)
+		if err != nil {
+			t.Error(err)
+		}
+		var expOut []byte
+		if tt.want != "" {
+			var err error
+			expOut, err = os.ReadFile(tt.want)
+			if err != nil {
+				t.Error(err)
+			}
+		}
+		got, err := filterCertChain(tt.args.certType, string(chainIn))
+		if (err != nil) != tt.wantErr {
+			t.Errorf("filterCertChain() error = %v, wantErr %v", err, tt.wantErr)
+			return
+		}
+		if got != string(expOut) {
+			t.Errorf("filterCertChain() = %v, want %v", got, string(expOut))
+		}
+	})
+}
+
+func readCertificates(certFiles []string) ([]byte, error) {
+	var certificates []byte
+	for _, f := range certFiles {
+		c, err := os.ReadFile(f)
+		if err != nil {
+			return nil, err
+		}
+		certificates = append(certificates, c...)
+	}
+	return certificates, nil
 }
