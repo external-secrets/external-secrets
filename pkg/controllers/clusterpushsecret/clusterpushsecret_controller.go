@@ -12,7 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package pushsecret
+package clusterpushsecret
 
 import (
 	"context"
@@ -38,13 +38,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret/cpsmetrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
-// ClusterPushSecretReconciler reconciles a ClusterPushSecret object.
-type ClusterPushSecretReconciler struct {
+// Reconciler reconciles a ClusterPushSecret object.
+type Reconciler struct {
 	client.Client
 	Log             logr.Logger
 	Scheme          *runtime.Scheme
@@ -53,19 +53,20 @@ type ClusterPushSecretReconciler struct {
 }
 
 const (
+	errPatchStatus          = "error merging"
 	errGetCES               = "could not get ClusterPushSecret"
 	errConvertLabelSelector = "unable to convert label selector"
 	errGetExistingPS        = "could not get existing PushSecret"
 )
 
-func (r *ClusterPushSecretReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("ClusterPushSecret", req.NamespacedName)
 
 	var cps v1alpha1.ClusterPushSecret
 	err := r.Get(ctx, req.NamespacedName, &cps)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			cesmetrics.RemoveMetrics(req.Namespace, req.Name)
+			cpsmetrics.RemoveMetrics(req.Namespace, req.Name)
 			return ctrl.Result{}, nil
 		}
 
@@ -106,7 +107,6 @@ func (r *ClusterPushSecretReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	failedNamespaces := r.deleteOutdatedPushSecrets(ctx, namespaces, esName, cps.Name, cps.Status.ProvisionedNamespaces)
-
 	provisionedNamespaces := r.updateProvisionedNamespaces(ctx, namespaces, esName, log, failedNamespaces, &cps)
 
 	cps.Status.FailedNamespaces = toNamespaceFailures(failedNamespaces)
@@ -116,7 +116,7 @@ func (r *ClusterPushSecretReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
 
-func (r *ClusterPushSecretReconciler) updateProvisionedNamespaces(
+func (r *Reconciler) updateProvisionedNamespaces(
 	ctx context.Context,
 	namespaces []v1.Namespace,
 	esName string,
@@ -154,7 +154,7 @@ func (r *ClusterPushSecretReconciler) updateProvisionedNamespaces(
 	return provisionedNamespaces
 }
 
-func (r *ClusterPushSecretReconciler) deleteOldPushSecrets(ctx context.Context, cps *v1alpha1.ClusterPushSecret, esName string, log logr.Logger) error {
+func (r *Reconciler) deleteOldPushSecrets(ctx context.Context, cps *v1alpha1.ClusterPushSecret, esName string, log logr.Logger) error {
 	var lastErr error
 	if prevName := cps.Status.PushSecretName; prevName != esName {
 		// PushSecretName has changed, so remove the old ones
@@ -177,14 +177,14 @@ func (r *ClusterPushSecretReconciler) deleteOldPushSecrets(ctx context.Context, 
 	return nil
 }
 
-func (r *ClusterPushSecretReconciler) markAsFailed(msg string, ps *v1alpha1.ClusterPushSecret) {
-	cond := newPushSecretCondition(v1alpha1.PushSecretReady, v1.ConditionFalse, v1alpha1.ReasonErrored, msg)
+func (r *Reconciler) markAsFailed(msg string, ps *v1alpha1.ClusterPushSecret) {
+	cond := pushsecret.NewPushSecretCondition(v1alpha1.PushSecretReady, v1.ConditionFalse, v1alpha1.ReasonErrored, msg)
 	setClusterPushSecretCondition(ps, *cond)
 	r.Recorder.Event(ps, v1.EventTypeWarning, v1alpha1.ReasonErrored, msg)
 }
 
 func setClusterPushSecretCondition(ps *v1alpha1.ClusterPushSecret, condition v1alpha1.PushSecretStatusCondition) {
-	currentCond := getPushSecretCondition(ps.Status.Conditions, condition.Type)
+	currentCond := pushsecret.GetPushSecretCondition(ps.Status.Conditions, condition.Type)
 	if currentCond != nil && currentCond.Status == condition.Status &&
 		currentCond.Reason == condition.Reason && currentCond.Message == condition.Message {
 		return
@@ -195,10 +195,10 @@ func setClusterPushSecretCondition(ps *v1alpha1.ClusterPushSecret, condition v1a
 		condition.LastTransitionTime = currentCond.LastTransitionTime
 	}
 
-	ps.Status.Conditions = append(filterOutCondition(ps.Status.Conditions, condition.Type), condition)
+	ps.Status.Conditions = append(pushsecret.FilterOutCondition(ps.Status.Conditions, condition.Type), condition)
 }
 
-func (r *ClusterPushSecretReconciler) createOrUpdatePushSecret(ctx context.Context, csp *v1alpha1.ClusterPushSecret, namespace v1.Namespace, esName string, esMetadata v1alpha1.PushSecretMetadata) error {
+func (r *Reconciler) createOrUpdatePushSecret(ctx context.Context, csp *v1alpha1.ClusterPushSecret, namespace v1.Namespace, esName string, esMetadata v1alpha1.PushSecretMetadata) error {
 	pushSecret := &v1alpha1.PushSecret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace.Name,
@@ -225,7 +225,7 @@ func (r *ClusterPushSecretReconciler) createOrUpdatePushSecret(ctx context.Conte
 	return nil
 }
 
-func (r *ClusterPushSecretReconciler) deletePushSecret(ctx context.Context, esName, cesName, namespace string) error {
+func (r *Reconciler) deletePushSecret(ctx context.Context, esName, cesName, namespace string) error {
 	var existingPs v1alpha1.PushSecret
 	err := r.Get(ctx, types.NamespacedName{
 		Name:      esName,
@@ -251,13 +251,13 @@ func (r *ClusterPushSecretReconciler) deletePushSecret(ctx context.Context, esNa
 	return nil
 }
 
-func (r *ClusterPushSecretReconciler) deferPatch(ctx context.Context, log logr.Logger, cps *v1alpha1.ClusterPushSecret, p client.Patch) {
+func (r *Reconciler) deferPatch(ctx context.Context, log logr.Logger, cps *v1alpha1.ClusterPushSecret, p client.Patch) {
 	if err := r.Status().Patch(ctx, cps, p); err != nil {
 		log.Error(err, errPatchStatus)
 	}
 }
 
-func (r *ClusterPushSecretReconciler) deleteOutdatedPushSecrets(ctx context.Context, namespaces []v1.Namespace, esName, cesName string, provisionedNamespaces []string) map[string]error {
+func (r *Reconciler) deleteOutdatedPushSecrets(ctx context.Context, namespaces []v1.Namespace, esName, cesName string, provisionedNamespaces []string) map[string]error {
 	failedNamespaces := map[string]error{}
 	// Loop through existing namespaces first to make sure they still have our labels
 	for _, namespace := range getRemovedNamespaces(namespaces, provisionedNamespaces) {
@@ -273,7 +273,7 @@ func (r *ClusterPushSecretReconciler) deleteOutdatedPushSecrets(ctx context.Cont
 
 func isPushSecretOwnedBy(ps *v1alpha1.PushSecret, cesName string) bool {
 	owner := metav1.GetControllerOf(ps)
-	return owner != nil && owner.APIVersion == esv1beta1.SchemeGroupVersion.String() && owner.Kind == "ClusterPushSecret" && owner.Name == cesName
+	return owner != nil && owner.APIVersion == v1alpha1.SchemeGroupVersion.String() && owner.Kind == "ClusterPushSecret" && owner.Name == cesName
 }
 
 func getRemovedNamespaces(currentNSs []v1.Namespace, provisionedNSs []string) []string {
@@ -308,7 +308,7 @@ func toNamespaceFailures(failedNamespaces map[string]error) []v1alpha1.ClusterPu
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ClusterPushSecretReconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
 		For(&v1alpha1.ClusterPushSecret{}).
@@ -321,7 +321,7 @@ func (r *ClusterPushSecretReconciler) SetupWithManager(mgr ctrl.Manager, opts co
 		Complete(r)
 }
 
-func (r *ClusterPushSecretReconciler) findObjectsForNamespace(ctx context.Context, namespace client.Object) []reconcile.Request {
+func (r *Reconciler) findObjectsForNamespace(ctx context.Context, namespace client.Object) []reconcile.Request {
 	var cpsl v1alpha1.ClusterPushSecretList
 	if err := r.List(ctx, &cpsl); err != nil {
 		r.Log.Error(err, errGetCES)
