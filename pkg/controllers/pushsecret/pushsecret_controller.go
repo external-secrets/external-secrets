@@ -237,8 +237,8 @@ func shouldRefresh(ps esapi.PushSecret) bool {
 }
 
 func (r *Reconciler) markAsFailed(msg string, ps *esapi.PushSecret, syncState esapi.SyncedPushSecretsMap) {
-	cond := newPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
-	setPushSecretCondition(ps, *cond)
+	cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
+	SetPushSecretCondition(ps, *cond)
 	if syncState != nil {
 		r.setSecrets(ps, syncState)
 	}
@@ -250,8 +250,8 @@ func (r *Reconciler) markAsDone(ps *esapi.PushSecret, secrets esapi.SyncedPushSe
 	if ps.Spec.UpdatePolicy == esapi.PushSecretUpdatePolicyIfNotExists {
 		msg += ". Existing secrets in providers unchanged."
 	}
-	cond := newPushSecretCondition(esapi.PushSecretReady, v1.ConditionTrue, esapi.ReasonSynced, msg)
-	setPushSecretCondition(ps, *cond)
+	cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionTrue, esapi.ReasonSynced, msg)
+	SetPushSecretCondition(ps, *cond)
 	r.setSecrets(ps, secrets)
 	ps.Status.RefreshTime = metav1.NewTime(start)
 	ps.Status.SyncedResourceVersion = util.GetResourceVersion(ps.ObjectMeta)
@@ -532,7 +532,7 @@ func (r *Reconciler) getSecretStoreFromName(ctx context.Context, refStore esapi.
 	return &store, nil
 }
 
-func newPushSecretCondition(condType esapi.PushSecretConditionType, status v1.ConditionStatus, reason, message string) *esapi.PushSecretStatusCondition {
+func NewPushSecretCondition(condType esapi.PushSecretConditionType, status v1.ConditionStatus, reason, message string) *esapi.PushSecretStatusCondition {
 	return &esapi.PushSecretStatusCondition{
 		Type:               condType,
 		Status:             status,
@@ -542,8 +542,8 @@ func newPushSecretCondition(condType esapi.PushSecretConditionType, status v1.Co
 	}
 }
 
-func setPushSecretCondition(ps *esapi.PushSecret, condition esapi.PushSecretStatusCondition) {
-	currentCond := getPushSecretCondition(ps.Status.Conditions, condition.Type)
+func SetPushSecretCondition(ps *esapi.PushSecret, condition esapi.PushSecretStatusCondition) {
+	currentCond := GetPushSecretCondition(ps.Status.Conditions, condition.Type)
 	if currentCond != nil && currentCond.Status == condition.Status &&
 		currentCond.Reason == condition.Reason && currentCond.Message == condition.Message {
 		return
@@ -554,11 +554,11 @@ func setPushSecretCondition(ps *esapi.PushSecret, condition esapi.PushSecretStat
 		condition.LastTransitionTime = currentCond.LastTransitionTime
 	}
 
-	ps.Status.Conditions = append(filterOutCondition(ps.Status.Conditions, condition.Type), condition)
+	ps.Status.Conditions = append(FilterOutCondition(ps.Status.Conditions, condition.Type), condition)
 }
 
-// filterOutCondition returns an empty set of conditions with the provided type.
-func filterOutCondition(conditions []esapi.PushSecretStatusCondition, condType esapi.PushSecretConditionType) []esapi.PushSecretStatusCondition {
+// FilterOutCondition returns an empty set of conditions with the provided type.
+func FilterOutCondition(conditions []esapi.PushSecretStatusCondition, condType esapi.PushSecretConditionType) []esapi.PushSecretStatusCondition {
 	newConditions := make([]esapi.PushSecretStatusCondition, 0, len(conditions))
 	for _, c := range conditions {
 		if c.Type == condType {
@@ -569,8 +569,8 @@ func filterOutCondition(conditions []esapi.PushSecretStatusCondition, condType e
 	return newConditions
 }
 
-// getPushSecretCondition returns the condition with the provided type.
-func getPushSecretCondition(conditions []esapi.PushSecretStatusCondition, condType esapi.PushSecretConditionType) *esapi.PushSecretStatusCondition {
+// GetPushSecretCondition returns the condition with the provided type.
+func GetPushSecretCondition(conditions []esapi.PushSecretStatusCondition, condType esapi.PushSecretConditionType) *esapi.PushSecretStatusCondition {
 	for i := range conditions {
 		c := conditions[i]
 		if c.Type == condType {

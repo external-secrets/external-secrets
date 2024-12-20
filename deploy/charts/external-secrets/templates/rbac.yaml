@@ -134,6 +134,14 @@ rules:
     - "create"
     - "update"
     - "delete"
+  - apiGroups:
+    - "external-secrets.io"
+    resources:
+    - "pushsecrets"
+    verbs:
+    - "create"
+    - "update"
+    - "delete"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
@@ -325,6 +333,7 @@ rules:
     - "external-secrets.io"
     resources:
     - "externalsecrets"
+    - "pushsecrets"
     verbs:
     - "get"
     - "list"

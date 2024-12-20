@@ -38,6 +38,8 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret"
+	"github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret/cpsmetrics"
 	ctrlcommon "github.com/external-secrets/external-secrets/pkg/controllers/common"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
@@ -267,9 +269,9 @@ var rootCmd = &cobra.Command{
 		}
 
 		if enableClusterPushSecretReconciler {
-			cesmetrics.SetUpMetrics()
+			cpsmetrics.SetUpMetrics()
 
-			if err = (&pushsecret.ClusterPushSecretReconciler{
+			if err = (&clusterpushsecret.Reconciler{
 				Client:          mgr.GetClient(),
 				Log:             ctrl.Log.WithName("controllers").WithName("ClusterPushSecret"),
 				Scheme:          mgr.GetScheme(),

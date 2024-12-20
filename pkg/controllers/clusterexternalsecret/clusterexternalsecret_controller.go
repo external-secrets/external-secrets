@@ -110,7 +110,13 @@ func (r *Reconciler) reconcile(ctx context.Context, log logr.Logger, clusterExte
 	}
 	clusterExternalSecret.Status.ExternalSecretName = esName
 
-	namespaces, err := r.getTargetNamespaces(ctx, clusterExternalSecret)
+	selectors := []*metav1.LabelSelector{}
+	if s := clusterExternalSecret.Spec.NamespaceSelector; s != nil {
+		selectors = append(selectors, s)
+	}
+	selectors = append(selectors, clusterExternalSecret.Spec.NamespaceSelectors...)
+
+	namespaces, err := utils.GetTargetNamespaces(ctx, r.Client, clusterExternalSecret.Spec.Namespaces, selectors)
 	if err != nil {
 		log.Error(err, "failed to get target Namespaces")
 		failedNamespaces := map[string]error{
@@ -195,46 +201,6 @@ func (r *Reconciler) removeOldSecrets(ctx context.Context, log logr.Logger, clus
 	}
 
 	return nil
-}
-
-func (r *Reconciler) getTargetNamespaces(ctx context.Context, ces *esv1beta1.ClusterExternalSecret) ([]v1.Namespace, error) {
-	var selectors []*metav1.LabelSelector //nolint:prealloc // ces.Spec.NamespaceSelector might be empty.
-	if s := ces.Spec.NamespaceSelector; s != nil {
-		selectors = append(selectors, s)
-	}
-	for _, ns := range ces.Spec.Namespaces {
-		selectors = append(selectors, &metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"kubernetes.io/metadata.name": ns,
-			},
-		})
-	}
-	selectors = append(selectors, ces.Spec.NamespaceSelectors...)
-
-	var namespaces []v1.Namespace
-	namespaceSet := make(map[string]struct{})
-	for _, selector := range selectors {
-		labelSelector, err := metav1.LabelSelectorAsSelector(selector)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert label selector %s: %w", selector, err)
-		}
-
-		var nl v1.NamespaceList
-		err = r.List(ctx, &nl, &client.ListOptions{LabelSelector: labelSelector})
-		if err != nil {
-			return nil, fmt.Errorf("failed to list namespaces by label selector %s: %w", selector, err)
-		}
-
-		for _, n := range nl.Items {
-			if _, exist := namespaceSet[n.Name]; exist {
-				continue
-			}
-			namespaceSet[n.Name] = struct{}{}
-			namespaces = append(namespaces, n)
-		}
-	}
-
-	return namespaces, nil
 }
 
 func (r *Reconciler) createOrUpdateExternalSecret(ctx context.Context, clusterExternalSecret *esv1beta1.ClusterExternalSecret, namespace v1.Namespace, esName string, esMetadata esv1beta1.ExternalSecretMetadata) error {
