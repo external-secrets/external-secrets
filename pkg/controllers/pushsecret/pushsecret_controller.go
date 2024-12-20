@@ -49,15 +49,15 @@ import (
 )
 
 const (
-	errFailedGetSecret       = "could not get source secret"
-	errPatchStatus           = "error merging"
-	errGetSecretStore        = "could not get SecretStore %q, %w"
-	errGetClusterSecretStore = "could not get ClusterSecretStore %q, %w"
-	errSetSecretFailed       = "could not write remote ref %v to target secretstore %v: %v"
-	errFailedSetSecret       = "set secret failed: %v"
-	errConvert               = "could not apply conversion strategy to keys: %v"
-	errUnmanagedStores       = "PushSecret %q has no managed stores to push to"
-	pushSecretFinalizer      = "pushsecret.externalsecrets.io/finalizer"
+	errFailedGetSecret         = "could not get source secret"
+	errPatchStatus             = "error merging"
+	errGetSecretStore          = "could not get SecretStore %q, %w"
+	errGetClusterSecretStore   = "could not get ClusterSecretStore %q, %w"
+	errSetSecretFailed         = "could not write remote ref %v to target secretstore %v: %v"
+	errFailedSetSecret         = "set secret failed: %v"
+	errConvert                 = "could not apply conversion strategy to keys: %v"
+	pushSecretFinalizer        = "pushsecret.externalsecrets.io/finalizer"
+	errCloudNotUpdateFinalizer = "could not update finalizers: %w"
 )
 
 type Reconciler struct {
@@ -122,7 +122,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			if !controllerutil.ContainsFinalizer(&ps, pushSecretFinalizer) {
 				controllerutil.AddFinalizer(&ps, pushSecretFinalizer)
 				if err := r.Client.Update(ctx, &ps, &client.UpdateOptions{}); err != nil {
-					return ctrl.Result{}, fmt.Errorf("could not update finalizers: %w", err)
+					return ctrl.Result{}, fmt.Errorf(errCloudNotUpdateFinalizer, err)
 				}
 
 				return ctrl.Result{}, nil
@@ -140,7 +140,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 				controllerutil.RemoveFinalizer(&ps, pushSecretFinalizer)
 				if err := r.Client.Update(ctx, &ps, &client.UpdateOptions{}); err != nil {
-					return ctrl.Result{}, fmt.Errorf("could not update finalizers: %w", err)
+					return ctrl.Result{}, fmt.Errorf(errCloudNotUpdateFinalizer, err)
 				}
 
 				return ctrl.Result{}, nil
@@ -150,7 +150,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if controllerutil.ContainsFinalizer(&ps, pushSecretFinalizer) {
 			controllerutil.RemoveFinalizer(&ps, pushSecretFinalizer)
 			if err := r.Client.Update(ctx, &ps, &client.UpdateOptions{}); err != nil {
-				return ctrl.Result{}, fmt.Errorf("could not update finalizers: %w", err)
+				return ctrl.Result{}, fmt.Errorf(errCloudNotUpdateFinalizer, err)
 			}
 		}
 	default:

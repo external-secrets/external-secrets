@@ -44,6 +44,9 @@ const (
 	errCallNotFoundAtIndex0   = "index 0 for call not found in the list of calls"
 	usEast1                   = "us-east1"
 	errInvalidReplicationType = "req.Secret.Replication.Replication was not of type *secretmanagerpb.Replication_UserManaged_ but: %T"
+	testSecretName            = "projects/foo/secret/bar"
+	managedBy                 = "managed-by"
+	externalSecrets           = "external-secrets"
 )
 
 type secretManagerTestCase struct {
@@ -207,7 +210,7 @@ func TestSecretManagerGetSecret(t *testing.T) {
 	}
 }
 
-func TestGetSecret_MetadataPolicyFetch(t *testing.T) {
+func TestGetSecretMetadataPolicyFetch(t *testing.T) {
 	tests := []struct {
 		name                string
 		ref                 esv1beta1.ExternalSecretDataRemoteRef
@@ -224,14 +227,14 @@ func TestGetSecret_MetadataPolicyFetch(t *testing.T) {
 			},
 			getSecretMockReturn: fakesm.SecretMockReturn{
 				Secret: &secretmanagerpb.Secret{
-					Name: "projects/foo/secret/bar",
+					Name: testSecretName,
 					Annotations: map[string]string{
-						"managed-by": "external-secrets",
+						managedBy: externalSecrets,
 					},
 				},
 				Err: nil,
 			},
-			expectedSecret: "external-secrets",
+			expectedSecret: externalSecrets,
 		},
 		{
 			name: "label is specified",
@@ -242,14 +245,14 @@ func TestGetSecret_MetadataPolicyFetch(t *testing.T) {
 			},
 			getSecretMockReturn: fakesm.SecretMockReturn{
 				Secret: &secretmanagerpb.Secret{
-					Name: "projects/foo/secret/bar",
+					Name: testSecretName,
 					Labels: map[string]string{
-						"managed-by": "external-secrets",
+						managedBy: externalSecrets,
 					},
 				},
 				Err: nil,
 			},
-			expectedSecret: "external-secrets",
+			expectedSecret: externalSecrets,
 		},
 		{
 			name: "annotations is specified",
@@ -260,7 +263,7 @@ func TestGetSecret_MetadataPolicyFetch(t *testing.T) {
 			},
 			getSecretMockReturn: fakesm.SecretMockReturn{
 				Secret: &secretmanagerpb.Secret{
-					Name: "projects/foo/secret/bar",
+					Name: testSecretName,
 					Annotations: map[string]string{
 						"annotationKey1": "annotationValue1",
 						"annotationKey2": "annotationValue2",
@@ -283,7 +286,7 @@ func TestGetSecret_MetadataPolicyFetch(t *testing.T) {
 			},
 			getSecretMockReturn: fakesm.SecretMockReturn{
 				Secret: &secretmanagerpb.Secret{
-					Name: "projects/foo/secret/bar",
+					Name: testSecretName,
 					Annotations: map[string]string{
 						"annotationKey1": "annotationValue1",
 						"annotationKey2": "annotationValue2",
@@ -305,7 +308,7 @@ func TestGetSecret_MetadataPolicyFetch(t *testing.T) {
 			},
 			getSecretMockReturn: fakesm.SecretMockReturn{
 				Secret: &secretmanagerpb.Secret{
-					Name: "projects/foo/secret/bar",
+					Name: testSecretName,
 					Labels: map[string]string{
 						"label-key": "label-value",
 					},
@@ -326,9 +329,9 @@ func TestGetSecret_MetadataPolicyFetch(t *testing.T) {
 			},
 			getSecretMockReturn: fakesm.SecretMockReturn{
 				Secret: &secretmanagerpb.Secret{
-					Name: "projects/foo/secret/bar",
+					Name: testSecretName,
 					Annotations: map[string]string{
-						"managed-by": "external-secrets",
+						managedBy: externalSecrets,
 					},
 				},
 				Err: nil,
@@ -344,9 +347,9 @@ func TestGetSecret_MetadataPolicyFetch(t *testing.T) {
 			},
 			getSecretMockReturn: fakesm.SecretMockReturn{
 				Secret: &secretmanagerpb.Secret{
-					Name: "projects/foo/secret/bar",
+					Name: testSecretName,
 					Labels: map[string]string{
-						"managed-by": "external-secrets",
+						managedBy: externalSecrets,
 					},
 				},
 				Err: nil,
@@ -362,9 +365,9 @@ func TestGetSecret_MetadataPolicyFetch(t *testing.T) {
 			},
 			getSecretMockReturn: fakesm.SecretMockReturn{
 				Secret: &secretmanagerpb.Secret{
-					Name: "projects/foo/secret/bar",
+					Name: testSecretName,
 					Labels: map[string]string{
-						"managed-by": "external-secrets",
+						managedBy: externalSecrets,
 					},
 				},
 				Err: nil,
@@ -434,9 +437,9 @@ func TestDeleteSecret(t *testing.T) {
 				getSecretOutput: fakesm.SecretMockReturn{
 					Secret: &secretmanagerpb.Secret{
 
-						Name: "projects/foo/secret/bar",
+						Name: testSecretName,
 						Labels: map[string]string{
-							"managed-by": "external-secrets",
+							managedBy: externalSecrets,
 						},
 					},
 					Err: nil,
@@ -449,7 +452,7 @@ func TestDeleteSecret(t *testing.T) {
 				getSecretOutput: fakesm.SecretMockReturn{
 					Secret: &secretmanagerpb.Secret{
 
-						Name:   "projects/foo/secret/bar",
+						Name:   testSecretName,
 						Labels: map[string]string{},
 					},
 					Err: nil,
@@ -537,7 +540,7 @@ func TestPushSecret(t *testing.T) {
 			},
 		},
 		Labels: map[string]string{
-			"managed-by": "external-secrets",
+			managedBy: externalSecrets,
 		},
 	}
 	secretWithTopics := secretmanagerpb.Secret{
@@ -548,7 +551,7 @@ func TestPushSecret(t *testing.T) {
 			},
 		},
 		Labels: map[string]string{
-			"managed-by": "external-secrets",
+			managedBy: externalSecrets,
 		},
 		Topics: []*secretmanagerpb.Topic{
 			{
@@ -567,7 +570,7 @@ func TestPushSecret(t *testing.T) {
 			},
 		},
 		Labels: map[string]string{
-			"managed-by": "not-external-secrets",
+			managedBy: "not-external-secrets",
 		},
 	}
 
@@ -660,7 +663,7 @@ func TestPushSecret(t *testing.T) {
 						},
 					},
 					Labels: map[string]string{
-						"managed-by": "external-secrets",
+						managedBy:    externalSecrets,
 						"label-key1": "label-value1",
 					},
 					Annotations: map[string]string{
@@ -693,7 +696,7 @@ func TestPushSecret(t *testing.T) {
 						},
 					},
 					Labels: map[string]string{
-						"managed-by": "external-secrets",
+						managedBy:    externalSecrets,
 						"label-key1": "label-value1",
 					},
 					Annotations: map[string]string{
@@ -950,7 +953,7 @@ func TestSecretExists(t *testing.T) {
 			},
 			getSecretMockReturn: fakesm.SecretMockReturn{
 				Secret: &secretmanagerpb.Secret{
-					Name: "projects/foo/secret/bar",
+					Name: testSecretName,
 				},
 				Err: nil,
 			},
@@ -979,7 +982,7 @@ func TestSecretExists(t *testing.T) {
 			},
 			getSecretMockReturn: fakesm.SecretMockReturn{
 				Secret: &secretmanagerpb.Secret{
-					Name: "projects/foo/secret/bar",
+					Name: testSecretName,
 				},
 				Err: errors.New("some error"),
 			},
@@ -1011,7 +1014,7 @@ func TestSecretExists(t *testing.T) {
 	}
 }
 
-func TestPushSecret_Property(t *testing.T) {
+func TestPushSecretProperty(t *testing.T) {
 	secretKey := "secret-key"
 	defaultAddSecretVersionMockReturn := func(gotPayload, expectedPayload string) (*secretmanagerpb.SecretVersion, error) {
 		if gotPayload != expectedPayload {

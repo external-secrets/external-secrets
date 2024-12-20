@@ -81,8 +81,14 @@ var _ = BeforeSuite(func() {
 	leaderChan := make(chan struct{})
 	close(leaderChan)
 	rec := New(k8sClient, k8sManager.GetScheme(), leaderChan, log, time.Second*1,
-		"foo", "default", "foo", "default", []string{
-			"secretstores.test.io",
+		Opts{
+			SvcName:         "foo",
+			SvcNamespace:    "default",
+			SecretName:      "foo",
+			SecretNamespace: "default",
+			Resources: []string{
+				"secretstores.test.io",
+			},
 		})
 	rec.SetupWithManager(k8sManager, controller.Options{})
 	Expect(err).ToNot(HaveOccurred())

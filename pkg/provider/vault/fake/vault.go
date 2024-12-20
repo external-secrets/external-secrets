@@ -24,7 +24,7 @@ import (
 
 	vault "github.com/hashicorp/vault/api"
 
-	util "github.com/external-secrets/external-secrets/pkg/provider/vault/util"
+	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 )
 
 type LoginFn func(ctx context.Context, authMethod vault.AuthMethod) (*vault.Secret, error)
@@ -189,11 +189,15 @@ func NewTokenFn(v string) MockTokenFn {
 }
 
 func NewClearTokenFn() MockClearTokenFn {
-	return func() {}
+	return func() {
+		// no-op
+	}
 }
 
 func NewAddHeaderFn() MockAddHeaderFn {
-	return func(key, value string) {}
+	return func(key, value string) {
+		// no header
+	}
 }
 
 type VaultClient struct {

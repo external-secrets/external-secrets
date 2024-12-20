@@ -30,6 +30,7 @@ import (
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	provider "github.com/external-secrets/external-secrets/pkg/provider/vault"
+	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -76,23 +77,7 @@ func (g *Generator) generate(ctx context.Context, c *provider.Provider, jsonSpec
 		return nil, fmt.Errorf(errVaultClient, err)
 	}
 
-	var result *vault.Secret
-	if res.Spec.Method == "" || res.Spec.Method == "GET" {
-		result, err = cl.Logical().ReadWithDataWithContext(ctx, res.Spec.Path, nil)
-	} else if res.Spec.Method == "LIST" {
-		result, err = cl.Logical().ListWithContext(ctx, res.Spec.Path)
-	} else if res.Spec.Method == "DELETE" {
-		result, err = cl.Logical().DeleteWithContext(ctx, res.Spec.Path)
-	} else {
-		params := make(map[string]any)
-		if res.Spec.Parameters != nil {
-			err = json.Unmarshal(res.Spec.Parameters.Raw, &params)
-			if err != nil {
-				return nil, err
-			}
-		}
-		result, err = cl.Logical().WriteWithContext(ctx, res.Spec.Path, params)
-	}
+	result, err := g.fetchVaultSecret(ctx, res, cl)
 	if err != nil {
 		return nil, err
 	}
@@ -122,6 +107,32 @@ func (g *Generator) generate(ctx context.Context, c *provider.Provider, jsonSpec
 		}
 	}
 	return response, nil
+}
+
+func (g *Generator) fetchVaultSecret(ctx context.Context, res *genv1alpha1.VaultDynamicSecret, cl util.Client) (*vault.Secret, error) {
+	var (
+		result *vault.Secret
+		err    error
+	)
+
+	if res.Spec.Method == "" || res.Spec.Method == "GET" {
+		result, err = cl.Logical().ReadWithDataWithContext(ctx, res.Spec.Path, nil)
+	} else if res.Spec.Method == "LIST" {
+		result, err = cl.Logical().ListWithContext(ctx, res.Spec.Path)
+	} else if res.Spec.Method == "DELETE" {
+		result, err = cl.Logical().DeleteWithContext(ctx, res.Spec.Path)
+	} else {
+		params := make(map[string]any)
+		if res.Spec.Parameters != nil {
+			if err := json.Unmarshal(res.Spec.Parameters.Raw, &params); err != nil {
+				return nil, err
+			}
+		}
+
+		result, err = cl.Logical().WriteWithContext(ctx, res.Spec.Path, params)
+	}
+
+	return result, err
 }
 
 func parseSpec(data []byte) (*genv1alpha1.VaultDynamicSecret, error) {
