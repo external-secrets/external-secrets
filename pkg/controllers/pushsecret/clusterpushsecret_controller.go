@@ -91,22 +91,11 @@ func (r *ClusterPushSecretReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	if esName == "" {
 		esName = cps.ObjectMeta.Name
 	}
-	if prevName := cps.Status.PushSecretName; prevName != esName {
-		// PushSecretName has changed, so remove the old ones
-		failedNamespaces := map[string]error{}
-		for _, ns := range cps.Status.ProvisionedNamespaces {
-			if err := r.deletePushSecret(ctx, prevName, cps.Name, ns); err != nil {
-				log.Error(err, "could not delete PushSecret")
-				failedNamespaces[ns] = err
-			}
-		}
 
-		if len(failedNamespaces) > 0 {
-			r.markAsFailed("failed to delete push secret", &cps)
-			cps.Status.FailedNamespaces = toNamespaceFailures(failedNamespaces)
-			return ctrl.Result{}, err
-		}
+	if err := r.deleteOldPushSecrets(ctx, &cps, esName, log); err != nil {
+		return ctrl.Result{}, err
 	}
+
 	cps.Status.PushSecretName = esName
 
 	namespaces, err := utils.GetTargetNamespaces(ctx, r.Client, nil, cps.Spec.NamespaceSelectors)
@@ -118,10 +107,27 @@ func (r *ClusterPushSecretReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	failedNamespaces := r.deleteOutdatedPushSecrets(ctx, namespaces, esName, cps.Name, cps.Status.ProvisionedNamespaces)
 
-	provisionedNamespaces := []string{}
+	provisionedNamespaces := r.updateProvisionedNamespaces(ctx, namespaces, esName, log, failedNamespaces, &cps)
+
+	cps.Status.FailedNamespaces = toNamespaceFailures(failedNamespaces)
+	sort.Strings(provisionedNamespaces)
+	cps.Status.ProvisionedNamespaces = provisionedNamespaces
+
+	return ctrl.Result{RequeueAfter: refreshInt}, nil
+}
+
+func (r *ClusterPushSecretReconciler) updateProvisionedNamespaces(
+	ctx context.Context,
+	namespaces []v1.Namespace,
+	esName string,
+	log logr.Logger,
+	failedNamespaces map[string]error,
+	cps *v1alpha1.ClusterPushSecret,
+) []string {
+	var provisionedNamespaces []string //nolint:prealloc // I have no idea what the size will be.
 	for _, namespace := range namespaces {
 		var pushSecret v1alpha1.PushSecret
-		err = r.Get(ctx, types.NamespacedName{
+		err := r.Get(ctx, types.NamespacedName{
 			Name:      esName,
 			Namespace: namespace.Name,
 		}, &pushSecret)
@@ -136,7 +142,7 @@ func (r *ClusterPushSecretReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			continue
 		}
 
-		if err := r.createOrUpdatePushSecret(ctx, &cps, namespace, esName, cps.Spec.PushSecretMetadata); err != nil {
+		if err := r.createOrUpdatePushSecret(ctx, cps, namespace, esName, cps.Spec.PushSecretMetadata); err != nil {
 			log.Error(err, "failed to create or update push secret")
 			failedNamespaces[namespace.Name] = err
 			continue
@@ -145,11 +151,30 @@ func (r *ClusterPushSecretReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		provisionedNamespaces = append(provisionedNamespaces, namespace.Name)
 	}
 
-	cps.Status.FailedNamespaces = toNamespaceFailures(failedNamespaces)
-	sort.Strings(provisionedNamespaces)
-	cps.Status.ProvisionedNamespaces = provisionedNamespaces
+	return provisionedNamespaces
+}
 
-	return ctrl.Result{RequeueAfter: refreshInt}, nil
+func (r *ClusterPushSecretReconciler) deleteOldPushSecrets(ctx context.Context, cps *v1alpha1.ClusterPushSecret, esName string, log logr.Logger) error {
+	var lastErr error
+	if prevName := cps.Status.PushSecretName; prevName != esName {
+		// PushSecretName has changed, so remove the old ones
+		failedNamespaces := map[string]error{}
+		for _, ns := range cps.Status.ProvisionedNamespaces {
+			if err := r.deletePushSecret(ctx, prevName, cps.Name, ns); err != nil {
+				log.Error(err, "could not delete PushSecret")
+				failedNamespaces[ns] = err
+				lastErr = err
+			}
+		}
+
+		if len(failedNamespaces) > 0 {
+			r.markAsFailed("failed to delete push secret", cps)
+			cps.Status.FailedNamespaces = toNamespaceFailures(failedNamespaces)
+			return lastErr
+		}
+	}
+
+	return nil
 }
 
 func (r *ClusterPushSecretReconciler) markAsFailed(msg string, ps *v1alpha1.ClusterPushSecret) {
