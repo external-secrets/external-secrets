@@ -21,15 +21,16 @@ import (
 	"sort"
 	"time"
 
-	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret/cpsmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
+	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -37,6 +38,7 @@ import (
 
 func init() {
 	ctrlmetrics.SetUpLabelNames(false)
+	cpsmetrics.SetUpMetrics()
 	fakeProvider = fake.New()
 	v1beta1.ForceRegister(fakeProvider, &v1beta1.SecretStoreProvider{
 		Fake: &v1beta1.FakeProvider{},
@@ -44,12 +46,22 @@ func init() {
 }
 
 var (
-	secretName   = "test-secret"
-	defaultKey   = "default-key"
-	defaultVal   = "default-value"
-	fakeProvider *fake.Client
-	timeout      = time.Second * 10
-	interval     = time.Millisecond * 250
+	secretName                = "test-secret"
+	testPushSecret            = "test-ps"
+	newPushSecret             = "new-ps-name"
+	defaultKey                = "default-key"
+	defaultVal                = "default-value"
+	testLabelKey              = "test-label-key"
+	testLabelValue            = "test-label-value"
+	testAnnotationKey         = "test-annotation-key"
+	testAnnotationValue       = "test-annotation-value"
+	updateStoreName           = "updated-test-store"
+	kubernetesMetadataLabel   = "kubernetes.io/metadata.name"
+	noneMatchingAnnotationKey = "no-longer-match-label-key"
+	noneMatchingAnnotationVal = "no-longer-match-annotation-value"
+	fakeProvider              *fake.Client
+	timeout                   = time.Second * 10
+	interval                  = time.Millisecond * 250
 )
 
 type clusterPushSecretTestCase struct {
@@ -72,6 +84,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 					SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
 						{
 							Name: "test-store",
+							Kind: "SecretStore",
 						},
 					},
 					Selector: v1alpha1.PushSecretSelector{
@@ -142,18 +155,18 @@ var _ = Describe("ClusterPushSecret controller", func() {
 			}
 
 			By("checking the cluster push secret")
-			expectedCES := tc.expectedClusterPushSecret(namespaces, pes)
+			expectedCPS := tc.expectedClusterPushSecret(namespaces, pes)
 
 			Eventually(func(g Gomega) {
-				key := types.NamespacedName{Name: expectedCES.Name}
+				key := types.NamespacedName{Name: expectedCPS.Name}
 				var gotCes v1alpha1.ClusterPushSecret
 				err = k8sClient.Get(ctx, key, &gotCes)
 				g.Expect(err).ShouldNot(HaveOccurred())
 
-				g.Expect(gotCes.Labels).To(Equal(expectedCES.Labels))
-				g.Expect(gotCes.Annotations).To(Equal(expectedCES.Annotations))
-				g.Expect(gotCes.Spec).To(Equal(expectedCES.Spec))
-				g.Expect(gotCes.Status).To(Equal(expectedCES.Status))
+				g.Expect(gotCes.Labels).To(Equal(expectedCPS.Labels))
+				g.Expect(gotCes.Annotations).To(Equal(expectedCPS.Annotations))
+				g.Expect(gotCes.Spec).To(Equal(expectedCPS.Spec))
+				g.Expect(gotCes.Status).To(Equal(expectedCPS.Status))
 			}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
 
 			By("checking the push secrets")
@@ -185,7 +198,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 			}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
 		},
 
-		FEntry("Should use cluster push secret name if push secret name isn't defined", clusterPushSecretTestCase{
+		Entry("Should use cluster push secret name if push secret name isn't defined", clusterPushSecretTestCase{
 			namespaces: []v1.Namespace{
 				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
 			},
@@ -193,7 +206,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				pes := defaultClusterPushSecret()
 				pes.Spec.NamespaceSelectors = []*metav1.LabelSelector{
 					{
-						MatchLabels: map[string]string{"kubernetes.io/metadata.name": namespaces[0].Name},
+						MatchLabels: map[string]string{kubernetesMetadataLabel: namespaces[0].Name},
 					},
 				}
 				return *pes
@@ -237,10 +250,10 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				pes := defaultClusterPushSecret()
 				pes.Spec.NamespaceSelectors = []*metav1.LabelSelector{
 					{
-						MatchLabels: map[string]string{"kubernetes.io/metadata.name": namespaces[0].Name},
+						MatchLabels: map[string]string{kubernetesMetadataLabel: namespaces[0].Name},
 					},
 				}
-				pes.Spec.PushSecretName = "test-es"
+				pes.Spec.PushSecretName = testPushSecret
 				pes.Spec.PushSecretMetadata = v1alpha1.PushSecretMetadata{
 					Labels:      map[string]string{"test-label-key1": "test-label-value1", "test-label-key2": "test-label-value2"},
 					Annotations: map[string]string{"test-annotation-key1": "test-annotation-value1", "test-annotation-key2": "test-annotation-value2"},
@@ -255,7 +268,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 					},
 					Spec: created.Spec,
 					Status: v1alpha1.ClusterPushSecretStatus{
-						PushSecretName:        "test-es",
+						PushSecretName:        testPushSecret,
 						ProvisionedNamespaces: []string{namespaces[0].Name},
 						Conditions: []v1alpha1.PushSecretStatusCondition{
 							{
@@ -271,7 +284,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 					{
 						ObjectMeta: metav1.ObjectMeta{
 							Namespace:   namespaces[0].Name,
-							Name:        "test-es",
+							Name:        testPushSecret,
 							Labels:      map[string]string{"test-label-key1": "test-label-value1", "test-label-key2": "test-label-value2"},
 							Annotations: map[string]string{"test-annotation-key1": "test-annotation-value1", "test-annotation-key2": "test-annotation-value2"},
 						},
@@ -280,7 +293,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				}
 			},
 		}),
-		Entry("Should delete old external secrets if name has changed", clusterPushSecretTestCase{
+		Entry("Should delete old push secrets if name has changed", clusterPushSecretTestCase{
 			namespaces: []v1.Namespace{
 				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
 			},
@@ -288,7 +301,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				pes := defaultClusterPushSecret()
 				pes.Spec.NamespaceSelectors = []*metav1.LabelSelector{
 					{
-						MatchLabels: map[string]string{"kubernetes.io/metadata.name": namespaces[0].Name},
+						MatchLabels: map[string]string{kubernetesMetadataLabel: namespaces[0].Name},
 					},
 				}
 				pes.Spec.PushSecretName = "old-es-name"
@@ -296,7 +309,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 			},
 			sourceSecret: defaultSourceSecret,
 			beforeCheck: func(ctx context.Context, namespaces []v1.Namespace, created v1alpha1.ClusterPushSecret) {
-				// Wait until the external secret is provisioned
+				// Wait until the push secret is provisioned
 				var es v1alpha1.PushSecret
 				Eventually(func(g Gomega) {
 					key := types.NamespacedName{Namespace: namespaces[0].Name, Name: "old-es-name"}
@@ -304,12 +317,12 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
 
 				copied := created.DeepCopy()
-				copied.Spec.PushSecretName = "new-es-name"
+				copied.Spec.PushSecretName = newPushSecret
 				Expect(k8sClient.Patch(ctx, copied, crclient.MergeFrom(created.DeepCopy()))).ShouldNot(HaveOccurred())
 			},
 			expectedClusterPushSecret: func(namespaces []v1.Namespace, created v1alpha1.ClusterPushSecret) v1alpha1.ClusterPushSecret {
 				updatedSpec := created.Spec.DeepCopy()
-				updatedSpec.PushSecretName = "new-es-name"
+				updatedSpec.PushSecretName = newPushSecret
 
 				return v1alpha1.ClusterPushSecret{
 					ObjectMeta: metav1.ObjectMeta{
@@ -317,7 +330,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 					},
 					Spec: *updatedSpec,
 					Status: v1alpha1.ClusterPushSecretStatus{
-						PushSecretName:        "new-es-name",
+						PushSecretName:        newPushSecret,
 						ProvisionedNamespaces: []string{namespaces[0].Name},
 						Conditions: []v1alpha1.PushSecretStatusCondition{
 							{
@@ -333,14 +346,14 @@ var _ = Describe("ClusterPushSecret controller", func() {
 					{
 						ObjectMeta: metav1.ObjectMeta{
 							Namespace: namespaces[0].Name,
-							Name:      "new-es-name",
+							Name:      newPushSecret,
 						},
 						Spec: created.Spec.PushSecretSpec,
 					},
 				}
 			},
 		}),
-		Entry("Should update external secret if the fields change", clusterPushSecretTestCase{
+		Entry("Should update push secret if the fields change", clusterPushSecretTestCase{
 			namespaces: []v1.Namespace{
 				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
 			},
@@ -348,14 +361,14 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				pes := defaultClusterPushSecret()
 				pes.Spec.NamespaceSelectors = []*metav1.LabelSelector{
 					{
-						MatchLabels: map[string]string{"kubernetes.io/metadata.name": namespaces[0].Name},
+						MatchLabels: map[string]string{kubernetesMetadataLabel: namespaces[0].Name},
 					},
 				}
 				return *pes
 			},
 			sourceSecret: defaultSourceSecret,
 			beforeCheck: func(ctx context.Context, namespaces []v1.Namespace, created v1alpha1.ClusterPushSecret) {
-				// Wait until the external secret is provisioned
+				// Wait until the push secret is provisioned
 				var es v1alpha1.PushSecret
 				Eventually(func(g Gomega) {
 					key := types.NamespacedName{Namespace: namespaces[0].Name, Name: created.Name}
@@ -367,12 +380,13 @@ var _ = Describe("ClusterPushSecret controller", func() {
 
 				copied := created.DeepCopy()
 				copied.Spec.PushSecretMetadata = v1alpha1.PushSecretMetadata{
-					Labels:      map[string]string{"test-label-key": "test-label-value"},
-					Annotations: map[string]string{"test-annotation-key": "test-annotation-value"},
+					Labels:      map[string]string{testLabelKey: testLabelValue},
+					Annotations: map[string]string{testAnnotationKey: testAnnotationValue},
 				}
 				copied.Spec.PushSecretSpec.SecretStoreRefs = []v1alpha1.PushSecretStoreRef{
 					{
-						Name: "updated-test-store", //nolint:goconst,
+						Name: updateStoreName,
+						Kind: "SecretStore",
 					},
 				}
 				Expect(k8sClient.Patch(ctx, copied, crclient.MergeFrom(created.DeepCopy()))).ShouldNot(HaveOccurred())
@@ -380,12 +394,13 @@ var _ = Describe("ClusterPushSecret controller", func() {
 			expectedClusterPushSecret: func(namespaces []v1.Namespace, created v1alpha1.ClusterPushSecret) v1alpha1.ClusterPushSecret {
 				updatedSpec := created.Spec.DeepCopy()
 				updatedSpec.PushSecretMetadata = v1alpha1.PushSecretMetadata{
-					Labels:      map[string]string{"test-label-key": "test-label-value"},
-					Annotations: map[string]string{"test-annotation-key": "test-annotation-value"},
+					Labels:      map[string]string{testLabelKey: testLabelValue},
+					Annotations: map[string]string{testAnnotationKey: testAnnotationValue},
 				}
 				updatedSpec.PushSecretSpec.SecretStoreRefs = []v1alpha1.PushSecretStoreRef{
 					{
-						Name: "updated-test-store", //nolint:goconst,
+						Name: updateStoreName,
+						Kind: "SecretStore",
 					},
 				}
 
@@ -410,7 +425,8 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				updatedSpec := created.Spec.PushSecretSpec.DeepCopy()
 				updatedSpec.SecretStoreRefs = []v1alpha1.PushSecretStoreRef{
 					{
-						Name: "updated-test-store", //nolint:goconst,
+						Name: updateStoreName,
+						Kind: "SecretStore",
 					},
 				}
 
@@ -419,15 +435,15 @@ var _ = Describe("ClusterPushSecret controller", func() {
 						ObjectMeta: metav1.ObjectMeta{
 							Namespace:   namespaces[0].Name,
 							Name:        created.Name,
-							Labels:      map[string]string{"test-label-key": "test-label-value"},
-							Annotations: map[string]string{"test-annotation-key": "test-annotation-value"},
+							Labels:      map[string]string{testLabelKey: testLabelValue},
+							Annotations: map[string]string{testAnnotationKey: testAnnotationValue},
 						},
 						Spec: *updatedSpec,
 					},
 				}
 			},
 		}),
-		Entry("Should not overwrite existing external secrets and error out if one is present", clusterPushSecretTestCase{
+		Entry("Should not overwrite existing push secrets and error out if one is present", clusterPushSecretTestCase{
 			namespaces: []v1.Namespace{
 				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
 			},
@@ -435,7 +451,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				pes := defaultClusterPushSecret()
 				pes.Spec.NamespaceSelectors = []*metav1.LabelSelector{
 					{
-						MatchLabels: map[string]string{"kubernetes.io/metadata.name": namespaces[0].Name},
+						MatchLabels: map[string]string{kubernetesMetadataLabel: namespaces[0].Name},
 					},
 				}
 
@@ -443,6 +459,18 @@ var _ = Describe("ClusterPushSecret controller", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      pes.Name,
 						Namespace: namespaces[0].Name,
+					},
+					Spec: v1alpha1.PushSecretSpec{
+						SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
+							{
+								Name: updateStoreName,
+							},
+						},
+						Selector: v1alpha1.PushSecretSelector{
+							Secret: &v1alpha1.PushSecretSecret{
+								Name: secretName,
+							},
+						},
 					},
 				}
 				Expect(k8sClient.Create(context.Background(), es)).ShouldNot(HaveOccurred())
@@ -461,7 +489,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 						FailedNamespaces: []v1alpha1.ClusterPushSecretNamespaceFailure{
 							{
 								Namespace: namespaces[0].Name,
-								Reason:    "external secret already exists in namespace",
+								Reason:    "push secret already exists in namespace",
 							},
 						},
 						Conditions: []v1alpha1.PushSecretStatusCondition{
@@ -482,13 +510,25 @@ var _ = Describe("ClusterPushSecret controller", func() {
 							Name:      created.Name,
 						},
 						Spec: v1alpha1.PushSecretSpec{
-							RefreshInterval: &metav1.Duration{Duration: time.Hour},
+							SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
+								{
+									Name: updateStoreName,
+									Kind: "SecretStore",
+								},
+							},
+							UpdatePolicy: "Replace",
+							Selector: v1alpha1.PushSecretSelector{
+								Secret: &v1alpha1.PushSecretSecret{
+									Name: secretName,
+								},
+							},
+							DeletionPolicy: "None",
 						},
 					},
 				}
 			},
 		}),
-		Entry("Should crate an external secret if one with the same name has been deleted", clusterPushSecretTestCase{
+		Entry("Should crate an push secret if one with the same name has been deleted", clusterPushSecretTestCase{
 			namespaces: []v1.Namespace{
 				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
 			},
@@ -496,7 +536,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				pes := defaultClusterPushSecret()
 				pes.Spec.NamespaceSelectors = []*metav1.LabelSelector{
 					{
-						MatchLabels: map[string]string{"kubernetes.io/metadata.name": namespaces[0].Name},
+						MatchLabels: map[string]string{kubernetesMetadataLabel: namespaces[0].Name},
 					},
 				}
 
@@ -504,6 +544,18 @@ var _ = Describe("ClusterPushSecret controller", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      pes.Name,
 						Namespace: namespaces[0].Name,
+					},
+					Spec: v1alpha1.PushSecretSpec{
+						SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
+							{
+								Name: updateStoreName,
+							},
+						},
+						Selector: v1alpha1.PushSecretSelector{
+							Secret: &v1alpha1.PushSecretSecret{
+								Name: secretName,
+							},
+						},
 					},
 				}
 				Expect(k8sClient.Create(context.Background(), es)).ShouldNot(HaveOccurred())
@@ -556,18 +608,18 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				}
 			},
 		}),
-		Entry("Should delete external secrets when namespaces no longer match", clusterPushSecretTestCase{
+		Entry("Should delete push secrets when namespaces no longer match", clusterPushSecretTestCase{
 			namespaces: []v1.Namespace{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   randomNamespaceName(),
-						Labels: map[string]string{"no-longer-match-label-key": "no-longer-match-label-value"},
+						Labels: map[string]string{noneMatchingAnnotationKey: noneMatchingAnnotationVal},
 					},
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   randomNamespaceName(),
-						Labels: map[string]string{"no-longer-match-label-key": "no-longer-match-label-value"},
+						Labels: map[string]string{noneMatchingAnnotationKey: noneMatchingAnnotationVal},
 					},
 				},
 			},
@@ -577,7 +629,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				pes.Spec.RefreshInterval = &metav1.Duration{Duration: 100 * time.Millisecond}
 				pes.Spec.NamespaceSelectors = []*metav1.LabelSelector{
 					{
-						MatchLabels: map[string]string{"no-longer-match-label-key": "no-longer-match-label-value"},
+						MatchLabels: map[string]string{noneMatchingAnnotationKey: noneMatchingAnnotationVal},
 					},
 				}
 				return *pes
@@ -713,7 +765,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				pes := defaultClusterPushSecret()
 				pes.Spec.NamespaceSelectors = []*metav1.LabelSelector{
 					{
-						MatchLabels: map[string]string{"kubernetes.io/metadata.name": "no-namespace-matches"},
+						MatchLabels: map[string]string{kubernetesMetadataLabel: "no-namespace-matches"},
 					},
 				}
 				return *pes
