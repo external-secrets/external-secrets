@@ -57,6 +57,7 @@ const (
 	errGetCES               = "could not get ClusterPushSecret"
 	errConvertLabelSelector = "unable to convert label selector"
 	errGetExistingPS        = "could not get existing PushSecret"
+	errNamespacesFailed     = "one or more namespaces failed"
 )
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -108,6 +109,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	failedNamespaces := r.deleteOutdatedPushSecrets(ctx, namespaces, esName, cps.Name, cps.Status.ProvisionedNamespaces)
 	provisionedNamespaces := r.updateProvisionedNamespaces(ctx, namespaces, esName, log, failedNamespaces, &cps)
+
+	condition := NewClusterPushSecretCondition(failedNamespaces)
+	SetClusterPushSecretCondition(&cps, *condition)
 
 	cps.Status.FailedNamespaces = toNamespaceFailures(failedNamespaces)
 	sort.Strings(provisionedNamespaces)
