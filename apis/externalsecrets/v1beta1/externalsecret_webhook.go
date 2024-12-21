@@ -18,9 +18,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-func (r *ExternalSecret) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (es *ExternalSecret) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
+		For(es).
 		WithValidator(&ExternalSecretValidator{}).
 		Complete()
 }
