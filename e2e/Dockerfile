@@ -4,9 +4,9 @@ ENV KUBECTL_VERSION="v1.28.3"
 ENV HELM_VERSION="v3.13.1"
 
 RUN go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.6
-RUN wget -q https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl -O /usr/local/bin/kubectl && \
+RUN wget --max-redirect=0 -q https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl -O /usr/local/bin/kubectl && \
     chmod +x /usr/local/bin/kubectl && \
-    wget -q https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz -O - | tar -xzO linux-amd64/helm > /usr/local/bin/helm && \
+    wget --max-redirect=0 -q https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz -O - | tar -xzO linux-amd64/helm > /usr/local/bin/helm && \
     chmod +x /usr/local/bin/helm
 
 WORKDIR /usr/src/app
