@@ -4,10 +4,8 @@ kind: ValidatingWebhookConfiguration
 metadata:
   name: secretstore-validate
   labels:
+    {{- include "external-secrets-webhook.labels" . | nindent 4 }}
     external-secrets.io/component: webhook
-    {{- with .Values.commonLabels }}
-    {{ toYaml . | nindent 4 }}
-    {{- end }}
   {{- if and .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotations }}
   annotations:
     cert-manager.io/inject-ca-from: {{ template "external-secrets.namespace" . }}/{{ include "external-secrets.fullname" . }}-webhook
@@ -50,10 +48,8 @@ kind: ValidatingWebhookConfiguration
 metadata:
   name: externalsecret-validate
   labels:
+    {{- include "external-secrets-webhook.labels" . | nindent 4 }}
     external-secrets.io/component: webhook
-    {{- with .Values.commonLabels }}
-    {{ toYaml . | nindent 4 }}
-    {{- end }}
   {{- if and .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotations }}
   annotations:
     cert-manager.io/inject-ca-from: {{ template "external-secrets.namespace" . }}/{{ include "external-secrets.fullname" . }}-webhook

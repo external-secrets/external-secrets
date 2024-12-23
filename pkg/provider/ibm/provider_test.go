@@ -68,7 +68,7 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		ref:             makeValidRef(),
 		apiOutput:       makeValidAPIOutput(),
 		getByNameInput:  makeValidGetByNameInput(),
-		getByNameOutput: makeValidGetByNameOutput(),
+		getByNameOutput: makeValidAPIOutput(),
 		getByNameError:  nil,
 		serviceURL:      nil,
 		apiErr:          nil,
@@ -115,16 +115,6 @@ func makeValidGetByNameInput() *sm.GetSecretByNameTypeOptions {
 	return &sm.GetSecretByNameTypeOptions{}
 }
 
-func makeValidGetByNameOutput() sm.SecretIntf {
-	secret := &sm.Secret{
-		SecretType: utilpointer.To(sm.Secret_SecretType_Arbitrary),
-		Name:       utilpointer.To("testyname"),
-		ID:         utilpointer.To(secretUUID),
-	}
-	var i sm.SecretIntf = secret
-	return i
-}
-
 func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTestCase)) *secretManagerTestCase {
 	smtc := makeValidSecretManagerTestCase()
 	for _, fn := range tweaks {
@@ -151,7 +141,7 @@ var setAPIErr = func(smtc *secretManagerTestCase) {
 
 var setNilMockClient = func(smtc *secretManagerTestCase) {
 	smtc.mockClient = nil
-	smtc.expectError = errUninitalizedIBMProvider
+	smtc.expectError = errUninitializedIBMProvider
 }
 
 // simple tests for Validate Store.

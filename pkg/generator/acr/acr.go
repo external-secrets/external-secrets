@@ -282,12 +282,18 @@ func accessTokenForWorkloadIdentity(ctx context.Context, crClient client.Client,
 }
 
 func accessTokenForManagedIdentity(ctx context.Context, envType v1beta1.AzureEnvironmentType, identityID string) (string, error) {
-	// handle workload identity
-	creds, err := azidentity.NewManagedIdentityCredential(
-		&azidentity.ManagedIdentityCredentialOptions{
+	// handle managed identity
+	var opts *azidentity.ManagedIdentityCredentialOptions
+	if strings.Contains(identityID, "/") {
+		opts = &azidentity.ManagedIdentityCredentialOptions{
 			ID: azidentity.ResourceID(identityID),
-		},
-	)
+		}
+	} else {
+		opts = &azidentity.ManagedIdentityCredentialOptions{
+			ID: azidentity.ClientID(identityID),
+		}
+	}
+	creds, err := azidentity.NewManagedIdentityCredential(opts)
 	if err != nil {
 		return "", err
 	}

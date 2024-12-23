@@ -25,7 +25,6 @@ import (
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
-	// Loading registered providers.
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
@@ -50,55 +49,68 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, externalSecret *
 		var err error
 
 		if remoteRef.Find != nil {
-			secretMap, err = r.handleFindAllSecrets(ctx, externalSecret, remoteRef, mgr, i)
+			secretMap, err = r.handleFindAllSecrets(ctx, externalSecret, remoteRef, mgr)
+			if err != nil {
+				err = fmt.Errorf("error processing spec.dataFrom[%d].find, err: %w", i, err)
+			}
 		} else if remoteRef.Extract != nil {
-			secretMap, err = r.handleExtractSecrets(ctx, externalSecret, remoteRef, mgr, i)
+			secretMap, err = r.handleExtractSecrets(ctx, externalSecret, remoteRef, mgr)
+			if err != nil {
+				err = fmt.Errorf("error processing spec.dataFrom[%d].extract, err: %w", i, err)
+			}
 		} else if remoteRef.SourceRef != nil && remoteRef.SourceRef.GeneratorRef != nil {
-			secretMap, err = r.handleGenerateSecrets(ctx, externalSecret.Namespace, remoteRef, i)
+			secretMap, err = r.handleGenerateSecrets(ctx, externalSecret.Namespace, remoteRef)
+			if err != nil {
+				err = fmt.Errorf("error processing spec.dataFrom[%d].sourceRef.generatorRef, err: %w", i, err)
+			}
 		}
+
 		if errors.Is(err, esv1beta1.NoSecretErr) && externalSecret.Spec.Target.DeletionPolicy != esv1beta1.DeletionPolicyRetain {
-			r.recorder.Event(
-				externalSecret,
-				v1.EventTypeNormal,
-				esv1beta1.ReasonDeleted,
-				fmt.Sprintf("secret does not exist at provider using .dataFrom[%d]", i),
-			)
+			r.recorder.Eventf(externalSecret, v1.EventTypeNormal, esv1beta1.ReasonMissingProviderSecret, eventMissingProviderSecret, i)
 			continue
 		}
 		if err != nil {
 			return nil, err
 		}
+
 		providerData = utils.MergeByteMap(providerData, secretMap)
 	}
 
 	for i, secretRef := range externalSecret.Spec.Data {
-		err := r.handleSecretData(ctx, i, *externalSecret, secretRef, providerData, mgr)
+		err := r.handleSecretData(ctx, *externalSecret, secretRef, providerData, mgr)
 		if errors.Is(err, esv1beta1.NoSecretErr) && externalSecret.Spec.Target.DeletionPolicy != esv1beta1.DeletionPolicyRetain {
-			r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1beta1.ReasonDeleted, fmt.Sprintf("secret does not exist at provider using .data[%d] key=%s", i, secretRef.RemoteRef.Key))
+			r.recorder.Eventf(externalSecret, v1.EventTypeNormal, esv1beta1.ReasonMissingProviderSecret, eventMissingProviderSecretKey, i, secretRef.RemoteRef.Key)
 			continue
 		}
 		if err != nil {
-			return nil, fmt.Errorf("error retrieving secret at .data[%d], key: %s, err: %w", i, secretRef.RemoteRef.Key, err)
+			return nil, fmt.Errorf("error processing spec.data[%d] (key: %s), err: %w", i, secretRef.RemoteRef.Key, err)
 		}
 	}
 
 	return providerData, nil
 }
 
-func (r *Reconciler) handleSecretData(ctx context.Context, i int, externalSecret esv1beta1.ExternalSecret, secretRef esv1beta1.ExternalSecretData, providerData map[string][]byte, cmgr *secretstore.Manager) error {
+func (r *Reconciler) handleSecretData(ctx context.Context, externalSecret esv1beta1.ExternalSecret, secretRef esv1beta1.ExternalSecretData, providerData map[string][]byte, cmgr *secretstore.Manager) error {
 	client, err := cmgr.Get(ctx, externalSecret.Spec.SecretStoreRef, externalSecret.Namespace, toStoreGenSourceRef(secretRef.SourceRef))
 	if err != nil {
 		return err
 	}
+
+	// get a single secret from the store
 	secretData, err := client.GetSecret(ctx, secretRef.RemoteRef)
 	if err != nil {
 		return err
 	}
+
+	// decode the secret if needed
 	secretData, err = utils.Decode(secretRef.RemoteRef.DecodingStrategy, secretData)
 	if err != nil {
-		return fmt.Errorf(errDecode, "spec.data", i, err)
+		return fmt.Errorf(errDecode, secretRef.RemoteRef.DecodingStrategy, err)
 	}
+
+	// store the secret data
 	providerData[secretRef.SecretKey] = secretData
+
 	return nil
 }
 
@@ -111,81 +123,106 @@ func toStoreGenSourceRef(ref *esv1beta1.StoreSourceRef) *esv1beta1.StoreGenerato
 	}
 }
 
-func (r *Reconciler) handleGenerateSecrets(ctx context.Context, namespace string, remoteRef esv1beta1.ExternalSecretDataFromRemoteRef, i int) (map[string][]byte, error) {
-	gen, obj, err := resolvers.GeneratorRef(ctx, r.RestConfig, namespace, remoteRef.SourceRef.GeneratorRef)
+func (r *Reconciler) handleGenerateSecrets(ctx context.Context, namespace string, remoteRef esv1beta1.ExternalSecretDataFromRemoteRef) (map[string][]byte, error) {
+	gen, obj, err := resolvers.GeneratorRef(ctx, r.Client, r.Scheme, namespace, remoteRef.SourceRef.GeneratorRef)
 	if err != nil {
-		return nil, fmt.Errorf("unable to resolve generator: %w", err)
+		return nil, err
 	}
+
+	// use the generator
 	secretMap, err := gen.Generate(ctx, obj, r.Client, namespace)
 	if err != nil {
-		return nil, fmt.Errorf(errGenerate, i, err)
+		return nil, fmt.Errorf(errGenerate, err)
 	}
+
+	// rewrite the keys if needed
 	secretMap, err = utils.RewriteMap(remoteRef.Rewrite, secretMap)
 	if err != nil {
-		return nil, fmt.Errorf(errRewrite, i, err)
+		return nil, fmt.Errorf(errRewrite, err)
 	}
-	if !utils.ValidateKeys(secretMap) {
-		return nil, fmt.Errorf(errInvalidKeys, "generator", i)
+
+	// validate the keys
+	err = utils.ValidateKeys(secretMap)
+	if err != nil {
+		return nil, fmt.Errorf(errInvalidKeys, err)
 	}
+
 	return secretMap, err
 }
 
-func (r *Reconciler) handleExtractSecrets(ctx context.Context, externalSecret *esv1beta1.ExternalSecret, remoteRef esv1beta1.ExternalSecretDataFromRemoteRef, cmgr *secretstore.Manager, i int) (map[string][]byte, error) {
+func (r *Reconciler) handleExtractSecrets(ctx context.Context, externalSecret *esv1beta1.ExternalSecret, remoteRef esv1beta1.ExternalSecretDataFromRemoteRef, cmgr *secretstore.Manager) (map[string][]byte, error) {
 	client, err := cmgr.Get(ctx, externalSecret.Spec.SecretStoreRef, externalSecret.Namespace, remoteRef.SourceRef)
 	if err != nil {
 		return nil, err
 	}
+
+	// get multiple secrets from the store
 	secretMap, err := client.GetSecretMap(ctx, *remoteRef.Extract)
 	if err != nil {
 		return nil, err
 	}
+
+	// rewrite the keys if needed
 	secretMap, err = utils.RewriteMap(remoteRef.Rewrite, secretMap)
 	if err != nil {
-		return nil, fmt.Errorf(errRewrite, i, err)
+		return nil, fmt.Errorf(errRewrite, err)
 	}
 	if len(remoteRef.Rewrite) == 0 {
 		secretMap, err = utils.ConvertKeys(remoteRef.Extract.ConversionStrategy, secretMap)
 		if err != nil {
-			return nil, fmt.Errorf(errConvert, err)
+			return nil, fmt.Errorf(errConvert, remoteRef.Extract.ConversionStrategy, err)
 		}
 	}
-	if !utils.ValidateKeys(secretMap) {
-		return nil, fmt.Errorf(errInvalidKeys, "extract", i)
+
+	// validate the keys
+	err = utils.ValidateKeys(secretMap)
+	if err != nil {
+		return nil, fmt.Errorf(errInvalidKeys, err)
 	}
+
+	// decode the secrets if needed
 	secretMap, err = utils.DecodeMap(remoteRef.Extract.DecodingStrategy, secretMap)
 	if err != nil {
-		return nil, fmt.Errorf(errDecode, "spec.dataFrom", i, err)
+		return nil, fmt.Errorf(errDecode, remoteRef.Extract.DecodingStrategy, err)
 	}
+
 	return secretMap, err
 }
 
-func (r *Reconciler) handleFindAllSecrets(ctx context.Context, externalSecret *esv1beta1.ExternalSecret, remoteRef esv1beta1.ExternalSecretDataFromRemoteRef, cmgr *secretstore.Manager, i int) (map[string][]byte, error) {
+func (r *Reconciler) handleFindAllSecrets(ctx context.Context, externalSecret *esv1beta1.ExternalSecret, remoteRef esv1beta1.ExternalSecretDataFromRemoteRef, cmgr *secretstore.Manager) (map[string][]byte, error) {
 	client, err := cmgr.Get(ctx, externalSecret.Spec.SecretStoreRef, externalSecret.Namespace, remoteRef.SourceRef)
 	if err != nil {
 		return nil, err
 	}
+
+	// get all secrets from the store that match the selector
 	secretMap, err := client.GetAllSecrets(ctx, *remoteRef.Find)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting all secrets: %w", err)
 	}
+
+	// rewrite the keys if needed
 	secretMap, err = utils.RewriteMap(remoteRef.Rewrite, secretMap)
 	if err != nil {
-		return nil, fmt.Errorf(errRewrite, i, err)
+		return nil, fmt.Errorf(errRewrite, err)
 	}
 	if len(remoteRef.Rewrite) == 0 {
-		// ConversionStrategy is deprecated. Use RewriteMap instead.
-		r.recorder.Event(externalSecret, v1.EventTypeWarning, esv1beta1.ReasonDeprecated, fmt.Sprintf("dataFrom[%d].find.conversionStrategy=%v is deprecated and will be removed in further releases. Use dataFrom.rewrite instead", i, remoteRef.Find.ConversionStrategy))
 		secretMap, err = utils.ConvertKeys(remoteRef.Find.ConversionStrategy, secretMap)
 		if err != nil {
-			return nil, fmt.Errorf(errConvert, err)
+			return nil, fmt.Errorf(errConvert, remoteRef.Find.ConversionStrategy, err)
 		}
 	}
-	if !utils.ValidateKeys(secretMap) {
-		return nil, fmt.Errorf(errInvalidKeys, "find", i)
+
+	// validate the keys
+	err = utils.ValidateKeys(secretMap)
+	if err != nil {
+		return nil, fmt.Errorf(errInvalidKeys, err)
 	}
+
+	// decode the secrets if needed
 	secretMap, err = utils.DecodeMap(remoteRef.Find.DecodingStrategy, secretMap)
 	if err != nil {
-		return nil, fmt.Errorf(errDecode, "spec.dataFrom", i, err)
+		return nil, fmt.Errorf(errDecode, remoteRef.Find.DecodingStrategy, err)
 	}
 	return secretMap, err
 }

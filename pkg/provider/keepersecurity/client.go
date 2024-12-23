@@ -46,7 +46,7 @@ const (
 	errInvalidJSONSecret                        = "invalid Secret. Secret %s can not be converted to JSON. %w"
 	errInvalidRegex                             = "find.name.regex. Invalid Regular expresion %s. %w"
 	errInvalidRemoteRefKey                      = "match.remoteRef.remoteKey. Invalid format. Format should match secretName/key got %s"
-	errInvalidSecretType                        = "ESO can only push/delete %s record types. Secret %s is type %s"
+	errInvalidSecretType                        = "ESO can only push/delete records of type %s. Secret %s is type %s"
 	errFieldNotFound                            = "secret %s does not contain any custom field with label %s"
 
 	externalSecretType = "externalSecrets"
@@ -66,6 +66,7 @@ type Client struct {
 type SecurityClient interface {
 	GetSecrets(filter []string) ([]*ksm.Record, error)
 	GetSecretByTitle(recordTitle string) (*ksm.Record, error)
+	GetSecretsByTitle(recordTitle string) (records []*ksm.Record, err error)
 	CreateSecretWithRecordData(recUID, folderUID string, recordData *ksm.RecordCreate) (string, error)
 	DeleteSecrets(recrecordUids []string) (map[string]string, error)
 	Save(record *ksm.Record) error
@@ -172,24 +173,22 @@ func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1b
 	if err != nil {
 		return err
 	}
+
 	record, err := c.findSecretByName(parts[0])
 	if err != nil {
-		_, err = c.createSecret(parts[0], parts[1], value)
-		if err != nil {
-			return err
-		}
-	}
-	if record != nil {
-		if record.Type() != externalSecretType {
-			return fmt.Errorf(errInvalidSecretType, externalSecretType, record.Title(), record.Type())
-		}
-		err = c.updateSecret(record, parts[1], value)
-		if err != nil {
-			return err
-		}
+		return err
 	}
 
-	return nil
+	if record != nil {
+		if record.Type() == externalSecretType {
+			return c.updateSecret(record, parts[1], value)
+		} else {
+			return fmt.Errorf(errInvalidSecretType, externalSecretType, record.Title(), record.Type())
+		}
+	} else {
+		_, err = c.createSecret(parts[0], parts[1], value)
+		return err
+	}
 }
 
 func (c *Client) DeleteSecret(_ context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
@@ -200,16 +199,15 @@ func (c *Client) DeleteSecret(_ context.Context, remoteRef esv1beta1.PushSecretR
 	secret, err := c.findSecretByName(parts[0])
 	if err != nil {
 		return err
+	} else if secret == nil {
+		return nil // not found == already deleted (success)
 	}
+
 	if secret.Type() != externalSecretType {
 		return fmt.Errorf(errInvalidSecretType, externalSecretType, secret.Title(), secret.Type())
 	}
 	_, err = c.ksmClient.DeleteSecrets([]string{secret.Uid})
-	if err != nil {
-		return nil
-	}
-
-	return nil
+	return err
 }
 
 func (c *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
@@ -325,12 +323,32 @@ func (c *Client) findSecretByID(id string) (*ksm.Record, error) {
 }
 
 func (c *Client) findSecretByName(name string) (*ksm.Record, error) {
-	record, err := c.ksmClient.GetSecretByTitle(name)
+	records, err := c.ksmClient.GetSecretsByTitle(name)
 	if err != nil {
 		return nil, err
 	}
 
-	return record, nil
+	// filter in-place, preserve only records of type externalSecretType
+	n := 0
+	for _, record := range records {
+		if record.Type() == externalSecretType {
+			records[n] = record
+			n++
+		}
+	}
+	records = records[:n]
+
+	// record not found is not an error - handled differently:
+	// PushSecret will create new record instead
+	// DeleteSecret will consider record already deleted (no error)
+	if len(records) == 0 {
+		return nil, nil
+	} else if len(records) == 1 {
+		return records[0], nil
+	}
+
+	// len(records) > 1
+	return nil, fmt.Errorf(errKeeperSecuritySecretNotUnique, name)
 }
 
 func (s *Secret) validate() error {

@@ -4,7 +4,7 @@ title: dataFrom key rewrite
 version: v1alpha1
 authors: 
 creation-date: 2022-05-25
-status: draft
+status: implemented
 ---
 ```
 
@@ -51,7 +51,7 @@ metadata:
   name: sample
   namespace: default
 spec:
-  refreshInterval: 1m
+  refreshInterval: 1h
   target:
    name: foobar
   secretStoreRef:

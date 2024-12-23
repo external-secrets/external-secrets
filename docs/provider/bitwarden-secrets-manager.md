@@ -65,7 +65,7 @@ kind: ExternalSecret
 metadata:
   name: bitwarden
 spec:
-  refreshInterval: 10s
+  refreshInterval: 1h
   secretStoreRef:
     # This name must match the metadata.name in the `SecretStore`
     name: bitwarden-secretsmanager
@@ -91,7 +91,7 @@ kind: ExternalSecret
 metadata:
   name: bitwarden
 spec:
-  refreshInterval: 10s
+  refreshInterval: 1h
   secretStoreRef:
     # This name must match the metadata.name in the `SecretStore`
     name: bitwarden-secretsmanager
@@ -118,7 +118,7 @@ kind: PushSecret
 metadata:
   name: pushsecret-bitwarden # Customisable
 spec:
-  refreshInterval: 10s # Refresh interval for which push secret will reconcile
+  refreshInterval: 1h # Refresh interval for which push secret will reconcile
   secretStoreRefs: # A list of secret stores to push secrets to
     - name: bitwarden-secretsmanager
       kind: SecretStore

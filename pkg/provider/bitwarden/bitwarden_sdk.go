@@ -33,6 +33,8 @@ const (
 	WardenHeaderAccessToken = "Warden-Access-Token"
 	WardenHeaderAPIURL      = "Warden-Api-Url"
 	WardenHeaderIdentityURL = "Warden-Identity-Url"
+
+	restAPIURL = "/rest/api/1/secret"
 )
 
 type SecretResponse struct {
@@ -130,7 +132,7 @@ func (s *SdkClient) GetSecret(ctx context.Context, id string) (*SecretResponse, 
 
 	if err := s.performHTTPRequestOperation(ctx, params{
 		method: http.MethodGet,
-		url:    s.bitwardenSdkServerURL + "/rest/api/1/secret",
+		url:    s.bitwardenSdkServerURL + restAPIURL,
 		body:   body,
 		result: &secretResp,
 	}); err != nil {
@@ -150,7 +152,7 @@ func (s *SdkClient) DeleteSecret(ctx context.Context, ids []string) (*SecretsDel
 	secretResp := &SecretsDeleteResponse{}
 	if err := s.performHTTPRequestOperation(ctx, params{
 		method: http.MethodDelete,
-		url:    s.bitwardenSdkServerURL + "/rest/api/1/secret",
+		url:    s.bitwardenSdkServerURL + restAPIURL,
 		body:   body,
 		result: &secretResp,
 	}); err != nil {
@@ -164,7 +166,7 @@ func (s *SdkClient) CreateSecret(ctx context.Context, createReq SecretCreateRequ
 	secretResp := &SecretResponse{}
 	if err := s.performHTTPRequestOperation(ctx, params{
 		method: http.MethodPost,
-		url:    s.bitwardenSdkServerURL + "/rest/api/1/secret",
+		url:    s.bitwardenSdkServerURL + restAPIURL,
 		body:   createReq,
 		result: &secretResp,
 	}); err != nil {
@@ -178,7 +180,7 @@ func (s *SdkClient) UpdateSecret(ctx context.Context, putReq SecretPutRequest) (
 	secretResp := &SecretResponse{}
 	if err := s.performHTTPRequestOperation(ctx, params{
 		method: http.MethodPut,
-		url:    s.bitwardenSdkServerURL + "/rest/api/1/secret",
+		url:    s.bitwardenSdkServerURL + restAPIURL,
 		body:   putReq,
 		result: &secretResp,
 	}); err != nil {

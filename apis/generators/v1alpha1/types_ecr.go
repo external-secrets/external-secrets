@@ -32,6 +32,11 @@ type ECRAuthorizationTokenSpec struct {
 	// desired AWS service.
 	// +optional
 	Role string `json:"role,omitempty"`
+
+	// Scope specifies the ECR service scope.
+	// Valid options are private and public.
+	// +optional
+	Scope string `json:"scope,omitempty"`
 }
 
 // AWSAuth tells the controller how to do authentication with aws.
@@ -75,7 +80,7 @@ type AWSJWTAuth struct {
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
-// +kubebuilder:resource:scope=Namespaced,categories={external-secrets, external-secrets-generators},shortName=ecrauthorizationtoken
+// +kubebuilder:resource:scope=Namespaced,categories={external-secrets, external-secrets-generators}
 type ECRAuthorizationToken struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

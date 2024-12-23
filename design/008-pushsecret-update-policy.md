@@ -4,7 +4,7 @@ title: PushSecret Update Policy
 version: v1alpha1
 authors: Moritz Johner
 creation-date: 2023-08-25
-status: draft
+status: partially implemented
 ---
 ```
 
