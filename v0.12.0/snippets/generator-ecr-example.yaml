@@ -1,0 +1,14 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: "ecr-secret"
+spec:
+  refreshInterval: "1h"
+  target:
+    name: ecr-secret
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: ECRAuthorizationToken
+        name: "ecr-gen"
