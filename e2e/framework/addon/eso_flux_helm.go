@@ -145,7 +145,11 @@ func (c *FluxHelmRelease) Install() error {
 
 // Uninstall removes the chart aswell as the repo.
 func (c *FluxHelmRelease) Uninstall() error {
-	err := c.config.CRClient.Delete(context.Background(), &fluxhelm.HelmRelease{
+	err := uninstallCRDs(c.config)
+	if err != nil {
+		return err
+	}
+	err = c.config.CRClient.Delete(context.Background(), &fluxhelm.HelmRelease{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      c.Name,
 			Namespace: c.Namespace,
