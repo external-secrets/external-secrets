@@ -47,9 +47,8 @@ type node struct {
 	isParent bool
 }
 
-func fetchCertChains(data []byte) ([]byte, error) {
+func fetchX509CertChains(data []byte) ([]*x509.Certificate, error) {
 	var newCertChain []*x509.Certificate
-	var pemData []byte
 	nodes, err := pemToNodes(data)
 	if err != nil {
 		return nil, err
@@ -98,12 +97,20 @@ func fetchCertChains(data []byte) ([]byte, error) {
 		processedNodes++
 		// ensure we aren't stuck in a cyclic loop
 		if processedNodes > len(nodes) {
-			return pemData, errors.New(errChainCycle)
+			return nil, errors.New(errChainCycle)
 		}
 		newCertChain = append(newCertChain, leaf.cert)
 		leaf = leaf.parent
 	}
+	return newCertChain, nil
+}
 
+func fetchCertChains(data []byte) ([]byte, error) {
+	var pemData []byte
+	newCertChain, err := fetchX509CertChains(data)
+	if err != nil {
+		return nil, err
+	}
 	for _, cert := range newCertChain {
 		b := &pem.Block{
 			Type:  pemTypeCertificate,
