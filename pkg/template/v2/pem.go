@@ -16,6 +16,7 @@ package template
 
 import (
 	"bytes"
+	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"strings"
@@ -23,6 +24,10 @@ import (
 
 const (
 	errJunk = "error filtering pem: found junk"
+
+	certTypeLeaf         = "leaf"
+	certTypeIntermediate = "intermediate"
+	certTypeRoot         = "root"
 )
 
 func filterPEM(pemType, input string) (string, error) {
@@ -56,8 +61,50 @@ func filterPEM(pemType, input string) (string, error) {
 	return string(blocks), nil
 }
 
-func pemEncode(thing, kind string) (string, error) {
+func filterCertChain(certType, input string) (string, error) {
+	ordered, err := fetchX509CertChains([]byte(input))
+	if err != nil {
+		return "", err
+	}
+
+	switch certType {
+	case certTypeLeaf:
+		cert := ordered[0]
+		if cert.AuthorityKeyId != nil && !bytes.Equal(cert.AuthorityKeyId, cert.SubjectKeyId) {
+			return pemEncode(ordered[0].Raw, pemTypeCertificate)
+		}
+	case certTypeIntermediate:
+		if len(ordered) < 2 {
+			return "", nil
+		}
+		var pemData []byte
+		for _, cert := range ordered[1:] {
+			if isRootCertificate(cert) {
+				break
+			}
+			b := &pem.Block{
+				Type:  pemTypeCertificate,
+				Bytes: cert.Raw,
+			}
+			pemData = append(pemData, pem.EncodeToMemory(b)...)
+		}
+		return string(pemData), nil
+	case certTypeRoot:
+		cert := ordered[len(ordered)-1]
+		if isRootCertificate(cert) {
+			return pemEncode(cert.Raw, pemTypeCertificate)
+		}
+	}
+
+	return "", nil
+}
+
+func isRootCertificate(cert *x509.Certificate) bool {
+	return cert.AuthorityKeyId == nil || bytes.Equal(cert.AuthorityKeyId, cert.SubjectKeyId)
+}
+
+func pemEncode(thing []byte, kind string) (string, error) {
 	buf := bytes.NewBuffer(nil)
-	err := pem.Encode(buf, &pem.Block{Type: kind, Bytes: []byte(thing)})
+	err := pem.Encode(buf, &pem.Block{Type: kind, Bytes: thing})
 	return buf.String(), err
 }
