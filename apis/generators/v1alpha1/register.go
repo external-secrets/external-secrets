@@ -108,6 +108,14 @@ var (
 	GithubAccessTokenGroupVersionKind = SchemeGroupVersion.WithKind(GithubAccessTokenKind)
 )
 
+// QuayAccessToken type metadata.
+var (
+	QuayAccessTokenKind             = reflect.TypeOf(QuayAccessToken{}).Name()
+	QuayAccessTokenGroupKind        = schema.GroupKind{Group: Group, Kind: QuayAccessTokenKind}.String()
+	QuayAccessTokenKindAPIVersion   = QuayAccessTokenKind + "." + SchemeGroupVersion.String()
+	QuayAccessTokenGroupVersionKind = SchemeGroupVersion.WithKind(QuayAccessTokenKind)
+)
+
 // Uuid type metadata.
 var (
 	UUIDKind             = reflect.TypeOf(UUID{}).Name()
@@ -146,6 +154,7 @@ func init() {
 	SchemeBuilder.Register(&Fake{}, &FakeList{})
 	SchemeBuilder.Register(&GCRAccessToken{}, &GCRAccessTokenList{})
 	SchemeBuilder.Register(&GithubAccessToken{}, &GithubAccessTokenList{})
+	SchemeBuilder.Register(&QuayAccessToken{}, &QuayAccessTokenList{})
 	SchemeBuilder.Register(&Password{}, &PasswordList{})
 	SchemeBuilder.Register(&STSSessionToken{}, &STSSessionTokenList{})
 	SchemeBuilder.Register(&UUID{}, &UUIDList{})
