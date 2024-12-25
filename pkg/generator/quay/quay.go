@@ -77,11 +77,9 @@ func (g *Generator) generate(
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch service account token: %w", err)
 	}
-	url := ""
-	if res.Spec.URL == "" {
+	url := res.Spec.URL
+	if url == "" {
 		url = defaultQuayURL
-	} else {
-		url = res.Spec.URL
 	}
 
 	accessToken, err := getQuayRobotToken(token, res.Spec.RobotAccount, url, g.httpClient)
