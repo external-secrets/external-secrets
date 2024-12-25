@@ -14418,7 +14418,7 @@ spec:
                             - name
                           type: object
                         url:
-                          description: URL configures the Quay instance URL. Defaults to https://quay.io/.
+                          description: URL configures the Quay instance URL. Defaults to quay.io.
                           type: string
                       required:
                         - robotAccount
@@ -16247,7 +16247,7 @@ spec:
                     - name
                   type: object
                 url:
-                  description: URL configures the Quay instance URL. Defaults to https://quay.io/.
+                  description: URL configures the Quay instance URL. Defaults to quay.io.
                   type: string
               required:
                 - robotAccount
