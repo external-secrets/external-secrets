@@ -21,7 +21,7 @@ import (
 )
 
 type QuayAccessTokenSpec struct {
-	// URL configures the Quay instance URL. Defaults to https://quay.io/.
+	// URL configures the Quay instance URL. Defaults to quay.io.
 	URL string `json:"url,omitempty"`
 	// Name of the robot account you are federating with
 	RobotAccount string `json:"robotAccount"`
