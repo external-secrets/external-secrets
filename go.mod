@@ -77,6 +77,8 @@ require (
 	github.com/aliyun/credentials-go v1.4.3
 	github.com/avast/retry-go/v4 v4.6.0
 	github.com/cenkalti/backoff/v4 v4.3.0
+	github.com/cloudru-tech/iam-sdk v1.0.4
+	github.com/cloudru-tech/secret-manager-sdk v1.0.1
 	github.com/cyberark/conjur-api-go v0.12.9
 	github.com/fortanix/sdkms-client-go v0.4.0
 	github.com/go-openapi/strfmt v0.23.0
