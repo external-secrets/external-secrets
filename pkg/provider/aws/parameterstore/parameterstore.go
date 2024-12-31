@@ -161,25 +161,9 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 		err   error
 	)
 
-	meta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](data.GetMetadata())
+	meta, err := pm.constructMetadataWithDefaults(data.GetMetadata())
 	if err != nil {
-		return fmt.Errorf("failed to parse metadata: %w", err)
-	}
-
-	if meta == nil {
-		meta = &metadata.PushSecretMetadata[PushSecretMetadataSpec]{}
-	}
-
-	if meta.Spec.Tier.Type == "" {
-		meta.Spec.Tier.Type = "Standard"
-	}
-
-	if meta.Spec.SecretType == "" {
-		meta.Spec.SecretType = "String"
-	}
-
-	if meta.Spec.KMSKeyID == "" {
-		meta.Spec.KMSKeyID = "alias/aws/ssm"
+		return err
 	}
 
 	key := data.GetSecretKey()
@@ -571,4 +555,34 @@ func (pm *ParameterStore) Validate() (esv1beta1.ValidationResult, error) {
 		return esv1beta1.ValidationResultError, err
 	}
 	return esv1beta1.ValidationResultReady, nil
+}
+
+func (pm *ParameterStore) constructMetadataWithDefaults(data *apiextensionsv1.JSON) (*metadata.PushSecretMetadata[PushSecretMetadataSpec], error) {
+	var (
+		meta *metadata.PushSecretMetadata[PushSecretMetadataSpec]
+		err  error
+	)
+
+	meta, err = metadata.ParseMetadataParameters[PushSecretMetadataSpec](data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse metadata: %w", err)
+	}
+
+	if meta == nil {
+		meta = &metadata.PushSecretMetadata[PushSecretMetadataSpec]{}
+	}
+
+	if meta.Spec.Tier.Type == "" {
+		meta.Spec.Tier.Type = "Standard"
+	}
+
+	if meta.Spec.SecretType == "" {
+		meta.Spec.SecretType = "String"
+	}
+
+	if meta.Spec.KMSKeyID == "" {
+		meta.Spec.KMSKeyID = "alias/aws/ssm"
+	}
+
+	return meta, nil
 }
