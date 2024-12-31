@@ -27,7 +27,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -40,6 +39,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
 // Tier defines policy details for PushSecret.
@@ -50,10 +50,9 @@ type Tier struct {
 
 // PushSecretMetadataSpec defines the spec for the metadata for PushSecret.
 type PushSecretMetadataSpec struct {
-	SecretType  string `json:"secretType,omitempty"`
-	StoreKeyID  string `json:"storeKeyID,omitempty"`
-	SecretKeyID string `json:"secretKeyID,omitempty"`
-	Tier        Tier   `json:"tier,omitempty"`
+	SecretType string `json:"secretType,omitempty"`
+	KMSKeyID   string `json:"kmsKeyID,omitempty"`
+	Tier       Tier   `json:"tier,omitempty"`
 }
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -176,11 +175,11 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 	}
 
 	if meta.Spec.SecretType == "" {
-		meta.Spec.Tier.Type = "String"
+		meta.Spec.SecretType = "String"
 	}
 
-	if meta.Spec.SecretKeyID == "" {
-		meta.Spec.SecretKeyID = "alias/aws/ssm"
+	if meta.Spec.KMSKeyID == "" {
+		meta.Spec.KMSKeyID = "alias/aws/ssm"
 	}
 
 	key := data.GetSecretKey()
@@ -203,7 +202,7 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 	}
 
 	if meta.Spec.SecretType == "SecureString" {
-		secretRequest.KeyId = &meta.Spec.SecretKeyID
+		secretRequest.KeyId = &meta.Spec.KMSKeyID
 	}
 
 	if meta.Spec.Tier.Type == "Advanced" {

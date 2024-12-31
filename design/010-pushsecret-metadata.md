@@ -34,13 +34,14 @@ spec:
 
 ```
 
-Here is a overview of current implementations of PushSecret metadata:
+Here is an overview of current implementations of PushSecret metadata:
 
 ```yaml
 # AWS Parameter Store
-# more to come in https://github.com/external-secrets/external-secrets/pull/3581
-parameterStoreType: "..."
-parameterStoreKeyID: "..."
+apiVersion: kubernetes.external-secrets.io/v1alpha1
+kind: PushSecretMetadata
+spec:
+  secretType: StringList
 ```
 
 ```yaml
