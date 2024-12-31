@@ -27,8 +27,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -40,13 +42,19 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
-// Declares metadata information for pushing secrets to AWS Parameter Store.
-const (
-	pushSecretType  = "parameterStoreType"
-	storeTypeString = "String"
-	storeKeyID      = "parameterStoreKeyID"
-	pushSecretKeyID = "keyID"
-)
+// Tier defines policy details for PushSecret.
+type Tier struct {
+	Type     string                `json:"type"`
+	Policies *apiextensionsv1.JSON `json:"policies"`
+}
+
+// PushSecretMetadataSpec defines the spec for the metadata for PushSecret.
+type PushSecretMetadataSpec struct {
+	SecretType  string `json:"secretType,omitempty"`
+	StoreKeyID  string `json:"storeKeyID,omitempty"`
+	SecretKeyID string `json:"secretKeyID,omitempty"`
+	Tier        Tier   `json:"tier,omitempty"`
+}
 
 // https://github.com/external-secrets/external-secrets/issues/644
 var (
@@ -154,18 +162,25 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 		err   error
 	)
 
-	parameterTypeFormat, err := utils.FetchValueFromMetadata(pushSecretType, data.GetMetadata(), storeTypeString)
+	meta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](data.GetMetadata())
 	if err != nil {
 		return fmt.Errorf("failed to parse metadata: %w", err)
 	}
 
-	parameterKeyIDFormat, err := utils.FetchValueFromMetadata(storeKeyID, data.GetMetadata(), pushSecretKeyID)
-	if err != nil {
-		return fmt.Errorf("failed to parse metadata: %w", err)
+	if meta == nil {
+		meta = &metadata.PushSecretMetadata[PushSecretMetadataSpec]{}
 	}
 
-	if parameterKeyIDFormat == "keyID" || parameterKeyIDFormat == "" {
-		parameterKeyIDFormat = "alias/aws/ssm"
+	if meta.Spec.Tier.Type == "" {
+		meta.Spec.Tier.Type = "Standard"
+	}
+
+	if meta.Spec.SecretType == "" {
+		meta.Spec.Tier.Type = "String"
+	}
+
+	if meta.Spec.SecretKeyID == "" {
+		meta.Spec.SecretKeyID = "alias/aws/ssm"
 	}
 
 	key := data.GetSecretKey()
@@ -183,12 +198,17 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 	secretRequest := ssm.PutParameterInput{
 		Name:      ptr.To(pm.prefix + data.GetRemoteKey()),
 		Value:     ptr.To(string(value)),
-		Type:      ptr.To(parameterTypeFormat),
+		Type:      ptr.To(meta.Spec.SecretType),
 		Overwrite: ptr.To(true),
 	}
 
-	if parameterTypeFormat == "SecureString" {
-		secretRequest.KeyId = &parameterKeyIDFormat
+	if meta.Spec.SecretType == "SecureString" {
+		secretRequest.KeyId = &meta.Spec.SecretKeyID
+	}
+
+	if meta.Spec.Tier.Type == "Advanced" {
+		secretRequest.Tier = ptr.To(meta.Spec.Tier.Type)
+		secretRequest.Policies = ptr.To(string(meta.Spec.Tier.Policies.Raw))
 	}
 
 	secretValue := ssm.GetParameterInput{
