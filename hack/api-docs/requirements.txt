@@ -1,6 +1,6 @@
 Babel==2.16.0
 certifi==2024.12.14
-charset-normalizer==3.4.0
+charset-normalizer==3.4.1
 click==8.1.8
 colorama==0.4.6
 csscompressor==0.9.5
