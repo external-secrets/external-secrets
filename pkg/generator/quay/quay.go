@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	authv1 "k8s.io/api/authentication/v1"
@@ -86,10 +88,49 @@ func (g *Generator) generate(
 	if err != nil {
 		return nil, err
 	}
+	exp, err := tokenExpiration(accessToken)
+	if err != nil {
+		return nil, err
+	}
 	return map[string][]byte{
 		"registry": []byte(url),
 		"auth":     []byte(b64.StdEncoding.EncodeToString([]byte(res.Spec.RobotAccount + ":" + accessToken))),
+		"expiry":   []byte(exp),
 	}, nil
+}
+
+func getClaims(tokenString string) (map[string]interface{}, error) {
+	// Split the token into its three parts
+	parts := strings.Split(tokenString, ".")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("invalid token format")
+	}
+
+	// Decode the payload (the second part of the token)
+	payload, err := b64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return nil, fmt.Errorf("error decoding payload: %w", err)
+	}
+
+	var claims map[string]interface{}
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return nil, fmt.Errorf("error un-marshaling claims: %w", err)
+	} else {
+		return claims, nil
+	}
+}
+
+func tokenExpiration(tokenString string) (string, error) {
+	claims, err := getClaims(tokenString)
+	if err != nil {
+		return "", fmt.Errorf("error getting claims: %w", err)
+	}
+	exp, ok := claims["exp"].(float64)
+	if ok {
+		return strconv.FormatFloat(exp, 'f', -1, 64), nil
+	} else {
+		return "", fmt.Errorf("exp claim not found or wrong type")
+	}
 }
 
 // https://docs.projectquay.io/manage_quay.html#exchanging-oauth2-robot-account-token

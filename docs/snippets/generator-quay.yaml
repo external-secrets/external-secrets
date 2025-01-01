@@ -5,7 +5,7 @@ metadata:
   namespace: default
 spec:
   url: "quay.io"
-  robotAccount: "dronenb+testing"
+  robotAccount: "quay_user_or_org+robot_account_name"
   serviceAccountRef:
     name: "default"
     namespace: "default"
