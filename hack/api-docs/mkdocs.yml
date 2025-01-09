@@ -71,6 +71,7 @@ nav:
       - AWS STS Session Token: api/generator/sts.md
       - Cluster Generator: api/generator/cluster.md
       - Google Container Registry: api/generator/gcr.md
+      - Quay: api/generator/quay.md
       - Vault Dynamic Secret: api/generator/vault.md
       - Password: api/generator/password.md
       - Fake: api/generator/fake.md

@@ -173,6 +173,13 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 		return &genv1alpha1.GithubAccessToken{
 			Spec: *gen.Spec.Generator.GithubAccessTokenSpec,
 		}, nil
+	case genv1alpha1.GeneratorKindQuayAccessToken:
+		if gen.Spec.Generator.QuayAccessTokenSpec == nil {
+			return nil, fmt.Errorf("when kind is %s, QuayAccessTokenSpec must be set", gen.Spec.Kind)
+		}
+		return &genv1alpha1.QuayAccessToken{
+			Spec: *gen.Spec.Generator.QuayAccessTokenSpec,
+		}, nil
 	case genv1alpha1.GeneratorKindPassword:
 		if gen.Spec.Generator.PasswordSpec == nil {
 			return nil, fmt.Errorf("when kind is %s, PasswordSpec must be set", gen.Spec.Kind)
