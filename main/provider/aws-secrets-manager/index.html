@@ -3614,13 +3614,20 @@ a <code>path</code> prefix or use <code>Tags</code> filter.</p>
 <span class="w">  </span><span class="nt">&quot;Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2012-10-17&quot;</span><span class="p">,</span>
 <span class="w">  </span><span class="nt">&quot;Statement&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;Action&quot;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="s2">&quot;secretsmanager:ListSecrets&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="s2">&quot;secretsmanager:BatchGetSecretValue&quot;</span>
+<span class="w">      </span><span class="p">],</span>
+<span class="w">      </span><span class="nt">&quot;Effect&quot;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;Resource&quot;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;*&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
 <span class="w">      </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
 <span class="w">      </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="s2">&quot;secretsmanager:GetResourcePolicy&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="s2">&quot;secretsmanager:GetSecretValue&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="s2">&quot;secretsmanager:DescribeSecret&quot;</span><span class="p">,</span>
 <span class="w">        </span><span class="s2">&quot;secretsmanager:ListSecretVersionIds&quot;</span>
-<span class="w">        </span><span class="s2">&quot;secretsmanager:BatchGetSecretValue&quot;</span>
 <span class="w">      </span><span class="p">],</span>
 <span class="w">      </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <span class="w">        </span><span class="s2">&quot;arn:aws:secretsmanager:us-west-2:111122223333:secret:dev-*&quot;</span>
