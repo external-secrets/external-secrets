@@ -83,8 +83,9 @@ func (g *Generator) generate(
 	if url == "" {
 		url = defaultQuayURL
 	}
+	url = strings.TrimPrefix(url, "https://")
 
-	accessToken, err := getQuayRobotToken(token, res.Spec.RobotAccount, url, g.httpClient)
+	accessToken, err := getQuayRobotToken(ctx, token, res.Spec.RobotAccount, url, g.httpClient)
 	if err != nil {
 		return nil, err
 	}
@@ -115,9 +116,8 @@ func getClaims(tokenString string) (map[string]interface{}, error) {
 	var claims map[string]interface{}
 	if err := json.Unmarshal(payload, &claims); err != nil {
 		return nil, fmt.Errorf("error un-marshaling claims: %w", err)
-	} else {
-		return claims, nil
 	}
+	return claims, nil
 }
 
 func tokenExpiration(tokenString string) (string, error) {
@@ -128,20 +128,20 @@ func tokenExpiration(tokenString string) (string, error) {
 	exp, ok := claims["exp"].(float64)
 	if ok {
 		return strconv.FormatFloat(exp, 'f', -1, 64), nil
-	} else {
-		return "", fmt.Errorf("exp claim not found or wrong type")
 	}
+
+	return "", fmt.Errorf("exp claim not found or wrong type")
 }
 
 // https://docs.projectquay.io/manage_quay.html#exchanging-oauth2-robot-account-token
-func getQuayRobotToken(fedToken, robotAccount, url string, hc *http.Client) (string, error) {
+func getQuayRobotToken(ctx context.Context, fedToken, robotAccount, url string, hc *http.Client) (string, error) {
 	if hc == nil {
 		hc = &http.Client{
 			Timeout: httpClientTimeout,
 		}
 	}
 
-	req, err := http.NewRequest("GET", "https://"+url+"/oauth2/federation/robot/token", http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://"+url+"/oauth2/federation/robot/token", http.NoBody)
 	if err != nil {
 		return "", err
 	}
@@ -153,7 +153,7 @@ func getQuayRobotToken(fedToken, robotAccount, url string, hc *http.Client) (str
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("%s", resp.Status)
+		return "", fmt.Errorf("request failed do to unexpected status: %s", resp.Status)
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -167,7 +167,15 @@ func getQuayRobotToken(fedToken, robotAccount, url string, hc *http.Client) (str
 	if err != nil {
 		return "", err
 	}
-	return result["token"].(string), nil
+	token, ok := result["token"]
+	if !ok {
+		return "", fmt.Errorf("token not found in response")
+	}
+	tokenString, ok := token.(string)
+	if !ok {
+		return "", fmt.Errorf("error when typecasting token to string")
+	}
+	return tokenString, nil
 }
 
 func fetchServiceAccountToken(ctx context.Context, saRef esmeta.ServiceAccountSelector, namespace string) (string, error) {
