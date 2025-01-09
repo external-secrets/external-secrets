@@ -28,13 +28,20 @@ For Batch permissions read the following post https://aws.amazon.com/about-aws/w
   "Version": "2012-10-17",
   "Statement": [
     {
+      "Action" : [
+        "secretsmanager:ListSecrets",
+        "secretsmanager:BatchGetSecretValue"
+      ],
+      "Effect" : "Allow",
+      "Resource" : "*"
+    },
+    {
       "Effect": "Allow",
       "Action": [
         "secretsmanager:GetResourcePolicy",
         "secretsmanager:GetSecretValue",
         "secretsmanager:DescribeSecret",
         "secretsmanager:ListSecretVersionIds"
-        "secretsmanager:BatchGetSecretValue"
       ],
       "Resource": [
         "arn:aws:secretsmanager:us-west-2:111122223333:secret:dev-*"
