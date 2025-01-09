@@ -14541,6 +14541,10 @@ spec:
                       type: object
                     vaultDynamicSecretSpec:
                       properties:
+                        allowEmptyResponse:
+                          default: false
+                          description: Do not fail if no secrets are found. Useful for requests where no data is expected.
+                          type: boolean
                         controller:
                           description: |-
                             Used to select the correct ESO controller (think: ingress.ingressClassName)
@@ -16444,6 +16448,10 @@ spec:
               type: object
             spec:
               properties:
+                allowEmptyResponse:
+                  default: false
+                  description: Do not fail if no secrets are found. Useful for requests where no data is expected.
+                  type: boolean
                 controller:
                   description: |-
                     Used to select the correct ESO controller (think: ingress.ingressClassName)
