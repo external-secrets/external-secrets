@@ -50,6 +50,11 @@ type VaultDynamicSecretSpec struct {
 
 	// Vault path to obtain the dynamic secret from
 	Path string `json:"path"`
+
+	// Do not fail if no secrets are found. Useful for requests where no data is expected.
+	// +optional
+	// +kubebuilder:default=false
+	AllowEmptyResponse bool `json:"allowEmptyResponse,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=Data;Auth
