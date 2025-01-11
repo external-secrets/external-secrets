@@ -23,38 +23,32 @@ import (
 
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
 
+	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
 	"github.com/external-secrets/external-secrets/pkg/template"
 )
 
 var (
-	templateYaml              string
-	secretDataYaml            string
+	templateFile              string
+	secretDataFile            string
 	outputFile                string
 	templateFromConfigMapFile string
 	templateFromSecretFile    string
 )
 
 func init() {
-	//// kubernetes schemes
-	//utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	//utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
-	//
-	//// external-secrets schemes
-	//utilruntime.Must(esv1beta1.AddToScheme(scheme))
-	//utilruntime.Must(esv1alpha1.AddToScheme(scheme))
-	//utilruntime.Must(genv1alpha1.AddToScheme(scheme))
-
 	rootCmd.AddCommand(renderCmd)
 
-	renderCmd.Flags().StringVar(&templateYaml, "template", "", "The raw yaml of the template to render")
-	renderCmd.Flags().StringVar(&secretDataYaml, "source-secret-file", "", "Link to a file containing secret data")
-	renderCmd.Flags().StringVar(&outputFile, "output", "", "If set, the output will be written to this file")
+	renderCmd.Flags().StringVar(&templateFile, "source-templated-object", "", "Link to a file containing the object that contains the template")
+	renderCmd.Flags().StringVar(&secretDataFile, "source-secret-data-file", "", "Link to a file containing secret data in form of map[string][]byte")
 	renderCmd.Flags().StringVar(&templateFromConfigMapFile, "template-from-config-map", "", "Link to a file containing config map data for TemplateFrom.ConfigMap")
 	renderCmd.Flags().StringVar(&templateFromSecretFile, "template-from-secret", "", "Link to a file containing config map data for TemplateFrom.Secret")
+	renderCmd.Flags().StringVar(&outputFile, "output", "", "If set, the output will be written to this file")
 }
 
 var renderCmd = &cobra.Command{
@@ -64,36 +58,133 @@ var renderCmd = &cobra.Command{
 	RunE:  renderRun,
 }
 
-func renderRun(cmd *cobra.Command, args []string) error {
+func renderRun(_ *cobra.Command, _ []string) error {
 	ctx := context.Background()
-	spec := &esv1beta1.ExternalSecretTemplate{}
-	if err := yaml.Unmarshal([]byte(templateYaml), spec); err != nil {
+	obj := &unstructured.Unstructured{}
+	content, err := os.ReadFile(templateFile)
+	if err != nil {
+		return fmt.Errorf("could not read template file: %w", err)
+	}
+
+	if err := yaml.Unmarshal(content, obj); err != nil {
 		return fmt.Errorf("could not unmarshal template: %w", err)
 	}
 
-	sourceSecret := &corev1.Secret{}
-	sourceSecretContent, err := os.ReadFile(templateFromConfigMapFile)
+	tmpl, err := fetchTemplateFromSourceObject(obj)
 	if err != nil {
 		return err
 	}
 
-	if err := yaml.Unmarshal(sourceSecretContent, sourceSecret); err != nil {
+	data := map[string][]byte{}
+	sourceDataContent, err := os.ReadFile(secretDataFile)
+	if err != nil {
+		return fmt.Errorf("could not read source secret file: %w", err)
+	}
+
+	if err := yaml.Unmarshal(sourceDataContent, &data); err != nil {
 		return fmt.Errorf("could not unmarshal secret: %w", err)
 	}
 
-	execute, err := template.EngineForVersion(spec.EngineVersion)
+	execute, err := template.EngineForVersion(tmpl.EngineVersion)
 	if err != nil {
 		return err
 	}
 
-	var targetSecret *corev1.Secret
-	p := templating.Parser{
-		//Client:       r.Client, // TODO: figure out how to do this nicely, or the tool wouldn't be completely offline
+	targetSecret := &corev1.Secret{}
+	p := &templating.Parser{
 		TargetSecret: targetSecret,
-		DataMap:      sourceSecret.Data,
+		DataMap:      data,
 		Exec:         execute,
 	}
 
+	if err := setupFromConfigAndFromSecret(p); err != nil {
+		return fmt.Errorf("could not setup from secret: %w", err)
+	}
+
+	if err := executeTemplate(p, ctx, tmpl); err != nil {
+		return fmt.Errorf("could not render template: %w", err)
+	}
+
+	out := os.Stdout
+	if outputFile != "" {
+		f, err := os.Create(outputFile)
+		if err != nil {
+			return fmt.Errorf("could not create output file: %w", err)
+		}
+		defer func() {
+			_ = f.Close()
+		}()
+
+		out = f
+	}
+
+	// display the resulting secret
+	content, err = yaml.Marshal(targetSecret)
+	if err != nil {
+		return fmt.Errorf("could not marshal secret: %w", err)
+	}
+
+	_, err = fmt.Fprintln(out, string(content))
+
+	return err
+}
+
+func fetchTemplateFromSourceObject(obj *unstructured.Unstructured) (*esv1beta1.ExternalSecretTemplate, error) {
+	var tmpl *esv1beta1.ExternalSecretTemplate
+	switch obj.GetKind() {
+	case "ExternalSecret":
+		es := &esv1beta1.ExternalSecret{}
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, es); err != nil {
+			return nil, err
+		}
+
+		tmpl = es.Spec.Target.Template
+	case "PushSecret":
+		ps := &v1alpha1.PushSecret{}
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, ps); err != nil {
+			return nil, err
+		}
+
+		tmpl = ps.Spec.Template
+	default:
+		return nil, fmt.Errorf("unsupported template kind %s", obj.GetKind())
+	}
+
+	return tmpl, nil
+}
+
+func executeTemplate(p *templating.Parser, ctx context.Context, tmpl *esv1beta1.ExternalSecretTemplate) error {
+	// apply templates defined in template.templateFrom
+	err := p.MergeTemplateFrom(ctx, "default", tmpl)
+	if err != nil {
+		return fmt.Errorf("could not merge template: %w", err)
+	}
+
+	// apply data templates
+	// NOTE: explicitly defined template.data templates take precedence over templateFrom
+	err = p.MergeMap(tmpl.Data, esv1beta1.TemplateTargetData)
+	if err != nil {
+		return fmt.Errorf("could not merge data: %w", err)
+	}
+
+	// apply templates for labels
+	// NOTE: this only works for v2 templates
+	err = p.MergeMap(tmpl.Metadata.Labels, esv1beta1.TemplateTargetLabels)
+	if err != nil {
+		return fmt.Errorf("could not merge labels: %w", err)
+	}
+
+	// apply template for annotations
+	// NOTE: this only works for v2 templates
+	err = p.MergeMap(tmpl.Metadata.Annotations, esv1beta1.TemplateTargetAnnotations)
+	if err != nil {
+		return fmt.Errorf("could not merge annotations: %w", err)
+	}
+
+	return err
+}
+
+func setupFromConfigAndFromSecret(p *templating.Parser) error {
 	if templateFromConfigMapFile != "" {
 		var configMap corev1.ConfigMap
 		configMapContent, err := os.ReadFile(templateFromConfigMapFile)
@@ -121,60 +212,5 @@ func renderRun(cmd *cobra.Command, args []string) error {
 
 		p.TemplateFromSecret = &secret
 	}
-
-	// apply templates defined in template.templateFrom
-	err = p.MergeTemplateFrom(ctx, "default", spec)
-	if err != nil {
-		return fmt.Errorf("could not merge template: %w", err)
-	}
-
-	// apply data templates
-	// NOTE: explicitly defined template.data templates take precedence over templateFrom
-	err = p.MergeMap(spec.Data, esv1beta1.TemplateTargetData)
-	if err != nil {
-		return fmt.Errorf("could not merge data: %w", err)
-	}
-
-	// apply templates for labels
-	// NOTE: this only works for v2 templates
-	err = p.MergeMap(spec.Metadata.Labels, esv1beta1.TemplateTargetLabels)
-	if err != nil {
-		return fmt.Errorf("could not merge labels: %w", err)
-	}
-
-	// apply template for annotations
-	// NOTE: this only works for v2 templates
-	err = p.MergeMap(spec.Metadata.Annotations, esv1beta1.TemplateTargetAnnotations)
-	if err != nil {
-		return fmt.Errorf("could not merge annotations: %w", err)
-	}
-
-	out := os.Stdout
-	if outputFile != "" {
-		f, err := os.Create(outputFile)
-		if err != nil {
-			return fmt.Errorf("could not create output file: %w", err)
-		}
-		defer f.Close()
-
-		out = f
-	}
-
-	// display the source
-	content, err := yaml.Marshal(spec)
-	if err != nil {
-		return fmt.Errorf("could not marshal spec: %w", err)
-	}
-
-	_, _ = fmt.Fprintln(out, string(content))
-
-	// display the resulting secret
-	content, err = yaml.Marshal(targetSecret)
-	if err != nil {
-		return fmt.Errorf("could not marshal secret: %w", err)
-	}
-
-	_, _ = fmt.Fprintln(out, string(content))
-
 	return nil
 }
