@@ -1,3 +1,19 @@
+/*
+Copyright © 2022 ESO Maintainer team
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package cmd
 
 import (
@@ -5,41 +21,40 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
-	"github.com/external-secrets/external-secrets/pkg/template"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/yaml"
 
-	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
+	"github.com/external-secrets/external-secrets/pkg/template"
 )
 
 var (
-	templateYaml   string
-	secretDataYaml string
-	outputFile     string
+	templateYaml              string
+	secretDataYaml            string
+	outputFile                string
+	templateFromConfigMapFile string
+	templateFromSecretFile    string
 )
 
 func init() {
-	// kubernetes schemes
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
-
-	// external-secrets schemes
-	utilruntime.Must(esv1beta1.AddToScheme(scheme))
-	utilruntime.Must(esv1alpha1.AddToScheme(scheme))
-	utilruntime.Must(genv1alpha1.AddToScheme(scheme))
+	//// kubernetes schemes
+	//utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	//utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
+	//
+	//// external-secrets schemes
+	//utilruntime.Must(esv1beta1.AddToScheme(scheme))
+	//utilruntime.Must(esv1alpha1.AddToScheme(scheme))
+	//utilruntime.Must(genv1alpha1.AddToScheme(scheme))
 
 	rootCmd.AddCommand(renderCmd)
 
 	renderCmd.Flags().StringVar(&templateYaml, "template", "", "The raw yaml of the template to render")
-	renderCmd.Flags().StringVar(&secretDataYaml, "secret-data", "", "The data section of a secret as it appears in the secret")
+	renderCmd.Flags().StringVar(&secretDataYaml, "source-secret-file", "", "Link to a file containing secret data")
 	renderCmd.Flags().StringVar(&outputFile, "output", "", "If set, the output will be written to this file")
+	renderCmd.Flags().StringVar(&templateFromConfigMapFile, "template-from-config-map", "", "Link to a file containing config map data for TemplateFrom.ConfigMap")
+	renderCmd.Flags().StringVar(&templateFromSecretFile, "template-from-secret", "", "Link to a file containing config map data for TemplateFrom.Secret")
 }
 
 var renderCmd = &cobra.Command{
@@ -56,8 +71,13 @@ func renderRun(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("could not unmarshal template: %w", err)
 	}
 
-	secret := &corev1.Secret{}
-	if err := yaml.Unmarshal([]byte(secretDataYaml), secret); err != nil {
+	sourceSecret := &corev1.Secret{}
+	sourceSecretContent, err := os.ReadFile(templateFromConfigMapFile)
+	if err != nil {
+		return err
+	}
+
+	if err := yaml.Unmarshal(sourceSecretContent, sourceSecret); err != nil {
 		return fmt.Errorf("could not unmarshal secret: %w", err)
 	}
 
@@ -66,11 +86,40 @@ func renderRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	var targetSecret *corev1.Secret
 	p := templating.Parser{
 		//Client:       r.Client, // TODO: figure out how to do this nicely, or the tool wouldn't be completely offline
-		TargetSecret: secret,
-		DataMap:      secret.Data,
+		TargetSecret: targetSecret,
+		DataMap:      sourceSecret.Data,
 		Exec:         execute,
+	}
+
+	if templateFromConfigMapFile != "" {
+		var configMap corev1.ConfigMap
+		configMapContent, err := os.ReadFile(templateFromConfigMapFile)
+		if err != nil {
+			return err
+		}
+
+		if err := yaml.Unmarshal(configMapContent, &configMap); err != nil {
+			return fmt.Errorf("could not unmarshal configmap: %w", err)
+		}
+
+		p.TemplateFromConfigMap = &configMap
+	}
+
+	if templateFromSecretFile != "" {
+		var secret corev1.Secret
+		secretContent, err := os.ReadFile(templateFromSecretFile)
+		if err != nil {
+			return err
+		}
+
+		if err := yaml.Unmarshal(secretContent, &secret); err != nil {
+			return fmt.Errorf("could not unmarshal secret: %w", err)
+		}
+
+		p.TemplateFromSecret = &secret
 	}
 
 	// apply templates defined in template.templateFrom
@@ -111,11 +160,21 @@ func renderRun(cmd *cobra.Command, args []string) error {
 		out = f
 	}
 
+	// display the source
 	content, err := yaml.Marshal(spec)
 	if err != nil {
 		return fmt.Errorf("could not marshal spec: %w", err)
 	}
 
-	_, err = fmt.Fprintln(out, string(content))
-	return err
+	_, _ = fmt.Fprintln(out, string(content))
+
+	// display the resulting secret
+	content, err = yaml.Marshal(targetSecret)
+	if err != nil {
+		return fmt.Errorf("could not marshal secret: %w", err)
+	}
+
+	_, _ = fmt.Fprintln(out, string(content))
+
+	return nil
 }
