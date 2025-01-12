@@ -33,12 +33,16 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/template"
 )
 
+// version is filled during build time.
+var version string
+
 var (
 	templateFile              string
 	secretDataFile            string
 	outputFile                string
 	templateFromConfigMapFile string
 	templateFromSecretFile    string
+	showVersion               bool
 )
 
 func init() {
@@ -47,6 +51,7 @@ func init() {
 	renderCmd.Flags().StringVar(&templateFromConfigMapFile, "template-from-config-map", "", "Link to a file containing config map data for TemplateFrom.ConfigMap")
 	renderCmd.Flags().StringVar(&templateFromSecretFile, "template-from-secret", "", "Link to a file containing config map data for TemplateFrom.Secret")
 	renderCmd.Flags().StringVar(&outputFile, "output", "", "If set, the output will be written to this file")
+	renderCmd.Flags().BoolVar(&showVersion, "version", false, "If set, only print the version and exit")
 }
 
 var renderCmd = &cobra.Command{
@@ -57,6 +62,16 @@ var renderCmd = &cobra.Command{
 }
 
 func renderRun(_ *cobra.Command, _ []string) error {
+	if version == "" {
+		version = "0.0.0-dev"
+	}
+
+	if showVersion {
+		fmt.Printf("version: %s\n", version)
+
+		os.Exit(0)
+	}
+
 	ctx := context.Background()
 	obj := &unstructured.Unstructured{}
 	content, err := os.ReadFile(templateFile)

@@ -24,4 +24,12 @@ $(LOCALBIN):
 
 .PHONY: build
 build: ## Build binary for the specified arch
-	go build -o '$(LOCALBIN)/render' -trimpath -ldflags="-s -w" main.go
+	go build -o '$(LOCALBIN)/render' -trimpath -ldflags="-s -w -X 'main.version=$(VERSION)'" main.go
+
+.PHONY: binaries
+binaries: ## Build release binaries for all major OSs.
+	@rm -fr dist
+	@mkdir -p dist
+	GOOS=linux GOARCH=amd64 go build -o dist/render-linux-amd64 -trimpath -ldflags="-s -w -X 'main.version=$(VERSION)'" main.go
+	GOOS=darwin GOARCH=amd64 go build -o dist/render-darwin-amd64 -trimpath -ldflags="-s -w -X 'main.version=$(VERSION)'" main.go
+	GOOS=windows GOARCH=amd64 go build -o dist/render-windows-amd64.exe -trimpath -ldflags="-s -w -X 'main.version=$(VERSION)'" main.go
