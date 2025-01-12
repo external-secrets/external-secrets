@@ -1,5 +1,5 @@
 /*
-Copyright © 2022 ESO Maintainer team
+Copyright © 2025 ESO Maintainer team
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package main
 
 import (
 	"context"
@@ -42,8 +42,6 @@ var (
 )
 
 func init() {
-	rootCmd.AddCommand(renderCmd)
-
 	renderCmd.Flags().StringVar(&templateFile, "source-templated-object", "", "Link to a file containing the object that contains the template")
 	renderCmd.Flags().StringVar(&secretDataFile, "source-secret-data-file", "", "Link to a file containing secret data in form of map[string][]byte")
 	renderCmd.Flags().StringVar(&templateFromConfigMapFile, "template-from-config-map", "", "Link to a file containing config map data for TemplateFrom.ConfigMap")
@@ -213,4 +211,11 @@ func setupFromConfigAndFromSecret(p *templating.Parser) error {
 		p.TemplateFromSecret = &secret
 	}
 	return nil
+}
+
+func main() {
+	if err := renderCmd.Execute(); err != nil {
+		_, _ = fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 }
