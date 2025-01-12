@@ -40,7 +40,7 @@ func setUserPassAuthToken(ctx context.Context, v *client) (bool, error) {
 
 func (c *client) requestTokenWithUserPassAuth(ctx context.Context, userPassAuth *esv1beta1.VaultUserPassAuth) error {
 	username := strings.TrimSpace(userPassAuth.Username)
-	password, err := resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, &userPassAuth.SecretRef)
+	password, err := resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, &userPassAuth.SecretRef, true)
 	if err != nil {
 		return err
 	}

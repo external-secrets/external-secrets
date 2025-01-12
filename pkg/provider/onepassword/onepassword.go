@@ -108,13 +108,7 @@ func (provider *ProviderOnePassword) Capabilities() esv1beta1.SecretStoreCapabil
 // NewClient constructs a 1Password Provider.
 func (provider *ProviderOnePassword) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	config := store.GetSpec().Provider.OnePassword
-	token, err := resolvers.SecretKeyRef(
-		ctx,
-		kube,
-		store.GetKind(),
-		namespace,
-		&config.Auth.SecretRef.ConnectToken,
-	)
+	token, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, &config.Auth.SecretRef.ConnectToken, true)
 	if err != nil {
 		return nil, err
 	}

@@ -614,7 +614,7 @@ func getCertFromSecret(ctx context.Context, c client.Client, provider *esv1beta1
 		secretRef.Namespace = provider.Namespace
 	}
 
-	cert, err := resolvers.SecretKeyRef(ctx, c, storeKind, namespace, &secretRef)
+	cert, err := resolvers.SecretKeyRef(ctx, c, storeKind, namespace, &secretRef, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve secret key ref: %w", err)
 	}

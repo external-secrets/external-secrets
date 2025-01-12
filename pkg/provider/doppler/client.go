@@ -70,12 +70,7 @@ type SecretsClientInterface interface {
 }
 
 func (c *Client) setAuth(ctx context.Context) error {
-	token, err := resolvers.SecretKeyRef(
-		ctx,
-		c.kube,
-		c.storeKind,
-		c.namespace,
-		&c.store.Auth.SecretRef.DopplerToken)
+	token, err := resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, &c.store.Auth.SecretRef.DopplerToken, true)
 	if err != nil {
 		return err
 	}

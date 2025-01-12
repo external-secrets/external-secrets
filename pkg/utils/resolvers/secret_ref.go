@@ -44,17 +44,20 @@ const (
 // A user must pass the namespace of the originating ExternalSecret, as this may differ
 // from the namespace defined in the SecretKeySelector.
 // This func ensures that only a ClusterSecretStore is able to request secrets across namespaces.
+// except when we are loading a CA from a different namespace. In that case, pass
+// enforceNamespaceCheck as false to suppress the check
 func SecretKeyRef(
 	ctx context.Context,
 	c client.Client,
 	storeKind string,
 	esNamespace string,
-	ref *esmeta.SecretKeySelector) (string, error) {
+	ref *esmeta.SecretKeySelector,
+	enforceNamespaceCheck bool) (string, error) {
 	key := types.NamespacedName{
 		Namespace: esNamespace,
 		Name:      ref.Name,
 	}
-	if (storeKind == esv1beta1.ClusterSecretStoreKind) &&
+	if enforceNamespaceCheck && (storeKind == esv1beta1.ClusterSecretStoreKind) &&
 		(ref.Namespace != nil) {
 		key.Namespace = *ref.Namespace
 	}

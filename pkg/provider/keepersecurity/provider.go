@@ -111,10 +111,5 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 }
 
 func getKeeperSecurityAuth(ctx context.Context, store *esv1beta1.KeeperSecurityProvider, kube kclient.Client, storeKind, namespace string) (string, error) {
-	return resolvers.SecretKeyRef(
-		ctx,
-		kube,
-		storeKind,
-		namespace,
-		&store.Auth)
+	return resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &store.Auth, true)
 }

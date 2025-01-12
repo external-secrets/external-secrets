@@ -77,13 +77,7 @@ func Authenticate(ctx context.Context, store esv1beta1.GenericStore, provider *e
 IsoSessionFromSecretRef initialize an ISO OAuth2 flow with .spec.provider.senhasegura.auth.isoSecretRef parameters.
 */
 func (s *SenhaseguraIsoSession) IsoSessionFromSecretRef(ctx context.Context, provider *esv1beta1.SenhaseguraProvider, store esv1beta1.GenericStore, kube client.Client, namespace string) (*SenhaseguraIsoSession, error) {
-	secret, err := resolvers.SecretKeyRef(
-		ctx,
-		kube,
-		store.GetKind(),
-		namespace,
-		&provider.Auth.ClientSecret,
-	)
+	secret, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, &provider.Auth.ClientSecret, true)
 	if err != nil {
 		return &SenhaseguraIsoSession{}, err
 	}

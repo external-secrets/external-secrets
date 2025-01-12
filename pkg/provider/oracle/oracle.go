@@ -406,13 +406,7 @@ func getSecretData(ctx context.Context, kube kclient.Client, namespace, storeKin
 	if secretRef.Name == "" {
 		return "", errors.New(errORACLECredSecretName)
 	}
-	secret, err := resolvers.SecretKeyRef(
-		ctx,
-		kube,
-		storeKind,
-		namespace,
-		&secretRef,
-	)
+	secret, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &secretRef, true)
 	if err != nil {
 		return "", fmt.Errorf(errFetchSAKSecret, err)
 	}

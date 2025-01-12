@@ -44,12 +44,7 @@ func (c *Client) getJWTToken(ctx context.Context, conjurJWTConfig *esv1beta1.Con
 			tokenRef = conjurJWTConfig.SecretRef.DeepCopy()
 			tokenRef.Key = "token"
 		}
-		jwtToken, err := resolvers.SecretKeyRef(
-			ctx,
-			c.kube,
-			c.StoreKind,
-			c.namespace,
-			tokenRef)
+		jwtToken, err := resolvers.SecretKeyRef(ctx, c.kube, c.StoreKind, c.namespace, tokenRef, true)
 		if err != nil {
 			return "", err
 		}

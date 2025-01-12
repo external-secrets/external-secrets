@@ -114,20 +114,11 @@ func (c *Client) Close(_ context.Context) error {
 
 func (c *Client) conjurClientFromAPIKey(ctx context.Context, config conjurapi.Config, prov *esv1beta1.ConjurProvider) (SecretsClient, error) {
 	config.Account = prov.Auth.APIKey.Account
-	conjUser, secErr := resolvers.SecretKeyRef(
-		ctx,
-		c.kube,
-		c.StoreKind,
-		c.namespace, prov.Auth.APIKey.UserRef)
+	conjUser, secErr := resolvers.SecretKeyRef(ctx, c.kube, c.StoreKind, c.namespace, prov.Auth.APIKey.UserRef, true)
 	if secErr != nil {
 		return nil, fmt.Errorf(errBadServiceUser, secErr)
 	}
-	conjAPIKey, secErr := resolvers.SecretKeyRef(
-		ctx,
-		c.kube,
-		c.StoreKind,
-		c.namespace,
-		prov.Auth.APIKey.APIKeyRef)
+	conjAPIKey, secErr := resolvers.SecretKeyRef(ctx, c.kube, c.StoreKind, c.namespace, prov.Auth.APIKey.APIKeyRef, true)
 	if secErr != nil {
 		return nil, fmt.Errorf(errBadServiceAPIKey, secErr)
 	}

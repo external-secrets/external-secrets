@@ -78,12 +78,7 @@ var log = ctrl.Log.WithName("provider").WithName("gitlab")
 
 // Set gitlabBase credentials to Access Token.
 func (g *gitlabBase) getAuth(ctx context.Context) (string, error) {
-	return resolvers.SecretKeyRef(
-		ctx,
-		g.kube,
-		g.storeKind,
-		g.namespace,
-		&g.store.Auth.SecretRef.AccessToken)
+	return resolvers.SecretKeyRef(ctx, g.kube, g.storeKind, g.namespace, &g.store.Auth.SecretRef.AccessToken, true)
 }
 
 func (g *gitlabBase) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {

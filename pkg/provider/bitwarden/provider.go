@@ -49,13 +49,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return nil, errors.New("no store type or wrong store type")
 	}
 
-	token, err := resolvers.SecretKeyRef(
-		ctx,
-		kube,
-		store.GetKind(),
-		namespace,
-		&storeSpec.Provider.BitwardenSecretsManager.Auth.SecretRef.Credentials,
-	)
+	token, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, &storeSpec.Provider.BitwardenSecretsManager.Auth.SecretRef.Credentials, true)
 	if err != nil {
 		return nil, fmt.Errorf("could not resolve auth credentials: %w", err)
 	}

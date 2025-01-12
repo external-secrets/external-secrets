@@ -40,7 +40,7 @@ func setLdapAuthToken(ctx context.Context, v *client) (bool, error) {
 
 func (c *client) requestTokenWithLdapAuth(ctx context.Context, ldapAuth *esv1beta1.VaultLdapAuth) error {
 	username := strings.TrimSpace(ldapAuth.Username)
-	password, err := resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, &ldapAuth.SecretRef)
+	password, err := resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, &ldapAuth.SecretRef, true)
 	if err != nil {
 		return err
 	}

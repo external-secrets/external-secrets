@@ -99,7 +99,7 @@ func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1beta1.Vaul
 			tokenRef = kubernetesAuth.SecretRef.DeepCopy()
 			tokenRef.Key = "token"
 		}
-		jwt, err := resolvers.SecretKeyRef(ctx, v.kube, v.storeKind, v.namespace, tokenRef)
+		jwt, err := resolvers.SecretKeyRef(ctx, v.kube, v.storeKind, v.namespace, tokenRef, true)
 		if err != nil {
 			return "", err
 		}
@@ -141,7 +141,7 @@ func (c *client) secretKeyRefForServiceAccount(ctx context.Context, serviceAccou
 			Name:      tokenRef.Name,
 			Namespace: &ref.Namespace,
 			Key:       "token",
-		})
+		}, true)
 		if err != nil {
 			continue
 		}

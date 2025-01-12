@@ -225,11 +225,11 @@ func newAccessKeyAuth(ctx context.Context, kube kclient.Client, store esv1beta1.
 	storeSpec := store.GetSpec()
 	alibabaSpec := storeSpec.Provider.Alibaba
 	storeKind := store.GetObjectKind().GroupVersionKind().Kind
-	accessKeyID, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &alibabaSpec.Auth.SecretRef.AccessKeyID)
+	accessKeyID, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &alibabaSpec.Auth.SecretRef.AccessKeyID, true)
 	if err != nil {
 		return nil, fmt.Errorf(errFetchAccessKeyID, err)
 	}
-	accessKeySecret, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &alibabaSpec.Auth.SecretRef.AccessKeySecret)
+	accessKeySecret, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &alibabaSpec.Auth.SecretRef.AccessKeySecret, true)
 	if err != nil {
 		return nil, fmt.Errorf(errFetchAccessKeySecret, err)
 	}

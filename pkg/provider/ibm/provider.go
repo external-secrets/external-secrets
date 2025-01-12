@@ -85,7 +85,7 @@ type client struct {
 }
 
 func (c *client) setAuth(ctx context.Context) error {
-	apiKey, err := resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, &c.store.Auth.SecretRef.SecretAPIKey)
+	apiKey, err := resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, &c.store.Auth.SecretRef.SecretAPIKey, true)
 	if err != nil {
 		return err
 	}

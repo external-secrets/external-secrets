@@ -269,6 +269,7 @@ func (w *Webhook) GetCertFromSecret(provider *Spec) ([]byte, error) {
 		w.StoreKind,
 		w.Namespace,
 		&secretRef,
+		false,
 	)
 	if err != nil {
 		return nil, err

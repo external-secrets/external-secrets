@@ -58,7 +58,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return nil, err
 	}
 
-	apiKey, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, config.APIKey.SecretRef)
+	apiKey, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, config.APIKey.SecretRef, true)
 	if err != nil {
 		return nil, fmt.Errorf(errCannotResolveSecretKeyRef, err)
 	}

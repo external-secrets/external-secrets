@@ -50,12 +50,7 @@ func serviceAccountTokenSource(ctx context.Context, auth esv1beta1.GCPSMAuth, st
 	if sr == nil {
 		return nil, nil
 	}
-	credentials, err := resolvers.SecretKeyRef(
-		ctx,
-		kube,
-		storeKind,
-		namespace,
-		&auth.SecretRef.SecretAccessKey)
+	credentials, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &auth.SecretRef.SecretAccessKey, true)
 	if err != nil {
 		return nil, err
 	}

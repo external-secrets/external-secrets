@@ -50,7 +50,7 @@ func (s *SecretManager) NewClient(ctx context.Context, store esv1beta1.GenericSt
 	storeSpec := store.GetSpec().Provider.Previder
 
 	storeKind := store.GetObjectKind().GroupVersionKind().Kind
-	accessToken, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &storeSpec.Auth.SecretRef.AccessToken)
+	accessToken, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &storeSpec.Auth.SecretRef.AccessToken, true)
 	if err != nil {
 		return nil, fmt.Errorf(accessToken, err)
 	}

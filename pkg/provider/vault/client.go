@@ -92,7 +92,7 @@ func (c *client) configureClientTLS(ctx context.Context, cfg *vault.Config) erro
 		if clientTLS.KeySecretRef.Key == "" {
 			clientTLS.KeySecretRef.Key = corev1.TLSPrivateKeyKey
 		}
-		clientKey, err := resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, clientTLS.KeySecretRef)
+		clientKey, err := resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, clientTLS.KeySecretRef, true)
 		if err != nil {
 			return err
 		}
@@ -100,7 +100,7 @@ func (c *client) configureClientTLS(ctx context.Context, cfg *vault.Config) erro
 		if clientTLS.CertSecretRef.Key == "" {
 			clientTLS.CertSecretRef.Key = corev1.TLSCertKey
 		}
-		clientCert, err := resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, clientTLS.CertSecretRef)
+		clientCert, err := resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, clientTLS.CertSecretRef, true)
 		if err != nil {
 			return err
 		}

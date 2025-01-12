@@ -382,7 +382,7 @@ func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAu
 			tokenRef = kubernetesAuth.SecretRef.DeepCopy()
 			tokenRef.Key = "token"
 		}
-		jwt, err := resolvers.SecretKeyRef(ctx, a.kube, a.storeKind, a.namespace, tokenRef)
+		jwt, err := resolvers.SecretKeyRef(ctx, a.kube, a.storeKind, a.namespace, tokenRef, true)
 		if err != nil {
 			return "", err
 		}
@@ -414,7 +414,7 @@ func (a *akeylessBase) getJWTFromServiceAccount(ctx context.Context, serviceAcco
 			Name:      tokenRef.Name,
 			Namespace: &ref.Namespace,
 			Key:       "token",
-		})
+		}, true)
 		if err != nil {
 			continue
 		}

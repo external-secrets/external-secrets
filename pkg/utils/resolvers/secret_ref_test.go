@@ -117,7 +117,7 @@ func TestResolveSecretKeyRef(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			resolvedValue, err := SecretKeyRef(ctx, c, tc.storeKind, tc.namespace, tc.selector)
+			resolvedValue, err := SecretKeyRef(ctx, c, tc.storeKind, tc.namespace, tc.selector, true)
 			if tc.err != nil {
 				assert.EqualError(t, err, tc.err.Error())
 			} else {

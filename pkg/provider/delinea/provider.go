@@ -100,7 +100,7 @@ func loadConfigSecret(
 	if err := validateSecretRef(ref); err != nil {
 		return "", err
 	}
-	return resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, ref.SecretRef)
+	return resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, ref.SecretRef, true)
 }
 
 func validateStoreSecretRef(store esv1beta1.GenericStore, ref *esv1beta1.DelineaProviderSecretRef) error {

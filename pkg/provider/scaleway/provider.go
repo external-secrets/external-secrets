@@ -86,13 +86,7 @@ func loadConfigSecret(ctx context.Context, ref *esv1beta1.ScalewayProviderSecret
 	if ref.SecretRef == nil {
 		return ref.Value, nil
 	}
-	return resolvers.SecretKeyRef(
-		ctx,
-		kube,
-		storeKind,
-		defaultNamespace,
-		ref.SecretRef,
-	)
+	return resolvers.SecretKeyRef(ctx, kube, storeKind, defaultNamespace, ref.SecretRef, true)
 }
 
 func validateSecretRef(store esv1beta1.GenericStore, ref *esv1beta1.ScalewayProviderSecretRef) error {

@@ -227,35 +227,17 @@ func CredsFromControllerServiceAccount(ctx context.Context, saname, ns, region s
 // The namespace of the external secret is used if the ClusterSecretStore does not specify a namespace (referentAuth)
 // If the ClusterSecretStore defines a namespace it will take precedence.
 func CredsFromSecretRef(ctx context.Context, auth esv1beta1.VaultIamAuth, storeKind string, kube kclient.Client, namespace string) (*credentials.Credentials, error) {
-	akid, err := resolvers.SecretKeyRef(
-		ctx,
-		kube,
-		storeKind,
-		namespace,
-		&auth.SecretRef.AccessKeyID,
-	)
+	akid, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &auth.SecretRef.AccessKeyID, true)
 	if err != nil {
 		return nil, err
 	}
-	sak, err := resolvers.SecretKeyRef(
-		ctx,
-		kube,
-		storeKind,
-		namespace,
-		&auth.SecretRef.SecretAccessKey,
-	)
+	sak, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &auth.SecretRef.SecretAccessKey, true)
 	if err != nil {
 		return nil, err
 	}
 
 	// session token is optional
-	sessionToken, _ := resolvers.SecretKeyRef(
-		ctx,
-		kube,
-		storeKind,
-		namespace,
-		auth.SecretRef.SessionToken,
-	)
+	sessionToken, _ := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, auth.SecretRef.SessionToken, true)
 	return credentials.NewStaticCredentials(akid, sak, sessionToken), err
 }
 

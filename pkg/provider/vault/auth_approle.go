@@ -51,7 +51,7 @@ func (c *client) requestTokenWithAppRoleRef(ctx context.Context, appRole *esv1be
 	if appRole.RoleID != "" { // use roleId from CRD, if configured
 		roleID = strings.TrimSpace(appRole.RoleID)
 	} else if appRole.RoleRef != nil { // use RoleID from Secret, if configured
-		roleID, err = resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, appRole.RoleRef)
+		roleID, err = resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, appRole.RoleRef, true)
 		if err != nil {
 			return err
 		}
@@ -59,7 +59,7 @@ func (c *client) requestTokenWithAppRoleRef(ctx context.Context, appRole *esv1be
 		return errors.New(errInvalidAppRoleID)
 	}
 
-	secretID, err := resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, &appRole.SecretRef)
+	secretID, err := resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, &appRole.SecretRef, true)
 	if err != nil {
 		return err
 	}

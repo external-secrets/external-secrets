@@ -76,7 +76,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 }
 
 func loadAccessTokenSecret(ctx context.Context, ref *esv1beta1.PulumiProviderSecretRef, kube kclient.Client, storeKind, namespace string) (string, error) {
-	acctoken, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, ref.SecretRef)
+	acctoken, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, ref.SecretRef, true)
 	if err != nil {
 		return "", fmt.Errorf(errCannotResolveSecretKeyRef, err)
 	}

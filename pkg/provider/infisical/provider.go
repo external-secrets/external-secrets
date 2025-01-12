@@ -121,7 +121,7 @@ func GetStoreSecretData(ctx context.Context, store esv1beta1.GenericStore, kube 
 		secretRef.Namespace = secret.Namespace
 	}
 
-	secretData, err := resolvers.SecretKeyRef(ctx, kube, store.GetObjectKind().GroupVersionKind().Kind, namespace, &secretRef)
+	secretData, err := resolvers.SecretKeyRef(ctx, kube, store.GetObjectKind().GroupVersionKind().Kind, namespace, &secretRef, true)
 	if err != nil {
 		return "", err
 	}

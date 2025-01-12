@@ -131,13 +131,7 @@ func (c *Client) serviceAccountToken(ctx context.Context, serviceAccountRef *esm
 }
 
 func (c *Client) fetchSecretKey(ctx context.Context, ref esmeta.SecretKeySelector) ([]byte, error) {
-	secret, err := resolvers.SecretKeyRef(
-		ctx,
-		c.ctrlClient,
-		c.storeKind,
-		c.namespace,
-		&ref,
-	)
+	secret, err := resolvers.SecretKeyRef(ctx, c.ctrlClient, c.storeKind, c.namespace, &ref, true)
 	if err != nil {
 		return nil, err
 	}

@@ -66,24 +66,12 @@ type Client interface {
 func (provider *ProviderPassbolt) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	config := store.GetSpec().Provider.Passbolt
 
-	password, err := resolvers.SecretKeyRef(
-		ctx,
-		kube,
-		store.GetKind(),
-		namespace,
-		config.Auth.PasswordSecretRef,
-	)
+	password, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, config.Auth.PasswordSecretRef, true)
 	if err != nil {
 		return nil, err
 	}
 
-	privateKey, err := resolvers.SecretKeyRef(
-		ctx,
-		kube,
-		store.GetKind(),
-		namespace,
-		config.Auth.PrivateKeySecretRef,
-	)
+	privateKey, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, config.Auth.PrivateKeySecretRef, true)
 	if err != nil {
 		return nil, err
 	}

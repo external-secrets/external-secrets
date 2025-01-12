@@ -47,7 +47,7 @@ func (c *client) requestTokenWithJwtAuth(ctx context.Context, jwtAuth *esv1beta1
 	var jwt string
 	var err error
 	if jwtAuth.SecretRef != nil {
-		jwt, err = resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, jwtAuth.SecretRef)
+		jwt, err = resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, jwtAuth.SecretRef, true)
 	} else if k8sServiceAccountToken := jwtAuth.KubernetesServiceAccountToken; k8sServiceAccountToken != nil {
 		audiences := k8sServiceAccountToken.Audiences
 		if audiences == nil {

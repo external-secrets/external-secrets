@@ -41,33 +41,15 @@ func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
 		return a.GetToken(ctx, auth.AccessID, "k8s", auth.K8sConfName, auth)
 	}
 
-	accessID, err := resolvers.SecretKeyRef(
-		ctx,
-		a.kube,
-		a.storeKind,
-		a.namespace,
-		&prov.Auth.SecretRef.AccessID,
-	)
+	accessID, err := resolvers.SecretKeyRef(ctx, a.kube, a.storeKind, a.namespace, &prov.Auth.SecretRef.AccessID, true)
 	if err != nil {
 		return "", fmt.Errorf(errFetchAccessIDSecret, err)
 	}
-	accessType, err := resolvers.SecretKeyRef(
-		ctx,
-		a.kube,
-		a.storeKind,
-		a.namespace,
-		&prov.Auth.SecretRef.AccessType,
-	)
+	accessType, err := resolvers.SecretKeyRef(ctx, a.kube, a.storeKind, a.namespace, &prov.Auth.SecretRef.AccessType, true)
 	if err != nil {
 		return "", fmt.Errorf(errFetchAccessTypeSecret, err)
 	}
-	accessTypeParam, err := resolvers.SecretKeyRef(
-		ctx,
-		a.kube,
-		a.storeKind,
-		a.namespace,
-		&prov.Auth.SecretRef.AccessTypeParam,
-	)
+	accessTypeParam, err := resolvers.SecretKeyRef(ctx, a.kube, a.storeKind, a.namespace, &prov.Auth.SecretRef.AccessTypeParam, true)
 	if err != nil {
 		return "", fmt.Errorf(errFetchAccessTypeParamSecret, err)
 	}

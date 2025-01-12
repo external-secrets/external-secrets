@@ -116,13 +116,7 @@ func (p *YandexCloudProvider) NewClient(ctx context.Context, store esv1beta1.Gen
 		return nil, err
 	}
 
-	key, err := resolvers.SecretKeyRef(
-		ctx,
-		kube,
-		store.GetKind(),
-		namespace,
-		&input.AuthorizedKey,
-	)
+	key, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, &input.AuthorizedKey, true)
 	if err != nil {
 		return nil, err
 	}
@@ -135,13 +129,7 @@ func (p *YandexCloudProvider) NewClient(ctx context.Context, store esv1beta1.Gen
 
 	var caCertificateData []byte
 	if input.CACertificate != nil {
-		caCert, err := resolvers.SecretKeyRef(
-			ctx,
-			kube,
-			store.GetKind(),
-			namespace,
-			input.CACertificate,
-		)
+		caCert, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, input.CACertificate, true)
 		if err != nil {
 			return nil, err
 		}

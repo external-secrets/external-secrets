@@ -887,11 +887,7 @@ func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider
 		if a.provider.AuthSecretRef.ClientID == nil {
 			return nil, errors.New(errMissingClientIDSecret)
 		}
-		clientID, err = resolvers.SecretKeyRef(
-			ctx,
-			a.crClient,
-			a.store.GetKind(),
-			a.namespace, a.provider.AuthSecretRef.ClientID)
+		clientID, err = resolvers.SecretKeyRef(ctx, a.crClient, a.store.GetKind(), a.namespace, a.provider.AuthSecretRef.ClientID, true)
 		if err != nil {
 			return nil, err
 		}
@@ -918,11 +914,7 @@ func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider
 		// We may want to set tenantID explicitly in the `spec.provider.azurekv` section of the SecretStore object
 		// So that is okay if it is not there
 		if a.provider.AuthSecretRef.TenantID != nil {
-			tenantID, err = resolvers.SecretKeyRef(
-				ctx,
-				a.crClient,
-				a.store.GetKind(),
-				a.namespace, a.provider.AuthSecretRef.TenantID)
+			tenantID, err = resolvers.SecretKeyRef(ctx, a.crClient, a.store.GetKind(), a.namespace, a.provider.AuthSecretRef.TenantID, true)
 			if err != nil {
 				return nil, err
 			}
@@ -1041,24 +1033,14 @@ func (a *Azure) authorizerForServicePrincipal(ctx context.Context) (autorest.Aut
 }
 
 func (a *Azure) getAuthorizerFromCredentials(ctx context.Context) (autorest.Authorizer, error) {
-	clientID, err := resolvers.SecretKeyRef(
-		ctx,
-		a.crClient,
-		a.store.GetKind(),
-		a.namespace, a.provider.AuthSecretRef.ClientID,
-	)
+	clientID, err := resolvers.SecretKeyRef(ctx, a.crClient, a.store.GetKind(), a.namespace, a.provider.AuthSecretRef.ClientID, true)
 
 	if err != nil {
 		return nil, err
 	}
 
 	if a.provider.AuthSecretRef.ClientSecret != nil {
-		clientSecret, err := resolvers.SecretKeyRef(
-			ctx,
-			a.crClient,
-			a.store.GetKind(),
-			a.namespace, a.provider.AuthSecretRef.ClientSecret,
-		)
+		clientSecret, err := resolvers.SecretKeyRef(ctx, a.crClient, a.store.GetKind(), a.namespace, a.provider.AuthSecretRef.ClientSecret, true)
 
 		if err != nil {
 			return nil, err
@@ -1071,12 +1053,7 @@ func (a *Azure) getAuthorizerFromCredentials(ctx context.Context) (autorest.Auth
 			a.provider.EnvironmentType,
 		)
 	} else {
-		clientCertificate, err := resolvers.SecretKeyRef(
-			ctx,
-			a.crClient,
-			a.store.GetKind(),
-			a.namespace, a.provider.AuthSecretRef.ClientCertificate,
-		)
+		clientCertificate, err := resolvers.SecretKeyRef(ctx, a.crClient, a.store.GetKind(), a.namespace, a.provider.AuthSecretRef.ClientCertificate, true)
 
 		if err != nil {
 			return nil, err
