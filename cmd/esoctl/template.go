@@ -46,22 +46,23 @@ var (
 )
 
 func init() {
-	renderCmd.Flags().StringVar(&templateFile, "source-templated-object", "", "Link to a file containing the object that contains the template")
-	renderCmd.Flags().StringVar(&secretDataFile, "source-secret-data-file", "", "Link to a file containing secret data in form of map[string][]byte")
-	renderCmd.Flags().StringVar(&templateFromConfigMapFile, "template-from-config-map", "", "Link to a file containing config map data for TemplateFrom.ConfigMap")
-	renderCmd.Flags().StringVar(&templateFromSecretFile, "template-from-secret", "", "Link to a file containing config map data for TemplateFrom.Secret")
-	renderCmd.Flags().StringVar(&outputFile, "output", "", "If set, the output will be written to this file")
-	renderCmd.Flags().BoolVar(&showVersion, "version", false, "If set, only print the version and exit")
+	rootCmd.AddCommand(templateCmd)
+	templateCmd.Flags().StringVar(&templateFile, "source-templated-object", "", "Link to a file containing the object that contains the template")
+	templateCmd.Flags().StringVar(&secretDataFile, "source-secret-data-file", "", "Link to a file containing secret data in form of map[string][]byte")
+	templateCmd.Flags().StringVar(&templateFromConfigMapFile, "template-from-config-map", "", "Link to a file containing config map data for TemplateFrom.ConfigMap")
+	templateCmd.Flags().StringVar(&templateFromSecretFile, "template-from-secret", "", "Link to a file containing config map data for TemplateFrom.Secret")
+	templateCmd.Flags().StringVar(&outputFile, "output", "", "If set, the output will be written to this file")
+	templateCmd.Flags().BoolVar(&showVersion, "version", false, "If set, only print the version and exit")
 }
 
-var renderCmd = &cobra.Command{
-	Use:   "render-template",
+var templateCmd = &cobra.Command{
+	Use:   "template",
 	Short: "given an input and a template provides an output",
-	Long:  `Given an input that mimics a secret's data section and a template it produces an output of the rendered template.`,
-	RunE:  renderRun,
+	Long:  `Given an input that mimics a secret's data section and a template it produces an output of the render template.`,
+	RunE:  templateRun,
 }
 
-func renderRun(_ *cobra.Command, _ []string) error {
+func templateRun(_ *cobra.Command, _ []string) error {
 	if version == "" {
 		version = "0.0.0-dev"
 	}
@@ -226,11 +227,4 @@ func setupFromConfigAndFromSecret(p *templating.Parser) error {
 		p.TemplateFromSecret = &secret
 	}
 	return nil
-}
-
-func main() {
-	if err := renderCmd.Execute(); err != nil {
-		_, _ = fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
 }

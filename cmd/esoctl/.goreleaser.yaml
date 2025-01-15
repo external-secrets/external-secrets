@@ -1,7 +1,7 @@
 version: 2
 builds:
   - id: default
-    binary: render
+    binary: esoctl
     flags:
       - -tags
       - netgo release
@@ -19,7 +19,7 @@ archives:
   - id: default
     builds:
       - default
-    name_template: "render_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    name_template: "esoctl_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
     format: tar.gz
 
 signs:
@@ -30,4 +30,4 @@ sboms:
   - artifacts: archive
 
 checksum:
-  name_template: "render_checksums.txt"
+  name_template: "esoctl_checksums.txt"

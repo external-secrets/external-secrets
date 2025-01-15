@@ -24,12 +24,12 @@ $(LOCALBIN):
 
 .PHONY: build
 build: ## Build binary for the specified arch
-	go build -o '$(LOCALBIN)/render' -trimpath -ldflags="-s -w -X 'main.version=$(VERSION)'" main.go
+	go build -o '$(LOCALBIN)/esoctl' -trimpath -ldflags="-s -w -X 'main.version=$(VERSION)'" .
 
 .PHONY: binaries
 binaries: ## Build release binaries for all major OSs.
 	@rm -fr dist
 	@mkdir -p dist
-	GOOS=linux GOARCH=amd64 go build -o dist/render-linux-amd64 -trimpath -ldflags="-s -w -X 'main.version=$(VERSION)'" main.go
-	GOOS=darwin GOARCH=amd64 go build -o dist/render-darwin-amd64 -trimpath -ldflags="-s -w -X 'main.version=$(VERSION)'" main.go
-	GOOS=windows GOARCH=amd64 go build -o dist/render-windows-amd64.exe -trimpath -ldflags="-s -w -X 'main.version=$(VERSION)'" main.go
+	GOOS=linux GOARCH=amd64 go build -o dist/esoctl-linux-amd64 -trimpath -ldflags="-s -w -X 'main.version=$(VERSION)'" .
+	GOOS=darwin GOARCH=amd64 go build -o dist/esoctl-darwin-amd64 -trimpath -ldflags="-s -w -X 'main.version=$(VERSION)'" .
+	GOOS=windows GOARCH=amd64 go build -o dist/esoctl-windows-amd64.exe -trimpath -ldflags="-s -w -X 'main.version=$(VERSION)'" .
