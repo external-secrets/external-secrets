@@ -64,7 +64,7 @@ jobs:
         with:
           version: '~> v2'
           args: release --clean
-          workdir: render
+          workdir: cmd/render
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_CURRENT_TAG: ${{ github.event.inputs.version }}

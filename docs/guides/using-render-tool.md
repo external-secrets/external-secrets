@@ -1,12 +1,12 @@
 # Using the Render tool
 
-ESO has a command called `render-template`. This command can be used to test templates for `PushSecret` and `ExternalSecret`.
+The tool can be found under `cmd/render`. This command can be used to test templates for `PushSecret` and `ExternalSecret`.
 
-To run `render-template` simply execute `make build` or by `go build main.go -o bin/external-secrets` in the root folder of ESO.
+To run `render` simply execute `make build` in the `cmd/render` folder. This will result in a binary under `cmd/render/bin`.
 
 Once the build succeeds, the command can be used as such:
 ```console
-./bin/external-secrets render-template --source-templated-object template-test/push-secret.yaml --source-secret-data-file template-test/secret.yaml
+./bin/render --source-templated-object template-test/push-secret.yaml --source-secret-data-file template-test/secret.yaml
 ```
 
 Where template-test looks like this:
@@ -59,7 +59,7 @@ simply put it into a file along with the data it's using, and run this command.
 The output will be something like this:
 
 ```console
-➜ ./bin/external-secrets render-template --source-templated-object template-test/push-secret.yaml --source-secret-data-file template-test/secret.yaml                                                                                                          
+➜ ./bin/render --source-templated-object template-test/push-secret.yaml --source-secret-data-file template-test/secret.yaml                                                                                                          
 data:
   token: VE9LRU4gd2FzIHRlbXBsYXRlZA==
 metadata:
@@ -71,7 +71,7 @@ TOKEN was templated⏎
 
 Further options can be used to provide templates from a ConfigMap or a Secret:
 ```
-➜ ./bin/external-secrets render-template --source-templated-object template-test/push-secret.yaml \
+➜ ./bin/render --source-templated-object template-test/push-secret.yaml \
     --source-secret-data-file template-test/secret.yaml \
     --template-from-config-map template-test/template-config-map.yaml \
     --template-from-secret template-test/template-secret.yaml
