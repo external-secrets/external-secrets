@@ -2,6 +2,13 @@
 
 This section describes how to set up the Bitwarden Secrets Manager provider for External Secrets Operator (ESO).
 
+!!! note
+
+    [Bitwarden Secrets Manager](https://bitwarden.com/products/secrets-manager/)
+    enables developers, DevOps, and cybersecurity teams to centrally store, manage, and deploy secrets at scale.
+    This is different from [Bitwarden Password Manager](https://bitwarden.com/products/personal/).
+    To integrate with Bitwarden **Password Manager**, reference the [example documentation](../examples/bitwarden.md).
+
 ### Prerequisites
 
 In order for the bitwarden provider to work, we need a second service. This service is the [Bitwarden SDK Server](https://github.com/external-secrets/bitwarden-sdk-server).
