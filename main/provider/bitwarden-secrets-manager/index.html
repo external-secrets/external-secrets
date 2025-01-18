@@ -3557,6 +3557,13 @@
 
 <h2 id="bitwarden-secrets-manager-provider">Bitwarden Secrets Manager Provider</h2>
 <p>This section describes how to set up the Bitwarden Secrets Manager provider for External Secrets Operator (ESO).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><a href="https://bitwarden.com/products/secrets-manager/">Bitwarden Secrets Manager</a>
+enables developers, DevOps, and cybersecurity teams to centrally store, manage, and deploy secrets at scale.
+This is different from <a href="https://bitwarden.com/products/personal/">Bitwarden Password Manager</a>.
+To integrate with Bitwarden <strong>Password Manager</strong>, reference the <a href="../../examples/bitwarden/">example documentation</a>.</p>
+</div>
 <h3 id="prerequisites">Prerequisites</h3>
 <p>In order for the bitwarden provider to work, we need a second service. This service is the <a href="https://github.com/external-secrets/bitwarden-sdk-server">Bitwarden SDK Server</a>.
 The Bitwarden SDK is Rust based and requires CGO enabled. In order to not restrict the capabilities of ESO, and the image
