@@ -47,26 +47,38 @@ func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
 //
 // Users can configure a root path, and when a SecretKey is provided with a slash we assume that it
 // within a path appended the root path.
-func getSecretAddress(path, key string) (string, string) {
-	if strings.Contains(key, "/") {
-		keyParts := strings.Split(key, "/")
-		key = keyParts[len(keyParts)-1]
-		path = strings.TrimRight(path, "/") + "/" + strings.Join(keyParts[:len(keyParts)-1], "/")
-		return path, key
+//
+// If the key is not addressing a path at all (i.e. has no `/`), simply return the original
+// path and key.
+func getSecretAddress(defaultPath, key string) (string, string, error) {
+	if !strings.Contains(key, "/") {
+		return defaultPath, key, nil
 	}
-	return path, key
+
+	// Check if `key` starts with a `/`, and throw and error if it does not.
+	if !strings.HasPrefix(key, "/") {
+		return "", "", fmt.Errorf("a secret key referencing a folder must start with a '/' as it is an absolute path, key: %s", key)
+	}
+
+	// Otherwise, take the prefix from `key` and use that as the path. We intentionally discard
+	// `defaultPath`.
+	lastIndex := strings.LastIndex(key, "/")
+	return key[lastIndex+1:], key[:lastIndex], nil
 }
 
 // if GetSecret returns an error with type NoSecretError.
 // then the secret entry will be deleted depending on the deletionPolicy.
-func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	path, key := getSecretAddress(p.apiScope.SecretPath, ref.Key)
+func (p *Provider) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	path, key, err := getSecretAddress(p.apiScope.SecretPath, ref.Key)
+	if err != nil {
+		return nil, err
+	}
 
 	secret, err := p.apiClient.GetSecretByKeyV3(api.GetSecretByKeyV3Request{
-		EnvironmentSlug: p.apiScope.EnvironmentSlug,
-		ProjectSlug:     p.apiScope.ProjectSlug,
-		SecretKey:       key,
-		SecretPath:      path,
+		EnvironmentSlug:        p.apiScope.EnvironmentSlug,
+		ProjectSlug:            p.apiScope.ProjectSlug,
+		SecretKey:              key,
+		SecretPath:             path,
 		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 	})
 
