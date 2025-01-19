@@ -59,15 +59,22 @@ func (m *MockClient) Do(req *http.Request) (*http.Response, error) {
 }
 
 func TestSetTokenViaMachineIdentityWorks(t *testing.T) {
+	body, err := json.Marshal(MachineIdentityDetailsResponse{
+		AccessToken: "foobar",
+	})
+	require.NoError(t, err)
+
 	apiClient, err := NewAPIClient("https://api.infisical.com", &MockClient{
 		StatusCode: 200,
-		Body:       []byte(`{"key":"value"}`),
+		Body:       body,
 		Err:        nil,
 	})
 	require.NoError(t, err)
 
 	err = apiClient.SetTokenViaMachineIdentity("client-id", "client-secret")
 	assert.NoError(t, err)
+	// Verify that the access token was set.
+	assert.Equal(t, apiClient.token, "foobar")
 }
 
 func TestSetTokenViaMachineIdentityErrorHandling(t *testing.T) {
@@ -79,6 +86,47 @@ func TestSetTokenViaMachineIdentityErrorHandling(t *testing.T) {
 	require.NoError(t, err)
 
 	err = apiClient.SetTokenViaMachineIdentity("client-id", "client-secret")
+	assert.Error(t, err)
+	assert.Equal(t, err.Error(), "got error 401: Unauthorized")
+
+	apiClient.token = "foobar"
+	err = apiClient.SetTokenViaMachineIdentity("client-id", "client-secret")
+	assert.Error(t, err)
+	assert.Equal(t, err.Error(), "access token already set")
+}
+
+func TestRevokeAccessTokenWorks(t *testing.T) {
+	body, err := json.Marshal(RevokeMachineIdentityAccessTokenResponse{
+		Message: "Success",
+	})
+	require.NoError(t, err)
+
+	apiClient, err := NewAPIClient("https://api.infisical.com", &MockClient{
+		StatusCode: 200,
+		Body:       body,
+		Err:        nil,
+	})
+	require.NoError(t, err)
+
+	apiClient.token = "foobar"
+	err = apiClient.RevokeAccessToken()
+	assert.NoError(t, err)
+}
+
+func TestRevokeAccessTokenErrorHandling(t *testing.T) {
+	apiClient, err := NewAPIClient("https://api.infisical.com", &MockClient{
+		StatusCode: 401,
+		Body:       []byte(`{"message":"Unauthorized"}`),
+		Err:        nil,
+	})
+	require.NoError(t, err)
+
+	err = apiClient.RevokeAccessToken()
+	assert.Error(t, err)
+	assert.Equal(t, err.Error(), "no access token was set")
+
+	apiClient.token = "foobar"
+	err = apiClient.RevokeAccessToken()
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "got error 401: Unauthorized")
 }

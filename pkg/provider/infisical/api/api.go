@@ -48,6 +48,8 @@ type InfisicalApis interface {
 
 const UserAgentName = "k8-external-secrets-operator"
 const errJSONSecretUnmarshal = "unable to unmarshal secret: %w"
+const errNoAccessToken = "no access token was set"
+const errAccessTokenAlreadySet = "access token already set"
 
 // handleError checks for an error on the http response and generates an appropriate error if one is
 // found.
@@ -87,7 +89,7 @@ func NewAPIClient(baseURL string, client HttpClient) (*InfisicalClient, error) {
 
 func (a *InfisicalClient) SetTokenViaMachineIdentity(clientID, clientSecret string) error {
 	if a.token != "" {
-		return nil
+		return errors.New(errAccessTokenAlreadySet)
 	}
 
 	loginResponse, err := a.MachineIdentityLoginViaUniversalAuth(MachineIdentityUniversalAuthLoginRequest{
@@ -104,7 +106,7 @@ func (a *InfisicalClient) SetTokenViaMachineIdentity(clientID, clientSecret stri
 
 func (a *InfisicalClient) RevokeAccessToken() error {
 	if a.token == "" {
-		return nil
+		return errors.New(errNoAccessToken)
 	}
 	if _, err := a.RevokeMachineIdentityAccessToken(RevokeMachineIdentityAccessTokenRequest{AccessToken: a.token}); err != nil {
 		return err
