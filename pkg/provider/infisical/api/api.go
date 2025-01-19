@@ -22,16 +22,20 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"time"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/infisical/constants"
 )
 
+// HttpClient is an interface that wraps the Do method, so that it can be mocked out for testing.
+type HttpClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 type InfisicalClient struct {
 	BaseURL *url.URL
-	client  *http.Client
+	client  HttpClient
 	token   string
 }
 
@@ -45,7 +49,29 @@ type InfisicalApis interface {
 const UserAgentName = "k8-external-secrets-operator"
 const errJSONSecretUnmarshal = "unable to unmarshal secret: %w"
 
-func NewAPIClient(baseURL string) (*InfisicalClient, error) {
+// handleError checks for an error on the http response and generates an appropriate error if one is
+// found.
+func handleError(resp *http.Response) error {
+	if resp.StatusCode == 200 {
+		return nil
+	}
+
+	var errRes InfisicalAPIErrorResponse
+	err := ReadAndUnmarshal(resp, &errRes)
+	if err != nil {
+		return errors.New("unexpected error: " + resp.Status)
+	}
+
+	if resp.StatusCode == 404 {
+		return esv1beta1.NoSecretError{}
+	} else if errRes.Message != "" {
+		return fmt.Errorf("got error %d: %s", resp.StatusCode, errRes.Message)
+	} else {
+		return errors.New("unknown error: " + resp.Status)
+	}
+}
+
+func NewAPIClient(baseURL string, client HttpClient) (*InfisicalClient, error) {
 	baseParsedURL, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, err
@@ -53,9 +79,7 @@ func NewAPIClient(baseURL string) (*InfisicalClient, error) {
 
 	api := &InfisicalClient{
 		BaseURL: baseParsedURL,
-		client: &http.Client{
-			Timeout: time.Second * 15,
-		},
+		client:  client,
 	}
 
 	return api, nil
@@ -122,6 +146,10 @@ func (a *InfisicalClient) MachineIdentityLoginViaUniversalAuth(data MachineIdent
 		return nil, err
 	}
 
+	if err = handleError(rawRes); err != nil {
+		return nil, err
+	}
+
 	var res MachineIdentityDetailsResponse
 	err = ReadAndUnmarshal(rawRes, &res)
 	if err != nil {
@@ -145,6 +173,10 @@ func (a *InfisicalClient) RevokeMachineIdentityAccessToken(data RevokeMachineIde
 
 	rawRes, err := a.do(req)
 	if err != nil {
+		return nil, err
+	}
+
+	if err = handleError(rawRes); err != nil {
 		return nil, err
 	}
 
@@ -176,6 +208,10 @@ func (a *InfisicalClient) GetSecretsV3(data GetSecretsV3Request) (map[string]str
 
 	rawRes, err := a.do(req)
 	if err != nil {
+		return nil, err
+	}
+
+	if err = handleError(rawRes); err != nil {
 		return nil, err
 	}
 
@@ -218,17 +254,9 @@ func (a *InfisicalClient) GetSecretByKeyV3(data GetSecretByKeyV3Request) (string
 	if err != nil {
 		return "", err
 	}
-	if rawRes.StatusCode == 400 {
-		var errRes InfisicalAPIErrorResponse
-		err = ReadAndUnmarshal(rawRes, &errRes)
-		if err != nil {
-			return "", fmt.Errorf(errJSONSecretUnmarshal, err)
-		}
 
-		if errRes.Message == "Secret not found" {
-			return "", esv1beta1.NoSecretError{}
-		}
-		return "", errors.New(errRes.Message)
+	if err = handleError(rawRes); err != nil {
+		return "", err
 	}
 
 	var res GetSecretByKeyV3Response

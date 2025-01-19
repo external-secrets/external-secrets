@@ -18,6 +18,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+	"net/http"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -70,7 +72,9 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 
 	infisicalSpec := storeSpec.Provider.Infisical
 
-	apiClient, err := api.NewAPIClient(infisicalSpec.HostAPI)
+	apiClient, err := api.NewAPIClient(infisicalSpec.HostAPI, &http.Client{
+		Timeout: time.Second * 15,
+	})
 	if err != nil {
 		return nil, err
 	}
