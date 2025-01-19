@@ -136,6 +136,11 @@ func TestGetSecretsV3Works(t *testing.T) {
 		Secrets: []SecretsV3{
 			{SecretKey: "foo", SecretValue: "bar"},
 		},
+		ImportedSecrets: []ImportedSecretV3{
+			{
+				Secrets: []SecretsV3{{SecretKey: "foo2", SecretValue: "bar2"}},
+			},
+		},
 	})
 	require.NoError(t, err)
 
@@ -153,7 +158,7 @@ func TestGetSecretsV3Works(t *testing.T) {
 		Recursive:       true,
 	})
 	require.NoError(t, err)
-	assert.Equal(t, secrets, map[string]string{"foo": "bar"})
+	assert.Equal(t, secrets, map[string]string{"foo": "bar", "foo2": "bar2"})
 }
 
 func TestGetSecretsV3ErrorHandling(t *testing.T) {
