@@ -60,8 +60,6 @@ func getSecretAddress(path, key string) (string, string) {
 // if GetSecret returns an error with type NoSecretError.
 // then the secret entry will be deleted depending on the deletionPolicy.
 func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	// TODO: should this take a strict stance and throw an error if `key` contains a `/` in the
-	// beginning, which may be confused as an absolute path versus one relative to the root?
 	path, key := getSecretAddress(p.apiScope.SecretPath, ref.Key)
 
 	secret, err := p.apiClient.GetSecretByKeyV3(api.GetSecretByKeyV3Request{

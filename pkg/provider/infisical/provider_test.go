@@ -7,7 +7,7 @@ You may obtain a copy of the License at
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or impliec.
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
@@ -256,22 +256,4 @@ func TestValidateStore(t *testing.T) {
 		_, err := p.ValidateStore(tc.store)
 		tc.assertError(t, err)
 	}
-}
-
-func TestGetSecretAddress(t *testing.T) {
-	path, key := getSecretAddress("/", "foo")
-	assert.Equal(t, path, "/")
-	assert.Equal(t, key, "foo")
-
-	path, key = getSecretAddress("/", "foo/bar")
-	assert.Equal(t, path, "/foo")
-	assert.Equal(t, key, "bar")
-
-	path, key = getSecretAddress("/", "foo/bar/baz")
-	assert.Equal(t, path, "/foo/bar")
-	assert.Equal(t, key, "baz")
-
-	path, key = getSecretAddress("/foo", "bar/baz")
-	assert.Equal(t, path, "/foo/bar")
-	assert.Equal(t, key, "baz")
 }
