@@ -15,10 +15,9 @@ limitations under the License.
 package api
 
 import (
-	"bytes"
 	"encoding/json"
-	"io"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -26,49 +25,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type MockClient struct {
-	DoFunc func(req *http.Request) (*http.Response, error)
-
-	StatusCode int
-	Body       []byte
-	Err        error
-}
-
-func NewMockClient(status int, data any, err error) *MockClient {
+func NewMockServer(status int, data any) *httptest.Server {
 	body, err := json.Marshal(data)
 	if err != nil {
 		panic(err)
 	}
 
-	return &MockClient{
-		StatusCode: status,
-		Body:       body,
-		Err:        err,
-	}
-}
-
-func (m *MockClient) Do(req *http.Request) (*http.Response, error) {
-	if m.Err != nil {
-		return nil, m.Err
-	}
-
-	return &http.Response{
-		StatusCode: m.StatusCode,
-		Body:       io.NopCloser(bytes.NewBufferString(string(m.Body))),
-	}, nil
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(status)
+		w.Write(body)
+	}))
 }
 
 func TestSetTokenViaMachineIdentityWorks(t *testing.T) {
-	body, err := json.Marshal(MachineIdentityDetailsResponse{
+	mockServer := NewMockServer(200, MachineIdentityDetailsResponse{
 		AccessToken: "foobar",
 	})
-	require.NoError(t, err)
+	defer mockServer.Close()
 
-	apiClient, err := NewAPIClient("https://api.infisical.com", &MockClient{
-		StatusCode: 200,
-		Body:       body,
-		Err:        nil,
-	})
+	apiClient, err := NewAPIClient(mockServer.URL, mockServer.Client())
 	require.NoError(t, err)
 
 	err = apiClient.SetTokenViaMachineIdentity("client-id", "client-secret")
@@ -78,11 +53,12 @@ func TestSetTokenViaMachineIdentityWorks(t *testing.T) {
 }
 
 func TestSetTokenViaMachineIdentityErrorHandling(t *testing.T) {
-	apiClient, err := NewAPIClient("https://api.infisical.com", &MockClient{
-		StatusCode: 401,
-		Body:       []byte(`{"message":"Unauthorized"}`),
-		Err:        nil,
+	mockServer := NewMockServer(401, RevokeMachineIdentityAccessTokenResponse{
+		Message: "Unauthorized",
 	})
+	defer mockServer.Close()
+
+	apiClient, err := NewAPIClient(mockServer.URL, mockServer.Client())
 	require.NoError(t, err)
 
 	err = apiClient.SetTokenViaMachineIdentity("client-id", "client-secret")
@@ -96,29 +72,29 @@ func TestSetTokenViaMachineIdentityErrorHandling(t *testing.T) {
 }
 
 func TestRevokeAccessTokenWorks(t *testing.T) {
-	body, err := json.Marshal(RevokeMachineIdentityAccessTokenResponse{
+	mockServer := NewMockServer(200, RevokeMachineIdentityAccessTokenResponse{
 		Message: "Success",
 	})
-	require.NoError(t, err)
+	defer mockServer.Close()
 
-	apiClient, err := NewAPIClient("https://api.infisical.com", &MockClient{
-		StatusCode: 200,
-		Body:       body,
-		Err:        nil,
-	})
+	apiClient, err := NewAPIClient(mockServer.URL, mockServer.Client())
 	require.NoError(t, err)
 
 	apiClient.token = "foobar"
 	err = apiClient.RevokeAccessToken()
 	assert.NoError(t, err)
+
+	// Verify that the access token was unset.
+	assert.Equal(t, apiClient.token, "")
 }
 
 func TestRevokeAccessTokenErrorHandling(t *testing.T) {
-	apiClient, err := NewAPIClient("https://api.infisical.com", &MockClient{
-		StatusCode: 401,
-		Body:       []byte(`{"message":"Unauthorized"}`),
-		Err:        nil,
+	mockServer := NewMockServer(401, RevokeMachineIdentityAccessTokenResponse{
+		Message: "Unauthorized",
 	})
+	defer mockServer.Close()
+
+	apiClient, err := NewAPIClient(mockServer.URL, mockServer.Client())
 	require.NoError(t, err)
 
 	err = apiClient.RevokeAccessToken()
@@ -132,7 +108,7 @@ func TestRevokeAccessTokenErrorHandling(t *testing.T) {
 }
 
 func TestGetSecretsV3Works(t *testing.T) {
-	body, err := json.Marshal(GetSecretsV3Response{
+	mockServer := NewMockServer(200, GetSecretsV3Response{
 		Secrets: []SecretsV3{
 			{SecretKey: "foo", SecretValue: "bar"},
 		},
@@ -142,13 +118,9 @@ func TestGetSecretsV3Works(t *testing.T) {
 			},
 		},
 	})
-	require.NoError(t, err)
+	defer mockServer.Close()
 
-	apiClient, err := NewAPIClient("https://api.infisical.com", &MockClient{
-		StatusCode: 200,
-		Body:       body,
-		Err:        nil,
-	})
+	apiClient, err := NewAPIClient(mockServer.URL, mockServer.Client())
 	require.NoError(t, err)
 
 	secrets, err := apiClient.GetSecretsV3(GetSecretsV3Request{
@@ -162,11 +134,10 @@ func TestGetSecretsV3Works(t *testing.T) {
 }
 
 func TestGetSecretsV3ErrorHandling(t *testing.T) {
-	apiClient, err := NewAPIClient("https://api.infisical.com", &MockClient{
-		StatusCode: 200,
-		Body:       []byte("not-json"),
-		Err:        nil,
-	})
+	mockServer := NewMockServer(401, []byte("not-json"))
+	defer mockServer.Close()
+
+	apiClient, err := NewAPIClient(mockServer.URL, mockServer.Client())
 	require.NoError(t, err)
 
 	_, err = apiClient.GetSecretsV3(GetSecretsV3Request{
@@ -177,11 +148,12 @@ func TestGetSecretsV3ErrorHandling(t *testing.T) {
 	})
 	assert.Error(t, err)
 
-	apiClient, err = NewAPIClient("https://api.infisical.com", &MockClient{
-		StatusCode: 401,
-		Body:       []byte(`{"message":"Unauthorized"}`),
-		Err:        nil,
+	mockServer = NewMockServer(401, InfisicalAPIErrorResponse{
+		Message: "Unauthorized",
 	})
+	defer mockServer.Close()
+
+	apiClient, err = NewAPIClient(mockServer.URL, mockServer.Client())
 	require.NoError(t, err)
 
 	_, err = apiClient.GetSecretsV3(GetSecretsV3Request{
@@ -193,11 +165,12 @@ func TestGetSecretsV3ErrorHandling(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "got error 401: Unauthorized")
 
-	apiClient, err = NewAPIClient("https://api.infisical.com", &MockClient{
-		StatusCode: 404,
-		Body:       []byte(`{"message":"Not Found"}`),
-		Err:        nil,
+	mockServer = NewMockServer(404, InfisicalAPIErrorResponse{
+		Message: "Not Found",
 	})
+	defer mockServer.Close()
+
+	apiClient, err = NewAPIClient(mockServer.URL, mockServer.Client())
 	require.NoError(t, err)
 
 	_, err = apiClient.GetSecretsV3(GetSecretsV3Request{
@@ -211,19 +184,15 @@ func TestGetSecretsV3ErrorHandling(t *testing.T) {
 }
 
 func TestGetSecretByKeyV3Works(t *testing.T) {
-	body, err := json.Marshal(GetSecretByKeyV3Response{
+	mockServer := NewMockServer(200, GetSecretByKeyV3Response{
 		Secret: SecretsV3{
 			SecretKey:   "foo",
 			SecretValue: "bar",
 		},
 	})
-	require.NoError(t, err)
+	defer mockServer.Close()
 
-	apiClient, err := NewAPIClient("https://api.infisical.com", &MockClient{
-		StatusCode: 200,
-		Body:       body,
-		Err:        nil,
-	})
+	apiClient, err := NewAPIClient(mockServer.URL, mockServer.Client())
 	require.NoError(t, err)
 
 	_, err = apiClient.GetSecretByKeyV3(GetSecretByKeyV3Request{
@@ -236,11 +205,12 @@ func TestGetSecretByKeyV3Works(t *testing.T) {
 }
 
 func TestGetSecretByKeyV3ErrorHandling(t *testing.T) {
-	apiClient, err := NewAPIClient("https://api.infisical.com", &MockClient{
-		StatusCode: 404,
-		Body:       []byte(`{"message":"Not Found"}`),
-		Err:        nil,
+	mockServer := NewMockServer(404, InfisicalAPIErrorResponse{
+		Message: "Not Found",
 	})
+	defer mockServer.Close()
+
+	apiClient, err := NewAPIClient(mockServer.URL, mockServer.Client())
 	require.NoError(t, err)
 
 	_, err = apiClient.GetSecretByKeyV3(GetSecretByKeyV3Request{
@@ -252,11 +222,12 @@ func TestGetSecretByKeyV3ErrorHandling(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, esv1beta1.NoSecretError{})
 
-	apiClient, err = NewAPIClient("https://api.infisical.com", &MockClient{
-		StatusCode: 401,
-		Body:       []byte(`{"message":"Unauthorized"}`),
-		Err:        nil,
+	mockServer = NewMockServer(401, InfisicalAPIErrorResponse{
+		Message: "Unauthorized",
 	})
+	defer mockServer.Close()
+
+	apiClient, err = NewAPIClient(mockServer.URL, mockServer.Client())
 	require.NoError(t, err)
 
 	_, err = apiClient.GetSecretByKeyV3(GetSecretByKeyV3Request{

@@ -28,14 +28,9 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/provider/infisical/constants"
 )
 
-// HttpClient is an interface that wraps the Do method, so that it can be mocked out for testing.
-type HttpClient interface {
-	Do(req *http.Request) (*http.Response, error)
-}
-
 type InfisicalClient struct {
 	BaseURL *url.URL
-	client  HttpClient
+	client  *http.Client
 	token   string
 }
 
@@ -73,7 +68,7 @@ func handleError(resp *http.Response) error {
 	}
 }
 
-func NewAPIClient(baseURL string, client HttpClient) (*InfisicalClient, error) {
+func NewAPIClient(baseURL string, client *http.Client) (*InfisicalClient, error) {
 	baseParsedURL, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, err
