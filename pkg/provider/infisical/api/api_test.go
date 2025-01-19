@@ -63,7 +63,7 @@ func TestSetTokenViaMachineIdentityErrorHandling(t *testing.T) {
 
 	err = apiClient.SetTokenViaMachineIdentity("client-id", "client-secret")
 	assert.Error(t, err)
-	assert.Equal(t, err.Error(), "got error 401: Unauthorized")
+	assert.Equal(t, err.Error(), "API error (401): Unauthorized")
 
 	apiClient.token = "foobar"
 	err = apiClient.SetTokenViaMachineIdentity("client-id", "client-secret")
@@ -104,7 +104,7 @@ func TestRevokeAccessTokenErrorHandling(t *testing.T) {
 	apiClient.token = "foobar"
 	err = apiClient.RevokeAccessToken()
 	assert.Error(t, err)
-	assert.Equal(t, err.Error(), "got error 401: Unauthorized")
+	assert.Equal(t, err.Error(), "API error (401): Unauthorized")
 }
 
 func TestGetSecretsV3Works(t *testing.T) {
@@ -163,7 +163,7 @@ func TestGetSecretsV3ErrorHandling(t *testing.T) {
 		Recursive:       true,
 	})
 	assert.Error(t, err)
-	assert.Equal(t, err.Error(), "got error 401: Unauthorized")
+	assert.Equal(t, err.Error(), "API error (401): Unauthorized")
 
 	mockServer = NewMockServer(404, InfisicalAPIErrorResponse{
 		Message: "Not Found",
@@ -237,5 +237,5 @@ func TestGetSecretByKeyV3ErrorHandling(t *testing.T) {
 		SecretKey:       "foo",
 	})
 	assert.Error(t, err)
-	assert.Equal(t, err.Error(), "got error 401: Unauthorized")
+	assert.Equal(t, err.Error(), "API error (401): Unauthorized")
 }

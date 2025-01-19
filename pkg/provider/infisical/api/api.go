@@ -41,14 +41,21 @@ type InfisicalApis interface {
 	RevokeAccessToken() error
 }
 
+const (
+	machineIdentityLoginViaUniversalAuth = "MachineIdentityLoginViaUniversalAuth"
+	getSecretsV3                         = "GetSecretsV3"
+	getSecretByKeyV3                     = "GetSecretByKeyV3"
+	revokeAccessToken                    = "RevokeAccessToken"
+)
+
 const UserAgentName = "k8-external-secrets-operator"
 const errJSONSecretUnmarshal = "unable to unmarshal secret: %w"
 const errNoAccessToken = "no access token was set"
 const errAccessTokenAlreadySet = "access token already set"
 
-// handleError checks for an error on the http response and generates an appropriate error if one is
+// checkError checks for an error on the http response and generates an appropriate error if one is
 // found.
-func handleError(resp *http.Response) error {
+func checkError(resp *http.Response) error {
 	if resp.StatusCode == 200 {
 		return nil
 	}
@@ -62,9 +69,9 @@ func handleError(resp *http.Response) error {
 	if resp.StatusCode == 404 {
 		return esv1beta1.NoSecretError{}
 	} else if errRes.Message != "" {
-		return fmt.Errorf("got error %d: %s", resp.StatusCode, errRes.Message)
+		return fmt.Errorf("API error (%d): %s", resp.StatusCode, errRes.Message)
 	} else {
-		return errors.New("unknown error: " + resp.Status)
+		return errors.New("API error (%d): could not unmarshal error response" + resp.Status)
 	}
 }
 
@@ -87,10 +94,19 @@ func (a *InfisicalClient) SetTokenViaMachineIdentity(clientID, clientSecret stri
 		return errors.New(errAccessTokenAlreadySet)
 	}
 
-	loginResponse, err := a.MachineIdentityLoginViaUniversalAuth(MachineIdentityUniversalAuthLoginRequest{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-	})
+	var loginResponse MachineIdentityDetailsResponse
+	err := a.do(
+		"api/v1/auth/universal-auth/login",
+		http.MethodPost,
+		map[string]string{},
+		MachineIdentityUniversalAuthLoginRequest{
+			ClientID:     clientID,
+			ClientSecret: clientSecret,
+		},
+		&loginResponse,
+	)
+	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaUniversalAuth, err)
+
 	if err != nil {
 		return err
 	}
@@ -103,7 +119,18 @@ func (a *InfisicalClient) RevokeAccessToken() error {
 	if a.token == "" {
 		return errors.New(errNoAccessToken)
 	}
-	if _, err := a.RevokeMachineIdentityAccessToken(RevokeMachineIdentityAccessTokenRequest{AccessToken: a.token}); err != nil {
+
+	var revokeResponse RevokeMachineIdentityAccessTokenResponse
+	err := a.do(
+		"api/v1/auth/token/revoke",
+		http.MethodPost,
+		map[string]string{},
+		RevokeMachineIdentityAccessTokenRequest{AccessToken: a.token},
+		&revokeResponse,
+	)
+	metrics.ObserveAPICall(constants.ProviderName, revokeAccessToken, err)
+
+	if err != nil {
 		return err
 	}
 
@@ -115,107 +142,75 @@ func (a *InfisicalClient) resolveEndpoint(path string) string {
 	return a.BaseURL.ResolveReference(&url.URL{Path: path}).String()
 }
 
-func (a *InfisicalClient) do(r *http.Request) (*http.Response, error) {
+func (a *InfisicalClient) addHeaders(r *http.Request) {
 	if a.token != "" {
 		r.Header.Add("Authorization", "Bearer "+a.token)
 	}
 	r.Header.Add("User-Agent", UserAgentName)
 	r.Header.Add("Content-Type", "application/json")
-
-	return a.client.Do(r)
 }
 
-func (a *InfisicalClient) MachineIdentityLoginViaUniversalAuth(data MachineIdentityUniversalAuthLoginRequest) (*MachineIdentityDetailsResponse, error) {
-	endpointURL := a.resolveEndpoint("api/v1/auth/universal-auth/login")
-	body, err := MarshalReqBody(data)
+// do is a generic function that makes an API call to the Infisical API, and handle the response
+// (including if an API error is returned).
+func (a *InfisicalClient) do(endpoint string, method string, params map[string]string, body any, response any) error {
+	endpointURL := a.resolveEndpoint(endpoint)
+
+	bodyReader, err := MarshalReqBody(body)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, endpointURL, body)
-	metrics.ObserveAPICall(constants.ProviderName, "MachineIdentityLoginViaUniversalAuth", err)
+	r, err := http.NewRequest(method, endpointURL, bodyReader)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	rawRes, err := a.do(req)
+	a.addHeaders(r)
+
+	q := r.URL.Query()
+	for key, value := range params {
+		q.Add(key, value)
+	}
+	r.URL.RawQuery = q.Encode()
+
+	resp, err := a.client.Do(r)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if err = handleError(rawRes); err != nil {
-		return nil, err
+	if err = checkError(resp); err != nil {
+		return err
 	}
 
-	var res MachineIdentityDetailsResponse
-	err = ReadAndUnmarshal(rawRes, &res)
+	err = ReadAndUnmarshal(resp, response)
 	if err != nil {
-		return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
-	}
-	return &res, nil
-}
-
-func (a *InfisicalClient) RevokeMachineIdentityAccessToken(data RevokeMachineIdentityAccessTokenRequest) (*RevokeMachineIdentityAccessTokenResponse, error) {
-	endpointURL := a.resolveEndpoint("api/v1/auth/token/revoke")
-	body, err := MarshalReqBody(data)
-	if err != nil {
-		return nil, err
+		return fmt.Errorf(errJSONSecretUnmarshal, err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, endpointURL, body)
-	metrics.ObserveAPICall(constants.ProviderName, "RevokeMachineIdentityAccessToken", err)
-	if err != nil {
-		return nil, err
-	}
-
-	rawRes, err := a.do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = handleError(rawRes); err != nil {
-		return nil, err
-	}
-
-	var res RevokeMachineIdentityAccessTokenResponse
-	err = ReadAndUnmarshal(rawRes, &res)
-	if err != nil {
-		return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
-	}
-	return &res, nil
+	return nil
 }
 
 func (a *InfisicalClient) GetSecretsV3(data GetSecretsV3Request) (map[string]string, error) {
-	endpointURL := a.resolveEndpoint("api/v3/secrets/raw")
-
-	req, err := http.NewRequest(http.MethodGet, endpointURL, http.NoBody)
-	metrics.ObserveAPICall(constants.ProviderName, "GetSecretsV3", err)
-	if err != nil {
-		return nil, err
+	params := map[string]string{
+		"workspaceSlug":          data.ProjectSlug,
+		"environment":            data.EnvironmentSlug,
+		"secretPath":             data.SecretPath,
+		"include_imports":        "true",
+		"expandSecretReferences": "true",
+		"recursive":              strconv.FormatBool(data.Recursive),
 	}
 
-	q := req.URL.Query()
-	q.Add("workspaceSlug", data.ProjectSlug)
-	q.Add("environment", data.EnvironmentSlug)
-	q.Add("secretPath", data.SecretPath)
-	q.Add("include_imports", "true")
-	q.Add("expandSecretReferences", "true")
-	q.Add("recursive", strconv.FormatBool(data.Recursive))
-	req.URL.RawQuery = q.Encode()
-
-	rawRes, err := a.do(req)
+	res := GetSecretsV3Response{}
+	err := a.do(
+		"api/v3/secrets/raw",
+		http.MethodGet,
+		params,
+		http.NoBody,
+		&res,
+	)
+	metrics.ObserveAPICall(constants.ProviderName, getSecretsV3, err)
 	if err != nil {
 		return nil, err
-	}
-
-	if err = handleError(rawRes); err != nil {
-		return nil, err
-	}
-
-	var res GetSecretsV3Response
-	err = ReadAndUnmarshal(rawRes, &res)
-	if err != nil {
-		return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
 	}
 
 	secrets := make(map[string]string)
@@ -232,34 +227,26 @@ func (a *InfisicalClient) GetSecretsV3(data GetSecretsV3Request) (map[string]str
 }
 
 func (a *InfisicalClient) GetSecretByKeyV3(data GetSecretByKeyV3Request) (string, error) {
-	endpointURL := a.resolveEndpoint(fmt.Sprintf("api/v3/secrets/raw/%s", data.SecretKey))
-
-	req, err := http.NewRequest(http.MethodGet, endpointURL, http.NoBody)
-	metrics.ObserveAPICall(constants.ProviderName, "GetSecretByKeyV3", err)
-	if err != nil {
-		return "", err
+	params := map[string]string{
+		"workspaceSlug":   data.ProjectSlug,
+		"environment":     data.EnvironmentSlug,
+		"secretPath":      data.SecretPath,
+		"include_imports": "true",
 	}
 
-	q := req.URL.Query()
-	q.Add("workspaceSlug", data.ProjectSlug)
-	q.Add("environment", data.EnvironmentSlug)
-	q.Add("secretPath", data.SecretPath)
-	q.Add("include_imports", "true")
-	req.URL.RawQuery = q.Encode()
+	endpointURL := fmt.Sprintf("api/v3/secrets/raw/%s", data.SecretKey)
 
-	rawRes, err := a.do(req)
+	res := GetSecretByKeyV3Response{}
+	err := a.do(
+		endpointURL,
+		http.MethodGet,
+		params,
+		http.NoBody,
+		&res,
+	)
+	metrics.ObserveAPICall(constants.ProviderName, getSecretByKeyV3, err)
 	if err != nil {
 		return "", err
-	}
-
-	if err = handleError(rawRes); err != nil {
-		return "", err
-	}
-
-	var res GetSecretByKeyV3Response
-	err = ReadAndUnmarshal(rawRes, &res)
-	if err != nil {
-		return "", fmt.Errorf(errJSONSecretUnmarshal, err)
 	}
 
 	return res.Secret.SecretValue, nil
