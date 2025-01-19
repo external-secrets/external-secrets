@@ -22,6 +22,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strconv"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -51,17 +52,24 @@ const (
 )
 
 const UserAgentName = "k8-external-secrets-operator"
-const errJSONSecretUnmarshal = "unable to unmarshal secret: %w"
-const errNoAccessToken = "no access token was set"
-const errAccessTokenAlreadySet = "access token already set"
+
+var errJSONUnmarshal = errors.New("unable to unmarshal API response")
+var errNoAccessToken = errors.New("unexpected error: no access token available to revoke")
+var errAccessTokenAlreadyRetrieved = errors.New("unexpected error: access token was already retrieved")
 
 type InfisicalAPIError struct {
 	StatusCode int
 	Message    string
+	Err        string
+	Details    any
 }
 
 func (e *InfisicalAPIError) Error() string {
-	return fmt.Sprintf("API error (%d): %s", e.StatusCode, e.Message)
+	if e.Details != nil {
+		return fmt.Sprintf("API error (%d): error=%q message=%q, details=%v", e.StatusCode, e.Message, e.Err, e.Details)
+	} else {
+		return fmt.Sprintf("API error (%d): error=%q message=%q", e.StatusCode, e.Message, e.Err)
+	}
 }
 
 // checkError checks for an error on the http response and generates an appropriate error if one is
@@ -81,12 +89,17 @@ func checkError(resp *http.Response) error {
 	err = ReadAndUnmarshal(io.NopCloser(bytes.NewBuffer(respBody)), &errRes)
 	// Non-200 errors that cannot be unmarshaled must be handled, as errors could come from outside of
 	// Infisical.
-	if err != nil || errRes.Message == "" {
+	if err != nil {
+		return fmt.Errorf("API error (%d), could not unmarshal error response: %w", resp.StatusCode, err)
+	} else if reflect.DeepEqual(errRes, InfisicalAPIErrorResponse{}) {
+		// When a JSON response is received on errors, but clearly not from Infisical.
 		return fmt.Errorf("API error (%d): %s", resp.StatusCode, string(respBody))
 	} else {
 		return &InfisicalAPIError{
 			StatusCode: resp.StatusCode,
 			Message:    errRes.Message,
+			Err:        errRes.Error,
+			Details:    errRes.Details,
 		}
 	}
 }
@@ -107,7 +120,7 @@ func NewAPIClient(baseURL string, client *http.Client) (*InfisicalClient, error)
 
 func (a *InfisicalClient) SetTokenViaMachineIdentity(clientID, clientSecret string) error {
 	if a.token != "" {
-		return errors.New(errAccessTokenAlreadySet)
+		return errAccessTokenAlreadyRetrieved
 	}
 
 	var loginResponse MachineIdentityDetailsResponse
@@ -133,7 +146,7 @@ func (a *InfisicalClient) SetTokenViaMachineIdentity(clientID, clientSecret stri
 
 func (a *InfisicalClient) RevokeAccessToken() error {
 	if a.token == "" {
-		return errors.New(errNoAccessToken)
+		return errNoAccessToken
 	}
 
 	var revokeResponse RevokeMachineIdentityAccessTokenResponse
@@ -200,7 +213,9 @@ func (a *InfisicalClient) do(endpoint string, method string, params map[string]s
 
 	err = ReadAndUnmarshal(resp.Body, response)
 	if err != nil {
-		return fmt.Errorf(errJSONSecretUnmarshal, err)
+		// Importantly, we do not include the response in the actual error to avoid leaking anything
+		// sensitive.
+		return errJSONUnmarshal
 	}
 
 	return nil
