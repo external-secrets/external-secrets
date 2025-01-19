@@ -218,7 +218,8 @@ func (a *InfisicalClient) GetSecretByKeyV3(data GetSecretByKeyV3Request) (string
 	if err != nil {
 		return "", err
 	}
-	if rawRes.StatusCode == 400 {
+
+	if rawRes.StatusCode == 400 || rawRes.StatusCode == 404 || rawRes.StatusCode == 500 {
 		var errRes InfisicalAPIErrorResponse
 		err = ReadAndUnmarshal(rawRes, &errRes)
 		if err != nil {
@@ -248,12 +249,17 @@ func MarshalReqBody(data any) (*bytes.Reader, error) {
 	return bytes.NewReader(body), nil
 }
 
-func ReadAndUnmarshal(resp *http.Response, target any) error {
-	var buf bytes.Buffer
-	defer resp.Body.Close()
-	_, err := buf.ReadFrom(resp.Body)
-	if err != nil {
+func ReadAndUnmarshal(resp *http.Response, target any) (err error) {
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			err = errors.Join(err, cerr)
+		}
+	}()
+
+	decoder := json.NewDecoder(resp.Body)
+	if err := decoder.Decode(target); err != nil {
 		return err
 	}
-	return json.Unmarshal(buf.Bytes(), target)
+
+	return nil
 }
