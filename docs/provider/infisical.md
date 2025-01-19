@@ -44,6 +44,8 @@ You will then need to create a generic `SecretStore`. An sample `SecretStore` ha
 
 ## Fetch Individual Secret(s)
 
+TODO: Add documentation about how paths versus secrets work.
+
 To sync one or more secrets individually, use the following YAML:
 
 ```yaml

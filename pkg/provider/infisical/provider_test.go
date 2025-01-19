@@ -39,6 +39,7 @@ type TestCases struct {
 	Name           string
 	MockStatusCode int
 	MockResponse   any
+	Key            string
 	Property       string
 	Error          error
 	Output         any
@@ -57,6 +58,7 @@ func TestGetSecret(t *testing.T) {
 					SecretValue: "bar",
 				},
 			},
+			Key:    key,
 			Output: []byte("bar"),
 		},
 		{
@@ -68,6 +70,7 @@ func TestGetSecret(t *testing.T) {
 					SecretValue: `{"bar": "value"}`,
 				},
 			},
+			Key:      key,
 			Property: "bar",
 			Output:   []byte("value"),
 		},
@@ -79,8 +82,20 @@ func TestGetSecret(t *testing.T) {
 				Err:        "Not Found",
 				Message:    "Secret not found",
 			},
-			Error:  esv1.NoSecretError{},
-			Output: "",
+			Key:   key,
+			Error: esv1beta1.NoSecretError{},
+		},
+		{
+			Name:           "Key_with_slash",
+			MockStatusCode: 200,
+			MockResponse: api.GetSecretByKeyV3Response{
+				Secret: api.SecretsV3{
+					SecretKey:   "bar",
+					SecretValue: "value",
+				},
+			},
+			Key:    "foo/bar",
+			Output: []byte("value"),
 		},
 	}
 
@@ -94,7 +109,7 @@ func TestGetSecret(t *testing.T) {
 			}
 
 			output, err := p.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
-				Key:      key,
+				Key:      tc.Key,
 				Property: tc.Property,
 			})
 
@@ -120,6 +135,7 @@ func TestGetSecretMap(t *testing.T) {
 					SecretValue: `{"bar": "value"}`,
 				},
 			},
+			Key: key,
 			Output: map[string][]byte{
 				"bar": []byte("value"),
 			},
@@ -128,6 +144,7 @@ func TestGetSecretMap(t *testing.T) {
 			Name:           "Get_invalid_map",
 			MockStatusCode: 200,
 			MockResponse:   []byte(``),
+			Key:            key,
 			Error:          errors.New("unable to unmarshal secret foo"),
 		},
 	}
@@ -141,7 +158,8 @@ func TestGetSecretMap(t *testing.T) {
 				apiScope:  &apiScope,
 			}
 			output, err := p.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{
-				Key: key,
+				Key:      tc.Key,
+				Property: tc.Property,
 			})
 			if tc.Error == nil {
 				assert.NoError(t, err)
@@ -238,4 +256,22 @@ func TestValidateStore(t *testing.T) {
 		_, err := p.ValidateStore(tc.store)
 		tc.assertError(t, err)
 	}
+}
+
+func TestGetSecretAddress(t *testing.T) {
+	path, key := getSecretAddress("/", "foo")
+	assert.Equal(t, path, "/")
+	assert.Equal(t, key, "foo")
+
+	path, key = getSecretAddress("/", "foo/bar")
+	assert.Equal(t, path, "/foo")
+	assert.Equal(t, key, "bar")
+
+	path, key = getSecretAddress("/", "foo/bar/baz")
+	assert.Equal(t, path, "/foo/bar")
+	assert.Equal(t, key, "baz")
+
+	path, key = getSecretAddress("/foo", "bar/baz")
+	assert.Equal(t, path, "/foo/bar")
+	assert.Equal(t, key, "baz")
 }

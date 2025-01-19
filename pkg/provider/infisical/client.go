@@ -43,14 +43,32 @@ func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
 	return []byte(result.Str), nil
 }
 
+// getSecretAddress returns the path and key from the given key.
+//
+// Users can configure a root path, and when a SecretKey is provided with a slash we assume that it
+// within a path appended the root path.
+func getSecretAddress(path, key string) (string, string) {
+	if strings.Contains(key, "/") {
+		keyParts := strings.Split(key, "/")
+		key = keyParts[len(keyParts)-1]
+		path = strings.TrimRight(path, "/") + "/" + strings.Join(keyParts[:len(keyParts)-1], "/")
+		return path, key
+	}
+	return path, key
+}
+
 // if GetSecret returns an error with type NoSecretError.
 // then the secret entry will be deleted depending on the deletionPolicy.
-func (p *Provider) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	// TODO: should this take a strict stance and throw an error if `key` contains a `/` in the
+	// beginning, which may be confused as an absolute path versus one relative to the root?
+	path, key := getSecretAddress(p.apiScope.SecretPath, ref.Key)
+
 	secret, err := p.apiClient.GetSecretByKeyV3(api.GetSecretByKeyV3Request{
-		EnvironmentSlug:        p.apiScope.EnvironmentSlug,
-		ProjectSlug:            p.apiScope.ProjectSlug,
-		SecretKey:              ref.Key,
-		SecretPath:             p.apiScope.SecretPath,
+		EnvironmentSlug: p.apiScope.EnvironmentSlug,
+		ProjectSlug:     p.apiScope.ProjectSlug,
+		SecretKey:       key,
+		SecretPath:      path,
 		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 	})
 
