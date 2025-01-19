@@ -180,7 +180,7 @@ func TestGetSecretsV3ErrorHandling(t *testing.T) {
 		Recursive:       true,
 	})
 	assert.Error(t, err)
-	assert.ErrorIs(t, err, esv1beta1.NoSecretError{})
+	assert.Equal(t, err.Error(), "API error (404): Not Found")
 }
 
 func TestGetSecretByKeyV3Works(t *testing.T) {

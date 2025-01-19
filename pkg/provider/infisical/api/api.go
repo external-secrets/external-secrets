@@ -19,11 +19,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/infisical/constants"
 )
@@ -53,6 +55,15 @@ const errJSONSecretUnmarshal = "unable to unmarshal secret: %w"
 const errNoAccessToken = "no access token was set"
 const errAccessTokenAlreadySet = "access token already set"
 
+type InfisicalAPIError struct {
+	StatusCode int
+	Message    string
+}
+
+func (e *InfisicalAPIError) Error() string {
+	return fmt.Sprintf("API error (%d): %s", e.StatusCode, e.Message)
+}
+
 // checkError checks for an error on the http response and generates an appropriate error if one is
 // found.
 func checkError(resp *http.Response) error {
@@ -60,18 +71,23 @@ func checkError(resp *http.Response) error {
 		return nil
 	}
 
-	var errRes InfisicalAPIErrorResponse
-	err := ReadAndUnmarshal(resp, &errRes)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return errors.New("unexpected error: " + resp.Status)
+		return fmt.Errorf("API error (%d) and failed to read response body: %w", resp.StatusCode, err)
 	}
 
-	if resp.StatusCode == 404 {
-		return esv1beta1.NoSecretError{}
-	} else if errRes.Message != "" {
-		return fmt.Errorf("API error (%d): %s", resp.StatusCode, errRes.Message)
+	// Attempt to unmarshal the response body into an InfisicalAPIErrorResponse.
+	var errRes InfisicalAPIErrorResponse
+	err = ReadAndUnmarshal(io.NopCloser(bytes.NewBuffer(respBody)), &errRes)
+	// Non-200 errors that cannot be unmarshaled must be handled, as errors could come from outside of
+	// Infisical.
+	if err != nil || errRes.Message == "" {
+		return fmt.Errorf("API error (%d): %s", resp.StatusCode, string(respBody))
 	} else {
-		return errors.New("API error (%d): could not unmarshal error response" + resp.Status)
+		return &InfisicalAPIError{
+			StatusCode: resp.StatusCode,
+			Message:    errRes.Message,
+		}
 	}
 }
 
@@ -182,7 +198,7 @@ func (a *InfisicalClient) do(endpoint string, method string, params map[string]s
 		return err
 	}
 
-	err = ReadAndUnmarshal(resp, response)
+	err = ReadAndUnmarshal(resp.Body, response)
 	if err != nil {
 		return fmt.Errorf(errJSONSecretUnmarshal, err)
 	}
@@ -246,6 +262,10 @@ func (a *InfisicalClient) GetSecretByKeyV3(data GetSecretByKeyV3Request) (string
 	)
 	metrics.ObserveAPICall(constants.ProviderName, getSecretByKeyV3, err)
 	if err != nil {
+		var apiErr *InfisicalAPIError
+		if errors.As(err, &apiErr) && apiErr.StatusCode == 404 {
+			return "", esv1beta1.NoSecretError{}
+		}
 		return "", err
 	}
 
@@ -260,10 +280,10 @@ func MarshalReqBody(data any) (*bytes.Reader, error) {
 	return bytes.NewReader(body), nil
 }
 
-func ReadAndUnmarshal(resp *http.Response, target any) error {
+func ReadAndUnmarshal(data io.ReadCloser, target any) error {
 	var buf bytes.Buffer
-	defer resp.Body.Close()
-	_, err := buf.ReadFrom(resp.Body)
+	defer data.Close()
+	_, err := buf.ReadFrom(data)
 	if err != nil {
 		return err
 	}
