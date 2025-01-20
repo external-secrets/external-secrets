@@ -67,7 +67,7 @@ func TestAPIClientDo(t *testing.T) {
 			ExpectedError:  errors.New("API error (500): {\"foo\":\"bar\"}"),
 		},
 		{
-			Name:           "Error when non-200 response received",
+			Name:           "Do: Error when non-200 response received",
 			MockStatusCode: 401,
 			MockResponse: InfisicalAPIErrorResponse{
 				Error: "Unauthorized",
@@ -130,7 +130,7 @@ func TestSetTokenViaMachineIdentity(t *testing.T) {
 		assert.Equal(t, apiClient.token, "foobar")
 	})
 
-	t.Run("Error when non-200 response received", func(t *testing.T) {
+	t.Run("SetTokenViaMachineIdentity: Error when non-200 response received", func(t *testing.T) {
 		apiClient, closeFunc := NewMockClient(401, InfisicalAPIErrorResponse{
 			Error: "Unauthorized",
 		})
@@ -170,7 +170,7 @@ func TestRevokeAccessToken(t *testing.T) {
 		assert.Equal(t, apiClient.token, "")
 	})
 
-	t.Run("Error when non-200 response received", func(t *testing.T) {
+	t.Run("RevokeAccessToken: Error when non-200 response received", func(t *testing.T) {
 		apiClient, closeFunc := NewMockClient(401, InfisicalAPIErrorResponse{
 			Error: "Unauthorized",
 		})
@@ -232,7 +232,7 @@ func TestGetSecretsV3(t *testing.T) {
 		assert.Equal(t, secrets, map[string]string{"foo": "bar"})
 	})
 
-	t.Run("Error when non-200 response received", func(t *testing.T) {
+	t.Run("GetSecretsV3: Error when non-200 response received", func(t *testing.T) {
 		apiClient, closeFunc := NewMockClient(401, InfisicalAPIErrorResponse{
 			Error: "Unauthorized",
 		})
