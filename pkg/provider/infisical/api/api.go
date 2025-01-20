@@ -22,7 +22,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"reflect"
 	"strconv"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -92,8 +91,10 @@ func checkError(resp *http.Response) error {
 	// Infisical.
 	if err != nil {
 		return fmt.Errorf("API error (%d), could not unmarshal error response: %w", resp.StatusCode, err)
-	} else if reflect.DeepEqual(errRes, InfisicalAPIErrorResponse{}) {
-		// When a JSON response is received on errors, but clearly not from Infisical.
+	} else if errRes.StatusCode == 0 {
+		// When the InfisicalResponse has a zero-value status code, then the
+		// response was either malformed or not from Infisical. Instead, just return
+		// the error string from the response.
 		return fmt.Errorf("API error (%d): %s", resp.StatusCode, buf.String())
 	} else {
 		return &InfisicalAPIError{

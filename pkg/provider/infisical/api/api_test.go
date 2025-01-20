@@ -70,7 +70,8 @@ func TestAPIClientDo(t *testing.T) {
 			Name:           "Do: Error when non-200 response received",
 			MockStatusCode: 401,
 			MockResponse: InfisicalAPIErrorResponse{
-				Error: "Unauthorized",
+				StatusCode: 401,
+				Error:      "Unauthorized",
 			},
 			ExpectedError: &InfisicalAPIError{StatusCode: 401, Err: "Unauthorized", Message: ""},
 		},
@@ -78,8 +79,9 @@ func TestAPIClientDo(t *testing.T) {
 			Name:           "Error when arbitrary details are returned",
 			MockStatusCode: 401,
 			MockResponse: InfisicalAPIErrorResponse{
-				Error:   "Unauthorized",
-				Details: map[string]string{"foo": "details"},
+				StatusCode: 401,
+				Error:      "Unauthorized",
+				Details:    map[string]string{"foo": "details"},
 			},
 			ExpectedError: &InfisicalAPIError{StatusCode: 401, Err: "Unauthorized", Message: "", Details: map[string]string{"foo": "details"}},
 		},
@@ -132,7 +134,8 @@ func TestSetTokenViaMachineIdentity(t *testing.T) {
 
 	t.Run("SetTokenViaMachineIdentity: Error when non-200 response received", func(t *testing.T) {
 		apiClient, closeFunc := NewMockClient(401, InfisicalAPIErrorResponse{
-			Error: "Unauthorized",
+			StatusCode: 401,
+			Error:      "Unauthorized",
 		})
 		defer closeFunc()
 
@@ -172,7 +175,8 @@ func TestRevokeAccessToken(t *testing.T) {
 
 	t.Run("RevokeAccessToken: Error when non-200 response received", func(t *testing.T) {
 		apiClient, closeFunc := NewMockClient(401, InfisicalAPIErrorResponse{
-			Error: "Unauthorized",
+			StatusCode: 401,
+			Error:      "Unauthorized",
 		})
 		defer closeFunc()
 
@@ -234,7 +238,8 @@ func TestGetSecretsV3(t *testing.T) {
 
 	t.Run("GetSecretsV3: Error when non-200 response received", func(t *testing.T) {
 		apiClient, closeFunc := NewMockClient(401, InfisicalAPIErrorResponse{
-			Error: "Unauthorized",
+			StatusCode: 401,
+			Error:      "Unauthorized",
 		})
 		defer closeFunc()
 
@@ -273,7 +278,8 @@ func TestGetSecretByKeyV3(t *testing.T) {
 
 	t.Run("Error when secret is not found", func(t *testing.T) {
 		apiClient, closeFunc := NewMockClient(404, InfisicalAPIErrorResponse{
-			Error: "Not Found",
+			StatusCode: 404,
+			Error:      "Not Found",
 		})
 		defer closeFunc()
 
@@ -291,7 +297,8 @@ func TestGetSecretByKeyV3(t *testing.T) {
 	// Test case where the request is unauthorized
 	t.Run("ErrorHandlingUnauthorized", func(t *testing.T) {
 		apiClient, closeFunc := NewMockClient(401, InfisicalAPIErrorResponse{
-			Error: "Unauthorized",
+			StatusCode: 401,
+			Error:      "Unauthorized",
 		})
 		defer closeFunc()
 
