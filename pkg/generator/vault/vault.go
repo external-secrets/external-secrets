@@ -81,6 +81,11 @@ func (g *Generator) generate(ctx context.Context, c *provider.Provider, jsonSpec
 	if err != nil {
 		return nil, err
 	}
+
+	if result == nil && res.Spec.AllowEmptyResponse {
+		return nil, nil
+	}
+
 	if result == nil {
 		return nil, fmt.Errorf(errGetSecret, errors.New("empty response from Vault"))
 	}
