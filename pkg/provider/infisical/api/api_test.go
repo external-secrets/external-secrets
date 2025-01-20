@@ -15,29 +15,13 @@ limitations under the License.
 package api
 
 import (
-	"encoding/json"
 	"errors"
-	"net/http"
-	"net/http/httptest"
 	"reflect"
 	"testing"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
-
-func NewMockServer(status int, data any) *httptest.Server {
-	body, err := json.Marshal(data)
-	if err != nil {
-		panic(err)
-	}
-
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(status)
-		w.Write(body)
-	}))
-}
 
 func TestAPIClientDo(t *testing.T) {
 	apiUrl := "foo"
@@ -45,55 +29,59 @@ func TestAPIClientDo(t *testing.T) {
 
 	testCases := []struct {
 		Name             string
-		MockServer       *httptest.Server
+		MockStatusCode   int
+		MockResponse     any
 		ExpectedResponse any
 		ExpectedError    error
 	}{
 		{
-			Name: "Success",
-			MockServer: NewMockServer(200, MachineIdentityDetailsResponse{
+			Name:           "Success",
+			MockStatusCode: 200,
+			MockResponse: MachineIdentityDetailsResponse{
 				AccessToken: "foobar",
-			}),
+			},
 			ExpectedResponse: MachineIdentityDetailsResponse{
 				AccessToken: "foobar",
 			},
 			ExpectedError: nil,
 		},
 		{
-			Name:          "Error when response cannot be unmarshalled",
-			MockServer:    NewMockServer(500, []byte("not-json")),
-			ExpectedError: errors.New("API error (500), could not unmarshal error response: json: cannot unmarshal string into Go value of type api.InfisicalAPIErrorResponse"),
+			Name:           "Error when response cannot be unmarshalled",
+			MockStatusCode: 500,
+			MockResponse:   []byte("not-json"),
+			ExpectedError:  errors.New("API error (500), could not unmarshal error response: json: cannot unmarshal string into Go value of type api.InfisicalAPIErrorResponse"),
 		},
 		{
-			Name:          "Error when non-Infisical error response received",
-			MockServer:    NewMockServer(500, map[string]string{"foo": "bar"}),
-			ExpectedError: errors.New("API error (500): {\"foo\":\"bar\"}"),
+			Name:           "Error when non-Infisical error response received",
+			MockStatusCode: 500,
+			MockResponse:   map[string]string{"foo": "bar"},
+			ExpectedError:  errors.New("API error (500): {\"foo\":\"bar\"}"),
 		},
 		{
-			Name: "Error when non-200 response received",
-			MockServer: NewMockServer(401, InfisicalAPIErrorResponse{
+			Name:           "Error when non-200 response received",
+			MockStatusCode: 401,
+			MockResponse: InfisicalAPIErrorResponse{
 				Message: "No authentication data provided",
 				Error:   "Unauthorized",
-			}),
+			},
 			ExpectedError: &InfisicalAPIError{StatusCode: 401, Message: "No authentication data provided", Err: "Unauthorized"},
 		},
 		{
-			Name: "Error when arbitrary details are returned",
-			MockServer: NewMockServer(401, InfisicalAPIErrorResponse{
+			Name:           "Error when arbitrary details are returned",
+			MockStatusCode: 401,
+			MockResponse: InfisicalAPIErrorResponse{
 				Error:   "Unauthorized",
 				Message: "No authentication data provided",
 				Details: map[string]string{"foo": "details"},
-			}),
+			},
 			ExpectedError: &InfisicalAPIError{StatusCode: 401, Message: "No authentication data provided", Err: "Unauthorized", Details: map[string]string{"foo": "details"}},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			defer tc.MockServer.Close()
-
-			apiClient, err := NewAPIClient(tc.MockServer.URL, tc.MockServer.Client())
-			require.NoError(t, err)
+			apiClient, close := NewMockClient(tc.MockStatusCode, tc.MockResponse)
+			defer close()
 
 			// Automatically pluck out the expected response type using reflection to create a new empty value for unmarshalling.
 			var actualResponse any
@@ -101,7 +89,7 @@ func TestAPIClientDo(t *testing.T) {
 				actualResponse = reflect.New(reflect.TypeOf(tc.ExpectedResponse)).Interface()
 			}
 
-			err = apiClient.do(apiUrl, httpMethod, nil, nil, actualResponse)
+			err := apiClient.do(apiUrl, httpMethod, nil, nil, actualResponse)
 			if tc.ExpectedError != nil {
 				assert.Error(t, err)
 				assert.Equal(t, tc.ExpectedError.Error(), err.Error())
@@ -116,41 +104,32 @@ func TestAPIClientDo(t *testing.T) {
 // TestAPIClientDoInvalidResponse tests the case where the response is a 200 but does not unmarshal
 // correctly.
 func TestAPIClientDoInvalidResponse(t *testing.T) {
-	mockServer := NewMockServer(200, []byte("not-json"))
-	defer mockServer.Close()
+	apiClient, close := NewMockClient(200, []byte("not-json"))
+	defer close()
 
-	apiClient, err := NewAPIClient(mockServer.URL, mockServer.Client())
-	require.NoError(t, err)
-
-	err = apiClient.do("foo", "bar", nil, nil, nil)
+	err := apiClient.do("foo", "bar", nil, nil, nil)
 	assert.ErrorIs(t, err, errJSONUnmarshal)
 }
 
 func TestSetTokenViaMachineIdentity(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		mockServer := NewMockServer(200, MachineIdentityDetailsResponse{
+		apiClient, close := NewMockClient(200, MachineIdentityDetailsResponse{
 			AccessToken: "foobar",
 		})
-		defer mockServer.Close()
+		defer close()
 
-		apiClient, err := NewAPIClient(mockServer.URL, mockServer.Client())
-		require.NoError(t, err)
-
-		err = apiClient.SetTokenViaMachineIdentity("client-id", "client-secret")
+		err := apiClient.SetTokenViaMachineIdentity("client-id", "client-secret")
 		assert.NoError(t, err)
 		assert.Equal(t, apiClient.token, "foobar")
 	})
 
 	t.Run("Error when non-200 response received", func(t *testing.T) {
-		mockServer := NewMockServer(401, InfisicalAPIErrorResponse{
+		apiClient, close := NewMockClient(401, InfisicalAPIErrorResponse{
 			Error: "Unauthorized",
 		})
-		defer mockServer.Close()
+		defer close()
 
-		apiClient, err := NewAPIClient(mockServer.URL, mockServer.Client())
-		require.NoError(t, err)
-
-		err = apiClient.SetTokenViaMachineIdentity("client-id", "client-secret")
+		err := apiClient.SetTokenViaMachineIdentity("client-id", "client-secret")
 		assert.Error(t, err)
 		assert.IsType(t, &InfisicalAPIError{}, err)
 		assert.Equal(t, 401, err.(*InfisicalAPIError).StatusCode)
@@ -158,49 +137,40 @@ func TestSetTokenViaMachineIdentity(t *testing.T) {
 	})
 
 	t.Run("Error when token already set", func(t *testing.T) {
-		mockServer := NewMockServer(401, nil)
-		defer mockServer.Close()
-
-		apiClient, err := NewAPIClient(mockServer.URL, mockServer.Client())
-		require.NoError(t, err)
+		apiClient, close := NewMockClient(401, nil)
+		defer close()
 
 		apiClient.token = "foobar"
 
-		err = apiClient.SetTokenViaMachineIdentity("client-id", "client-secret")
+		err := apiClient.SetTokenViaMachineIdentity("client-id", "client-secret")
 		assert.ErrorIs(t, err, errAccessTokenAlreadyRetrieved)
 	})
 }
 
 func TestRevokeAccessToken(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
-		mockServer := NewMockServer(200, RevokeMachineIdentityAccessTokenResponse{
+		apiClient, close := NewMockClient(200, RevokeMachineIdentityAccessTokenResponse{
 			Message: "Success",
 		})
-		defer mockServer.Close()
-
-		apiClient, err := NewAPIClient(mockServer.URL, mockServer.Client())
-		require.NoError(t, err)
+		defer close()
 
 		apiClient.token = "foobar"
 
-		err = apiClient.RevokeAccessToken()
+		err := apiClient.RevokeAccessToken()
 		assert.NoError(t, err)
 		// Verify that the access token was unset.
 		assert.Equal(t, apiClient.token, "")
 	})
 
 	t.Run("Error when non-200 response received", func(t *testing.T) {
-		mockServer := NewMockServer(401, InfisicalAPIErrorResponse{
+		apiClient, close := NewMockClient(401, InfisicalAPIErrorResponse{
 			Error: "Unauthorized",
 		})
-		defer mockServer.Close()
-
-		apiClient, err := NewAPIClient(mockServer.URL, mockServer.Client())
-		require.NoError(t, err)
+		defer close()
 
 		apiClient.token = "foobar"
 
-		err = apiClient.RevokeAccessToken()
+		err := apiClient.RevokeAccessToken()
 		assert.Error(t, err)
 		assert.IsType(t, &InfisicalAPIError{}, err)
 		assert.Equal(t, 401, err.(*InfisicalAPIError).StatusCode)
@@ -208,28 +178,22 @@ func TestRevokeAccessToken(t *testing.T) {
 	})
 
 	t.Run("Error when no access token is set", func(t *testing.T) {
-		mockServer := NewMockServer(401, nil)
-		defer mockServer.Close()
+		apiClient, close := NewMockClient(401, nil)
+		defer close()
 
-		apiClient, err := NewAPIClient(mockServer.URL, mockServer.Client())
-		require.NoError(t, err)
-
-		err = apiClient.RevokeAccessToken()
+		err := apiClient.RevokeAccessToken()
 		assert.ErrorIs(t, err, errNoAccessToken)
 	})
 }
 
 func TestGetSecretsV3(t *testing.T) {
 	t.Run("Works with secrets", func(t *testing.T) {
-		mockServer := NewMockServer(200, GetSecretsV3Response{
+		apiClient, close := NewMockClient(200, GetSecretsV3Response{
 			Secrets: []SecretsV3{
 				{SecretKey: "foo", SecretValue: "bar"},
 			},
 		})
-		defer mockServer.Close()
-
-		apiClient, err := NewAPIClient(mockServer.URL, mockServer.Client())
-		require.NoError(t, err)
+		defer close()
 
 		secrets, err := apiClient.GetSecretsV3(GetSecretsV3Request{
 			ProjectSlug:     "first-project",
@@ -242,15 +206,12 @@ func TestGetSecretsV3(t *testing.T) {
 	})
 
 	t.Run("Works with imported secrets", func(t *testing.T) {
-		mockServer := NewMockServer(200, GetSecretsV3Response{
+		apiClient, close := NewMockClient(200, GetSecretsV3Response{
 			ImportedSecrets: []ImportedSecretV3{{
 				Secrets: []SecretsV3{{SecretKey: "foo", SecretValue: "bar"}},
 			}},
 		})
-		defer mockServer.Close()
-
-		apiClient, err := NewAPIClient(mockServer.URL, mockServer.Client())
-		require.NoError(t, err)
+		defer close()
 
 		secrets, err := apiClient.GetSecretsV3(GetSecretsV3Request{
 			ProjectSlug:     "first-project",
@@ -263,15 +224,12 @@ func TestGetSecretsV3(t *testing.T) {
 	})
 
 	t.Run("Error when non-200 response received", func(t *testing.T) {
-		mockServer := NewMockServer(401, InfisicalAPIErrorResponse{
+		apiClient, close := NewMockClient(401, InfisicalAPIErrorResponse{
 			Error: "Unauthorized",
 		})
-		defer mockServer.Close()
+		defer close()
 
-		apiClient, err := NewAPIClient(mockServer.URL, mockServer.Client())
-		require.NoError(t, err)
-
-		_, err = apiClient.GetSecretsV3(GetSecretsV3Request{
+		_, err := apiClient.GetSecretsV3(GetSecretsV3Request{
 			ProjectSlug:     "first-project",
 			EnvironmentSlug: "dev",
 			SecretPath:      "/",
@@ -285,16 +243,13 @@ func TestGetSecretsV3(t *testing.T) {
 }
 func TestGetSecretByKeyV3(t *testing.T) {
 	t.Run("Works", func(t *testing.T) {
-		mockServer := NewMockServer(200, GetSecretByKeyV3Response{
+		apiClient, close := NewMockClient(200, GetSecretByKeyV3Response{
 			Secret: SecretsV3{
 				SecretKey:   "foo",
 				SecretValue: "bar",
 			},
 		})
-		defer mockServer.Close()
-
-		apiClient, err := NewAPIClient(mockServer.URL, mockServer.Client())
-		require.NoError(t, err)
+		defer close()
 
 		secret, err := apiClient.GetSecretByKeyV3(GetSecretByKeyV3Request{
 			ProjectSlug:     "first-project",
@@ -307,15 +262,12 @@ func TestGetSecretByKeyV3(t *testing.T) {
 	})
 
 	t.Run("Error when secret is not found", func(t *testing.T) {
-		mockServer := NewMockServer(404, InfisicalAPIErrorResponse{
+		apiClient, close := NewMockClient(404, InfisicalAPIErrorResponse{
 			Error: "Not Found",
 		})
-		defer mockServer.Close()
+		defer close()
 
-		apiClient, err := NewAPIClient(mockServer.URL, mockServer.Client())
-		require.NoError(t, err)
-
-		_, err = apiClient.GetSecretByKeyV3(GetSecretByKeyV3Request{
+		_, err := apiClient.GetSecretByKeyV3(GetSecretByKeyV3Request{
 			ProjectSlug:     "first-project",
 			EnvironmentSlug: "dev",
 			SecretPath:      "/",
@@ -328,15 +280,12 @@ func TestGetSecretByKeyV3(t *testing.T) {
 
 	// Test case where the request is unauthorized
 	t.Run("ErrorHandlingUnauthorized", func(t *testing.T) {
-		mockServer := NewMockServer(401, InfisicalAPIErrorResponse{
+		apiClient, close := NewMockClient(401, InfisicalAPIErrorResponse{
 			Error: "Unauthorized",
 		})
-		defer mockServer.Close()
+		defer close()
 
-		apiClient, err := NewAPIClient(mockServer.URL, mockServer.Client())
-		require.NoError(t, err)
-
-		_, err = apiClient.GetSecretByKeyV3(GetSecretByKeyV3Request{
+		_, err := apiClient.GetSecretByKeyV3(GetSecretByKeyV3Request{
 			ProjectSlug:     "first-project",
 			EnvironmentSlug: "dev",
 			SecretPath:      "/",

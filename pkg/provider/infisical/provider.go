@@ -18,8 +18,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 	"net/http"
+	"time"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,7 +38,7 @@ var (
 )
 
 type Provider struct {
-	apiClient api.InfisicalApis
+	apiClient *api.InfisicalClient
 	apiScope  *InfisicalClientScope
 }
 
