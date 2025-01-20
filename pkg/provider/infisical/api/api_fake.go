@@ -28,7 +28,10 @@ func newMockServer(status int, data any) *httptest.Server {
 
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(status)
-		w.Write(body)
+		_, err := w.Write(body)
+		if err != nil {
+			panic(err)
+		}
 	}))
 }
 

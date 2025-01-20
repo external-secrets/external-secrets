@@ -86,8 +86,8 @@ func TestGetSecret(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			apiClient, close := api.NewMockClient(tc.MockStatusCode, tc.MockResponse)
-			defer close()
+			apiClient, closeFunc := api.NewMockClient(tc.MockStatusCode, tc.MockResponse)
+			defer closeFunc()
 			p := &Provider{
 				apiClient: apiClient,
 				apiScope:  &apiScope,
@@ -134,8 +134,8 @@ func TestGetSecretMap(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			apiClient, close := api.NewMockClient(tc.MockStatusCode, tc.MockResponse)
-			defer close()
+			apiClient, closeFunc := api.NewMockClient(tc.MockStatusCode, tc.MockResponse)
+			defer closeFunc()
 			p := &Provider{
 				apiClient: apiClient,
 				apiScope:  &apiScope,

@@ -26,7 +26,6 @@ import (
 	"strconv"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/infisical/constants"
 )
@@ -66,8 +65,8 @@ type InfisicalAPIError struct {
 
 func (e *InfisicalAPIError) Error() string {
 	if e.Details != nil {
-		detailsJson, _ := json.Marshal(e.Details)
-		return fmt.Sprintf("API error (%d): error=%q message=%q, details=%s", e.StatusCode, e.Message, e.Err, string(detailsJson))
+		detailsJSON, _ := json.Marshal(e.Details)
+		return fmt.Sprintf("API error (%d): error=%q message=%q, details=%s", e.StatusCode, e.Message, e.Err, string(detailsJSON))
 	} else {
 		return fmt.Sprintf("API error (%d): error=%q message=%q", e.StatusCode, e.Message, e.Err)
 	}
@@ -182,7 +181,7 @@ func (a *InfisicalClient) addHeaders(r *http.Request) {
 
 // do is a generic function that makes an API call to the Infisical API, and handle the response
 // (including if an API error is returned).
-func (a *InfisicalClient) do(endpoint string, method string, params map[string]string, body any, response any) error {
+func (a *InfisicalClient) do(endpoint, method string, params map[string]string, body, response any) error {
 	endpointURL := a.resolveEndpoint(endpoint)
 
 	bodyReader, err := MarshalReqBody(body)
@@ -207,8 +206,9 @@ func (a *InfisicalClient) do(endpoint string, method string, params map[string]s
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
-	if err = checkError(resp); err != nil {
+	if err := checkError(resp); err != nil {
 		return err
 	}
 
@@ -298,7 +298,6 @@ func MarshalReqBody(data any) (*bytes.Reader, error) {
 
 func ReadAndUnmarshal(data io.ReadCloser, target any) error {
 	var buf bytes.Buffer
-	defer data.Close()
 	_, err := buf.ReadFrom(data)
 	if err != nil {
 		return err
