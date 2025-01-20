@@ -75,25 +75,26 @@ func (e *InfisicalAPIError) Error() string {
 // checkError checks for an error on the http response and generates an appropriate error if one is
 // found.
 func checkError(resp *http.Response) error {
-	if resp.StatusCode < 400 {
+	if resp.StatusCode >= 200 && resp.StatusCode < 400 {
 		return nil
 	}
 
-	respBody, err := io.ReadAll(resp.Body)
+	var buf bytes.Buffer
+	_, err := buf.ReadFrom(resp.Body)
 	if err != nil {
 		return fmt.Errorf("API error (%d) and failed to read response body: %w", resp.StatusCode, err)
 	}
 
 	// Attempt to unmarshal the response body into an InfisicalAPIErrorResponse.
 	var errRes InfisicalAPIErrorResponse
-	err = ReadAndUnmarshal(io.NopCloser(bytes.NewBuffer(respBody)), &errRes)
+	err = json.Unmarshal(buf.Bytes(), &errRes)
 	// Non-200 errors that cannot be unmarshaled must be handled, as errors could come from outside of
 	// Infisical.
 	if err != nil {
 		return fmt.Errorf("API error (%d), could not unmarshal error response: %w", resp.StatusCode, err)
 	} else if reflect.DeepEqual(errRes, InfisicalAPIErrorResponse{}) {
 		// When a JSON response is received on errors, but clearly not from Infisical.
-		return fmt.Errorf("API error (%d): %s", resp.StatusCode, string(respBody))
+		return fmt.Errorf("API error (%d): %s", resp.StatusCode, buf.String())
 	} else {
 		return &InfisicalAPIError{
 			StatusCode: resp.StatusCode,
@@ -212,10 +213,15 @@ func (a *InfisicalClient) do(endpoint, method string, params map[string]string, 
 		return err
 	}
 
-	err = ReadAndUnmarshal(resp.Body, response)
+	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		// Importantly, we do not include the response in the actual error to avoid leaking anything
-		// sensitive.
+		return err
+	}
+
+	err = json.Unmarshal(bodyBytes, response)
+	if err != nil {
+		// Importantly, we do not include the response in the actual error to avoid
+		// leaking anything sensitive.
 		return errJSONUnmarshal
 	}
 
@@ -294,13 +300,4 @@ func MarshalReqBody(data any) (*bytes.Reader, error) {
 		return nil, err
 	}
 	return bytes.NewReader(body), nil
-}
-
-func ReadAndUnmarshal(data io.ReadCloser, target any) error {
-	var buf bytes.Buffer
-	_, err := buf.ReadFrom(data)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(buf.Bytes(), target)
 }
