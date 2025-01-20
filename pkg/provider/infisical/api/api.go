@@ -58,24 +58,24 @@ var errAccessTokenAlreadyRetrieved = errors.New("unexpected error: access token 
 
 type InfisicalAPIError struct {
 	StatusCode int
-	Message    string
-	Err        string
+	Err        any
+	Message    any
 	Details    any
 }
 
 func (e *InfisicalAPIError) Error() string {
 	if e.Details != nil {
 		detailsJSON, _ := json.Marshal(e.Details)
-		return fmt.Sprintf("API error (%d): error=%q message=%q, details=%s", e.StatusCode, e.Message, e.Err, string(detailsJSON))
+		return fmt.Sprintf("API error (%d): error=%v message=%v, details=%s", e.StatusCode, e.Err, e.Message, string(detailsJSON))
 	} else {
-		return fmt.Sprintf("API error (%d): error=%q message=%q", e.StatusCode, e.Message, e.Err)
+		return fmt.Sprintf("API error (%d): error=%v message=%v", e.StatusCode, e.Err, e.Message)
 	}
 }
 
 // checkError checks for an error on the http response and generates an appropriate error if one is
 // found.
 func checkError(resp *http.Response) error {
-	if resp.StatusCode == 200 {
+	if resp.StatusCode < 400 {
 		return nil
 	}
 

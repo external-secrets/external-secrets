@@ -72,7 +72,7 @@ func TestAPIClientDo(t *testing.T) {
 			MockResponse: InfisicalAPIErrorResponse{
 				Error: "Unauthorized",
 			},
-			ExpectedError: &InfisicalAPIError{StatusCode: 401, Err: "Unauthorized"},
+			ExpectedError: &InfisicalAPIError{StatusCode: 401, Err: "Unauthorized", Message: ""},
 		},
 		{
 			Name:           "Error when arbitrary details are returned",
@@ -81,7 +81,7 @@ func TestAPIClientDo(t *testing.T) {
 				Error:   "Unauthorized",
 				Details: map[string]string{"foo": "details"},
 			},
-			ExpectedError: &InfisicalAPIError{StatusCode: 401, Err: "Unauthorized", Details: map[string]string{"foo": "details"}},
+			ExpectedError: &InfisicalAPIError{StatusCode: 401, Err: "Unauthorized", Message: "", Details: map[string]string{"foo": "details"}},
 		},
 	}
 
