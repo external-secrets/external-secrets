@@ -1,0 +1,33 @@
+version: 2
+builds:
+  - id: default
+    binary: esoctl
+    flags:
+      - -tags
+      - netgo release
+      - -trimpath
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+
+archives:
+  - id: default
+    builds:
+      - default
+    name_template: "esoctl_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    format: tar.gz
+
+signs:
+  - artifacts: checksum
+    args: ["--batch", "-u", "{{ .Env.GPG_FINGERPRINT }}", "--output", "${signature}", "--detach-sign", "${artifact}"]
+
+sboms:
+  - artifacts: archive
+
+checksum:
+  name_template: "esoctl_checksums.txt"

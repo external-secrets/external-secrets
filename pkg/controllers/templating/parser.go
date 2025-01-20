@@ -41,20 +41,29 @@ type Parser struct {
 	DataMap      map[string][]byte
 	Client       client.Client
 	TargetSecret *v1.Secret
+
+	TemplateFromConfigMap *v1.ConfigMap
+	TemplateFromSecret    *v1.Secret
 }
 
 func (p *Parser) MergeConfigMap(ctx context.Context, namespace string, tpl esv1beta1.TemplateFrom) error {
 	if tpl.ConfigMap == nil {
 		return nil
 	}
+
 	var cm v1.ConfigMap
-	err := p.Client.Get(ctx, types.NamespacedName{
-		Name:      tpl.ConfigMap.Name,
-		Namespace: namespace,
-	}, &cm)
-	if err != nil {
-		return err
+	if p.TemplateFromConfigMap != nil {
+		cm = *p.TemplateFromConfigMap
+	} else {
+		err := p.Client.Get(ctx, types.NamespacedName{
+			Name:      tpl.ConfigMap.Name,
+			Namespace: namespace,
+		}, &cm)
+		if err != nil {
+			return err
+		}
 	}
+
 	for _, k := range tpl.ConfigMap.Items {
 		val, ok := cm.Data[k.Key]
 		out := make(map[string][]byte)
@@ -67,7 +76,7 @@ func (p *Parser) MergeConfigMap(ctx context.Context, namespace string, tpl esv1b
 		case esv1beta1.TemplateScopeKeysAndValues:
 			out[val] = []byte(val)
 		}
-		err = p.Exec(out, p.DataMap, k.TemplateAs, tpl.Target, p.TargetSecret)
+		err := p.Exec(out, p.DataMap, k.TemplateAs, tpl.Target, p.TargetSecret)
 		if err != nil {
 			return err
 		}
@@ -79,14 +88,20 @@ func (p *Parser) MergeSecret(ctx context.Context, namespace string, tpl esv1beta
 	if tpl.Secret == nil {
 		return nil
 	}
+
 	var sec v1.Secret
-	err := p.Client.Get(ctx, types.NamespacedName{
-		Name:      tpl.Secret.Name,
-		Namespace: namespace,
-	}, &sec)
-	if err != nil {
-		return err
+	if p.TemplateFromSecret != nil {
+		sec = *p.TemplateFromSecret
+	} else {
+		err := p.Client.Get(ctx, types.NamespacedName{
+			Name:      tpl.Secret.Name,
+			Namespace: namespace,
+		}, &sec)
+		if err != nil {
+			return err
+		}
 	}
+
 	for _, k := range tpl.Secret.Items {
 		val, ok := sec.Data[k.Key]
 		if !ok {
@@ -99,7 +114,7 @@ func (p *Parser) MergeSecret(ctx context.Context, namespace string, tpl esv1beta
 		case esv1beta1.TemplateScopeKeysAndValues:
 			out[string(val)] = val
 		}
-		err = p.Exec(out, p.DataMap, k.TemplateAs, tpl.Target, p.TargetSecret)
+		err := p.Exec(out, p.DataMap, k.TemplateAs, tpl.Target, p.TargetSecret)
 		if err != nil {
 			return err
 		}

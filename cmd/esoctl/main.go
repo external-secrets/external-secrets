@@ -1,5 +1,5 @@
 /*
-Copyright © 2022 ESO Maintainer Team
+Copyright © 2025 ESO Maintainer team
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,9 +17,13 @@ limitations under the License.
 package main
 
 import (
-	"github.com/external-secrets/external-secrets/cmd/controller"
+	"fmt"
+	"os"
 )
 
 func main() {
-	controller.Execute()
+	if err := rootCmd.Execute(); err != nil {
+		_, _ = fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 }

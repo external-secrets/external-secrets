@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package controller
 
 import (
 	"context"
@@ -28,11 +28,9 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"go.uber.org/zap/zapcore"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -60,31 +58,14 @@ var webhookCmd = &cobra.Command{
 	Long: `Webhook implementation for ExternalSecrets and SecretStores.
 	For more information visit https://external-secrets.io`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var lvl zapcore.Level
-		var enc zapcore.TimeEncoder
+		setupLogger()
+
 		c := crds.CertInfo{
 			CertDir:  certDir,
 			CertName: "tls.crt",
 			KeyName:  "tls.key",
 			CAName:   "ca.crt",
 		}
-		lvlErr := lvl.UnmarshalText([]byte(loglevel))
-		if lvlErr != nil {
-			setupLog.Error(lvlErr, "error unmarshalling loglevel")
-			os.Exit(1)
-		}
-		encErr := enc.UnmarshalText([]byte(zapTimeEncoding))
-		if encErr != nil {
-			setupLog.Error(encErr, "error unmarshalling timeEncoding")
-			os.Exit(1)
-		}
-		opts := zap.Options{
-			Level:       lvl,
-			TimeEncoder: enc,
-		}
-		logger := zap.New(zap.UseFlagOptions(&opts))
-		ctrl.SetLogger(logger)
-
 		err := waitForCerts(c, time.Minute*2)
 		if err != nil {
 			setupLog.Error(err, "unable to validate certificates")
