@@ -66,7 +66,8 @@ type InfisicalAPIError struct {
 
 func (e *InfisicalAPIError) Error() string {
 	if e.Details != nil {
-		return fmt.Sprintf("API error (%d): error=%q message=%q, details=%v", e.StatusCode, e.Message, e.Err, e.Details)
+		detailsJson, _ := json.Marshal(e.Details)
+		return fmt.Sprintf("API error (%d): error=%q message=%q, details=%s", e.StatusCode, e.Message, e.Err, string(detailsJson))
 	} else {
 		return fmt.Sprintf("API error (%d): error=%q message=%q", e.StatusCode, e.Message, e.Err)
 	}
