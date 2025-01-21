@@ -105,7 +105,7 @@ nav:
           - Using Latest Image: guides/using-latest-image.md
           - Disable Cluster Features: guides/disable-cluster-features.md
       - Tooling:
-          - Using the Render tool: guides/using-render-tool.md
+          - Using the esoctl tool: guides/using-esoctl-tool.md
   - Provider:
       - AWS Secrets Manager: provider/aws-secrets-manager.md
       - AWS Parameter Store: provider/aws-parameter-store.md

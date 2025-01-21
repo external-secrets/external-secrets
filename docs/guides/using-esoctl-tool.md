@@ -1,4 +1,4 @@
-# Using the Render tool
+# Using the esoctl tool
 
 The tool can be found under `cmd/esoctl`. The `template` command can be used to test templates for `PushSecret` and `ExternalSecret`.
 
@@ -22,29 +22,9 @@ template-test/
 
 `PushSecret` is simply the following:
 
+
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
-kind: PushSecret
-metadata:
-  name: example-push-secret-with-template
-spec:
-  refreshInterval: 10s
-  secretStoreRefs:
-    - name: secret-store-name
-      kind: SecretStore
-  selector:
-    secret:
-      name: git-sync-secret
-  template:
-    engineVersion: v2
-    data:
-      token: "{{ .token | toString | upper }} was templated"
-  data:
-    - match:
-        secretKey: token
-        remoteRef:
-          remoteKey: git-sync-secret-copy-templated
-          property: token
+{% include 'esoctl-tool-push-secret-snippet.yaml' %}
 ```
 
 And secret data is:
@@ -59,13 +39,13 @@ simply put it into a file along with the data it's using, and run this command.
 The output will be something like this:
 
 ```console
-➜ ./bin/esoctl template --source-templated-object template-test/push-secret.yaml --source-secret-data-file template-test/secret.yaml                                                                                                          
+➜ ./bin/esoctl template --source-templated-object template-test/push-secret.yaml --source-secret-data-file template-test/secret.yaml
 data:
   token: VE9LRU4gd2FzIHRlbXBsYXRlZA==
 metadata:
   creationTimestamp: null
 
-➜ echo -n "VE9LRU4gd2FzIHRlbXBsYXRlZA==" | base64 -d                                                                                                                                                                                    
+➜ echo -n "VE9LRU4gd2FzIHRlbXBsYXRlZA==" | base64 -d
 TOKEN was templated⏎
 ```
 
