@@ -1,0 +1,28 @@
+{% raw %}
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Webhook
+metadata:
+  name: webhook
+spec:
+  url: "http://httpbin.org/get?parameter={{ .auth.param }}"
+  result:
+    jsonPath: "$.args"
+  headers:
+    Content-Type: application/json
+    Authorization: Basic {{ print .auth.username ":" .auth.password | b64enc }}
+  secrets:
+  - name: auth
+    secretRef:
+      name: webhook-credentials
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: webhook-credentials
+  labels:
+    external-secrets.io/type: webhook #Needed to allow webhook to use this secret
+data:
+  username: dGVzdA== # "test"
+  password: dGVzdA== # "test"
+  param: dGVzdA== # "test"
+{% endraw %}

@@ -1,0 +1,34 @@
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: vault-backend
+  namespace: example
+spec:
+  provider:
+    vault:
+      server: "https://vault.acme.org"
+      path: "secret"
+      version: "v2"
+      auth:
+        # VaultJwt authenticates with Vault using the JWT/OIDC auth mechanism
+        # https://www.vaultproject.io/docs/auth/jwt
+        jwt:
+          # Path where the JWT authentication backend is mounted
+          path: "jwt"
+          # JWT role configured in a Vault server, optional.
+          role: "vault-jwt-role"
+
+          # Retrieve JWT token from a Kubernetes secret
+          secretRef:
+            name: "my-secret"
+            key: "jwt-token"
+
+          # ... or retrieve a Kubernetes service account token via the `TokenRequest` API
+          kubernetesServiceAccountToken:
+            serviceAccountRef:
+              name: "my-sa"
+            # `audiences` defaults to `["vault"]` it not supplied
+            audiences:
+            - vault
+            # `expirationSeconds` defaults to 10 minutes if not supplied
+            expirationSeconds: 600
