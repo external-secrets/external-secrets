@@ -1,12 +1,12 @@
-name: Create Release for Render
+name: Create Release for esoctl
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'version to release, e.g. v0.1.0-render'
+        description: 'version to release, e.g. v0.1.0-esoctl'
         required: true
-        default: 'v0.1.0-render'
+        default: 'v0.1.0-esoctl'
       source_ref:
         description: 'source ref to publish from. E.g.: main or release-x.y'
         required: true
@@ -14,7 +14,7 @@ on:
 
 jobs:
   release:
-    name: Create Release for Render
+    name: Create Release for esoctl
     runs-on: ubuntu-latest
 
     steps:
@@ -64,7 +64,7 @@ jobs:
         with:
           version: '~> v2'
           args: release --clean
-          workdir: cmd/render
+          workdir: cmd/esoctl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_CURRENT_TAG: ${{ github.event.inputs.version }}
