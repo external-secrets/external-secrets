@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package controller
 
 import (
 	"os"
@@ -45,24 +45,7 @@ var certcontrollerCmd = &cobra.Command{
 	Long: `Controller to manage certificates for external secrets CRDs and ValidatingWebhookConfigs.
 	For more information visit https://external-secrets.io`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var lvl zapcore.Level
-		var enc zapcore.TimeEncoder
-		lvlErr := lvl.UnmarshalText([]byte(loglevel))
-		if lvlErr != nil {
-			setupLog.Error(lvlErr, "error unmarshalling loglevel")
-			os.Exit(1)
-		}
-		encErr := enc.UnmarshalText([]byte(zapTimeEncoding))
-		if encErr != nil {
-			setupLog.Error(encErr, "error unmarshalling timeEncoding")
-			os.Exit(1)
-		}
-		opts := zap.Options{
-			Level:       lvl,
-			TimeEncoder: enc,
-		}
-		logger := zap.New(zap.UseFlagOptions(&opts))
-		ctrl.SetLogger(logger)
+		setupLogger()
 
 		// completely disable caching of Secrets and ConfigMaps to save memory
 		// see: https://github.com/external-secrets/external-secrets/issues/721
@@ -163,6 +146,27 @@ var certcontrollerCmd = &cobra.Command{
 			os.Exit(1)
 		}
 	},
+}
+
+func setupLogger() {
+	var lvl zapcore.Level
+	var enc zapcore.TimeEncoder
+	lvlErr := lvl.UnmarshalText([]byte(loglevel))
+	if lvlErr != nil {
+		setupLog.Error(lvlErr, "error unmarshalling loglevel")
+		os.Exit(1)
+	}
+	encErr := enc.UnmarshalText([]byte(zapTimeEncoding))
+	if encErr != nil {
+		setupLog.Error(encErr, "error unmarshalling timeEncoding")
+		os.Exit(1)
+	}
+	opts := zap.Options{
+		Level:       lvl,
+		TimeEncoder: enc,
+	}
+	logger := zap.New(zap.UseFlagOptions(&opts))
+	ctrl.SetLogger(logger)
 }
 
 func init() {

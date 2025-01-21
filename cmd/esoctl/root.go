@@ -1,5 +1,5 @@
 /*
-Copyright © 2022 ESO Maintainer Team
+Copyright © 2025 ESO Maintainer team
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,10 +16,13 @@ limitations under the License.
 
 package main
 
-import (
-	"github.com/external-secrets/external-secrets/cmd/controller"
-)
+import "github.com/spf13/cobra"
 
-func main() {
-	controller.Execute()
+var rootCmd = &cobra.Command{
+	Use:   "esoctl",
+	Short: "operations for external-secrets-operator",
+	Long:  `For more information visit https://external-secrets.io`,
+	Run: func(cmd *cobra.Command, args []string) {
+		_ = cmd.Usage()
+	},
 }

@@ -14,14 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package controller
 
 import (
 	"os"
 	"time"
 
 	"github.com/spf13/cobra"
-	"go.uber.org/zap/zapcore"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,7 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -110,24 +108,8 @@ var rootCmd = &cobra.Command{
 	Short: "operator that reconciles ExternalSecrets and SecretStores",
 	Long:  `For more information visit https://external-secrets.io`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var lvl zapcore.Level
-		var enc zapcore.TimeEncoder
-		lvlErr := lvl.UnmarshalText([]byte(loglevel))
-		if lvlErr != nil {
-			setupLog.Error(lvlErr, "error unmarshalling loglevel")
-			os.Exit(1)
-		}
-		encErr := enc.UnmarshalText([]byte(zapTimeEncoding))
-		if encErr != nil {
-			setupLog.Error(encErr, "error unmarshalling timeEncoding")
-			os.Exit(1)
-		}
-		opts := zap.Options{
-			Level:       lvl,
-			TimeEncoder: enc,
-		}
-		logger := zap.New(zap.UseFlagOptions(&opts))
-		ctrl.SetLogger(logger)
+		setupLogger()
+
 		ctrlmetrics.SetUpLabelNames(enableExtendedMetricLabels)
 		esmetrics.SetUpMetrics()
 		config := ctrl.GetConfigOrDie()

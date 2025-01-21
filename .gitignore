@@ -2,6 +2,8 @@
 /webhook/bin
 /webhook/certcontroller/bin
 /bin
+/cmd/render/bin
+/cmd/render/dist
 /vendor
 cover.out
 
