@@ -12,6 +12,11 @@ on:
         required: true
         default: 'main'
 
+# this is required for security check even though we immediately set it to
+# write in the release job.
+permissions:
+  contents: read
+
 jobs:
   release:
     name: Create Release for esoctl
