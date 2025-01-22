@@ -132,7 +132,7 @@ func TestSetAuthNamespace(t *testing.T) {
 				NewVaultClient: fake.ClientWithLoginMock,
 			}
 
-			c, cfg, err := prov.prepareConfig(context.Background(), kube, nil, tc.args.store.Spec.Provider.Vault, nil, "default", store.GetObjectKind().GroupVersionKind().Kind)
+			c, cfg, err := prov.prepareConfig(context.Background(), kube, tc.args.store.Spec.Provider.Vault, nil, "default", store.GetObjectKind().GroupVersionKind().Kind)
 			if err != nil {
 				t.Error(err.Error())
 			}

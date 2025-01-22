@@ -23,7 +23,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -35,7 +34,6 @@ import (
 type args struct {
 	jsonSpec *apiextensions.JSON
 	kube     kclient.Client
-	corev1   typedcorev1.CoreV1Interface
 }
 
 type want struct {
@@ -74,7 +72,6 @@ func TestVaultDynamicSecretGenerator(t *testing.T) {
 		"MissingRoleName": {
 			reason: "Raise error if incomplete k8s auth config is provided.",
 			args: args{
-				corev1: utilfake.NewCreateTokenMock().WithToken("ok"),
 				jsonSpec: &apiextensions.JSON{
 					Raw: []byte(`apiVersion: generators.external-secrets.io/v1alpha1
 kind: VaultDynamicSecret
@@ -87,7 +84,14 @@ spec:
   method: GET
   path: "github/token/example"`),
 				},
-				kube: clientfake.NewClientBuilder().Build(),
+				kube: clientfake.NewClientBuilder().WithObjects(&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "testing",
+						Namespace: "testing",
+					},
+				}).WithInterceptorFuncs(
+					utilfake.NewCreateTokenMock().WithToken("ok").AsInterceptorFuncs(),
+				).Build(),
 			},
 			want: want{
 				err: errors.New("unable to setup Vault client: no role name was provided"),
@@ -96,7 +100,6 @@ spec:
 		"EmptyVaultResponse": {
 			reason: "Fail on empty response from Vault.",
 			args: args{
-				corev1: utilfake.NewCreateTokenMock().WithToken("ok"),
 				jsonSpec: &apiextensions.JSON{
 					Raw: []byte(`apiVersion: generators.external-secrets.io/v1alpha1
 kind: VaultDynamicSecret
@@ -120,7 +123,9 @@ spec:
 							Name: "test",
 						},
 					},
-				}).Build(),
+				}).WithInterceptorFuncs(
+					utilfake.NewCreateTokenMock().WithToken("ok").AsInterceptorFuncs(),
+				).Build(),
 			},
 			want: want{
 				err: errors.New("unable to get dynamic secret: empty response from Vault"),
@@ -129,7 +134,6 @@ spec:
 		"EmptyVaultPOST": {
 			reason: "Fail on empty response from Vault.",
 			args: args{
-				corev1: utilfake.NewCreateTokenMock().WithToken("ok"),
 				jsonSpec: &apiextensions.JSON{
 					Raw: []byte(`apiVersion: generators.external-secrets.io/v1alpha1
 kind: VaultDynamicSecret
@@ -155,7 +159,9 @@ spec:
 							Name: "test",
 						},
 					},
-				}).Build(),
+				}).WithInterceptorFuncs(
+					utilfake.NewCreateTokenMock().WithToken("ok").AsInterceptorFuncs(),
+				).Build(),
 			},
 			want: want{
 				err: errors.New("unable to get dynamic secret: empty response from Vault"),
@@ -164,7 +170,6 @@ spec:
 		"AllowEmptyVaultPOST": {
 			reason: "Allow empty response from Vault POST.",
 			args: args{
-				corev1: utilfake.NewCreateTokenMock().WithToken("ok"),
 				jsonSpec: &apiextensions.JSON{
 					Raw: []byte(`apiVersion: generators.external-secrets.io/v1alpha1
 kind: VaultDynamicSecret
@@ -191,7 +196,9 @@ spec:
 							Name: "test",
 						},
 					},
-				}).Build(),
+				}).WithInterceptorFuncs(
+					utilfake.NewCreateTokenMock().WithToken("ok").AsInterceptorFuncs(),
+				).Build(),
 			},
 			want: want{
 				err: nil,
@@ -201,7 +208,6 @@ spec:
 		"AllowEmptyVaultGET": {
 			reason: "Allow empty response from Vault GET.",
 			args: args{
-				corev1: utilfake.NewCreateTokenMock().WithToken("ok"),
 				jsonSpec: &apiextensions.JSON{
 					Raw: []byte(`apiVersion: generators.external-secrets.io/v1alpha1
 kind: VaultDynamicSecret
@@ -228,7 +234,9 @@ spec:
 							Name: "test",
 						},
 					},
-				}).Build(),
+				}).WithInterceptorFuncs(
+					utilfake.NewCreateTokenMock().WithToken("ok").AsInterceptorFuncs(),
+				).Build(),
 			},
 			want: want{
 				err: nil,
@@ -241,7 +249,7 @@ spec:
 		t.Run(name, func(t *testing.T) {
 			c := &provider.Provider{NewVaultClient: fake.ClientWithLoginMock}
 			gen := &Generator{}
-			val, err := gen.generate(context.Background(), c, tc.args.jsonSpec, tc.args.kube, tc.args.corev1, "testing")
+			val, err := gen.generate(context.Background(), c, tc.args.jsonSpec, tc.args.kube, "testing")
 			if err != nil || tc.want.err != nil {
 				if diff := cmp.Diff(tc.want.err.Error(), err.Error()); diff != "" {
 					t.Errorf("\n%s\nvault.GetSecret(...): -want error, +got error:\n%s", tc.reason, diff)

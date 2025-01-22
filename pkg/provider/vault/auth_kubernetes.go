@@ -83,7 +83,7 @@ func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1beta1.Vaul
 		// Vault 1.9 deprecated issuer validation by default, and authentication with Vault clusters <1.9 will likely fail.
 		jwt, err = createServiceAccountToken(
 			ctx,
-			v.corev1,
+			v.kube,
 			v.storeKind,
 			v.namespace,
 			*kubernetesAuth.ServiceAccountRef,

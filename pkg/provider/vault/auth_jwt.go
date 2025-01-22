@@ -60,7 +60,7 @@ func (c *client) requestTokenWithJwtAuth(ctx context.Context, jwtAuth *esv1beta1
 		}
 		jwt, err = createServiceAccountToken(
 			ctx,
-			c.corev1,
+			c.kube,
 			c.storeKind,
 			c.namespace,
 			k8sServiceAccountToken.ServiceAccountRef,

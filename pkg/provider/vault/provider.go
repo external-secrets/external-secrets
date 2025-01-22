@@ -22,11 +22,8 @@ import (
 
 	vault "github.com/hashicorp/vault/api"
 	"github.com/spf13/pflag"
-	"k8s.io/client-go/kubernetes"
-	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/cache"
@@ -82,22 +79,11 @@ func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 
 // NewClient implements the Client interface.
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
-	// controller-runtime/client does not support TokenRequest or other subresource APIs
-	// so we need to construct our own client and use it to fetch tokens
-	// (for Kubernetes service account token auth)
-	restCfg, err := ctrlcfg.GetConfig()
-	if err != nil {
-		return nil, err
-	}
-	clientset, err := kubernetes.NewForConfig(restCfg)
-	if err != nil {
-		return nil, err
-	}
-	return p.newClient(ctx, store, kube, clientset.CoreV1(), namespace)
+	return p.newClient(ctx, store, kube, namespace)
 }
 
-func (p *Provider) NewGeneratorClient(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, namespace string, retrySettings *esv1beta1.SecretStoreRetrySettings) (util.Client, error) {
-	vStore, cfg, err := p.prepareConfig(ctx, kube, corev1, vaultSpec, retrySettings, namespace, resolvers.EmptyStoreKind)
+func (p *Provider) NewGeneratorClient(ctx context.Context, kube kclient.Client, vaultSpec *esv1beta1.VaultProvider, namespace string, retrySettings *esv1beta1.SecretStoreRetrySettings) (util.Client, error) {
+	vStore, cfg, err := p.prepareConfig(ctx, kube, vaultSpec, retrySettings, namespace, resolvers.EmptyStoreKind)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +101,7 @@ func (p *Provider) NewGeneratorClient(ctx context.Context, kube kclient.Client, 
 	return client, nil
 }
 
-func (p *Provider) newClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) newClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Vault == nil {
 		return nil, errors.New(errVaultStore)
@@ -125,7 +111,6 @@ func (p *Provider) newClient(ctx context.Context, store esv1beta1.GenericStore, 
 	vStore, cfg, err := p.prepareConfig(
 		ctx,
 		kube,
-		corev1,
 		vaultSpec,
 		storeSpec.RetrySettings,
 		namespace,
@@ -174,10 +159,9 @@ func (p *Provider) initClient(ctx context.Context, c *client, client util.Client
 	return c, nil
 }
 
-func (p *Provider) prepareConfig(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, retrySettings *esv1beta1.SecretStoreRetrySettings, namespace, storeKind string) (*client, *vault.Config, error) {
+func (p *Provider) prepareConfig(ctx context.Context, kube kclient.Client, vaultSpec *esv1beta1.VaultProvider, retrySettings *esv1beta1.SecretStoreRetrySettings, namespace, storeKind string) (*client, *vault.Config, error) {
 	c := &client{
 		kube:      kube,
-		corev1:    corev1,
 		store:     vaultSpec,
 		log:       logger,
 		namespace: namespace,
