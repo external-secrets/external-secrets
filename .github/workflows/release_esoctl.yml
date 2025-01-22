@@ -1,12 +1,12 @@
-name: Create Release for Render
+name: Create Release for esoctl
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'version to release, e.g. v0.1.0-render'
+        description: 'version to release, e.g. v0.1.0-esoctl'
         required: true
-        default: 'v0.1.0-render'
+        default: 'v0.1.0-esoctl'
       source_ref:
         description: 'source ref to publish from. E.g.: main or release-x.y'
         required: true
@@ -14,9 +14,10 @@ on:
 
 jobs:
   release:
-    name: Create Release for Render
+    name: Create Release for esoctl
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -35,11 +36,11 @@ jobs:
         run: go mod download
 
       - name: Install Syft
-        uses: anchore/sbom-action/download-syft@v0.17.9
+        uses: anchore/sbom-action/download-syft@df80a981bc6edbc4e220a492d3cbe9f5547a6e75 # v0.17.9
 
       - name: Import GPG key
         id: import_gpg
-        uses: crazy-max/ghaction-import-gpg@v6
+        uses: crazy-max/ghaction-import-gpg@cb9bde2e2525e640591a934b1fd28eef1dcaf5e5 # v6.2.0
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
@@ -60,11 +61,11 @@ jobs:
           git push origin $TAG
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6.1.0
+        uses: goreleaser/goreleaser-action@9ed2f89a662bf1735a48bc8557fd212fa902bebf # v6.1.0
         with:
           version: '~> v2'
           args: release --clean
-          workdir: cmd/render
+          workdir: cmd/esoctl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_CURRENT_TAG: ${{ github.event.inputs.version }}
