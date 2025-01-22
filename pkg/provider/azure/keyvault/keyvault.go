@@ -148,6 +148,8 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 	if err != nil {
 		return nil, err
 	}
+	// TODO: stop creating a new client here. use the `client.Client` from the `NewClient` method
+	//       with `CreateServiceAccountToken` from `pkg/utils/utils.go`.
 	cfg, err := ctrlcfg.GetConfig()
 	if err != nil {
 		return nil, err

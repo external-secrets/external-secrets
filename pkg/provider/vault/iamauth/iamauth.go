@@ -58,10 +58,10 @@ const (
 	AWSWebIdentityTokenFileEnvVar = "AWS_WEB_IDENTITY_TOKEN_FILE"
 )
 
-// DefaultJWTProvider returns a credentials.Provider that calls the AssumeRoleWithWebidentity
-// controller-runtime/client does not support TokenRequest or other subresource APIs
-// so we need to construct our own client and use it to fetch tokens.
+// DefaultJWTProvider returns a credentials.Provider that calls the AssumeRoleWithWebidentity.
 func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region string) (credentials.Provider, error) {
+	// TODO: stop creating a new client here. use the `kube` client from the `NewClient` method
+	//       with `CreateServiceAccountToken` from `pkg/utils/utils.go`.
 	cfg, err := ctrlcfg.GetConfig()
 	if err != nil {
 		return nil, err

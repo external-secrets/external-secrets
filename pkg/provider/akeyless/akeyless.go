@@ -104,9 +104,8 @@ func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 
 // NewClient constructs a new secrets client based on the provided store.
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
-	// controller-runtime/client does not support TokenRequest or other subresource APIs
-	// so we need to construct our own client and use it to fetch tokens
-	// (for Kubernetes service account token auth)
+	// TODO: stop creating a new client here. use the `client.Client` from the `NewClient` method
+	//       with `CreateServiceAccountToken` from `pkg/utils/utils.go`.
 	restCfg, err := ctrlcfg.GetConfig()
 	if err != nil {
 		return nil, err
