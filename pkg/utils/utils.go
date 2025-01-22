@@ -34,8 +34,10 @@ import (
 	"time"
 	"unicode"
 
+	authv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -48,6 +50,10 @@ import (
 const (
 	errParse   = "unable to parse transform template: %s"
 	errExecute = "unable to execute transform template: %s"
+
+	ErrGetServiceAccount         = "could not get service account: %w"
+	ErrServiceAccountNotExist    = "service account %q does not exist in namespace %q"
+	ErrCreateServiceAccountToken = "could not create service account token for %q: %w"
 )
 
 var (
@@ -644,4 +650,38 @@ func getCertFromConfigMap(ctx context.Context, namespace string, c client.Client
 	}
 
 	return []byte(val), nil
+}
+
+// CreateServiceAccountToken creates a service account token for the given service account reference and returns the token and its expiry.
+func CreateServiceAccountToken(ctx context.Context, c client.Client, saNamespace, saName string, audiences []string, expirationSeconds *int64) (string, time.Time, error) {
+	// Get the service account
+	serviceAccount := &corev1.ServiceAccount{}
+	err := c.Get(ctx, client.ObjectKey{
+		Namespace: saNamespace,
+		Name:      saName,
+	}, serviceAccount)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", time.Time{}, fmt.Errorf(ErrServiceAccountNotExist, saName, saNamespace)
+		}
+		return "", time.Time{}, fmt.Errorf(ErrGetServiceAccount, err)
+	}
+
+	// Create the service account token
+	tokenRequest := &authv1.TokenRequest{
+		Spec: authv1.TokenRequestSpec{
+			Audiences:         audiences,
+			ExpirationSeconds: expirationSeconds,
+		},
+	}
+	err = c.SubResource("token").Create(ctx, serviceAccount, tokenRequest)
+	if err != nil {
+		return "", time.Time{}, fmt.Errorf(ErrCreateServiceAccountToken, saName, err)
+	}
+
+	// Get the token and its expiry
+	token := tokenRequest.Status.Token
+	expiry := tokenRequest.Status.ExpirationTimestamp.Time
+
+	return token, expiry, nil
 }
