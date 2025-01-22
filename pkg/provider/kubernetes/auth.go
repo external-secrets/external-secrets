@@ -19,23 +19,13 @@ import (
 	"errors"
 	"fmt"
 
-	authenticationv1 "k8s.io/api/authentication/v1"
-	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
-)
-
-const (
-	errGetServiceAccount         = "could not get service account: %w"
-	errServiceAccountNotExist    = "service account %q does not exist in namespace %q"
-	errCreateServiceAccountToken = "could not create service account token for %q: %w"
 )
 
 func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
@@ -123,30 +113,12 @@ func (c *Client) serviceAccountToken(ctx context.Context, serviceAccountRef *esm
 	}
 	expirationSeconds := int64(3600)
 
-	serviceAccount := &corev1.ServiceAccount{}
-	err := c.ctrlClient.Get(ctx, client.ObjectKey{
-		Namespace: namespace,
-		Name:      serviceAccountRef.Name,
-	}, serviceAccount)
+	token, _, err := utils.CreateServiceAccountToken(ctx, c.ctrlClient, namespace, serviceAccountRef.Name, serviceAccountRef.Audiences, &expirationSeconds)
 	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, fmt.Errorf(errServiceAccountNotExist, serviceAccountRef.Name, namespace)
-		}
-		return nil, fmt.Errorf(errGetServiceAccount, err)
+		return nil, err
 	}
 
-	tokenRequest := &authenticationv1.TokenRequest{
-		Spec: authenticationv1.TokenRequestSpec{
-			Audiences:         serviceAccountRef.Audiences,
-			ExpirationSeconds: &expirationSeconds,
-		},
-	}
-	err = c.ctrlClient.SubResource("token").Create(ctx, serviceAccount, tokenRequest)
-	if err != nil {
-		return nil, fmt.Errorf(errCreateServiceAccountToken, serviceAccountRef.Name, err)
-	}
-
-	return []byte(tokenRequest.Status.Token), nil
+	return []byte(token), nil
 }
 
 func (c *Client) fetchSecretKey(ctx context.Context, ref esmeta.SecretKeySelector) ([]byte, error) {
