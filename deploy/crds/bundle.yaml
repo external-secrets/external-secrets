@@ -3555,6 +3555,8 @@ spec:
                           properties:
                             apiUrl:
                               type: string
+                            apiVersion:
+                              type: string
                             clientTimeOutSeconds:
                               description: Timeout specifies a time limit for requests made by this Client. The timeout includes connection time, any redirects, and reading the response body. Defaults to 45 seconds.
                               type: integer
@@ -10674,6 +10676,8 @@ spec:
                           description: Auth configures how API server works.
                           properties:
                             apiUrl:
+                              type: string
+                            apiVersion:
                               type: string
                             clientTimeOutSeconds:
                               description: Timeout specifies a time limit for requests made by this Client. The timeout includes connection time, any redirects, and reading the response body. Defaults to 45 seconds.
