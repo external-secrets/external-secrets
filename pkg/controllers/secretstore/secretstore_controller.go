@@ -16,6 +16,7 @@ package secretstore
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -25,13 +26,19 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics"
 
 	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
+)
+
+const (
+	secretStoreFinalizer = "secretstore.externalsecrets.io/finalizer"
 )
 
 // StoreReconciler reconciles a SecretStore object.
@@ -61,6 +68,45 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	} else if err != nil {
 		log.Error(err, "unable to get SecretStore")
 		return ctrl.Result{}, err
+	}
+
+	if ss.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !controllerutil.ContainsFinalizer(&ss, secretStoreFinalizer) {
+			controllerutil.AddFinalizer(&ss, secretStoreFinalizer)
+			if err := r.Update(ctx, &ss); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	} else {
+		if controllerutil.ContainsFinalizer(&ss, secretStoreFinalizer) {
+			var pushSecretList v1alpha1.PushSecretList
+
+			listOptions := &client.ListOptions{
+				Namespace: ss.ObjectMeta.Namespace,
+			}
+
+			if err := r.List(ctx, &pushSecretList, listOptions); err != nil {
+				log.Error(err, "unable to get PushSecretList")
+				return ctrl.Result{}, err
+			}
+
+			for _, ps := range pushSecretList.Items {
+				if ps.Spec.DeletionPolicy == v1alpha1.PushSecretDeletionPolicyDelete {
+					hasRef := slices.IndexFunc(ps.Spec.SecretStoreRefs, func(pushSecretStoreRef v1alpha1.PushSecretStoreRef) bool {
+						return pushSecretStoreRef.Name == ss.ObjectMeta.Name
+					})
+
+					if hasRef != -1 {
+						return ctrl.Result{RequeueAfter: 5}, nil
+					}
+				}
+			}
+		}
+		controllerutil.RemoveFinalizer(&ss, secretStoreFinalizer)
+		if err := r.Update(ctx, &ss); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
 	}
 
 	return reconcile(ctx, req, &ss, r.Client, log, Opts{
