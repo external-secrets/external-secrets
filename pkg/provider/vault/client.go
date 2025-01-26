@@ -25,7 +25,6 @@ import (
 	"github.com/go-logr/logr"
 	vault "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
-	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -40,7 +39,6 @@ type client struct {
 	kube      kclient.Client
 	store     *esv1beta1.VaultProvider
 	log       logr.Logger
-	corev1    typedcorev1.CoreV1Interface
 	client    util.Client
 	auth      util.Auth
 	logical   util.Logical

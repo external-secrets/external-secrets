@@ -23,9 +23,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
@@ -56,12 +54,11 @@ type Client struct {
 	// ctrlClient is a controller-runtime client
 	// with RBAC scope of the controller (privileged!)
 	ctrlClient kclient.Client
-	// ctrlClientset is a client-go CoreV1() client
-	// with RBAC scope of the controller (privileged!)
-	ctrlClientset typedcorev1.CoreV1Interface
+
 	// userSecretClient is a client-go CoreV1().Secrets() client
 	// with user-defined scope.
 	userSecretClient KClient
+
 	// userReviewClient is a SelfSubjectAccessReview client with
 	// user-defined scope.
 	userReviewClient RClient
@@ -88,29 +85,20 @@ func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
 
 // NewClient constructs a Kubernetes Provider.
 func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
-	restCfg, err := ctrlcfg.GetConfig()
-	if err != nil {
-		return nil, err
-	}
-	clientset, err := kubernetes.NewForConfig(restCfg)
-	if err != nil {
-		return nil, err
-	}
-	return p.newClient(ctx, store, kube, clientset, namespace)
+	return p.newClient(ctx, store, kube, namespace)
 }
 
-func (p *Provider) newClient(ctx context.Context, store esv1beta1.GenericStore, ctrlClient kclient.Client, ctrlClientset kubernetes.Interface, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) newClient(ctx context.Context, store esv1beta1.GenericStore, ctrlClient kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Kubernetes == nil {
 		return nil, errors.New("no store type or wrong store type")
 	}
 	storeSpecKubernetes := storeSpec.Provider.Kubernetes
 	client := &Client{
-		ctrlClientset: ctrlClientset.CoreV1(),
-		ctrlClient:    ctrlClient,
-		store:         storeSpecKubernetes,
-		namespace:     namespace,
-		storeKind:     store.GetObjectKind().GroupVersionKind().Kind,
+		ctrlClient: ctrlClient,
+		store:      storeSpecKubernetes,
+		namespace:  namespace,
+		storeKind:  store.GetObjectKind().GroupVersionKind().Kind,
 	}
 
 	// allow SecretStore controller validation to pass

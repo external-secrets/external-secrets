@@ -22,10 +22,7 @@ import (
 
 	vault "github.com/hashicorp/vault/api"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/client-go/kubernetes"
-	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/yaml"
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
@@ -45,23 +42,10 @@ const (
 
 func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, error) {
 	c := &provider.Provider{NewVaultClient: provider.NewVaultClient}
-
-	// controller-runtime/client does not support TokenRequest or other subresource APIs
-	// so we need to construct our own client and use it to fetch tokens
-	// (for Kubernetes service account token auth)
-	restCfg, err := ctrlcfg.GetConfig()
-	if err != nil {
-		return nil, err
-	}
-	clientset, err := kubernetes.NewForConfig(restCfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return g.generate(ctx, c, jsonSpec, kube, clientset.CoreV1(), namespace)
+	return g.generate(ctx, c, jsonSpec, kube, namespace)
 }
 
-func (g *Generator) generate(ctx context.Context, c *provider.Provider, jsonSpec *apiextensions.JSON, kube client.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (map[string][]byte, error) {
+func (g *Generator) generate(ctx context.Context, c *provider.Provider, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, error) {
 	if jsonSpec == nil {
 		return nil, errors.New(errNoSpec)
 	}
@@ -72,7 +56,7 @@ func (g *Generator) generate(ctx context.Context, c *provider.Provider, jsonSpec
 	if res == nil || res.Spec.Provider == nil {
 		return nil, errors.New("no Vault provider config in spec")
 	}
-	cl, err := c.NewGeneratorClient(ctx, kube, corev1, res.Spec.Provider, namespace, res.Spec.RetrySettings)
+	cl, err := c.NewGeneratorClient(ctx, kube, res.Spec.Provider, namespace, res.Spec.RetrySettings)
 	if err != nil {
 		return nil, fmt.Errorf(errVaultClient, err)
 	}

@@ -4,6 +4,19 @@ A `SecretStore` points to a **specific namespace** in the target Kubernetes Clus
 
 The `SecretStore` reconciler checks if you have read access for secrets in that namespace using `SelfSubjectRulesReview`. See below on how to set that up properly.
 
+!!! info "Automatic In-Cluster Triggering"
+
+    We provide an automatic triggering mechanism for Kubernetes SecretStores that point to the same cluster where the operator runs in.
+
+    This feature triggers the reconciliation of ExternalSecrets when any in-cluster source secrets they depend on are changed (create, update, delete).
+    This means you dont have to wait for `refreshInterval` to get the latest secret values.
+
+    To enable this feature, set the [`--trigger-in-cluster-secrets`](../api/controller-options.md) controller flag to `true` (default is `false`).
+    Then create a SecretStore where `spec.provider.kubernetes.server.url` is empty or points to the local cluster (e.g. `https://kubernetes.default.svc`).
+
+    __WARNING:__ this feature will only work if the controller is running at the time of the secret change.
+    If the controller is down, the ExternalSecret will not be reconciled until the next `refreshInterval`.
+
 ### External Secret Spec
 
 This provider supports the use of the `Property` field. With it you point to the key of the remote secret. If you leave it empty it will json encode all key/value pairs.
@@ -100,6 +113,7 @@ spec:
       remoteNamespace: default
       server:
         url: "https://myapiserver.tld"
+        #url: "https://kubernetes.default" # default
         caProvider:
           type: ConfigMap
           name: kube-root-ca.crt
@@ -344,7 +358,7 @@ spec:
       remoteRef:
         remoteKey: example-remote-secret
         property: url
-        
+
     metadata:
       apiVersion: kubernetes.external-secrets.io/v1alpha1
       kind: PushSecretMetadata

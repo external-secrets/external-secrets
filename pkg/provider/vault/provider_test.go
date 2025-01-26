@@ -23,7 +23,6 @@ import (
 	vault "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/utils/ptr"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -33,6 +32,7 @@ import (
 	utilfake "github.com/external-secrets/external-secrets/pkg/provider/util/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -232,7 +232,6 @@ type args struct {
 	newClientFunc func(c *vault.Config) (util.Client, error)
 	store         esv1beta1.GenericStore
 	kube          kclient.Client
-	corev1        typedcorev1.CoreV1Interface
 	ns            string
 }
 
@@ -289,9 +288,15 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 						RetryInterval: ptr.To("10m"),
 					}
 				}),
-				ns:            "default",
-				kube:          clientfake.NewClientBuilder().Build(),
-				corev1:        utilfake.NewCreateTokenMock().WithToken("ok"),
+				ns: "default",
+				kube: clientfake.NewClientBuilder().WithObjects(&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "example-sa",
+						Namespace: "default",
+					},
+				}).WithInterceptorFuncs(
+					utilfake.NewCreateTokenMock().WithToken("ok").AsInterceptorFuncs(),
+				).Build(),
 				newClientFunc: fake.ClientWithLoginMock,
 			},
 			want: want{
@@ -321,16 +326,22 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			},
 		},
 		"GetKubeServiceAccountError": {
-			reason: "Should return error if fetching kubernetes secret fails.",
+			reason: "Should return error if fetching kubernetes service account fails.",
 			args: args{
 				newClientFunc: fake.ClientWithLoginMock,
 				ns:            "default",
-				kube:          clientfake.NewClientBuilder().Build(),
-				store:         makeSecretStore(),
-				corev1:        utilfake.NewCreateTokenMock().WithError(errBoom),
+				kube: clientfake.NewClientBuilder().WithObjects(&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "example-sa",
+						Namespace: "default",
+					},
+				}).WithInterceptorFuncs(
+					utilfake.NewCreateTokenMock().WithError(errBoom).AsInterceptorFuncs(),
+				).Build(),
+				store: makeSecretStore(),
 			},
 			want: want{
-				err: fmt.Errorf(errGetKubeSATokenRequest, "example-sa", errBoom),
+				err: fmt.Errorf(utils.ErrCreateServiceAccountToken, "example-sa", errBoom),
 			},
 		},
 		"GetKubeSecretError": {
@@ -385,8 +396,14 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 						"cert":  clientCrt,
 						"token": secretData,
 					},
-				}).Build(),
-				corev1:        utilfake.NewCreateTokenMock().WithToken("ok"),
+				}).WithObjects(&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "example-sa",
+						Namespace: "default",
+					},
+				}).WithInterceptorFuncs(
+					utilfake.NewCreateTokenMock().WithToken("ok").AsInterceptorFuncs(),
+				).Build(),
 				newClientFunc: fake.ClientWithLoginMock,
 			},
 			want: want{
@@ -437,8 +454,14 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 						"secret-access-key":    []byte("ABCDEF"),
 						"secret-session-token": []byte("c2VjcmV0LXNlc3Npb24tdG9rZW4K"),
 					},
-				}).Build(),
-				corev1:        utilfake.NewCreateTokenMock().WithToken("ok"),
+				}).WithObjects(&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "example-sa",
+						Namespace: "default",
+					},
+				}).WithInterceptorFuncs(
+					utilfake.NewCreateTokenMock().WithToken("ok").AsInterceptorFuncs(),
+				).Build(),
 				newClientFunc: fake.ClientWithLoginMock,
 			},
 			want: want{
@@ -458,8 +481,14 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 					Data: map[string]string{
 						"cert": string(clientCrt),
 					},
-				}).Build(),
-				corev1:        utilfake.NewCreateTokenMock().WithToken("ok"),
+				}).WithObjects(&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "example-sa",
+						Namespace: "default",
+					},
+				}).WithInterceptorFuncs(
+					utilfake.NewCreateTokenMock().WithToken("ok").AsInterceptorFuncs(),
+				).Build(),
 				newClientFunc: fake.ClientWithLoginMock,
 			},
 			want: want{
@@ -559,8 +588,14 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 						tlsKey: []byte("key with mistake"),
 						tlsCrt: clientCrt,
 					},
-				}).Build(),
-				corev1:        utilfake.NewCreateTokenMock().WithToken("ok"),
+				}).WithObjects(&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "example-sa",
+						Namespace: "default",
+					},
+				}).WithInterceptorFuncs(
+					utilfake.NewCreateTokenMock().WithToken("ok").AsInterceptorFuncs(),
+				).Build(),
 				newClientFunc: fake.ClientWithLoginMock,
 			},
 			want: want{
@@ -590,8 +625,14 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 						tlsKey: secretClientKey,
 						tlsCrt: clientCrt,
 					},
-				}).Build(),
-				corev1:        utilfake.NewCreateTokenMock().WithToken("ok"),
+				}).WithObjects(&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "example-sa",
+						Namespace: "default",
+					},
+				}).WithInterceptorFuncs(
+					utilfake.NewCreateTokenMock().WithToken("ok").AsInterceptorFuncs(),
+				).Build(),
 				newClientFunc: fake.ClientWithLoginMock,
 			},
 			want: want{
@@ -702,7 +743,7 @@ func vaultTest(t *testing.T, _ string, tc testCase) {
 	if tc.args.newClientFunc == nil {
 		prov.NewVaultClient = NewVaultClient
 	}
-	_, err := prov.newClient(context.Background(), tc.args.store, tc.args.kube, tc.args.corev1, tc.args.ns)
+	_, err := prov.newClient(context.Background(), tc.args.store, tc.args.kube, tc.args.ns)
 	if diff := cmp.Diff(tc.want.err, err, EquateErrors()); diff != "" {
 		t.Errorf("\n%s\nvault.New(...): -want error, +got error:\n%s", tc.reason, diff)
 	}

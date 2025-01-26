@@ -579,6 +579,8 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(store esv1beta1.G
 	if err = utils.ValidateServiceAccountSelector(store, *serviceAcccountRef); err != nil {
 		return nil, fmt.Errorf("invalid ServiceAccountRef: %w", err)
 	}
+	// TODO: stop creating a new client here. use the `kube` client from the `NewClient` method
+	//       with `CreateServiceAccountToken` from `pkg/utils/utils.go`.
 	cfg, err := ctrlcfg.GetConfig()
 	if err != nil {
 		return nil, err

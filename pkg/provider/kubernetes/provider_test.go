@@ -254,7 +254,7 @@ func TestNewClient(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := (&Provider{}).newClient(context.Background(), tt.args.store, tt.args.kube, tt.args.clientset, tt.args.namespace)
+			got, err := (&Provider{}).newClient(context.Background(), tt.args.store, tt.args.kube, tt.args.namespace)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ProviderKubernetes.NewClient() error = %v, wantErr %v", err, tt.wantErr)
 				return

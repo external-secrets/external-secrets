@@ -274,10 +274,10 @@ func credsFromServiceAccount(ctx context.Context, auth esv1beta1.AWSAuth, region
 
 type jwtProviderFactory func(name, namespace, roleArn string, aud []string, region string) (credentials.Provider, error)
 
-// DefaultJWTProvider returns a credentials.Provider that calls the AssumeRoleWithWebidentity
-// controller-runtime/client does not support TokenRequest or other subresource APIs
-// so we need to construct our own client and use it to fetch tokens.
+// DefaultJWTProvider returns a credentials.Provider that calls the AssumeRoleWithWebidentity.
 func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region string) (credentials.Provider, error) {
+	// TODO: stop creating a new client here. use the `client.Client` from the `NewClient` method
+	//       with `CreateServiceAccountToken` from `pkg/utils/utils.go`.
 	cfg, err := ctrlcfg.GetConfig()
 	if err != nil {
 		return nil, err

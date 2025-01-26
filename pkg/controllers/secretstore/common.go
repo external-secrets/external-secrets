@@ -21,6 +21,8 @@ import (
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,13 +32,15 @@ import (
 )
 
 const (
-	errStoreClient         = "could not get provider client: %w"
-	errValidationFailed    = "could not validate provider: %w"
-	errPatchStatus         = "unable to patch status: %w"
-	errUnableCreateClient  = "unable to create client"
-	errUnableValidateStore = "unable to validate store: %s"
+	// condition messages for "Valid" reason.
+	msgValid = "store validated"
 
-	msgStoreValidated = "store validated"
+	// log messages.
+	logErrorUpdateStatus = "unable to update %s status"
+
+	// error formats.
+	errStoreClient      = "could not get provider client: %w"
+	errValidationFailed = "validation failed: %w"
 )
 
 type Opts struct {
@@ -46,7 +50,7 @@ type Opts struct {
 	RequeueInterval time.Duration
 }
 
-func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl client.Client, log logr.Logger, opts Opts) (ctrl.Result, error) {
+func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl client.Client, log logr.Logger, opts Opts) (result ctrl.Result, err error) {
 	if !ShouldProcessStore(ss, opts.ControllerClass) {
 		log.V(1).Info("skip store")
 		return ctrl.Result{}, nil
@@ -59,60 +63,90 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 	}
 
 	// patch status when done processing
-	p := client.MergeFrom(ss.Copy())
+	// update status of the SecretStore when this function returns, if needed.
+	// NOTE: we use the ability of deferred functions to update named return values `result` and `err`
+	// NOTE: we dereference the DeepCopy of the status field because status fields are NOT pointers,
+	//       so otherwise the `equality.Semantic.DeepEqual` will always return false.
+	ssStatus := ss.GetStatus()
+	currentStatus := *ssStatus.DeepCopy()
 	defer func() {
-		err := cl.Status().Patch(ctx, ss, p)
-		if err != nil {
-			log.Error(err, errPatchStatus)
+		// if the status has not changed, we don't need to update it
+		// WARNING: be VERY careful to ensure that you haven't set empty `omitempty` fields to their empty values,
+		//          as when we get the SecretStore from the API server, these fields will be seen as different
+		//          from your true empty values, and the status will be updated every time.
+		if equality.Semantic.DeepEqual(currentStatus, ss.GetStatus()) {
+			return
+		}
+
+		// update the status of the SecretStore, storing any error in a new variable
+		// if there was no new error, we don't need to change the `result` or `err` values
+		updateErr := cl.Status().Update(ctx, ss)
+		if updateErr == nil {
+			return
+		}
+
+		// if we got an update conflict, we should requeue immediately
+		if apierrors.IsConflict(updateErr) {
+			log.V(1).Info("conflict while updating status, will requeue")
+
+			// we only explicitly request a requeue if the main function did not return an `err`.
+			// otherwise, we get an annoying log saying that results are ignored when there is an error,
+			// as errors are always retried.
+			if err == nil {
+				result = ctrl.Result{Requeue: true}
+			}
+			return
+		}
+
+		// for other errors, log and update the `err` variable if there is no error already
+		// so the reconciler will requeue the request
+		log.Error(updateErr, logErrorUpdateStatus, ss.GetKind())
+		if err == nil {
+			err = updateErr
 		}
 	}()
 
-	// validateStore modifies the store conditions
-	// we have to patch the status
-	log.V(1).Info("validating")
-	err := validateStore(ctx, req.Namespace, opts.ControllerClass, ss, cl, opts.GaugeVecGetter, opts.Recorder)
+	// validate the store, updating the status and returning an error if the store is invalid
+	err = validateStore(ctx, req.Namespace, opts.ControllerClass, ss, cl, opts.GaugeVecGetter)
 	if err != nil {
-		log.Error(err, "unable to validate store")
+		log.Error(err, "store validation failed")
 		return ctrl.Result{}, err
 	}
+
+	// update the capabilities of the store
 	storeProvider, err := esapi.GetProvider(ss)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	capStatus := esapi.SecretStoreStatus{
-		Capabilities: storeProvider.Capabilities(),
-		Conditions:   ss.GetStatus().Conditions,
-	}
-	ss.SetStatus(capStatus)
+	ssStatus = ss.GetStatus()
+	ssStatus.Capabilities = storeProvider.Capabilities()
+	ss.SetStatus(ssStatus)
 
-	opts.Recorder.Event(ss, v1.EventTypeNormal, esapi.ReasonStoreValid, msgStoreValidated)
-	cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionTrue, esapi.ReasonStoreValid, msgStoreValidated)
+	// update the status of the SecretStore to indicate that it is valid
+	cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionTrue, esapi.ReasonStoreValid, msgValid)
 	SetExternalSecretCondition(ss, *cond, opts.GaugeVecGetter)
 
-	return ctrl.Result{
-		RequeueAfter: requeueInterval,
-	}, err
+	return ctrl.Result{RequeueAfter: requeueInterval}, nil
 }
 
 // validateStore tries to construct a new client
 // if it fails sets a condition and writes events.
-func validateStore(ctx context.Context, namespace, controllerClass string, store esapi.GenericStore,
-	client client.Client, gaugeVecGetter metrics.GaugeVevGetter, recorder record.EventRecorder) error {
+func validateStore(ctx context.Context, namespace, controllerClass string, store esapi.GenericStore, client client.Client, gaugeVecGetter metrics.GaugeVevGetter) error {
 	mgr := NewManager(client, controllerClass, false)
 	defer mgr.Close(ctx)
 	cl, err := mgr.GetFromStore(ctx, store, namespace)
 	if err != nil {
-		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonInvalidProviderConfig, errUnableCreateClient)
+		err = fmt.Errorf(errStoreClient, err)
+		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonInvalidProviderConfig, err.Error())
 		SetExternalSecretCondition(store, *cond, gaugeVecGetter)
-		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonInvalidProviderConfig, err.Error())
-		return fmt.Errorf(errStoreClient, err)
+		return err
 	}
 	validationResult, err := cl.Validate()
 	if err != nil && validationResult != esapi.ValidationResultUnknown {
-		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonValidationFailed, fmt.Sprintf(errUnableValidateStore, err))
+		err = fmt.Errorf(errValidationFailed, err)
+		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonValidationFailed, err.Error())
 		SetExternalSecretCondition(store, *cond, gaugeVecGetter)
-		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonValidationFailed, err.Error())
-		return fmt.Errorf(errValidationFailed, err)
+		return err
 	}
 
 	return nil

@@ -179,6 +179,8 @@ func getQuayRobotToken(ctx context.Context, fedToken, robotAccount, url string, 
 }
 
 func fetchServiceAccountToken(ctx context.Context, saRef esmeta.ServiceAccountSelector, namespace string) (string, error) {
+	// TODO: stop creating a new client here. use the `client.Client` from the `Generate` method
+	//       with `CreateServiceAccountToken` from `pkg/utils/utils.go`.
 	cfg, err := ctrlcfg.GetConfig()
 	if err != nil {
 		return "", err

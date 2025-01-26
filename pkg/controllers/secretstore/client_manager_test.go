@@ -303,7 +303,7 @@ func TestManagerGet(t *testing.T) {
 			fakeProvider.newClientFunc = tt.clientConstructor
 			clientA.closeCalled = false
 			clientB.closeCalled = false
-			got, err := mgr.Get(context.Background(), tt.args.storeRef, tt.args.namespace, tt.args.sourceRef)
+			_, got, err := mgr.Get(context.Background(), tt.args.storeRef, tt.args.namespace, tt.args.sourceRef)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Manager.Get() error = %v, wantErr %v", err, tt.wantErr)
 				return

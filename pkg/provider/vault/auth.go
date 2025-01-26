@@ -21,9 +21,7 @@ import (
 	"fmt"
 
 	vault "github.com/hashicorp/vault/api"
-	authv1 "k8s.io/api/authentication/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -31,13 +29,13 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	vaultiamauth "github.com/external-secrets/external-secrets/pkg/provider/vault/iamauth"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
-	errAuthFormat            = "cannot initialize Vault client: no valid auth method specified"
-	errVaultToken            = "cannot parse Vault authentication token: %w"
-	errGetKubeSATokenRequest = "cannot request Kubernetes service account token for service account %q: %w"
-	errVaultRevokeToken      = "error while revoking token: %w"
+	errAuthFormat       = "cannot initialize Vault client: no valid auth method specified"
+	errVaultToken       = "cannot parse Vault authentication token: %w"
+	errVaultRevokeToken = "error while revoking token: %w"
 )
 
 // setAuth gets a new token using the configured mechanism.
@@ -113,7 +111,7 @@ func (c *client) setAuth(ctx context.Context, cfg *vault.Config) error {
 
 func createServiceAccountToken(
 	ctx context.Context,
-	corev1Client typedcorev1.CoreV1Interface,
+	kube kclient.Client,
 	storeKind string,
 	namespace string,
 	serviceAccountRef esmeta.ServiceAccountSelector,
@@ -123,25 +121,18 @@ func createServiceAccountToken(
 	if len(additionalAud) > 0 {
 		audiences = append(audiences, additionalAud...)
 	}
-	tokenRequest := &authv1.TokenRequest{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-		},
-		Spec: authv1.TokenRequestSpec{
-			Audiences:         audiences,
-			ExpirationSeconds: &expirationSeconds,
-		},
-	}
+
 	if (storeKind == esv1beta1.ClusterSecretStoreKind) &&
 		(serviceAccountRef.Namespace != nil) {
-		tokenRequest.Namespace = *serviceAccountRef.Namespace
+		namespace = *serviceAccountRef.Namespace
 	}
-	tokenResponse, err := corev1Client.ServiceAccounts(tokenRequest.Namespace).
-		CreateToken(ctx, serviceAccountRef.Name, tokenRequest, metav1.CreateOptions{})
+
+	token, _, err := utils.CreateServiceAccountToken(ctx, kube, namespace, serviceAccountRef.Name, audiences, &expirationSeconds)
 	if err != nil {
-		return "", fmt.Errorf(errGetKubeSATokenRequest, serviceAccountRef.Name, err)
+		return "", err
 	}
-	return tokenResponse.Status.Token, nil
+
+	return token, nil
 }
 
 // checkToken does a lookup and checks if the provided token exists.

@@ -19,8 +19,6 @@ import (
 	"errors"
 	"fmt"
 
-	authenticationv1 "k8s.io/api/authentication/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
@@ -28,10 +26,6 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
-)
-
-const (
-	errUnableCreateToken = "cannot create service account token: %q"
 )
 
 func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
@@ -118,16 +112,13 @@ func (c *Client) serviceAccountToken(ctx context.Context, serviceAccountRef *esm
 		namespace = *serviceAccountRef.Namespace
 	}
 	expirationSeconds := int64(3600)
-	tr, err := c.ctrlClientset.ServiceAccounts(namespace).CreateToken(ctx, serviceAccountRef.Name, &authenticationv1.TokenRequest{
-		Spec: authenticationv1.TokenRequestSpec{
-			Audiences:         serviceAccountRef.Audiences,
-			ExpirationSeconds: &expirationSeconds,
-		},
-	}, metav1.CreateOptions{})
+
+	token, _, err := utils.CreateServiceAccountToken(ctx, c.ctrlClient, namespace, serviceAccountRef.Name, serviceAccountRef.Audiences, &expirationSeconds)
 	if err != nil {
-		return nil, fmt.Errorf(errUnableCreateToken, err)
+		return nil, err
 	}
-	return []byte(tr.Status.Token), nil
+
+	return []byte(token), nil
 }
 
 func (c *Client) fetchSecretKey(ctx context.Context, ref esmeta.SecretKeySelector) ([]byte, error) {

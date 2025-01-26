@@ -28,7 +28,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/template"
 )
 
-const fieldOwnerTemplate = "externalsecrets.external-secrets.io/%v"
+const FieldOwnerTemplate = "externalsecrets.external-secrets.io/%v"
 
 var (
 	errTplCMMissingKey  = "error in configmap %s: missing key %s"
@@ -165,6 +165,7 @@ func (p *Parser) MergeMap(tplMap map[string]string, target esv1beta1.TemplateTar
 	return nil
 }
 
+// GetManagedAnnotationKeys returns keys under `metadata.annotations` that are managed by a given fieldOwner.
 func GetManagedAnnotationKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
 	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]any) []string {
 		metadataFields, exists := fields["f:metadata"]
@@ -191,6 +192,7 @@ func GetManagedAnnotationKeys(secret *v1.Secret, fieldOwner string) ([]string, e
 	})
 }
 
+// GetManagedLabelKeys returns keys under `metadata.labels` that are managed by a given fieldOwner.
 func GetManagedLabelKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
 	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]any) []string {
 		metadataFields, exists := fields["f:metadata"]
@@ -217,12 +219,31 @@ func GetManagedLabelKeys(secret *v1.Secret, fieldOwner string) ([]string, error)
 	})
 }
 
+// GetManagedDataKeys returns keys under `data` that are managed by a given fieldOwner.
+func GetManagedDataKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
+	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]any) []string {
+		dataFields, exists := fields["f:data"]
+		if !exists {
+			return nil
+		}
+		df, ok := dataFields.(map[string]any)
+		if !ok {
+			return nil
+		}
+		var keys []string
+		for k := range df {
+			keys = append(keys, k)
+		}
+		return keys
+	})
+}
+
 func getManagedFieldKeys(
 	secret *v1.Secret,
 	fieldOwner string,
 	process func(fields map[string]any) []string,
 ) ([]string, error) {
-	fqdn := fmt.Sprintf(fieldOwnerTemplate, fieldOwner)
+	fqdn := fmt.Sprintf(FieldOwnerTemplate, fieldOwner)
 	var keys []string
 	for _, v := range secret.ObjectMeta.ManagedFields {
 		if v.Manager != fqdn {

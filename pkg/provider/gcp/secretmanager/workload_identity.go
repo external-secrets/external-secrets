@@ -202,6 +202,8 @@ func (g *k8sSATokenGenerator) Generate(ctx context.Context, audiences []string, 
 }
 
 func newSATokenGenerator() (saTokenGenerator, error) {
+	// TODO: stop creating a new client here. use the `client.Client` from the `NewClient` method
+	//       with `CreateServiceAccountToken` from `pkg/utils/utils.go`.
 	cfg, err := ctrlcfg.GetConfig()
 	if err != nil {
 		return nil, err

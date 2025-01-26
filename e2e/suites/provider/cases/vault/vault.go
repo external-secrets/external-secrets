@@ -17,9 +17,7 @@ import (
 	"fmt"
 	"time"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/wait"
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
@@ -279,23 +277,17 @@ func testInvalidMtlsStore(tc *framework.TestCase) {
 	tc.ExternalSecret = nil
 	tc.ExpectedSecret = nil
 
-	err := wait.PollUntilContextTimeout(context.Background(), time.Second*10, time.Minute, true, func(context context.Context) (bool, error) {
-		var ss esapi.SecretStore
-		err := tc.Framework.CRClient.Get(context, types.NamespacedName{
+	Eventually(func(g Gomega) {
+		ss := &esapi.SecretStore{}
+		g.Expect(tc.Framework.CRClient.Get(context.Background(), types.NamespacedName{
 			Namespace: tc.Framework.Namespace.Name,
 			Name:      tc.Framework.Namespace.Name + invalidMtlSuffix,
-		}, &ss)
-		if apierrors.IsNotFound(err) {
-			return false, nil
-		}
-		if len(ss.Status.Conditions) == 0 {
-			return false, nil
-		}
-		Expect(string(ss.Status.Conditions[0].Type)).Should(Equal("Ready"))
-		Expect(string(ss.Status.Conditions[0].Status)).Should(Equal("False"))
-		Expect(ss.Status.Conditions[0].Reason).Should(Equal("ValidationFailed"))
-		Expect(ss.Status.Conditions[0].Message).Should(ContainSubstring("unable to validate store"))
-		return true, nil
-	})
-	Expect(err).ToNot(HaveOccurred())
+		}, ss)).To(Succeed())
+
+		g.Expect(ss.Status.Conditions).ToNot(BeEmpty())
+		g.Expect(string(ss.Status.Conditions[0].Type)).Should(Equal("Ready"))
+		g.Expect(string(ss.Status.Conditions[0].Status)).Should(Equal("False"))
+		g.Expect(ss.Status.Conditions[0].Reason).Should(Equal("ValidationFailed"))
+		g.Expect(ss.Status.Conditions[0].Message).Should(ContainSubstring("validation failed"))
+	}, time.Minute, 10*time.Second).Should(Succeed())
 }

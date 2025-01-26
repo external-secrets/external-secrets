@@ -16,10 +16,8 @@ package externalsecret
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"maps"
 	"slices"
 	"strings"
 	"time"
@@ -30,12 +28,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
@@ -45,26 +41,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	// Metrics.
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
 	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 
-	// Loading registered generators.
+	// Loading registered generators and providers.
 	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
-	// Loading registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
 )
 
 const (
-	fieldOwnerTemplate = "externalsecrets.external-secrets.io/%v"
-
 	// condition messages for "SecretSynced" reason.
 	msgSynced       = "secret synced"
 	msgSyncedRetain = "secret retained due to DeletionPolicy=Retain"
@@ -75,15 +65,6 @@ const (
 	// condition messages for "SecretMissing" reason.
 	msgMissing = "secret will not be created due to CreationPolicy=Merge"
 
-	// condition messages for "SecretSyncedError" reason.
-	msgErrorGetSecretData   = "could not get secret data from provider"
-	msgErrorDeleteSecret    = "could not delete secret"
-	msgErrorDeleteOrphaned  = "could not delete orphaned secrets"
-	msgErrorUpdateSecret    = "could not update secret"
-	msgErrorUpdateImmutable = "could not update secret, target is immutable"
-	msgErrorBecomeOwner     = "failed to take ownership of target secret"
-	msgErrorIsOwned         = "target is owned by another ExternalSecret"
-
 	// log messages.
 	logErrorGetES                = "unable to get ExternalSecret"
 	logErrorUpdateESStatus       = "unable to update ExternalSecret status"
@@ -93,27 +74,38 @@ const (
 	logErrorUnmanagedStore       = "unable to determine if store is managed"
 
 	// error formats.
-	errConvert               = "error applying conversion strategy %s to keys: %w"
-	errRewrite               = "error applying rewrite to keys: %w"
-	errDecode                = "error applying decoding strategy %s to data: %w"
-	errGenerate              = "error using generator: %w"
-	errInvalidKeys           = "invalid secret keys (TIP: use rewrite or conversionStrategy to change keys): %w"
-	errFetchTplFrom          = "error fetching templateFrom data: %w"
-	errApplyTemplate         = "could not apply template: %w"
-	errExecTpl               = "could not execute template: %w"
-	errMutate                = "unable to mutate secret %s: %w"
-	errUpdate                = "unable to update secret %s: %w"
-	errUpdateNotFound        = "unable to update secret %s: not found"
-	errDeleteCreatePolicy    = "unable to delete secret %s: creationPolicy=%s is not Owner"
-	errSecretCachesNotSynced = "controller caches for secret %s are not in sync"
+	errConvert                  = "error applying conversion strategy %s to keys: %w"
+	errRewrite                  = "error applying rewrite to keys: %w"
+	errDecode                   = "error applying decoding strategy %s to data: %w"
+	errGenerate                 = "error using generator: %w"
+	errInvalidKeys              = "invalid secret keys (TIP: use rewrite or conversionStrategy to change keys): %w"
+	errFetchTplFrom             = "could not fetch templateFrom data: %w"
+	errApplyTemplate            = "could not apply template: %w"
+	errExecTpl                  = "could not execute template: %w"
+	errMutate                   = "could not mutate secret %s: %w"
+	errCreate                   = "could not create secret %s: %w"
+	errUpdate                   = "could not update secret %s: %w"
+	errUpdateNotFound           = "could not update secret %s: not found"
+	errDeleteSecret             = "could not delete secret %s: %w"
+	errDeleteSecretOrphaned     = "could not delete orphaned secrets: %w"
+	errDeleteSecretCreatePolicy = "unable to delete secret %s: creationPolicy=%s is not Owner"
+	errSecretCachesNotSynced    = "controller caches for secret %s are not in sync"
+	errSourcesNotExists         = "some referenced data sources do not exist: %v"
+	errSourcesNotReady          = "some referenced data sources are not ready: %v"
+	errProviderData             = "could not get data from providers: %w"
+	errDefaultStoreMissing      = "default store is missing (spec.secretStoreRef), but some entries omit store references (spec.data[] or spec.dataFrom[])"
+	errBecomeOwner              = "could not take ownership of secret %s: %w"
+	errRemoveOwner              = "could not remove ownership from secret %s: %w"
+	errSpecData                 = "error processing spec.data[%d] (key: %s), err: %w"
+	errSpecDataFromFind         = "error processing spec.dataFrom[%d].find, err: %w"
+	errSpecDataFromExtract      = "error processing spec.dataFrom[%d].extract (key: %s), err: %w"
+	errSpecDataFromGenerator    = "error processing spec.dataFrom[%d].sourceRef.generatorRef, err: %w"
 
 	// event messages.
-	eventCreated                  = "secret created"
-	eventUpdated                  = "secret updated"
-	eventDeleted                  = "secret deleted due to DeletionPolicy=Delete"
-	eventDeletedOrphaned          = "secret deleted because it was orphaned"
-	eventMissingProviderSecret    = "secret does not exist at provider using spec.dataFrom[%d]"
-	eventMissingProviderSecretKey = "secret does not exist at provider using spec.dataFrom[%d] (key=%s)"
+	eventCreated         = "secret created"
+	eventUpdated         = "secret updated"
+	eventDeleted         = "secret deleted due to DeletionPolicy=Delete"
+	eventDeletedOrphaned = "secret deleted because it was orphaned"
 )
 
 // these errors are explicitly defined so we can detect them with `errors.Is()`.
@@ -121,23 +113,25 @@ var (
 	ErrSecretImmutable     = fmt.Errorf("secret is immutable")
 	ErrSecretIsOwned       = fmt.Errorf("secret is owned by another ExternalSecret")
 	ErrSecretSetCtrlRef    = fmt.Errorf("could not set controller reference on secret")
-	ErrSecretRemoveCtrlRef = fmt.Errorf("could not remove controller reference on secret")
+	ErrSecretRemoveCtrlRef = fmt.Errorf("could not remove controller reference from secret")
 )
 
 const indexESTargetSecretNameField = ".metadata.targetSecretName"
+const indexESTriggerSecretsField = ".metadata.triggerSecrets"
 
 // Reconciler reconciles a ExternalSecret object.
 type Reconciler struct {
 	client.Client
-	SecretClient              client.Client
-	Log                       logr.Logger
-	Scheme                    *runtime.Scheme
-	RestConfig                *rest.Config
-	ControllerClass           string
-	RequeueInterval           time.Duration
-	ClusterSecretStoreEnabled bool
-	EnableFloodGate           bool
-	recorder                  record.EventRecorder
+	SecretClient                  client.Client
+	Log                           logr.Logger
+	Scheme                        *runtime.Scheme
+	RestConfig                    *rest.Config
+	ControllerClass               string
+	RequeueInterval               time.Duration
+	ClusterSecretStoreEnabled     bool
+	EnableFloodGate               bool
+	EnableTriggerInClusterSecrets bool
+	recorder                      record.EventRecorder
 }
 
 // Reconcile implements the main reconciliation loop
@@ -190,20 +184,23 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	resourceLabels = ctrlmetrics.RefineLabels(resourceLabels, externalSecret.Labels)
 
 	// skip this ExternalSecret if it uses a ClusterSecretStore and the feature is disabled
-	if shouldSkipClusterSecretStore(r, externalSecret) {
+	if r.shouldSkipClusterSecretStore(externalSecret) {
 		log.V(1).Info("skipping ExternalSecret, ClusterSecretStore feature is disabled")
 		return ctrl.Result{}, nil
 	}
 
 	// skip this ExternalSecret if it uses any SecretStore not managed by this controller
-	skip, err := shouldSkipUnmanagedStore(ctx, req.Namespace, r, externalSecret)
+	// NOTE: we capture information about some sync errors but do not act on them until
+	//       later in the reconciliation so we can update the status of the ExternalSecret
+	//       (notExistSources, notReadySources, defaultStoreMissing)
+	skip, sourcesResult, err := r.getDataSourcesOrSkip(ctx, externalSecret)
 	if err != nil {
 		log.Error(err, logErrorUnmanagedStore)
 		syncCallsError.With(resourceLabels).Inc()
 		return ctrl.Result{}, err
 	}
 	if skip {
-		log.V(1).Info("skipping ExternalSecret, uses unmanaged SecretStore")
+		log.V(1).Info("skipping ExternalSecret, it uses unmanaged SecretStores or Generators")
 		return ctrl.Result{}, nil
 	}
 
@@ -233,7 +230,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	// if the secret exists but does not have the "managed" label, add the label
 	// using a PATCH so it is visible in the cache, then requeue immediately
 	if secretPartial.UID != "" && secretPartial.Labels[esv1beta1.LabelManaged] != esv1beta1.LabelManagedValue {
-		fqdn := fmt.Sprintf(fieldOwnerTemplate, externalSecret.Name)
+		fqdn := fmt.Sprintf(templating.FieldOwnerTemplate, externalSecret.Name)
 		patch := client.MergeFrom(secretPartial.DeepCopy())
 		if secretPartial.Labels == nil {
 			secretPartial.Labels = make(map[string]string)
@@ -291,7 +288,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	//       so otherwise the `equality.Semantic.DeepEqual` will always return false.
 	currentStatus := *externalSecret.Status.DeepCopy()
 	defer func() {
+		// use the ssInfoMap and cssInfoMap to update the sources and triggers in the status
+		r.updateStatusSourcesAndTriggers(externalSecret, sourcesResult.ssInfoMap, sourcesResult.cssInfoMap)
+
 		// if the status has not changed, we don't need to update it
+		// WARNING: be VERY careful to ensure that you haven't set empty `omitempty` fields to their empty values,
+		//          as when we get the ExternalSecret from the API server, these fields will be seen as different
+		//          from your true empty values, and the status will be updated every time.
 		if equality.Semantic.DeepEqual(currentStatus, externalSecret.Status) {
 			return
 		}
@@ -324,10 +327,32 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		}
 	}()
 
+	// handle errors we detected before this point
+	// NOTE: we were holding on to these errors as before this point, we were
+	//       still determining if we should be doing a sync or not, so could not
+	//       update the status of the ExternalSecret.
+	if sourcesResult.defaultStoreMissing {
+		// NOTE: this error cant be fixed by retrying so we don't return an error (which would requeue immediately)
+		err = errors.New(errDefaultStoreMissing)
+		r.markAsFailed(err, externalSecret, syncCallsError.With(resourceLabels))
+		return ctrl.Result{}, nil
+	}
+	if len(sourcesResult.notExistSources) > 0 {
+		err = fmt.Errorf(errSourcesNotExists, sourcesResult.notExistSources)
+		r.markAsFailed(err, externalSecret, syncCallsError.With(resourceLabels))
+		return ctrl.Result{}, err
+	}
+	if r.EnableFloodGate && len(sourcesResult.notReadySources) > 0 {
+		err = fmt.Errorf(errSourcesNotReady, sourcesResult.notReadySources)
+		r.markAsFailed(err, externalSecret, syncCallsError.With(resourceLabels))
+		return ctrl.Result{}, err
+	}
+
 	// retrieve the provider secret data.
-	dataMap, err := r.getProviderSecretData(ctx, externalSecret)
+	dataMap, err := r.getProviderSecretData(ctx, externalSecret, sourcesResult.ssInfoMap, sourcesResult.cssInfoMap)
 	if err != nil {
-		r.markAsFailed(msgErrorGetSecretData, err, externalSecret, syncCallsError.With(resourceLabels))
+		err = fmt.Errorf(errProviderData, err)
+		r.markAsFailed(err, externalSecret, syncCallsError.With(resourceLabels))
 		return ctrl.Result{}, err
 	}
 
@@ -341,8 +366,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			// NOTE: this error cant be fixed by retrying so we don't return an error (which would requeue immediately)
 			creationPolicy := externalSecret.Spec.Target.CreationPolicy
 			if creationPolicy != esv1beta1.CreatePolicyOwner {
-				err = fmt.Errorf(errDeleteCreatePolicy, secretName, creationPolicy)
-				r.markAsFailed(msgErrorDeleteSecret, err, externalSecret, syncCallsError.With(resourceLabels))
+				err = fmt.Errorf(errDeleteSecretCreatePolicy, secretName, creationPolicy)
+				r.markAsFailed(err, externalSecret, syncCallsError.With(resourceLabels))
 				return ctrl.Result{}, nil
 			}
 
@@ -350,10 +375,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			if existingSecret.UID != "" {
 				err = r.Delete(ctx, existingSecret)
 				if err != nil && !apierrors.IsNotFound(err) {
-					r.markAsFailed(msgErrorDeleteSecret, err, externalSecret, syncCallsError.With(resourceLabels))
+					err = fmt.Errorf(errDeleteSecret, secretName, err)
+					r.markAsFailed(err, externalSecret, syncCallsError.With(resourceLabels))
 					return ctrl.Result{}, err
 				}
-				r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1beta1.ReasonDeleted, eventDeleted)
+				r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1beta1.EventReasonDeleted, eventDeleted)
 			}
 
 			r.markAsDone(externalSecret, start, log, esv1beta1.ConditionReasonSecretDeleted, msgDeleted)
@@ -367,95 +393,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		}
 	}
 
-	// mutationFunc is a function which can be applied to a secret to make it match the desired state.
-	mutationFunc := func(secret *v1.Secret) error {
-		// get information about the current owner of the secret
-		//  - we ignore the API version as it can change over time
-		//  - we ignore the UID for consistency with the SetControllerReference function
-		currentOwner := metav1.GetControllerOf(secret)
-		ownerIsESKind := false
-		ownerIsCurrentES := false
-		if currentOwner != nil {
-			currentOwnerGK := schema.FromAPIVersionAndKind(currentOwner.APIVersion, currentOwner.Kind).GroupKind()
-			ownerIsESKind = currentOwnerGK.String() == esv1beta1.ExtSecretGroupKind
-			ownerIsCurrentES = ownerIsESKind && currentOwner.Name == externalSecret.Name
-		}
-
-		// if another ExternalSecret is the owner, we should return an error
-		// otherwise the controller will fight with itself to update the secret.
-		// note, this does not prevent other controllers from owning the secret.
-		if ownerIsESKind && !ownerIsCurrentES {
-			return fmt.Errorf("%w: %s", ErrSecretIsOwned, currentOwner.Name)
-		}
-
-		// if the CreationPolicy is Owner, we should set ourselves as the owner of the secret
-		if externalSecret.Spec.Target.CreationPolicy == esv1beta1.CreatePolicyOwner {
-			err = controllerutil.SetControllerReference(externalSecret, secret, r.Scheme)
-			if err != nil {
-				return fmt.Errorf("%w: %w", ErrSecretSetCtrlRef, err)
-			}
-		}
-
-		// if the creation policy is not Owner, we should remove ourselves as the owner
-		// this could happen if the creation policy was changed after the secret was created
-		if externalSecret.Spec.Target.CreationPolicy != esv1beta1.CreatePolicyOwner && ownerIsCurrentES {
-			err = controllerutil.RemoveControllerReference(externalSecret, secret, r.Scheme)
-			if err != nil {
-				return fmt.Errorf("%w: %w", ErrSecretRemoveCtrlRef, err)
-			}
-		}
-
-		// initialize maps within the secret so it's safe to set values
-		if secret.Annotations == nil {
-			secret.Annotations = make(map[string]string)
-		}
-		if secret.Labels == nil {
-			secret.Labels = make(map[string]string)
-		}
-		if secret.Data == nil {
-			secret.Data = make(map[string][]byte)
-		}
-
-		// get the list of keys that are managed by this ExternalSecret
-		keys, err := getManagedDataKeys(secret, externalSecret.Name)
-		if err != nil {
-			return err
-		}
-
-		// remove any data keys that are managed by this ExternalSecret, so we can re-add them
-		// this ensures keys added by templates are not left behind when they are removed from the template
-		for _, key := range keys {
-			delete(secret.Data, key)
-		}
-
-		// WARNING: this will remove any labels or annotations managed by this ExternalSecret
-		//          so any updates to labels and annotations should be done AFTER this point
-		err = r.applyTemplate(ctx, externalSecret, secret, dataMap)
-		if err != nil {
-			return fmt.Errorf(errApplyTemplate, err)
-		}
-
-		// set the immutable flag on the secret if requested by the ExternalSecret
-		if externalSecret.Spec.Target.Immutable {
-			secret.Immutable = ptr.To(true)
-		}
-
-		// we also use a label to keep track of the owner of the secret
-		// this lets us remove secrets that are no longer needed if the target secret name changes
-		if externalSecret.Spec.Target.CreationPolicy == esv1beta1.CreatePolicyOwner {
-			lblValue := utils.ObjectHash(fmt.Sprintf("%v/%v", externalSecret.Namespace, externalSecret.Name))
-			secret.Labels[esv1beta1.LabelOwner] = lblValue
-		} else {
-			// the label should not be set if the creation policy is not Owner
-			delete(secret.Labels, esv1beta1.LabelOwner)
-		}
-
-		secret.Labels[esv1beta1.LabelManaged] = esv1beta1.LabelManagedValue
-		secret.Annotations[esv1beta1.AnnotationDataHash] = utils.ObjectHash(secret.Data)
-
-		return nil
-	}
-
 	switch externalSecret.Spec.Target.CreationPolicy {
 	case esv1beta1.CreatePolicyNone:
 		log.V(1).Info("secret creation skipped due to CreationPolicy=None")
@@ -463,7 +400,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	case esv1beta1.CreatePolicyMerge:
 		// update the secret, if it exists
 		if existingSecret.UID != "" {
-			err = r.updateSecret(ctx, existingSecret, mutationFunc, externalSecret, secretName)
+			err = r.updateSecret(ctx, existingSecret, externalSecret, dataMap, secretName)
 		} else {
 			// if the secret does not exist, we wait until the next refresh interval
 			// rather than returning an error which would requeue immediately
@@ -473,26 +410,27 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	case esv1beta1.CreatePolicyOrphan:
 		// create the secret, if it does not exist
 		if existingSecret.UID == "" {
-			err = r.createSecret(ctx, mutationFunc, externalSecret, secretName)
+			err = r.createSecret(ctx, externalSecret, dataMap, secretName)
 		} else {
 			// if the secret exists, we should update it
-			err = r.updateSecret(ctx, existingSecret, mutationFunc, externalSecret, secretName)
+			err = r.updateSecret(ctx, existingSecret, externalSecret, dataMap, secretName)
 		}
 	case esv1beta1.CreatePolicyOwner:
 		// we may have orphaned secrets to clean up,
 		// for example, if the target secret name was changed
 		err = r.deleteOrphanedSecrets(ctx, externalSecret, secretName)
 		if err != nil {
-			r.markAsFailed(msgErrorDeleteOrphaned, err, externalSecret, syncCallsError.With(resourceLabels))
+			err = fmt.Errorf(errDeleteSecretOrphaned, err)
+			r.markAsFailed(err, externalSecret, syncCallsError.With(resourceLabels))
 			return ctrl.Result{}, err
 		}
 
 		// create the secret, if it does not exist
 		if existingSecret.UID == "" {
-			err = r.createSecret(ctx, mutationFunc, externalSecret, secretName)
+			err = r.createSecret(ctx, externalSecret, dataMap, secretName)
 		} else {
 			// if the secret exists, we should update it
-			err = r.updateSecret(ctx, existingSecret, mutationFunc, externalSecret, secretName)
+			err = r.updateSecret(ctx, existingSecret, externalSecret, dataMap, secretName)
 		}
 	}
 	if err != nil {
@@ -504,26 +442,28 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 
 		// detect errors indicating that we failed to set ourselves as the owner of the secret
 		// NOTE: this error cant be fixed by retrying so we don't return an error (which would requeue immediately)
-		if errors.Is(err, ErrSecretSetCtrlRef) {
-			r.markAsFailed(msgErrorBecomeOwner, err, externalSecret, syncCallsError.With(resourceLabels))
+		if errors.Is(err, ErrSecretSetCtrlRef) || errors.Is(err, ErrSecretIsOwned) {
+			err = fmt.Errorf(errBecomeOwner, secretName, err)
+			r.markAsFailed(err, externalSecret, syncCallsError.With(resourceLabels))
 			return ctrl.Result{}, nil
 		}
 
-		// detect errors indicating that the secret has another ExternalSecret as owner
+		// detect errors indicating that we failed to remove ourselves as the owner of the secret
 		// NOTE: this error cant be fixed by retrying so we don't return an error (which would requeue immediately)
-		if errors.Is(err, ErrSecretIsOwned) {
-			r.markAsFailed(msgErrorIsOwned, err, externalSecret, syncCallsError.With(resourceLabels))
+		if errors.Is(err, ErrSecretRemoveCtrlRef) {
+			err = fmt.Errorf(errRemoveOwner, secretName, err)
+			r.markAsFailed(err, externalSecret, syncCallsError.With(resourceLabels))
 			return ctrl.Result{}, nil
 		}
 
 		// detect errors indicating that the secret is immutable
 		// NOTE: this error cant be fixed by retrying so we don't return an error (which would requeue immediately)
 		if errors.Is(err, ErrSecretImmutable) {
-			r.markAsFailed(msgErrorUpdateImmutable, err, externalSecret, syncCallsError.With(resourceLabels))
+			r.markAsFailed(err, externalSecret, syncCallsError.With(resourceLabels))
 			return ctrl.Result{}, nil
 		}
 
-		r.markAsFailed(msgErrorUpdateSecret, err, externalSecret, syncCallsError.With(resourceLabels))
+		r.markAsFailed(err, externalSecret, syncCallsError.With(resourceLabels))
 		return ctrl.Result{}, err
 	}
 
@@ -570,6 +510,134 @@ func (r *Reconciler) getRequeueResult(externalSecret *esv1beta1.ExternalSecret) 
 	return ctrl.Result{Requeue: true}
 }
 
+// updateStatusSourcesAndTriggers updates the status of the ExternalSecret with the data sources and triggers.
+func (r *Reconciler) updateStatusSourcesAndTriggers(externalSecret *esv1beta1.ExternalSecret, ssInfoMap, cssInfoMap map[string]*StoreInfo) {
+	// create a map to track the in-cluster trigger secrets we have found (for kubernetes providers)
+	foundTriggerSecrets := make(map[esv1beta1.TriggerInClusterSecret]bool)
+
+	// compareProviderSources compares two ProviderSourceInfo objects and returns an integer indicating their order.
+	compareProviderSources := func(a, b esv1beta1.ProviderSourceInfo) int {
+		return strings.Compare(a.Name, b.Name)
+	}
+
+	// compareTriggerSecrets compares two TriggerInClusterSecret objects and returns an integer indicating their order.
+	compareTriggerSecrets := func(a, b esv1beta1.TriggerInClusterSecret) int {
+		if n := strings.Compare(a.Namespace, b.Namespace); n != 0 {
+			return n
+		}
+		return strings.Compare(a.Name, b.Name)
+	}
+
+	// convert the SecretStore map into a slice of ProviderSourceInfo
+	// NOTE: we sort the resulting slice so the status is deterministic
+	ssProviderSources := make([]esv1beta1.ProviderSourceInfo, 0, len(ssInfoMap))
+	for storeName, storeInfo := range ssInfoMap {
+		sourceInfo := r.storeInfoToProviderSource(storeName, storeInfo, foundTriggerSecrets)
+		ssProviderSources = append(ssProviderSources, sourceInfo)
+	}
+	slices.SortFunc(ssProviderSources, compareProviderSources)
+
+	// convert the ClusterSecretStore map into a slice of ProviderSourceInfo
+	// NOTE: we sort the resulting slice so the status is deterministic
+	cssProviderSources := make([]esv1beta1.ProviderSourceInfo, 0, len(cssInfoMap))
+	for storeName, storeInfo := range cssInfoMap {
+		sourceInfo := r.storeInfoToProviderSource(storeName, storeInfo, foundTriggerSecrets)
+		cssProviderSources = append(cssProviderSources, sourceInfo)
+	}
+	slices.SortFunc(cssProviderSources, compareProviderSources)
+
+	// convert the foundTriggerSecrets map into a slice of TriggerInClusterSecret
+	// NOTE: we sort the resulting slice so the status is deterministic
+	triggerSecretsSlice := make([]esv1beta1.TriggerInClusterSecret, 0, len(foundTriggerSecrets))
+	for triggerSecret := range foundTriggerSecrets {
+		triggerSecretsSlice = append(triggerSecretsSlice, triggerSecret)
+	}
+	slices.SortFunc(triggerSecretsSlice, compareTriggerSecrets)
+
+	// update the status of the ExternalSecret
+	externalSecret.Status.Sources = esv1beta1.ExternalSecretStatusSources{
+		SecretStores:        ssProviderSources,
+		ClusterSecretStores: cssProviderSources,
+	}
+	externalSecret.Status.Triggers = esv1beta1.ExternalSecretStatusTriggers{
+		InClusterSecrets: triggerSecretsSlice,
+	}
+}
+
+// storeInfoToProviderSource converts a StoreInfo to a ProviderSourceInfo and updates the foundTriggerSecrets map.
+func (r *Reconciler) storeInfoToProviderSource(storeName string, storeInfo *StoreInfo, foundTriggerSecrets map[esv1beta1.TriggerInClusterSecret]bool) esv1beta1.ProviderSourceInfo {
+	// compareSourceListKeys compares two SourceListedKey objects and returns an integer indicating their order.
+	compareSourceListKeys := func(a, b esv1beta1.SourceListedKey) int {
+		return strings.Compare(a.Key, b.Key)
+	}
+
+	// compareSourceFoundKeys compares two SourceFoundKey objects and returns an integer indicating their order.
+	compareSourceFoundKeys := func(a, b esv1beta1.SourceFoundKey) int {
+		return strings.Compare(a.Key, b.Key)
+	}
+
+	// convert the listedKeys map to a slice
+	// NOTE: we sort the resulting slice so the status is deterministic
+	listedKeys := make([]esv1beta1.SourceListedKey, 0, len(storeInfo.ListedKeys))
+	for key, existsInProvider := range storeInfo.ListedKeys {
+		sourceKey := esv1beta1.SourceListedKey{
+			Key: key,
+		}
+		if !existsInProvider {
+			// NOTE: we set this conditionally so that false values are not serialized in the status to save space
+			sourceKey.NotExists = true
+		}
+		listedKeys = append(listedKeys, sourceKey)
+
+		// if this is an in-cluster kubernetes provider, add these keys to the trigger secrets
+		if r.EnableTriggerInClusterSecrets && storeInfo.InClusterKubernetesNamespace != "" {
+			triggerSecret := esv1beta1.TriggerInClusterSecret{
+				Name:      key,
+				Namespace: storeInfo.InClusterKubernetesNamespace,
+			}
+			foundTriggerSecrets[triggerSecret] = true
+		}
+	}
+	slices.SortFunc(listedKeys, compareSourceListKeys)
+
+	// convert the foundKeys map to a slice
+	// NOTE: we sort the resulting slice so the status is deterministic
+	foundKeys := make([]esv1beta1.SourceFoundKey, 0, len(storeInfo.FoundKeys))
+	for key := range storeInfo.FoundKeys {
+		sourceKey := esv1beta1.SourceFoundKey{
+			Key: key,
+		}
+		foundKeys = append(foundKeys, sourceKey)
+
+		// if this is an in-cluster kubernetes provider, add these keys to the trigger secrets
+		if r.EnableTriggerInClusterSecrets && storeInfo.InClusterKubernetesNamespace != "" {
+			triggerSecret := esv1beta1.TriggerInClusterSecret{
+				Name:      key,
+				Namespace: storeInfo.InClusterKubernetesNamespace,
+			}
+			foundTriggerSecrets[triggerSecret] = true
+		}
+	}
+	slices.SortFunc(foundKeys, compareSourceFoundKeys)
+
+	providerInfo := esv1beta1.ProviderSourceInfo{
+		Name:       storeName,
+		ListedKeys: listedKeys,
+		FoundKeys:  foundKeys,
+	}
+
+	// set the NotExists and NotReady flags if they are true
+	// NOTE: we set them conditionally so that false values are not serialized in the status to save space
+	if storeInfo.NotExists {
+		providerInfo.NotExists = true
+	}
+	if storeInfo.NotReady {
+		providerInfo.NotReady = true
+	}
+
+	return providerInfo
+}
+
 func (r *Reconciler) markAsDone(externalSecret *esv1beta1.ExternalSecret, start time.Time, log logr.Logger, reason, msg string) {
 	oldReadyCondition := GetExternalSecretCondition(externalSecret.Status, esv1beta1.ExternalSecretReady)
 	newReadyCondition := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionTrue, reason, msg)
@@ -590,9 +658,8 @@ func (r *Reconciler) markAsDone(externalSecret *esv1beta1.ExternalSecret, start 
 	}
 }
 
-func (r *Reconciler) markAsFailed(msg string, err error, externalSecret *esv1beta1.ExternalSecret, counter prometheus.Counter) {
-	r.recorder.Event(externalSecret, v1.EventTypeWarning, esv1beta1.ReasonUpdateFailed, err.Error())
-	conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, msg)
+func (r *Reconciler) markAsFailed(err error, externalSecret *esv1beta1.ExternalSecret, counter prometheus.Counter) {
+	conditionSynced := NewExternalSecretCondition(esv1beta1.ExternalSecretReady, v1.ConditionFalse, esv1beta1.ConditionReasonSecretSyncedError, err.Error())
 	SetExternalSecretCondition(externalSecret, *conditionSynced)
 	counter.Inc()
 }
@@ -619,18 +686,84 @@ func (r *Reconciler) deleteOrphanedSecrets(ctx context.Context, externalSecret *
 		if secretPartial.GetName() != secretName {
 			err := r.Delete(ctx, &secretPartial)
 			if err != nil && !apierrors.IsNotFound(err) {
-				return err
+				return fmt.Errorf(errDeleteSecret, secretPartial.GetName(), err)
 			}
-			r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1beta1.ReasonDeleted, eventDeletedOrphaned)
+			r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1beta1.EventReasonDeleted, eventDeletedOrphaned)
 		}
 	}
 
 	return nil
 }
 
+// mutateSecret mutates the provided secret object to match the desired state of an ExternalSecret.
+func (r *Reconciler) mutateSecret(ctx context.Context, es *esv1beta1.ExternalSecret, secret *v1.Secret, dataMap map[string][]byte) error {
+	// get information about the current owner of the secret
+	//  - we ignore the API version as it can change over time
+	//  - we ignore the UID for consistency with the SetControllerReference function
+	currentOwner := metav1.GetControllerOf(secret)
+	ownerIsESKind := false
+	ownerIsCurrentES := false
+	if currentOwner != nil {
+		currentOwnerGK := schema.FromAPIVersionAndKind(currentOwner.APIVersion, currentOwner.Kind).GroupKind()
+		ownerIsESKind = currentOwnerGK.String() == esv1beta1.ExtSecretGroupKind
+		ownerIsCurrentES = ownerIsESKind && currentOwner.Name == es.Name
+	}
+
+	// if another ExternalSecret is the owner, we should return an error
+	// otherwise the controller will fight with itself to update the secret.
+	// note, this does not prevent other controllers from owning the secret.
+	if ownerIsESKind && !ownerIsCurrentES {
+		return fmt.Errorf("%w: %s", ErrSecretIsOwned, currentOwner.Name)
+	}
+
+	// if the CreationPolicy is Owner, we should set ourselves as the owner of the secret
+	if es.Spec.Target.CreationPolicy == esv1beta1.CreatePolicyOwner {
+		err := controllerutil.SetControllerReference(es, secret, r.Scheme)
+		if err != nil {
+			return fmt.Errorf("%w: %w", ErrSecretSetCtrlRef, err)
+		}
+	}
+
+	// if the creation policy is not Owner, we should remove ourselves as the owner
+	// this could happen if the creation policy was changed after the secret was created
+	if es.Spec.Target.CreationPolicy != esv1beta1.CreatePolicyOwner && ownerIsCurrentES {
+		err := controllerutil.RemoveControllerReference(es, secret, r.Scheme)
+		if err != nil {
+			return fmt.Errorf("%w: %w", ErrSecretRemoveCtrlRef, err)
+		}
+	}
+
+	// WARNING: this will remove any labels or annotations managed by this ExternalSecret
+	//          so any updates to labels and annotations should be done AFTER this point
+	err := r.applyTemplate(ctx, es, secret, dataMap)
+	if err != nil {
+		return fmt.Errorf(errApplyTemplate, err)
+	}
+
+	// set the immutable flag on the secret if requested by the ExternalSecret
+	if es.Spec.Target.Immutable {
+		secret.Immutable = ptr.To(true)
+	}
+
+	// we also use a label to keep track of the owner of the secret
+	// this lets us remove secrets that are no longer needed if the target secret name changes
+	if es.Spec.Target.CreationPolicy == esv1beta1.CreatePolicyOwner {
+		lblValue := utils.ObjectHash(fmt.Sprintf("%v/%v", es.Namespace, es.Name))
+		secret.Labels[esv1beta1.LabelOwner] = lblValue
+	} else {
+		// the label should not be set if the creation policy is not Owner
+		delete(secret.Labels, esv1beta1.LabelOwner)
+	}
+
+	secret.Labels[esv1beta1.LabelManaged] = esv1beta1.LabelManagedValue
+	secret.Annotations[esv1beta1.AnnotationDataHash] = utils.ObjectHash(secret.Data)
+
+	return nil
+}
+
 // createSecret creates a new secret with the given mutation function.
-func (r *Reconciler) createSecret(ctx context.Context, mutationFunc func(secret *v1.Secret) error, es *esv1beta1.ExternalSecret, secretName string) error {
-	fqdn := fmt.Sprintf(fieldOwnerTemplate, es.Name)
+func (r *Reconciler) createSecret(ctx context.Context, es *esv1beta1.ExternalSecret, dataMap map[string][]byte, secretName string) error {
+	fqdn := fmt.Sprintf(templating.FieldOwnerTemplate, es.Name)
 
 	// define and mutate the new secret
 	newSecret := &v1.Secret{
@@ -640,30 +773,30 @@ func (r *Reconciler) createSecret(ctx context.Context, mutationFunc func(secret 
 		},
 		Data: make(map[string][]byte),
 	}
-	if err := mutationFunc(newSecret); err != nil {
-		return err
+	if err := r.mutateSecret(ctx, es, newSecret, dataMap); err != nil {
+		return fmt.Errorf(errMutate, newSecret.Name, err)
 	}
 
 	// note, we set field owner even for Create
 	if err := r.Create(ctx, newSecret, client.FieldOwner(fqdn)); err != nil {
-		return err
+		return fmt.Errorf(errCreate, newSecret.Name, err)
 	}
 
 	// set the binding reference to the secret
 	// https://github.com/external-secrets/external-secrets/pull/2263
 	es.Status.Binding = v1.LocalObjectReference{Name: newSecret.Name}
 
-	r.recorder.Event(es, v1.EventTypeNormal, esv1beta1.ReasonCreated, eventCreated)
+	r.recorder.Event(es, v1.EventTypeNormal, esv1beta1.EventReasonCreated, eventCreated)
 	return nil
 }
 
-func (r *Reconciler) updateSecret(ctx context.Context, existingSecret *v1.Secret, mutationFunc func(secret *v1.Secret) error, es *esv1beta1.ExternalSecret, secretName string) error {
-	fqdn := fmt.Sprintf(fieldOwnerTemplate, es.Name)
+func (r *Reconciler) updateSecret(ctx context.Context, existingSecret *v1.Secret, es *esv1beta1.ExternalSecret, dataMap map[string][]byte, secretName string) error {
+	fqdn := fmt.Sprintf(templating.FieldOwnerTemplate, es.Name)
 
 	// fail if the secret does not exist
 	// this should never happen because we check this before calling this function
 	if existingSecret.UID == "" {
-		return fmt.Errorf(errUpdateNotFound, secretName)
+		return fmt.Errorf(errUpdateNotFound, existingSecret.Name)
 	}
 
 	// set the binding reference to the secret
@@ -672,7 +805,7 @@ func (r *Reconciler) updateSecret(ctx context.Context, existingSecret *v1.Secret
 
 	// mutate a copy of the existing secret with the mutation function
 	updatedSecret := existingSecret.DeepCopy()
-	if err := mutationFunc(updatedSecret); err != nil {
+	if err := r.mutateSecret(ctx, es, updatedSecret, dataMap); err != nil {
 		return fmt.Errorf(errMutate, updatedSecret.Name, err)
 	}
 
@@ -729,50 +862,8 @@ func (r *Reconciler) updateSecret(ctx context.Context, existingSecret *v1.Secret
 		return fmt.Errorf(errUpdate, updatedSecret.Name, err)
 	}
 
-	r.recorder.Event(es, v1.EventTypeNormal, esv1beta1.ReasonUpdated, eventUpdated)
+	r.recorder.Event(es, v1.EventTypeNormal, esv1beta1.EventReasonUpdated, eventUpdated)
 	return nil
-}
-
-// getManagedDataKeys returns the list of data keys in a secret which are managed by a specified owner.
-func getManagedDataKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
-	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]any) []string {
-		dataFields := fields["f:data"]
-		if dataFields == nil {
-			return nil
-		}
-		df, ok := dataFields.(map[string]any)
-		if !ok {
-			return nil
-		}
-
-		return slices.Collect(maps.Keys(df))
-	})
-}
-
-func getManagedFieldKeys(
-	secret *v1.Secret,
-	fieldOwner string,
-	process func(fields map[string]any) []string,
-) ([]string, error) {
-	fqdn := fmt.Sprintf(fieldOwnerTemplate, fieldOwner)
-	var keys []string
-	for _, v := range secret.ObjectMeta.ManagedFields {
-		if v.Manager != fqdn {
-			continue
-		}
-		fields := make(map[string]any)
-		err := json.Unmarshal(v.FieldsV1.Raw, &fields)
-		if err != nil {
-			return nil, fmt.Errorf("error unmarshaling managed fields: %w", err)
-		}
-		for _, key := range process(fields) {
-			if key == "." {
-				continue
-			}
-			keys = append(keys, strings.TrimPrefix(key, "f:"))
-		}
-	}
-	return keys, nil
 }
 
 func getResourceVersion(es *esv1beta1.ExternalSecret) string {
@@ -790,85 +881,6 @@ func hashMeta(m metav1.ObjectMeta) string {
 		labels:      m.Labels,
 	}
 	return utils.ObjectHash(objectMeta)
-}
-
-func shouldSkipClusterSecretStore(r *Reconciler, es *esv1beta1.ExternalSecret) bool {
-	return !r.ClusterSecretStoreEnabled && es.Spec.SecretStoreRef.Kind == esv1beta1.ClusterSecretStoreKind
-}
-
-// shouldSkipUnmanagedStore iterates over all secretStore references in the externalSecret spec,
-// fetches the store and evaluates the controllerClass property.
-// Returns true if any storeRef points to store with a non-matching controllerClass.
-func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconciler, es *esv1beta1.ExternalSecret) (bool, error) {
-	var storeList []esv1beta1.SecretStoreRef
-
-	if es.Spec.SecretStoreRef.Name != "" {
-		storeList = append(storeList, es.Spec.SecretStoreRef)
-	}
-
-	for _, ref := range es.Spec.Data {
-		if ref.SourceRef != nil {
-			storeList = append(storeList, ref.SourceRef.SecretStoreRef)
-		}
-	}
-
-	for _, ref := range es.Spec.DataFrom {
-		if ref.SourceRef != nil && ref.SourceRef.SecretStoreRef != nil {
-			storeList = append(storeList, *ref.SourceRef.SecretStoreRef)
-		}
-
-		// verify that generator's controllerClass matches
-		if ref.SourceRef != nil && ref.SourceRef.GeneratorRef != nil {
-			_, obj, err := resolvers.GeneratorRef(ctx, r.Client, r.Scheme, namespace, ref.SourceRef.GeneratorRef)
-			if err != nil {
-				if apierrors.IsNotFound(err) {
-					// skip non-existent generators
-					continue
-				}
-				if errors.Is(err, resolvers.ErrUnableToGetGenerator) {
-					// skip generators that we can't get (e.g. due to being invalid)
-					continue
-				}
-				return false, err
-			}
-			skipGenerator, err := shouldSkipGenerator(r, obj)
-			if err != nil {
-				return false, err
-			}
-			if skipGenerator {
-				return true, nil
-			}
-		}
-	}
-
-	for _, ref := range storeList {
-		var store esv1beta1.GenericStore
-
-		switch ref.Kind {
-		case esv1beta1.SecretStoreKind, "":
-			store = &esv1beta1.SecretStore{}
-		case esv1beta1.ClusterSecretStoreKind:
-			store = &esv1beta1.ClusterSecretStore{}
-			namespace = ""
-		}
-
-		err := r.Get(ctx, types.NamespacedName{
-			Name:      ref.Name,
-			Namespace: namespace,
-		}, store)
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				// skip non-existent stores
-				continue
-			}
-			return false, err
-		}
-		class := store.GetSpec().Controller
-		if class != "" && class != r.ControllerClass {
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 func shouldRefresh(es *esv1beta1.ExternalSecret) bool {
@@ -935,11 +947,24 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 		return err
 	}
 
-	// predicate function to ignore secret events unless they have the "managed" label
-	secretHasESLabel := predicate.NewPredicateFuncs(func(object client.Object) bool {
-		value, hasLabel := object.GetLabels()[esv1beta1.LabelManaged]
-		return hasLabel && value == esv1beta1.LabelManagedValue
-	})
+	// index ExternalSecrets based on the in-cluster secret triggers
+	// this lets us quickly find all ExternalSecrets which should be reconciled when a secret changes
+	if r.EnableTriggerInClusterSecrets {
+		if err := mgr.GetFieldIndexer().IndexField(context.Background(), &esv1beta1.ExternalSecret{}, indexESTriggerSecretsField, func(obj client.Object) []string {
+			es := obj.(*esv1beta1.ExternalSecret)
+
+			// convert the in-cluster secret triggers in the status to a list of index values
+			// with the format `<SECRET_NAMESPACE>/<SECRET_NAME>`
+			indexValues := make([]string, len(es.Status.Triggers.InClusterSecrets))
+			for i, trigger := range es.Status.Triggers.InClusterSecrets {
+				indexValues[i] = fmt.Sprintf("%s/%s", trigger.Namespace, trigger.Name)
+			}
+
+			return indexValues
+		}); err != nil {
+			return err
+		}
+	}
 
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
@@ -948,33 +973,10 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 		// we use WatchesMetadata() to reduce memory usage, as otherwise we have to process full secret objects.
 		WatchesMetadata(
 			&v1.Secret{},
-			handler.EnqueueRequestsFromMapFunc(r.findObjectsForSecret),
-			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}, secretHasESLabel),
+			r.secretEventHandler(),
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}),
 		).
 		Complete(r)
-}
-
-func (r *Reconciler) findObjectsForSecret(ctx context.Context, secret client.Object) []reconcile.Request {
-	externalSecretsList := &esv1beta1.ExternalSecretList{}
-	listOps := &client.ListOptions{
-		FieldSelector: fields.OneTermEqualSelector(indexESTargetSecretNameField, secret.GetName()),
-		Namespace:     secret.GetNamespace(),
-	}
-	err := r.List(ctx, externalSecretsList, listOps)
-	if err != nil {
-		return []reconcile.Request{}
-	}
-
-	requests := make([]reconcile.Request, len(externalSecretsList.Items))
-	for i, item := range externalSecretsList.Items {
-		requests[i] = reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      item.GetName(),
-				Namespace: item.GetNamespace(),
-			},
-		}
-	}
-	return requests
 }
 
 func BuildManagedSecretClient(mgr ctrl.Manager) (client.Client, error) {

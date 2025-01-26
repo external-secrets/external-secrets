@@ -101,8 +101,24 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecre
 	return c.fullDelete(ctx, remoteRef.GetRemoteKey())
 }
 
-func (c *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, errors.New("not implemented")
+func (c *Client) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRemoteRef) (bool, error) {
+	target, err := c.userSecretClient.Get(ctx, ref.GetRemoteKey(), metav1.GetOptions{})
+	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesGetSecret, err)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	// if property is not defined, we are checking if the secret exists
+	if ref.GetProperty() == "" {
+		return true, nil
+	}
+
+	// otherwise, we will check if the property exists in the secret as a key
+	_, found := target.Data[ref.GetProperty()]
+	return found, nil
 }
 
 func (c *Client) PushSecret(ctx context.Context, secret *v1.Secret, data esv1beta1.PushSecretData) error {
