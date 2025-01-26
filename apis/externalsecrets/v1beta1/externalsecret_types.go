@@ -493,7 +493,7 @@ type ProviderSourceInfo struct {
 	Name string `json:"name"`
 
 	// NotReady indicates if the provider does NOT have the Ready=true condition.
-	NotReady bool `json:"isReady,omitempty"`
+	NotReady bool `json:"notReady,omitempty"`
 
 	// NotExists indicates if the provider does NOT exist.
 	NotExists bool `json:"notExists,omitempty"`

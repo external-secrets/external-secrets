@@ -6224,7 +6224,7 @@ string
 </tr>
 <tr>
 <td>
-<code>isReady</code></br>
+<code>notReady</code></br>
 <em>
 bool
 </em>

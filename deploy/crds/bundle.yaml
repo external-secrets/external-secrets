@@ -7412,9 +7412,6 @@ spec:
                             x-kubernetes-list-map-keys:
                               - key
                             x-kubernetes-list-type: map
-                          isReady:
-                            description: NotReady indicates if the provider does NOT have the Ready=true condition.
-                            type: boolean
                           listedKeys:
                             description: ListedKeys are the remote keys explicitly referenced in `data[].remoteRef.key` and `dataFrom[].extract.key`.
                             items:
@@ -7439,6 +7436,9 @@ spec:
                             type: string
                           notExists:
                             description: NotExists indicates if the provider does NOT exist.
+                            type: boolean
+                          notReady:
+                            description: NotReady indicates if the provider does NOT have the Ready=true condition.
                             type: boolean
                         required:
                           - foundKeys
@@ -7467,9 +7467,6 @@ spec:
                             x-kubernetes-list-map-keys:
                               - key
                             x-kubernetes-list-type: map
-                          isReady:
-                            description: NotReady indicates if the provider does NOT have the Ready=true condition.
-                            type: boolean
                           listedKeys:
                             description: ListedKeys are the remote keys explicitly referenced in `data[].remoteRef.key` and `dataFrom[].extract.key`.
                             items:
@@ -7494,6 +7491,9 @@ spec:
                             type: string
                           notExists:
                             description: NotExists indicates if the provider does NOT exist.
+                            type: boolean
+                          notReady:
+                            description: NotReady indicates if the provider does NOT have the Ready=true condition.
                             type: boolean
                         required:
                           - foundKeys
