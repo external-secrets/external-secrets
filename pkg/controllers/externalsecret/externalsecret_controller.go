@@ -34,14 +34,12 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -975,58 +973,4 @@ func (r *Reconciler) findObjectsForSecret(ctx context.Context, secret client.Obj
 		}
 	}
 	return requests
-}
-
-func BuildManagedSecretClient(mgr ctrl.Manager) (client.Client, error) {
-	// secrets we manage will have the `reconcile.external-secrets.io/managed=true` label
-	managedLabelReq, _ := labels.NewRequirement(esv1beta1.LabelManaged, selection.Equals, []string{esv1beta1.LabelManagedValue})
-	managedLabelSelector := labels.NewSelector().Add(*managedLabelReq)
-
-	// create a new cache with a label selector for managed secrets
-	// NOTE: this means that the cache/client will be unable to see secrets without the "managed" label
-	secretCacheOpts := cache.Options{
-		HTTPClient: mgr.GetHTTPClient(),
-		Scheme:     mgr.GetScheme(),
-		Mapper:     mgr.GetRESTMapper(),
-		ByObject: map[client.Object]cache.ByObject{
-			&v1.Secret{}: {
-				Label: managedLabelSelector,
-			},
-		},
-		// this requires us to explicitly start an informer for each object type
-		// and helps avoid people mistakenly using the secret client for other resources
-		ReaderFailOnMissingInformer: true,
-	}
-	secretCache, err := cache.New(mgr.GetConfig(), secretCacheOpts)
-	if err != nil {
-		return nil, err
-	}
-
-	// start an informer for secrets
-	// this is required because we set ReaderFailOnMissingInformer to true
-	_, err = secretCache.GetInformer(context.Background(), &v1.Secret{})
-	if err != nil {
-		return nil, err
-	}
-
-	// add the secret cache to the manager, so that it starts at the same time
-	err = mgr.Add(secretCache)
-	if err != nil {
-		return nil, err
-	}
-
-	// create a new client that uses the secret cache
-	secretClient, err := client.New(mgr.GetConfig(), client.Options{
-		HTTPClient: mgr.GetHTTPClient(),
-		Scheme:     mgr.GetScheme(),
-		Mapper:     mgr.GetRESTMapper(),
-		Cache: &client.CacheOptions{
-			Reader: secretCache,
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return secretClient, nil
 }
