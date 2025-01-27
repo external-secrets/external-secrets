@@ -27,6 +27,7 @@ import (
 	"net/url"
 	tpl "text/template"
 
+	"github.com/Azure/go-ntlmssp"
 	"github.com/PaesslerAG/jsonpath"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,7 +50,7 @@ type Webhook struct {
 	ClusterScoped bool
 }
 
-func (w *Webhook) getStoreSecret(ctx context.Context, ref SecretKeySelector) (*corev1.Secret, error) {
+func (w *Webhook) getStoreSecret(ctx context.Context, ref esmeta.SecretKeySelector) (*corev1.Secret, error) {
 	ke := client.ObjectKey{
 		Name:      ref.Name,
 		Namespace: w.Namespace,
@@ -154,6 +155,7 @@ func (w *Webhook) GetWebhookData(ctx context.Context, provider *Spec, ref *esv1b
 		return nil, errors.New("http client not initialized")
 	}
 
+	// Parse store secrets
 	escapedData, err := w.GetTemplateData(ctx, ref, provider.Secrets, true)
 	if err != nil {
 		return nil, err
@@ -163,29 +165,63 @@ func (w *Webhook) GetWebhookData(ctx context.Context, provider *Spec, ref *esv1b
 		return nil, err
 	}
 
+	// set method
 	method := provider.Method
 	if method == "" {
 		method = http.MethodGet
 	}
+
+	// set url
 	url, err := ExecuteTemplateString(provider.URL, escapedData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse url: %w", err)
 	}
+
+	// set body
 	body, err := ExecuteTemplate(provider.Body, rawData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse body: %w", err)
 	}
 
+	// form request
 	req, err := http.NewRequestWithContext(ctx, method, url, &body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
+
+	// add extra headers
 	for hKey, hValueTpl := range provider.Headers {
 		hValue, err := ExecuteTemplateString(hValueTpl, rawData)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse header %s: %w", hKey, err)
 		}
 		req.Header.Add(hKey, hValue)
+	}
+
+	// add explicit credentials for specified auth protocols
+	// any Auth headers set here will overwrite manually set Auth in provider.Headers
+	if provider.Auth != nil {
+		//nolint:gocritic // singleCaseSwitch: we prefer to keep it as a switch for clarity
+		switch {
+		case provider.Auth.NTLM != nil:
+
+			userSecretRef := provider.Auth.NTLM.UserName
+			userSecret, err := w.getStoreSecret(ctx, userSecretRef)
+			if err != nil {
+				return nil, err
+			}
+			username := string(userSecret.Data[userSecretRef.Key])
+
+			PasswordSecretRef := provider.Auth.NTLM.Password
+			PasswordSecret, err := w.getStoreSecret(ctx, PasswordSecretRef)
+			if err != nil {
+				return nil, err
+			}
+			password := string(PasswordSecret.Data[PasswordSecretRef.Key])
+
+			// This overwrites auth headers set by providers.headers
+			req.SetBasicAuth(username, password)
+		}
 	}
 
 	resp, err := w.HTTP.Do(req)
@@ -205,29 +241,54 @@ func (w *Webhook) GetWebhookData(ctx context.Context, provider *Spec, ref *esv1b
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("endpoint gave error %s", resp.Status)
 	}
+
+	// return response body
 	return io.ReadAll(resp.Body)
 }
 
 func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Client, error) {
 	client := &http.Client{}
+
+	// add timeout to client if it is there
 	if provider.Timeout != nil {
 		client.Timeout = provider.Timeout.Duration
 	}
-	if len(provider.CABundle) == 0 && provider.CAProvider == nil {
-		// No need to process ca stuff if it is not there
-		return client, nil
+
+	// add CA to client if it is there
+	if len(provider.CABundle) > 0 || provider.CAProvider != nil {
+		caCertPool, err := w.GetCACertPool(ctx, provider)
+		if err != nil {
+			return nil, err
+		}
+
+		tlsConf := &tls.Config{
+			RootCAs:       caCertPool,
+			MinVersion:    tls.VersionTLS12,
+			Renegotiation: tls.RenegotiateOnceAsClient,
+		}
+
+		client.Transport = &http.Transport{TLSClientConfig: tlsConf}
 	}
-	caCertPool, err := w.GetCACertPool(ctx, provider)
-	if err != nil {
-		return nil, err
+	// add authentication method if it s there
+	if provider.Auth != nil {
+		//nolint:gocritic // singleCaseSwitch: we prefer to keep it as a switch for clarity
+		switch {
+		case provider.Auth.NTLM != nil:
+
+			fmt.Println("Webhook Provider: Using ntlm authentication")
+			client.Transport =
+				&ntlmssp.Negotiator{
+					RoundTripper: &http.Transport{
+						TLSNextProto: map[string]func(authority string, c *tls.Conn) http.RoundTripper{}, // Needed to disable HTTP/2
+
+					},
+				}
+
+			// add additional auth methods here
+		}
 	}
 
-	tlsConf := &tls.Config{
-		RootCAs:       caCertPool,
-		MinVersion:    tls.VersionTLS12,
-		Renegotiation: tls.RenegotiateOnceAsClient,
-	}
-	client.Transport = &http.Transport{TLSClientConfig: tlsConf}
+	// return client with all add-ons
 	return client, nil
 }
 
