@@ -38,6 +38,7 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
+	ctrlcommon "github.com/external-secrets/external-secrets/pkg/controllers/common"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
@@ -163,7 +164,7 @@ var rootCmd = &cobra.Command{
 		// if we are already caching all secrets, we don't need to use the special client.
 		secretClient := mgr.GetClient()
 		if enableManagedSecretsCache && !enableSecretsCache {
-			secretClient, err = externalsecret.BuildManagedSecretClient(mgr)
+			secretClient, err = ctrlcommon.BuildManagedSecretClient(mgr)
 			if err != nil {
 				setupLog.Error(err, "unable to create managed secret client")
 				os.Exit(1)
@@ -179,6 +180,7 @@ var rootCmd = &cobra.Command{
 			RequeueInterval: storeRequeueInterval,
 		}).SetupWithManager(mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
+			RateLimiter:             ctrlcommon.BuildRateLimiter(),
 		}); err != nil {
 			setupLog.Error(err, errCreateController, "controller", "SecretStore")
 			os.Exit(1)
@@ -193,6 +195,7 @@ var rootCmd = &cobra.Command{
 				RequeueInterval: storeRequeueInterval,
 			}).SetupWithManager(mgr, controller.Options{
 				MaxConcurrentReconciles: concurrent,
+				RateLimiter:             ctrlcommon.BuildRateLimiter(),
 			}); err != nil {
 				setupLog.Error(err, errCreateController, "controller", "ClusterSecretStore")
 				os.Exit(1)
@@ -210,6 +213,7 @@ var rootCmd = &cobra.Command{
 			EnableFloodGate:           enableFloodGate,
 		}).SetupWithManager(mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
+			RateLimiter:             ctrlcommon.BuildRateLimiter(),
 		}); err != nil {
 			setupLog.Error(err, errCreateController, "controller", "ExternalSecret")
 			os.Exit(1)
@@ -225,6 +229,7 @@ var rootCmd = &cobra.Command{
 				RequeueInterval: time.Hour,
 			}).SetupWithManager(mgr, controller.Options{
 				MaxConcurrentReconciles: concurrent,
+				RateLimiter:             ctrlcommon.BuildRateLimiter(),
 			}); err != nil {
 				setupLog.Error(err, errCreateController, "controller", "PushSecret")
 				os.Exit(1)
@@ -240,6 +245,7 @@ var rootCmd = &cobra.Command{
 				RequeueInterval: time.Hour,
 			}).SetupWithManager(mgr, controller.Options{
 				MaxConcurrentReconciles: concurrent,
+				RateLimiter:             ctrlcommon.BuildRateLimiter(),
 			}); err != nil {
 				setupLog.Error(err, errCreateController, "controller", "ClusterExternalSecret")
 				os.Exit(1)
