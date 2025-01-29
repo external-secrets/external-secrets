@@ -44,7 +44,7 @@ type Reconciler struct {
 }
 
 const (
-	logErrorGetGS           = "unable to get GenereatorState"
+	logErrorGetGS           = "unable to get GeneratorState"
 	generatorStateFinalizer = "generatorstate.externalsecrets.io/finalizer"
 )
 
