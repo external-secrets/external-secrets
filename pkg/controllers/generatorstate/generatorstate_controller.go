@@ -72,7 +72,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 				r.markAsFailed("could not delete GeneratorState", err, generatorState)
 				return ctrl.Result{}, fmt.Errorf("could not delete GeneratorState: %w", err)
 			}
-			r.markSuccess("Reached gc deadline: deletion timestamp set", generatorState)
+			r.markSuccess("Reached gc deadline", generatorState)
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{
@@ -80,6 +80,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		}, nil
 	}
 
+	r.markSuccess("GeneratorState created", generatorState)
 	return ctrl.Result{}, nil
 }
 
@@ -124,11 +125,13 @@ func (r *Reconciler) getGenerator(resource []byte) (genv1alpha1.Generator, error
 }
 
 func (r *Reconciler) markAsFailed(msg string, err error, gs *genv1alpha1.GeneratorState) {
-	r.recorder.Event(gs, v1.EventTypeWarning, "Error", fmt.Sprintf("%s: %v", msg, err))
+	conditionSynced := NewGeneratorStateCondition(genv1alpha1.GeneratorStateReady, v1.ConditionFalse, genv1alpha1.ConditionReasonError, fmt.Sprintf("%s: %v", msg, err))
+	SetGeneratorStateCondition(gs, *conditionSynced)
 }
 
 func (r *Reconciler) markSuccess(msg string, gs *genv1alpha1.GeneratorState) {
-	r.recorder.Event(gs, v1.EventTypeNormal, "Success", msg)
+	newReadyCondition := NewGeneratorStateCondition(genv1alpha1.GeneratorStateReady, v1.ConditionTrue, genv1alpha1.ConditionReasonCreated, msg)
+	SetGeneratorStateCondition(gs, *newReadyCondition)
 }
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.

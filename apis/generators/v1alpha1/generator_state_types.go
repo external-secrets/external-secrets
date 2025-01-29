@@ -15,6 +15,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -54,6 +55,35 @@ type GeneratorStateSpec struct {
 	State *apiextensions.JSON `json:"state"`
 }
 
+type GeneratorStateConditionType string
+
+const (
+	GeneratorStateReady GeneratorStateConditionType = "Ready"
+)
+
+type GeneratorStateStatusCondition struct {
+	Type   GeneratorStateConditionType `json:"type"`
+	Status corev1.ConditionStatus      `json:"status"`
+
+	// +optional
+	Reason string `json:"reason,omitempty"`
+
+	// +optional
+	Message string `json:"message,omitempty"`
+
+	// +optional
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+}
+
+const (
+	ConditionReasonCreated = "Created"
+	ConditionReasonError   = "Error"
+)
+
+type GeneratorStateStatus struct {
+	Conditions []GeneratorStateStatusCondition `json:"conditions,omitempty"`
+}
+
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
@@ -64,7 +94,8 @@ type GeneratorState struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec GeneratorStateSpec `json:"spec,omitempty"`
+	Spec   GeneratorStateSpec   `json:"spec,omitempty"`
+	Status GeneratorStateStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
