@@ -49,14 +49,12 @@ const (
 )
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
-	log := r.Log.WithValues("GeneratorState", req.NamespacedName)
 	generatorState := &genv1alpha1.GeneratorState{}
 	err = r.Get(ctx, req.NamespacedName, generatorState)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
-		log.Error(err, logErrorGetGS)
 		return ctrl.Result{}, err
 	}
 
