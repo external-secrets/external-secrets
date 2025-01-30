@@ -52,6 +52,8 @@ nav:
   - Introduction:
       - Introduction: index.md
       - Overview: introduction/overview.md
+      - Glossary: introduction/glossary.md
+      - Prerequisites: introduction/prerequisites.md
       - Getting started: introduction/getting-started.md
       - FAQ: introduction/faq.md
       - Stability and Support: introduction/stability-support.md

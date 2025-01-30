@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	ctrlcommon "github.com/external-secrets/external-secrets/pkg/controllers/common"
 	"github.com/external-secrets/external-secrets/pkg/controllers/crds"
 	"github.com/external-secrets/external-secrets/pkg/controllers/webhookconfig"
 )
@@ -108,6 +109,7 @@ var certcontrollerCmd = &cobra.Command{
 			})
 		if err := crdctrl.SetupWithManager(mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
+			RateLimiter:             ctrlcommon.BuildRateLimiter(),
 		}); err != nil {
 			setupLog.Error(err, errCreateController, "controller", "CustomResourceDefinition")
 			os.Exit(1)
@@ -124,6 +126,7 @@ var certcontrollerCmd = &cobra.Command{
 			})
 		if err := whc.SetupWithManager(mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
+			RateLimiter:             ctrlcommon.BuildRateLimiter(),
 		}); err != nil {
 			setupLog.Error(err, errCreateController, "controller", "WebhookConfig")
 			os.Exit(1)

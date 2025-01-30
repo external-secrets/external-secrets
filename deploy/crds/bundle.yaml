@@ -6529,6 +6529,9 @@ spec:
   scope: Namespaced
   versions:
     - additionalPrinterColumns:
+        - jsonPath: .spec.secretStoreRef.kind
+          name: Store
+          type: string
         - jsonPath: .spec.secretStoreRef.name
           name: Store
           type: string
@@ -6828,6 +6831,9 @@ spec:
       subresources:
         status: {}
     - additionalPrinterColumns:
+        - jsonPath: .spec.secretStoreRef.kind
+          name: StoreType
+          type: string
         - jsonPath: .spec.secretStoreRef.name
           name: Store
           type: string
