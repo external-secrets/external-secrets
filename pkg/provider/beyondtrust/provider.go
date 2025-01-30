@@ -273,39 +273,13 @@ func getAuthenticator(input AuthenticatorInput) (*auth.AuthenticationObj, error)
 		HTTPClient:                 input.HTTPClientObj,
 		BackoffDefinition:          input.BackoffDefinition,
 		EndpointURL:                input.APIURL,
+		APIVersion:                 input.APIVersion,
 		ApiKey:                     input.APIKey,
 		Logger:                     input.Logger,
 		RetryMaxElapsedTimeSeconds: input.RetryMaxElapsedTimeMinutes,
 	}
 
 	if input.Config.Auth.APIKey != nil {
-		authParamsApiKey := &auth.AuthenticationParametersObj{
-			HTTPClient:                 input.HTTPClientObj,
-			BackoffDefinition:          input.BackoffDefinition,
-			EndpointURL:                input.APIURL,
-			APIVersion:                 input.APIVersion,
-			ClientID:                   "",
-			ClientSecret:               "",
-			ApiKey:                     input.APIKey,
-			Logger:                     input.Logger,
-			RetryMaxElapsedTimeSeconds: input.RetryMaxElapsedTimeMinutes,
-		}
-		return auth.AuthenticateUsingApiKey(*authParamsApiKey)
-	}
-
-	authParamsOauth := &auth.AuthenticationParametersObj{
-		HTTPClient:                 input.HTTPClientObj,
-		BackoffDefinition:          input.BackoffDefinition,
-		EndpointURL:                input.APIURL,
-		APIVersion:                 input.APIVersion,
-		ClientID:                   input.ClientID,
-		ClientSecret:               input.ClientSecret,
-		ApiKey:                     "",
-		Logger:                     input.Logger,
-		RetryMaxElapsedTimeSeconds: input.RetryMaxElapsedTimeMinutes,
-	}
-	return auth.Authenticate(*authParamsOauth)
-
 		parametersObj.ApiKey = input.APIKey
 
 		return auth.AuthenticateUsingApiKey(parametersObj)
@@ -315,7 +289,6 @@ func getAuthenticator(input AuthenticatorInput) (*auth.AuthenticationObj, error)
 	parametersObj.ClientSecret = input.ClientSecret
 
 	return auth.Authenticate(parametersObj)
-
 }
 
 func loadConfigSecret(ctx context.Context, ref *esv1beta1.BeyondTrustProviderSecretRef, kube client.Client, defaultNamespace string) (string, error) {
