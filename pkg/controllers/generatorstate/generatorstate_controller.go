@@ -43,10 +43,7 @@ type Reconciler struct {
 	recorder   record.EventRecorder
 }
 
-const (
-	logErrorGetGS           = "unable to get GeneratorState"
-	generatorStateFinalizer = "generatorstate.externalsecrets.io/finalizer"
-)
+const generatorStateFinalizer = "generatorstate.externalsecrets.io/finalizer"
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
 	generatorState := &genv1alpha1.GeneratorState{}

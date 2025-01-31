@@ -119,43 +119,38 @@ func newClient(ctx context.Context, gen *genv1alpha1.Grafana, kclient client.Cli
 }
 
 func createOrGetServiceAccount(cl *grafanaclient.GrafanaHTTPAPI, gen *genv1alpha1.Grafana) (*genv1alpha1.GrafanaServiceAccountTokenState, error) {
+	saList, err := cl.ServiceAccounts.SearchOrgServiceAccountsWithPaging(&grafanasa.SearchOrgServiceAccountsWithPagingParams{
+		Query: ptr.To(gen.Spec.ServiceAccount.Name),
+	})
+	if err != nil {
+		return nil, err
+	}
+	for _, sa := range saList.Payload.ServiceAccounts {
+		if sa.Name == gen.Spec.ServiceAccount.Name {
+			return &genv1alpha1.GrafanaServiceAccountTokenState{
+				ServiceAccount: genv1alpha1.GrafanaStateServiceAccount{
+					ServiceAccountID:    &sa.ID,
+					ServiceAccountLogin: &sa.Login,
+				},
+			}, nil
+		}
+	}
+
 	res, err := cl.ServiceAccounts.CreateServiceAccount(&grafanasa.CreateServiceAccountParams{
 		Body: &models.CreateServiceAccountForm{
 			Name: gen.Spec.ServiceAccount.Name,
 		},
 	}, nil)
-	if err == nil {
-		return &genv1alpha1.GrafanaServiceAccountTokenState{
-			ServiceAccount: genv1alpha1.GrafanaStateServiceAccount{
-				ServiceAccountID:    ptr.To(res.Payload.ID),
-				ServiceAccountLogin: &res.Payload.Login,
-			},
-		}, nil
+	if err != nil {
+		return nil, err
 	}
 
-	if strings.Contains(err.Error(), "service account already exists") {
-		// fetch id
-		saList, err := cl.ServiceAccounts.SearchOrgServiceAccountsWithPaging(&grafanasa.SearchOrgServiceAccountsWithPagingParams{
-			Perpage: ptr.To(int64(100)),
-			Page:    ptr.To(int64(1)),
-			Query:   ptr.To(gen.Spec.ServiceAccount.Name),
-		})
-		if err != nil {
-			return nil, err
-		}
-		for _, sa := range saList.Payload.ServiceAccounts {
-			if sa.Name == gen.Spec.ServiceAccount.Name {
-				return &genv1alpha1.GrafanaServiceAccountTokenState{
-					ServiceAccount: genv1alpha1.GrafanaStateServiceAccount{
-						ServiceAccountID:    &sa.ID,
-						ServiceAccountLogin: &sa.Login,
-					},
-				}, nil
-			}
-		}
-	}
-
-	return nil, err
+	return &genv1alpha1.GrafanaServiceAccountTokenState{
+		ServiceAccount: genv1alpha1.GrafanaStateServiceAccount{
+			ServiceAccountID:    ptr.To(res.Payload.ID),
+			ServiceAccountLogin: &res.Payload.Login,
+		},
+	}, nil
 }
 
 func tokenResponse(state *genv1alpha1.GrafanaServiceAccountTokenState, token string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {

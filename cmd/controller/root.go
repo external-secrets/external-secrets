@@ -209,6 +209,7 @@ var rootCmd = &cobra.Command{
 			RestConfig: mgr.GetConfig(),
 		}).SetupWithManager(mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
+			RateLimiter:             ctrlcommon.BuildRateLimiter(),
 		}); err != nil {
 			setupLog.Error(err, errCreateController, "controller", "GeneratorState")
 			os.Exit(1)
