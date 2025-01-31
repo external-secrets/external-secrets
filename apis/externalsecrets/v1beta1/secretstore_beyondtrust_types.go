@@ -45,6 +45,8 @@ type BeyondtrustAuth struct {
 type BeyondtrustServer struct {
 	// +required - BeyondTrust Password Safe API URL. https://example.com:443/beyondtrust/api/public/V3.
 	APIURL string `json:"apiUrl"`
+	// +optional - The recommended version is 3.1. If no version is specified, the default API version 3.0 will be used
+	APIVersion string `json:"apiVersion,omitempty"`
 	// The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.
 	RetrievalType string `json:"retrievalType,omitempty"`
 	// A character that separates the folder names.

@@ -70,6 +70,7 @@ type AuthenticatorInput struct {
 	HTTPClientObj              utils.HttpClientObj
 	BackoffDefinition          *backoff.ExponentialBackOff
 	APIURL                     string
+	APIVersion                 string
 	ClientID                   string
 	ClientSecret               string
 	APIKey                     string
@@ -147,6 +148,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		ClientID:                   clientID,
 		ClientSecret:               clientSecret,
 		ApiUrl:                     &config.Server.APIURL,
+		ApiVersion:                 config.Server.APIVersion,
 		ClientTimeOutInSeconds:     clientTimeOutInSeconds,
 		Separator:                  &separator,
 		VerifyCa:                   config.Server.VerifyCA,
@@ -171,6 +173,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		HTTPClientObj:              *httpClient,
 		BackoffDefinition:          backoffDefinition,
 		APIURL:                     config.Server.APIURL,
+		APIVersion:                 config.Server.APIVersion,
 		ClientID:                   clientID,
 		ClientSecret:               clientSecret,
 		APIKey:                     apiKey,
@@ -270,6 +273,7 @@ func getAuthenticator(input AuthenticatorInput) (*auth.AuthenticationObj, error)
 		HTTPClient:                 input.HTTPClientObj,
 		BackoffDefinition:          input.BackoffDefinition,
 		EndpointURL:                input.APIURL,
+		APIVersion:                 input.APIVersion,
 		ApiKey:                     input.APIKey,
 		Logger:                     input.Logger,
 		RetryMaxElapsedTimeSeconds: input.RetryMaxElapsedTimeMinutes,
