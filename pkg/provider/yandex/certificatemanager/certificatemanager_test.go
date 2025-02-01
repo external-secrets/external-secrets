@@ -81,7 +81,7 @@ func TestNewClient(t *testing.T) {
 	store.Spec.Provider.YandexCertificateManager.Auth.AuthorizedKey.Name = authorizedKeySecretName
 	store.Spec.Provider.YandexCertificateManager.Auth.AuthorizedKey.Key = authorizedKeySecretKey
 	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
-	tassert.EqualError(t, err, "cannot get Kubernetes secret \"authorizedKeySecretName\": secrets \"authorizedKeySecretName\" not found")
+	tassert.EqualError(t, err, "cannot get Kubernetes secret \"authorizedKeySecretName\" from namespace \"namespace\": secrets \"authorizedKeySecretName\" not found")
 	tassert.Nil(t, secretClient)
 
 	err = createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, newFakeAuthorizedKey()))
@@ -96,7 +96,7 @@ func TestNewClient(t *testing.T) {
 		},
 	}
 	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
-	tassert.EqualError(t, err, "cannot get Kubernetes secret \"caCertificateSecretName\": secrets \"caCertificateSecretName\" not found")
+	tassert.EqualError(t, err, "cannot get Kubernetes secret \"caCertificateSecretName\" from namespace \"namespace\": secrets \"caCertificateSecretName\" not found")
 	tassert.Nil(t, secretClient)
 
 	err = createK8sSecret(ctx, t, k8sClient, namespace, caCertificateSecretName, caCertificateSecretKey, []byte("it-is-not-a-certificate"))
