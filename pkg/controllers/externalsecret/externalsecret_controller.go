@@ -51,6 +51,7 @@ import (
 	// Metrics.
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 
@@ -574,7 +575,7 @@ func (r *Reconciler) markAsDone(externalSecret *esv1beta1.ExternalSecret, start 
 	SetExternalSecretCondition(externalSecret, *newReadyCondition)
 
 	externalSecret.Status.RefreshTime = metav1.NewTime(start)
-	externalSecret.Status.SyncedResourceVersion = getResourceVersion(externalSecret)
+	externalSecret.Status.SyncedResourceVersion = util.GetResourceVersion(externalSecret.ObjectMeta)
 
 	// if the status or reason has changed, log at the appropriate verbosity level
 	if oldReadyCondition == nil || oldReadyCondition.Status != newReadyCondition.Status || oldReadyCondition.Reason != newReadyCondition.Reason {
@@ -773,23 +774,6 @@ func getManagedFieldKeys(
 	return keys, nil
 }
 
-func getResourceVersion(es *esv1beta1.ExternalSecret) string {
-	return fmt.Sprintf("%d-%s", es.ObjectMeta.GetGeneration(), hashMeta(es.ObjectMeta))
-}
-
-// hashMeta returns a consistent hash of the `metadata.labels` and `metadata.annotations` fields of the given object.
-func hashMeta(m metav1.ObjectMeta) string {
-	type meta struct {
-		annotations map[string]string
-		labels      map[string]string
-	}
-	objectMeta := meta{
-		annotations: m.Annotations,
-		labels:      m.Labels,
-	}
-	return utils.ObjectHash(objectMeta)
-}
-
 func shouldSkipClusterSecretStore(r *Reconciler, es *esv1beta1.ExternalSecret) bool {
 	return !r.ClusterSecretStoreEnabled && es.Spec.SecretStoreRef.Kind == esv1beta1.ClusterSecretStoreKind
 }
@@ -876,7 +860,7 @@ func shouldRefresh(es *esv1beta1.ExternalSecret) bool {
 	}
 
 	// if the ExternalSecret has been updated, we should refresh
-	if es.Status.SyncedResourceVersion != getResourceVersion(es) {
+	if es.Status.SyncedResourceVersion != util.GetResourceVersion(es.ObjectMeta) {
 		return true
 	}
 
@@ -964,11 +948,11 @@ func (r *Reconciler) findObjectsForSecret(ctx context.Context, secret client.Obj
 	}
 
 	requests := make([]reconcile.Request, len(externalSecretsList.Items))
-	for i, item := range externalSecretsList.Items {
+	for i := range externalSecretsList.Items {
 		requests[i] = reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Name:      item.GetName(),
-				Namespace: item.GetNamespace(),
+				Name:      externalSecretsList.Items[i].GetName(),
+				Namespace: externalSecretsList.Items[i].GetNamespace(),
 			},
 		}
 	}
