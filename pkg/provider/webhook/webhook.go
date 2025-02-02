@@ -116,8 +116,43 @@ func (w *WebHook) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRe
 }
 
 // PushSecret not implement.
-func (w *WebHook) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return errors.New(errNotImplemented)
+func (w *WebHook) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	if data.GetRemoteKey() == "" {
+		return errors.New("remote key must be defined")
+	}
+
+	provider, err := getProvider(w.store)
+	if err != nil {
+		return fmt.Errorf("failed to get store: %w", err)
+	}
+
+	var (
+		value []byte
+		ok    bool
+	)
+	if data.GetSecretKey() == "" {
+		decodedMap := make(map[string]string)
+		for k, v := range secret.Data {
+			decodedMap[k] = string(v)
+		}
+		value, err = utils.JSONMarshal(decodedMap)
+
+		if err != nil {
+			return fmt.Errorf("failed to marshal secret data: %w", err)
+		}
+	} else {
+		value, ok = secret.Data[data.GetSecretKey()]
+
+		if !ok {
+			return fmt.Errorf("failed to find secret key in secret with key: %s", data.GetSecretKey())
+		}
+	}
+
+	if err := w.wh.PushWebhookData(ctx, provider, value); err != nil {
+		return fmt.Errorf("failed to push webhook data: %w", err)
+	}
+
+	return nil
 }
 
 // GetAllSecrets Empty .
