@@ -33,7 +33,8 @@ import (
 )
 
 const (
-	errNotImplemented = "not implemented"
+	errNotImplemented   = "not implemented"
+	errFailedToGetStore = "failed to get store: %w"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -115,7 +116,6 @@ func (w *WebHook) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRe
 	return false, errors.New(errNotImplemented)
 }
 
-// PushSecret not implement.
 func (w *WebHook) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
 	if data.GetRemoteKey() == "" {
 		return errors.New("remote key must be defined")
@@ -123,29 +123,12 @@ func (w *WebHook) PushSecret(ctx context.Context, secret *corev1.Secret, data es
 
 	provider, err := getProvider(w.store)
 	if err != nil {
-		return fmt.Errorf("failed to get store: %w", err)
+		return fmt.Errorf(errFailedToGetStore, err)
 	}
 
-	var (
-		value []byte
-		ok    bool
-	)
-	if data.GetSecretKey() == "" {
-		decodedMap := make(map[string]string)
-		for k, v := range secret.Data {
-			decodedMap[k] = string(v)
-		}
-		value, err = utils.JSONMarshal(decodedMap)
-
-		if err != nil {
-			return fmt.Errorf("failed to marshal secret data: %w", err)
-		}
-	} else {
-		value, ok = secret.Data[data.GetSecretKey()]
-
-		if !ok {
-			return fmt.Errorf("failed to find secret key in secret with key: %s", data.GetSecretKey())
-		}
+	value, err := utils.ExtractSecretData(data, secret)
+	if err != nil {
+		return err
 	}
 
 	if err := w.wh.PushWebhookData(ctx, provider, value); err != nil {
@@ -164,7 +147,7 @@ func (w *WebHook) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFin
 func (w *WebHook) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	provider, err := getProvider(w.store)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get store: %w", err)
+		return nil, fmt.Errorf(errFailedToGetStore, err)
 	}
 	result, err := w.wh.GetWebhookData(ctx, provider, &ref)
 	if err != nil {
@@ -232,7 +215,7 @@ func extractSecretData(jsondata any) ([]byte, error) {
 func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	provider, err := getProvider(w.store)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get store: %w", err)
+		return nil, fmt.Errorf(errFailedToGetStore, err)
 	}
 	return w.wh.GetSecretMap(ctx, provider, &ref)
 }

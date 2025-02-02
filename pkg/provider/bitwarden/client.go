@@ -61,27 +61,9 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data e
 		return errors.New("remote key must be defined")
 	}
 
-	var (
-		value []byte
-		err   error
-		ok    bool
-	)
-	if data.GetSecretKey() == "" {
-		decodedMap := make(map[string]string)
-		for k, v := range secret.Data {
-			decodedMap[k] = string(v)
-		}
-		value, err = utils.JSONMarshal(decodedMap)
-
-		if err != nil {
-			return fmt.Errorf("failed to marshal secret data: %w", err)
-		}
-	} else {
-		value, ok = secret.Data[data.GetSecretKey()]
-
-		if !ok {
-			return fmt.Errorf("failed to find secret key in secret with key: %s", data.GetSecretKey())
-		}
+	value, err := utils.ExtractSecretData(data, secret)
+	if err != nil {
+		return fmt.Errorf("failed to extract secret data: %w", err)
 	}
 
 	note, err := utils.FetchValueFromMetadata(NoteMetadataKey, data.GetMetadata(), "")
