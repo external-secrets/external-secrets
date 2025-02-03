@@ -1,4 +1,4 @@
-Babel==2.16.0
+Babel==2.17.0
 certifi==2024.12.14
 charset-normalizer==3.4.1
 click==8.1.8
