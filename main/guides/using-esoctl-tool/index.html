@@ -82,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#macro-syntax-error" class="md-skip">
+        <a href="#using-the-esoctl-tool" class="md-skip">
           Skip to content
         </a>
       
@@ -3543,10 +3543,64 @@
   
 
 
-<h1 id="macro-syntax-error"><em>Macro Syntax Error</em></h1>
-<p><em>File</em>: <code>guides/using-esoctl-tool.md</code></p>
-<p><em>Line 16 in Markdown file:</em> <strong>unexpected '.'</strong>
-<div class="highlight"><pre><span></span><code>template-test/
+<h1 id="using-the-esoctl-tool">Using the esoctl tool</h1>
+<p>The tool can be found under <code>cmd/esoctl</code>. The <code>template</code> command can be used to test templates for <code>PushSecret</code> and <code>ExternalSecret</code>.</p>
+<p>To run render simply execute <code>make build</code> in the <code>cmd/esoctl</code> folder. This will result in a binary under <code>cmd/esoctl/bin</code>.</p>
+<p>Once the build succeeds, the command can be used as such:</p>
+<div class="highlight"><pre><span></span><code>bin/esoctl template --source-templated-object template-test/push-secret.yaml --source-secret-data-file template-test/secret.yaml
+</code></pre></div>
+<p>Where template-test looks like this:</p>
+<div class="highlight"><pre><span></span><code>❯ tree template-test/                                                                                                                                                                                                                   (base)
+template-test/
+├── push-secret.yaml
+└── secret.yaml
+
+1 directory, 2 files
+</code></pre></div>
+<p><code>PushSecret</code> is simply the following:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-push-secret-with-template</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10s</span>
+<span class="w">  </span><span class="nt">secretStoreRefs</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-store-name</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">secret</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">git-sync-secret</span>
+<span class="w">  </span><span class="nt">template</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">engineVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v2</span>
+<span class="w">    </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">token</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.token</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">toString</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">upper</span><span class="nv"> </span><span class="s">}}</span><span class="nv"> </span><span class="s">was</span><span class="nv"> </span><span class="s">templated&quot;</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span>
+<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">git-sync-secret-copy-templated</span>
+<span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span>
+</code></pre></div>
+<p>And secret data is:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">token</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dG9rZW4=</span>
+</code></pre></div>
+<p>Therefor if there is a PushSecret or an ExternalSecret object that the user would like to test the template for,
+simply put it into a file along with the data it's using, and run this command.</p>
+<p>The output will be something like this:</p>
+<div class="highlight"><pre><span></span><code>bin/esoctl template --source-templated-object template-test/push-secret.yaml --source-secret-data-file template-test/secret.yaml
+data:
+  token: VE9LRU4gd2FzIHRlbXBsYXRlZA==
+metadata:
+  creationTimestamp: null
+
+echo -n &quot;VE9LRU4gd2FzIHRlbXBsYXRlZA==&quot; | base64 -d
+TOKEN was templated⏎
+</code></pre></div>
+<p>Further options can be used to provide templates from a ConfigMap or a Secret:
+<div class="highlight"><pre><span></span><code>bin/esoctl template --source-templated-object template-test/push-secret.yaml \
+  --source-secret-data-file template-test/secret.yaml \
+  --template-from-config-map template-test/template-config-map.yaml \
+  --template-from-secret template-test/template-secret.yaml
 </code></pre></div></p>
 
 
