@@ -152,7 +152,7 @@ func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 }
 
 func (pm *ParameterStore) SecretExists(ctx context.Context, pushSecretRef esv1beta1.PushSecretRemoteRef) (bool, error) {
-	secretName := pushSecretRef.GetRemoteKey()
+	secretName := pm.prefix + pushSecretRef.GetRemoteKey()
 
 	secretValue := ssm.GetParameterInput{
 		Name: &secretName,
