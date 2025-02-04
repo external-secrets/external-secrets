@@ -187,7 +187,7 @@ func (w *Webhook) GetWebhookData(ctx context.Context, provider *Spec, ref *esv1b
 	return w.executeRequest(ctx, provider, body.Bytes(), url, method, rawData)
 }
 
-func (w *Webhook) PushWebhookData(ctx context.Context, provider *Spec, data []byte) error {
+func (w *Webhook) PushWebhookData(ctx context.Context, provider *Spec, data []byte, remoteKey esv1beta1.PushSecretData) error {
 	if w.HTTP == nil {
 		return errors.New("http client not initialized")
 	}
@@ -197,13 +197,27 @@ func (w *Webhook) PushWebhookData(ctx context.Context, provider *Spec, data []by
 		method = http.MethodPost
 	}
 
-	rawData := make(map[string]map[string]string)
-	if err := w.getTemplatedSecrets(ctx, provider.Secrets, rawData); err != nil {
+	rawData := map[string]map[string]string{
+		"remoteRef": {
+			"remoteKey": url.QueryEscape(remoteKey.GetRemoteKey()),
+		},
+	}
+	if remoteKey.GetSecretKey() != "" {
+		rawData["remoteRef"]["secretKey"] = url.QueryEscape(remoteKey.GetSecretKey())
+	}
+
+	turl, err := ExecuteTemplateString(provider.URL, rawData)
+	if err != nil {
+		return fmt.Errorf("failed to parse url: %w", err)
+	}
+
+	dataMap := make(map[string]map[string]string)
+	if err := w.getTemplatedSecrets(ctx, provider.Secrets, dataMap); err != nil {
 		return err
 	}
 
 	// read the body into the void to prevent remaining garbage to be present
-	if _, err := w.executeRequest(ctx, provider, data, provider.URL, method, rawData); err != nil {
+	if _, err := w.executeRequest(ctx, provider, data, turl, method, dataMap); err != nil {
 		return fmt.Errorf("failed to push webhook data: %w", err)
 	}
 

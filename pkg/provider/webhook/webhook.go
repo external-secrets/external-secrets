@@ -131,7 +131,7 @@ func (w *WebHook) PushSecret(ctx context.Context, secret *corev1.Secret, data es
 		return err
 	}
 
-	if err := w.wh.PushWebhookData(ctx, provider, value); err != nil {
+	if err := w.wh.PushWebhookData(ctx, provider, value, data); err != nil {
 		return fmt.Errorf("failed to push webhook data: %w", err)
 	}
 
