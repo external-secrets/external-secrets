@@ -52,7 +52,7 @@ const (
 	httpClientTimeout = 5 * time.Second
 )
 
-func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, error) {
+func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(
 		ctx,
 		jsonSpec,
@@ -61,23 +61,27 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 	)
 }
 
+func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
+	return nil
+}
+
 func (g *Generator) generate(
 	ctx context.Context,
 	jsonSpec *apiextensions.JSON,
 	_ client.Client,
-	namespace string) (map[string][]byte, error) {
+	namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if jsonSpec == nil {
-		return nil, errors.New(errNoSpec)
+		return nil, nil, errors.New(errNoSpec)
 	}
 	res, err := parseSpec(jsonSpec.Raw)
 	if err != nil {
-		return nil, fmt.Errorf(errParseSpec, err)
+		return nil, nil, fmt.Errorf(errParseSpec, err)
 	}
 
 	// Fetch the service account token
 	token, err := fetchServiceAccountToken(ctx, res.Spec.ServiceAccountRef, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch service account token: %w", err)
+		return nil, nil, fmt.Errorf("failed to fetch service account token: %w", err)
 	}
 	url := res.Spec.URL
 	if url == "" {
@@ -87,17 +91,17 @@ func (g *Generator) generate(
 
 	accessToken, err := getQuayRobotToken(ctx, token, res.Spec.RobotAccount, url, g.httpClient)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	exp, err := tokenExpiration(accessToken)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	return map[string][]byte{
 		"registry": []byte(url),
 		"auth":     []byte(b64.StdEncoding.EncodeToString([]byte(res.Spec.RobotAccount + ":" + accessToken))),
 		"expiry":   []byte(exp),
-	}, nil
+	}, nil, nil
 }
 
 func getClaims(tokenString string) (map[string]interface{}, error) {

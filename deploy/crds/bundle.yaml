@@ -161,6 +161,7 @@ spec:
                                       - UUID
                                       - VaultDynamicSecret
                                       - Webhook
+                                      - Grafana
                                     type: string
                                   name:
                                     description: Specify the name of the generator resource
@@ -348,6 +349,7 @@ spec:
                                       - UUID
                                       - VaultDynamicSecret
                                       - Webhook
+                                      - Grafana
                                     type: string
                                   name:
                                     description: Specify the name of the generator resource
@@ -3555,6 +3557,8 @@ spec:
                           properties:
                             apiUrl:
                               type: string
+                            apiVersion:
+                              type: string
                             clientTimeOutSeconds:
                               description: Timeout specifies a time limit for requests made by this Client. The timeout includes connection time, any redirects, and reading the response body. Defaults to 45 seconds.
                               type: integer
@@ -6527,6 +6531,9 @@ spec:
   scope: Namespaced
   versions:
     - additionalPrinterColumns:
+        - jsonPath: .spec.secretStoreRef.kind
+          name: Store
+          type: string
         - jsonPath: .spec.secretStoreRef.name
           name: Store
           type: string
@@ -6826,6 +6833,9 @@ spec:
       subresources:
         status: {}
     - additionalPrinterColumns:
+        - jsonPath: .spec.secretStoreRef.kind
+          name: StoreType
+          type: string
         - jsonPath: .spec.secretStoreRef.name
           name: Store
           type: string
@@ -6947,6 +6957,7 @@ spec:
                                   - UUID
                                   - VaultDynamicSecret
                                   - Webhook
+                                  - Grafana
                                 type: string
                               name:
                                 description: Specify the name of the generator resource
@@ -7134,6 +7145,7 @@ spec:
                                   - UUID
                                   - VaultDynamicSecret
                                   - Webhook
+                                  - Grafana
                                 type: string
                               name:
                                 description: Specify the name of the generator resource
@@ -7429,6 +7441,8 @@ spec:
     kind: PushSecret
     listKind: PushSecretList
     plural: pushsecrets
+    shortNames:
+      - ps
     singular: pushsecret
   scope: Namespaced
   versions:
@@ -7603,6 +7617,7 @@ spec:
                             - UUID
                             - VaultDynamicSecret
                             - Webhook
+                            - Grafana
                           type: string
                         name:
                           description: Specify the name of the generator resource
@@ -10674,6 +10689,8 @@ spec:
                           description: Auth configures how API server works.
                           properties:
                             apiUrl:
+                              type: string
+                            apiVersion:
                               type: string
                             clientTimeOutSeconds:
                               description: Timeout specifies a time limit for requests made by this Client. The timeout includes connection time, any redirects, and reading the response body. Defaults to 45 seconds.
@@ -14347,6 +14364,63 @@ spec:
                         - auth
                         - installID
                       type: object
+                    grafanaSpec:
+                      description: GrafanaSpec controls the behavior of the grafana generator.
+                      properties:
+                        auth:
+                          description: |-
+                            Auth is the authentication configuration to authenticate
+                            against the Grafana instance.
+                          properties:
+                            token:
+                              description: |-
+                                A service account token used to authenticate against the Grafana instance.
+                                Note: you need a token which has elevated permissions to create service accounts.
+                                See here for the documentation on basic roles offered by Grafana:
+                                https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/
+                              properties:
+                                key:
+                                  description: The key where the token is found.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                              type: object
+                          required:
+                            - token
+                          type: object
+                        serviceAccount:
+                          description: |-
+                            ServiceAccount is the configuration for the service account that
+                            is supposed to be generated by the generator.
+                          properties:
+                            name:
+                              description: Name is the name of the service account that will be created by ESO.
+                              type: string
+                            role:
+                              description: |-
+                                Role is the role of the service account.
+                                See here for the documentation on basic roles offered by Grafana:
+                                https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/
+                              type: string
+                          required:
+                            - name
+                            - role
+                          type: object
+                        url:
+                          description: URL is the URL of the Grafana instance.
+                          type: string
+                      required:
+                        - auth
+                        - serviceAccount
+                        - url
+                      type: object
                     passwordSpec:
                       description: PasswordSpec controls the behavior of the password generator.
                       properties:
@@ -15499,12 +15573,12 @@ spec:
                     - Fake
                     - GCRAccessToken
                     - GithubAccessToken
-                    - QuayAccessToken
-                    - Password
+                    - QuayAccessToken'Password
                     - STSSessionToken
                     - UUID
                     - VaultDynamicSecret
                     - Webhook
+                    - Grafana
                   type: string
               required:
                 - generator
@@ -15957,6 +16031,119 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.17.1
   labels:
     external-secrets.io/component: controller
+  name: generatorstates.generators.external-secrets.io
+spec:
+  group: generators.external-secrets.io
+  names:
+    categories:
+      - external-secrets
+      - external-secrets-generators
+    kind: GeneratorState
+    listKind: GeneratorStateList
+    plural: generatorstates
+    shortNames:
+      - gs
+    singular: generatorstate
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .spec.garbageCollectionDeadline
+          name: GC Deadline
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                garbageCollectionDeadline:
+                  description: |-
+                    GarbageCollectionDeadline is the time after which the generator state
+                    will be deleted.
+                    It is set by the controller which creates the generator state and
+                    can be set configured by the user.
+                    If the garbage collection deadline is not set the generator state will not be deleted.
+                  format: date-time
+                  type: string
+                resource:
+                  description: |-
+                    Resource is the generator manifest that produced the state.
+                    It is a snapshot of the generator manifest at the time the state was produced.
+                    This manifest will be used to delete the resource. Any configuration that is referenced
+                    in the manifest should be available at the time of garbage collection. If that is not the case deletion will
+                    be blocked by a finalizer.
+                  x-kubernetes-preserve-unknown-fields: true
+                state:
+                  description: State is the state that was produced by the generator implementation.
+                  x-kubernetes-preserve-unknown-fields: true
+              required:
+                - resource
+                - state
+              type: object
+            status:
+              properties:
+                conditions:
+                  items:
+                    properties:
+                      lastTransitionTime:
+                        format: date-time
+                        type: string
+                      message:
+                        type: string
+                      reason:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        type: string
+                    required:
+                      - status
+                      - type
+                    type: object
+                  type: array
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources: {}
+  conversion:
+    strategy: Webhook
+    webhook:
+      conversionReviewVersions:
+        - v1
+      clientConfig:
+        service:
+          name: kubernetes
+          namespace: default
+          path: /convert
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.1
+  labels:
+    external-secrets.io/component: controller
   name: githubaccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -16056,6 +16243,120 @@ spec:
                 - appID
                 - auth
                 - installID
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+  conversion:
+    strategy: Webhook
+    webhook:
+      conversionReviewVersions:
+        - v1
+      clientConfig:
+        service:
+          name: kubernetes
+          namespace: default
+          path: /convert
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.1
+  labels:
+    external-secrets.io/component: controller
+  name: grafanas.generators.external-secrets.io
+spec:
+  group: generators.external-secrets.io
+  names:
+    categories:
+      - external-secrets
+      - external-secrets-generators
+    kind: Grafana
+    listKind: GrafanaList
+    plural: grafanas
+    singular: grafana
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: GrafanaSpec controls the behavior of the grafana generator.
+              properties:
+                auth:
+                  description: |-
+                    Auth is the authentication configuration to authenticate
+                    against the Grafana instance.
+                  properties:
+                    token:
+                      description: |-
+                        A service account token used to authenticate against the Grafana instance.
+                        Note: you need a token which has elevated permissions to create service accounts.
+                        See here for the documentation on basic roles offered by Grafana:
+                        https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/
+                      properties:
+                        key:
+                          description: The key where the token is found.
+                          maxLength: 253
+                          minLength: 1
+                          pattern: ^[-._a-zA-Z0-9]+$
+                          type: string
+                        name:
+                          description: The name of the Secret resource being referred to.
+                          maxLength: 253
+                          minLength: 1
+                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                          type: string
+                      type: object
+                  required:
+                    - token
+                  type: object
+                serviceAccount:
+                  description: |-
+                    ServiceAccount is the configuration for the service account that
+                    is supposed to be generated by the generator.
+                  properties:
+                    name:
+                      description: Name is the name of the service account that will be created by ESO.
+                      type: string
+                    role:
+                      description: |-
+                        Role is the role of the service account.
+                        See here for the documentation on basic roles offered by Grafana:
+                        https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/
+                      type: string
+                  required:
+                    - name
+                    - role
+                  type: object
+                url:
+                  description: URL is the URL of the Grafana instance.
+                  type: string
+              required:
+                - auth
+                - serviceAccount
+                - url
               type: object
           type: object
       served: true

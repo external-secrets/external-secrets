@@ -20,6 +20,7 @@ import (
 	"reflect"
 
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -143,6 +144,10 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 			return nil, fmt.Errorf("when kind is %s, ACRAccessTokenSpec must be set", gen.Spec.Kind)
 		}
 		return &genv1alpha1.ACRAccessToken{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.ACRAccessTokenKind,
+			},
 			Spec: *gen.Spec.Generator.ACRAccessTokenSpec,
 		}, nil
 	case genv1alpha1.GeneratorKindECRAuthorizationToken:
@@ -150,6 +155,10 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 			return nil, fmt.Errorf("when kind is %s, ECRAuthorizationTokenSpec must be set", gen.Spec.Kind)
 		}
 		return &genv1alpha1.ECRAuthorizationToken{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.ECRAuthorizationTokenKind,
+			},
 			Spec: *gen.Spec.Generator.ECRAuthorizationTokenSpec,
 		}, nil
 	case genv1alpha1.GeneratorKindFake:
@@ -157,6 +166,10 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 			return nil, fmt.Errorf("when kind is %s, FakeSpec must be set", gen.Spec.Kind)
 		}
 		return &genv1alpha1.Fake{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.FakeKind,
+			},
 			Spec: *gen.Spec.Generator.FakeSpec,
 		}, nil
 	case genv1alpha1.GeneratorKindGCRAccessToken:
@@ -164,6 +177,10 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 			return nil, fmt.Errorf("when kind is %s, GCRAccessTokenSpec must be set", gen.Spec.Kind)
 		}
 		return &genv1alpha1.GCRAccessToken{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.GCRAccessTokenKind,
+			},
 			Spec: *gen.Spec.Generator.GCRAccessTokenSpec,
 		}, nil
 	case genv1alpha1.GeneratorKindGithubAccessToken:
@@ -171,6 +188,10 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 			return nil, fmt.Errorf("when kind is %s, GithubAccessTokenSpec must be set", gen.Spec.Kind)
 		}
 		return &genv1alpha1.GithubAccessToken{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.GithubAccessTokenKind,
+			},
 			Spec: *gen.Spec.Generator.GithubAccessTokenSpec,
 		}, nil
 	case genv1alpha1.GeneratorKindQuayAccessToken:
@@ -185,6 +206,10 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 			return nil, fmt.Errorf("when kind is %s, PasswordSpec must be set", gen.Spec.Kind)
 		}
 		return &genv1alpha1.Password{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.PasswordKind,
+			},
 			Spec: *gen.Spec.Generator.PasswordSpec,
 		}, nil
 	case genv1alpha1.GeneratorKindSTSSessionToken:
@@ -192,6 +217,10 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 			return nil, fmt.Errorf("when kind is %s, STSSessionTokenSpec must be set", gen.Spec.Kind)
 		}
 		return &genv1alpha1.STSSessionToken{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.STSSessionTokenKind,
+			},
 			Spec: *gen.Spec.Generator.STSSessionTokenSpec,
 		}, nil
 	case genv1alpha1.GeneratorKindUUID:
@@ -199,6 +228,10 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 			return nil, fmt.Errorf("when kind is %s, UUIDSpec must be set", gen.Spec.Kind)
 		}
 		return &genv1alpha1.UUID{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.UUIDKind,
+			},
 			Spec: *gen.Spec.Generator.UUIDSpec,
 		}, nil
 	case genv1alpha1.GeneratorKindVaultDynamicSecret:
@@ -206,6 +239,10 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 			return nil, fmt.Errorf("when kind is %s, VaultDynamicSecretSpec must be set", gen.Spec.Kind)
 		}
 		return &genv1alpha1.VaultDynamicSecret{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.VaultDynamicSecretKind,
+			},
 			Spec: *gen.Spec.Generator.VaultDynamicSecretSpec,
 		}, nil
 	case genv1alpha1.GeneratorKindWebhook:
@@ -213,7 +250,22 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 			return nil, fmt.Errorf("when kind is %s, WebhookSpec must be set", gen.Spec.Kind)
 		}
 		return &genv1alpha1.Webhook{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.WebhookKind,
+			},
 			Spec: *gen.Spec.Generator.WebhookSpec,
+		}, nil
+	case genv1alpha1.GeneratorKindGrafana:
+		if gen.Spec.Generator.GrafanaSpec == nil {
+			return nil, fmt.Errorf("when kind is %s, GrafanaSpec must be set", gen.Spec.Kind)
+		}
+		return &genv1alpha1.Grafana{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.GrafanaKind,
+			},
+			Spec: *gen.Spec.Generator.GrafanaSpec,
 		}, nil
 	default:
 		return nil, fmt.Errorf("unknown kind %s", gen.Spec.Kind)

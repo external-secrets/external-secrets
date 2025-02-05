@@ -262,7 +262,7 @@ func (g *gitlabBase) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDa
 
 	// _Note_: getVariables potentially alters vopts environment variable.
 	data, resp, err := g.getVariables(ref, vopts)
-	if err != nil {
+	if err != nil && (resp == nil || resp.StatusCode != http.StatusNotFound) {
 		return nil, err
 	}
 

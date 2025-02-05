@@ -151,8 +151,30 @@ func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	return nil
 }
 
-func (pm *ParameterStore) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, errors.New("not implemented")
+func (pm *ParameterStore) SecretExists(ctx context.Context, pushSecretRef esv1beta1.PushSecretRemoteRef) (bool, error) {
+	secretName := pm.prefix + pushSecretRef.GetRemoteKey()
+
+	secretValue := ssm.GetParameterInput{
+		Name: &secretName,
+	}
+
+	_, err := pm.client.GetParameterWithContext(ctx, &secretValue)
+
+	if err != nil {
+		var aerr awserr.Error
+		if ok := errors.As(err, &aerr); !ok {
+			return false, err
+		}
+		if aerr.Code() == ssm.ErrCodeResourceNotFoundException {
+			return false, nil
+		}
+		if aerr.Code() == ssm.ErrCodeParameterNotFound {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
