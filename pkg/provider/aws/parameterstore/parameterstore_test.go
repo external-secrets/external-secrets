@@ -906,3 +906,90 @@ func getTagSlice() []*ssm.Tag {
 		},
 	}
 }
+
+func TestSecretExists(t *testing.T) {
+	parameterOutput := &ssm.GetParameterOutput{
+		Parameter: &ssm.Parameter{
+			Value: aws.String("sensitive"),
+		},
+	}
+
+	blankParameterOutput := &ssm.GetParameterOutput{}
+	getParameterCorrectErr := ssm.ResourceNotFoundException{}
+	getParameterWrongErr := ssm.InvalidParameters{}
+
+	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: "fake-secret-key", RemoteKey: fakeSecretKey, Property: ""}
+
+	type args struct {
+		store          *esv1beta1.AWSProvider
+		client         fakeps.Client
+		pushSecretData fake.PushSecretData
+	}
+
+	type want struct {
+		err       error
+		wantError bool
+	}
+
+	tests := map[string]struct {
+		args args
+		want want
+	}{
+		"SecretExistsReturnsTrueForExistingParameter": {
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				client: fakeps.Client{
+					GetParameterWithContextFn: fakeps.NewGetParameterWithContextFn(parameterOutput, nil),
+				},
+				pushSecretData: pushSecretDataWithoutProperty,
+			},
+			want: want{
+				err:       nil,
+				wantError: true,
+			},
+		},
+		"SecretExistsReturnsFalseForNonExistingParameter": {
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				client: fakeps.Client{
+					GetParameterWithContextFn: fakeps.NewGetParameterWithContextFn(blankParameterOutput, &getParameterCorrectErr),
+				},
+				pushSecretData: pushSecretDataWithoutProperty,
+			},
+			want: want{
+				err:       nil,
+				wantError: false,
+			},
+		},
+		"SecretExistsReturnsFalseForErroredParameter": {
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				client: fakeps.Client{
+					GetParameterWithContextFn: fakeps.NewGetParameterWithContextFn(blankParameterOutput, &getParameterWrongErr),
+				},
+				pushSecretData: pushSecretDataWithoutProperty,
+			},
+			want: want{
+				err:       &getParameterWrongErr,
+				wantError: false,
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			ps := &ParameterStore{
+				client: &tc.args.client,
+			}
+			got, err := ps.SecretExists(context.Background(), tc.args.pushSecretData)
+
+			assert.Equal(
+				t,
+				tc.want,
+				want{
+					err:       err,
+					wantError: got,
+				})
+		})
+	}
+}
