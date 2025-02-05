@@ -88,7 +88,7 @@ func TestResolveSecretKeyRef(t *testing.T) {
 				Namespace: ptr.To(testNamespace),
 				Key:       testKey,
 			},
-			err: errors.New(`cannot get Kubernetes secret "test-secret": secrets "test-secret" not found`),
+			err: errors.New(`cannot get Kubernetes secret "test-secret" from namespace "other-namespace": secrets "test-secret" not found`),
 		},
 		{
 			name:      "cluster secret store may access all namespaces",
