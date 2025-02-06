@@ -399,7 +399,7 @@ func TestAuth(t *testing.T) {
 		},
 		{
 			name:   "bad config: missing secret",
-			expErr: "cannot get Kubernetes secret \"password\": secrets \"password\" not found",
+			expErr: "cannot get Kubernetes secret \"password\" from namespace \"default\": secrets \"password\" not found",
 			store:  &defaultStore,
 			provider: &esv1beta1.AzureKVProvider{
 				AuthType: &authType,
@@ -413,7 +413,7 @@ func TestAuth(t *testing.T) {
 		},
 		{
 			name:   "cluster secret store",
-			expErr: "cannot get Kubernetes secret \"password\": secrets \"password\" not found",
+			expErr: "cannot get Kubernetes secret \"password\" from namespace \"foo\": secrets \"password\" not found",
 			store: &esv1beta1.ClusterSecretStore{
 				TypeMeta: metav1.TypeMeta{
 					Kind: esv1beta1.ClusterSecretStoreKind,

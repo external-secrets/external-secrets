@@ -109,10 +109,10 @@ func (g *gitlabBase) getVariables(ref esv1beta1.ExternalSecretDataRemoteRef, vop
 			data, resp, err = g.projectVariablesClient.GetVariable(g.store.ProjectID, ref.Key, vopts)
 			metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableGet, err)
 			if err != nil || resp == nil {
-				return nil, nil, fmt.Errorf("error getting variable %s from GitLab: %w", ref.Key, err)
+				return nil, resp, fmt.Errorf("error getting variable %s from GitLab: %w", ref.Key, err)
 			}
 		} else {
-			return nil, nil, err
+			return nil, resp, err
 		}
 	}
 
