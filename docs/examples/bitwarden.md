@@ -14,7 +14,7 @@ To make external-secrets compatible with Bitwarden, we need:
 
 * External Secrets Operator >= 0.8.0
 * Multiple (Cluster)SecretStores using the webhook provider
-* BitWarden CLI image running `bw serve`
+* Bitwarden CLI image running `bw serve`
 
 When you create a new external-secret object, the External Secrets webhook provider will query the Bitwarden CLI pod that is synced with the Bitwarden server.
 

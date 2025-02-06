@@ -41,6 +41,11 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 		k8sSpec.Server.CAProvider.Namespace == nil {
 		return nil, errors.New("CAProvider.namespace must not be empty with ClusterSecretStore")
 	}
+	if store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.SecretStoreKind &&
+		k8sSpec.Server.CAProvider != nil &&
+		k8sSpec.Server.CAProvider.Namespace != nil {
+		return nil, errors.New("CAProvider.namespace must be empty with SecretStore")
+	}
 	if k8sSpec.Auth.Cert != nil {
 		if k8sSpec.Auth.Cert.ClientCert.Name == "" {
 			return nil, errors.New("ClientCert.Name cannot be empty")
