@@ -1,26 +1,4 @@
 {{- if and ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) .Values.serviceMonitor.enabled -}}
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ include "external-secrets.fullname" . }}-metrics
-  namespace: {{ template "external-secrets.namespace" . }}
-  labels:
-    {{- include "external-secrets.labels" . | nindent 4 }}
-spec:
-  type: ClusterIP
-  {{- if .Values.service.ipFamilyPolicy }}
-  ipFamilyPolicy: {{ .Values.service.ipFamilyPolicy }}
-  {{- end }}
-  {{- if .Values.service.ipFamilies }}
-  ipFamilies: {{ .Values.service.ipFamilies | toYaml | nindent 2 }}
-  {{- end }}
-  ports:
-    - port: {{ .Values.metrics.service.port }}
-      protocol: TCP
-      name: metrics
-  selector:
-    {{- include "external-secrets.selectorLabels" . | nindent 4 }}
----
 apiVersion: "monitoring.coreos.com/v1"
 kind: ServiceMonitor
 metadata:
@@ -53,28 +31,6 @@ spec:
     {{- end }}
 ---
 {{- if .Values.webhook.create }}
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ include "external-secrets.fullname" . }}-webhook-metrics
-  namespace: {{ template "external-secrets.namespace" . }}
-  labels:
-    {{- include "external-secrets-webhook-metrics.labels" . | nindent 4 }}
-spec:
-  type: ClusterIP
-  {{- if .Values.service.ipFamilyPolicy }}
-  ipFamilyPolicy: {{ .Values.service.ipFamilyPolicy }}
-  {{- end }}
-  {{- if .Values.service.ipFamilies }}
-  ipFamilies: {{ .Values.service.ipFamilies | toYaml | nindent 2 }}
-  {{- end }}
-  ports:
-    - port: {{ .Values.webhook.metrics.service.port }}
-      protocol: TCP
-      name: metrics
-  selector:
-    {{- include "external-secrets-webhook.selectorLabels" . | nindent 4 }}
----
 apiVersion: "monitoring.coreos.com/v1"
 kind: ServiceMonitor
 metadata:
@@ -108,28 +64,6 @@ spec:
 {{- end }}
 ---
 {{- if .Values.certController.create }}
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ include "external-secrets.fullname" . }}-cert-controller-metrics
-  namespace: {{ template "external-secrets.namespace" . }}
-  labels:
-    {{- include "external-secrets-cert-controller-metrics.labels" . | nindent 4 }}
-spec:
-  type: ClusterIP
-  {{- if .Values.service.ipFamilyPolicy }}
-  ipFamilyPolicy: {{ .Values.service.ipFamilyPolicy }}
-  {{- end }}
-  {{- if .Values.service.ipFamilies }}
-  ipFamilies: {{ .Values.service.ipFamilies | toYaml | nindent 2 }}
-  {{- end }}
-  ports:
-    - port: {{ .Values.certController.metrics.listen.port }}
-      protocol: TCP
-      name: metrics
-  selector:
-    {{- include "external-secrets-cert-controller.selectorLabels" . | nindent 4 }}
----
 apiVersion: "monitoring.coreos.com/v1"
 kind: ServiceMonitor
 metadata:
