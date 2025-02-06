@@ -3605,7 +3605,9 @@ it enables obtaining dynamic secrets not covered by the
 <p>All secrets engines should be supported by providing matching <code>path</code>, <code>method</code>
 and <code>parameters</code> values to the Generator spec (see example below).</p>
 <p>Exact output keys and values depend on the Vault secret engine used; nested values
-are stored into the resulting Secret in JSON format.</p>
+are stored into the resulting Secret in JSON format. The generator exposes <code>data</code>
+section of the response from Vault API by default. To adjust the behaviour, use
+<code>resultType</code> key.</p>
 <h2 id="example-manifest">Example manifest</h2>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">VaultDynamicSecret</span>
@@ -3617,6 +3619,7 @@ are stored into the resulting Secret in JSON format.</p>
 <span class="w">  </span><span class="nt">parameters</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">common_name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;localhost&quot;</span>
 <span class="w">    </span><span class="nt">ip_sans</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;127.0.0.1,127.0.0.11&quot;</span>
+<span class="w">  </span><span class="nt">resultType</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Data&quot;</span><span class="w">  </span><span class="c1"># &quot;Auth&quot; and &quot;Raw&quot; are also available</span>
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">server</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://vault.default.svc.cluster.local:8200&quot;</span>
 <span class="w">    </span><span class="nt">auth</span><span class="p">:</span>
