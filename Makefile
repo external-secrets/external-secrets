@@ -109,10 +109,16 @@ test.e2e.managed: generate ## Run e2e tests managed
 	@$(OK) go test e2e-tests-managed
 
 .PHONY: test.crds
-test.crds: cty helm.generate.tests
-	@$(INFO) $(LOCALBIN)/cty test tests
+test.crds: cty crds.generate.tests ## Test CRDs for modification and backwards compatibility
+	@$(INFO) $(CTY) test tests
 	$(CTY) test tests
 	@$(OK) No breaking CRD changes detected
+
+.PHONY: test.crds.update
+test.crds.update: cty crds.generate.tests ## Update the snapshots used by the CRD tests
+	@$(INFO) $(CTY) test tests -u
+	$(CTY) test tests -u
+	@$(OK) Successfully updated all test snapshots
 
 .PHONY: build
 build: $(addprefix build-,$(ARCH)) ## Build binary
@@ -161,6 +167,10 @@ crds.install: generate ## Install CRDs into a cluster. This is for convenience
 crds.uninstall: ## Uninstall CRDs from a cluster. This is for convenience
 	kubectl delete -f $(BUNDLE_DIR)
 
+crds.generate.tests:
+	./hack/test.crds.generate.sh $(BUNDLE_DIR) tests/crds
+	@$(OK) Finished generating crds for testing
+
 tilt-up: tilt manifests ## Generates the local manifests that tilt will use to deploy the controller's objects.
 	$(LOCALBIN)/tilt up
 
@@ -192,10 +202,6 @@ helm.schema.update: helm.schema.plugin
 helm.generate:
 	./hack/helm.generate.sh $(BUNDLE_DIR) $(HELM_DIR)
 	@$(OK) Finished generating helm chart files
-
-helm.generate.tests:
-	./hack/test.crds.generate.sh $(BUNDLE_DIR) tests/crds
-	@$(OK) Finished generating helm charts for testing
 
 helm.test: helm.generate
 	@helm unittest --file tests/*.yaml --file 'tests/**/*.yaml' deploy/charts/external-secrets/
@@ -350,7 +356,7 @@ GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
 GOLANGCI_VERSION := 1.61.0
 KUBERNETES_VERSION := 1.30.x
 TILT_VERSION := 0.33.21
-CTY_VERSION := 1.1.2
+CTY_VERSION := 1.1.3
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.

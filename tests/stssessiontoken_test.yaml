@@ -1,0 +1,7 @@
+suite: test STSSessionToken
+template: tests/crds/stssessiontoken.yml
+tests:
+  - it: matches STSSessionToken correctly
+    asserts:
+      - matchSnapshot:
+          path: tests/__snapshot__
