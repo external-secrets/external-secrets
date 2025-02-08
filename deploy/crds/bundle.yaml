@@ -15575,7 +15575,8 @@ spec:
                     - Fake
                     - GCRAccessToken
                     - GithubAccessToken
-                    - QuayAccessToken'Password
+                    - QuayAccessToken
+                    - Password
                     - STSSessionToken
                     - UUID
                     - VaultDynamicSecret

@@ -27,7 +27,7 @@ type ClusterGeneratorSpec struct {
 }
 
 // GeneratorKind represents a kind of generator.
-// +kubebuilder:validation:Enum=ACRAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken'Password;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana
+// +kubebuilder:validation:Enum=ACRAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana
 type GeneratorKind string
 
 const (
