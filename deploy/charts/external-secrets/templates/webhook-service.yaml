@@ -26,7 +26,7 @@ spec:
     targetPort: {{ .Values.webhook.port }}
     protocol: TCP
     name: webhook
-  {{- if .Values.webhook.metrics.service.enabled }}
+  {{- if or .Values.webhook.metrics.service.enabled ( and ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) .Values.serviceMonitor.enabled ) }}
   - port: {{ .Values.webhook.metrics.service.port }}
     protocol: TCP
     targetPort: metrics

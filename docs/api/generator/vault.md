@@ -10,7 +10,9 @@ All secrets engines should be supported by providing matching `path`, `method`
 and `parameters` values to the Generator spec (see example below).
 
 Exact output keys and values depend on the Vault secret engine used; nested values
-are stored into the resulting Secret in JSON format.
+are stored into the resulting Secret in JSON format. The generator exposes `data`
+section of the response from Vault API by default. To adjust the behaviour, use
+`resultType` key.
 
 ## Example manifest
 

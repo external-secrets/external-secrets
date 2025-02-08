@@ -1,18 +1,25 @@
 suite: test cert controller deployment
 templates:
   - cert-controller-deployment.yaml
+  - cert-controller-service.yaml
 tests:
   - it: should match snapshot of default values
+    templates:
+      - cert-controller-deployment.yaml
     asserts:
       - matchSnapshot: {}
   - it: should set imagePullPolicy to Always
     set:
       certController.image.pullPolicy: Always
+    templates:
+      - cert-controller-deployment.yaml
     asserts:
       - equal:
           path: spec.template.spec.containers[0].imagePullPolicy
           value: Always
   - it: should imagePullPolicy to be default value IfNotPresent
+    templates:
+      - cert-controller-deployment.yaml
     asserts:
       - equal:
           path: spec.template.spec.containers[0].imagePullPolicy
@@ -23,6 +30,8 @@ tests:
         runAsUser: 2000
       certController.securityContext:
         runAsUser: 3000
+    templates:
+      - cert-controller-deployment.yaml
     asserts:
       - equal:
           path: spec.template.spec.securityContext
@@ -43,6 +52,8 @@ tests:
   - it: should override hostNetwork
     set:
       certController.hostNetwork: true
+    templates:
+      - cert-controller-deployment.yaml
     asserts:
       - equal:
           path: spec.template.spec.hostNetwork
@@ -50,6 +61,8 @@ tests:
   - it: should override readinessProbe port
     set:
       certController.readinessProbe.port: 8082
+    templates:
+      - cert-controller-deployment.yaml
     asserts:
       - equal:
           path: spec.template.spec.containers[0].args[7]
@@ -57,6 +70,8 @@ tests:
   - it: should override metrics port
     set:
       certController.metrics.listen.port: 8888
+    templates:
+      - cert-controller-deployment.yaml
     asserts:
       - equal:
           path: spec.template.spec.containers[0].args[6]
@@ -66,6 +81,8 @@ tests:
       certController.image.repository: ghcr.io/external-secrets/external-secrets
       certController.image.tag: v0.9.8
       certController.image.flavour: ubi-boringssl
+    templates:
+      - cert-controller-deployment.yaml
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
@@ -74,7 +91,60 @@ tests:
     set:
       certController.image.repository: example.com/external-secrets/external-secrets
       certController.image.tag: v0.9.9-ubi
+    templates:
+      - cert-controller-deployment.yaml
     asserts:
       - equal:
           path: spec.template.spec.containers[0].image
           value: example.com/external-secrets/external-secrets:v0.9.9-ubi
+  - it: should render service without metrics label when metrics is enabled
+    set:
+      certController.metrics.service.enabled: true
+    templates:
+      - cert-controller-service.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isNull:
+          path: metadata.labels["app.kubernetes.io/metrics"]
+  - it: should render service with metrics label when APIVersions are present and serviceMonitor is enabled
+    set:
+      serviceMonitor.enabled: true
+    capabilities:
+      apiVersions:
+        - "monitoring.coreos.com/v1"
+    templates:
+      - cert-controller-service.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.labels["app.kubernetes.io/metrics"]
+          value: "cert-controller"
+  - it: should not render service when APIVersions is not present but serviceMonitor is enabled
+    set:
+      serviceMonitor.enabled: true
+    templates:
+      - cert-controller-service.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: should not render service when APIVersions is present and serviceMonitor is disabled
+    set:
+      serviceMonitor.enabled: false
+    capabilities:
+      apiVersions:
+        - "monitoring.coreos.com/v1"
+    templates:
+      - cert-controller-service.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: should not render service when APIVersions is not present and serviceMonitor is disabled
+    set:
+      serviceMonitor.enabled: false
+    templates:
+      - cert-controller-service.yaml
+    asserts:
+      - hasDocuments:
+          count: 0

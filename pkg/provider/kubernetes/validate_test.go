@@ -86,6 +86,47 @@ func TestValidateStore(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "caprovider with empty namespace for cluster secret store",
+			store: &esv1beta1.ClusterSecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: "ClusterSecretStore",
+				},
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						Kubernetes: &esv1beta1.KubernetesProvider{
+							Server: esv1beta1.KubernetesServer{
+								CAProvider: &esv1beta1.CAProvider{
+									Name: "foobar",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "caprovider with non empty namespace for secret store",
+			store: &esv1beta1.SecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: "SecretStore",
+				},
+				Spec: esv1beta1.SecretStoreSpec{
+					Provider: &esv1beta1.SecretStoreProvider{
+						Kubernetes: &esv1beta1.KubernetesProvider{
+							Server: esv1beta1.KubernetesServer{
+								CAProvider: &esv1beta1.CAProvider{
+									Name:      "foobar",
+									Namespace: pointer.To("noop"),
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "invalid client cert key",
 			store: &esv1beta1.SecretStore{
 				Spec: esv1beta1.SecretStoreSpec{
