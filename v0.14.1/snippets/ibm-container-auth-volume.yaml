@@ -1,0 +1,22 @@
+...
+spec:
+  ...
+  template:
+    ...
+    spec:
+      containers:
+        ...
+        volumeMounts:
+        - mountPath: /var/run/secrets/tokens
+           name: sa-token
+      ...
+      volumes:
+      - name: sa-token
+        projected:
+          defaultMode: 420
+          sources:
+          - serviceAccountToken:
+              audience: iam
+              expirationSeconds: 3600
+              path: sa-token
+...
