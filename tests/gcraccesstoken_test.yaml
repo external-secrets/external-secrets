@@ -1,0 +1,7 @@
+suite: test GCRAccessToken generator
+template: tests/crds/gcraccesstoken.yml
+tests:
+  - it: matches GCRAccessToken generator correctly
+    asserts:
+      - matchSnapshot:
+          path: tests/__snapshot__

@@ -67,3 +67,4 @@ terraform.rc
 .terraform.lock.hcl
 
 tmp/
+tests/crds/*.yml
