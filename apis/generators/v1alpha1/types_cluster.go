@@ -27,7 +27,7 @@ type ClusterGeneratorSpec struct {
 }
 
 // GeneratorKind represents a kind of generator.
-// +kubebuilder:validation:Enum=ACRAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;STSSessionToken;UUID;VaultDynamicSecret;Webhook
+// +kubebuilder:validation:Enum=ACRAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana
 type GeneratorKind string
 
 const (
@@ -42,6 +42,7 @@ const (
 	GeneratorKindUUID                  GeneratorKind = "UUID"
 	GeneratorKindVaultDynamicSecret    GeneratorKind = "VaultDynamicSecret"
 	GeneratorKindWebhook               GeneratorKind = "Webhook"
+	GeneratorKindGrafana               GeneratorKind = "Grafana"
 )
 
 // +kubebuilder:validation:MaxProperties=1
@@ -58,6 +59,7 @@ type GeneratorSpec struct {
 	UUIDSpec                  *UUIDSpec                  `json:"uuidSpec,omitempty"`
 	VaultDynamicSecretSpec    *VaultDynamicSecretSpec    `json:"vaultDynamicSecretSpec,omitempty"`
 	WebhookSpec               *WebhookSpec               `json:"webhookSpec,omitempty"`
+	GrafanaSpec               *GrafanaSpec               `json:"grafanaSpec,omitempty"`
 }
 
 // ClusterGenerator represents a cluster-wide generator which can be referenced as part of `generatorRef` fields.

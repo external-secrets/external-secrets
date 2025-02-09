@@ -41,7 +41,7 @@ const (
 	errGetToken  = "unable to get authorization token: %w"
 )
 
-func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, error) {
+func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(
 		ctx,
 		jsonSpec,
@@ -51,36 +51,40 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 	)
 }
 
+func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, crClient client.Client, namespace string) error {
+	return nil
+}
+
 func (g *Generator) generate(
 	ctx context.Context,
 	jsonSpec *apiextensions.JSON,
 	kube client.Client,
 	namespace string,
-	tokenSource tokenSourceFunc) (map[string][]byte, error) {
+	tokenSource tokenSourceFunc) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if jsonSpec == nil {
-		return nil, errors.New(errNoSpec)
+		return nil, nil, errors.New(errNoSpec)
 	}
 	res, err := parseSpec(jsonSpec.Raw)
 	if err != nil {
-		return nil, fmt.Errorf(errParseSpec, err)
+		return nil, nil, fmt.Errorf(errParseSpec, err)
 	}
 	ts, err := tokenSource(ctx, esv1beta1.GCPSMAuth{
 		SecretRef:        (*esv1beta1.GCPSMAuthSecretRef)(res.Spec.Auth.SecretRef),
 		WorkloadIdentity: (*esv1beta1.GCPWorkloadIdentity)(res.Spec.Auth.WorkloadIdentity),
 	}, res.Spec.ProjectID, resolvers.EmptyStoreKind, kube, namespace)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	token, err := ts.Token()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	exp := strconv.FormatInt(token.Expiry.UTC().Unix(), 10)
 	return map[string][]byte{
 		"username": []byte(defaultLoginUsername),
 		"password": []byte(token.AccessToken),
 		"expiry":   []byte(exp),
-	}, nil
+	}, nil, nil
 }
 
 type tokenSourceFunc func(ctx context.Context, auth esv1beta1.GCPSMAuth, projectID string, storeKind string, kube client.Client, namespace string) (oauth2.TokenSource, error)

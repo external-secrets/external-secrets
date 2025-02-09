@@ -1,0 +1,26 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: ECRAuthorizationToken
+metadata: {}
+spec:
+  auth:
+    jwt:
+      serviceAccountRef:
+        audiences: [] # minItems 0 of type string
+        name: string
+        namespace: string
+    secretRef:
+      accessKeyIDSecretRef:
+        key: string
+        name: string
+        namespace: string
+      secretAccessKeySecretRef:
+        key: string
+        name: string
+        namespace: string
+      sessionTokenSecretRef:
+        key: string
+        name: string
+        namespace: string
+  region: string
+  role: string
+  scope: string

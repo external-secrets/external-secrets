@@ -1,0 +1,7 @@
+suite: test UUID generator
+template: tests/crds/uuid.yml
+tests:
+  - it: matches UUID generator correctly
+    asserts:
+      - matchSnapshot:
+          path: tests/__snapshot__

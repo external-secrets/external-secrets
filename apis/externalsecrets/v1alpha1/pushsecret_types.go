@@ -221,7 +221,7 @@ type PushSecretStatus struct {
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
-// +kubebuilder:resource:scope=Namespaced,categories={external-secrets}
+// +kubebuilder:resource:scope=Namespaced,categories={external-secrets},shortName=ps
 
 type PushSecret struct {
 	metav1.TypeMeta   `json:",inline"`

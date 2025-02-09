@@ -1,0 +1,14 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: GeneratorState
+metadata: {}
+spec:
+  garbageCollectionDeadline: 2024-10-11T12:48:44Z
+  resource: 
+  state: 
+status:
+  conditions:
+  - lastTransitionTime: 2024-10-11T12:48:44Z
+    message: string
+    reason: string
+    status: string
+    type: string

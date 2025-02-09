@@ -1,0 +1,15 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: GithubAccessToken
+metadata: {}
+spec:
+  appID: string
+  auth:
+    privateKey:
+      secretRef:
+        key: string
+        name: string
+        namespace: string
+  installID: string
+  permissions: {}
+  repositories: [] # minItems 0 of type string
+  url: string

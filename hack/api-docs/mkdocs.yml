@@ -52,6 +52,8 @@ nav:
   - Introduction:
       - Introduction: index.md
       - Overview: introduction/overview.md
+      - Glossary: introduction/glossary.md
+      - Prerequisites: introduction/prerequisites.md
       - Getting started: introduction/getting-started.md
       - FAQ: introduction/faq.md
       - Stability and Support: introduction/stability-support.md
@@ -104,6 +106,8 @@ nav:
           - Upgrading to v1beta1: guides/v1beta1.md
           - Using Latest Image: guides/using-latest-image.md
           - Disable Cluster Features: guides/disable-cluster-features.md
+      - Tooling:
+          - Using the esoctl tool: guides/using-esoctl-tool.md
   - Provider:
       - AWS Secrets Manager: provider/aws-secrets-manager.md
       - AWS Parameter Store: provider/aws-parameter-store.md
@@ -144,7 +148,7 @@ nav:
       - FluxCD: examples/gitops-using-fluxcd.md
       - Anchore Engine: examples/anchore-engine-credentials.md
       - Jenkins: examples/jenkins-kubernetes-credentials.md
-      - BitWarden: examples/bitwarden.md
+      - Bitwarden: examples/bitwarden.md
   - Community:
       - Contributing:
           - Developer guide: contributing/devguide.md

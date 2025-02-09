@@ -16,8 +16,10 @@ limitations under the License.
 
 package main
 
-import "github.com/external-secrets/external-secrets/cmd"
+import (
+	"github.com/external-secrets/external-secrets/cmd/controller"
+)
 
 func main() {
-	cmd.Execute()
+	controller.Execute()
 }

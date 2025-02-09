@@ -440,12 +440,14 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
 				metadata: &apiextensionsv1.JSON{
-					Raw: []byte(`
-					{
-						"parameterStoreType": "SecureString", 
-						"parameterStoreKeyID": "arn:aws:kms:sa-east-1:00000000000:key/bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"
-					}
-					`),
+					Raw: []byte(`{
+						"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+						"kind": "PushSecretMetadata",
+						"spec": {
+							"secretType": "SecureString",
+							"kmsKeyID": "arn:aws:kms:sa-east-1:00000000000:key/bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"
+						}
+					}`),
 				},
 				client: fakeps.Client{
 					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
@@ -463,7 +465,13 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
 				metadata: &apiextensionsv1.JSON{
-					Raw: []byte(`{"parameterStoreType": "StringList", "parameterStoreKeyID": "alias/aws/ssm"}`),
+					Raw: []byte(`{
+						"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+						"kind": "PushSecretMetadata",
+						"spec": {
+							"secretType": "StringList"
+						}
+					}`),
 				},
 				client: fakeps.Client{
 					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
@@ -491,7 +499,7 @@ func TestPushSecret(t *testing.T) {
 				},
 			},
 			want: want{
-				err: errors.New("failed to parse metadata: failed to parse JSON raw data: invalid character 'f' looking for beginning of object key string"),
+				err: errors.New(`failed to parse metadata: failed to parse kubernetes.external-secrets.io/v1alpha1 PushSecretMetadata: error unmarshaling JSON: while decoding JSON: json: unknown field "fakeMetadataKey"`),
 			},
 		},
 		"GetRemoteSecretWithoutDecryption": {
@@ -499,12 +507,64 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
 				metadata: &apiextensionsv1.JSON{
-					Raw: []byte(`
-					{
-						"parameterStoreType": "SecureString",
-						"parameterStoreKeyID": "arn:aws:kms:sa-east-1:00000000000:key/bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"
-					}
-					`),
+					Raw: []byte(`{
+						"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+						"kind": "PushSecretMetadata",
+						"spec": {
+							"secretType": "SecureString",
+							"kmsKeyID": "arn:aws:kms:sa-east-1:00000000000:key/bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"
+						}
+					}`),
+				},
+				client: fakeps.Client{
+					PutParameterWithContextFn: fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn: fakeps.NewGetParameterWithContextFn(&ssm.GetParameterOutput{
+						Parameter: &ssm.Parameter{
+							Type:  aws.String("SecureString"),
+							Value: aws.String("sensitive"),
+						},
+					}, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+				},
+			},
+			want: want{
+				err: errors.New("unable to compare 'sensitive' result, ensure to request a decrypted value"),
+			},
+		},
+		"SecretWithAdvancedTier": {
+			reason: "test if we can provide advanced tier policies",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{
+						"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+						"kind": "PushSecretMetadata",
+						"spec": {
+							"secretType": "SecureString",
+							"kmsKeyID": "arn:aws:kms:sa-east-1:00000000000:key/bb123123-b2b0-4f60-ac3a-44a13f0e6b6c",
+							"tier": {
+								"type": "Advanced",
+								"policies": [
+										{
+												"type": "Expiration",
+												"version": "1.0",
+												"attributes": {
+														"timestamp": "2024-12-02T21:34:33.000Z"
+												}
+										},
+										{
+												"type": "ExpirationNotification",
+												"version": "1.0",
+												"attributes": {
+														"before": "2",
+														"unit": "Days"
+												}
+										}
+								]
+							}
+						}
+					}`),
 				},
 				client: fakeps.Client{
 					PutParameterWithContextFn: fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
@@ -543,7 +603,7 @@ func TestPushSecret(t *testing.T) {
 			// if errors are the same type but their contents do not match
 			if err != nil && tc.want.err != nil {
 				if !strings.Contains(err.Error(), tc.want.err.Error()) {
-					t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error got nil", name, tc.reason, tc.want.err)
+					t.Errorf("\nTesting SetSecret:\nName: %v\nReason: %v\nWant error: %v\nGot error: %s", name, tc.reason, tc.want.err, err)
 				}
 			}
 		})
@@ -844,5 +904,92 @@ func getTagSlice() []*ssm.Tag {
 			Key:   &tagKey2,
 			Value: &tagValue2,
 		},
+	}
+}
+
+func TestSecretExists(t *testing.T) {
+	parameterOutput := &ssm.GetParameterOutput{
+		Parameter: &ssm.Parameter{
+			Value: aws.String("sensitive"),
+		},
+	}
+
+	blankParameterOutput := &ssm.GetParameterOutput{}
+	getParameterCorrectErr := ssm.ResourceNotFoundException{}
+	getParameterWrongErr := ssm.InvalidParameters{}
+
+	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: "fake-secret-key", RemoteKey: fakeSecretKey, Property: ""}
+
+	type args struct {
+		store          *esv1beta1.AWSProvider
+		client         fakeps.Client
+		pushSecretData fake.PushSecretData
+	}
+
+	type want struct {
+		err       error
+		wantError bool
+	}
+
+	tests := map[string]struct {
+		args args
+		want want
+	}{
+		"SecretExistsReturnsTrueForExistingParameter": {
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				client: fakeps.Client{
+					GetParameterWithContextFn: fakeps.NewGetParameterWithContextFn(parameterOutput, nil),
+				},
+				pushSecretData: pushSecretDataWithoutProperty,
+			},
+			want: want{
+				err:       nil,
+				wantError: true,
+			},
+		},
+		"SecretExistsReturnsFalseForNonExistingParameter": {
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				client: fakeps.Client{
+					GetParameterWithContextFn: fakeps.NewGetParameterWithContextFn(blankParameterOutput, &getParameterCorrectErr),
+				},
+				pushSecretData: pushSecretDataWithoutProperty,
+			},
+			want: want{
+				err:       nil,
+				wantError: false,
+			},
+		},
+		"SecretExistsReturnsFalseForErroredParameter": {
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				client: fakeps.Client{
+					GetParameterWithContextFn: fakeps.NewGetParameterWithContextFn(blankParameterOutput, &getParameterWrongErr),
+				},
+				pushSecretData: pushSecretDataWithoutProperty,
+			},
+			want: want{
+				err:       &getParameterWrongErr,
+				wantError: false,
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			ps := &ParameterStore{
+				client: &tc.args.client,
+			}
+			got, err := ps.SecretExists(context.Background(), tc.args.pushSecretData)
+
+			assert.Equal(
+				t,
+				tc.want,
+				want{
+					err:       err,
+					wantError: got,
+				})
+		})
 	}
 }

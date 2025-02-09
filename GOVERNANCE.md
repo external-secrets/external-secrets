@@ -103,3 +103,7 @@ Lazy consensus does _not_ apply to the process of:
 ## Updating Governance
 
 All substantive changes in Governance require a supermajority agreement by all maintainers.
+
+## CNCF Governance
+
+This project abides by the [CNCF Code Of Conduct](https://github.com/cncf/foundation/blob/main/code-of-conduct.md).

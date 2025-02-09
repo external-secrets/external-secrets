@@ -1,0 +1,12 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Grafana
+metadata: {}
+spec:
+  auth:
+    token:
+      key: string
+      name: string
+  serviceAccount:
+    name: string
+    role: string
+  url: string

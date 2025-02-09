@@ -2,6 +2,8 @@
 /webhook/bin
 /webhook/certcontroller/bin
 /bin
+/cmd/esoctl/bin
+/cmd/esoctl/dist
 /vendor
 cover.out
 
@@ -65,3 +67,4 @@ terraform.rc
 .terraform.lock.hcl
 
 tmp/
+tests/crds/*.yml

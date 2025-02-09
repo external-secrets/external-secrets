@@ -43,7 +43,7 @@ const (
 	errGetSecret   = "unable to get dynamic secret: %w"
 )
 
-func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, error) {
+func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	c := &provider.Provider{NewVaultClient: provider.NewVaultClient}
 
 	// controller-runtime/client does not support TokenRequest or other subresource APIs
@@ -51,67 +51,49 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 	// (for Kubernetes service account token auth)
 	restCfg, err := ctrlcfg.GetConfig()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	clientset, err := kubernetes.NewForConfig(restCfg)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	return g.generate(ctx, c, jsonSpec, kube, clientset.CoreV1(), namespace)
 }
 
-func (g *Generator) generate(ctx context.Context, c *provider.Provider, jsonSpec *apiextensions.JSON, kube client.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (map[string][]byte, error) {
+func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
+	return nil
+}
+
+func (g *Generator) generate(ctx context.Context, c *provider.Provider, jsonSpec *apiextensions.JSON, kube client.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if jsonSpec == nil {
-		return nil, errors.New(errNoSpec)
+		return nil, nil, errors.New(errNoSpec)
 	}
-	res, err := parseSpec(jsonSpec.Raw)
+	spec, err := parseSpec(jsonSpec.Raw)
 	if err != nil {
-		return nil, fmt.Errorf(errParseSpec, err)
+		return nil, nil, fmt.Errorf(errParseSpec, err)
 	}
-	if res == nil || res.Spec.Provider == nil {
-		return nil, errors.New("no Vault provider config in spec")
+	if spec == nil || spec.Spec.Provider == nil {
+		return nil, nil, errors.New("no Vault provider config in spec")
 	}
-	cl, err := c.NewGeneratorClient(ctx, kube, corev1, res.Spec.Provider, namespace, res.Spec.RetrySettings)
+	cl, err := c.NewGeneratorClient(ctx, kube, corev1, spec.Spec.Provider, namespace, spec.Spec.RetrySettings)
 	if err != nil {
-		return nil, fmt.Errorf(errVaultClient, err)
+		return nil, nil, fmt.Errorf(errVaultClient, err)
 	}
 
-	result, err := g.fetchVaultSecret(ctx, res, cl)
+	result, err := g.fetchVaultSecret(ctx, spec, cl)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	if result == nil && res.Spec.AllowEmptyResponse {
-		return nil, nil
+	if result == nil && spec.Spec.AllowEmptyResponse {
+		return nil, nil, nil
 	}
 
 	if result == nil {
-		return nil, fmt.Errorf(errGetSecret, errors.New("empty response from Vault"))
+		return nil, nil, fmt.Errorf(errGetSecret, errors.New("empty response from Vault"))
 	}
-
-	data := make(map[string]any)
-	response := make(map[string][]byte)
-	if res.Spec.ResultType == genv1alpha1.VaultDynamicSecretResultTypeAuth {
-		authJSON, err := json.Marshal(result.Auth)
-		if err != nil {
-			return nil, err
-		}
-		err = json.Unmarshal(authJSON, &data)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		data = result.Data
-	}
-
-	for k := range data {
-		response[k], err = utils.GetByteValueFromMap(data, k)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return response, nil
+	return g.prepareResponse(spec, result)
 }
 
 func (g *Generator) fetchVaultSecret(ctx context.Context, res *genv1alpha1.VaultDynamicSecret, cl util.Client) (*vault.Secret, error) {
@@ -138,6 +120,41 @@ func (g *Generator) fetchVaultSecret(ctx context.Context, res *genv1alpha1.Vault
 	}
 
 	return result, err
+}
+
+func (g *Generator) prepareResponse(res *genv1alpha1.VaultDynamicSecret, result *vault.Secret) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+	var err error
+	data := make(map[string]any)
+	response := make(map[string][]byte)
+	if res.Spec.ResultType == genv1alpha1.VaultDynamicSecretResultTypeAuth {
+		authJSON, err := json.Marshal(result.Auth)
+		if err != nil {
+			return nil, nil, err
+		}
+		err = json.Unmarshal(authJSON, &data)
+		if err != nil {
+			return nil, nil, err
+		}
+	} else if res.Spec.ResultType == genv1alpha1.VaultDynamicSecretResultTypeRaw {
+		rawJSON, err := json.Marshal(result)
+		if err != nil {
+			return nil, nil, err
+		}
+		err = json.Unmarshal(rawJSON, &data)
+		if err != nil {
+			return nil, nil, err
+		}
+	} else {
+		data = result.Data
+	}
+
+	for k := range data {
+		response[k], err = utils.GetByteValueFromMap(data, k)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	return response, nil, nil
 }
 
 func parseSpec(data []byte) (*genv1alpha1.VaultDynamicSecret, error) {

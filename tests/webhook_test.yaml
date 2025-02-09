@@ -1,0 +1,7 @@
+suite: test Webhook generator
+template: tests/crds/webhook.yml
+tests:
+  - it: matches Webhook generator correctly
+    asserts:
+      - matchSnapshot:
+          path: tests/__snapshot__
