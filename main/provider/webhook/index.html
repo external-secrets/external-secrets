@@ -3766,6 +3766,44 @@
 <span class="nt">data</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">foobar</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">c2VjcmV0</span>
 </code></pre></div>
+<p>To push a secret, create the following store:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">webhook-backend</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">webhook</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://httpbin.org/push?id={{</span><span class="nv"> </span><span class="s">.remoteRef.remoteKey</span><span class="nv"> </span><span class="s">}}&amp;secret={{</span><span class="nv"> </span><span class="s">.remoteRef.secretKey</span><span class="nv"> </span><span class="s">}}&quot;</span>
+<span class="w">      </span><span class="nt">headers</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">Content-Type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">application/json</span>
+<span class="w">        </span><span class="nt">Authorization</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Basic {{ print .auth.username &quot;:&quot; .auth.password | b64enc }}</span>
+<span class="w">      </span><span class="nt">secrets</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auth</span>
+<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">webhook-credentials</span>
+</code></pre></div>
+<p>Then create a push secret:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pushsecret-example</span><span class="w"> </span><span class="c1"># Customisable</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w"> </span><span class="c1"># Refresh interval for which push secret will reconcile</span>
+<span class="w">  </span><span class="nt">secretStoreRefs</span><span class="p">:</span><span class="w"> </span><span class="c1"># A list of secret stores to push secrets to</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">webhook-backend</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">secret</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">test-secret</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">conversionStrategy</span><span class="p">:</span><span class="w"> </span>
+<span class="w">      </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">testsecret</span>
+<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">remotekey</span>
+</code></pre></div>
+<p>If <code>secretKey</code> is not provided, the whole secret is pushed JSON encoded.</p>
 <h4 id="limitations">Limitations</h4>
 <p>Webhook does not support authorization, other than what can be sent by generating http headers</p>
 <div class="admonition note">
