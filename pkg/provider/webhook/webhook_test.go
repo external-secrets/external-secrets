@@ -26,8 +26,10 @@ import (
 	"time"
 
 	"gopkg.in/yaml.v3"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
@@ -37,16 +39,24 @@ type testCase struct {
 	Want want   `json:"want"`
 }
 
+type secret struct {
+	Name string            `json:"name"`
+	Data map[string]string `json:"data"`
+}
+
 type args struct {
 	URL        string `json:"url,omitempty"`
 	Body       string `json:"body,omitempty"`
 	Timeout    string `json:"timeout,omitempty"`
 	Key        string `json:"key,omitempty"`
+	SecretKey  string `json:"secretkey,omitempty"`
 	Property   string `json:"property,omitempty"`
 	Version    string `json:"version,omitempty"`
 	JSONPath   string `json:"jsonpath,omitempty"`
 	Response   string `json:"response,omitempty"`
 	StatusCode int    `json:"statuscode,omitempty"`
+	PushSecret bool   `json:"pushsecret,omitempty"`
+	Secret     secret `json:"secret,omitempty"`
 }
 
 type want struct {
@@ -353,6 +363,64 @@ func TestWebhookGetSecret(t *testing.T) {
 	}
 }
 
+var testCasesPushSecret = `
+case: good json
+args:
+  url: /api/pushsecret?id={{ .remoteRef.remoteKey }}&secret={{ .remoteRef.secretKey }}
+  key: testkey
+  secretkey: secretkey
+  pushsecret: true
+  secret:
+    name: test-secret
+    data:
+      secretkey: value
+want:
+  path: /api/pushsecret?id=testkey&secret=secretkey
+  err: ''
+---
+case: secret key not found
+args:
+  url: /api/pushsecret?id={{ .remoteRef.remoteKey }}&secret={{ .remoteRef.secretKey }}
+  key: testkey
+  secretkey: not-found
+  pushsecret: true
+  secret:
+    name: test-secret
+    data:
+      secretkey: value
+want:
+  path: /api/pushsecret?id=testkey&secret=not-found
+  err: 'failed to find secret key in secret with key: not-found'
+---
+case: pushing without secret key
+args:
+  url: /api/pushsecret?id={{ .remoteRef.remoteKey }}
+  key: testkey
+  pushsecret: true
+  secret:
+    name: test-secret
+    data:
+      secretkey: value
+want:
+  path: /api/pushsecret?id=testkey
+  err: ''
+---
+`
+
+func TestWebhookPushSecret(t *testing.T) {
+	ydec := yaml.NewDecoder(bytes.NewReader([]byte(testCasesPushSecret)))
+	for {
+		var tc testCase
+		if err := ydec.Decode(&tc); err != nil {
+			if !errors.Is(err, io.EOF) {
+				t.Errorf("testcase decode error %v", err)
+			}
+			break
+		}
+		runTestCase(tc, t)
+	}
+}
+
 func testCaseServer(tc testCase, t *testing.T) *httptest.Server {
 	// Start a new server for every test case because the server wants to check the expected api path
 	return httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
@@ -402,10 +470,12 @@ func runTestCase(tc testCase, t *testing.T) {
 		return
 	}
 
-	if tc.Want.ResultMap != nil {
+	if tc.Want.ResultMap != nil && !tc.Args.PushSecret {
 		testGetSecretMap(tc, t, client)
-	} else {
+	} else if !tc.Args.PushSecret {
 		testGetSecret(tc, t, client)
+	} else {
+		testPushSecret(tc, t, client)
 	}
 }
 
@@ -452,6 +522,42 @@ func testGetSecret(tc testCase, t *testing.T, client esv1beta1.SecretsClient) {
 	}
 	if err == nil && string(secret) != tc.Want.Result {
 		t.Errorf("%s: unexpected response: '%s' (expected '%s')", tc.Case, secret, tc.Want.Result)
+	}
+}
+
+func testPushSecret(tc testCase, t *testing.T, client esv1beta1.SecretsClient) {
+	testRef := v1alpha1.PushSecretData{
+		Match: v1alpha1.PushSecretMatch{
+			SecretKey: tc.Args.SecretKey,
+			RemoteRef: v1alpha1.PushSecretRemoteRef{
+				RemoteKey: tc.Args.Key,
+			},
+		},
+	}
+
+	data := map[string][]byte{}
+	for k, v := range tc.Args.Secret.Data {
+		data[k] = []byte(v)
+	}
+	sec := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: tc.Args.Secret.Name,
+		},
+		Data: data,
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	err := client.PushSecret(ctx, sec, testRef)
+	errStr := ""
+	if err != nil {
+		errStr = err.Error()
+	}
+	if tc.Want.Err == "" && errStr != "" {
+		t.Errorf("%s: unexpected error: '%s' (expected '%s')", tc.Case, errStr, tc.Want.Err)
+	}
+
+	if !strings.Contains(errStr, tc.Want.Err) {
+		t.Errorf("%s: unexpected error: '%s' (expected '%s')", tc.Case, errStr, tc.Want.Err)
 	}
 }
 
