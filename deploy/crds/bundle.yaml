@@ -15447,9 +15447,11 @@ spec:
                             When using e.g. /auth/token/create the "data" section is empty but
                             the "auth" section contains the generated token.
                             Please refer to the vault docs regarding the result data structure.
+                            Additionally, accessing the raw response is possibly by using "Raw" result type.
                           enum:
                             - Data
                             - Auth
+                            - Raw
                           type: string
                         retrySettings:
                           description: Used to configure http retries if failed
@@ -15573,7 +15575,8 @@ spec:
                     - Fake
                     - GCRAccessToken
                     - GithubAccessToken
-                    - QuayAccessToken'Password
+                    - QuayAccessToken
+                    - Password
                     - STSSessionToken
                     - UUID
                     - VaultDynamicSecret
@@ -17680,9 +17683,11 @@ spec:
                     When using e.g. /auth/token/create the "data" section is empty but
                     the "auth" section contains the generated token.
                     Please refer to the vault docs regarding the result data structure.
+                    Additionally, accessing the raw response is possibly by using "Raw" result type.
                   enum:
                     - Data
                     - Auth
+                    - Raw
                   type: string
                 retrySettings:
                   description: Used to configure http retries if failed

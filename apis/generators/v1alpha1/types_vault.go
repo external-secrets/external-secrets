@@ -38,6 +38,7 @@ type VaultDynamicSecretSpec struct {
 	// When using e.g. /auth/token/create the "data" section is empty but
 	// the "auth" section contains the generated token.
 	// Please refer to the vault docs regarding the result data structure.
+	// Additionally, accessing the raw response is possibly by using "Raw" result type.
 	// +kubebuilder:default=Data
 	ResultType VaultDynamicSecretResultType `json:"resultType,omitempty"`
 
@@ -57,12 +58,13 @@ type VaultDynamicSecretSpec struct {
 	AllowEmptyResponse bool `json:"allowEmptyResponse,omitempty"`
 }
 
-// +kubebuilder:validation:Enum=Data;Auth
+// +kubebuilder:validation:Enum=Data;Auth;Raw
 type VaultDynamicSecretResultType string
 
 const (
 	VaultDynamicSecretResultTypeData VaultDynamicSecretResultType = "Data"
 	VaultDynamicSecretResultTypeAuth VaultDynamicSecretResultType = "Auth"
+	VaultDynamicSecretResultTypeRaw  VaultDynamicSecretResultType = "Raw"
 )
 
 // +kubebuilder:object:root=true

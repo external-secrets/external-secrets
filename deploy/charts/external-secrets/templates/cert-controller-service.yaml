@@ -1,11 +1,11 @@
-{{- if and .Values.certController.create .Values.certController.metrics.service.enabled (not .Values.webhook.certManager.enabled) }}
+{{- if and .Values.certController.create ( or .Values.certController.metrics.service.enabled ( and ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) .Values.serviceMonitor.enabled )) (not .Values.webhook.certManager.enabled) }}
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "external-secrets.fullname" . }}-cert-controller-metrics
   namespace: {{ template "external-secrets.namespace" . }}
   labels:
-    {{- include "external-secrets.labels" . | nindent 4 }}
+    {{- include "external-secrets-cert-controller.labels" . | nindent 4 }}
   {{- with .Values.metrics.service.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
