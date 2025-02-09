@@ -33,7 +33,8 @@ import (
 )
 
 const (
-	errNotImplemented = "not implemented"
+	errNotImplemented   = "not implemented"
+	errFailedToGetStore = "failed to get store: %w"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -115,9 +116,26 @@ func (w *WebHook) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRe
 	return false, errors.New(errNotImplemented)
 }
 
-// PushSecret not implement.
-func (w *WebHook) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
-	return errors.New(errNotImplemented)
+func (w *WebHook) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+	if data.GetRemoteKey() == "" {
+		return errors.New("remote key must be defined")
+	}
+
+	provider, err := getProvider(w.store)
+	if err != nil {
+		return fmt.Errorf(errFailedToGetStore, err)
+	}
+
+	value, err := utils.ExtractSecretData(data, secret)
+	if err != nil {
+		return err
+	}
+
+	if err := w.wh.PushWebhookData(ctx, provider, value, data); err != nil {
+		return fmt.Errorf("failed to push webhook data: %w", err)
+	}
+
+	return nil
 }
 
 // GetAllSecrets Empty .
@@ -129,7 +147,7 @@ func (w *WebHook) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFin
 func (w *WebHook) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	provider, err := getProvider(w.store)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get store: %w", err)
+		return nil, fmt.Errorf(errFailedToGetStore, err)
 	}
 	result, err := w.wh.GetWebhookData(ctx, provider, &ref)
 	if err != nil {
@@ -197,7 +215,7 @@ func extractSecretData(jsondata any) ([]byte, error) {
 func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	provider, err := getProvider(w.store)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get store: %w", err)
+		return nil, fmt.Errorf(errFailedToGetStore, err)
 	}
 	return w.wh.GetSecretMap(ctx, provider, &ref)
 }

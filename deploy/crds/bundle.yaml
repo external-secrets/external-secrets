@@ -7526,6 +7526,7 @@ spec:
                     - None
                   type: string
                 refreshInterval:
+                  default: 1h
                   description: The Interval to which External Secrets will try to push a secret definition
                   type: string
                 secretStoreRefs:
