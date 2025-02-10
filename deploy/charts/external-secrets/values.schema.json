@@ -659,6 +659,9 @@
                                 },
                                 "renewBefore": {
                                     "type": "string"
+                                },
+                                "revisionHistoryLimit": {
+                                    "type": "string"
                                 }
                             },
                             "type": "object"
