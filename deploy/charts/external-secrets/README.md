@@ -218,6 +218,12 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.securityContext.runAsNonRoot | bool | `true` |  |
 | webhook.securityContext.runAsUser | int | `1000` |  |
 | webhook.securityContext.seccompProfile.type | string | `"RuntimeDefault"` |  |
+| webhook.service | object | `{"annotations":{},"enabled":true,"labels":{},"loadBalancerIP":"","type":"ClusterIP"}` | Manage the service through which the webhook is reached. |
+| webhook.service.annotations | object | `{}` | Custom annotations for the webhook service. |
+| webhook.service.enabled | bool | `true` | Whether the service object should be enabled or not (it is expected to exist). |
+| webhook.service.labels | object | `{}` | Custom labels for the webhook service. |
+| webhook.service.loadBalancerIP | string | `""` | If the webhook service type is LoadBalancer, you can assign a specific load balancer IP here. Check the documentation of your load balancer provider to see if/how this should be used. |
+| webhook.service.type | string | `"ClusterIP"` | The service type of the webhook service. |
 | webhook.serviceAccount.annotations | object | `{}` | Annotations to add to the service account. |
 | webhook.serviceAccount.automount | bool | `true` | Automounts the service account token in all containers of the pod |
 | webhook.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
