@@ -51,7 +51,11 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, externalSecret *
 	// and if one fails we need to rollback all generated values from this iteration.
 	genState := statemanager.New(ctx, r.Client, r.Scheme, externalSecret.Namespace, externalSecret)
 	defer func() {
-		if err != nil {
+		// NoSecretErr does not make sense for the generator state.
+		// A generator is expected to always generate a secret.
+		// If it doesn't, it should return an error.
+		// If the error is NoSecretErr, we should commit the generator state.
+		if err != nil && !errors.Is(err, esv1beta1.NoSecretErr) {
 			if rollBackErr := genState.Rollback(); rollBackErr != nil {
 				r.Log.Error(rollBackErr, "error rolling back generator state")
 			}

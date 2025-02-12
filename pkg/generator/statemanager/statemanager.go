@@ -77,6 +77,9 @@ func New(ctx context.Context, client client.Client, scheme *runtime.Scheme, name
 func (m *Manager) Rollback() error {
 	var errs []error
 	for _, item := range m.queue {
+		if item.Rollback == nil {
+			continue
+		}
 		if err := item.Rollback(); err != nil {
 			errs = append(errs, err)
 		}
@@ -88,6 +91,9 @@ func (m *Manager) Rollback() error {
 func (m *Manager) Commit() error {
 	var errs []error
 	for _, item := range m.queue {
+		if item.Commit == nil {
+			continue
+		}
 		if err := item.Commit(); err != nil {
 			errs = append(errs, err)
 		}
