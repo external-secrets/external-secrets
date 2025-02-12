@@ -4079,17 +4079,25 @@
 <span class="w">          </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">frontend</span>
 </code></pre></div>
 <h3 id="3-selectively-disable-reconciliation-of-cluster-wide-resources">3. Selectively Disable Reconciliation of Cluster-Wide Resources</h3>
-<p>ESO allows you to selectively disable the reconciliation of cluster-wide resources such as <code>ClusterSecretStore</code>, <code>ClusterExternalSecret</code>, and <code>PushSecret</code>. You can disable the installation of CRDs in the Helm chart or disable reconciliation in the core-controller using the following options:</p>
-<p>To disable CRD installation:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># disable cluster-wide resources &amp; push secret</span>
-<span class="nt">crds</span><span class="p">:</span>
+<p>ESO allows you to selectively disable the reconciliation of cluster-wide resources <code>ClusterSecretStore</code>, <code>ClusterExternalSecret</code>, and <code>PushSecret</code>.
+You can disable the installation of CRDs and reconciliation in the Helm chart, or disable reconciliation in the core controller.</p>
+<p>To disable reconciliation in the Helm chart:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">processClusterExternalSecret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="nt">processClusterStore</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="nt">processPushSecret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</code></pre></div>
+<p>To disable CRD installation in the Helm chart:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">crds</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">createClusterExternalSecret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 <span class="w">  </span><span class="nt">createClusterSecretStore</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 <span class="w">  </span><span class="nt">createPushSecret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 </code></pre></div>
-<p>To disable reconciliation in the core-controller:</p>
-<div class="highlight"><pre><span></span><code>--enable-cluster-external-secret-reconciler
---enable-cluster-store-reconciler
+<p>Note that disabling CRD installation for a cluster-wide resource does not automatically disable its reconciliation.
+The core controller will issue error logs if the CRD is not installed but the reconciliation is not disabled.</p>
+<p>To disable reconciliation in the core controller, set the following flags:</p>
+<div class="highlight"><pre><span></span><code>--enable-cluster-external-secret-reconciler=false
+--enable-cluster-store-reconciler=false
+--enable-push-secret-reconciler=false
 </code></pre></div>
 <h3 id="4-implement-namespace-scoped-installation">4. Implement Namespace-Scoped Installation</h3>
 <p>To further enhance security, consider installing ESO into a specific namespace with restricted access to only that namespace's resources. This prevents access to cluster-wide secrets. Use the following Helm values to scope the controller to a specific namespace:</p>
