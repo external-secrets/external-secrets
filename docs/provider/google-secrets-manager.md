@@ -18,7 +18,7 @@ In the following, we will describe each of these options in detail.
 
 * Ensure that [Workload Identity Federation is enabled](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) for the GKE cluster.
 
-_Note that while Google Cloud WIF [is available for AKS, EKS, and self-hosted Kubernetes clusters](https://cloud.google.com/iam/docs/workload-identity-federation-with-kubernetes), ESO supports WIF authentication only for GKE._
+_Note that while Google Cloud WIF [is available for AKS, EKS, and self-hosted Kubernetes clusters](https://cloud.google.com/iam/docs/workload-identity-federation-with-kubernetes), ESO currently supports WIF authentication only for GKE ([Issue #1038](https://github.com/external-secrets/external-secrets/issues/1038))._
 
 #### Using a Kubernetes service account as a GCP IAM principal
 
