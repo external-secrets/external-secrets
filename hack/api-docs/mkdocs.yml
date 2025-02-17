@@ -155,6 +155,7 @@ nav:
           - Contributing Process: contributing/process.md
           - Release Process: contributing/release.md
           - Code of Conduct: contributing/coc.md
+          - Community meetings calendar: contributing/calendar.md
           - Roadmap: contributing/roadmap.md
       - External Resources:
           - Talks: eso-talks.md
