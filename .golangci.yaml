@@ -40,7 +40,8 @@ linters-settings:
   dupl:
     threshold: 200
   govet:
-    check-shadowing: false
+    disable:
+      - shadow
   lll:
     line-length: 300
   misspell:
@@ -121,7 +122,7 @@ issues:
       text: 'SA1019: data.ValueMap is deprecated: ValueMap is deprecated and is intended to be removed in the future, use the `value` field instead.'
 
   # Maximum issues count per one linter. Set to 0 to disable. Default is 50.
-  max-per-linter: 0
+  max-issues-per-linter: 0
 
   # Maximum count of issues with the same text. Set to 0 to disable. Default is 3.
   max-same-issues: 0
