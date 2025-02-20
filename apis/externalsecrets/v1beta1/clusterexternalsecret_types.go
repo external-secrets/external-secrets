@@ -46,6 +46,7 @@ type ClusterExternalSecretSpec struct {
 	NamespaceSelectors []*metav1.LabelSelector `json:"namespaceSelectors,omitempty"`
 
 	// Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
+	// Deprecated: Use NamespaceSelectors instead.
 	// +optional
 	// +kubebuilder:validation:items:MinLength:=1
 	// +kubebuilder:validation:items:MaxLength:=63

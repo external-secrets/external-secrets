@@ -38,6 +38,8 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret"
+	"github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret/cpsmetrics"
 	ctrlcommon "github.com/external-secrets/external-secrets/pkg/controllers/common"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
@@ -76,6 +78,7 @@ var (
 	namespace                             string
 	enableClusterStoreReconciler          bool
 	enableClusterExternalSecretReconciler bool
+	enableClusterPushSecretReconciler     bool
 	enablePushSecretReconciler            bool
 	enableFloodGate                       bool
 	enableExtendedMetricLabels            bool
@@ -265,6 +268,23 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
+		if enableClusterPushSecretReconciler {
+			cpsmetrics.SetUpMetrics()
+
+			if err = (&clusterpushsecret.Reconciler{
+				Client:          mgr.GetClient(),
+				Log:             ctrl.Log.WithName("controllers").WithName("ClusterPushSecret"),
+				Scheme:          mgr.GetScheme(),
+				RequeueInterval: time.Hour,
+				Recorder:        mgr.GetEventRecorderFor("external-secrets-controller"),
+			}).SetupWithManager(mgr, controller.Options{
+				MaxConcurrentReconciles: concurrent,
+			}); err != nil {
+				setupLog.Error(err, errCreateController, "controller", "ClusterPushSecret")
+				os.Exit(1)
+			}
+		}
+
 		fs := feature.Features()
 		for _, f := range fs {
 			if f.Initialize == nil {
@@ -298,6 +318,7 @@ func init() {
 	rootCmd.Flags().StringVar(&namespace, "namespace", "", "watch external secrets scoped in the provided namespace only. ClusterSecretStore can be used but only work if it doesn't reference resources from other namespaces")
 	rootCmd.Flags().BoolVar(&enableClusterStoreReconciler, "enable-cluster-store-reconciler", true, "Enable cluster store reconciler.")
 	rootCmd.Flags().BoolVar(&enableClusterExternalSecretReconciler, "enable-cluster-external-secret-reconciler", true, "Enable cluster external secret reconciler.")
+	rootCmd.Flags().BoolVar(&enableClusterPushSecretReconciler, "enable-cluster-push-secret-reconciler", true, "Enable cluster push secret reconciler.")
 	rootCmd.Flags().BoolVar(&enablePushSecretReconciler, "enable-push-secret-reconciler", true, "Enable push secret reconciler.")
 	rootCmd.Flags().BoolVar(&enableSecretsCache, "enable-secrets-caching", false, "Enable secrets caching for ALL secrets in the cluster (WARNING: can increase memory usage).")
 	rootCmd.Flags().BoolVar(&enableConfigMapsCache, "enable-configmaps-caching", false, "Enable configmaps caching for ALL configmaps in the cluster (WARNING: can increase memory usage).")
