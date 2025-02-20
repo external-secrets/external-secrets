@@ -8341,6 +8341,7 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>The AccessKeyID is used for authentication</p>
 </td>
 </tr>
@@ -8354,6 +8355,7 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>The SecretAccessKey is used for authentication</p>
 </td>
 </tr>
@@ -8367,6 +8369,7 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>The SessionToken used for authentication
 This must be defined if AccessKeyID and SecretAccessKey are temporary credentials
 see: <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html</a></p>
@@ -8382,7 +8385,7 @@ see: <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_te
 <a href="#external-secrets.io/v1beta1.VaultIamAuth">VaultIamAuth</a>)
 </p>
 <p>
-<p>Authenticate against AWS using service account tokens.</p>
+<p>VaultAwsJWTAuth Authenticate against AWS using service account tokens.</p>
 </p>
 <table>
 <thead>
@@ -8402,6 +8405,7 @@ External Secrets meta/v1.ServiceAccountSelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 </td>
 </tr>
 </tbody>
@@ -8413,7 +8417,7 @@ External Secrets meta/v1.ServiceAccountSelector
 <a href="#external-secrets.io/v1beta1.VaultAuth">VaultAuth</a>)
 </p>
 <p>
-<p>VaultJwtAuth authenticates with Vault using the JWT/OIDC authentication
+<p>VaultCertAuth authenticates with Vault using the JWT/OIDC authentication
 method, with the role name and token stored in a Kubernetes Secret resource.</p>
 </p>
 <table>
@@ -8449,6 +8453,7 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>SecretRef to a key in a Secret resource containing client private key to
 authenticate with Vault using the Cert authentication method</p>
 </td>
@@ -8483,6 +8488,7 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>CertSecretRef is a certificate added to the transport layer
 when communicating with the Vault server.
 If no key for the Secret is specified, external-secret will default to &lsquo;tls.crt&rsquo;.</p>
@@ -8498,6 +8504,7 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>KeySecretRef to a key in a Secret resource containing client private key
 added to the transport layer when communicating with the Vault server.
 If no key for the Secret is specified, external-secret will default to &lsquo;tls.key&rsquo;.</p>
@@ -8530,6 +8537,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Path where the AWS auth method is enabled in Vault, e.g: &ldquo;aws&rdquo;</p>
 </td>
 </tr>
@@ -8541,6 +8549,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>AWS region</p>
 </td>
 </tr>
@@ -8552,6 +8561,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>This is the AWS role to be assumed before talking to vault</p>
 </td>
 </tr>
@@ -8585,6 +8595,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>X-Vault-AWS-IAM-Server-ID is an additional header used by Vault IAM auth method to mitigate against different types of replay attacks. More details here: <a href="https://developer.hashicorp.com/vault/docs/auth/aws">https://developer.hashicorp.com/vault/docs/auth/aws</a></p>
 </td>
 </tr>
@@ -8895,7 +8906,7 @@ string
 </em>
 </td>
 <td>
-<p>Username is a LDAP user name used to authenticate using the LDAP Vault
+<p>Username is an LDAP username used to authenticate using the LDAP Vault
 authentication method</p>
 </td>
 </tr>
@@ -8909,6 +8920,7 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>SecretRef to a key in a Secret resource containing password for the LDAP
 user used to authenticate with Vault using the LDAP authentication
 method</p>
@@ -9119,7 +9131,7 @@ string
 </td>
 <td>
 <p>Path where the UserPassword authentication backend is mounted
-in Vault, e.g: &ldquo;user&rdquo;</p>
+in Vault, e.g: &ldquo;userpass&rdquo;</p>
 </td>
 </tr>
 <tr>
@@ -9130,7 +9142,7 @@ string
 </em>
 </td>
 <td>
-<p>Username is a user name used to authenticate using the UserPass Vault
+<p>Username is a username used to authenticate using the UserPass Vault
 authentication method</p>
 </td>
 </tr>
@@ -9144,6 +9156,7 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>SecretRef to a key in a Secret resource containing password for the
 user used to authenticate with Vault using the UserPass authentication
 method</p>

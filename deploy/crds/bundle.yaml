@@ -5954,7 +5954,7 @@ spec:
                                   type: object
                                 username:
                                   description: |-
-                                    Username is a LDAP user name used to authenticate using the LDAP Vault
+                                    Username is an LDAP username used to authenticate using the LDAP Vault
                                     authentication method
                                   type: string
                               required:
@@ -5999,10 +5999,10 @@ spec:
                               description: UserPass authenticates with Vault by passing username/password pair
                               properties:
                                 path:
-                                  default: user
+                                  default: userpass
                                   description: |-
                                     Path where the UserPassword authentication backend is mounted
-                                    in Vault, e.g: "user"
+                                    in Vault, e.g: "userpass"
                                   type: string
                                 secretRef:
                                   description: |-
@@ -6035,7 +6035,7 @@ spec:
                                   type: object
                                 username:
                                   description: |-
-                                    Username is a user name used to authenticate using the UserPass Vault
+                                    Username is a username used to authenticate using the UserPass Vault
                                     authentication method
                                   type: string
                               required:
@@ -13088,7 +13088,7 @@ spec:
                                   type: object
                                 username:
                                   description: |-
-                                    Username is a LDAP user name used to authenticate using the LDAP Vault
+                                    Username is an LDAP username used to authenticate using the LDAP Vault
                                     authentication method
                                   type: string
                               required:
@@ -13133,10 +13133,10 @@ spec:
                               description: UserPass authenticates with Vault by passing username/password pair
                               properties:
                                 path:
-                                  default: user
+                                  default: userpass
                                   description: |-
                                     Path where the UserPassword authentication backend is mounted
-                                    in Vault, e.g: "user"
+                                    in Vault, e.g: "userpass"
                                   type: string
                                 secretRef:
                                   description: |-
@@ -13169,7 +13169,7 @@ spec:
                                   type: object
                                 username:
                                   description: |-
-                                    Username is a user name used to authenticate using the UserPass Vault
+                                    Username is a username used to authenticate using the UserPass Vault
                                     authentication method
                                   type: string
                               required:
@@ -15195,7 +15195,7 @@ spec:
                                       type: object
                                     username:
                                       description: |-
-                                        Username is a LDAP user name used to authenticate using the LDAP Vault
+                                        Username is an LDAP username used to authenticate using the LDAP Vault
                                         authentication method
                                       type: string
                                   required:
@@ -15240,10 +15240,10 @@ spec:
                                   description: UserPass authenticates with Vault by passing username/password pair
                                   properties:
                                     path:
-                                      default: user
+                                      default: userpass
                                       description: |-
                                         Path where the UserPassword authentication backend is mounted
-                                        in Vault, e.g: "user"
+                                        in Vault, e.g: "userpass"
                                       type: string
                                     secretRef:
                                       description: |-
@@ -15276,7 +15276,7 @@ spec:
                                       type: object
                                     username:
                                       description: |-
-                                        Username is a user name used to authenticate using the UserPass Vault
+                                        Username is a username used to authenticate using the UserPass Vault
                                         authentication method
                                       type: string
                                   required:
@@ -17431,7 +17431,7 @@ spec:
                               type: object
                             username:
                               description: |-
-                                Username is a LDAP user name used to authenticate using the LDAP Vault
+                                Username is an LDAP username used to authenticate using the LDAP Vault
                                 authentication method
                               type: string
                           required:
@@ -17476,10 +17476,10 @@ spec:
                           description: UserPass authenticates with Vault by passing username/password pair
                           properties:
                             path:
-                              default: user
+                              default: userpass
                               description: |-
                                 Path where the UserPassword authentication backend is mounted
-                                in Vault, e.g: "user"
+                                in Vault, e.g: "userpass"
                               type: string
                             secretRef:
                               description: |-
@@ -17512,7 +17512,7 @@ spec:
                               type: object
                             username:
                               description: |-
-                                Username is a user name used to authenticate using the UserPass Vault
+                                Username is a username used to authenticate using the UserPass Vault
                                 authentication method
                               type: string
                           required:
