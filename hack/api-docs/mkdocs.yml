@@ -148,13 +148,14 @@ nav:
       - FluxCD: examples/gitops-using-fluxcd.md
       - Anchore Engine: examples/anchore-engine-credentials.md
       - Jenkins: examples/jenkins-kubernetes-credentials.md
-      - BitWarden: examples/bitwarden.md
+      - Bitwarden: examples/bitwarden.md
   - Community:
       - Contributing:
           - Developer guide: contributing/devguide.md
           - Contributing Process: contributing/process.md
           - Release Process: contributing/release.md
           - Code of Conduct: contributing/coc.md
+          - Community meetings calendar: contributing/calendar.md
           - Roadmap: contributing/roadmap.md
       - External Resources:
           - Talks: eso-talks.md

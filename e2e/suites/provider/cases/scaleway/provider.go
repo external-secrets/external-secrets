@@ -3,7 +3,7 @@ package scaleway
 import (
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/onsi/gomega"
-	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1alpha1"
+	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1beta1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
@@ -52,7 +52,7 @@ func (p *secretStoreProvider) cleanup() {
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 		}
 
-		if uint32(len(listResp.Secrets)) == listResp.TotalCount {
+		if uint64(len(listResp.Secrets)) == listResp.TotalCount {
 			break
 		}
 	}

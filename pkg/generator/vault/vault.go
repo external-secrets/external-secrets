@@ -135,6 +135,15 @@ func (g *Generator) prepareResponse(res *genv1alpha1.VaultDynamicSecret, result 
 		if err != nil {
 			return nil, nil, err
 		}
+	} else if res.Spec.ResultType == genv1alpha1.VaultDynamicSecretResultTypeRaw {
+		rawJSON, err := json.Marshal(result)
+		if err != nil {
+			return nil, nil, err
+		}
+		err = json.Unmarshal(rawJSON, &data)
+		if err != nil {
+			return nil, nil, err
+		}
 	} else {
 		data = result.Data
 	}

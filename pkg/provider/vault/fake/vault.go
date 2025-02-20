@@ -278,13 +278,27 @@ func (c *VaultClient) AddHeader(key, value string) {
 	c.MockAddHeader(key, value)
 }
 
-func ClientWithLoginMock(_ *vault.Config) (util.Client, error) {
-	cl := VaultClient{
+func ClientWithLoginMock(config *vault.Config) (util.Client, error) {
+	return clientWithLoginMockOptions(config)
+}
+
+func ModifiableClientWithLoginMock(opts ...func(cl *VaultClient)) func(config *vault.Config) (util.Client, error) {
+	return func(config *vault.Config) (util.Client, error) {
+		return clientWithLoginMockOptions(config, opts...)
+	}
+}
+
+func clientWithLoginMockOptions(_ *vault.Config, opts ...func(cl *VaultClient)) (util.Client, error) {
+	cl := &VaultClient{
 		MockAuthToken: NewAuthTokenFn(),
 		MockSetToken:  NewSetTokenFn(),
 		MockToken:     NewTokenFn(""),
 		MockAuth:      NewVaultAuth(),
 		MockLogical:   NewVaultLogical(),
+	}
+
+	for _, opt := range opts {
+		opt(cl)
 	}
 
 	return &util.VaultClient{

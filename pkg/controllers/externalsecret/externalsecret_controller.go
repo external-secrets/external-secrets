@@ -832,6 +832,8 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 		case esv1beta1.ClusterSecretStoreKind:
 			store = &esv1beta1.ClusterSecretStore{}
 			namespace = ""
+		default:
+			return false, fmt.Errorf("unsupported secret store kind: %s", ref.Kind)
 		}
 
 		err := r.Get(ctx, types.NamespacedName{

@@ -37,8 +37,7 @@ import (
 )
 
 // getProviderSecretData returns the provider's secret data with the provided ExternalSecret.
-func (r *Reconciler) getProviderSecretData(ctx context.Context, externalSecret *esv1beta1.ExternalSecret) (map[string][]byte, error) {
-	var err error
+func (r *Reconciler) getProviderSecretData(ctx context.Context, externalSecret *esv1beta1.ExternalSecret) (providerData map[string][]byte, err error) {
 	// We MUST NOT create multiple instances of a provider client (mostly due to limitations with GCP)
 	// Clientmanager keeps track of the client instances
 	// that are created during the fetching process and closes clients
@@ -51,7 +50,11 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, externalSecret *
 	// and if one fails we need to rollback all generated values from this iteration.
 	genState := statemanager.New(ctx, r.Client, r.Scheme, externalSecret.Namespace, externalSecret)
 	defer func() {
-		if err != nil {
+		// NoSecretErr does not make sense for the generator state.
+		// A generator is expected to always generate a secret.
+		// If it doesn't, it should return an error.
+		// If the error is NoSecretErr, we should commit the generator state.
+		if err != nil && !errors.Is(err, esv1beta1.NoSecretErr) {
 			if rollBackErr := genState.Rollback(); rollBackErr != nil {
 				r.Log.Error(rollBackErr, "error rolling back generator state")
 			}
@@ -59,9 +62,12 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, externalSecret *
 		}
 		if commitErr := genState.Commit(); commitErr != nil {
 			r.Log.Error(commitErr, "error committing generator state")
+			// At this point the original error can only be a NoSecretErr
+			// but we should return the commit error here as it's more important.
+			err = commitErr
 		}
 	}()
-	providerData := make(map[string][]byte)
+	providerData = make(map[string][]byte)
 	for i, remoteRef := range externalSecret.Spec.DataFrom {
 		var secretMap map[string][]byte
 

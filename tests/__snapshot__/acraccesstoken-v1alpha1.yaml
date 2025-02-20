@@ -1,0 +1,26 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: ACRAccessToken
+metadata: {}
+spec:
+  auth:
+    managedIdentity:
+      identityId: string
+    servicePrincipal:
+      secretRef:
+        clientId:
+          key: string
+          name: string
+          namespace: string
+        clientSecret:
+          key: string
+          name: string
+          namespace: string
+    workloadIdentity:
+      serviceAccountRef:
+        audiences: [] # minItems 0 of type string
+        name: string
+        namespace: string
+  environmentType: "PublicCloud"
+  registry: string
+  scope: string
+  tenantId: string
