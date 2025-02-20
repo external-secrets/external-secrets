@@ -12,11 +12,10 @@ Exernal Secrets comes with three components: `Core Controller`, `Webhook` and `C
 This is due to the need to implement conversion webhooks in order to convert custom resources between api versions and
 to provide a ValidatingWebhook for the `ExternalSecret` and `SecretStore` resources.
 
-These features are optional but highly recommended. You can disable them with helm chart values `certController.create=false` and `webhook.create=false`.
+These features are optional but highly recommended. You can disable them with helm chart values `certController.create=false`, `webhook.create=false` and `crds.conversion.enabled=false`.
 
 <br/>
 ![Component Overview](../pictures/diagrams-component-overview.png)
-
 
 ### TLS Bootstrap
 
