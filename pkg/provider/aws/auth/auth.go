@@ -38,6 +38,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/cache"
 	"github.com/external-secrets/external-secrets/pkg/feature"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
@@ -191,7 +192,15 @@ func NewGeneratorSession(ctx context.Context, auth esv1beta1.AWSAuth, role, regi
 		config.WithRegion(region)
 	}
 
-	sess, err := getAWSSession(config, false, "", "", "", "")
+	// there is no underlying SecretStore object for generators
+	// so we use the auth object, role and region as a name
+	// to properly cache the session.
+	authConfigHash := utils.ObjectHash(map[string]interface{}{
+		"auth":   auth,
+		"role":   role,
+		"region": region,
+	})
+	sess, err := getAWSSession(config, false, authConfigHash, "Generator", namespace, "")
 	if err != nil {
 		return nil, err
 	}
