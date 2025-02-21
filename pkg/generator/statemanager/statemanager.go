@@ -77,6 +77,9 @@ func New(ctx context.Context, client client.Client, scheme *runtime.Scheme, name
 func (m *Manager) Rollback() error {
 	var errs []error
 	for _, item := range m.queue {
+		if item.Rollback == nil {
+			continue
+		}
 		if err := item.Rollback(); err != nil {
 			errs = append(errs, err)
 		}
@@ -88,6 +91,9 @@ func (m *Manager) Rollback() error {
 func (m *Manager) Commit() error {
 	var errs []error
 	for _, item := range m.queue {
+		if item.Commit == nil {
+			continue
+		}
 		if err := item.Commit(); err != nil {
 			errs = append(errs, err)
 		}
@@ -117,6 +123,10 @@ func (m *Manager) EnqueueMoveStateToGC(stateKey string) {
 // EnqueueSetLatest sets the latest state for the given key.
 // It will commit the state on success or move the state to GC on failure.
 func (m *Manager) EnqueueSetLatest(ctx context.Context, stateKey, namespace string, resource *apiextensions.JSON, gen genapi.Generator, state genapi.GeneratorProviderState) {
+	if state == nil {
+		return
+	}
+
 	m.queue = append(m.queue, QueueItem{
 		// Stores the state in GeneratorState resource
 		Commit: func() error {

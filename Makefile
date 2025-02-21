@@ -204,10 +204,10 @@ helm.generate:
 	@$(OK) Finished generating helm chart files
 
 helm.test: helm.generate
-	@helm unittest --file tests/*.yaml --file 'tests/**/*.yaml' deploy/charts/external-secrets/
+	@helm unittest deploy/charts/external-secrets/
 
 helm.test.update: helm.generate
-	@helm unittest -u --file tests/*.yaml --file 'tests/**/*.yaml' deploy/charts/external-secrets/
+	@helm unittest -u deploy/charts/external-secrets/
 
 helm.update.appversion:
 	@chartversion=$$(yq .version ./deploy/charts/external-secrets/Chart.yaml) ; \

@@ -315,6 +315,10 @@ webhook:
       # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
       # One year by default.
       duration: "8760h"
+      # -- Set the revisionHistoryLimit on the Certificate. See
+      # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
+      # Defaults to nil.
+      revisionHistoryLimit: ""
       # -- How long before the currently issued certificate’s expiry
       # cert-manager should renew the certificate. See
       # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
@@ -406,6 +410,20 @@ webhook:
       # requests:
       #   cpu: 10m
       #   memory: 32Mi
+
+  # -- Manage the service through which the webhook is reached.
+  service:
+    # -- Whether the service object should be enabled or not (it is expected to exist).
+    enabled: true
+    # -- Custom annotations for the webhook service.
+    annotations: {}
+    # -- Custom labels for the webhook service.
+    labels: {}
+    # -- The service type of the webhook service.
+    type: ClusterIP
+    # -- If the webhook service type is LoadBalancer, you can assign a specific load balancer IP here.
+    # Check the documentation of your load balancer provider to see if/how this should be used.
+    loadBalancerIP: ""
 
 certController:
   # -- Specifies whether a certificate controller deployment be created.

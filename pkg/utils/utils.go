@@ -526,6 +526,32 @@ func CompareStringAndByteSlices(valueString *string, valueByte []byte) bool {
 	return bytes.Equal(valueByte, []byte(*valueString))
 }
 
+func ExtractSecretData(data esv1beta1.PushSecretData, secret *corev1.Secret) ([]byte, error) {
+	var (
+		err   error
+		value []byte
+		ok    bool
+	)
+	if data.GetSecretKey() == "" {
+		decodedMap := make(map[string]string)
+		for k, v := range secret.Data {
+			decodedMap[k] = string(v)
+		}
+		value, err = JSONMarshal(decodedMap)
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal secret data: %w", err)
+		}
+	} else {
+		value, ok = secret.Data[data.GetSecretKey()]
+
+		if !ok {
+			return nil, fmt.Errorf("failed to find secret key in secret with key: %s", data.GetSecretKey())
+		}
+	}
+	return value, nil
+}
+
 // CreateCertOpts contains options for a cert pool creation.
 type CreateCertOpts struct {
 	CABundle   []byte
