@@ -95,13 +95,18 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 			return nil, fmt.Errorf("failed to authenticate via universal auth %w", err)
 		}
 
+		secretPath := infisicalSpec.SecretsScope.SecretsPath
+		if secretPath == "" {
+			secretPath = "/"
+		}
+
 		return &Provider{
 			apiClient: apiClient,
 			apiScope: &InfisicalClientScope{
 				EnvironmentSlug: infisicalSpec.SecretsScope.EnvironmentSlug,
 				ProjectSlug:     infisicalSpec.SecretsScope.ProjectSlug,
 				Recursive:       infisicalSpec.SecretsScope.Recursive,
-				SecretPath:      infisicalSpec.SecretsScope.SecretsPath,
+				SecretPath:      secretPath,
 			},
 		}, nil
 	}
