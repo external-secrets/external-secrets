@@ -10,5 +10,5 @@ spec:
     - sourceRef:
         generatorRef:
           apiVersion: generators.external-secrets.io/v1alpha1
-          kind: Uuid
+          kind: UUID
           name: "my-uuid"

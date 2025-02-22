@@ -234,6 +234,113 @@ spec:
 ```
 
 
+### Access from different namespace in same cluster
+
+If you don't have cluster wide access to create a `ClusterExternalSecret`, you can still access a secret from a dedicated namespace via a bearer token to a service connection within that namespace:
+
+```YAML
+# shared-secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: user-credentials
+  namespace: shared-secrets
+type: Opaque
+stringData:
+  username: peter
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: eso-store-role
+  namespace: shared-secrets
+rules:
+  - apiGroups: [""]
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+  # This will allow the role `eso-store-role` to perform **permission reviews** for itself within the defined namespace:
+  - apiGroups: 
+      - authorization.k8s.io
+    resources:
+      - selfsubjectrulesreviews # used to review or fetch the list of permissions a user or service account currently has.
+    verbs:
+      - create # `create` allows creating a `selfsubjectrulesreviews` request.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: eso-service-account
+  namespace: shared-secrets
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: bind-eso-store-role-to-eso-service-account
+  namespace: shared-secrets
+subjects:
+  - kind: ServiceAccount
+    name: eso-service-account
+    namespace: shared-secrets
+roleRef:
+  kind: Role
+  name: eso-store-role
+  apiGroup: rbac.authorization.k8s.io
+```
+
+After `kubectl apply -f shared-secrets.yaml`, create a bearer token for the service account with `kubectl create token eso-service-account`, then use that bearer token to access the `remoteNamespace` via secret in the target namespace:
+
+```YAML
+apiVersion: v1
+kind: Secret
+metadata:
+  name: eso-token
+  namespace: target-namespace
+stringData:
+  token: "<paste-bearer-token-here>"
+---
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: kubernetes-secret-store
+  namespace: target-namespace
+spec:
+  provider:
+    kubernetes:
+      remoteNamespace: shared-secrets
+      server:
+        # Skip url cause we are in the same cluster
+        caProvider:
+          type: ConfigMap
+          name: kube-root-ca.crt
+          key: ca.crt
+      auth:
+        token:
+          bearerToken:
+            name: eso-token
+            key: token
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: eso-kubernetes-secret
+  namespace: target-namespace
+spec:
+  secretStoreRef:
+    kind: SecretStore
+    name: kubernetes-secret-store
+  target:
+    name: eso-kubernetes-secret
+  data:
+    - secretKey: username
+      remoteRef:
+        key: user-credentials
+        property: username
+```
+
 ### PushSecret
 
 The PushSecret functionality facilitates the replication of a Kubernetes Secret from one namespace or cluster to another. This feature proves useful in scenarios where you need to share sensitive information, such as credentials or configuration data, across different parts of your infrastructure.
@@ -255,7 +362,7 @@ kind: PushSecret
 metadata:
   name: example
 spec:
-  refreshInterval: 10s
+  refreshInterval: 1h
   secretStoreRefs:
     - name: k8s-store-remote-ns
       kind: SecretStore

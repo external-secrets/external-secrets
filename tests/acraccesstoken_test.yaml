@@ -1,0 +1,7 @@
+suite: test ACRAccessToken
+template: tests/crds/acraccesstoken.yml
+tests:
+  - it: matches ACRAccessToken correctly
+    asserts:
+      - matchSnapshot:
+          path: tests/__snapshot__

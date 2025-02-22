@@ -1,5 +1,5 @@
 apiVersion: generators.external-secrets.io/v1alpha1
-kind: Uuid
+kind: UUID
 metadata:
   name: my-uuid
 spec: {}

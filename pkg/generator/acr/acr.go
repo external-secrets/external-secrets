@@ -70,14 +70,14 @@ const (
 // * access tokens are scoped to a specific repository or action (pull,push)
 // * refresh tokens can are scoped to whatever policy is attached to the identity that creates the acr refresh token
 // details can be found here: https://github.com/Azure/acr/blob/main/docs/AAD-OAuth.md#overview
-func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, crClient client.Client, namespace string) (map[string][]byte, error) {
+func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, crClient client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	cfg, err := ctrlcfg.GetConfig()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	kubeClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	g.clientSecretCreds = func(tenantID, clientID, clientSecret string, options *azidentity.ClientSecretCredentialOptions) (TokenGetter, error) {
 		return azidentity.NewClientSecretCredential(tenantID, clientID, clientSecret, options)
@@ -93,6 +93,10 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 		fetchACRRefreshToken)
 }
 
+func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, crClient client.Client, namespace string) error {
+	return nil
+}
+
 func (g *Generator) generate(
 	ctx context.Context,
 	jsonSpec *apiextensions.JSON,
@@ -100,13 +104,13 @@ func (g *Generator) generate(
 	namespace string,
 	kubeClient kubernetes.Interface,
 	fetchAccessToken accessTokenFetcher,
-	fetchRefreshToken refreshTokenFetcher) (map[string][]byte, error) {
+	fetchRefreshToken refreshTokenFetcher) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if jsonSpec == nil {
-		return nil, errors.New(errNoSpec)
+		return nil, nil, errors.New(errNoSpec)
 	}
 	res, err := parseSpec(jsonSpec.Raw)
 	if err != nil {
-		return nil, fmt.Errorf(errParseSpec, err)
+		return nil, nil, fmt.Errorf(errParseSpec, err)
 	}
 	var accessToken string
 	// pick authentication strategy to create an AAD access token
@@ -136,27 +140,27 @@ func (g *Generator) generate(
 			namespace,
 		)
 	} else {
-		return nil, errors.New("unexpeted configuration")
+		return nil, nil, errors.New("unexpeted configuration")
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	var acrToken string
 	acrToken, err = fetchRefreshToken(accessToken, res.Spec.TenantID, res.Spec.ACRRegistry)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if res.Spec.Scope != "" {
 		acrToken, err = fetchAccessToken(acrToken, res.Spec.TenantID, res.Spec.ACRRegistry, res.Spec.Scope)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
 	return map[string][]byte{
 		"username": []byte(defaultLoginUsername),
 		"password": []byte(acrToken),
-	}, nil
+	}, nil, nil
 }
 
 type accessTokenFetcher func(acrRefreshToken, tenantID, registryURL, scope string) (string, error)
@@ -282,12 +286,18 @@ func accessTokenForWorkloadIdentity(ctx context.Context, crClient client.Client,
 }
 
 func accessTokenForManagedIdentity(ctx context.Context, envType v1beta1.AzureEnvironmentType, identityID string) (string, error) {
-	// handle workload identity
-	creds, err := azidentity.NewManagedIdentityCredential(
-		&azidentity.ManagedIdentityCredentialOptions{
+	// handle managed identity
+	var opts *azidentity.ManagedIdentityCredentialOptions
+	if strings.Contains(identityID, "/") {
+		opts = &azidentity.ManagedIdentityCredentialOptions{
 			ID: azidentity.ResourceID(identityID),
-		},
-	)
+		}
+	} else {
+		opts = &azidentity.ManagedIdentityCredentialOptions{
+			ID: azidentity.ClientID(identityID),
+		}
+	}
+	creds, err := azidentity.NewManagedIdentityCredential(opts)
 	if err != nil {
 		return "", err
 	}

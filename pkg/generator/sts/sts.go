@@ -41,7 +41,7 @@ const (
 	errGetToken   = "unable to get authorization token: %w"
 )
 
-func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, error) {
+func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(ctx, jsonSpec, kube, namespace, stsFactory)
 }
 
@@ -51,13 +51,13 @@ func (g *Generator) generate(
 	kube client.Client,
 	namespace string,
 	stsFunc stsFactoryFunc,
-) (map[string][]byte, error) {
+) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if jsonSpec == nil {
-		return nil, errors.New(errNoSpec)
+		return nil, nil, errors.New(errNoSpec)
 	}
 	res, err := parseSpec(jsonSpec.Raw)
 	if err != nil {
-		return nil, fmt.Errorf(errParseSpec, err)
+		return nil, nil, fmt.Errorf(errParseSpec, err)
 	}
 	sess, err := awsauth.NewGeneratorSession(
 		ctx,
@@ -72,7 +72,7 @@ func (g *Generator) generate(
 		awsauth.DefaultSTSProvider,
 		awsauth.DefaultJWTProvider)
 	if err != nil {
-		return nil, fmt.Errorf(errCreateSess, err)
+		return nil, nil, fmt.Errorf(errCreateSess, err)
 	}
 	client := stsFunc(sess)
 	input := &sts.GetSessionTokenInput{}
@@ -83,10 +83,10 @@ func (g *Generator) generate(
 	}
 	out, err := client.GetSessionToken(input)
 	if err != nil {
-		return nil, fmt.Errorf(errGetToken, err)
+		return nil, nil, fmt.Errorf(errGetToken, err)
 	}
 	if out.Credentials == nil {
-		return nil, errors.New("no credentials found")
+		return nil, nil, errors.New("no credentials found")
 	}
 
 	return map[string][]byte{
@@ -94,7 +94,11 @@ func (g *Generator) generate(
 		"expiration":        []byte(strconv.FormatInt(out.Credentials.Expiration.Unix(), 10)),
 		"secret_access_key": []byte(*out.Credentials.SecretAccessKey),
 		"session_token":     []byte(*out.Credentials.SessionToken),
-	}, nil
+	}, nil, nil
+}
+
+func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
+	return nil
 }
 
 type stsFactoryFunc func(aws *session.Session) stsiface.STSAPI
@@ -110,5 +114,5 @@ func parseSpec(data []byte) (*genv1alpha1.STSSessionToken, error) {
 }
 
 func init() {
-	genv1alpha1.Register(genv1alpha1.STSSessionTokenGroupKind, &Generator{})
+	genv1alpha1.Register(genv1alpha1.STSSessionTokenKind, &Generator{})
 }

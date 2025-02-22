@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	ctrlcommon "github.com/external-secrets/external-secrets/pkg/controllers/common"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/cssmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics"
@@ -85,7 +86,10 @@ var _ = BeforeSuite(func() {
 		Scheme:          k8sManager.GetScheme(),
 		Log:             ctrl.Log.WithName("controllers").WithName("SecretStore"),
 		ControllerClass: defaultControllerClass,
-	}).SetupWithManager(k8sManager, controller.Options{})
+	}).SetupWithManager(k8sManager, controller.Options{
+		MaxConcurrentReconciles: 1,
+		RateLimiter:             ctrlcommon.BuildRateLimiter(),
+	})
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&ClusterStoreReconciler{
@@ -93,7 +97,10 @@ var _ = BeforeSuite(func() {
 		Scheme:          k8sManager.GetScheme(),
 		ControllerClass: defaultControllerClass,
 		Log:             ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
-	}).SetupWithManager(k8sManager)
+	}).SetupWithManager(k8sManager, controller.Options{
+		MaxConcurrentReconciles: 1,
+		RateLimiter:             ctrlcommon.BuildRateLimiter(),
+	})
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {

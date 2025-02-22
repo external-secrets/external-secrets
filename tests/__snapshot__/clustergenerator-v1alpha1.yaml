@@ -1,0 +1,275 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: ClusterGenerator
+metadata: {}
+spec:
+  generator:
+    acrAccessTokenSpec:
+      auth:
+        managedIdentity:
+          identityId: string
+        servicePrincipal:
+          secretRef:
+            clientId:
+              key: string
+              name: string
+              namespace: string
+            clientSecret:
+              key: string
+              name: string
+              namespace: string
+        workloadIdentity:
+          serviceAccountRef:
+            audiences: [] # minItems 0 of type string
+            name: string
+            namespace: string
+      environmentType: "PublicCloud"
+      registry: string
+      scope: string
+      tenantId: string
+    ecrAuthorizationTokenSpec:
+      auth:
+        jwt:
+          serviceAccountRef:
+            audiences: [] # minItems 0 of type string
+            name: string
+            namespace: string
+        secretRef:
+          accessKeyIDSecretRef:
+            key: string
+            name: string
+            namespace: string
+          secretAccessKeySecretRef:
+            key: string
+            name: string
+            namespace: string
+          sessionTokenSecretRef:
+            key: string
+            name: string
+            namespace: string
+      region: string
+      role: string
+      scope: string
+    fakeSpec:
+      controller: string
+      data: {}
+    gcrAccessTokenSpec:
+      auth:
+        secretRef:
+          secretAccessKeySecretRef:
+            key: string
+            name: string
+            namespace: string
+        workloadIdentity:
+          clusterLocation: string
+          clusterName: string
+          clusterProjectID: string
+          serviceAccountRef:
+            audiences: [] # minItems 0 of type string
+            name: string
+            namespace: string
+      projectID: string
+    githubAccessTokenSpec:
+      appID: string
+      auth:
+        privateKey:
+          secretRef:
+            key: string
+            name: string
+            namespace: string
+      installID: string
+      permissions: {}
+      repositories: [] # minItems 0 of type string
+      url: string
+    grafanaSpec:
+      auth:
+        token:
+          key: string
+          name: string
+      serviceAccount:
+        name: string
+        role: string
+      url: string
+    passwordSpec:
+      allowRepeat: false
+      digits: 1
+      length: 24
+      noUpper: false
+      symbolCharacters: string
+      symbols: 1
+    quayAccessTokenSpec:
+      robotAccount: string
+      serviceAccountRef:
+        audiences: [] # minItems 0 of type string
+        name: string
+        namespace: string
+      url: string
+    stsSessionTokenSpec:
+      auth:
+        jwt:
+          serviceAccountRef:
+            audiences: [] # minItems 0 of type string
+            name: string
+            namespace: string
+        secretRef:
+          accessKeyIDSecretRef:
+            key: string
+            name: string
+            namespace: string
+          secretAccessKeySecretRef:
+            key: string
+            name: string
+            namespace: string
+          sessionTokenSecretRef:
+            key: string
+            name: string
+            namespace: string
+      region: string
+      requestParameters:
+        serialNumber: string
+        sessionDuration: 1
+        tokenCode: string
+      role: string
+    uuidSpec: {}
+    vaultDynamicSecretSpec:
+      allowEmptyResponse: false
+      controller: string
+      method: string
+      parameters: 
+      path: string
+      provider:
+        auth:
+          appRole:
+            path: "approle"
+            roleId: string
+            roleRef:
+              key: string
+              name: string
+              namespace: string
+            secretRef:
+              key: string
+              name: string
+              namespace: string
+          cert:
+            clientCert:
+              key: string
+              name: string
+              namespace: string
+            secretRef:
+              key: string
+              name: string
+              namespace: string
+          iam:
+            externalID: string
+            jwt:
+              serviceAccountRef:
+                audiences: [] # minItems 0 of type string
+                name: string
+                namespace: string
+            path: string
+            region: string
+            role: string
+            secretRef:
+              accessKeyIDSecretRef:
+                key: string
+                name: string
+                namespace: string
+              secretAccessKeySecretRef:
+                key: string
+                name: string
+                namespace: string
+              sessionTokenSecretRef:
+                key: string
+                name: string
+                namespace: string
+            vaultAwsIamServerID: string
+            vaultRole: string
+          jwt:
+            kubernetesServiceAccountToken:
+              audiences: [] # minItems 0 of type string
+              expirationSeconds: 1
+              serviceAccountRef:
+                audiences: [] # minItems 0 of type string
+                name: string
+                namespace: string
+            path: "jwt"
+            role: string
+            secretRef:
+              key: string
+              name: string
+              namespace: string
+          kubernetes:
+            mountPath: "kubernetes"
+            role: string
+            secretRef:
+              key: string
+              name: string
+              namespace: string
+            serviceAccountRef:
+              audiences: [] # minItems 0 of type string
+              name: string
+              namespace: string
+          ldap:
+            path: "ldap"
+            secretRef:
+              key: string
+              name: string
+              namespace: string
+            username: string
+          namespace: string
+          tokenSecretRef:
+            key: string
+            name: string
+            namespace: string
+          userPass:
+            path: "user"
+            secretRef:
+              key: string
+              name: string
+              namespace: string
+            username: string
+        caBundle: c3RyaW5n
+        caProvider:
+          key: string
+          name: string
+          namespace: string
+          type: "Secret" # "Secret", "ConfigMap"
+        forwardInconsistent: true
+        headers: {}
+        namespace: string
+        path: string
+        readYourWrites: true
+        server: string
+        tls:
+          certSecretRef:
+            key: string
+            name: string
+            namespace: string
+          keySecretRef:
+            key: string
+            name: string
+            namespace: string
+        version: "v2"
+      resultType: "Data"
+      retrySettings:
+        maxRetries: 1
+        retryInterval: string
+    webhookSpec:
+      body: string
+      caBundle: c3RyaW5n
+      caProvider:
+        key: string
+        name: string
+        namespace: string
+        type: "Secret" # "Secret", "ConfigMap"
+      headers: {}
+      method: string
+      result:
+        jsonPath: string
+      secrets:
+      - name: string
+        secretRef:
+          key: string
+          name: string
+      timeout: string
+      url: string
+  kind: "ACRAccessToken" # "ACRAccessToken", "ECRAuthorizationToken", "Fake", "GCRAccessToken", "GithubAccessToken", "QuayAccessToken", "Password", "STSSessionToken", "UUID", "VaultDynamicSecret", "Webhook", "Grafana"

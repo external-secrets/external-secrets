@@ -16,20 +16,30 @@ package secretmanager
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/tidwall/sjson"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
-type Metadata struct {
-	Annotations map[string]string `json:"annotations"`
-	Labels      map[string]string `json:"labels"`
-	Topics      []string          `json:"topics,omitempty"`
+type PushSecretMetadataMergePolicy string
+
+const (
+	PushSecretMetadataMergePolicyReplace PushSecretMetadataMergePolicy = "Replace"
+	PushSecretMetadataMergePolicyMerge   PushSecretMetadataMergePolicy = "Merge"
+)
+
+type PushSecretMetadataSpec struct {
+	Annotations map[string]string             `json:"annotations,omitempty"`
+	Labels      map[string]string             `json:"labels,omitempty"`
+	Topics      []string                      `json:"topics,omitempty"`
+	MergePolicy PushSecretMetadataMergePolicy `json:"mergePolicy,omitempty"`
+	CMEKKeyName string                        `json:"cmekKeyName,omitempty"`
 }
 
 func newPushSecretBuilder(payload []byte, data esv1beta1.PushSecretData) (pushSecretBuilder, error) {
@@ -66,24 +76,29 @@ func (b *psBuilder) buildMetadata(_, labels map[string]string, _ []*secretmanage
 		return nil, nil, nil, fmt.Errorf("secret %v is not managed by external secrets", b.pushSecretData.GetRemoteKey())
 	}
 
-	var metadata Metadata
+	var meta *metadata.PushSecretMetadata[PushSecretMetadataSpec]
 	if b.pushSecretData.GetMetadata() != nil {
-		decoder := json.NewDecoder(bytes.NewReader(b.pushSecretData.GetMetadata().Raw))
-		// Want to return an error if unknown fields exist
-		decoder.DisallowUnknownFields()
-
-		if err := decoder.Decode(&metadata); err != nil {
-			return nil, nil, nil, fmt.Errorf("failed to decode PushSecret metadata: %w", err)
+		var err error
+		meta, err = metadata.ParseMetadataParameters[PushSecretMetadataSpec](b.pushSecretData.GetMetadata())
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("failed to parse PushSecret metadata: %w", err)
 		}
 	}
 
+	var spec PushSecretMetadataSpec
+	if meta != nil {
+		spec = meta.Spec
+	}
+
 	newLabels := map[string]string{}
-	if metadata.Labels != nil {
-		newLabels = metadata.Labels
+	maps.Copy(newLabels, spec.Labels)
+	if spec.MergePolicy == PushSecretMetadataMergePolicyMerge {
+		// Keep labels from the existing GCP Secret Manager Secret
+		maps.Copy(newLabels, labels)
 	}
 	newLabels[managedByKey] = managedByValue
 
-	return metadata.Annotations, newLabels, metadata.Topics, nil
+	return spec.Annotations, newLabels, spec.Topics, nil
 }
 
 func (b *psBuilder) needUpdate(original []byte) bool {

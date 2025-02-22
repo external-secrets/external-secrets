@@ -53,7 +53,7 @@ kind: ExternalSecret
 metadata:
     name: secret-server-external-secret
 spec:
-    refreshInterval: 15s
+    refreshInterval: 1h
     secretStoreRef:
         kind: SecretStore
         name: secret-server-store
@@ -69,7 +69,7 @@ You can either retrieve your entire secret or you can use a JSON formatted strin
 stored in your secret located at Items[0].ItemValue to retrieve a specific value.<br />
 See example JSON secret below.
 
-### Examples
+#### Examples
 Using the json formatted secret below:
 
 - Lookup a single top level property using secret ID.
@@ -124,6 +124,84 @@ returns: The entire secret in JSON format as displayed below
       "FieldDescription": "json text field",
       "Filename": "",
       "ItemValue": "{ \"user\": \"marktwain@hannibal.com\", \"occupation\": \"author\",\"books\":[ \"tomSawyer\",\"huckleberryFinn\",\"Pudd'nhead Wilson\"] }",
+      "IsFile": false,
+      "IsNotes": false,
+      "IsPassword": false
+    }
+  ]
+}
+```
+
+### Referencing Secrets in multiple Items secrets
+
+If there is more then one Item in the secret, it supports to retrieve them (all Item.\*.ItemValue) looking up by Item.\*.FieldName or Item.\*.Slug, instead of the above behaviour to use gjson only on the first item Items.0.ItemValue only.
+
+#### Examples
+
+Using the json formatted secret below:
+
+- Lookup a single top level property using secret ID.
+
+>spec.data.remoteRef.key = 4000 (id of the secret)<br />
+spec.data.remoteRef.property = "Username" (Items.0.FieldName)<br />
+returns: usernamevalue
+
+- Lookup a nested property using secret name.
+
+>spec.data.remoteRef.key = "Secretname" (name of the secret)<br />
+spec.data.remoteRef.property = "password" (Items.1.slug)<br />
+returns: passwordvalue
+
+- Lookup by secret ID (*secret name will work as well*) and return the entire secret.
+
+>spec.data.remoteRef.key = "4000" (id of the secret)<br />
+returns: The entire secret in JSON format as displayed below
+
+
+```JSON
+{
+  "Name": "Secretname",
+  "FolderID": 0,
+  "ID": 4000,
+  "SiteID": 0,
+  "SecretTemplateID": 0,
+  "LauncherConnectAsSecretID": 0,
+  "CheckOutIntervalMinutes": 0,
+  "Active": false,
+  "CheckedOut": false,
+  "CheckOutEnabled": false,
+  "AutoChangeEnabled": false,
+  "CheckOutChangePasswordEnabled": false,
+  "DelayIndexing": false,
+  "EnableInheritPermissions": false,
+  "EnableInheritSecretPolicy": false,
+  "ProxyEnabled": false,
+  "RequiresComment": false,
+  "SessionRecordingEnabled": false,
+  "WebLauncherRequiresIncognitoMode": false,
+  "Items": [
+    {
+      "ItemID": 0,
+      "FieldID": 0,
+      "FileAttachmentID": 0,
+      "FieldName": "Username",
+      "Slug": "username",
+      "FieldDescription": "",
+      "Filename": "",
+      "ItemValue": "usernamevalue",
+      "IsFile": false,
+      "IsNotes": false,
+      "IsPassword": false
+    },
+    {
+      "ItemID": 0,
+      "FieldID": 0,
+      "FileAttachmentID": 0,
+      "FieldName": "Password",
+      "Slug": "password",
+      "FieldDescription": "",
+      "Filename": "",
+      "ItemValue": "passwordvalue",
       "IsFile": false,
       "IsNotes": false,
       "IsPassword": false

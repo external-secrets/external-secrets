@@ -57,18 +57,24 @@ type Reconciler struct {
 	webhookReady   bool
 }
 
-func New(k8sClient client.Client, scheme *runtime.Scheme, leaderChan <-chan struct{},
-	log logr.Logger, svcName, svcNamespace, secretName, secretNamespace string,
-	requeueInterval time.Duration) *Reconciler {
+type Opts struct {
+	SvcName         string
+	SvcNamespace    string
+	SecretName      string
+	SecretNamespace string
+	RequeueInterval time.Duration
+}
+
+func New(k8sClient client.Client, scheme *runtime.Scheme, leaderChan <-chan struct{}, log logr.Logger, opts Opts) *Reconciler {
 	return &Reconciler{
 		Client:          k8sClient,
 		Scheme:          scheme,
 		Log:             log,
-		RequeueDuration: requeueInterval,
-		SvcName:         svcName,
-		SvcNamespace:    svcNamespace,
-		SecretName:      secretName,
-		SecretNamespace: secretNamespace,
+		RequeueDuration: opts.RequeueInterval,
+		SvcName:         opts.SvcName,
+		SvcNamespace:    opts.SvcNamespace,
+		SecretName:      opts.SecretName,
+		SecretNamespace: opts.SecretNamespace,
 		leaderChan:      leaderChan,
 		leaderElected:   false,
 		webhookReadyMu:  &sync.Mutex{},

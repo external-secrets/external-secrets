@@ -35,7 +35,7 @@ import (
 const (
 	errGetClusterSecretStore = "could not get ClusterSecretStore %q, %w"
 	errGetSecretStore        = "could not get SecretStore %q, %w"
-	errSecretStoreNotReady   = "the desired SecretStore %s is not ready"
+	errSecretStoreNotReady   = "%s %q is not ready"
 	errClusterStoreMismatch  = "using cluster store %q is not allowed from namespace %q: denied by spec.condition"
 )
 
@@ -271,7 +271,7 @@ func assertStoreIsUsable(store esv1beta1.GenericStore) error {
 	}
 	condition := GetSecretStoreCondition(store.GetStatus(), esv1beta1.SecretStoreReady)
 	if condition == nil || condition.Status != v1.ConditionTrue {
-		return fmt.Errorf(errSecretStoreNotReady, store.GetName())
+		return fmt.Errorf(errSecretStoreNotReady, store.GetKind(), store.GetName())
 	}
 	return nil
 }

@@ -29,11 +29,13 @@ type BeyondTrustProviderSecretRef struct {
 
 // Configures a store to sync secrets using BeyondTrust Password Safe.
 type BeyondtrustAuth struct {
-	// +required - API OAuth Client ID.
-	ClientID *BeyondTrustProviderSecretRef `json:"clientId"`
-	// +required - API OAuth Client Secret.
-	ClientSecret *BeyondTrustProviderSecretRef `json:"clientSecret"`
-	// Content of the certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.
+	// APIKey If not provided then ClientID/ClientSecret become required.
+	APIKey *BeyondTrustProviderSecretRef `json:"apiKey,omitempty"`
+	// ClientID is the API OAuth Client ID.
+	ClientID *BeyondTrustProviderSecretRef `json:"clientId,omitempty"`
+	// ClientSecret is the API OAuth Client Secret.
+	ClientSecret *BeyondTrustProviderSecretRef `json:"clientSecret,omitempty"`
+	// Certificate (cert.pem) for use when authenticating with an OAuth client Id using a Client Certificate.
 	Certificate *BeyondTrustProviderSecretRef `json:"certificate,omitempty"`
 	// Certificate private key (key.pem). For use when authenticating with an OAuth client Id
 	CertificateKey *BeyondTrustProviderSecretRef `json:"certificateKey,omitempty"`
@@ -43,6 +45,8 @@ type BeyondtrustAuth struct {
 type BeyondtrustServer struct {
 	// +required - BeyondTrust Password Safe API URL. https://example.com:443/beyondtrust/api/public/V3.
 	APIURL string `json:"apiUrl"`
+	// +optional - The recommended version is 3.1. If no version is specified, the default API version 3.0 will be used
+	APIVersion string `json:"apiVersion,omitempty"`
 	// The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.
 	RetrievalType string `json:"retrievalType,omitempty"`
 	// A character that separates the folder names.

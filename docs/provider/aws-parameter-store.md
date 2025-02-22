@@ -125,19 +125,26 @@ The SetSecret method for the Parameter Store allows the user to set the value st
 
 #### Additional Metadata for PushSecret
 
-Optionally, it is possible to configure additional options for the parameter such as `Type` and encryption Key. To control this behaviour you can set the following provider's `metadata`:
+Optionally, it is possible to configure additional options for the parameter. These are as follows:
+- type
+- keyID
+- tier & policies
+
+To control this behaviour you can set the following provider's `metadata`:
 
 ```yaml
 {% include 'aws-pm-push-secret-with-metadata.yaml' %}
 ```
 
-`parameterStoreType` takes three options. `String`, `StringList`, and `SecureString`, where `String` is the _default_.
+- `secretType` takes three options. `String`, `StringList`, and `SecureString`, where `String` is the _default_
+- `kmsKeyID` takes a KMS Key `$ID` or `$ARN` (in case a key source is created in another account) as a string, where `alias/aws/ssm` is the _default_. This property is only used if `secretType` is set as `SecureString`.
+- 
 
-`parameterStoreKeyID` takes a KMS Key `$ID` or `$ARN` (in case a key source is created in another account) as a string, where `alias/aws/ssm` is the _default_. This property is only used if `parameterStoreType` is set as `SecureString`.
+
 
 #### Check successful secret sync
 
-To be able to check that the secret has been succesfully synced you can run the following command:
+To be able to check that the secret has been successfully synced you can run the following command:
 
 ```bash
 kubectl get pushsecret pushsecret-example

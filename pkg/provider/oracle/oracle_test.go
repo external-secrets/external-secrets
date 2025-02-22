@@ -321,7 +321,7 @@ func TestValidateStore(t *testing.T) {
 	}
 }
 
-func TestVaultManagementService_NewClient(t *testing.T) {
+func TestVaultManagementServiceNewClient(t *testing.T) {
 	t.Parallel()
 
 	namespace := "default"
@@ -442,7 +442,7 @@ func TestVaultManagementService_NewClient(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: `cannot get Kubernetes secret "non-existing-secret": secrets "non-existing-secret" not found`,
+			expectedErr: `cannot get Kubernetes secret "non-existing-secret" from namespace "default": secrets "non-existing-secret" not found`,
 		},
 		{
 			desc: "invalid retry interval",

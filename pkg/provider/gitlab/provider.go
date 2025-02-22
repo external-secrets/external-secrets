@@ -17,12 +17,16 @@ package gitlab
 import (
 	"context"
 	"errors"
+	"fmt"
+	"net/http"
 
-	"github.com/xanzy/go-gitlab"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -94,6 +98,25 @@ func (g *gitlabBase) getClient(ctx context.Context, provider *esv1beta1.GitlabPr
 	}
 
 	return client, nil
+}
+
+func (g *gitlabBase) getVariables(ref esv1beta1.ExternalSecretDataRemoteRef, vopts *gitlab.GetProjectVariableOptions) (*gitlab.ProjectVariable, *gitlab.Response, error) {
+	data, resp, err := g.projectVariablesClient.GetVariable(g.store.ProjectID, ref.Key, vopts)
+	metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableGet, err)
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound && !isEmptyOrWildcard(g.store.Environment) {
+			vopts.Filter.EnvironmentScope = "*"
+			data, resp, err = g.projectVariablesClient.GetVariable(g.store.ProjectID, ref.Key, vopts)
+			metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableGet, err)
+			if err != nil || resp == nil {
+				return nil, resp, fmt.Errorf("error getting variable %s from GitLab: %w", ref.Key, err)
+			}
+		} else {
+			return nil, resp, err
+		}
+	}
+
+	return data, resp, nil
 }
 
 func (g *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {

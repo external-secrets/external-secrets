@@ -108,6 +108,18 @@ test.e2e.managed: generate ## Run e2e tests managed
 	$(MAKE) -C ./e2e test.managed
 	@$(OK) go test e2e-tests-managed
 
+.PHONY: test.crds
+test.crds: cty crds.generate.tests ## Test CRDs for modification and backwards compatibility
+	@$(INFO) $(CTY) test tests
+	$(CTY) test tests
+	@$(OK) No breaking CRD changes detected
+
+.PHONY: test.crds.update
+test.crds.update: cty crds.generate.tests ## Update the snapshots used by the CRD tests
+	@$(INFO) $(CTY) test tests -u
+	$(CTY) test tests -u
+	@$(OK) Successfully updated all test snapshots
+
 .PHONY: build
 build: $(addprefix build-,$(ARCH)) ## Build binary
 
@@ -155,6 +167,10 @@ crds.install: generate ## Install CRDs into a cluster. This is for convenience
 crds.uninstall: ## Uninstall CRDs from a cluster. This is for convenience
 	kubectl delete -f $(BUNDLE_DIR)
 
+crds.generate.tests:
+	./hack/test.crds.generate.sh $(BUNDLE_DIR) tests/crds
+	@$(OK) Finished generating crds for testing
+
 tilt-up: tilt manifests ## Generates the local manifests that tilt will use to deploy the controller's objects.
 	$(LOCALBIN)/tilt up
 
@@ -188,10 +204,10 @@ helm.generate:
 	@$(OK) Finished generating helm chart files
 
 helm.test: helm.generate
-	@helm unittest --file tests/*.yaml --file 'tests/**/*.yaml' deploy/charts/external-secrets/
+	@helm unittest deploy/charts/external-secrets/
 
 helm.test.update: helm.generate
-	@helm unittest -u --file tests/*.yaml --file 'tests/**/*.yaml' deploy/charts/external-secrets/
+	@helm unittest -u deploy/charts/external-secrets/
 
 helm.update.appversion:
 	@chartversion=$$(yq .version ./deploy/charts/external-secrets/Chart.yaml) ; \
@@ -309,15 +325,19 @@ clean:  ## Clean bins
 
 ifeq ($(OS),Windows_NT)     # is Windows_NT on XP, 2000, 7, Vista, 10...
     detected_OS := windows
+    real_OS := windows
     arch := x86_64
 else
     detected_OS := $(shell uname -s)
+    real_OS := $(detected_OS)
     arch := $(shell uname -m)
     ifeq ($(detected_OS),Darwin)
-    	detected_OS := mac
+        detected_OS := mac
+        real_OS := darwin
     endif
     ifeq ($(detected_OS),Linux)
-    	detected_OS := linux
+        detected_OS := linux
+        real_OS := linux
     endif
 endif
 
@@ -328,13 +348,15 @@ $(LOCALBIN):
 
 ## Tool Binaries
 TILT ?= $(LOCALBIN)/tilt
+CTY ?= $(LOCALBIN)/cty
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
 
 ## Tool Versions
 GOLANGCI_VERSION := 1.61.0
 KUBERNETES_VERSION := 1.30.x
-TILT_VERSION := 0.33.10
+TILT_VERSION := 0.33.21
+CTY_VERSION := 1.1.3
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
@@ -353,3 +375,9 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 tilt: $(TILT) ## Download tilt locally if necessary. Architecture is locked at x86_64.
 $(TILT): $(LOCALBIN)
 	test -s $(LOCALBIN)/tilt || curl -fsSL https://github.com/tilt-dev/tilt/releases/download/v$(TILT_VERSION)/tilt.$(TILT_VERSION).$(detected_OS).$(arch).tar.gz | tar -xz -C $(LOCALBIN) tilt
+
+.PHONY: cty
+.PHONY: $(CTY)
+cty: $(CTY) ## Download cty locally if necessary. Architecture is locked at x86_64.
+$(CTY): $(LOCALBIN)
+	test -s $(LOCALBIN)/cty || curl -fsSL https://github.com/Skarlso/crd-to-sample-yaml/releases/download/v$(CTY_VERSION)/cty_$(real_OS)_amd64.tar.gz | tar -xz -C $(LOCALBIN) cty

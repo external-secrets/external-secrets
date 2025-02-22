@@ -5,7 +5,7 @@ title: Provider Separation on specific CRDs
 version: v1alpha1
 authors: Gustavo Carvalho
 creation-date: 2023-08-25
-status: draft
+status: approved
 ---
 ```
 

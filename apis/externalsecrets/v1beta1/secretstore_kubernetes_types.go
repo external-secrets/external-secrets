@@ -49,8 +49,11 @@ type KubernetesProvider struct {
 	AuthRef *esmeta.SecretKeySelector `json:"authRef,omitempty"`
 
 	// Remote namespace to fetch the secrets from
-	// +kubebuilder:default= default
 	// +optional
+	// +kubebuilder:default=default
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=63
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
 	RemoteNamespace string `json:"remoteNamespace,omitempty"`
 }
 

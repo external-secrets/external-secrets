@@ -192,19 +192,23 @@ func Decode(strategy esv1beta1.ExternalSecretDecodingStrategy, in []byte) ([]byt
 	}
 }
 
-func ValidateKeys(in map[string][]byte) bool {
+// ValidateKeys checks if the keys in the secret map are valid keys for a Kubernetes secret.
+func ValidateKeys(in map[string][]byte) error {
 	for key := range in {
-		for _, v := range key {
-			if !unicode.IsNumber(v) &&
-				!unicode.IsLetter(v) &&
-				v != '-' &&
-				v != '.' &&
-				v != '_' {
-				return false
+		keyLength := len(key)
+		if keyLength == 0 {
+			return fmt.Errorf("found empty key")
+		}
+		if keyLength > 253 {
+			return fmt.Errorf("key has length %d but max is 253: (following is truncated): %s", keyLength, key[:253])
+		}
+		for _, c := range key {
+			if !unicode.IsLetter(c) && !unicode.IsNumber(c) && c != '-' && c != '.' && c != '_' {
+				return fmt.Errorf("key has invalid character %c, only alphanumeric, '-', '.' and '_' are allowed: %s", c, key)
 			}
 		}
 	}
-	return true
+	return nil
 }
 
 // ConvertKeys converts a secret map into a valid key.
@@ -520,6 +524,32 @@ func CompareStringAndByteSlices(valueString *string, valueByte []byte) bool {
 	}
 
 	return bytes.Equal(valueByte, []byte(*valueString))
+}
+
+func ExtractSecretData(data esv1beta1.PushSecretData, secret *corev1.Secret) ([]byte, error) {
+	var (
+		err   error
+		value []byte
+		ok    bool
+	)
+	if data.GetSecretKey() == "" {
+		decodedMap := make(map[string]string)
+		for k, v := range secret.Data {
+			decodedMap[k] = string(v)
+		}
+		value, err = JSONMarshal(decodedMap)
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal secret data: %w", err)
+		}
+	} else {
+		value, ok = secret.Data[data.GetSecretKey()]
+
+		if !ok {
+			return nil, fmt.Errorf("failed to find secret key in secret with key: %s", data.GetSecretKey())
+		}
+	}
+	return value, nil
 }
 
 // CreateCertOpts contains options for a cert pool creation.

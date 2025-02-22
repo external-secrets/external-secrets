@@ -68,8 +68,8 @@ func NewProvider(f *framework.Framework, kid, sak, st, region, saName, saNamespa
 	}
 
 	BeforeEach(func() {
-		awscommon.SetupStaticStore(f, kid, sak, st, region, esv1beta1.AWSServiceParameterStore)
-		awscommon.CreateReferentStaticStore(f, kid, sak, st, region, esv1beta1.AWSServiceParameterStore)
+		awscommon.SetupStaticStore(f, awscommon.AccessOpts{KID: kid, SAK: sak, ST: st, Region: region}, esv1beta1.AWSServiceParameterStore)
+		awscommon.CreateReferentStaticStore(f, awscommon.AccessOpts{KID: kid, SAK: sak, ST: st, Region: region}, esv1beta1.AWSServiceParameterStore)
 		prov.SetupReferencedIRSAStore()
 		prov.SetupMountedIRSAStore()
 	})

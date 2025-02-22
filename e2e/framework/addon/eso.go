@@ -16,6 +16,7 @@ package addon
 
 import (
 	"os"
+	"time"
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
@@ -25,7 +26,10 @@ type ESO struct {
 	*HelmChart
 }
 
-const installCRDsVar = "installCRDs"
+const (
+	installCRDsVar = "installCRDs"
+	esoImage       = "ghcr.io/external-secrets/external-secrets"
+)
 
 func NewESO(mutators ...MutationFunc) *ESO {
 	eso := &ESO{
@@ -44,7 +48,7 @@ func NewESO(mutators ...MutationFunc) *ESO {
 				},
 				{
 					Key:   "webhook.image.repository",
-					Value: "ghcr.io/external-secrets/external-secrets",
+					Value: esoImage,
 				},
 				{
 					Key:   "certController.image.tag",
@@ -52,7 +56,7 @@ func NewESO(mutators ...MutationFunc) *ESO {
 				},
 				{
 					Key:   "certController.image.repository",
-					Value: "ghcr.io/external-secrets/external-secrets",
+					Value: esoImage,
 				},
 				{
 					Key:   "image.tag",
@@ -60,7 +64,7 @@ func NewESO(mutators ...MutationFunc) *ESO {
 				},
 				{
 					Key:   "image.repository",
-					Value: "ghcr.io/external-secrets/external-secrets",
+					Value: esoImage,
 				},
 				{
 					Key:   "extraArgs.loglevel",
@@ -182,13 +186,23 @@ func (l *ESO) Install() error {
 }
 
 func (l *ESO) Uninstall() error {
+	// uninstalling CRDs will trigger the deletion of all CRs. They block the deletion of the CRDs if
+	// a finalizer is present.
+	// We must uninstall the CRDs before the eso chart,
+	// otherwise ESO will not remove the finalizer.
+	if l.HelmChart.HasVar(installCRDsVar, "true") {
+		By("Uninstalling eso CRDs")
+		err := uninstallCRDs(l.config)
+		if err != nil {
+			return err
+		}
+		// Give ESO a grace period to clean up the CRs
+		<-time.After(time.Minute)
+	}
 	By("Uninstalling eso")
 	err := l.HelmChart.Uninstall()
 	if err != nil {
 		return err
-	}
-	if l.HelmChart.HasVar(installCRDsVar, "true") {
-		return uninstallCRDs(l.config)
 	}
 	return nil
 }

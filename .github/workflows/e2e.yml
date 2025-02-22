@@ -14,7 +14,7 @@ name: e2e tests
 
 env:
   # Common versions
-  GO_VERSION: '1.21'
+  GO_VERSION: '1.23'
   GINKGO_VERSION: 'v2.8.0'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
   KIND_VERSION: 'v0.17.0'
@@ -33,6 +33,8 @@ env:
 
   AWS_REGION: "eu-central-1"
   AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+  AWS_SA_NAME: ${{ secrets.AWS_SA_NAME }}
+  AWS_SA_NAMESPACE: ${{ secrets.AWS_SA_NAMESPACE }}
 
   TFC_AZURE_CLIENT_ID: ${{ secrets.TFC_AZURE_CLIENT_ID}}
   TFC_AZURE_CLIENT_SECRET: ${{ secrets.TFC_AZURE_CLIENT_SECRET }}
@@ -54,6 +56,9 @@ env:
   SECRETSERVER_USERNAME: ${{ secrets.SECRETSERVER_USERNAME }}
   SECRETSERVER_PASSWORD: ${{ secrets.SECRETSERVER_PASSWORD }}
   SECRETSERVER_URL: ${{ secrets.SECRETSERVER_URL }}
+
+  GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
+  GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
 jobs:
 
   integration-trusted:

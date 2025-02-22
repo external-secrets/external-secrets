@@ -66,6 +66,26 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- with .Values.commonLabels }}
 {{ toYaml . }}
 {{- end }}
+{{- if and ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) .Values.serviceMonitor.enabled }}
+app.kubernetes.io/metrics: "webhook"
+{{- with .Values.webhook.service.labels }}
+{{ toYaml . }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{- define "external-secrets-webhook.annotations" -}}
+{{- if or .Values.webhook.service.annotations (and .Values.webhook.metrics.service.enabled .Values.webhook.metrics.service.annotations) -}}
+annotations:
+{{- with .Values.webhook.service.annotations }}
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- if .Values.webhook.metrics.service.enabled }}
+{{- with .Values.webhook.metrics.service.annotations }}
+  {{- toYaml . | nindent 2 }}
+{{- end }}
+{{- end }}
+{{- end }}
 {{- end }}
 
 {{- define "external-secrets-webhook-metrics.labels" -}}
@@ -85,6 +105,9 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- with .Values.commonLabels }}
 {{ toYaml . }}
+{{- end }}
+{{- if and ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) .Values.serviceMonitor.enabled }}
+app.kubernetes.io/metrics: "cert-controller"
 {{- end }}
 {{- end }}
 

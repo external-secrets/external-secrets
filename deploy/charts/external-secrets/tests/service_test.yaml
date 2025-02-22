@@ -1,0 +1,50 @@
+suite: test service
+templates:
+  - service.yaml
+tests:
+  - it: should render service when metrics are enabled
+    set:
+      metrics.service.enabled: true
+    templates:
+      - service.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+  - it: should render service when APIVersions is present and serviceMonitor is enabled
+    set:
+      serviceMonitor.enabled: true
+    capabilities:
+      apiVersions:
+        - "monitoring.coreos.com/v1"
+    templates:
+      - service.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+  - it: should not render service when APIVersions is not present but serviceMonitor is enabled
+    set:
+      serviceMonitor.enabled: true
+    templates:
+      - service.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: should not render service when APIVersions is present and serviceMonitor is disabled
+    set:
+      serviceMonitor.enabled: false
+    capabilities:
+      apiVersions:
+        - "monitoring.coreos.com/v1"
+    templates:
+      - service.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: should not render service when APIVersions is not present and serviceMonitor is disabled
+    set:
+      serviceMonitor.enabled: false
+    templates:
+      - service.yaml
+    asserts:
+      - hasDocuments:
+          count: 0

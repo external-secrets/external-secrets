@@ -30,14 +30,19 @@ const (
 type PushSecretStoreRef struct {
 	// Optionally, sync to the SecretStore of the given name
 	// +optional
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	Name string `json:"name,omitempty"`
+
 	// Optionally, sync to secret stores with label selector
 	// +optional
 	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty"`
+
 	// Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
-	// Defaults to `SecretStore`
-	// +kubebuilder:default="SecretStore"
 	// +optional
+	// +kubebuilder:default="SecretStore"
+	// +kubebuilder:validation:Enum=SecretStore;ClusterSecretStore
 	Kind string `json:"kind,omitempty"`
 }
 
@@ -68,27 +73,38 @@ const (
 // PushSecretSpec configures the behavior of the PushSecret.
 type PushSecretSpec struct {
 	// The Interval to which External Secrets will try to push a secret definition
-	RefreshInterval *metav1.Duration     `json:"refreshInterval,omitempty"`
+	// +kubebuilder:default="1h"
+	RefreshInterval *metav1.Duration `json:"refreshInterval,omitempty"`
+
 	SecretStoreRefs []PushSecretStoreRef `json:"secretStoreRefs"`
-	// UpdatePolicy to handle Secrets in the provider. Possible Values: "Replace/IfNotExists". Defaults to "Replace".
+
+	// UpdatePolicy to handle Secrets in the provider.
 	// +kubebuilder:default="Replace"
 	// +optional
 	UpdatePolicy PushSecretUpdatePolicy `json:"updatePolicy,omitempty"`
-	// Deletion Policy to handle Secrets in the provider. Possible Values: "Delete/None". Defaults to "None".
+
+	// Deletion Policy to handle Secrets in the provider.
 	// +kubebuilder:default="None"
 	// +optional
 	DeletionPolicy PushSecretDeletionPolicy `json:"deletionPolicy,omitempty"`
+
 	// The Secret Selector (k8s source) for the Push Secret
 	Selector PushSecretSelector `json:"selector"`
+
 	// Secret Data that should be pushed to providers
 	Data []PushSecretData `json:"data,omitempty"`
+
 	// Template defines a blueprint for the created Secret resource.
 	// +optional
 	Template *esv1beta1.ExternalSecretTemplate `json:"template,omitempty"`
 }
 
 type PushSecretSecret struct {
-	// Name of the Secret. The Secret must exist in the same namespace as the PushSecret manifest.
+	// Name of the Secret.
+	// The Secret must exist in the same namespace as the PushSecret manifest.
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	Name string `json:"name"`
 }
 
@@ -206,7 +222,7 @@ type PushSecretStatus struct {
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
-// +kubebuilder:resource:scope=Namespaced,categories={external-secrets}
+// +kubebuilder:resource:scope=Namespaced,categories={external-secrets},shortName=ps
 
 type PushSecret struct {
 	metav1.TypeMeta   `json:",inline"`

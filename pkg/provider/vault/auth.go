@@ -222,6 +222,7 @@ func (c *client) useAuthNamespace(_ context.Context) func() {
 		}
 	}
 
-	// no-op
-	return func() {}
+	return func() {
+		// no-op
+	}
 }

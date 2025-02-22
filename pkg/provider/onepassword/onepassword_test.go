@@ -16,6 +16,7 @@ package onepassword
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -30,6 +31,7 @@ import (
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/onepassword/fake"
+	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
 const (
@@ -1539,6 +1541,7 @@ type fakeRef struct {
 	key       string
 	prop      string
 	secretKey string
+	metadata  *apiextensionsv1.JSON
 }
 
 func (f fakeRef) GetRemoteKey() string {
@@ -1554,7 +1557,7 @@ func (f fakeRef) GetSecretKey() string {
 }
 
 func (f fakeRef) GetMetadata() *apiextensionsv1.JSON {
-	return nil
+	return f.metadata
 }
 
 func validateItem(t *testing.T, expectedItem, actualItem *onepassword.Item) {
@@ -1574,8 +1577,19 @@ func TestProviderOnePasswordCreateItem(t *testing.T) {
 		ref                esv1beta1.PushSecretData
 	}
 	const vaultName = "vault1"
+	const fallbackVaultName = "vault2"
 
 	thridPartyErr := errors.New("third party error")
+
+	metadata := &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
+		APIVersion: metadata.APIVersion,
+		Kind:       metadata.Kind,
+		Spec: PushSecretMetadataSpec{
+			Tags:  []string{"tag1", "tag2"},
+			Vault: fallbackVaultName,
+		},
+	}
+	metadataRaw, _ := json.Marshal(metadata)
 
 	testCases := []testCase{
 		{
@@ -1587,7 +1601,8 @@ func TestProviderOnePasswordCreateItem(t *testing.T) {
 			},
 			expectedErr: nil,
 			vaults: map[string]int{
-				vaultName: 1,
+				vaultName:         1,
+				fallbackVaultName: 2,
 			},
 			createValidateFunc: func(t *testing.T, item *onepassword.Item, s string) (*onepassword.Item, error) {
 				validateItem(t, &onepassword.Item{
@@ -1664,6 +1679,36 @@ func TestProviderOnePasswordCreateItem(t *testing.T) {
 					},
 				}, item)
 				return nil, thridPartyErr
+			},
+		},
+		{
+			setupNote: "valid metadata overrides",
+			val:       []byte("testing"),
+			ref: fakeRef{
+				key:  "another",
+				prop: "property",
+				metadata: &apiextensionsv1.JSON{
+					Raw: metadataRaw,
+				},
+			},
+			vaults: map[string]int{
+				vaultName:         1,
+				fallbackVaultName: 2,
+			},
+			expectedErr: nil,
+			createValidateFunc: func(t *testing.T, item *onepassword.Item, s string) (*onepassword.Item, error) {
+				validateItem(t, &onepassword.Item{
+					Title:    "another",
+					Category: onepassword.Server,
+					Vault: onepassword.ItemVault{
+						ID: fallbackVaultName,
+					},
+					Fields: []*onepassword.ItemField{
+						generateNewItemField("property", "testing"),
+					},
+					Tags: []string{"tag1", "tag2"},
+				}, item)
+				return item, nil
 			},
 		},
 	}
@@ -2050,6 +2095,16 @@ func TestProviderOnePasswordPushSecret(t *testing.T) {
 			ID: vaultName,
 		}
 	)
+
+	metadata := &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
+		APIVersion: metadata.APIVersion,
+		Kind:       metadata.Kind,
+		Spec: PushSecretMetadataSpec{
+			Tags: []string{"tag1", "tag2"},
+		},
+	}
+	metadataRaw, _ := json.Marshal(metadata)
+
 	testCases := []testCase{
 		{
 			vaults: map[string]int{
@@ -2196,6 +2251,38 @@ func TestProviderOnePasswordPushSecret(t *testing.T) {
 					ID:    key1,
 					Title: key1,
 				},
+			},
+		},
+		{
+			setupNote:   "create item with metadata overwrites success",
+			expectedErr: nil,
+			val: &corev1.Secret{Data: map[string][]byte{
+				key1: []byte("testing"),
+			}},
+			ref: fakeRef{
+				key:       key1,
+				prop:      "prop",
+				secretKey: key1,
+				metadata: &apiextensionsv1.JSON{
+					Raw: metadataRaw,
+				},
+			},
+			vaults: map[string]int{
+				vaultName: 1,
+			},
+			createValidateFunc: func(item *onepassword.Item, s string) (*onepassword.Item, error) {
+				validateItem(t, &onepassword.Item{
+					Title:    key1,
+					Category: onepassword.Server,
+					Vault: onepassword.ItemVault{
+						ID: vaultName,
+					},
+					Fields: []*onepassword.ItemField{
+						generateNewItemField("prop", "testing"),
+					},
+					Tags: []string{"tag1", "tag2"},
+				}, item)
+				return item, nil
 			},
 		},
 	}

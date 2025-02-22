@@ -25,7 +25,7 @@ import (
 	"strings"
 
 	"github.com/tidwall/gjson"
-	"github.com/xanzy/go-gitlab"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -38,19 +38,16 @@ import (
 )
 
 const (
-	errGitlabCredSecretName                   = "credentials are empty"
-	errInvalidClusterStoreMissingSAKNamespace = "invalid clusterStore missing SAK namespace"
-	errFetchSAKSecret                         = "couldn't find secret on cluster: %w"
-	errList                                   = "could not verify whether the gitlabClient is valid: %w"
-	errProjectAuth                            = "gitlabClient is not allowed to get secrets for project id [%s]"
-	errGroupAuth                              = "gitlabClient is not allowed to get secrets for group id [%s]"
-	errUninitializedGitlabProvider            = "provider gitlab is not initialized"
-	errNameNotDefined                         = "'find.name' is mandatory"
-	errEnvironmentIsConstricted               = "'find.tags' is constrained by 'environment_scope' of the store"
-	errTagsOnlyEnvironmentSupported           = "'find.tags' only supports 'environment_scope'"
-	errPathNotImplemented                     = "'find.path' is not implemented in the GitLab provider"
-	errJSONSecretUnmarshal                    = "unable to unmarshal secret: %w"
-	errNotImplemented                         = "not implemented"
+	errList                         = "could not verify whether the gitlabClient is valid: %w"
+	errProjectAuth                  = "gitlabClient is not allowed to get secrets for project id [%s]"
+	errGroupAuth                    = "gitlabClient is not allowed to get secrets for group id [%s]"
+	errUninitializedGitlabProvider  = "provider gitlab is not initialized"
+	errNameNotDefined               = "'find.name' is mandatory"
+	errEnvironmentIsConstricted     = "'find.tags' is constrained by 'environment_scope' of the store"
+	errTagsOnlyEnvironmentSupported = "'find.tags' only supports 'environment_scope'"
+	errPathNotImplemented           = "'find.path' is not implemented in the GitLab provider"
+	errJSONSecretUnmarshal          = "unable to unmarshal secret: %w"
+	errNotImplemented               = "not implemented"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -138,36 +135,27 @@ func (g *gitlabBase) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecr
 		return nil, err
 	}
 
-	var gopts = &gitlab.ListGroupVariablesOptions{PerPage: 100}
-	secretData := make(map[string][]byte)
-	for _, groupID := range g.store.GroupIDs {
-		for groupPage := 1; ; groupPage++ {
-			gopts.Page = groupPage
-			groupVars, response, err := g.groupVariablesClient.ListVariables(groupID, gopts)
-			metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupListVariables, err)
-			if err != nil {
-				return nil, err
-			}
-			for _, data := range groupVars {
-				matching, key, isWildcard := matchesFilter(effectiveEnvironment, data.EnvironmentScope, data.Key, matcher)
-				if !matching && !isWildcard {
-					continue
-				}
-				secretData[key] = []byte(data.Value)
-			}
-			if response.CurrentPage >= response.TotalPages {
-				break
-			}
-		}
+	secretData, err := g.fetchSecretData(effectiveEnvironment, matcher)
+	if err != nil {
+		return nil, err
 	}
 
+	// _Note_: fetchProjectVariables alters secret data map
+	if err := g.fetchProjectVariables(effectiveEnvironment, matcher, secretData); err != nil {
+		return nil, err
+	}
+
+	return secretData, nil
+}
+
+func (g *gitlabBase) fetchProjectVariables(effectiveEnvironment string, matcher *find.Matcher, secretData map[string][]byte) error {
 	var popts = &gitlab.ListProjectVariablesOptions{PerPage: 100}
 	for projectPage := 1; ; projectPage++ {
 		popts.Page = projectPage
 		projectData, response, err := g.projectVariablesClient.ListVariables(g.store.ProjectID, popts)
 		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectListVariables, err)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		for _, data := range projectData {
@@ -187,7 +175,57 @@ func (g *gitlabBase) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecr
 		}
 	}
 
+	return nil
+}
+
+func (g *gitlabBase) fetchSecretData(effectiveEnvironment string, matcher *find.Matcher) (map[string][]byte, error) {
+	var gopts = &gitlab.ListGroupVariablesOptions{PerPage: 100}
+	secretData := make(map[string][]byte)
+	for _, groupID := range g.store.GroupIDs {
+		if err := g.setVariablesForGroupID(effectiveEnvironment, matcher, gopts, groupID, secretData); err != nil {
+			return nil, err
+		}
+	}
+
 	return secretData, nil
+}
+
+func (g *gitlabBase) setVariablesForGroupID(
+	effectiveEnvironment string,
+	matcher *find.Matcher,
+	gopts *gitlab.ListGroupVariablesOptions,
+	groupID string,
+	secretData map[string][]byte,
+) error {
+	for groupPage := 1; ; groupPage++ {
+		gopts.Page = groupPage
+		groupVars, response, err := g.groupVariablesClient.ListVariables(groupID, gopts)
+		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupListVariables, err)
+		if err != nil {
+			return err
+		}
+		g.setGroupValues(effectiveEnvironment, matcher, groupVars, secretData)
+
+		if response.CurrentPage >= response.TotalPages {
+			break
+		}
+	}
+	return nil
+}
+
+func (g *gitlabBase) setGroupValues(
+	effectiveEnvironment string,
+	matcher *find.Matcher,
+	groupVars []*gitlab.GroupVariable,
+	secretData map[string][]byte,
+) {
+	for _, data := range groupVars {
+		matching, key, isWildcard := matchesFilter(effectiveEnvironment, data.EnvironmentScope, data.Key, matcher)
+		if !matching && !isWildcard {
+			continue
+		}
+		secretData[key] = []byte(data.Value)
+	}
 }
 
 func ExtractTag(tags map[string]string) (string, error) {
@@ -222,15 +260,9 @@ func (g *gitlabBase) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDa
 		vopts = &gitlab.GetProjectVariableOptions{Filter: &gitlab.VariableFilter{EnvironmentScope: g.store.Environment}}
 	}
 
-	data, resp, err := g.projectVariablesClient.GetVariable(g.store.ProjectID, ref.Key, vopts)
-	metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableGet, err)
-	if !isEmptyOrWildcard(g.store.Environment) && resp.StatusCode == http.StatusNotFound {
-		vopts.Filter.EnvironmentScope = "*"
-		data, resp, err = g.projectVariablesClient.GetVariable(g.store.ProjectID, ref.Key, vopts)
-		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableGet, err)
-	}
-
-	if resp.StatusCode >= 400 && resp.StatusCode != http.StatusNotFound && err != nil {
+	// _Note_: getVariables potentially alters vopts environment variable.
+	data, resp, err := g.getVariables(ref, vopts)
+	if err != nil && (resp == nil || resp.StatusCode != http.StatusNotFound) {
 		return nil, err
 	}
 
