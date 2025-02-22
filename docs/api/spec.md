@@ -4620,6 +4620,148 @@ or a namespaced SecretStore.</p>
 </h3>
 <p>
 </p>
+<h3 id="external-secrets.io/v1beta1.GithubAppAuth">GithubAppAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.GithubProvider">GithubProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>privateKey</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.GithubProvider">GithubProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>Configures a store to push secrets to Github Actions.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>url</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>URL configures the Github instance URL. Defaults to <a href="https://github.com/">https://github.com/</a>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>uploadURL</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Upload URL for enterprise instances. Default to URL.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.GithubAppAuth">
+GithubAppAuth
+</a>
+</em>
+</td>
+<td>
+<p>auth configures how secret-manager authenticates with a Github instance.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>appID</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<p>appID specifies the Github APP that will be used to authenticate the client</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>installationID</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<p>installationID specifies the Github APP installation that will be used to authenticate the client</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>organization</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>organization will be used to fetch secrets from the Github organization</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>repository</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>repository will be used to fetch secrets from the Github repository within an organization</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>environment</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>environment will be used to fetch secrets from a particular environment within a github repository</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.GitlabAuth">GitlabAuth
 </h3>
 <p>
@@ -6766,6 +6908,20 @@ YandexLockboxProvider
 <td>
 <em>(Optional)</em>
 <p>YandexLockbox configures this store to sync secrets using Yandex Lockbox provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>github</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.GithubProvider">
+GithubProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Github configures this store to push Github Action secrets using Github API provider</p>
 </td>
 </tr>
 <tr>
