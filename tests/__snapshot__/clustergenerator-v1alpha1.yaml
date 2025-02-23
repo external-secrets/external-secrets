@@ -272,4 +272,4 @@ spec:
           name: string
       timeout: string
       url: string
-  kind: "ACRAccessToken" # "ACRAccessToken", "ECRAuthorizationToken", "Fake", "GCRAccessToken", "GithubAccessToken", "QuayAccessToken'Password", "STSSessionToken", "UUID", "VaultDynamicSecret", "Webhook", "Grafana"
+  kind: "ACRAccessToken" # "ACRAccessToken", "ECRAuthorizationToken", "Fake", "GCRAccessToken", "GithubAccessToken", "QuayAccessToken", "Password", "STSSessionToken", "UUID", "VaultDynamicSecret", "Webhook", "Grafana"

@@ -91,7 +91,7 @@ createOperator: true
 # -- Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at
 # a time.
 concurrent: 1
-# -- Specifices Log Params to the Webhook
+# -- Specifices Log Params to the External Secrets Operator
 log:
   level: info
   timeEncoding: epoch
@@ -430,7 +430,7 @@ certController:
   create: true
   requeueInterval: "5m"
   replicaCount: 1
-  # -- Specifices Log Params to the Webhook
+  # -- Specifices Log Params to the Certificate Controller
   log:
     level: info
     timeEncoding: epoch
