@@ -23,11 +23,11 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/awserr"
+	"github.com/aws/aws-sdk-go-v2/aws/request"
+	"github.com/aws/aws-sdk-go-v2/config"
+	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -55,7 +55,7 @@ var _ esv1beta1.SecretsClient = &SecretsManager{}
 
 // SecretsManager is a provider for AWS SecretsManager.
 type SecretsManager struct {
-	sess         *session.Session
+	cfg         *config.Config
 	client       SMInterface
 	referentAuth bool
 	cache        map[string]*awssm.GetSecretValueOutput
@@ -65,14 +65,13 @@ type SecretsManager struct {
 // SMInterface is a subset of the smiface api.
 // see: https://docs.aws.amazon.com/sdk-for-go/api/service/secretsmanager/secretsmanageriface/
 type SMInterface interface {
-	BatchGetSecretValueWithContext(aws.Context, *awssm.BatchGetSecretValueInput, ...request.Option) (*awssm.BatchGetSecretValueOutput, error)
-	ListSecrets(*awssm.ListSecretsInput) (*awssm.ListSecretsOutput, error)
-	GetSecretValue(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
-	CreateSecretWithContext(aws.Context, *awssm.CreateSecretInput, ...request.Option) (*awssm.CreateSecretOutput, error)
-	GetSecretValueWithContext(aws.Context, *awssm.GetSecretValueInput, ...request.Option) (*awssm.GetSecretValueOutput, error)
-	PutSecretValueWithContext(aws.Context, *awssm.PutSecretValueInput, ...request.Option) (*awssm.PutSecretValueOutput, error)
-	DescribeSecretWithContext(aws.Context, *awssm.DescribeSecretInput, ...request.Option) (*awssm.DescribeSecretOutput, error)
-	DeleteSecretWithContext(ctx aws.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (*awssm.DeleteSecretOutput, error)
+	BatchGetSecretValue(ctx context.Context, params *awssm.BatchGetSecretValueInput, optFuncs ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error)
+	ListSecrets(ctx context.Context, params *awssm.ListSecretsInput, optFuncs ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error)
+	GetSecretValue(ctx context.Context, params *awssm.GetSecretValueInput, optFuncs ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error)
+	CreateSecret(ctx context.Context, params *awssm.CreateSecretInput, optFuncs ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error)
+	PutSecretValue(ctx context.Context, params *awssm.PutSecretValueInput, optFuncs ...func(*awssm.Options)) (*awssm.PutSecretValueOutput, error)
+	DescribeSecret(ctx context.Context, params *awssm.DescribeSecretInput, optFuncs ...func(*awssm.Options)) (*awssm.DescribeSecretOutput, error)
+	DeleteSecret(ctx context.Context, params *awssm.DeleteSecretInput, optFuncs ...func(*awssm.Options)) (*awssm.DeleteSecretOutput, error)
 }
 
 const (
@@ -85,10 +84,10 @@ const (
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager")
 
 // New creates a new SecretsManager client.
-func New(sess *session.Session, cfg *aws.Config, secretsManagerCfg *esv1beta1.SecretsManager, referentAuth bool) (*SecretsManager, error) {
+func New(ctx context.Context, cfg *config.Config, secretsMasnagerCfg *esv1beta1.SecretsManager, referentAuth bool) (*SecretsManager, error) {
 	return &SecretsManager{
-		sess:         sess,
-		client:       awssm.New(sess, cfg),
+		cfg:          cfg,
+		client:       awssm.New(ctx, cfg),
 		referentAuth: referentAuth,
 		cache:        make(map[string]*awssm.GetSecretValueOutput),
 		config:       secretsManagerCfg,
@@ -131,7 +130,7 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	secretInput := awssm.DescribeSecretInput{
 		SecretId: &secretName,
 	}
-	awsSecret, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
+	awsSecret, err := sm.client.GetSecretValue(ctx, &secretValue)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
 	var aerr awserr.Error
 	if err != nil {
@@ -143,7 +142,7 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 		}
 		return err
 	}
-	data, err := sm.client.DescribeSecretWithContext(ctx, &secretInput)
+	data, err := sm.client.DescribeSecret(ctx, &secretInput)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDescribeSecret, err)
 	if err != nil {
 		return err
@@ -164,7 +163,7 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	if err != nil {
 		return err
 	}
-	_, err = sm.client.DeleteSecretWithContext(ctx, deleteInput)
+	_, err = sm.client.DeleteSecret(ctx, deleteInput)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDeleteSecret, err)
 	return err
 }
@@ -174,7 +173,7 @@ func (sm *SecretsManager) SecretExists(ctx context.Context, pushSecretRef esv1be
 	secretValue := awssm.GetSecretValueInput{
 		SecretId: &secretName,
 	}
-	_, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
+	_, err := sm.client.GetSecretValue(ctx, &secretValue)
 	if err != nil {
 		return sm.handleSecretError(err)
 	}
@@ -207,7 +206,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 		SecretId: &secretName,
 	}
 
-	awsSecret, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
+	awsSecret, err := sm.client.GetSecretValue(ctx, &secretValue)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
 
 	if psd.GetProperty() != "" {
@@ -315,7 +314,7 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.External
 	for {
 		// I put this into the for loop on purpose.
 		log.V(0).Info("using ListSecret to fetch all secrets; this is a costly operations, please use batching by defining a _path_")
-		it, err := sm.client.ListSecrets(&awssm.ListSecretsInput{
+		it, err := sm.client.ListSecrets(ctx, &awssm.ListSecretsInput{
 			Filters:   filters,
 			NextToken: nextToken,
 		})
@@ -509,14 +508,14 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 		input.SetSecretBinary(nil).SetSecretString(string(value))
 	}
 
-	_, err = sm.client.CreateSecretWithContext(ctx, input)
+	_, err = sm.client.CreateSecret(ctx, input)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMCreateSecret, err)
 
 	return err
 }
 
 func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretInput awssm.DescribeSecretInput, awsSecret *awssm.GetSecretValueOutput, psd esv1beta1.PushSecretData, value []byte) error {
-	data, err := sm.client.DescribeSecretWithContext(ctx, &secretInput)
+	data, err := sm.client.DescribeSecret(ctx, &secretInput)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDescribeSecret, err)
 	if err != nil {
 		return err
@@ -545,7 +544,7 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretI
 		input.SetSecretBinary(nil).SetSecretString(string(value))
 	}
 
-	_, err = sm.client.PutSecretValueWithContext(ctx, input)
+	_, err = sm.client.PutSecretValue(ctx, input)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutSecretValue, err)
 
 	return err
@@ -556,7 +555,7 @@ func (sm *SecretsManager) fetchWithBatch(ctx context.Context, filters []*awssm.F
 	var nextToken *string
 
 	for {
-		it, err := sm.client.BatchGetSecretValueWithContext(ctx, &awssm.BatchGetSecretValueInput{
+		it, err := sm.client.BatchGetSecretValue(ctx, &awssm.BatchGetSecretValueInput{
 			Filters:   filters,
 			NextToken: nextToken,
 		})
@@ -597,7 +596,7 @@ func (sm *SecretsManager) constructSecretValue(ctx context.Context, ref esv1beta
 			SecretId: &ref.Key,
 		}
 
-		descOutput, err := sm.client.DescribeSecretWithContext(ctx, describeSecretInput)
+		descOutput, err := sm.client.DescribeSecret(ctx, describeSecretInput)
 		if err != nil {
 			return nil, err
 		}
@@ -629,7 +628,7 @@ func (sm *SecretsManager) constructSecretValue(ctx context.Context, ref esv1beta
 			VersionStage: &ver,
 		}
 	}
-	secretOut, err := sm.client.GetSecretValue(getSecretValueInput)
+	secretOut, err := sm.client.GetSecretValue(ctx, getSecretValueInput)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
 	var nf *awssm.ResourceNotFoundException
 	if errors.As(err, &nf) {
