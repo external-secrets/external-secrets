@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/request"
-	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -30,29 +30,28 @@ import (
 type Client struct {
 	ExecutionCounter                 int
 	valFn                            map[string]func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
-	CreateSecretWithContextFn        CreateSecretWithContextFn
-	GetSecretValueWithContextFn      GetSecretValueWithContextFn
-	PutSecretValueWithContextFn      PutSecretValueWithContextFn
-	DescribeSecretWithContextFn      DescribeSecretWithContextFn
-	DeleteSecretWithContextFn        DeleteSecretWithContextFn
+	CreateSecretFn        CreateSecretFn
+	GetSecretValueFn      GetSecretValueFn
+	PutSecretValueFn      PutSecretValueFn
+	DescribeSecretFn      DescribeSecretFn
+	DeleteSecretFn        DeleteSecretFn
 	ListSecretsFn                    ListSecretsFn
-	BatchGetSecretValueWithContextFn BatchGetSecretValueWithContextFn
+	BatchGetSecretValueFn BatchGetSecretValueFn
+}
+type CreateSecretFn func(ctx context.Context, *awssm.CreateSecretInput, ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error)
+type GetSecretValueFn func(ctx context.Context, *awssm.GetSecretValueInput, ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error)
+type PutSecretValueFn func(ctx context.Context, *awssm.PutSecretValueInput, ...func(*awssm.Options)) (*awssm.PutSecretValueOutput, error)
+type DescribeSecretFn func(ctx context.Context, *awssm.DescribeSecretInput, ...func(*awssm.Options)) (*awssm.DescribeSecretOutput, error)
+type DeleteSecretFn func(ctx context.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (*awssm.DeleteSecretOutput, error)
+type ListSecretsFn func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error)
+type BatchGetSecretValueFn func(ctx context.Context, *awssm.BatchGetSecretValueInput, ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error)
+
+func (sm Client) CreateSecret(ctx context.Context, input *awssm.CreateSecretInput, options ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error) {
+	return sm.CreateSecretFn(ctx, input, options...)
 }
 
-type CreateSecretWithContextFn func(aws.Context, *awssm.CreateSecretInput, ...request.Option) (*awssm.CreateSecretOutput, error)
-type GetSecretValueWithContextFn func(aws.Context, *awssm.GetSecretValueInput, ...request.Option) (*awssm.GetSecretValueOutput, error)
-type PutSecretValueWithContextFn func(aws.Context, *awssm.PutSecretValueInput, ...request.Option) (*awssm.PutSecretValueOutput, error)
-type DescribeSecretWithContextFn func(aws.Context, *awssm.DescribeSecretInput, ...request.Option) (*awssm.DescribeSecretOutput, error)
-type DeleteSecretWithContextFn func(ctx aws.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (*awssm.DeleteSecretOutput, error)
-type ListSecretsFn func(ctx aws.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error)
-type BatchGetSecretValueWithContextFn func(aws.Context, *awssm.BatchGetSecretValueInput, ...request.Option) (*awssm.BatchGetSecretValueOutput, error)
-
-func (sm Client) CreateSecretWithContext(ctx aws.Context, input *awssm.CreateSecretInput, options ...request.Option) (*awssm.CreateSecretOutput, error) {
-	return sm.CreateSecretWithContextFn(ctx, input, options...)
-}
-
-func NewCreateSecretWithContextFn(output *awssm.CreateSecretOutput, err error, expectedSecretBinary ...[]byte) CreateSecretWithContextFn {
-	return func(ctx aws.Context, actualInput *awssm.CreateSecretInput, options ...request.Option) (*awssm.CreateSecretOutput, error) {
+func NewCreateSecretFn(output *awssm.CreateSecretOutput, err error, expectedSecretBinary ...[]byte) CreateSecretFn {
+	return func(ctx context.Context, actualInput *awssm.CreateSecretInput, options ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error) {
 		if *actualInput.ClientRequestToken != "00000000-0000-0000-0000-000000000001" {
 			return nil, errors.New("expected the version to be 1 at creation")
 		}
@@ -189,3 +188,4 @@ func (sm *Client) WithValue(in *awssm.GetSecretValueInput, val *awssm.GetSecretV
 		return val, err
 	}
 }
+
