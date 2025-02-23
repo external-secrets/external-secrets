@@ -22,11 +22,10 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
-
+	"github.com/aws/smithy-go"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/aws/awserr"
-	"github.com/aws/aws-sdk-go-v2/aws/request"
-	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
+
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
@@ -41,6 +40,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 )
 
 // Declares metadata information for pushing secrets to AWS Secret Store.
@@ -55,11 +55,11 @@ var _ esv1beta1.SecretsClient = &SecretsManager{}
 
 // SecretsManager is a provider for AWS SecretsManager.
 type SecretsManager struct {
-	cfg         *config.Config
-	client       SMInterface
-	referentAuth bool
-	cache        map[string]*awssm.GetSecretValueOutput
-	config       *esv1beta1.SecretsManager
+    cfg         *aws.Config
+    client      SMInterface        // Keep the interface
+    referentAuth bool
+    cache       map[string]*awssm.GetSecretValueOutput
+    config      *esv1beta1.SecretsManager
 }
 
 // SMInterface is a subset of the smiface api.
@@ -84,13 +84,13 @@ const (
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager")
 
 // New creates a new SecretsManager client.
-func New(ctx context.Context, cfg *config.Config, secretsMasnagerCfg *esv1beta1.SecretsManager, referentAuth bool) (*SecretsManager, error) {
+func New(ctx context.Context, cfg *aws.Config, secretsMasnagerCfg *esv1beta1.SecretsManager, referentAuth bool) (*SecretsManager, error) {
 	return &SecretsManager{
 		cfg:          cfg,
-		client:       awssm.New(ctx, cfg),
+		client:       awssm.NewFromConfig(*cfg),
 		referentAuth: referentAuth,
 		cache:        make(map[string]*awssm.GetSecretValueOutput),
-		config:       secretsManagerCfg,
+		config:       secretsMasnagerCfg,
 	}, nil
 }
 
@@ -132,13 +132,13 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	}
 	awsSecret, err := sm.client.GetSecretValue(ctx, &secretValue)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
-	var aerr awserr.Error
+	var aerr smithy.APIError
 	if err != nil {
 		if ok := errors.As(err, &aerr); !ok {
 			return err
 		}
-		if aerr.Code() == awssm.ErrCodeResourceNotFoundException {
-			return nil
+		if aerr.ErrorCode() == "ResourceNotFoundException" {
+				return nil
 		}
 		return err
 	}
@@ -181,11 +181,11 @@ func (sm *SecretsManager) SecretExists(ctx context.Context, pushSecretRef esv1be
 }
 
 func (sm *SecretsManager) handleSecretError(err error) (bool, error) {
-	var aerr awserr.Error
+	var aerr smithy.APIError
 	if ok := errors.As(err, &aerr); !ok {
 		return false, err
 	}
-	if aerr.Code() == awssm.ErrCodeResourceNotFoundException {
+	if aerr.ErrorCode() == "ResourceNotFoundException" {
 		return false, nil
 	}
 	return false, err
@@ -217,13 +217,13 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 		value, _ = sjson.SetBytes([]byte(currentSecret), psd.GetProperty(), value)
 	}
 
-	var aerr awserr.Error
+	var aerr smithy.APIError
 	if err != nil {
 		if ok := errors.As(err, &aerr); !ok {
 			return err
 		}
 
-		if aerr.Code() == awssm.ErrCodeResourceNotFoundException {
+		if aerr.ErrorCode() == "ResourceNotFoundException" {
 			return sm.createSecretWithContext(ctx, secretName, psd, value)
 		}
 
@@ -296,12 +296,12 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.External
 		return nil, err
 	}
 
-	filters := make([]*awssm.Filter, 0)
+	filters := make([]types.Filter, 0)
 	if ref.Path != nil {
-		filters = append(filters, &awssm.Filter{
-			Key: utilpointer.To(awssm.FilterNameStringTypeName),
-			Values: []*string{
-				ref.Path,
+		filters = append(filters, types.Filter{
+			Key: types.FilterNameStringTypeName,
+			Values: []string{
+				*ref.Path,
 			},
 		})
 
@@ -341,26 +341,26 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.External
 }
 
 func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	filters := make([]*awssm.Filter, 0)
+	filters := make([]types.Filter, 0)
 	for k, v := range ref.Tags {
-		filters = append(filters, &awssm.Filter{
-			Key: utilpointer.To(awssm.FilterNameStringTypeTagKey),
-			Values: []*string{
-				utilpointer.To(k),
+		filters = append(filters, types.Filter{
+			Key: types.FilterNameStringTypeTagKey,
+			Values: []string{
+				k,
 			},
-		}, &awssm.Filter{
-			Key: utilpointer.To(awssm.FilterNameStringTypeTagValue),
-			Values: []*string{
-				utilpointer.To(v),
+		}, types.Filter{
+			Key: types.FilterNameStringTypeTagValue,
+			Values: []string{
+				v,
 			},
 		})
 	}
 
 	if ref.Path != nil {
-		filters = append(filters, &awssm.Filter{
-			Key: utilpointer.To(awssm.FilterNameStringTypeName),
-			Values: []*string{
-				ref.Path,
+		filters = append(filters, types.Filter{
+			Key: types.FilterNameStringTypeTagKey,
+			Values: []string{
+				*ref.Path,
 			},
 		})
 	}
@@ -471,12 +471,11 @@ func (sm *SecretsManager) Close(_ context.Context) error {
 }
 
 func (sm *SecretsManager) Validate() (esv1beta1.ValidationResult, error) {
-	// skip validation stack because it depends on the namespace
-	// of the ExternalSecret
 	if sm.referentAuth {
 		return esv1beta1.ValidationResultUnknown, nil
 	}
-	_, err := sm.sess.Config.Credentials.Get()
+	// Load default config to validate credentials
+	_, err := awsconfig.LoadDefaultConfig(context.Background())
 	if err != nil {
 		return esv1beta1.ValidationResultError, util.SanitizeErr(err)
 	}
@@ -496,7 +495,7 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 	input := &awssm.CreateSecretInput{
 		Name:         &secretName,
 		SecretBinary: value,
-		Tags: []*awssm.Tag{
+		Tags: []types.Tag{
 			{
 				Key:   utilpointer.To(managedBy),
 				Value: utilpointer.To(externalSecrets),
@@ -550,7 +549,7 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretI
 	return err
 }
 
-func (sm *SecretsManager) fetchWithBatch(ctx context.Context, filters []*awssm.Filter, matcher *find.Matcher) (map[string][]byte, error) {
+func (sm *SecretsManager) fetchWithBatch(ctx context.Context, filters []types.Filter, matcher *find.Matcher) (map[string][]byte, error) {
 	data := make(map[string][]byte)
 	var nextToken *string
 
