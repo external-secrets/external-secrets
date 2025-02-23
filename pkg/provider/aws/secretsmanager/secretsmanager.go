@@ -504,7 +504,8 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 		ClientRequestToken: utilpointer.To(initialVersion),
 	}
 	if secretPushFormat == SecretPushFormatString {
-		input.SetSecretBinary(nil).SetSecretString(string(value))
+		input.SecretBinary = nil
+		input.SecretString = aws.String(string(value))
 	}
 
 	_, err = sm.client.CreateSecret(ctx, input)
@@ -540,7 +541,8 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretI
 		return fmt.Errorf("failed to parse metadata: %w", err)
 	}
 	if secretPushFormat == SecretPushFormatString {
-		input.SetSecretBinary(nil).SetSecretString(string(value))
+		input.SecretBinary = nil
+		input.SecretString = aws.String(string(value))
 	}
 
 	_, err = sm.client.PutSecretValue(ctx, input)
@@ -569,7 +571,7 @@ func (sm *SecretsManager) fetchWithBatch(ctx context.Context, filters []types.Fi
 			}
 			log.V(1).Info("aws sm findByName matches", "name", *secret.Name)
 
-			sm.setSecretValues(secret, data)
+			sm.setSecretValues(&secret, data)
 		}
 		nextToken = it.NextToken
 		if nextToken == nil {
@@ -580,7 +582,7 @@ func (sm *SecretsManager) fetchWithBatch(ctx context.Context, filters []types.Fi
 	return data, nil
 }
 
-func (sm *SecretsManager) setSecretValues(secret *awssm.SecretValueEntry, data map[string][]byte) {
+func (sm *SecretsManager) setSecretValues(secret *types.SecretValueEntry, data map[string][]byte) {
 	if secret.SecretString != nil {
 		data[*secret.Name] = []byte(*secret.SecretString)
 	}
@@ -629,7 +631,7 @@ func (sm *SecretsManager) constructSecretValue(ctx context.Context, ref esv1beta
 	}
 	secretOut, err := sm.client.GetSecretValue(ctx, getSecretValueInput)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
-	var nf *awssm.ResourceNotFoundException
+	var nf *types.ResourceNotFoundException
 	if errors.As(err, &nf) {
 		return nil, esv1beta1.NoSecretErr
 	}
