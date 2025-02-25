@@ -73,12 +73,11 @@ func (g *Client) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRemot
 }
 
 func (g *Client) PushSecret(ctx context.Context, secret *corev1.Secret, remoteRef esv1beta1.PushSecretData) error {
-	githubSecret, _, err := g.getSecretFn(ctx, remoteRef)
-	if err != nil {
+	githubSecret, response, err := g.getSecretFn(ctx, remoteRef)
+	if err != nil && (response == nil || response.StatusCode != 404) {
 		return fmt.Errorf("error fetching secret: %w", err)
 	}
 
-	// If the secret already exists, we need to update it.
 	// First at all, we need the organization public key to encrypt the secret.
 	publicKey, _, err := g.getPublicKeyFn(ctx)
 	if err != nil {
@@ -110,14 +109,19 @@ func (g *Client) PushSecret(ctx context.Context, secret *corev1.Secret, remoteRe
 	if err != nil {
 		return fmt.Errorf("box.SealAnonymous failed with error %w", err)
 	}
-
+	name := remoteRef.GetRemoteKey()
+	visibility := "all"
+	if githubSecret != nil {
+		name = githubSecret.Name
+		visibility = githubSecret.Visibility
+	}
 	encryptedString := base64.StdEncoding.EncodeToString(encryptedBytes)
 	keyID := publicKey.GetKeyID()
 	encryptedSecret := &github.EncryptedSecret{
-		Name:           githubSecret.Name,
+		Name:           name,
 		KeyID:          keyID,
 		EncryptedValue: encryptedString,
-		Visibility:     githubSecret.Visibility,
+		Visibility:     visibility,
 	}
 
 	if _, err := g.createOrUpdateFn(ctx, encryptedSecret); err != nil {
