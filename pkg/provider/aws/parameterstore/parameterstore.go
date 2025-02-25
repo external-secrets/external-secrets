@@ -133,7 +133,7 @@ func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 			return fmt.Errorf("error getting the existing tags for the parameter %v: %w", secretName, err)
 		}
 
-		isManaged := isManagedByESO(tags) 
+		isManaged := isManagedByESO(tags)
 
 		if !isManaged {
 			// If the secret is not managed by external-secrets, it is "deleted" effectively by all means
@@ -214,8 +214,8 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 	if meta.Spec.Tier.Type == "Advanced" {
 		secretRequest.Tier = ptr.To(meta.Spec.Tier.Type)
 		if meta.Spec.Tier.Policies != nil {
-		secretRequest.Policies = ptr.To(string(meta.Spec.Tier.Policies.Raw))
-	        }
+			secretRequest.Policies = ptr.To(string(meta.Spec.Tier.Policies.Raw))
+		}
 	}
 
 	secretValue := ssm.GetParameterInput{
