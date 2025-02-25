@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -438,10 +439,6 @@ func (provider *ProviderOnePassword) GetSecretMap(_ context.Context, ref esv1bet
 
 // GetAllSecrets syncs multiple 1Password Items into a single Kubernetes Secret, for dataFrom.find.
 func (provider *ProviderOnePassword) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	if ref.Tags != nil {
-		return nil, errors.New(errTagsNotImplemented)
-	}
-
 	secretData := make(map[string][]byte)
 	sortedVaults := sortVaults(provider.vaults)
 	for _, vaultName := range sortedVaults {
@@ -449,7 +446,13 @@ func (provider *ProviderOnePassword) GetAllSecrets(_ context.Context, ref esv1be
 		if err != nil {
 			return nil, fmt.Errorf(errGetVault, err)
 		}
-
+		if ref.Tags != nil {
+			err = provider.getAllByTags(vault.ID, ref, secretData)
+			if err != nil {
+				return nil, err
+			}
+			return secretData, nil
+		}
 		err = provider.getAllForVault(vault.ID, ref, secretData)
 		if err != nil {
 			return nil, err
@@ -608,6 +611,39 @@ func (provider *ProviderOnePassword) getAllFiles(item onepassword.Item, ref esv1
 	}
 
 	return nil
+}
+
+func (provider *ProviderOnePassword) getAllByTags(vaultID string, ref esv1beta1.ExternalSecretFind, secretData map[string][]byte) error {
+	items, err := provider.client.GetItems(vaultID)
+	if err != nil {
+		return fmt.Errorf(errGetItem, err)
+	}
+	for _, item := range items {
+		if !checkTags(ref.Tags, item.Tags) {
+			continue
+		}
+		// handle files
+		err = provider.getAllFiles(item, ref, secretData)
+		if err != nil {
+			return err
+		}
+		// handle fields
+		err = provider.getAllFields(item, ref, secretData)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// checkTags verifies that all elements in source are present in target.
+func checkTags(source map[string]string, target []string) bool {
+	for s := range source {
+		if !slices.Contains(target, s) {
+			return false
+		}
+	}
+	return true
 }
 
 func (provider *ProviderOnePassword) getAllForVault(vaultID string, ref esv1beta1.ExternalSecretFind, secretData map[string][]byte) error {

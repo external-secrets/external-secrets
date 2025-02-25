@@ -1121,7 +1121,6 @@ func TestGetAllSecrets(t *testing.T) {
 		provider  *ProviderOnePassword
 		checks    []check
 	}
-
 	testCases := []testCase{
 		{
 			setupNote: "three vaults, three items, all different field Labels",
@@ -1209,17 +1208,79 @@ func TestGetAllSecrets(t *testing.T) {
 					expectedMap: map[string][]byte{},
 					expectedErr: nil,
 				},
+			},
+		},
+		{
+			setupNote: "one vault, three items, find by tags",
+			provider: &ProviderOnePassword{
+				vaults: map[string]int{myVault: 1},
+				client: fake.NewMockClient().
+					AddPredictableVault(myVault).
+					AppendItem(myVaultID, onepassword.Item{
+						ID:    myItemID,
+						Title: myItem,
+						Tags:  []string{"foo", "bar"},
+						Vault: onepassword.ItemVault{ID: myVaultID},
+					}).
+					AppendItemField(myVaultID, myItemID, onepassword.ItemField{
+						Label: key1,
+						Value: value1,
+					}).
+					AppendItemField(myVaultID, myItemID, onepassword.ItemField{
+						Label: key2,
+						Value: value2,
+					}).
+					AppendItem(myVaultID, onepassword.Item{
+						ID:    "my-item-id-2",
+						Title: "my-item-2",
+						Vault: onepassword.ItemVault{ID: myVaultID},
+						Tags:  []string{"foo", "baz"},
+					}).
+					AppendItemField(myVaultID, "my-item-id-2", onepassword.ItemField{
+						Label: key3,
+						Value: value3,
+					}).
+					AppendItem(myVaultID, onepassword.Item{
+						ID:    "my-item-id-3",
+						Title: "my-item-3",
+						Vault: onepassword.ItemVault{ID: myVaultID},
+						Tags:  []string{"bang", "bing"},
+					}).
+					AppendItemField(myVaultID, "my-item-id-3", onepassword.ItemField{
+						Label: key4,
+						Value: value4,
+					}),
+			},
+			checks: []check{
 				{
-					checkNote: "error when find.tags",
+					checkNote: "find with tags",
 					ref: esv1beta1.ExternalSecretFind{
-						Name: &esv1beta1.FindName{
-							RegExp: "key*",
-						},
+						Path: pointer.To(myItem),
 						Tags: map[string]string{
-							"asdf": "fdas",
+							"foo": "true",
+							"bar": "true",
 						},
 					},
-					expectedErr: errors.New(errTagsNotImplemented),
+					expectedMap: map[string][]byte{
+						key1: []byte(value1),
+						key2: []byte(value2),
+					},
+					expectedErr: nil,
+				},
+				{
+					checkNote: "find with tags and get all",
+					ref: esv1beta1.ExternalSecretFind{
+						Path: pointer.To(myItem),
+						Tags: map[string]string{
+							"foo": "true",
+						},
+					},
+					expectedMap: map[string][]byte{
+						key1: []byte(value1),
+						key2: []byte(value2),
+						key3: []byte(value3),
+					},
+					expectedErr: nil,
 				},
 			},
 		},
