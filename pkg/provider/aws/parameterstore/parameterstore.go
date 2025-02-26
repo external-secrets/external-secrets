@@ -213,7 +213,9 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 
 	if meta.Spec.Tier.Type == "Advanced" {
 		secretRequest.Tier = ptr.To(meta.Spec.Tier.Type)
-		secretRequest.Policies = ptr.To(string(meta.Spec.Tier.Policies.Raw))
+		if meta.Spec.Tier.Policies != nil {
+			secretRequest.Policies = ptr.To(string(meta.Spec.Tier.Policies.Raw))
+		}
 	}
 
 	secretValue := ssm.GetParameterInput{
