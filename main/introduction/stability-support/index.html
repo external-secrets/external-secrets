@@ -3736,15 +3736,12 @@
 
 <p>This page lists the status, timeline and policy for currently supported ESO releases and its providers. Please also see our <a href="../deprecation-policy/">deprecation policy</a> that describes API versioning, deprecation and API surface.</p>
 <h2 id="supported-versions">Supported Versions</h2>
-<p>We want to provide security patches and critical bug fixes in a timely manner to our users.
-To do so, we offer long-term support for our latest two (N, N-1) software releases.
-We aim for a 2-3 month minor release cycle, i.e. a given release is supported for about 4-6 months.</p>
-<p>We want to cover the following cases:</p>
-<ul>
-<li>regular image rebuilds to update OS dependencies</li>
-<li>regular go dependency updates</li>
-<li>backport bug fixes on demand</li>
-</ul>
+<p>external-secrets only supports the most-up-to date, current minor version. Any other minor version releases are automatically deprecated as soon as a new minor version comes.</p>
+<p>During a minor version support time, we cover:
+- regular image rebuilds to update OS dependencies
+- regular go dependency updates</p>
+<p>We do not do test coverage for any other kubernetes version than the ones running on our test suites.
+As of version 0.14.x , this is the only kubernetes version that we will guarantee support for.</p>
 <table>
 <thead>
 <tr>
@@ -3756,16 +3753,28 @@ We aim for a 2-3 month minor release cycle, i.e. a given release is supported fo
 </thead>
 <tbody>
 <tr>
+<td>0.14.x</td>
+<td>1.32</td>
+<td>Feb 4, 2025</td>
+<td>Release of 0.14</td>
+</tr>
+<tr>
+<td>0.13.x</td>
+<td>1.19 → 1.31</td>
+<td>Jan 21, 2025</td>
+<td>Feb 4, 2025</td>
+</tr>
+<tr>
 <td>0.12.x</td>
 <td>1.19 → 1.31</td>
 <td>Dec 24, 2024</td>
-<td>Release of 0.14</td>
+<td>Jan 21, 2025</td>
 </tr>
 <tr>
 <td>0.11.x</td>
 <td>1.19 → 1.31</td>
 <td>Dec 2, 2024</td>
-<td>Release of 0.13</td>
+<td>Dec 24, 2024</td>
 </tr>
 <tr>
 <td>0.10.x</td>
@@ -4109,7 +4118,7 @@ We aim for a 2-3 month minor release cycle, i.e. a given release is supported fo
 <tr>
 <td>1Password</td>
 <td style="text-align: center;">x</td>
-<td style="text-align: center;"></td>
+<td style="text-align: center;">x</td>
 <td style="text-align: center;"></td>
 <td style="text-align: center;"></td>
 <td style="text-align: center;">x</td>
