@@ -31,6 +31,8 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: webhook-credentials
+  labels:
+    external-secrets.io/type: webhook #Needed to allow webhook to use this secret
 data:
   username: dGVzdA== # "test"
   password: dGVzdA== # "test"
@@ -105,7 +107,7 @@ spec:
     secret:
       name: test-secret
   data:
-    - conversionStrategy: 
+    - conversionStrategy:
       match:
         secretKey: testsecret
         remoteRef:
