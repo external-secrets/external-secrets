@@ -19,15 +19,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	awsclient "github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	awsauth "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore"
@@ -144,19 +143,21 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 		return nil, fmt.Errorf(errInitAWSProvider, "nil store")
 	}
 	storeSpec := store.GetSpec()
-	var cfg *aws.Config
+	var cfg aws.Config
 
 	// allow SecretStore controller validation to pass
 	// when using referent namespace.
 	if util.IsReferentSpec(prov.Auth) && namespace == "" &&
 		store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
-		cfg = aws.NewConfig().WithRegion("eu-west-1").WithEndpointResolver(awsauth.ResolveEndpoint())
-		sess := &session.Session{Config: cfg}
+		cfg, err = config.LoadDefaultConfig(ctx, config.WithRegion("eu-west-1"))
+		if err != nil {
+			return nil, fmt.Errorf(errInitAWSProvider, err)
+		}
 		switch prov.Service {
 		case esv1beta1.AWSServiceSecretsManager:
-			return secretsmanager.New(sess, cfg, prov.SecretsManager, true)
+			return secretsmanager.New(ctx, &cfg, prov.SecretsManager, true)
 		case esv1beta1.AWSServiceParameterStore:
-			return parameterstore.New(sess, cfg, storeSpec.Provider.AWS.Prefix, true)
+			return parameterstore.New(ctx, &cfg, storeSpec.Provider.AWS.Prefix, true)
 		}
 		return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 	}
@@ -179,16 +180,26 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 
 		if storeSpec.RetrySettings.RetryInterval != nil {
 			retryDuration, err = time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
+			if err != nil {
+				return nil, fmt.Errorf(errInitAWSProvider, err)
+			}
 		}
+
+		// v2 style retryer configuration
+		cfg, err = config.LoadDefaultConfig(ctx,
+			config.WithRetryer(func() aws.Retryer {
+				return retry.NewStandard(func(o *retry.StandardOptions) {
+					o.MaxAttempts = retryAmount
+					if retryDuration > 0 {
+						o.BackoffDelayMin = retryDuration
+					}
+					o.BackoffDelayMax = 120 * time.Second
+				})
+			}),
+		)
 		if err != nil {
 			return nil, fmt.Errorf(errInitAWSProvider, err)
 		}
-		awsRetryer := awsclient.DefaultRetryer{
-			NumMaxRetries:    retryAmount,
-			MinRetryDelay:    retryDuration,
-			MaxThrottleDelay: 120 * time.Second,
-		}
-		cfg = request.WithRetryer(aws.NewConfig(), awsRetryer)
 	}
 
 	switch prov.Service {

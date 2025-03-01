@@ -22,11 +22,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -65,7 +64,7 @@ var (
 
 // ParameterStore is a provider for AWS ParameterStore.
 type ParameterStore struct {
-	sess         *session.Session
+	cfg          aws.Config
 	client       PMInterface
 	referentAuth bool
 	prefix       string
@@ -74,12 +73,12 @@ type ParameterStore struct {
 // PMInterface is a subset of the parameterstore api.
 // see: https://docs.aws.amazon.com/sdk-for-go/api/service/ssm/ssmiface/
 type PMInterface interface {
-	GetParameterWithContext(aws.Context, *ssm.GetParameterInput, ...request.Option) (*ssm.GetParameterOutput, error)
-	GetParametersByPathWithContext(aws.Context, *ssm.GetParametersByPathInput, ...request.Option) (*ssm.GetParametersByPathOutput, error)
-	PutParameterWithContext(aws.Context, *ssm.PutParameterInput, ...request.Option) (*ssm.PutParameterOutput, error)
-	DescribeParametersWithContext(aws.Context, *ssm.DescribeParametersInput, ...request.Option) (*ssm.DescribeParametersOutput, error)
-	ListTagsForResourceWithContext(aws.Context, *ssm.ListTagsForResourceInput, ...request.Option) (*ssm.ListTagsForResourceOutput, error)
-	DeleteParameterWithContext(ctx aws.Context, input *ssm.DeleteParameterInput, opts ...request.Option) (*ssm.DeleteParameterOutput, error)
+	GetParameterWithContext(ctx context.Context, input *ssm.GetParameterInput, opts ...request.Option) (*ssm.GetParameterOutput, error)
+	GetParametersByPathWithContext(ctx context.Context, input *ssm.GetParametersByPathInput, opts ...request.Option) (*ssm.GetParametersByPathOutput, error)
+	PutParameterWithContext(ctx context.Context, input *ssm.PutParameterInput, opts ...request.Option) (*ssm.PutParameterOutput, error)
+	DescribeParametersWithContext(ctx context.Context, input *ssm.DescribeParametersInput, opts ...request.Option) (*ssm.DescribeParametersOutput, error)
+	ListTagsForResourceWithContext(ctx context.Context, input *ssm.ListTagsForResourceInput, opts ...request.Option) (*ssm.ListTagsForResourceOutput, error)
+	DeleteParameterWithContext(ctx context.Context, input *ssm.DeleteParameterInput, opts ...request.Option) (*ssm.DeleteParameterOutput, error)
 }
 
 const (
@@ -88,11 +87,11 @@ const (
 )
 
 // New constructs a ParameterStore Provider that is specific to a store.
-func New(sess *session.Session, cfg *aws.Config, prefix string, referentAuth bool) (*ParameterStore, error) {
+func New(ctx context.Context, cfg aws.Config, prefix string, referentAuth bool) (*ParameterStore, error) {
 	return &ParameterStore{
-		sess:         sess,
+		cfg:          cfg,
 		referentAuth: referentAuth,
-		client:       ssm.New(sess, cfg),
+		client:       ssm.NewFromConfig(cfg),
 		prefix:       prefix,
 	}, nil
 }
