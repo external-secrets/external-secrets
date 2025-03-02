@@ -64,7 +64,7 @@ var (
 
 // ParameterStore is a provider for AWS ParameterStore.
 type ParameterStore struct {
-	cfg          aws.Config
+	cfg          *aws.Config
 	client       PMInterface
 	referentAuth bool
 	prefix       string
@@ -87,11 +87,11 @@ const (
 )
 
 // New constructs a ParameterStore Provider that is specific to a store.
-func New(ctx context.Context, cfg aws.Config, prefix string, referentAuth bool) (*ParameterStore, error) {
+func New(ctx context.Context, cfg *aws.Config, prefix string, referentAuth bool) (*ParameterStore, error) {
 	return &ParameterStore{
-		cfg:          cfg,
+		cfg:          *cfg,
 		referentAuth: referentAuth,
-		client:       ssm.NewFromConfig(cfg),
+		client:       ssm.NewFromConfig(*cfg),
 		prefix:       prefix,
 	}, nil
 }

@@ -20,13 +20,14 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
-	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
-	"github.com/aws/aws-sdk-go/aws/endpoints"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	awsauth "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore"
@@ -99,39 +100,25 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 }
 
 func validateRegion(prov *esv1beta1.AWSProvider) error {
-	resolver := endpoints.DefaultResolver()
-	partitions := resolver.(endpoints.EnumPartitions).Partitions()
-	found := false
-	for _, p := range partitions {
-		var serviceskey string
-		if prov.Service == esv1beta1.AWSServiceSecretsManager {
-			serviceskey = "secretsmanager"
-		} else if prov.Service == esv1beta1.AWSServiceParameterStore {
-			serviceskey = "ssm"
-		}
-		service, ok := p.Services()[serviceskey]
-		if ok {
-			for region := range service.Endpoints() {
-				if region == prov.Region {
-					found = true
-				}
-			}
-		}
+	cfg, err := config.LoadDefaultConfig(context.Background())
+	if err != nil {
+		return err
 	}
-	if !found {
-		return fmt.Errorf(errRegionNotFound, prov.Region)
-	}
-	return nil
+	
+	resolver := cfg.EndpointResolver
+	_, err = resolver.ResolveEndpoint(prov.Service, prov.Region)
+	return err
 }
 
 func validateSecretsManagerConfig(prov *esv1beta1.AWSProvider) error {
 	if prov.SecretsManager == nil {
 		return nil
 	}
-	return util.ValidateDeleteSecretInput(awssm.DeleteSecretInput{
+	input := &secretsmanager.DeleteSecretInput{
 		ForceDeleteWithoutRecovery: &prov.SecretsManager.ForceDeleteWithoutRecovery,
 		RecoveryWindowInDays:       &prov.SecretsManager.RecoveryWindowInDays,
-	})
+	}
+	return util.ValidateDeleteSecretInput(input)
 }
 
 func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, assumeRoler awsauth.STSProvider) (esv1beta1.SecretsClient, error) {
@@ -180,35 +167,46 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 
 		if storeSpec.RetrySettings.RetryInterval != nil {
 			retryDuration, err = time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
-			if err != nil {
-				return nil, fmt.Errorf(errInitAWSProvider, err)
-			}
 		}
-
-		// v2 style retryer configuration
-		cfg, err = config.LoadDefaultConfig(ctx,
-			config.WithRetryer(func() aws.Retryer {
-				return retry.NewStandard(func(o *retry.StandardOptions) {
-					o.MaxAttempts = retryAmount
-					if retryDuration > 0 {
-						o.BackoffDelayMin = retryDuration
-					}
-					o.BackoffDelayMax = 120 * time.Second
-				})
-			}),
-		)
 		if err != nil {
 			return nil, fmt.Errorf(errInitAWSProvider, err)
 		}
+		// awsRetryer := awsclient.DefaultRetryer{
+		// 	NumMaxRetries:    retryAmount,
+		// 	MinRetryDelay:    retryDuration,
+		// 	MaxThrottleDelay: 120 * time.Second,  Not sure how to set this in sdk go v2
+		// }
+		cfg, err = config.LoadDefaultConfig(ctx,
+			config.WithRegion(prov.Region),
+			config.WithRetryer(func() aws.Retryer {
+				return retry.AddWithMaxAttempts(
+					retry.NewStandard(func(o *retry.StandardOptions) {
+						if retryDuration > 0 {
+							o.Backoff = fixedDelayer{delay: retryDuration}
+						}
+					}),
+					retryAmount,
+				)
+			}),
+		)
 	}
 
 	switch prov.Service {
 	case esv1beta1.AWSServiceSecretsManager:
-		return secretsmanager.New(sess, cfg, prov.SecretsManager, false)
+		return secretsmanager.New(ctx, &cfg, prov.SecretsManager, false)
 	case esv1beta1.AWSServiceParameterStore:
-		return parameterstore.New(sess, cfg, storeSpec.Provider.AWS.Prefix, false)
+		return parameterstore.New(ctx, &cfg, storeSpec.Provider.AWS.Prefix, false)
 	}
 	return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
+}
+
+// Add this type at package level
+type fixedDelayer struct {
+	delay time.Duration
+}
+
+func (f fixedDelayer) BackoffDelay(attempt int, err error) (time.Duration, error) {
+	return f.delay, nil
 }
 
 func init() {
