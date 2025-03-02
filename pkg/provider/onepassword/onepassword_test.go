@@ -36,8 +36,8 @@ import (
 
 const (
 	// vaults and items.
-	myVault, myVaultID                       = "my-vault", "my-vault-id"
-	myItem, myItemID                         = "my-item", "my-item-id"
+	myVault, myVaultID, myVaultUUID          = "my-vault", "my-vault-id", "39c31136-d086-47e9-a52c-8fe330d2669a"
+	myItem, myItemID, myItemUUID             = "my-item", "my-item-id", "687adbe7-e6d2-4059-9a62-dbb95d291143"
 	mySharedVault, mySharedVaultID           = "my-shared-vault", "my-shared-vault-id"
 	mySharedItem, mySharedItemID             = "my-shared-item", "my-shared-item-id"
 	myOtherVault, myOtherVaultID             = "my-other-vault", "my-other-vault-id"
@@ -107,6 +107,33 @@ func TestFindItem(t *testing.T) {
 						ID:    myItemID,
 						Title: myItem,
 						Vault: onepassword.ItemVault{ID: myVaultID},
+						Fields: []*onepassword.ItemField{
+							{
+								Label: key1,
+								Value: value1,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			setupNote: "uuid: valid basic: one vault, one item, one field",
+			provider: &ProviderOnePassword{
+				vaults: map[string]int{myVaultUUID: 1},
+				client: fake.NewMockClient().
+					AddPredictableVaultUUID(myVaultUUID).
+					AddPredictableItemWithFieldUUID(myVaultUUID, myItemUUID, key1, value1),
+			},
+			checks: []check{
+				{
+					checkNote:    "pass",
+					findItemName: myItemUUID,
+					expectedErr:  nil,
+					expectedItem: &onepassword.Item{
+						ID:    myItemUUID,
+						Title: myItemUUID,
+						Vault: onepassword.ItemVault{ID: myVaultUUID},
 						Fields: []*onepassword.ItemField{
 							{
 								Label: key1,
@@ -328,29 +355,31 @@ func TestFindItem(t *testing.T) {
 	}
 
 	// run the tests
-	for _, tc := range testCases {
-		for _, check := range tc.checks {
-			got, err := tc.provider.findItem(check.findItemName)
-			notes := fmt.Sprintf(setupCheckFormat, tc.setupNote, check.checkNote)
-			if check.expectedErr == nil && err != nil {
-				// expected no error, got one
-				t.Errorf(findItemErrFormat, notes, nil, err)
-			}
-			if check.expectedErr != nil && err == nil {
-				// expected an error, didn't get one
-				t.Errorf(findItemErrFormat, notes, check.expectedErr.Error(), nil)
-			}
-			if check.expectedErr != nil && err != nil && err.Error() != check.expectedErr.Error() {
-				// expected an error, got the wrong one
-				t.Errorf(findItemErrFormat, notes, check.expectedErr.Error(), err.Error())
-			}
-			if check.expectedItem != nil {
-				if !reflect.DeepEqual(check.expectedItem, got) {
-					// expected a predefined item, got something else
-					t.Errorf(findItemErrFormat, notes, check.expectedItem, got)
+	for num, tc := range testCases {
+		t.Run(fmt.Sprintf("test-%d", num), func(t *testing.T) {
+			for _, check := range tc.checks {
+				got, err := tc.provider.findItem(check.findItemName)
+				notes := fmt.Sprintf(setupCheckFormat, tc.setupNote, check.checkNote)
+				if check.expectedErr == nil && err != nil {
+					// expected no error, got one
+					t.Errorf(findItemErrFormat, notes, nil, err)
+				}
+				if check.expectedErr != nil && err == nil {
+					// expected an error, didn't get one
+					t.Errorf(findItemErrFormat, notes, check.expectedErr.Error(), nil)
+				}
+				if check.expectedErr != nil && err != nil && err.Error() != check.expectedErr.Error() {
+					// expected an error, got the wrong one
+					t.Errorf(findItemErrFormat, notes, check.expectedErr.Error(), err.Error())
+				}
+				if check.expectedItem != nil {
+					if !reflect.DeepEqual(check.expectedItem, got) {
+						// expected a predefined item, got something else
+						t.Errorf(findItemErrFormat, notes, check.expectedItem, got)
+					}
 				}
 			}
-		}
+		})
 	}
 }
 
