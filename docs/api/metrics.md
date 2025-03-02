@@ -26,7 +26,7 @@ The Operator has [the controller-runtime metrics inherited from kubebuilder](htt
 | `externalsecret_status_condition`              | Gauge     | The status condition of a specific External Secret                                                                                                                                                                      |
 | `externalsecret_reconcile_duration`            | Gauge     | The duration time to reconcile the External Secret                                                                                                                                                                      |
 
-## External Secret Metrics
+## Push Secret Metrics
 | Name                                    | Type  | Description                                             |
 |-----------------------------------------|-------|---------------------------------------------------------|
 | `pushsecret_status_condition`   | Gauge | The status condition of a specific Push Secret |
