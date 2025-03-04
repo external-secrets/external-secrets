@@ -68,6 +68,7 @@ metadata:
 data:
   foobar: c2VjcmV0
 ```
+#### Push secret
 
 To push a secret, create the following store:
 
@@ -118,9 +119,95 @@ If `secretKey` is not provided, the whole secret is provided JSON encoded.
 
 The secret will be added to the `remoteRef` object so that it is retrievable in the templating engine. The secret will be sent in the body when the body field of the provider is empty. In the rare case that the body should be empty, the provider can be configured to use `{% raw %}'{{ "" }}'{% endraw %}` for the body value.
 
-#### Limitations
+#### Authentication
 
-Webhook does not support authorization, other than what can be sent by generating http headers
+Webhook also supports using NTLM for authorization:
+
+```yaml
+{% raw %}
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: webhook-backend
+spec:
+  provider:
+    webhook:
+      url: "http://httpbin.org/push?id={{ .remoteRef.remoteKey }}&secret={{ .remoteRef.secretKey }}"
+      headers:
+        Content-Type: application/json
+        Authorization: Basic {{ print .auth.username ":" .auth.password | b64enc }}
+      secrets:
+      - name: auth
+        secretRef:
+          name: webhook-credentials
+{%- endraw %}
+```
+
+Then create a push secret:
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: pushsecret-example # Customisable
+spec:
+  refreshInterval: 1h # Refresh interval for which push secret will reconcile
+  secretStoreRefs: # A list of secret stores to push secrets to
+    - name: webhook-backend
+      kind: SecretStore
+  selector:
+    secret:
+      name: test-secret
+  data:
+    - conversionStrategy:
+      match:
+        secretKey: testsecret
+        remoteRef:
+          remoteKey: remotekey
+```
+
+If `secretKey` is not provided, the whole secret is pushed JSON encoded.
+
+#### Authentication
+
+Webhook also supports using NTLM for authorization:
+
+```yaml
+{% raw %}
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: webhook-backend
+spec:
+  provider:
+    webhook:
+      url: "http://httpbin.org/get?parameter={{ .remoteRef.key }}"
+      result:
+        jsonPath: "$.args.parameter"
+      auth:
+        ntlm:
+            usernameSecret:
+              name: webhook-credentials
+              key: username
+              namespace: externalsecrets
+            passwordSecret:
+              name: webhook-credentials
+              key: password
+              namespace: externalsecrets
+{%- endraw %}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: webhook-credentials
+  namespace: externalsecrets
+data:
+  username: dGVzdA== # "test"
+  password: dGVzdA== # "test"
+```
+
+
+
 
 !!! note
       If a webhook endpoint for a given `ExternalSecret` returns a 404 status code, the secret is considered to have been deleted.  This will trigger the `deletionPolicy` set on the `ExternalSecret`.
