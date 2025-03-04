@@ -87,10 +87,10 @@ func TestGenerate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "full spec",
+			name: "full spec secretref namespace",
 			args: args{
 				ctx:       context.TODO(),
-				namespace: "foo",
+				namespace: "bar",
 				kube: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "testName",
@@ -122,6 +122,111 @@ spec:
 			want: map[string][]byte{
 				"token": []byte("ghs_16C7e42F292c6912E7710c838347Ae178B4a"),
 			},
+		},
+		{
+			name: "full spec given namespace",
+			args: args{
+				ctx:       context.TODO(),
+				namespace: "bar",
+				kube: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "testName",
+						Namespace: "bar",
+					},
+					Data: map[string][]byte{
+						"privateKey": pem,
+					},
+				}).Build(),
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(fmt.Sprintf(`apiVersion: generators.external-secrets.io/v1alpha1
+kind: GithubToken
+spec:
+  appID: "0000000"
+  installID: "00000000"
+  URL: %q
+  repositories:
+  - "Hello-World"
+  permissions:
+    contents: "read"
+  auth:
+    privateKey:
+      secretRef:
+        name: "testName"
+        key: "privateKey"`, server.URL)),
+				},
+			},
+			want: map[string][]byte{
+				"token": []byte("ghs_16C7e42F292c6912E7710c838347Ae178B4a"),
+			},
+		},
+		{
+			name: "missing secret secretref ns not set",
+			args: args{
+				ctx:       context.TODO(),
+				namespace: "bar",
+				kube: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "testName",
+						Namespace: "foo",
+					},
+					Data: map[string][]byte{
+						"privateKey": pem,
+					},
+				}).Build(),
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(fmt.Sprintf(`apiVersion: generators.external-secrets.io/v1alpha1
+kind: GithubToken
+spec:
+  appID: "0000000"
+  installID: "00000000"
+  URL: %q
+  repositories:
+  - "Hello-World"
+  permissions:
+    contents: "read"
+  auth:
+    privateKey:
+      secretRef:
+        name: "testName"
+        key: "privateKey"`, server.URL)),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing secret secretref ns set",
+			args: args{
+				ctx:       context.TODO(),
+				namespace: "bar",
+				kube: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "testName",
+						Namespace: "bar",
+					},
+					Data: map[string][]byte{
+						"privateKey": pem,
+					},
+				}).Build(),
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(fmt.Sprintf(`apiVersion: generators.external-secrets.io/v1alpha1
+kind: GithubToken
+spec:
+  appID: "0000000"
+  installID: "00000000"
+  URL: %q
+  repositories:
+  - "Hello-World"
+  permissions:
+    contents: "read"
+  auth:
+    privateKey:
+      secretRef:
+        name: "testName"
+        namespace: "foo"
+        key: "privateKey"`, server.URL)),
+				},
+			},
+			wantErr: true,
 		},
 	}
 

@@ -160,8 +160,14 @@ func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client
 	if res.Spec.URL != "" {
 		gh.URL = res.Spec.URL + ghPath
 	}
+
+	ns := n
+	if res.Spec.Auth.PrivateKey.SecretRef.Namespace != nil && *res.Spec.Auth.PrivateKey.SecretRef.Namespace != "" {
+		ns = *res.Spec.Auth.PrivateKey.SecretRef.Namespace
+	}
+
 	secret := &corev1.Secret{}
-	if err := gh.Kube.Get(ctx, client.ObjectKey{Name: res.Spec.Auth.PrivateKey.SecretRef.Name, Namespace: n}, secret); err != nil {
+	if err := gh.Kube.Get(ctx, client.ObjectKey{Name: res.Spec.Auth.PrivateKey.SecretRef.Name, Namespace: ns}, secret); err != nil {
 		return nil, fmt.Errorf("error getting GH pem from secret:%w", err)
 	}
 
