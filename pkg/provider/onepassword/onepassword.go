@@ -27,6 +27,7 @@ import (
 	"github.com/1Password/connect-sdk-go/connect"
 	"github.com/1Password/connect-sdk-go/onepassword"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/kube-openapi/pkg/validation/strfmt"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -410,7 +411,7 @@ func (provider *ProviderOnePassword) GetSecret(_ context.Context, ref esv1beta1.
 // to be able to retrieve secrets from the provider.
 func (provider *ProviderOnePassword) Validate() (esv1beta1.ValidationResult, error) {
 	for vaultName := range provider.vaults {
-		_, err := provider.client.GetVaultByTitle(vaultName)
+		_, err := provider.client.GetVault(vaultName)
 		if err != nil {
 			return esv1beta1.ValidationResultError, err
 		}
@@ -442,10 +443,11 @@ func (provider *ProviderOnePassword) GetAllSecrets(_ context.Context, ref esv1be
 	secretData := make(map[string][]byte)
 	sortedVaults := sortVaults(provider.vaults)
 	for _, vaultName := range sortedVaults {
-		vault, err := provider.client.GetVaultByTitle(vaultName)
+		vault, err := provider.client.GetVault(vaultName)
 		if err != nil {
 			return nil, fmt.Errorf(errGetVault, err)
 		}
+
 		if ref.Tags != nil {
 			err = provider.getAllByTags(vault.ID, ref, secretData)
 			if err != nil {
@@ -470,12 +472,15 @@ func (provider *ProviderOnePassword) Close(_ context.Context) error {
 func (provider *ProviderOnePassword) findItem(name string) (*onepassword.Item, error) {
 	sortedVaults := sortVaults(provider.vaults)
 	for _, vaultName := range sortedVaults {
-		vault, err := provider.client.GetVaultByTitle(vaultName)
+		vault, err := provider.client.GetVault(vaultName)
 		if err != nil {
 			return nil, fmt.Errorf(errGetVault, err)
 		}
 
-		// use GetItemsByTitle instead of GetItemByTitle in order to handle length cases
+		if strfmt.IsUUID(name) {
+			return provider.client.GetItem(name, vault.ID)
+		}
+
 		items, err := provider.client.GetItemsByTitle(name, vault.ID)
 		if err != nil {
 			return nil, fmt.Errorf(errGetItem, err)
