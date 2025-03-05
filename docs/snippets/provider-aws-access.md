@@ -145,7 +145,6 @@ Install ESO using helm and define these values:
 ```yaml
 serviceAccount:
   annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::111122223333:role/my-role
   name: external-secrets
 ```
 
@@ -167,13 +166,11 @@ spec:
     aws:
       service: SecretsManager
       region: eu-central-1
-      # do a sts:assumeRole before fetching secrets
-      role: arn:aws:iam::111122223333:role/my-role
 ```
 
 
-_Note_: `serviceAccountRef` _cannot_ be used together with EKS Pod Identity. That's because ESO will not be able to
-assume the role of a different service account. Doing so will result in an error like this:
+_Note_: `serviceAccountRef` _cannot_ be used together with EKS Pod Identity. That's because ESO can not impersonate
+service accounts which have iam roles bound using pod identity. Doing so will result in an error like this:
 ```
 unable to create session: an IAM role must be associated with service account ...
 ```
