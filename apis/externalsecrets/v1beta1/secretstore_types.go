@@ -105,6 +105,10 @@ type SecretStoreProvider struct {
 	// +optional
 	YandexLockbox *YandexLockboxProvider `json:"yandexlockbox,omitempty"`
 
+	// Github configures this store to push Github Action secrets using Github API provider
+	// +optional
+	Github *GithubProvider `json:"github,omitempty"`
+
 	// GitLab configures this store to sync secrets using GitLab Variables provider
 	// +optional
 	Gitlab *GitlabProvider `json:"gitlab,omitempty"`

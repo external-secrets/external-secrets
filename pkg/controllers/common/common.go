@@ -32,7 +32,7 @@ import (
 )
 
 // BuildManagedSecretClient creates a new client that only sees secrets with the "managed" label.
-func BuildManagedSecretClient(mgr ctrl.Manager) (client.Client, error) {
+func BuildManagedSecretClient(mgr ctrl.Manager, namespace string) (client.Client, error) {
 	// secrets we manage will have the `reconcile.external-secrets.io/managed=true` label
 	managedLabelReq, _ := labels.NewRequirement(esv1beta1.LabelManaged, selection.Equals, []string{esv1beta1.LabelManagedValue})
 	managedLabelSelector := labels.NewSelector().Add(*managedLabelReq)
@@ -52,6 +52,12 @@ func BuildManagedSecretClient(mgr ctrl.Manager) (client.Client, error) {
 		// and helps avoid people mistakenly using the secret client for other resources
 		ReaderFailOnMissingInformer: true,
 	}
+	if namespace != "" {
+		secretCacheOpts.DefaultNamespaces = map[string]cache.Config{
+			namespace: {},
+		}
+	}
+
 	secretCache, err := cache.New(mgr.GetConfig(), secretCacheOpts)
 	if err != nil {
 		return nil, err

@@ -4,7 +4,7 @@ should match snapshot of default values:
     kind: CustomResourceDefinition
     metadata:
       annotations:
-        controller-gen.kubebuilder.io/version: v0.17.1
+        controller-gen.kubebuilder.io/version: v0.17.2
       labels:
         external-secrets.io/component: controller
       name: secretstores.external-secrets.io
@@ -3543,6 +3543,73 @@ should match snapshot of default values:
                               description: ProjectID project where secret is located
                               type: string
                           type: object
+                        github:
+                          description: Github configures this store to push Github Action secrets using Github API provider
+                          properties:
+                            appID:
+                              description: appID specifies the Github APP that will be used to authenticate the client
+                              format: int64
+                              type: integer
+                            auth:
+                              description: auth configures how secret-manager authenticates with a Github instance.
+                              properties:
+                                privateKey:
+                                  description: |-
+                                    A reference to a specific 'key' within a Secret resource.
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - privateKey
+                              type: object
+                            environment:
+                              description: environment will be used to fetch secrets from a particular environment within a github repository
+                              type: string
+                            installationID:
+                              description: installationID specifies the Github APP installation that will be used to authenticate the client
+                              format: int64
+                              type: integer
+                            organization:
+                              description: organization will be used to fetch secrets from the Github organization
+                              type: string
+                            repository:
+                              description: repository will be used to fetch secrets from the Github repository within an organization
+                              type: string
+                            uploadURL:
+                              description: Upload URL for enterprise instances. Default to URL.
+                              type: string
+                            url:
+                              default: https://github.com/
+                              description: URL configures the Github instance URL. Defaults to https://github.com/.
+                              type: string
+                          required:
+                            - appID
+                            - auth
+                            - installationID
+                            - organization
+                          type: object
                         gitlab:
                           description: GitLab configures this store to sync secrets using GitLab Variables provider
                           properties:
@@ -5230,7 +5297,7 @@ should match snapshot of default values:
                                       type: object
                                     username:
                                       description: |-
-                                        Username is a LDAP user name used to authenticate using the LDAP Vault
+                                        Username is an LDAP username used to authenticate using the LDAP Vault
                                         authentication method
                                       type: string
                                   required:
@@ -5275,10 +5342,10 @@ should match snapshot of default values:
                                   description: UserPass authenticates with Vault by passing username/password pair
                                   properties:
                                     path:
-                                      default: user
+                                      default: userpass
                                       description: |-
                                         Path where the UserPassword authentication backend is mounted
-                                        in Vault, e.g: "user"
+                                        in Vault, e.g: "userpass"
                                       type: string
                                     secretRef:
                                       description: |-
@@ -5311,7 +5378,7 @@ should match snapshot of default values:
                                       type: object
                                     username:
                                       description: |-
-                                        Username is a user name used to authenticate using the UserPass Vault
+                                        Username is a username used to authenticate using the UserPass Vault
                                         authentication method
                                       type: string
                                   required:

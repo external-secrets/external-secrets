@@ -330,7 +330,7 @@ func getAWSSession(config *aws.Config, enableCache bool, name, kind, namespace, 
 		sess, ok := sessionCache.Get(resourceVersion, key)
 		if ok {
 			log.Info("reusing aws session", "SecretStore", key.Name, "namespace", key.Namespace, "kind", key.Kind, "resourceversion", resourceVersion)
-			return sess, nil
+			return sess.Copy(), nil
 		}
 	}
 
