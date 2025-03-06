@@ -3602,6 +3602,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#eks-pod-identity-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      EKS Pod Identity Setup
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#custom-endpoints" class="md-nav__link">
     <span class="md-ellipsis">
       Custom Endpoints
@@ -3703,6 +3712,68 @@ You must have <a href="https://kubernetes.io/docs/tasks/configure-pod-container/
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-serviceaccount</span>
 </code></pre></div>
 <p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> for <code>serviceAccountRef</code> with the namespace where the service account resides.</p>
+<h2 id="eks-pod-identity-setup">EKS Pod Identity Setup</h2>
+<p>In order to use EKS Pod Identity Agent, create a role like this:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;Statement&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">                </span><span class="s2">&quot;secretsmanager:GetResourcePolicy&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="s2">&quot;secretsmanager:GetSecretValue&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="s2">&quot;secretsmanager:DescribeSecret&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="s2">&quot;secretsmanager:ListSecretVersionIds&quot;</span>
+<span class="w">            </span><span class="p">],</span>
+<span class="w">            </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;Resource&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">                </span><span class="s2">&quot;*&quot;</span>
+<span class="w">            </span><span class="p">]</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2012-10-17&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2012-10-17&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;Statement&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="nt">&quot;Sid&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;AllowEksAuthToAssumeRoleForPodIdentity&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+<span class="w">            </span><span class="nt">&quot;Principal&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="nt">&quot;Service&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;pods.eks.amazonaws.com&quot;</span>
+<span class="w">            </span><span class="p">},</span>
+<span class="w">            </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">                </span><span class="s2">&quot;sts:AssumeRole&quot;</span><span class="p">,</span>
+<span class="w">                </span><span class="s2">&quot;sts:TagSession&quot;</span>
+<span class="w">            </span><span class="p">]</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Install ESO using helm and define these values:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">serviceAccount</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">annotations</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
+</code></pre></div>
+<p>Create a pod association:</p>
+<div class="highlight"><pre><span></span><code>aws eks create-pod-identity-association --cluster-name my-cluster --role-arn arn:aws:iam::111122223333:role/my-role --namespace external-secrets --service-account external-secrets
+</code></pre></div>
+<p>Then create a secret store like this:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">store</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">aws</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretsManager</span>
+<span class="w">      </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eu-central-1</span>
+</code></pre></div>
+<p><em>Note</em>: <code>serviceAccountRef</code> <em>cannot</em> be used together with EKS Pod Identity. That's because ESO can not impersonate
+service accounts which have iam roles bound using pod identity. Doing so will result in an error like this:
+<div class="highlight"><pre><span></span><code>unable to create session: an IAM role must be associated with service account ...
+</code></pre></div></p>
+<p><em>Note:</em> No <code>auth</code> section is defined for the SecretStore.</p>
+<p><em>Note:</em> For even more details you can follow this post for more setup and information using Terraform <a href="https://containscloud.com/2024/03/24/integrating-aws-secrets-manager-to-eks-using-external-secrets/">here</a>.</p>
 <h2 id="custom-endpoints">Custom Endpoints</h2>
 <p>You can define custom AWS endpoints if you want to use regional, vpc or custom endpoints. See List of endpoints for <a href="https://docs.aws.amazon.com/general/latest/gr/asm.html">Secrets Manager</a>, <a href="https://docs.aws.amazon.com/general/latest/gr/ssm.html">Secure Systems Manager</a> and <a href="https://docs.aws.amazon.com/general/latest/gr/sts.html">Security Token Service</a>.</p>
 <p>Use the following environment variables to point the controller to your custom endpoints. Note: All resources managed by this controller are affected.</p>
