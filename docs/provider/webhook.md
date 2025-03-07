@@ -116,7 +116,7 @@ spec:
 ```
 If `secretKey` is not provided, the whole secret is provided JSON encoded.
 
-The secret will be added to the `remoteRef` object so that it is retrievable in the templating engine. The secret will be sent in the body when the body field of the provider is empty.
+The secret will be added to the `remoteRef` object so that it is retrievable in the templating engine. The secret will be sent in the body when the body field of the provider is empty. In the rare case that the body should be empty, the provider can be configured to use `'{{ "" }}'` for the body value.
 
 #### Limitations
 

@@ -61,7 +61,7 @@ type args struct {
 
 type want struct {
 	Path      string            `json:"path,omitempty"`
-	Body      string            `json:"body,omitempty"`
+	Body      *string           `json:"body,omitempty"`
 	Err       string            `json:"err,omitempty"`
 	Result    string            `json:"result,omitempty"`
 	ResultMap map[string]string `json:"resultmap,omitempty"`
@@ -410,6 +410,21 @@ want:
   body: 'pre testkey value post'
   err: ''
 ---
+case: empty body
+args:
+  url: /api/pushsecret?id={{ .remoteRef.remoteKey }}
+  key: testkey
+  body: '{{ "" }}'
+  pushsecret: true
+  secret:
+    name: test-secret
+    data:
+      secretkey: value
+want:
+  path: /api/pushsecret?id=testkey
+  body: ''
+  err: ''
+---
 case: default body pushing without secret key
 args:
   url: /api/pushsecret?id={{ .remoteRef.remoteKey }}
@@ -475,10 +490,10 @@ func testCaseServer(tc testCase, t *testing.T) *httptest.Server {
 		if tc.Want.Path != "" && req.URL.String() != tc.Want.Path {
 			t.Errorf("%s: unexpected api path: %s, expected %s", tc.Case, req.URL.String(), tc.Want.Path)
 		}
-		if tc.Want.Body != "" {
+		if tc.Want.Body != nil {
 			b, _ := io.ReadAll(req.Body)
-			if string(b) != tc.Want.Body {
-				t.Errorf("%s: unexpected body: %s, expected %s", tc.Case, string(b), tc.Want.Body)
+			if tc.Want.Body != nil && string(b) != *tc.Want.Body {
+				t.Errorf("%s: unexpected body: %s, expected %s", tc.Case, string(b), *tc.Want.Body)
 			}
 		}
 		if tc.Args.StatusCode != 0 {
