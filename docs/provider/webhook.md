@@ -81,6 +81,7 @@ spec:
   provider:
     webhook:
       url: "http://httpbin.org/push?id={{ .remoteRef.remoteKey }}&secret={{ .remoteRef.secretKey }}"
+      body: '{"secret-field": "{{ index .remoteRef .remoteRef.remoteKey }}"}'
       headers:
         Content-Type: application/json
         Authorization: Basic {{ print .auth.username ":" .auth.password | b64enc }}

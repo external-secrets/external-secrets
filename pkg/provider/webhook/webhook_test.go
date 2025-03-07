@@ -368,6 +368,7 @@ case: good json
 args:
   url: /api/pushsecret?id={{ .remoteRef.remoteKey }}&secret={{ .remoteRef.secretKey }}
   key: testkey
+  body: 'pre {{ .remoteRef.remoteKey }} {{ .remoteRef.testkey }} post'
   secretkey: secretkey
   pushsecret: true
   secret:
@@ -376,6 +377,7 @@ args:
       secretkey: value
 want:
   path: /api/pushsecret?id=testkey&secret=secretkey
+  body: 'pre testkey value post'
   err: ''
 ---
 case: secret key not found
@@ -396,6 +398,7 @@ case: pushing without secret key
 args:
   url: /api/pushsecret?id={{ .remoteRef.remoteKey }}
   key: testkey
+  body: 'pre {{ .remoteRef.remoteKey }} {{ index (.remoteRef.testkey | fromJson) "secretkey" }} post'
   pushsecret: true
   secret:
     name: test-secret
@@ -403,6 +406,22 @@ args:
       secretkey: value
 want:
   path: /api/pushsecret?id=testkey
+  body: 'pre testkey value post'
+  err: ''
+---
+case: pushing without secret key with dynamic resolution
+args:
+  url: /api/pushsecret?id={{ .remoteRef.remoteKey }}
+  key: testkey
+  body: 'pre {{ .remoteRef.remoteKey }} {{ index (index .remoteRef .remoteRef.remoteKey | fromJson) "secretkey" }} post'
+  pushsecret: true
+  secret:
+    name: test-secret
+    data:
+      secretkey: value
+want:
+  path: /api/pushsecret?id=testkey
+  body: 'pre testkey value post'
   err: ''
 ---
 `
