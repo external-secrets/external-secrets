@@ -157,7 +157,6 @@ func TestAkeylessGetSecret(t *testing.T) {
 	sm := Akeyless{}
 	for _, v := range successCases {
 		sm.Client = v.mockClient
-		fmt.Println(*v.ref)
 		out, err := sm.GetSecret(context.Background(), *v.ref)
 		require.Truef(t, ErrorContains(err, v.expectError), fmtExpectedError, err, v.expectError)
 		require.Equal(t, string(out), v.expectedSecret)
