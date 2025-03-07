@@ -3825,6 +3825,7 @@
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">webhook</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://httpbin.org/push?id={{</span><span class="nv"> </span><span class="s">.remoteRef.remoteKey</span><span class="nv"> </span><span class="s">}}&amp;secret={{</span><span class="nv"> </span><span class="s">.remoteRef.secretKey</span><span class="nv"> </span><span class="s">}}&quot;</span>
+<span class="w">      </span><span class="nt">body</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;{&quot;secret-field&quot;:</span><span class="nv"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">index</span><span class="nv"> </span><span class="s">.remoteRef</span><span class="nv"> </span><span class="s">.remoteRef.remoteKey</span><span class="nv"> </span><span class="s">}}&quot;}&#39;</span>
 <span class="w">      </span><span class="nt">headers</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">Content-Type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">application/json</span>
 <span class="w">        </span><span class="nt">Authorization</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Basic {{ print .auth.username &quot;:&quot; .auth.password | b64enc }}</span>
@@ -3834,7 +3835,7 @@
 <span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">webhook-credentials</span>
 </code></pre></div>
 <p>Then create a push secret:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pushsecret-example</span><span class="w"> </span><span class="c1"># Customisable</span>
@@ -3853,7 +3854,8 @@
 <span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">remotekey</span>
 </code></pre></div>
-<p>If <code>secretKey</code> is not provided, the whole secret is pushed JSON encoded.</p>
+If <code>secretKey</code> is not provided, the whole secret is provided JSON encoded.</p>
+<p>The secret will be added to the <code>remoteRef</code> object so that it is retrievable in the templating engine. The secret will be sent in the body when the body field of the provider is empty. In the rare case that the body should be empty, the provider can be configured to use <code>''</code> for the body value.</p>
 <h4 id="limitations">Limitations</h4>
 <p>Webhook does not support authorization, other than what can be sent by generating http headers</p>
 <div class="admonition note">
