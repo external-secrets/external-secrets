@@ -61,7 +61,7 @@ type args struct {
 
 type want struct {
 	Path      string            `json:"path,omitempty"`
-	Body      string            `json:"body,omitempty"`
+	Body      *string           `json:"body,omitempty"`
 	Err       string            `json:"err,omitempty"`
 	Result    string            `json:"result,omitempty"`
 	ResultMap map[string]string `json:"resultmap,omitempty"`
@@ -364,19 +364,6 @@ func TestWebhookGetSecret(t *testing.T) {
 }
 
 var testCasesPushSecret = `
-case: good json
-args:
-  url: /api/pushsecret?id={{ .remoteRef.remoteKey }}&secret={{ .remoteRef.secretKey }}
-  key: testkey
-  secretkey: secretkey
-  pushsecret: true
-  secret:
-    name: test-secret
-    data:
-      secretkey: value
-want:
-  path: /api/pushsecret?id=testkey&secret=secretkey
-  err: ''
 ---
 case: secret key not found
 args:
@@ -392,7 +379,53 @@ want:
   path: /api/pushsecret?id=testkey&secret=not-found
   err: 'failed to find secret key in secret with key: not-found'
 ---
-case: pushing without secret key
+case: default body good json
+args:
+  url: /api/pushsecret?id={{ .remoteRef.remoteKey }}&secret={{ .remoteRef.secretKey }}
+  key: testkey
+  secretkey: secretkey
+  pushsecret: true
+  secret:
+    name: test-secret
+    data:
+      secretkey: value
+want:
+  path: /api/pushsecret?id=testkey&secret=secretkey
+  body: 'value'
+  err: ''
+---
+case: good json
+args:
+  url: /api/pushsecret?id={{ .remoteRef.remoteKey }}&secret={{ .remoteRef.secretKey }}
+  key: testkey
+  body: 'pre {{ .remoteRef.remoteKey }} {{ .remoteRef.testkey }} post'
+  secretkey: secretkey
+  pushsecret: true
+  secret:
+    name: test-secret
+    data:
+      secretkey: value
+want:
+  path: /api/pushsecret?id=testkey&secret=secretkey
+  body: 'pre testkey value post'
+  err: ''
+---
+case: empty body
+args:
+  url: /api/pushsecret?id={{ .remoteRef.remoteKey }}
+  key: testkey
+  body: '{{ "" }}'
+  pushsecret: true
+  secret:
+    name: test-secret
+    data:
+      secretkey: value
+want:
+  path: /api/pushsecret?id=testkey
+  body: ''
+  err: ''
+---
+case: default body pushing without secret key
 args:
   url: /api/pushsecret?id={{ .remoteRef.remoteKey }}
   key: testkey
@@ -403,8 +436,38 @@ args:
       secretkey: value
 want:
   path: /api/pushsecret?id=testkey
+  body: '{"secretkey":"value"}'
   err: ''
 ---
+case: pushing without secret key
+args:
+  url: /api/pushsecret?id={{ .remoteRef.remoteKey }}
+  key: testkey
+  body: 'pre {{ .remoteRef.remoteKey }} {{ index (.remoteRef.testkey | fromJson) "secretkey" }} post'
+  pushsecret: true
+  secret:
+    name: test-secret
+    data:
+      secretkey: value
+want:
+  path: /api/pushsecret?id=testkey
+  body: 'pre testkey value post'
+  err: ''
+---
+case: pushing without secret key with dynamic resolution
+args:
+  url: /api/pushsecret?id={{ .remoteRef.remoteKey }}
+  key: testkey
+  body: 'pre {{ .remoteRef.remoteKey }} {{ index (index .remoteRef .remoteRef.remoteKey | fromJson) "secretkey" }} post'
+  pushsecret: true
+  secret:
+    name: test-secret
+    data:
+      secretkey: value
+want:
+  path: /api/pushsecret?id=testkey
+  body: 'pre testkey value post'
+  err: ''
 `
 
 func TestWebhookPushSecret(t *testing.T) {
@@ -427,10 +490,10 @@ func testCaseServer(tc testCase, t *testing.T) *httptest.Server {
 		if tc.Want.Path != "" && req.URL.String() != tc.Want.Path {
 			t.Errorf("%s: unexpected api path: %s, expected %s", tc.Case, req.URL.String(), tc.Want.Path)
 		}
-		if tc.Want.Body != "" {
+		if tc.Want.Body != nil {
 			b, _ := io.ReadAll(req.Body)
-			if string(b) != tc.Want.Body {
-				t.Errorf("%s: unexpected body: %s, expected %s", tc.Case, string(b), tc.Want.Body)
+			if tc.Want.Body != nil && string(b) != *tc.Want.Body {
+				t.Errorf("%s: unexpected body: %s, expected %s", tc.Case, string(b), *tc.Want.Body)
 			}
 		}
 		if tc.Args.StatusCode != 0 {
