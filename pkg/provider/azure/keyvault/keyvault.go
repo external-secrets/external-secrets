@@ -564,6 +564,23 @@ func (a *Azure) setKeyVaultKey(ctx context.Context, secretName string, value []b
 	return nil
 }
 
+func getSecretKey(secret *corev1.Secret, data esv1beta1.PushSecretData) ([]byte, error) {
+	if data.GetSecretKey() != "" {
+		return secret.Data[data.GetSecretKey()], nil
+	}
+
+	// Must convert secret values to string, otherwise data will be sent as base64 to Vault
+	secretStringVal := make(map[string]string)
+	for k, v := range secret.Data {
+		secretStringVal[k] = string(v)
+	}
+	value, err := utils.JSONMarshal(secretStringVal)
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize secret content as JSON: %w", err)
+	}
+	return value, nil
+}
+
 // PushSecret stores secrets into a Key vault instance.
 func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
 	var (
@@ -572,18 +589,9 @@ func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1
 		expires *date.UnixTime
 		tags    map[string]string
 	)
-	if data.GetSecretKey() == "" {
-		// Must convert secret values to string, otherwise data will be sent as base64 to Vault
-		secretStringVal := make(map[string]string)
-		for k, v := range secret.Data {
-			secretStringVal[k] = string(v)
-		}
-		value, err = utils.JSONMarshal(secretStringVal)
-		if err != nil {
-			return fmt.Errorf("failed to serialize secret content as JSON: %w", err)
-		}
-	} else {
-		value = secret.Data[data.GetSecretKey()]
+
+	if value, err = getSecretKey(secret, data); err != nil {
+		return err
 	}
 
 	metadata, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](data.GetMetadata())
