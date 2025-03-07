@@ -452,31 +452,34 @@ func parseTimeout(timeout string) (*metav1.Duration, error) {
 }
 
 func runTestCase(tc testCase, t *testing.T) {
-	ts := testCaseServer(tc, t)
-	defer ts.Close()
+	t.Run(tc.Case, func(t *testing.T) {
+		ts := testCaseServer(tc, t)
+		defer ts.Close()
 
-	testStore := makeClusterSecretStore(ts.URL, tc.Args)
-	var err error
-	timeout, err := parseTimeout(tc.Args.Timeout)
-	if err != nil {
-		t.Errorf("%s: error parsing timeout '%s': %s", tc.Case, tc.Args.Timeout, err.Error())
-		return
-	}
-	testStore.Spec.Provider.Webhook.Timeout = timeout
-	testProv := &Provider{}
-	client, err := testProv.NewClient(context.Background(), testStore, nil, "testnamespace")
-	if err != nil {
-		t.Errorf("%s: error creating client: %s", tc.Case, err.Error())
-		return
-	}
+		testStore := makeClusterSecretStore(ts.URL, tc.Args)
+		var err error
+		timeout, err := parseTimeout(tc.Args.Timeout)
+		if err != nil {
+			t.Errorf("%s: error parsing timeout '%s': %s", tc.Case, tc.Args.Timeout, err.Error())
+			return
+		}
+		testStore.Spec.Provider.Webhook.Timeout = timeout
+		testProv := &Provider{}
+		client, err := testProv.NewClient(context.Background(), testStore, nil, "testnamespace")
+		if err != nil {
+			t.Errorf("%s: error creating client: %s", tc.Case, err.Error())
+			return
+		}
 
-	if tc.Want.ResultMap != nil && !tc.Args.PushSecret {
-		testGetSecretMap(tc, t, client)
-	} else if !tc.Args.PushSecret {
-		testGetSecret(tc, t, client)
-	} else {
-		testPushSecret(tc, t, client)
-	}
+		if tc.Want.ResultMap != nil && !tc.Args.PushSecret {
+			testGetSecretMap(tc, t, client)
+		} else if !tc.Args.PushSecret {
+			testGetSecret(tc, t, client)
+		} else {
+			testPushSecret(tc, t, client)
+		}
+
+	})
 }
 
 func testGetSecretMap(tc testCase, t *testing.T, client esv1beta1.SecretsClient) {
