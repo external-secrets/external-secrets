@@ -127,7 +127,6 @@ func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 		return fmt.Errorf("unexpected error getting parameter %v: %w", secretName, err)
 	}
 	if existing != nil && existing.Parameter != nil {
-		fmt.Println("The existing value contains data:", existing.String())
 		tags, err := pm.getTagsByName(ctx, existing)
 		if err != nil {
 			return fmt.Errorf("error getting the existing tags for the parameter %v: %w", secretName, err)
