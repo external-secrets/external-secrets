@@ -364,6 +364,36 @@ func TestWebhookGetSecret(t *testing.T) {
 }
 
 var testCasesPushSecret = `
+---
+case: secret key not found
+args:
+  url: /api/pushsecret?id={{ .remoteRef.remoteKey }}&secret={{ .remoteRef.secretKey }}
+  key: testkey
+  secretkey: not-found
+  pushsecret: true
+  secret:
+    name: test-secret
+    data:
+      secretkey: value
+want:
+  path: /api/pushsecret?id=testkey&secret=not-found
+  err: 'failed to find secret key in secret with key: not-found'
+---
+case: default body good json
+args:
+  url: /api/pushsecret?id={{ .remoteRef.remoteKey }}&secret={{ .remoteRef.secretKey }}
+  key: testkey
+  secretkey: secretkey
+  pushsecret: true
+  secret:
+    name: test-secret
+    data:
+      secretkey: value
+want:
+  path: /api/pushsecret?id=testkey&secret=secretkey
+  body: 'value'
+  err: ''
+---
 case: good json
 args:
   url: /api/pushsecret?id={{ .remoteRef.remoteKey }}&secret={{ .remoteRef.secretKey }}
@@ -380,19 +410,19 @@ want:
   body: 'pre testkey value post'
   err: ''
 ---
-case: secret key not found
+case: default body pushing without secret key
 args:
-  url: /api/pushsecret?id={{ .remoteRef.remoteKey }}&secret={{ .remoteRef.secretKey }}
+  url: /api/pushsecret?id={{ .remoteRef.remoteKey }}
   key: testkey
-  secretkey: not-found
   pushsecret: true
   secret:
     name: test-secret
     data:
       secretkey: value
 want:
-  path: /api/pushsecret?id=testkey&secret=not-found
-  err: 'failed to find secret key in secret with key: not-found'
+  path: /api/pushsecret?id=testkey
+  body: '{"secretkey":"value"}'
+  err: ''
 ---
 case: pushing without secret key
 args:
@@ -423,7 +453,6 @@ want:
   path: /api/pushsecret?id=testkey
   body: 'pre testkey value post'
   err: ''
----
 `
 
 func TestWebhookPushSecret(t *testing.T) {

@@ -115,7 +115,7 @@ spec:
           remoteKey: remotekey
 ```
 
-If `secretKey` is not provided, the whole secret is pushed JSON encoded.
+If `secretKey` is not provided, the whole secret is provided JSON encoded. The secret will be sent in the body when the body field of the provider is empty.
 
 #### Limitations
 

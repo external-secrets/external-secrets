@@ -240,7 +240,12 @@ func (w *Webhook) PushWebhookData(ctx context.Context, provider *Spec, data []by
 	if err != nil {
 		return fmt.Errorf("failed to parse url: %w", err)
 	}
-	body, err := ExecuteTemplate(provider.Body, rawData)
+
+	bodyt := provider.Body
+	if bodyt == "" {
+		bodyt = fmt.Sprintf("{{ .remoteRef.%s }}", remoteKey.GetRemoteKey())
+	}
+	body, err := ExecuteTemplate(bodyt, rawData)
 	if err != nil {
 		return fmt.Errorf("failed to parse body: %w", err)
 	}
