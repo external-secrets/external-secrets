@@ -3855,7 +3855,7 @@
 <span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">remotekey</span>
 </code></pre></div>
 If <code>secretKey</code> is not provided, the whole secret is provided JSON encoded.</p>
-<p>The secret will be added to the <code>remoteRef</code> object so that it is retrievable in the templating engine. The secret will be sent in the body when the body field of the provider is empty. In the rare case that the body should be empty, the provider can be configured to use <code>''</code> for the body value.</p>
+<p>The secret will be added to the <code>remoteRef</code> object so that it is retrievable in the templating engine. The secret will be sent in the body when the body field of the provider is empty. In the rare case that the body should be empty, the provider can be configured to use <code>'{{ "" }}'</code> for the body value.</p>
 <h4 id="limitations">Limitations</h4>
 <p>Webhook does not support authorization, other than what can be sent by generating http headers</p>
 <div class="admonition note">
