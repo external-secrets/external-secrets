@@ -81,6 +81,7 @@ spec:
   provider:
     webhook:
       url: "http://httpbin.org/push?id={{ .remoteRef.remoteKey }}&secret={{ .remoteRef.secretKey }}"
+      body: '{"secret-field": "{{ index .remoteRef .remoteRef.remoteKey }}"}'
       headers:
         Content-Type: application/json
         Authorization: Basic {{ print .auth.username ":" .auth.password | b64enc }}
@@ -113,8 +114,9 @@ spec:
         remoteRef:
           remoteKey: remotekey
 ```
+If `secretKey` is not provided, the whole secret is provided JSON encoded.
 
-If `secretKey` is not provided, the whole secret is pushed JSON encoded.
+The secret will be added to the `remoteRef` object so that it is retrievable in the templating engine. The secret will be sent in the body when the body field of the provider is empty. In the rare case that the body should be empty, the provider can be configured to use `'{{ "" }}'` for the body value.
 
 #### Limitations
 
