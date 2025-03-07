@@ -541,7 +541,6 @@ func runTestCase(tc testCase, t *testing.T) {
 		} else {
 			testPushSecret(tc, t, client)
 		}
-
 	})
 }
 
