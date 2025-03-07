@@ -3731,8 +3731,8 @@ You <strong>must</strong> <a href="https://learn.microsoft.com/en-us/azure/role-
 <p>You can also use a kubelet managed identity with the default <code>AcrPull</code> role to authenticate to the integrated Azure Container Registry.</p>
 <p>You can scope tokens to a particular repository using <code>spec.scope</code>.</p>
 <h2 id="scope">Scope</h2>
-<p>First, an Azure Active Directory access token is obtained with the desired authentication method.
-This AAD access token will be used to authenticate against ACR to issue a refresh token or access token.
+<p>First, a Microsoft Entra ID access token is obtained with the desired authentication method.
+This Microsoft Entra ID access token will be used to authenticate against ACR to issue a refresh token or access token.
 If <code>spec.scope</code> if it is defined it obtains an ACR access token. If  <code>spec.scope</code> is missing it obtains an ACR refresh token:</p>
 <ul>
 <li>access tokens are scoped to a specific repository or action (pull,push)</li>
@@ -3758,7 +3758,7 @@ repository:my-repository:pull
 <span class="w">  </span><span class="nt">scope</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;repository:foo:pull,push&quot;</span>
 
 <span class="w">  </span><span class="c1"># Specify Azure cloud type, defaults to PublicCloud.</span>
-<span class="w">  </span><span class="c1"># This is used for authenticating with Azure Active Directory.</span>
+<span class="w">  </span><span class="c1"># This is used for authenticating with Microsoft Entra ID.</span>
 <span class="w">  </span><span class="c1"># available options: PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud</span>
 <span class="w">  </span><span class="nt">environmentType</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;PublicCloud&quot;</span>
 
@@ -3885,8 +3885,8 @@ repository:my-repository:pull
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      &copy; 2024 The external-secrets Authors.<br/>
-&copy; 2024 The Linux Foundation. All rights reserved.<br/><br/>
+      &copy; 2025 The external-secrets Authors.<br/>
+&copy; 2025 The Linux Foundation. All rights reserved.<br/><br/>
 The Linux Foundation has registered trademarks and uses trademarks.<br/>
 For a list of trademarks of The Linux Foundation, please see our <a href="https://www.linuxfoundation.org/trademark-usage/">Trademark Usage page</a>.
 
