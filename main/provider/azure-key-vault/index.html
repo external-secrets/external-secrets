@@ -4268,12 +4268,14 @@ az<span class="w"> </span>keyvault<span class="w"> </span>set-policy<span class=
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source-key</span><span class="w"> </span><span class="c1"># Source Kubernetes secret key containing the secret</span>
 <span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-azkv-secret-name</span><span class="w"> </span>
+<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-azkv-secret-name</span>
 <span class="w">      </span><span class="nt">metadata</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.external-secrets.io/v1alpha1</span>
 <span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecretMetadata</span>
 <span class="w">        </span><span class="nt">spec</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">expirationDate</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2024-12-31T23:59:59Z&quot;</span><span class="w"> </span><span class="c1"># Expiration date for the secret in Azure Key Vault</span>
+<span class="w">          </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="c1"># Tags to be added to the secret in Azure Key Vault</span>
+<span class="w">            </span><span class="nt">Content-Type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">application/json</span>
 </code></pre></div></p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
