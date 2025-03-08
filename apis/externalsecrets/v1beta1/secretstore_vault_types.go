@@ -29,7 +29,7 @@ const (
 // KV backend.
 type VaultProvider struct {
 	// Auth configures how secret-manager authenticates with the Vault server.
-	Auth VaultAuth `json:"auth"`
+	Auth *VaultAuth `json:"auth,omitempty"`
 
 	// Server is the connection address for the Vault server, e.g: "https://vault.example.com:8200".
 	Server string `json:"server"`

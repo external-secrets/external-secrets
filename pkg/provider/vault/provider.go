@@ -212,7 +212,8 @@ func (p *Provider) prepareConfig(ctx context.Context, kube kclient.Client, corev
 }
 
 func getVaultClient(p *Provider, store esv1beta1.GenericStore, cfg *vault.Config) (util.Client, error) {
-	isStaticToken := store.GetSpec().Provider.Vault.Auth.TokenSecretRef != nil
+	auth := store.GetSpec().Provider.Vault.Auth
+	isStaticToken := auth != nil && auth.TokenSecretRef != nil
 	useCache := enableCache && !isStaticToken
 
 	key := cache.Key{
@@ -239,6 +240,10 @@ func getVaultClient(p *Provider, store esv1beta1.GenericStore, cfg *vault.Config
 }
 
 func isReferentSpec(prov *esv1beta1.VaultProvider) bool {
+	if prov.Auth == nil {
+		return false
+	}
+
 	if prov.Auth.TokenSecretRef != nil && prov.Auth.TokenSecretRef.Namespace == nil {
 		return true
 	}

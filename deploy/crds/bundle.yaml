@@ -6273,7 +6273,6 @@ spec:
                             - v2
                           type: string
                       required:
-                        - auth
                         - server
                       type: object
                     webhook:
@@ -13484,7 +13483,6 @@ spec:
                             - v2
                           type: string
                       required:
-                        - auth
                         - server
                       type: object
                     webhook:
@@ -15591,7 +15589,6 @@ spec:
                                 - v2
                               type: string
                           required:
-                            - auth
                             - server
                           type: object
                         resultType:
@@ -17827,7 +17824,6 @@ spec:
                         - v2
                       type: string
                   required:
-                    - auth
                     - server
                   type: object
                 resultType:
