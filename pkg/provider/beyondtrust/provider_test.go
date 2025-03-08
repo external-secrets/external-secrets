@@ -170,7 +170,7 @@ func TestNewClient(t *testing.T) {
 			},
 			validateErrorNil:  false,
 			validateErrorText: true,
-			expectedErrorText: "error in Inputs: Key: 'UserInputValidaton.ClientId' Error:Field validation for 'ClientId' failed on the 'min' tag",
+			expectedErrorText: "error in Inputs: Error in field ClientId : min / 36.",
 		},
 		{
 			name:      "Bad Client Secret",
@@ -202,7 +202,7 @@ func TestNewClient(t *testing.T) {
 			},
 			validateErrorNil:  false,
 			validateErrorText: true,
-			expectedErrorText: "error in Inputs: Key: 'UserInputValidaton.ClientSecret' Error:Field validation for 'ClientSecret' failed on the 'min' tag",
+			expectedErrorText: "error in Inputs: Error in field ClientSecret : min / 36.",
 		},
 		{
 			name:      "Bad Separator",
@@ -234,7 +234,7 @@ func TestNewClient(t *testing.T) {
 			},
 			validateErrorNil:  false,
 			validateErrorText: true,
-			expectedErrorText: "error in Inputs: Key: 'UserInputValidaton.Separator' Error:Field validation for 'Separator' failed on the 'max' tag",
+			expectedErrorText: "error in Inputs: Error in field ClientId : min / 36.",
 		},
 		{
 			name:      "Time Out",
@@ -267,7 +267,7 @@ func TestNewClient(t *testing.T) {
 			},
 			validateErrorNil:  false,
 			validateErrorText: true,
-			expectedErrorText: "error in Inputs: Key: 'UserInputValidaton.ClientTimeOutinSeconds' Error:Field validation for 'ClientTimeOutinSeconds' failed on the 'lte' tag",
+			expectedErrorText: "error in Inputs: Error in field ClientTimeOutinSeconds : lte / 300.",
 		},
 		{
 			name:      "ApiKey ok",
@@ -324,7 +324,7 @@ func TestNewClient(t *testing.T) {
 			},
 			validateErrorNil:  false,
 			validateErrorText: true,
-			expectedErrorText: "error in Inputs: Key: 'UserInputValidaton.ApiKey' Error:Field validation for 'ApiKey' failed on the 'min' tag",
+			expectedErrorText: "error in Inputs: Error in field ApiKey : min / 128.",
 		},
 	}
 
