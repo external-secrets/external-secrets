@@ -34,6 +34,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -193,11 +194,13 @@ func Decode(strategy esv1beta1.ExternalSecretDecodingStrategy, in []byte) ([]byt
 }
 
 // ValidateKeys checks if the keys in the secret map are valid keys for a Kubernetes secret.
-func ValidateKeys(in map[string][]byte) error {
+func ValidateKeys(log logr.Logger, in map[string][]byte) error {
 	for key := range in {
 		keyLength := len(key)
 		if keyLength == 0 {
-			return fmt.Errorf("found empty key")
+			log.V(1).Info("key was skipped because it did not exist upstream", "key", key)
+
+			continue
 		}
 		if keyLength > 253 {
 			return fmt.Errorf("key has length %d but max is 253: (following is truncated): %s", keyLength, key[:253])
