@@ -5149,6 +5149,7 @@ MachineIdentityScopeInWorkspace
 </em>
 </td>
 <td>
+<p>SecretsScope defines the scope of the secrets within the workspace</p>
 </td>
 </tr>
 <tr>
@@ -5160,6 +5161,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
+<p>HostAPI specifies the base URL of the Infisical API. If not provided, it defaults to &ldquo;<a href="https://app.infisical.com/api&quot;">https://app.infisical.com/api&rdquo;</a>.</p>
 </td>
 </tr>
 </tbody>
@@ -5419,6 +5421,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
+<p>SecretsPath specifies the path to the secrets within the workspace. Defaults to &ldquo;/&rdquo; if not provided.</p>
 </td>
 </tr>
 <tr>
@@ -5430,6 +5433,7 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
+<p>Recursive indicates whether the secrets should be fetched recursively. Defaults to false if not provided.</p>
 </td>
 </tr>
 <tr>
@@ -5440,6 +5444,7 @@ string
 </em>
 </td>
 <td>
+<p>EnvironmentSlug is the required slug identifier for the environment.</p>
 </td>
 </tr>
 <tr>
@@ -5450,6 +5455,19 @@ string
 </em>
 </td>
 <td>
+<p>ProjectSlug is the required slug identifier for the project.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>expandSecretReferences</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.</p>
 </td>
 </tr>
 </tbody>
