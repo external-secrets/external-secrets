@@ -39,10 +39,11 @@ type RevokeMachineIdentityAccessTokenResponse struct {
 }
 
 type GetSecretByKeyV3Request struct {
-	EnvironmentSlug string `json:"environment"`
-	ProjectSlug     string `json:"workspaceSlug"`
-	SecretPath      string `json:"secretPath"`
-	SecretKey       string `json:"secretKey"`
+	EnvironmentSlug        string `json:"environment"`
+	ProjectSlug            string `json:"workspaceSlug"`
+	SecretPath             string `json:"secretPath"`
+	SecretKey              string `json:"secretKey"`
+	ExpandSecretReferences bool   `json:"expandSecretReferences"`
 }
 
 type GetSecretByKeyV3Response struct {
@@ -50,10 +51,11 @@ type GetSecretByKeyV3Response struct {
 }
 
 type GetSecretsV3Request struct {
-	EnvironmentSlug string `json:"environment"`
-	ProjectSlug     string `json:"workspaceSlug"`
-	Recursive       bool   `json:"recursive"`
-	SecretPath      string `json:"secretPath"`
+	EnvironmentSlug        string `json:"environment"`
+	ProjectSlug            string `json:"workspaceSlug"`
+	Recursive              bool   `json:"recursive"`
+	SecretPath             string `json:"secretPath"`
+	ExpandSecretReferences bool   `json:"expandSecretReferences"`
 }
 
 type GetSecretsV3Response struct {
