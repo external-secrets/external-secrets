@@ -235,7 +235,7 @@ func (a *InfisicalClient) GetSecretsV3(data GetSecretsV3Request) (map[string]str
 		"environment":            data.EnvironmentSlug,
 		"secretPath":             data.SecretPath,
 		"include_imports":        "true",
-		"expandSecretReferences": "true",
+		"expandSecretReferences": strconv.FormatBool(data.ExpandSecretReferences),
 		"recursive":              strconv.FormatBool(data.Recursive),
 	}
 
@@ -267,10 +267,11 @@ func (a *InfisicalClient) GetSecretsV3(data GetSecretsV3Request) (map[string]str
 
 func (a *InfisicalClient) GetSecretByKeyV3(data GetSecretByKeyV3Request) (string, error) {
 	params := map[string]string{
-		"workspaceSlug":   data.ProjectSlug,
-		"environment":     data.EnvironmentSlug,
-		"secretPath":      data.SecretPath,
-		"include_imports": "true",
+		"workspaceSlug":          data.ProjectSlug,
+		"environment":            data.EnvironmentSlug,
+		"secretPath":             data.SecretPath,
+		"include_imports":        "true",
+		"expandSecretReferences": strconv.FormatBool(data.ExpandSecretReferences),
 	}
 
 	endpointURL := fmt.Sprintf("api/v3/secrets/raw/%s", data.SecretKey)
