@@ -45,7 +45,7 @@ type GrafanaAuth struct {
 	// See here for the documentation on basic roles offered by Grafana:
 	// https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/
 	// +optional
-	Token *SecretKeySelector `json:"token,omitEmpty"`
+	Token *SecretKeySelector `json:"token,omitempty"`
 	// Basic auth credentials used to authenticate against the Grafana instance.
 	// Note: you need a token which has elevated permissions to create service accounts.
 	// See here for the documentation on basic roles offered by Grafana:
