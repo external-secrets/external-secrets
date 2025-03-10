@@ -46,11 +46,11 @@ const (
 	errGetPublicToken  = "unable to get public authorization token: %w"
 )
 
-func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
-	return g.generate(ctx, jsonSpec, kube, namespace, ecrPrivateFactory, ecrPublicFactory)
+func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, sourceNamespace, _ string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+	return g.generate(ctx, jsonSpec, kube, sourceNamespace, ecrPrivateFactory, ecrPublicFactory)
 }
 
-func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, crClient client.Client, namespace string) error {
+func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, crClient client.Client, _, _ string) error {
 	return nil
 }
 
@@ -58,7 +58,7 @@ func (g *Generator) generate(
 	ctx context.Context,
 	jsonSpec *apiextensions.JSON,
 	kube client.Client,
-	namespace string,
+	sourceNamespace string,
 	ecrPrivateFunc ecrPrivateFactoryFunc,
 	ecrPublicFunc ecrPublicFactoryFunc,
 ) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
@@ -78,7 +78,7 @@ func (g *Generator) generate(
 		res.Spec.Role,
 		res.Spec.Region,
 		kube,
-		namespace,
+		sourceNamespace,
 		awsauth.DefaultSTSProvider,
 		awsauth.DefaultJWTProvider)
 	if err != nil {

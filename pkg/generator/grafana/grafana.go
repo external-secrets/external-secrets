@@ -35,13 +35,13 @@ import (
 
 type Grafana struct{}
 
-func (w *Grafana) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kclient client.Client, ns string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+func (w *Grafana) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kclient client.Client, sourceNamespace, _ string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	gen, err := parseSpec(jsonSpec.Raw)
 	if err != nil {
 		return nil, nil, err
 	}
-	secret, err := resolvers.SecretKeyRef(ctx, kclient, resolvers.EmptyStoreKind, ns, &esmeta.SecretKeySelector{
-		Namespace: &ns,
+	secret, err := resolvers.SecretKeyRef(ctx, kclient, resolvers.EmptyStoreKind, sourceNamespace, &esmeta.SecretKeySelector{
+		Namespace: &sourceNamespace,
 		Name:      gen.Spec.Auth.Token.Name,
 		Key:       gen.Spec.Auth.Token.Key,
 	})
@@ -76,7 +76,7 @@ func (w *Grafana) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kc
 	return tokenResponse(state, res.Payload.Key)
 }
 
-func (w *Grafana) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, previousStatus genv1alpha1.GeneratorProviderState, kclient client.Client, ns string) error {
+func (w *Grafana) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, previousStatus genv1alpha1.GeneratorProviderState, kclient client.Client, sourceNamespace, _ string) error {
 	if previousStatus == nil {
 		return fmt.Errorf("missing previous status")
 	}
@@ -88,7 +88,7 @@ func (w *Grafana) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, pre
 	if err != nil {
 		return err
 	}
-	cl, err := newClient(ctx, gen, kclient, ns)
+	cl, err := newClient(ctx, gen, kclient, sourceNamespace)
 	if err != nil {
 		return err
 	}

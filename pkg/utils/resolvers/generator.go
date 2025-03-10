@@ -39,19 +39,20 @@ var (
 )
 
 // GeneratorRef resolves a generator reference to a generator implementation.
-func GeneratorRef(ctx context.Context, cl client.Client, scheme *runtime.Scheme, namespace string, generatorRef *esv1beta1.GeneratorRef) (genv1alpha1.Generator, *apiextensions.JSON, error) {
-	generator, jsonObj, err := getGenerator(ctx, cl, scheme, namespace, generatorRef)
+func GeneratorRef(ctx context.Context, cl client.Client, scheme *runtime.Scheme, namespace string, generatorRef *esv1beta1.GeneratorRef) (genv1alpha1.Generator, *apiextensions.JSON, string, error) {
+	generator, jsonObj, sourceNamespace, err := getGenerator(ctx, cl, scheme, namespace, generatorRef)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%w: %w", ErrUnableToGetGenerator, err)
+		return nil, nil, "", fmt.Errorf("%w: %w", ErrUnableToGetGenerator, err)
 	}
-	return generator, jsonObj, nil
+	return generator, jsonObj, sourceNamespace, nil
 }
 
-func getGenerator(ctx context.Context, cl client.Client, scheme *runtime.Scheme, namespace string, generatorRef *esv1beta1.GeneratorRef) (genv1alpha1.Generator, *apiextensions.JSON, error) {
+func getGenerator(ctx context.Context, cl client.Client, scheme *runtime.Scheme, destinationNamespace string, generatorRef *esv1beta1.GeneratorRef) (genv1alpha1.Generator, *apiextensions.JSON, string, error) {
+
 	// get a GVK from the generatorRef
 	gv, err := schema.ParseGroupVersion(generatorRef.APIVersion)
 	if err != nil {
-		return nil, nil, reconcile.TerminalError(fmt.Errorf("generatorRef has invalid APIVersion: %w", err))
+		return nil, nil, "", reconcile.TerminalError(fmt.Errorf("generatorRef has invalid APIVersion: %w", err))
 	}
 	gvk := schema.GroupVersionKind{
 		Group:   gv.Group,
@@ -61,19 +62,20 @@ func getGenerator(ctx context.Context, cl client.Client, scheme *runtime.Scheme,
 
 	// fail if the GVK does not use the generator group
 	if gvk.Group != genv1alpha1.Group {
-		return nil, nil, reconcile.TerminalError(fmt.Errorf("generatorRef may only reference the generators group, but got %s", gvk.Group))
+		return nil, nil, "", reconcile.TerminalError(fmt.Errorf("generatorRef may only reference the generators group, but got %s", gvk.Group))
 	}
 
 	// get a client Object from the GVK
 	t, exists := scheme.AllKnownTypes()[gvk]
 	if !exists {
-		return nil, nil, reconcile.TerminalError(fmt.Errorf("generatorRef references unknown GVK %s", gvk))
+		return nil, nil, "", reconcile.TerminalError(fmt.Errorf("generatorRef references unknown GVK %s", gvk))
 	}
 	obj := reflect.New(t).Interface().(client.Object)
 
 	// this interface provides the Generate() method used by the controller
 	// NOTE: all instances of a generator kind use the same instance of this interface
 	var generator genv1alpha1.Generator
+	sourceNamespace := destinationNamespace
 
 	// ClusterGenerator is a special case because it's a cluster-scoped resource
 	// to use it, we create a "virtual" namespaced generator for the current namespace, as if one existed in the API
@@ -84,37 +86,39 @@ func getGenerator(ctx context.Context, cl client.Client, scheme *runtime.Scheme,
 		// NOTE: it's important that we use the structured client so we use the cache
 		err = cl.Get(ctx, client.ObjectKey{Name: generatorRef.Name}, clusterGenerator)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, "", err
 		}
+
+		sourceNamespace = clusterGenerator.Spec.SourceNamespace
 
 		// convert the cluster generator to a virtual namespaced generator object
 		obj, err = clusterGeneratorToVirtual(clusterGenerator)
 		if err != nil {
-			return nil, nil, reconcile.TerminalError(fmt.Errorf("invalid ClusterGenerator: %w", err))
+			return nil, nil, "", reconcile.TerminalError(fmt.Errorf("invalid ClusterGenerator: %w", err))
 		}
 
 		// get the generator interface
 		var ok bool
 		generator, ok = genv1alpha1.GetGeneratorByName(string(clusterGenerator.Spec.Kind))
 		if !ok {
-			return nil, nil, reconcile.TerminalError(fmt.Errorf("ClusterGenerator has unknown kind %s", clusterGenerator.Spec.Kind))
+			return nil, nil, "", reconcile.TerminalError(fmt.Errorf("ClusterGenerator has unknown kind %s", clusterGenerator.Spec.Kind))
 		}
 	} else {
 		// get the generator resource from the API
 		// NOTE: it's important that we use the structured client so we use the cache
 		err = cl.Get(ctx, types.NamespacedName{
 			Name:      generatorRef.Name,
-			Namespace: namespace,
+			Namespace: destinationNamespace,
 		}, obj)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, "", err
 		}
 
 		// get the generator interface
 		var ok bool
 		generator, ok = genv1alpha1.GetGeneratorByName(gvk.Kind)
 		if !ok {
-			return nil, nil, reconcile.TerminalError(fmt.Errorf("generatorRef has unknown kind %s", gvk.Kind))
+			return nil, nil, "", reconcile.TerminalError(fmt.Errorf("generatorRef has unknown kind %s", gvk.Kind))
 		}
 	}
 
@@ -122,7 +126,7 @@ func getGenerator(ctx context.Context, cl client.Client, scheme *runtime.Scheme,
 	u := &unstructured.Unstructured{}
 	u.Object, err = runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 
 	// convert the unstructured object to JSON
@@ -130,10 +134,10 @@ func getGenerator(ctx context.Context, cl client.Client, scheme *runtime.Scheme,
 	//       we should refactor the generator API to use the normal typed objects
 	jsonObj, err := u.MarshalJSON()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, "", err
 	}
 
-	return generator, &apiextensions.JSON{Raw: jsonObj}, nil
+	return generator, &apiextensions.JSON{Raw: jsonObj}, sourceNamespace, nil
 }
 
 // clusterGeneratorToVirtual converts a ClusterGenerator to a "virtual" namespaced generator that doesn't actually exist in the API.

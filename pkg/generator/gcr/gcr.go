@@ -41,17 +41,17 @@ const (
 	errGetToken  = "unable to get authorization token: %w"
 )
 
-func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, sourceNamespace, _ string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(
 		ctx,
 		jsonSpec,
 		kube,
-		namespace,
+		sourceNamespace,
 		secretmanager.NewTokenSource,
 	)
 }
 
-func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, crClient client.Client, namespace string) error {
+func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, crClient client.Client, _, _ string) error {
 	return nil
 }
 
@@ -59,7 +59,7 @@ func (g *Generator) generate(
 	ctx context.Context,
 	jsonSpec *apiextensions.JSON,
 	kube client.Client,
-	namespace string,
+	sourceNamespace string,
 	tokenSource tokenSourceFunc) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if jsonSpec == nil {
 		return nil, nil, errors.New(errNoSpec)
@@ -71,7 +71,7 @@ func (g *Generator) generate(
 	ts, err := tokenSource(ctx, esv1beta1.GCPSMAuth{
 		SecretRef:        (*esv1beta1.GCPSMAuthSecretRef)(res.Spec.Auth.SecretRef),
 		WorkloadIdentity: (*esv1beta1.GCPWorkloadIdentity)(res.Spec.Auth.WorkloadIdentity),
-	}, res.Spec.ProjectID, resolvers.EmptyStoreKind, kube, namespace)
+	}, res.Spec.ProjectID, resolvers.EmptyStoreKind, kube, sourceNamespace)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -15735,6 +15735,13 @@ spec:
                     - Webhook
                     - Grafana
                   type: string
+                sourceNamespace:
+                  description: |-
+                    The namespace that should be used when accessing existing resources,
+                    such as secrets for existing credentials. If not set, then
+                    the namespace of each external secret that references this generator
+                    will be used.
+                  type: string
               required:
                 - generator
                 - kind
@@ -16248,6 +16255,13 @@ spec:
                     in the manifest should be available at the time of garbage collection. If that is not the case deletion will
                     be blocked by a finalizer.
                   x-kubernetes-preserve-unknown-fields: true
+                sourceNamespace:
+                  description: |-
+                    The namespace that should be used when accessing existing resources,
+                    such as secrets for existing credentials. If not set, then
+                    the namespace of each external secret that references this generator
+                    will be used.
+                  type: string
                 state:
                   description: State is the state that was produced by the generator implementation.
                   x-kubernetes-preserve-unknown-fields: true

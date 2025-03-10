@@ -60,16 +60,16 @@ const (
 	httpClientTimeout = 5 * time.Second
 )
 
-func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, sourceNamespace, _ string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(
 		ctx,
 		jsonSpec,
 		kube,
-		namespace,
+		sourceNamespace,
 	)
 }
 
-func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, crClient client.Client, namespace string) error {
+func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, crClient client.Client, _, _ string) error {
 	return nil
 }
 
@@ -77,14 +77,14 @@ func (g *Generator) generate(
 	ctx context.Context,
 	jsonSpec *apiextensions.JSON,
 	kube client.Client,
-	namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+	sourceNamespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if jsonSpec == nil {
 		return nil, nil, errors.New(errNoSpec)
 	}
 	ctx, cancel := context.WithTimeout(ctx, contextTimeout)
 	defer cancel()
 
-	gh, err := newGHClient(ctx, kube, namespace, g.httpClient, jsonSpec)
+	gh, err := newGHClient(ctx, kube, sourceNamespace, g.httpClient, jsonSpec)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error creating request: %w", err)
 	}

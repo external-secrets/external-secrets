@@ -31,7 +31,7 @@ type Webhook struct {
 	url string
 }
 
-func (w *Webhook) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kclient client.Client, ns string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+func (w *Webhook) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kclient client.Client, sourceNamespace, _ string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	w.wh.EnforceLabels = true
 	w.wh.ClusterScoped = false
 	provider, err := parseSpec(jsonSpec.Raw)
@@ -39,7 +39,7 @@ func (w *Webhook) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kc
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse provider spec: %w", err)
 	}
-	w.wh.Namespace = ns
+	w.wh.Namespace = sourceNamespace
 	w.url = provider.URL
 	w.wh.Kube = kclient
 	w.wh.HTTP, err = w.wh.GetHTTPClient(ctx, provider)
@@ -50,7 +50,7 @@ func (w *Webhook) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kc
 	return data, nil, err
 }
 
-func (w *Webhook) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
+func (w *Webhook) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _, _ string) error {
 	return nil
 }
 

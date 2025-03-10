@@ -25,10 +25,9 @@ import (
 
 func TestGenerate(t *testing.T) {
 	type args struct {
-		ctx       context.Context
-		jsonSpec  *apiextensions.JSON
-		kube      client.Client
-		namespace string
+		ctx      context.Context
+		jsonSpec *apiextensions.JSON
+		kube     client.Client
 	}
 	tests := []struct {
 		name    string
@@ -79,7 +78,7 @@ func TestGenerate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := &Generator{}
-			got, _, err := g.Generate(tt.args.ctx, tt.args.jsonSpec, tt.args.kube, tt.args.namespace)
+			got, _, err := g.Generate(tt.args.ctx, tt.args.jsonSpec, tt.args.kube, "", "")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Generator.Generate() error = %v, wantErr %v", err, tt.wantErr)
 				return

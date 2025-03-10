@@ -801,7 +801,7 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 
 		// verify that generator's controllerClass matches
 		if ref.SourceRef != nil && ref.SourceRef.GeneratorRef != nil {
-			_, obj, err := resolvers.GeneratorRef(ctx, r.Client, r.Scheme, namespace, ref.SourceRef.GeneratorRef)
+			_, obj, _, err := resolvers.GeneratorRef(ctx, r.Client, r.Scheme, namespace, ref.SourceRef.GeneratorRef)
 			if err != nil {
 				if apierrors.IsNotFound(err) {
 					// skip non-existent generators

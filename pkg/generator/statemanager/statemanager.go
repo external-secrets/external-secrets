@@ -122,7 +122,7 @@ func (m *Manager) EnqueueMoveStateToGC(stateKey string) {
 
 // EnqueueSetLatest sets the latest state for the given key.
 // It will commit the state on success or move the state to GC on failure.
-func (m *Manager) EnqueueSetLatest(ctx context.Context, stateKey, namespace string, resource *apiextensions.JSON, gen genapi.Generator, state genapi.GeneratorProviderState) {
+func (m *Manager) EnqueueSetLatest(ctx context.Context, stateKey, sourceNamespace, destinationNamespace string, resource *apiextensions.JSON, gen genapi.Generator, state genapi.GeneratorProviderState) {
 	if state == nil {
 		return
 	}
@@ -130,7 +130,7 @@ func (m *Manager) EnqueueSetLatest(ctx context.Context, stateKey, namespace stri
 	m.queue = append(m.queue, QueueItem{
 		// Stores the state in GeneratorState resource
 		Commit: func() error {
-			genState, err := m.createGeneratorState(resource, state, namespace, stateKey)
+			genState, err := m.createGeneratorState(resource, state, sourceNamespace, destinationNamespace, stateKey)
 			if err != nil {
 				return err
 			}
@@ -140,11 +140,11 @@ func (m *Manager) EnqueueSetLatest(ctx context.Context, stateKey, namespace stri
 		// In case of failure, create a new GeneratorState, so it will eventually be cleaned up.
 		// If that also fails we're out of luck :(
 		Rollback: func() error {
-			err := gen.Cleanup(ctx, resource, state, m.client, namespace)
+			err := gen.Cleanup(ctx, resource, state, m.client, sourceNamespace, destinationNamespace)
 			if err == nil {
 				return nil
 			}
-			genState, err := m.createGeneratorState(resource, state, namespace, stateKey)
+			genState, err := m.createGeneratorState(resource, state, sourceNamespace, destinationNamespace, stateKey)
 			if err != nil {
 				return err
 			}
@@ -156,11 +156,11 @@ func (m *Manager) EnqueueSetLatest(ctx context.Context, stateKey, namespace stri
 	})
 }
 
-func (m *Manager) createGeneratorState(resource *apiextensions.JSON, state genapi.GeneratorProviderState, namespace, stateKey string) (*genapi.GeneratorState, error) {
+func (m *Manager) createGeneratorState(resource *apiextensions.JSON, state genapi.GeneratorProviderState, sourceNamespace, destinationNamespace, stateKey string) (*genapi.GeneratorState, error) {
 	genState := &genapi.GeneratorState{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: fmt.Sprintf("gen-%s-%s-", strings.ToLower(m.resource.GetObjectKind().GroupVersionKind().Kind), m.resource.GetName()),
-			Namespace:    namespace,
+			Namespace:    destinationNamespace,
 			Labels: map[string]string{
 				genapi.GeneratorStateLabelOwnerKey: ownerKey(
 					m.resource,
@@ -169,8 +169,9 @@ func (m *Manager) createGeneratorState(resource *apiextensions.JSON, state genap
 			},
 		},
 		Spec: genapi.GeneratorStateSpec{
-			Resource: resource,
-			State:    state,
+			Resource:        resource,
+			State:           state,
+			SourceNamespace: sourceNamespace,
 		},
 	}
 	if err := controllerutil.SetOwnerReference(m.resource, genState, m.scheme); err != nil {

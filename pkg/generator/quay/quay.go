@@ -52,16 +52,16 @@ const (
 	httpClientTimeout = 5 * time.Second
 )
 
-func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, sourceNamespace, _ string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(
 		ctx,
 		jsonSpec,
 		kube,
-		namespace,
+		sourceNamespace,
 	)
 }
 
-func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
+func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _, _ string) error {
 	return nil
 }
 
@@ -69,7 +69,7 @@ func (g *Generator) generate(
 	ctx context.Context,
 	jsonSpec *apiextensions.JSON,
 	_ client.Client,
-	namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+	sourceNamespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if jsonSpec == nil {
 		return nil, nil, errors.New(errNoSpec)
 	}
@@ -79,7 +79,7 @@ func (g *Generator) generate(
 	}
 
 	// Fetch the service account token
-	token, err := fetchServiceAccountToken(ctx, res.Spec.ServiceAccountRef, namespace)
+	token, err := fetchServiceAccountToken(ctx, res.Spec.ServiceAccountRef, sourceNamespace)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch service account token: %w", err)
 	}

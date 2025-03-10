@@ -53,6 +53,12 @@ type GeneratorStateSpec struct {
 	Resource *apiextensions.JSON `json:"resource"`
 	// State is the state that was produced by the generator implementation.
 	State *apiextensions.JSON `json:"state"`
+
+	// The namespace that should be used when accessing existing resources,
+	// such as secrets for existing credentials. If not set, then
+	// the namespace of each external secret that references this generator
+	// will be used.
+	SourceNamespace string `json:"sourceNamespace,omitempty"`
 }
 
 type GeneratorStateConditionType string

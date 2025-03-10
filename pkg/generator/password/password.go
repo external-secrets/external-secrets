@@ -49,14 +49,14 @@ type generateFunc func(
 	allowRepeat bool,
 ) (string, error)
 
-func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ client.Client, _ string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ client.Client, _, _ string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(
 		jsonSpec,
 		generateSafePassword,
 	)
 }
 
-func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
+func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _, _ string) error {
 	return nil
 }
 

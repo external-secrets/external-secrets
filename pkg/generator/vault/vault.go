@@ -43,7 +43,7 @@ const (
 	errGetSecret   = "unable to get dynamic secret: %w"
 )
 
-func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, sourceNamespace, _ string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	c := &provider.Provider{NewVaultClient: provider.NewVaultClient}
 
 	// controller-runtime/client does not support TokenRequest or other subresource APIs
@@ -58,14 +58,14 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 		return nil, nil, err
 	}
 
-	return g.generate(ctx, c, jsonSpec, kube, clientset.CoreV1(), namespace)
+	return g.generate(ctx, c, jsonSpec, kube, clientset.CoreV1(), sourceNamespace)
 }
 
-func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
+func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _, _ string) error {
 	return nil
 }
 
-func (g *Generator) generate(ctx context.Context, c *provider.Provider, jsonSpec *apiextensions.JSON, kube client.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+func (g *Generator) generate(ctx context.Context, c *provider.Provider, jsonSpec *apiextensions.JSON, kube client.Client, corev1 typedcorev1.CoreV1Interface, sourceNamespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if jsonSpec == nil {
 		return nil, nil, errors.New(errNoSpec)
 	}
@@ -76,7 +76,7 @@ func (g *Generator) generate(ctx context.Context, c *provider.Provider, jsonSpec
 	if spec == nil || spec.Spec.Provider == nil {
 		return nil, nil, errors.New("no Vault provider config in spec")
 	}
-	cl, err := c.NewGeneratorClient(ctx, kube, corev1, spec.Spec.Provider, namespace, spec.Spec.RetrySettings)
+	cl, err := c.NewGeneratorClient(ctx, kube, corev1, spec.Spec.Provider, sourceNamespace, spec.Spec.RetrySettings)
 	if err != nil {
 		return nil, nil, fmt.Errorf(errVaultClient, err)
 	}

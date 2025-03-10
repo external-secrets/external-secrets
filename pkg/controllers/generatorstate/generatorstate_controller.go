@@ -96,7 +96,12 @@ func (r *Reconciler) handleFinalizer(ctx context.Context, generatorState *genv1a
 			return false, fmt.Errorf("could not get generator: %w", err)
 		}
 
-		if err := gen.Cleanup(ctx, generatorState.Spec.Resource, generatorState.Spec.State, r.Client, generatorState.Namespace); err != nil {
+		sourceNamespace := generatorState.Spec.SourceNamespace
+		if sourceNamespace == "" {
+			sourceNamespace = generatorState.Namespace
+		}
+
+		if err := gen.Cleanup(ctx, generatorState.Spec.Resource, generatorState.Spec.State, r.Client, sourceNamespace, generatorState.Namespace); err != nil {
 			r.markAsFailed("could not cleanup generator state", err, generatorState)
 			return false, fmt.Errorf("could not cleanup generator state: %w", err)
 		}

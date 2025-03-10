@@ -41,15 +41,15 @@ const (
 	errGetToken   = "unable to get authorization token: %w"
 )
 
-func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
-	return g.generate(ctx, jsonSpec, kube, namespace, stsFactory)
+func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, sourceNamespace, _ string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+	return g.generate(ctx, jsonSpec, kube, sourceNamespace, stsFactory)
 }
 
 func (g *Generator) generate(
 	ctx context.Context,
 	jsonSpec *apiextensions.JSON,
 	kube client.Client,
-	namespace string,
+	sourceNamespace string,
 	stsFunc stsFactoryFunc,
 ) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if jsonSpec == nil {
@@ -68,7 +68,7 @@ func (g *Generator) generate(
 		res.Spec.Role,
 		res.Spec.Region,
 		kube,
-		namespace,
+		sourceNamespace,
 		awsauth.DefaultSTSProvider,
 		awsauth.DefaultJWTProvider)
 	if err != nil {
@@ -97,7 +97,7 @@ func (g *Generator) generate(
 	}, nil, nil
 }
 
-func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
+func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _, _ string) error {
 	return nil
 }
 

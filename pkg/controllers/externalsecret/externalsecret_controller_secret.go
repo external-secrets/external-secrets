@@ -146,8 +146,8 @@ func toStoreGenSourceRef(ref *esv1beta1.StoreSourceRef) *esv1beta1.StoreGenerato
 	}
 }
 
-func (r *Reconciler) handleGenerateSecrets(ctx context.Context, namespace string, remoteRef esv1beta1.ExternalSecretDataFromRemoteRef, i int, generatorState *statemanager.Manager) (map[string][]byte, error) {
-	impl, generatorResource, err := resolvers.GeneratorRef(ctx, r.Client, r.Scheme, namespace, remoteRef.SourceRef.GeneratorRef)
+func (r *Reconciler) handleGenerateSecrets(ctx context.Context, destinationNamespace string, remoteRef esv1beta1.ExternalSecretDataFromRemoteRef, i int, generatorState *statemanager.Manager) (map[string][]byte, error) {
+	impl, generatorResource, sourceNamespace, err := resolvers.GeneratorRef(ctx, r.Client, r.Scheme, destinationNamespace, remoteRef.SourceRef.GeneratorRef)
 	if err != nil {
 		return nil, err
 	}
@@ -155,14 +155,14 @@ func (r *Reconciler) handleGenerateSecrets(ctx context.Context, namespace string
 	if err != nil {
 		return nil, fmt.Errorf("unable to get latest state: %w", err)
 	}
-	secretMap, newState, err := impl.Generate(ctx, generatorResource, r.Client, namespace)
+	secretMap, newState, err := impl.Generate(ctx, generatorResource, r.Client, sourceNamespace, destinationNamespace)
 	if err != nil {
 		return nil, fmt.Errorf(errGenerate, err)
 	}
 	if latestState != nil {
 		generatorState.EnqueueMoveStateToGC(generatorStateKey(i))
 	}
-	generatorState.EnqueueSetLatest(ctx, generatorStateKey(i), namespace, generatorResource, impl, newState)
+	generatorState.EnqueueSetLatest(ctx, generatorStateKey(i), sourceNamespace, destinationNamespace, generatorResource, impl, newState)
 	// rewrite the keys if needed
 	secretMap, err = utils.RewriteMap(remoteRef.Rewrite, secretMap)
 	if err != nil {

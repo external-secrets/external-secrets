@@ -24,6 +24,12 @@ type ClusterGeneratorSpec struct {
 
 	// Generator the spec for this generator, must match the kind.
 	Generator GeneratorSpec `json:"generator"`
+
+	// The namespace that should be used when accessing existing resources,
+	// such as secrets for existing credentials. If not set, then
+	// the namespace of each external secret that references this generator
+	// will be used.
+	SourceNamespace string `json:"sourceNamespace,omitempty"`
 }
 
 // GeneratorKind represents a kind of generator.

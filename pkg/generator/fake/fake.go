@@ -34,7 +34,7 @@ const (
 	errGetToken  = "unable to get authorization token: %w"
 )
 
-func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ client.Client, _ string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ client.Client, _, _ string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if jsonSpec == nil {
 		return nil, nil, errors.New(errNoSpec)
 	}
@@ -49,7 +49,7 @@ func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ 
 	return out, nil, nil
 }
 
-func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, crClient client.Client, namespace string) error {
+func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, crClient client.Client, _, _ string) error {
 	return nil
 }
 

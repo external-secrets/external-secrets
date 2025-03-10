@@ -70,7 +70,7 @@ const (
 // * access tokens are scoped to a specific repository or action (pull,push)
 // * refresh tokens can are scoped to whatever policy is attached to the identity that creates the acr refresh token
 // details can be found here: https://github.com/Azure/acr/blob/main/docs/AAD-OAuth.md#overview
-func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, crClient client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, crClient client.Client, sourceNamespace, _ string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	cfg, err := ctrlcfg.GetConfig()
 	if err != nil {
 		return nil, nil, err
@@ -87,13 +87,13 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 		ctx,
 		jsonSpec,
 		crClient,
-		namespace,
+		sourceNamespace,
 		kubeClient,
 		fetchACRAccessToken,
 		fetchACRRefreshToken)
 }
 
-func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, crClient client.Client, namespace string) error {
+func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, crClient client.Client, _, _ string) error {
 	return nil
 }
 
@@ -101,7 +101,7 @@ func (g *Generator) generate(
 	ctx context.Context,
 	jsonSpec *apiextensions.JSON,
 	crClient client.Client,
-	namespace string,
+	sourceNamespace string,
 	kubeClient kubernetes.Interface,
 	fetchAccessToken accessTokenFetcher,
 	fetchRefreshToken refreshTokenFetcher) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
@@ -118,7 +118,7 @@ func (g *Generator) generate(
 		accessToken, err = g.accessTokenForServicePrincipal(
 			ctx,
 			crClient,
-			namespace,
+			sourceNamespace,
 			res.Spec.EnvironmentType,
 			res.Spec.TenantID,
 			res.Spec.Auth.ServicePrincipal.SecretRef.ClientID,
@@ -137,7 +137,7 @@ func (g *Generator) generate(
 			kubeClient.CoreV1(),
 			res.Spec.EnvironmentType,
 			res.Spec.Auth.WorkloadIdentity.ServiceAccountRef,
-			namespace,
+			sourceNamespace,
 		)
 	} else {
 		return nil, nil, errors.New("unexpeted configuration")
