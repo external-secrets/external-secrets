@@ -40,7 +40,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	metadata := data.GetMetadata()
 
 	// custom metadata
-	custom_metadata := map[string]string{
+	customMetadata := map[string]string{
 		"managed-by": "external-secrets",
 	}
 
@@ -59,7 +59,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 				// transfer data
 				for key, value := range metadataSection {
 					// key by key copy
-					custom_metadata[key] = value
+					customMetadata[key] = value
 				}
 			}
 		}
@@ -81,7 +81,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	}
 
 	label := map[string]any{
-		"custom_metadata": custom_metadata,
+		"custom_metadata": customMetadata,
 	}
 
 	secretVal := make(map[string]any)
