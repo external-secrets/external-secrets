@@ -135,7 +135,7 @@ func setGrafanaClientCredentials(ctx context.Context, gen *genv1alpha1.Grafana, 
 			return err
 		}
 
-		cfg.BasicAuth = url.UserPassword(gen.Spec.Auth.Basic.Username, string(basicAuthPassword))
+		cfg.BasicAuth = url.UserPassword(gen.Spec.Auth.Basic.Username, basicAuthPassword)
 		return nil
 	}
 
