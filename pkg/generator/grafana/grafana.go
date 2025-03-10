@@ -90,22 +90,15 @@ func (w *Grafana) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, pre
 }
 
 func newClient(ctx context.Context, gen *genv1alpha1.Grafana, kclient client.Client, ns string) (*grafanaclient.GrafanaHTTPAPI, error) {
-	url := strings.TrimPrefix(gen.Spec.URL, "https://")
-
-	scheme := "https"
-	if strings.HasPrefix(url, "http://") {
-		scheme = "http"
-	}
-
-	// Trim the scheme from the URL
-	if strings.Contains(url, "://") {
-		_, url, _ = strings.Cut(url, "://")
+	parsedURL, err := url.Parse(gen.Spec.URL)
+	if err != nil {
+		return nil, err
 	}
 
 	cfg := &grafanaclient.TransportConfig{
-		Host:     url,
-		BasePath: "/api",
-		Schemes:  []string{scheme},
+		Host:     parsedURL.Host,
+		BasePath: parsedURL.JoinPath("/api").Path,
+		Schemes:  []string{parsedURL.Scheme},
 	}
 
 	if err := setGrafanaClientCredentials(ctx, gen, kclient, ns, cfg); err != nil {
