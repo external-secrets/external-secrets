@@ -35,6 +35,36 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		value []byte
 		err   error
 	)
+
+	// get metadata
+	metadata := data.GetMetadata()
+
+	// custom metadata
+	custom_metadata := map[string]string{
+		"managed-by": "external-secrets",
+	}
+
+	//  not empty metadata
+	if metadata != nil {
+		// all sections from metadata
+		var metadataSection map[string]string
+		// raw data in bytes
+		rawBytes := metadata.Raw
+		// not empty section
+		if len(rawBytes) > 0 {
+			// unmarshalling json
+			err = json.Unmarshal(rawBytes, &metadataSection)
+			// check if unmarshalling correct
+			if err == nil {
+				// transfer data
+				for key, value := range metadataSection {
+					// key by key copy
+					custom_metadata[key] = value
+				}
+			}
+		}
+	}
+
 	key := data.GetSecretKey()
 	if key == "" {
 		// Must convert secret values to string, otherwise data will be sent as base64 to Vault
@@ -49,11 +79,11 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	} else {
 		value = secret.Data[key]
 	}
+
 	label := map[string]any{
-		"custom_metadata": map[string]string{
-			"managed-by": "external-secrets",
-		},
+		"custom_metadata": custom_metadata,
 	}
+
 	secretVal := make(map[string]any)
 	path := c.buildPath(data.GetRemoteKey())
 	metaPath, err := c.buildMetadataPath(data.GetRemoteKey())
