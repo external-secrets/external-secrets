@@ -198,7 +198,9 @@ func ValidateKeys(log logr.Logger, in map[string][]byte) error {
 	for key := range in {
 		keyLength := len(key)
 		if keyLength == 0 {
-			log.V(1).Info("key was skipped because it did not exist upstream", "key", key)
+			delete(in, key)
+
+			log.V(1).Info("key was deleted from the secret output because it did not exist upstream", "key", key)
 
 			continue
 		}
