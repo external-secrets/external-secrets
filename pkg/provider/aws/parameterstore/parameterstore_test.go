@@ -345,6 +345,21 @@ func TestPushSecret(t *testing.T) {
 				err: nil,
 			},
 		},
+		"PutParameterSucceedsWithoutKey": {
+			reason: "a parameter can be successfully pushed to aws parameter store",
+			args: args{
+				store: makeValidParameterStore().Spec.Provider.AWS,
+				client: fakeps.Client{
+					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(getParameterOutput, nil),
+					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
 		"SetParameterFailsWhenNoNameProvided": {
 			reason: "test push secret with no name gives error",
 			args: args{
@@ -644,6 +659,47 @@ func TestPushSecretWithPrefix(t *testing.T) {
 
 	input := client.PutParameterWithContextFnCalledWith[0][0]
 	assert.Equal(t, "/test/this/thing/fake-key", *input.Name)
+}
+
+func TestPushSecretWithoutKeyAndEncodedAsDecodedTrue(t *testing.T) {
+	fakeSecret := &corev1.Secret{
+		Data: map[string][]byte{
+			fakeSecretKey: []byte(fakeValue),
+		},
+	}
+	managedByESO := ssm.Tag{
+		Key:   &managedBy,
+		Value: &externalSecrets,
+	}
+	putParameterOutput := &ssm.PutParameterOutput{}
+	getParameterOutput := &ssm.GetParameterOutput{}
+	describeParameterOutput := &ssm.DescribeParametersOutput{}
+	validListTagsForResourceOutput := &ssm.ListTagsForResourceOutput{
+		TagList: []*ssm.Tag{&managedByESO},
+	}
+
+	client := fakeps.Client{
+		PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
+		GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(getParameterOutput, nil),
+		DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
+		ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+	}
+
+	psd := fake.PushSecretData{RemoteKey: remoteKey, Metadata: &apiextensionsv1.JSON{Raw: []byte(`
+apiVersion: kubernetes.external-secrets.io/v1alpha1
+kind: PushSecretMetadata
+spec:
+  encodeAsDecoded: true
+`)}}
+	ps := ParameterStore{
+		client: &client,
+		prefix: "/test/this/thing/",
+	}
+	err := ps.PushSecret(context.TODO(), fakeSecret, psd)
+	require.NoError(t, err)
+
+	input := client.PutParameterWithContextFnCalledWith[0][0]
+	assert.Equal(t, "{\"fakeSecretKey\":\"fakeValue\"}", *input.Value)
 }
 
 func TestPushSecretCalledOnlyOnce(t *testing.T) {
