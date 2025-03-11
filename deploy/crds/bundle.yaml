@@ -4521,18 +4521,28 @@ spec:
                           type: object
                         hostAPI:
                           default: https://app.infisical.com/api
+                          description: HostAPI specifies the base URL of the Infisical API. If not provided, it defaults to "https://app.infisical.com/api".
                           type: string
                         secretsScope:
+                          description: SecretsScope defines the scope of the secrets within the workspace
                           properties:
                             environmentSlug:
+                              description: EnvironmentSlug is the required slug identifier for the environment.
                               type: string
+                            expandSecretReferences:
+                              default: true
+                              description: ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.
+                              type: boolean
                             projectSlug:
+                              description: ProjectSlug is the required slug identifier for the project.
                               type: string
                             recursive:
                               default: false
+                              description: Recursive indicates whether the secrets should be fetched recursively. Defaults to false if not provided.
                               type: boolean
                             secretsPath:
                               default: /
+                              description: SecretsPath specifies the path to the secrets within the workspace. Defaults to "/" if not provided.
                               type: string
                           required:
                             - environmentSlug
@@ -6263,7 +6273,6 @@ spec:
                             - v2
                           type: string
                       required:
-                        - auth
                         - server
                       type: object
                     webhook:
@@ -11722,18 +11731,28 @@ spec:
                           type: object
                         hostAPI:
                           default: https://app.infisical.com/api
+                          description: HostAPI specifies the base URL of the Infisical API. If not provided, it defaults to "https://app.infisical.com/api".
                           type: string
                         secretsScope:
+                          description: SecretsScope defines the scope of the secrets within the workspace
                           properties:
                             environmentSlug:
+                              description: EnvironmentSlug is the required slug identifier for the environment.
                               type: string
+                            expandSecretReferences:
+                              default: true
+                              description: ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.
+                              type: boolean
                             projectSlug:
+                              description: ProjectSlug is the required slug identifier for the project.
                               type: string
                             recursive:
                               default: false
+                              description: Recursive indicates whether the secrets should be fetched recursively. Defaults to false if not provided.
                               type: boolean
                             secretsPath:
                               default: /
+                              description: SecretsPath specifies the path to the secrets within the workspace. Defaults to "/" if not provided.
                               type: string
                           required:
                             - environmentSlug
@@ -13464,7 +13483,6 @@ spec:
                             - v2
                           type: string
                       required:
-                        - auth
                         - server
                       type: object
                     webhook:
@@ -13801,7 +13819,7 @@ spec:
       schema:
         openAPIV3Schema:
           description: |-
-            ACRAccessToken returns a Azure Container Registry token
+            ACRAccessToken returns an Azure Container Registry token
             that can be used for pushing/pulling images.
             Note: by default it will return an ACR Refresh Token with full access
             (depending on the identity).
@@ -15571,7 +15589,6 @@ spec:
                                 - v2
                               type: string
                           required:
-                            - auth
                             - server
                           type: object
                         resultType:
@@ -17807,7 +17824,6 @@ spec:
                         - v2
                       type: string
                   required:
-                    - auth
                     - server
                   type: object
                 resultType:

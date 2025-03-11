@@ -120,7 +120,7 @@ func (c *client) configureClientTLS(ctx context.Context, cfg *vault.Config) erro
 func (c *client) Close(ctx context.Context) error {
 	// Revoke the token if we have one set, it wasn't sourced from a TokenSecretRef,
 	// and token caching isn't enabled
-	if !enableCache && c.client.Token() != "" && c.store.Auth.TokenSecretRef == nil {
+	if !enableCache && c.client.Token() != "" && c.store.Auth != nil && c.store.Auth.TokenSecretRef == nil {
 		err := revokeTokenIfValid(ctx, c.client)
 		if err != nil {
 			return err

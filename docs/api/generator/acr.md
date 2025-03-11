@@ -26,8 +26,8 @@ You can scope tokens to a particular repository using `spec.scope`.
 
 ## Scope
 
-First, an Azure Active Directory access token is obtained with the desired authentication method.
-This AAD access token will be used to authenticate against ACR to issue a refresh token or access token.
+First, a Microsoft Entra ID access token is obtained with the desired authentication method.
+This Microsoft Entra ID access token will be used to authenticate against ACR to issue a refresh token or access token.
 If `spec.scope` if it is defined it obtains an ACR access token. If  `spec.scope` is missing it obtains an ACR refresh token:
 
 - access tokens are scoped to a specific repository or action (pull,push)

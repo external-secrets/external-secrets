@@ -64,8 +64,8 @@ const (
 )
 
 // Generate generates a token that can be used to authenticate against Azure Container Registry.
-// First, an Azure Active Directory access token is obtained with the desired authentication method.
-// This AAD access token will be used to authenticate against ACR.
+// First, a Microsoft Entra ID access token is obtained with the desired authentication method.
+// This Microsoft Entra ID access token will be used to authenticate against ACR.
 // Depending on the generator spec it generates an ACR access token or an ACR refresh token.
 // * access tokens are scoped to a specific repository or action (pull,push)
 // * refresh tokens can are scoped to whatever policy is attached to the identity that creates the acr refresh token

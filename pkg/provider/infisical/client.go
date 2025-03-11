@@ -47,10 +47,11 @@ func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
 // then the secret entry will be deleted depending on the deletionPolicy.
 func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	secret, err := p.apiClient.GetSecretByKeyV3(api.GetSecretByKeyV3Request{
-		EnvironmentSlug: p.apiScope.EnvironmentSlug,
-		ProjectSlug:     p.apiScope.ProjectSlug,
-		SecretKey:       ref.Key,
-		SecretPath:      p.apiScope.SecretPath,
+		EnvironmentSlug:        p.apiScope.EnvironmentSlug,
+		ProjectSlug:            p.apiScope.ProjectSlug,
+		SecretKey:              ref.Key,
+		SecretPath:             p.apiScope.SecretPath,
+		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 	})
 
 	if err != nil {
@@ -101,10 +102,11 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 	}
 
 	secrets, err := p.apiClient.GetSecretsV3(api.GetSecretsV3Request{
-		EnvironmentSlug: p.apiScope.EnvironmentSlug,
-		ProjectSlug:     p.apiScope.ProjectSlug,
-		SecretPath:      p.apiScope.SecretPath,
-		Recursive:       p.apiScope.Recursive,
+		EnvironmentSlug:        p.apiScope.EnvironmentSlug,
+		ProjectSlug:            p.apiScope.ProjectSlug,
+		SecretPath:             p.apiScope.SecretPath,
+		Recursive:              p.apiScope.Recursive,
+		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 	})
 	if err != nil {
 		return nil, err
@@ -143,10 +145,11 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
 	// try to fetch the secrets to ensure provided credentials has access to read secrets
 	_, err := p.apiClient.GetSecretsV3(api.GetSecretsV3Request{
-		EnvironmentSlug: p.apiScope.EnvironmentSlug,
-		ProjectSlug:     p.apiScope.ProjectSlug,
-		Recursive:       p.apiScope.Recursive,
-		SecretPath:      p.apiScope.SecretPath,
+		EnvironmentSlug:        p.apiScope.EnvironmentSlug,
+		ProjectSlug:            p.apiScope.ProjectSlug,
+		Recursive:              p.apiScope.Recursive,
+		SecretPath:             p.apiScope.SecretPath,
+		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 	})
 
 	if err != nil {

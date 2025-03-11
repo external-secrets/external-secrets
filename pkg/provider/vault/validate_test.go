@@ -254,11 +254,12 @@ func TestValidateStore(t *testing.T) {
 			c := &Provider{
 				NewVaultClient: nil,
 			}
+			auth := tt.args.auth
 			store := &esv1beta1.SecretStore{
 				Spec: esv1beta1.SecretStoreSpec{
 					Provider: &esv1beta1.SecretStoreProvider{
 						Vault: &esv1beta1.VaultProvider{
-							Auth:      tt.args.auth,
+							Auth:      &auth,
 							ClientTLS: tt.args.clientTLS,
 						},
 					},
