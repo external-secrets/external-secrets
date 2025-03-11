@@ -21,8 +21,8 @@ It is possible to use Windows for development, but there are important considera
   <summary>Golang Installation</summary>
   <h3> Required Version</h3>
   <p><strong>Minimum version:</strong> Go 1.20 or higher.</p>
-  <p><strong>Recommended version:</strong> Go 1.23.3</p>
-  <blockquote> As of this writing, the latest version of Go is <strong>1.23.3</strong>As of this writing, the latest version of Go is 1.23.3 , which worked perfectly with the <strong>External Secrets Operator</strong> project. Previous versions failed to test the application. Before testing the project, check your Go version.</blockquote>
+  <p><strong>Recommended version:</strong> Go 1.24.1</p>
+  <blockquote> As of this writing, the latest version of Go is <strong>1.24.1</strong>As of this writing, the latest version of Go is 1.24.1 , which worked perfectly with the <strong>External Secrets Operator</strong> project. Previous versions failed to test the application. Before testing the project, check your Go version.</blockquote>
 
   <h3> How to Install Go</h3>
 
@@ -35,7 +35,7 @@ Please consult the <a href="https://go.dev/doc/install">official documentation</
   <summary>About Helm</summary>
   <h3>What is Helm?</h3>
   <p>Helm is a package manager for Kubernetes, the platform that automates deployment, scaling, and management of containerized applications.</p>
-  
+
   <h3>Why is Helm necessary?</h3>
   <p>In the <strong>External Secrets Operator</strong> project, Helm is used to simplify the installation and management of applications within Kubernetes, automating complex configuration and deployment processes.</p>
 </details>
@@ -58,7 +58,7 @@ Please consult the <a href="https://go.dev/doc/install">official documentation</
   <summary>About yq</summary>
   <h3>What is yq?</h3>
   <p>yq is a command-line tool for reading, manipulating, and writing YAML files, which are widely used for configurations.</p>
-  
+
   <h3>Why is yq necessary?</h3>
   <p>In the <strong>External Secrets Operator</strong> project, yq is used to automate the editing of YAML configuration files, facilitating adjustments and implementations.</p>
 </details>
@@ -82,7 +82,7 @@ Please consult the <a href="https://go.dev/doc/install">official documentation</
   <summary>About jq</summary>
   <h3>What is jq?</h3>
   <p>jq is a command-line tool for processing and manipulating JSON data.</p>
-  
+
   <h3>Why is jq needed?</h3>
   <p>In the <strong>External Secrets Operator</strong> project, jq is essential for working with JSON data, enabling efficient filtering and transformation of information.</p>
 </details>
@@ -103,13 +103,13 @@ Please consult the <a href="https://go.dev/doc/install">official documentation</
   <summary>About Kubernetes</summary>
   <h3>What is Kubernetes?</h3>
   <p>Kubernetes is an open-source platform for automating the deployment, scaling, and management of containerized applications. It orchestrates containerized workloads across a cluster of machines, ensuring high availability and efficient resource utilization.</p>
-  
+
   <h3>Why is Kubernetes needed?</h3>
   <p>In the <strong>External Secrets Operator</strong> project, Kubernetes provides the infrastructure to deploy and manage containerized applications. It allows integration with cloud-native services, enabling scalability, fault tolerance, and streamlined operations in dynamic environments.</p>
 
   <p>
   To work with Kubernetes, we need to install and configure some tools first. This will be explained in the sections below.
-  
+
   For more details, check the [official documentation](https://kubernetes.io/docs/home/).
 </p>
 </details>
@@ -121,7 +121,7 @@ Please consult the <a href="https://go.dev/doc/install">official documentation</
   <summary>About Docker</summary>
   <h3>What is Docker?</h3>
   <p>Docker is a platform for building, deploying, and running applications in containers. Containers package an application with all its dependencies into a standard unit for development and deployment.</p>
-  
+
   <h3>Why is Docker needed?</h3>
   <p>In the <strong>External Secrets Operator</strong> project, Docker is used to create container images and run services in isolated environments. It is essential for developing, testing, and deploying the application within a Kubernetes environment.</p>
 </details>
@@ -168,7 +168,7 @@ Please consult the <a href="https://go.dev/doc/install">official documentation</
   <h3>Required Version</h3>
   <p><strong>A version compatible with the installed Kubernetes version (usually the latest stable version).</strong></p>
   <h3>How to Install kubectl</h3>
-  
+
   <p>Please consult the <a href="https://kubernetes.io/docs/tasks/tools/">official kubectl documentation</a>.</p>
 </details>
 

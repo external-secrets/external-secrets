@@ -5549,7 +5549,6 @@ should match snapshot of default values:
                                 - v2
                               type: string
                           required:
-                            - auth
                             - server
                           type: object
                         webhook:

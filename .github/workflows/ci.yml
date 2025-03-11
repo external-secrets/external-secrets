@@ -9,7 +9,7 @@ on:
 
 env:
   # Common versions
-  GOLANGCI_VERSION: 'v1.61.0'
+  GOLANGCI_VERSION: 'v1.64.6'
   KUBERNETES_VERSION: '1.31.x'
 
   # Sonar
