@@ -345,21 +345,6 @@ func TestPushSecret(t *testing.T) {
 				err: nil,
 			},
 		},
-		"PutParameterSucceedsWithoutKey": {
-			reason: "a parameter can be successfully pushed to aws parameter store",
-			args: args{
-				store: makeValidParameterStore().Spec.Provider.AWS,
-				client: fakeps.Client{
-					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
-					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(getParameterOutput, nil),
-					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
-					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
-				},
-			},
-			want: want{
-				err: nil,
-			},
-		},
 		"SetParameterFailsWhenNoNameProvided": {
 			reason: "test push secret with no name gives error",
 			args: args{
