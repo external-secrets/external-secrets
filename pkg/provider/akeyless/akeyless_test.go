@@ -157,7 +157,6 @@ func TestAkeylessGetSecret(t *testing.T) {
 	sm := Akeyless{}
 	for _, v := range successCases {
 		sm.Client = v.mockClient
-		fmt.Println(*v.ref)
 		out, err := sm.GetSecret(context.Background(), *v.ref)
 		require.Truef(t, ErrorContains(err, v.expectError), fmtExpectedError, err, v.expectError)
 		require.Equal(t, string(out), v.expectedSecret)
@@ -402,7 +401,7 @@ func TestDeleteSecret(t *testing.T) {
 			})),
 		makeValidAkeylessTestCase("delete whole secret").SetExpectInput(&testingfake.PushSecretData{RemoteKey: "42"}).
 			SetMockClient(fakeakeyless.New().SetDescribeItemFn(func(ctx context.Context, itemName string) (*akeyless.Item, error) {
-				return &akeyless.Item{ItemTags: &[]string{ExtSecretManagedTag}}, nil
+				return &akeyless.Item{ItemTags: &[]string{extSecretManagedTag}}, nil
 			}).SetDeleteSecretFn(func(ctx context.Context, remoteKey string) error {
 				if remoteKey != "42" {
 					return fmt.Errorf("remote key %s expected %s", remoteKey, "42")
@@ -411,7 +410,7 @@ func TestDeleteSecret(t *testing.T) {
 			})),
 		makeValidAkeylessTestCase("delete property of secret").SetExpectInput(&testingfake.PushSecretData{Property: "Foo"}).
 			SetMockClient(fakeakeyless.New().SetDescribeItemFn(func(ctx context.Context, itemName string) (*akeyless.Item, error) {
-				return &akeyless.Item{ItemTags: &[]string{ExtSecretManagedTag}}, nil
+				return &akeyless.Item{ItemTags: &[]string{extSecretManagedTag}}, nil
 			}).SetGetSecretFn(func(secretName string, version int32) (string, error) {
 				return `{"Dio": "Brando", "Foo": "Fighters"}`, nil
 			}).
@@ -424,7 +423,7 @@ func TestDeleteSecret(t *testing.T) {
 				})),
 		makeValidAkeylessTestCase("delete secret if one property left").SetExpectInput(&testingfake.PushSecretData{RemoteKey: "Rings", Property: "Annatar"}).
 			SetMockClient(fakeakeyless.New().SetDescribeItemFn(func(ctx context.Context, itemName string) (*akeyless.Item, error) {
-				return &akeyless.Item{ItemTags: &[]string{ExtSecretManagedTag}}, nil
+				return &akeyless.Item{ItemTags: &[]string{extSecretManagedTag}}, nil
 			}).SetGetSecretFn(func(secretName string, version int32) (string, error) {
 				return `{"Annatar": "The Lord of Gifts"}`, nil
 			}).

@@ -60,7 +60,7 @@ func makeValidSecretStoreWithVersion(v esv1beta1.VaultKVStoreVersion) *esv1beta1
 					Server:  "vault.example.com",
 					Path:    &secretStorePath,
 					Version: v,
-					Auth: esv1beta1.VaultAuth{
+					Auth: &esv1beta1.VaultAuth{
 						Kubernetes: &esv1beta1.VaultKubernetesAuth{
 							Path: "kubernetes",
 							Role: "kubernetes-auth-role",
@@ -91,7 +91,7 @@ func makeValidSecretStoreWithCerts() *esv1beta1.SecretStore {
 					Server:  "vault.example.com",
 					Path:    &secretStorePath,
 					Version: esv1beta1.VaultKVStoreV2,
-					Auth: esv1beta1.VaultAuth{
+					Auth: &esv1beta1.VaultAuth{
 						Cert: &esv1beta1.VaultCertAuth{
 							ClientCert: esmeta.SecretKeySelector{
 								Name: tlsAuthCerts,
@@ -141,7 +141,7 @@ func makeInvalidClusterSecretStoreWithK8sCerts() *esv1beta1.ClusterSecretStore {
 					Server:  "vault.example.com",
 					Path:    &secretStorePath,
 					Version: "v2",
-					Auth: esv1beta1.VaultAuth{
+					Auth: &esv1beta1.VaultAuth{
 						Kubernetes: &esv1beta1.VaultKubernetesAuth{
 							Path: "kubernetes",
 							Role: "kubernetes-auth-role",
@@ -173,7 +173,7 @@ func makeValidSecretStoreWithIamAuthSecret() *esv1beta1.SecretStore {
 					Server:  "https://vault.example.com:8200",
 					Path:    &secretStorePath,
 					Version: esv1beta1.VaultKVStoreV2,
-					Auth: esv1beta1.VaultAuth{
+					Auth: &esv1beta1.VaultAuth{
 						Iam: &esv1beta1.VaultIamAuth{
 							Path:   "aws",
 							Region: "us-east-1",
@@ -313,7 +313,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			reason: "Should return error if no valid authentication method is given.",
 			args: args{
 				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
-					s.Spec.Provider.Vault.Auth = esv1beta1.VaultAuth{}
+					s.Spec.Provider.Vault.Auth = &esv1beta1.VaultAuth{}
 				}),
 			},
 			want: want{
@@ -347,7 +347,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				kube: clientfake.NewClientBuilder().Build(),
 			},
 			want: want{
-				err: fmt.Errorf(`cannot get Kubernetes secret "vault-secret": %w`, errors.New(`secrets "vault-secret" not found`)),
+				err: fmt.Errorf(`cannot get Kubernetes secret "vault-secret" from namespace "default": %w`, errors.New(`secrets "vault-secret" not found`)),
 			},
 		},
 		"SuccessfulVaultStoreWithCertAuth": {

@@ -24,6 +24,7 @@ import (
 	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/kube-openapi/pkg/validation/strfmt"
+	"k8s.io/utils/ptr"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -32,6 +33,13 @@ import (
 const (
 	// NoteMetadataKey defines the note for the pushed secret.
 	NoteMetadataKey = "note"
+
+	errNoProvider = "store does not have a provider"
+)
+
+var (
+	errFailedToGetAllSecrets = "failed to get all secrets: %w"
+	errFailedToGetSecret     = "failed to get secret: %w"
 )
 
 // PushSecret will write a single secret into the provider.
@@ -46,34 +54,16 @@ const (
 func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
 	spec := p.store.GetSpec()
 	if spec == nil || spec.Provider == nil {
-		return errors.New("store does not have a provider")
+		return errors.New(errNoProvider)
 	}
 
 	if data.GetRemoteKey() == "" {
 		return errors.New("remote key must be defined")
 	}
 
-	var (
-		value []byte
-		err   error
-		ok    bool
-	)
-	if data.GetSecretKey() == "" {
-		decodedMap := make(map[string]string)
-		for k, v := range secret.Data {
-			decodedMap[k] = string(v)
-		}
-		value, err = utils.JSONMarshal(decodedMap)
-
-		if err != nil {
-			return fmt.Errorf("failed to marshal secret data: %w", err)
-		}
-	} else {
-		value, ok = secret.Data[data.GetSecretKey()]
-
-		if !ok {
-			return fmt.Errorf("failed to find secret key in secret with key: %s", data.GetSecretKey())
-		}
+	value, err := utils.ExtractSecretData(data, secret)
+	if err != nil {
+		return fmt.Errorf("failed to extract secret data: %w", err)
 	}
 
 	note, err := utils.FetchValueFromMetadata(NoteMetadataKey, data.GetMetadata(), "")
@@ -84,7 +74,7 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data e
 	// ListAll Secrets for an organization. If the key matches our key, we GetSecret that and do a compare.
 	remoteSecrets, err := p.bitwardenSdkClient.ListSecrets(ctx, spec.Provider.BitwardenSecretsManager.OrganizationID)
 	if err != nil {
-		return fmt.Errorf("failed to get all secrets: %w", err)
+		return fmt.Errorf(errFailedToGetAllSecrets, err)
 	}
 
 	for _, d := range remoteSecrets.Data {
@@ -98,18 +88,10 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data e
 		}
 
 		// If all pushed data matches, we won't push this secret.
-		if sec.Key == data.GetRemoteKey() &&
-			sec.Value == string(value) &&
-			sec.Note == note &&
-			sec.ProjectID != nil &&
-			*sec.ProjectID == spec.Provider.BitwardenSecretsManager.ProjectID {
+		if p.isExactlySameSecret(sec, data.GetRemoteKey(), note, spec.Provider.BitwardenSecretsManager.ProjectID, value) {
 			// we have a complete match, skip pushing.
 			return nil
-		} else if sec.Key == data.GetRemoteKey() &&
-			sec.Value != string(value) &&
-			sec.Note == note &&
-			sec.ProjectID != nil &&
-			*sec.ProjectID == spec.Provider.BitwardenSecretsManager.ProjectID {
+		} else if p.isOnlyValueDifferent(sec, data.GetRemoteKey(), note, spec.Provider.BitwardenSecretsManager.ProjectID, value) {
 			// only the value is different, update the existing secret.
 			_, err = p.bitwardenSdkClient.UpdateSecret(ctx, SecretPutRequest{
 				ID:             sec.ID,
@@ -136,12 +118,26 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data e
 	return err
 }
 
+func (p *Provider) isExactlySameSecret(sec *SecretResponse, remoteKey, note, projectID string, value []byte) bool {
+	return sec.Key == remoteKey &&
+		sec.Value == string(value) &&
+		sec.Note == note &&
+		ptr.Deref(sec.ProjectID, "") == projectID
+}
+
+func (p *Provider) isOnlyValueDifferent(sec *SecretResponse, remoteKey, note, projectID string, value []byte) bool {
+	return sec.Key == remoteKey &&
+		sec.Value != string(value) &&
+		sec.Note == note &&
+		ptr.Deref(sec.ProjectID, "") == projectID
+}
+
 // GetSecret returns a single secret from the provider.
 func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if strfmt.IsUUID(ref.Key) {
 		resp, err := p.bitwardenSdkClient.GetSecret(ctx, ref.Key)
 		if err != nil {
-			return nil, fmt.Errorf("error getting secret: %w", err)
+			return nil, fmt.Errorf(errFailedToGetSecret, err)
 		}
 
 		return []byte(resp.Value), nil
@@ -149,12 +145,12 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 
 	spec := p.store.GetSpec()
 	if spec == nil || spec.Provider == nil {
-		return nil, errors.New("store does not have a provider")
+		return nil, errors.New(errNoProvider)
 	}
 
 	secret, err := p.findSecretByRef(ctx, ref.Key, spec.Provider.BitwardenSecretsManager.ProjectID)
 	if err != nil {
-		return nil, fmt.Errorf("error getting secret: %w", err)
+		return nil, fmt.Errorf(errFailedToGetSecret, err)
 	}
 
 	if secret == nil {
@@ -172,12 +168,12 @@ func (p *Provider) DeleteSecret(ctx context.Context, ref esv1beta1.PushSecretRem
 
 	spec := p.store.GetSpec()
 	if spec == nil || spec.Provider == nil {
-		return errors.New("store does not have a provider")
+		return errors.New(errNoProvider)
 	}
 
 	secret, err := p.findSecretByRef(ctx, ref.GetRemoteKey(), spec.Provider.BitwardenSecretsManager.ProjectID)
 	if err != nil {
-		return fmt.Errorf("error getting secret: %w", err)
+		return fmt.Errorf(errFailedToGetSecret, err)
 	}
 
 	if secret == nil {
@@ -210,7 +206,7 @@ func (p *Provider) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRem
 	if strfmt.IsUUID(ref.GetRemoteKey()) {
 		_, err := p.bitwardenSdkClient.GetSecret(ctx, ref.GetRemoteKey())
 		if err != nil {
-			return false, fmt.Errorf("error getting secret: %w", err)
+			return false, fmt.Errorf(errFailedToGetSecret, err)
 		}
 
 		return true, nil
@@ -218,12 +214,12 @@ func (p *Provider) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRem
 
 	spec := p.store.GetSpec()
 	if spec == nil || spec.Provider == nil {
-		return false, errors.New("store does not have a provider")
+		return false, errors.New(errNoProvider)
 	}
 
 	secret, err := p.findSecretByRef(ctx, ref.GetRemoteKey(), spec.Provider.BitwardenSecretsManager.ProjectID)
 	if err != nil {
-		return false, fmt.Errorf("error getting secret: %w", err)
+		return false, fmt.Errorf(errFailedToGetSecret, err)
 	}
 
 	if secret == nil {
@@ -296,19 +292,19 @@ func (p *Provider) parseYamlSecretData(data []byte) (map[string][]byte, error) {
 func (p *Provider) GetAllSecrets(ctx context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	spec := p.store.GetSpec()
 	if spec == nil {
-		return nil, errors.New("store does not have a provider")
+		return nil, errors.New(errNoProvider)
 	}
 
 	secrets, err := p.bitwardenSdkClient.ListSecrets(ctx, spec.Provider.BitwardenSecretsManager.OrganizationID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get all secrets: %w", err)
+		return nil, fmt.Errorf(errFailedToGetAllSecrets, err)
 	}
 
 	result := map[string][]byte{}
 	for _, d := range secrets.Data {
 		sec, err := p.bitwardenSdkClient.GetSecret(ctx, d.ID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get secret: %w", err)
+			return nil, fmt.Errorf(errFailedToGetSecret, err)
 		}
 
 		result[d.ID] = []byte(sec.Value)
@@ -330,13 +326,13 @@ func (p *Provider) Close(_ context.Context) error {
 func (p *Provider) findSecretByRef(ctx context.Context, key, projectID string) (*SecretResponse, error) {
 	spec := p.store.GetSpec()
 	if spec == nil || spec.Provider == nil {
-		return nil, errors.New("store does not have a provider")
+		return nil, errors.New(errNoProvider)
 	}
 
 	// ListAll Secrets for an organization. If the key matches our key, we GetSecret that and do a compare.
 	secrets, err := p.bitwardenSdkClient.ListSecrets(ctx, spec.Provider.BitwardenSecretsManager.OrganizationID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get all secrets: %w", err)
+		return nil, fmt.Errorf(errFailedToGetAllSecrets, err)
 	}
 
 	var remoteSecret *SecretResponse
@@ -347,7 +343,7 @@ func (p *Provider) findSecretByRef(ctx context.Context, key, projectID string) (
 
 		sec, err := p.bitwardenSdkClient.GetSecret(ctx, d.ID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get secret: %w", err)
+			return nil, fmt.Errorf(errFailedToGetSecret, err)
 		}
 
 		if sec.ProjectID != nil && *sec.ProjectID == projectID {

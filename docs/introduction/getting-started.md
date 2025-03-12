@@ -4,6 +4,8 @@ External-secrets runs within your Kubernetes cluster as a deployment resource.
 It utilizes CustomResourceDefinitions to configure access to secret providers through SecretStore resources
 and manages Kubernetes secret resources with ExternalSecret resources.
 
+This tutorial is intended for those who already have the PreRequisites complete. If there is a term that you don't comprehend, we suggest you to take a look at the Glossary for a general understanding.
+
 > Note: The minimum supported version of Kubernetes is `1.16.0`. Users still running Kubernetes v1.15 or below should upgrade
 > to a supported version before installing external-secrets.
 

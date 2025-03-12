@@ -23,6 +23,7 @@ const (
 	CallAWSSMCreateSecret        = "CreateSecret"
 	CallAWSSMPutSecretValue      = "PutSecretValue"
 	CallAWSSMListSecrets         = "ListSecrets"
+	CallAWSSMBatchGetSecretValue = "BatchGetSecretValue"
 
 	ProviderAWSPS                = "AWS/ParameterStore"
 	CallAWSPSGetParameter        = "GetParameter"

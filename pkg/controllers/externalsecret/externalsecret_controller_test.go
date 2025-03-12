@@ -41,11 +41,21 @@ import (
 	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/util"
 	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+)
+
+const (
+	labelKey           = "label-key"
+	labelValue         = "label-value"
+	annotationKey      = "annotation-key"
+	annotationValue    = "annotation-value"
+	existingLabelKey   = "existing-label-key"
+	existingLabelValue = "existing-label-value"
 )
 
 var (
@@ -320,16 +330,16 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	// should be copied over to the Kind=Secret
 	syncLabelsAnnotations := func(tc *testCase) {
 		tc.externalSecret.ObjectMeta.Labels = map[string]string{
-			"label-key": "label-value",
+			labelKey: labelValue,
 		}
 		tc.externalSecret.ObjectMeta.Annotations = map[string]string{
-			"annotation-key": "annotation-value",
+			annotationKey: annotationValue,
 		}
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
 
 		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
-			Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue("label-key", "label-value"))
-			Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue("annotation-key", "annotation-value"))
+			Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue(labelKey, labelValue))
+			Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue(annotationKey, annotationValue))
 
 			// ownerRef must not be set!
 			Expect(ctest.HasOwnerRef(secret.ObjectMeta, "ExternalSecret", ExternalSecretName)).To(BeTrue())
@@ -340,10 +350,10 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	// should be merged to the Secret if exists
 	mergeLabelsAnnotations := func(tc *testCase) {
 		tc.externalSecret.ObjectMeta.Labels = map[string]string{
-			"label-key": "label-value",
+			labelKey: labelValue,
 		}
 		tc.externalSecret.ObjectMeta.Annotations = map[string]string{
-			"annotation-key": "annotation-value",
+			annotationKey: annotationValue,
 		}
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
 		// Create a secret owned by another entity to test if the pre-existing metadata is preserved
@@ -352,7 +362,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 				Name:      ExternalSecretTargetSecretName,
 				Namespace: ExternalSecretNamespace,
 				Labels: map[string]string{
-					"existing-label-key": "existing-label-value",
+					existingLabelKey: existingLabelValue,
 				},
 				Annotations: map[string]string{
 					"existing-annotation-key": "existing-annotation-value",
@@ -361,19 +371,19 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		}, client.FieldOwner(FakeManager))).To(Succeed())
 
 		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
-			Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue("label-key", "label-value"))
-			Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue("existing-label-key", "existing-label-value"))
-			Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue("annotation-key", "annotation-value"))
+			Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue(labelKey, labelValue))
+			Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue(existingLabelKey, existingLabelValue))
+			Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue(annotationKey, annotationValue))
 			Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue("existing-annotation-key", "existing-annotation-value"))
 		}
 	}
 
 	removeOutdatedLabelsAnnotations := func(tc *testCase) {
 		tc.externalSecret.ObjectMeta.Labels = map[string]string{
-			"label-key": "label-value",
+			labelKey: labelValue,
 		}
 		tc.externalSecret.ObjectMeta.Annotations = map[string]string{
-			"annotation-key": "annotation-value",
+			annotationKey: annotationValue,
 		}
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
 		// Create a secret owned by the operator to test if the outdated pre-existing metadata is removed
@@ -382,7 +392,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 				Name:      ExternalSecretTargetSecretName,
 				Namespace: ExternalSecretNamespace,
 				Labels: map[string]string{
-					"existing-label-key": "existing-label-value",
+					existingLabelKey: existingLabelValue,
 				},
 				Annotations: map[string]string{
 					"existing-annotation-key": "existing-annotation-value",
@@ -391,9 +401,9 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		}, client.FieldOwner(ExternalSecretFQDN))).To(Succeed())
 
 		tc.checkSecret = func(es *esv1beta1.ExternalSecret, secret *v1.Secret) {
-			Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue("label-key", "label-value"))
-			Expect(secret.ObjectMeta.Labels).NotTo(HaveKeyWithValue("existing-label-key", "existing-label-value"))
-			Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue("annotation-key", "annotation-value"))
+			Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue(labelKey, labelValue))
+			Expect(secret.ObjectMeta.Labels).NotTo(HaveKeyWithValue(existingLabelKey, existingLabelValue))
+			Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue(annotationKey, annotationValue))
 			Expect(secret.ObjectMeta.Annotations).NotTo(HaveKeyWithValue("existing-annotation-key", "existing-annotation-value"))
 		}
 	}
@@ -432,7 +442,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 				Name:      ExternalSecretTargetSecretName,
 				Namespace: ExternalSecretNamespace,
 				Labels: map[string]string{
-					"existing-label-key": "existing-label-value",
+					existingLabelKey: existingLabelValue,
 				},
 				Annotations: map[string]string{
 					"existing-annotation-key": "existing-annotation-value",
@@ -450,7 +460,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
 
 			Expect(secret.ObjectMeta.Labels).To(HaveLen(3))
-			Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue("existing-label-key", "existing-label-value"))
+			Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue(existingLabelKey, existingLabelValue))
 			Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue("es-label-key", "es-label-value"))
 			Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue(esv1beta1.LabelManaged, esv1beta1.LabelManagedValue))
 
@@ -2394,7 +2404,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 					RefreshTime: metav1.Now(),
 				},
 			}
-			es.Status.SyncedResourceVersion = getResourceVersion(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			// this should not refresh, rv matches object
 			Expect(shouldRefresh(es)).To(BeFalse())
 
@@ -2418,7 +2428,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 					RefreshTime: metav1.Now(),
 				},
 			}
-			es.Status.SyncedResourceVersion = getResourceVersion(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			// this should not refresh, rv matches object
 			Expect(shouldRefresh(es)).To(BeFalse())
 
@@ -2439,7 +2449,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 					RefreshTime: metav1.Now(),
 				},
 			}
-			es.Status.SyncedResourceVersion = getResourceVersion(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeFalse())
 
 			// update gen -> refresh
@@ -2458,7 +2468,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 				Status: esv1beta1.ExternalSecretStatus{},
 			}
 			// resource version matches
-			es.Status.SyncedResourceVersion = getResourceVersion(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeFalse())
 		})
 
@@ -2475,7 +2485,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 				},
 			}
 			// resource version matches
-			es.Status.SyncedResourceVersion = getResourceVersion(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeTrue())
 		})
 
@@ -2490,20 +2500,20 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 				Status: esv1beta1.ExternalSecretStatus{},
 			}
 			// resource version matches
-			es.Status.SyncedResourceVersion = getResourceVersion(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeTrue())
 		})
 
 	})
 	Context("objectmeta hash", func() {
 		It("should produce different hashes for different k/v pairs", func() {
-			h1 := hashMeta(metav1.ObjectMeta{
+			h1 := util.HashMeta(metav1.ObjectMeta{
 				Generation: 1,
 				Annotations: map[string]string{
 					"foo": "bar",
 				},
 			})
-			h2 := hashMeta(metav1.ObjectMeta{
+			h2 := util.HashMeta(metav1.ObjectMeta{
 				Generation: 1,
 				Annotations: map[string]string{
 					"foo": "bing",
@@ -2513,7 +2523,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 		})
 
 		It("should produce different hashes for different generations but same label/annotations", func() {
-			h1 := hashMeta(metav1.ObjectMeta{
+			h1 := util.HashMeta(metav1.ObjectMeta{
 				Generation: 1,
 				Annotations: map[string]string{
 					"foo": "bar",
@@ -2522,7 +2532,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 					"foo": "bar",
 				},
 			})
-			h2 := hashMeta(metav1.ObjectMeta{
+			h2 := util.HashMeta(metav1.ObjectMeta{
 				Generation: 2,
 				Annotations: map[string]string{
 					"foo": "bar",
@@ -2535,21 +2545,21 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 		})
 
 		It("should produce the same hash for the same k/v pairs", func() {
-			h1 := hashMeta(metav1.ObjectMeta{
+			h1 := util.HashMeta(metav1.ObjectMeta{
 				Generation: 1,
 			})
-			h2 := hashMeta(metav1.ObjectMeta{
+			h2 := util.HashMeta(metav1.ObjectMeta{
 				Generation: 1,
 			})
 			Expect(h1).To(Equal(h2))
 
-			h1 = hashMeta(metav1.ObjectMeta{
+			h1 = util.HashMeta(metav1.ObjectMeta{
 				Generation: 1,
 				Annotations: map[string]string{
 					"foo": "bar",
 				},
 			})
-			h2 = hashMeta(metav1.ObjectMeta{
+			h2 = util.HashMeta(metav1.ObjectMeta{
 				Generation: 1,
 				Annotations: map[string]string{
 					"foo": "bar",

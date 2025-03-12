@@ -31,6 +31,8 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: webhook-credentials
+  labels:
+    external-secrets.io/type: webhook #Needed to allow webhook to use this secret
 data:
   username: dGVzdA== # "test"
   password: dGVzdA== # "test"
@@ -66,6 +68,55 @@ metadata:
 data:
   foobar: c2VjcmV0
 ```
+
+To push a secret, create the following store:
+
+```yaml
+{% raw %}
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: webhook-backend
+spec:
+  provider:
+    webhook:
+      url: "http://httpbin.org/push?id={{ .remoteRef.remoteKey }}&secret={{ .remoteRef.secretKey }}"
+      body: '{"secret-field": "{{ index .remoteRef .remoteRef.remoteKey }}"}'
+      headers:
+        Content-Type: application/json
+        Authorization: Basic {{ print .auth.username ":" .auth.password | b64enc }}
+      secrets:
+      - name: auth
+        secretRef:
+          name: webhook-credentials
+{%- endraw %}
+```
+
+Then create a push secret:
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: pushsecret-example # Customisable
+spec:
+  refreshInterval: 1h # Refresh interval for which push secret will reconcile
+  secretStoreRefs: # A list of secret stores to push secrets to
+    - name: webhook-backend
+      kind: SecretStore
+  selector:
+    secret:
+      name: test-secret
+  data:
+    - conversionStrategy:
+      match:
+        secretKey: testsecret
+        remoteRef:
+          remoteKey: remotekey
+```
+If `secretKey` is not provided, the whole secret is provided JSON encoded.
+
+The secret will be added to the `remoteRef` object so that it is retrievable in the templating engine. The secret will be sent in the body when the body field of the provider is empty. In the rare case that the body should be empty, the provider can be configured to use `{% raw %}'{{ "" }}'{% endraw %}` for the body value.
 
 #### Limitations
 

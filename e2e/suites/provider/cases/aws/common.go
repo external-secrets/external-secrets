@@ -94,9 +94,17 @@ func newStaticStoreProvider(serviceType esv1beta1.AWSServiceType, region, secret
 	}
 }
 
-// SessionTagsStore is namespaced and references
-// static credentials from a secret. It assumes a role and specifies session tags
-func SetupSessionTagsStore(f *framework.Framework, kid, sak, st, region, role string, sessionTags []*esv1beta1.Tag, serviceType esv1beta1.AWSServiceType) {
+type AccessOpts struct {
+	KID    string
+	SAK    string
+	ST     string
+	Region string
+	Role   string
+}
+
+// SetupSessionTagsStore is namespaced and references
+// static credentials from a secret. It assumes a Role and specifies session tags
+func SetupSessionTagsStore(f *framework.Framework, access AccessOpts, sessionTags []*esv1beta1.Tag, serviceType esv1beta1.AWSServiceType) {
 	credsName := "provider-secret-sess-tags"
 	awsCreds := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -104,9 +112,9 @@ func SetupSessionTagsStore(f *framework.Framework, kid, sak, st, region, role st
 			Namespace: f.Namespace.Name,
 		},
 		StringData: map[string]string{
-			staticKeyID:           kid,
-			staticSecretAccessKey: sak,
-			staticySessionToken:   st,
+			staticKeyID:           access.KID,
+			staticSecretAccessKey: access.SAK,
+			staticySessionToken:   access.ST,
 		},
 	}
 	err := f.CRClient.Create(context.Background(), awsCreds)
@@ -118,16 +126,16 @@ func SetupSessionTagsStore(f *framework.Framework, kid, sak, st, region, role st
 			Namespace: f.Namespace.Name,
 		},
 		Spec: esv1beta1.SecretStoreSpec{
-			Provider: newStaticStoreProvider(serviceType, region, credsName, role, "", sessionTags),
+			Provider: newStaticStoreProvider(serviceType, access.Region, credsName, access.Role, "", sessionTags),
 		},
 	}
 	err = f.CRClient.Create(context.Background(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
-// ExternalIDStore is namespaced and references
+// SetupExternalIDStore is namespaced and references
 // static credentials from a secret. It assumes a role and specifies an externalID
-func SetupExternalIDStore(f *framework.Framework, kid, sak, st, region, role, externalID string, sessionTags []*esv1beta1.Tag, serviceType esv1beta1.AWSServiceType) {
+func SetupExternalIDStore(f *framework.Framework, access AccessOpts, externalID string, sessionTags []*esv1beta1.Tag, serviceType esv1beta1.AWSServiceType) {
 	credsName := "provider-secret-ext-id"
 	awsCreds := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -135,9 +143,9 @@ func SetupExternalIDStore(f *framework.Framework, kid, sak, st, region, role, ex
 			Namespace: f.Namespace.Name,
 		},
 		StringData: map[string]string{
-			staticKeyID:           kid,
-			staticSecretAccessKey: sak,
-			staticySessionToken:   st,
+			staticKeyID:           access.KID,
+			staticSecretAccessKey: access.SAK,
+			staticySessionToken:   access.ST,
 		},
 	}
 	err := f.CRClient.Create(context.Background(), awsCreds)
@@ -149,25 +157,25 @@ func SetupExternalIDStore(f *framework.Framework, kid, sak, st, region, role, ex
 			Namespace: f.Namespace.Name,
 		},
 		Spec: esv1beta1.SecretStoreSpec{
-			Provider: newStaticStoreProvider(serviceType, region, credsName, role, externalID, sessionTags),
+			Provider: newStaticStoreProvider(serviceType, access.Region, credsName, access.Role, externalID, sessionTags),
 		},
 	}
 	err = f.CRClient.Create(context.Background(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
-// StaticStore is namespaced and references
+// SetupStaticStore is namespaced and references
 // static credentials from a secret.
-func SetupStaticStore(f *framework.Framework, kid, sak, st, region string, serviceType esv1beta1.AWSServiceType) {
+func SetupStaticStore(f *framework.Framework, access AccessOpts, serviceType esv1beta1.AWSServiceType) {
 	awsCreds := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      StaticCredentialsSecretName,
 			Namespace: f.Namespace.Name,
 		},
 		StringData: map[string]string{
-			staticKeyID:           kid,
-			staticSecretAccessKey: sak,
-			staticySessionToken:   st,
+			staticKeyID:           access.KID,
+			staticSecretAccessKey: access.SAK,
+			staticySessionToken:   access.ST,
 		},
 	}
 	err := f.CRClient.Create(context.Background(), awsCreds)
@@ -179,7 +187,7 @@ func SetupStaticStore(f *framework.Framework, kid, sak, st, region string, servi
 			Namespace: f.Namespace.Name,
 		},
 		Spec: esv1beta1.SecretStoreSpec{
-			Provider: newStaticStoreProvider(serviceType, region, StaticCredentialsSecretName, "", "", nil),
+			Provider: newStaticStoreProvider(serviceType, access.Region, StaticCredentialsSecretName, "", "", nil),
 		},
 	}
 	err = f.CRClient.Create(context.Background(), secretStore)
@@ -188,7 +196,7 @@ func SetupStaticStore(f *framework.Framework, kid, sak, st, region string, servi
 
 // CreateReferentStaticStore creates a CSS with referent auth and
 // creates a secret with static authentication credentials in the ExternalSecret namespace.
-func CreateReferentStaticStore(f *framework.Framework, kid, sak, st, region string, serviceType esv1beta1.AWSServiceType) {
+func CreateReferentStaticStore(f *framework.Framework, access AccessOpts, serviceType esv1beta1.AWSServiceType) {
 	ns := f.Namespace.Name
 
 	awsCreds := &corev1.Secret{
@@ -197,9 +205,9 @@ func CreateReferentStaticStore(f *framework.Framework, kid, sak, st, region stri
 			Namespace: ns,
 		},
 		StringData: map[string]string{
-			staticKeyID:           kid,
-			staticSecretAccessKey: sak,
-			staticySessionToken:   st,
+			staticKeyID:           access.KID,
+			staticSecretAccessKey: access.SAK,
+			staticySessionToken:   access.ST,
 		},
 	}
 	err := f.CRClient.Create(context.Background(), awsCreds)
@@ -210,7 +218,7 @@ func CreateReferentStaticStore(f *framework.Framework, kid, sak, st, region stri
 			Name: ReferentSecretStoreName(f),
 		},
 		Spec: esv1beta1.SecretStoreSpec{
-			Provider: newStaticStoreProvider(serviceType, region, StaticReferentCredentialsSecretName, "", "", nil),
+			Provider: newStaticStoreProvider(serviceType, access.Region, StaticReferentCredentialsSecretName, "", "", nil),
 		},
 	}
 	err = f.CRClient.Create(context.Background(), secretStore)

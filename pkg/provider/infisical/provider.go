@@ -18,6 +18,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"time"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,15 +38,16 @@ var (
 )
 
 type Provider struct {
-	apiClient api.InfisicalApis
+	apiClient *api.InfisicalClient
 	apiScope  *InfisicalClientScope
 }
 
 type InfisicalClientScope struct {
-	EnvironmentSlug string
-	ProjectSlug     string
-	Recursive       bool
-	SecretPath      string
+	EnvironmentSlug        string
+	ProjectSlug            string
+	Recursive              bool
+	SecretPath             string
+	ExpandSecretReferences bool
 }
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -70,7 +73,9 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 
 	infisicalSpec := storeSpec.Provider.Infisical
 
-	apiClient, err := api.NewAPIClient(infisicalSpec.HostAPI)
+	apiClient, err := api.NewAPIClient(infisicalSpec.HostAPI, &http.Client{
+		Timeout: time.Second * 15,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -94,10 +99,11 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return &Provider{
 			apiClient: apiClient,
 			apiScope: &InfisicalClientScope{
-				EnvironmentSlug: infisicalSpec.SecretsScope.EnvironmentSlug,
-				ProjectSlug:     infisicalSpec.SecretsScope.ProjectSlug,
-				Recursive:       infisicalSpec.SecretsScope.Recursive,
-				SecretPath:      infisicalSpec.SecretsScope.SecretsPath,
+				EnvironmentSlug:        infisicalSpec.SecretsScope.EnvironmentSlug,
+				ProjectSlug:            infisicalSpec.SecretsScope.ProjectSlug,
+				Recursive:              infisicalSpec.SecretsScope.Recursive,
+				SecretPath:             infisicalSpec.SecretsScope.SecretsPath,
+				ExpandSecretReferences: infisicalSpec.SecretsScope.ExpandSecretReferences,
 			},
 		}, nil
 	}

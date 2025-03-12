@@ -32,6 +32,11 @@ type ECRAuthorizationTokenSpec struct {
 	// desired AWS service.
 	// +optional
 	Role string `json:"role,omitempty"`
+
+	// Scope specifies the ECR service scope.
+	// Valid options are private and public.
+	// +optional
+	Scope string `json:"scope,omitempty"`
 }
 
 // AWSAuth tells the controller how to do authentication with aws.

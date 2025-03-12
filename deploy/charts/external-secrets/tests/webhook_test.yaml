@@ -2,6 +2,7 @@ suite: test webhook deployment
 templates:
   - webhook-deployment.yaml
   - webhook-secret.yaml
+  - webhook-service.yaml
   - webhook-certificate.yaml
   - validatingwebhook.yaml
   - crds/externalsecret.yaml
@@ -203,3 +204,156 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].image
           value: example.com/external-secrets/external-secrets:v0.9.9-ubi
+  - it: should expose metrics port when metrics are enabled
+    set:
+      webhook.metrics.service.enabled: true
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - equal:
+          path: spec.ports[1].name
+          value: metrics
+  - it: should expose metrics port and metrics label when APIVersions is present and serviceMonitor is enabled
+    set:
+      serviceMonitor.enabled: true
+    capabilities:
+      apiVersions:
+        - "monitoring.coreos.com/v1"
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - equal:
+          path: spec.ports[1].name
+          value: metrics
+      - equal:
+          path: metadata.labels["app.kubernetes.io/metrics"]
+          value: "webhook"
+  - it: should not expose metrics port nor metrics label when APIVersions is not present but serviceMonitor is enabled
+    set:
+      serviceMonitor.enabled: true
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - lengthEqual:
+          path: spec.ports
+          count: 1
+      - isNull:
+          path: metadata.labels["app.kubernetes.io/metrics"]
+  - it: should not expose metrics port nor metrics label when APIVersions is present and serviceMonitor is disabled
+    set:
+      serviceMonitor.enabled: false
+    capabilities:
+      apiVersions:
+        - "monitoring.coreos.com/v1"
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - lengthEqual:
+          path: spec.ports
+          count: 1
+      - isNull:
+          path: metadata.labels["app.kubernetes.io/metrics"]
+  - it: should not expose metrics port nor metrics annotation when APIVersions is not present and serviceMonitor is disabled
+    set:
+      serviceMonitor.enabled: false
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - lengthEqual:
+          path: spec.ports
+          count: 1
+      - isNull:
+          path: metadata.labels["app.kubernetes.io/metrics"]
+
+  - it: should have no annotations when nothing configured
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - isNull:
+          path: metadata.annotations
+
+  - it: should have only service annotations when only they are configured
+    set:
+      webhook.service.annotations:
+        custom.annotation: value
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations["custom.annotation"]
+          value: value
+
+  - it: should have no annotations when only metrics enabled without annotations
+    set:
+      webhook.metrics.service.enabled: true
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - isNull:
+          path: metadata.annotations
+
+  - it: should have only service annotations when metrics enabled without metrics annotations
+    set:
+      webhook.service.annotations:
+        custom.annotation: value
+      webhook.metrics.service.enabled: true
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations["custom.annotation"]
+          value: value
+
+  - it: should have no annotations when metrics annotations exist but metrics disabled
+    set:
+      webhook.metrics.service.annotations:
+        prometheus.io/scrape: "true"
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - isNull:
+          path: metadata.annotations
+
+  - it: should have only service annotations when metrics annotations exist but metrics disabled
+    set:
+      webhook.service.annotations:
+        custom.annotation: value
+      webhook.metrics.service.annotations:
+        prometheus.io/scrape: "true"
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations["custom.annotation"]
+          value: value
+      - isNull:
+          path: metadata.annotations["prometheus.io/scrape"]
+
+  - it: should have only metrics annotations when metrics enabled and only metrics annotations configured
+    set:
+      webhook.metrics.service.enabled: true
+      webhook.metrics.service.annotations:
+        prometheus.io/scrape: "true"
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations["prometheus.io/scrape"]
+          value: "true"
+
+  - it: should have both annotations when everything is configured and enabled
+    set:
+      webhook.service.annotations:
+        custom.annotation: value
+      webhook.metrics.service.enabled: true
+      webhook.metrics.service.annotations:
+        prometheus.io/scrape: "true"
+    templates:
+      - webhook-service.yaml
+    asserts:
+      - equal:
+          path: metadata.annotations["custom.annotation"]
+          value: value
+      - equal:
+          path: metadata.annotations["prometheus.io/scrape"]
+          value: "true"

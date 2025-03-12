@@ -81,18 +81,26 @@ type Reconciler struct {
 	readyStatusMap   map[string]bool
 }
 
+type Opts struct {
+	SvcName         string
+	SvcNamespace    string
+	SecretName      string
+	SecretNamespace string
+	Resources       []string
+}
+
 func New(k8sClient client.Client, scheme *runtime.Scheme, leaderChan <-chan struct{}, logger logr.Logger,
-	interval time.Duration, svcName, svcNamespace, secretName, secretNamespace string, resources []string) *Reconciler {
+	interval time.Duration, opts Opts) *Reconciler {
 	return &Reconciler{
 		Client:           k8sClient,
 		Log:              logger,
 		Scheme:           scheme,
-		SvcName:          svcName,
-		SvcNamespace:     svcNamespace,
-		SecretName:       secretName,
-		SecretNamespace:  secretNamespace,
+		SvcName:          opts.SvcName,
+		SvcNamespace:     opts.SvcNamespace,
+		SecretName:       opts.SecretName,
+		SecretNamespace:  opts.SecretNamespace,
 		RequeueInterval:  interval,
-		CrdResources:     resources,
+		CrdResources:     opts.Resources,
 		CAName:           "external-secrets",
 		CAOrganization:   "external-secrets",
 		leaderChan:       leaderChan,
@@ -197,6 +205,7 @@ func (r *Reconciler) updateCRD(ctx context.Context, req ctrl.Request) error {
 	if err := r.Get(ctx, req.NamespacedName, &updatedResource); err != nil {
 		return err
 	}
+
 	svc := types.NamespacedName{
 		Name:      r.SvcName,
 		Namespace: r.SvcNamespace,
@@ -222,6 +231,10 @@ func (r *Reconciler) updateCRD(ctx context.Context, req ctrl.Request) error {
 }
 
 func injectService(crd *apiext.CustomResourceDefinition, svc types.NamespacedName) error {
+	if crd.Spec.Conversion != nil && crd.Spec.Conversion.Strategy == apiext.NoneConverter {
+		return nil
+	}
+
 	if crd.Spec.Conversion == nil ||
 		crd.Spec.Conversion.Webhook == nil ||
 		crd.Spec.Conversion.Webhook.ClientConfig == nil ||
@@ -234,6 +247,10 @@ func injectService(crd *apiext.CustomResourceDefinition, svc types.NamespacedNam
 }
 
 func injectCert(crd *apiext.CustomResourceDefinition, certPem []byte) error {
+	if crd.Spec.Conversion != nil && crd.Spec.Conversion.Strategy == apiext.NoneConverter {
+		return nil
+	}
+
 	if crd.Spec.Conversion == nil ||
 		crd.Spec.Conversion.Webhook == nil ||
 		crd.Spec.Conversion.Webhook.ClientConfig == nil {

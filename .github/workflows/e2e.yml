@@ -14,7 +14,7 @@ name: e2e tests
 
 env:
   # Common versions
-  GO_VERSION: '1.21'
+  GO_VERSION: '1.24'
   GINKGO_VERSION: 'v2.8.0'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
   KIND_VERSION: 'v0.17.0'
@@ -56,6 +56,9 @@ env:
   SECRETSERVER_USERNAME: ${{ secrets.SECRETSERVER_USERNAME }}
   SECRETSERVER_PASSWORD: ${{ secrets.SECRETSERVER_PASSWORD }}
   SECRETSERVER_URL: ${{ secrets.SECRETSERVER_URL }}
+
+  GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
+  GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
 jobs:
 
   integration-trusted:

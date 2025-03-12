@@ -43,6 +43,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/util/locks"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
 const (
@@ -183,13 +184,28 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 		}
 
 		if c.store.Location != "" {
+			replica := &secretmanagerpb.Replication_UserManaged_Replica{
+				Location: c.store.Location,
+			}
+
+			if pushSecretData.GetMetadata() != nil {
+				var err error
+				meta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](pushSecretData.GetMetadata())
+				if err != nil {
+					return fmt.Errorf("failed to parse PushSecret metadata: %w", err)
+				}
+				if meta != nil && meta.Spec.CMEKKeyName != "" {
+					replica.CustomerManagedEncryption = &secretmanagerpb.CustomerManagedEncryption{
+						KmsKeyName: meta.Spec.CMEKKeyName,
+					}
+				}
+			}
+
 			replication = &secretmanagerpb.Replication{
 				Replication: &secretmanagerpb.Replication_UserManaged_{
 					UserManaged: &secretmanagerpb.Replication_UserManaged{
 						Replicas: []*secretmanagerpb.Replication_UserManaged_Replica{
-							{
-								Location: c.store.Location,
-							},
+							replica,
 						},
 					},
 				},
@@ -503,15 +519,7 @@ func (c *Client) getSecretMetadata(ctx context.Context, ref esv1beta1.ExternalSe
 		labels      = "labels"
 	)
 
-	extractMetadataKey := func(s string, p string) string {
-		prefix := p + "."
-		if !strings.HasPrefix(s, prefix) {
-			return ""
-		}
-		return strings.TrimPrefix(s, prefix)
-	}
-
-	if annotation := extractMetadataKey(ref.Property, annotations); annotation != "" {
+	if annotation := c.extractMetadataKey(ref.Property, annotations); annotation != "" {
 		v, ok := secret.GetAnnotations()[annotation]
 		if !ok {
 			return nil, fmt.Errorf("annotation with key %s does not exist in secret %s", annotation, ref.Key)
@@ -520,7 +528,7 @@ func (c *Client) getSecretMetadata(ctx context.Context, ref esv1beta1.ExternalSe
 		return []byte(v), nil
 	}
 
-	if label := extractMetadataKey(ref.Property, labels); label != "" {
+	if label := c.extractMetadataKey(ref.Property, labels); label != "" {
 		v, ok := secret.GetLabels()[label]
 		if !ok {
 			return nil, fmt.Errorf("label with key %s does not exist in secret %s", label, ref.Key)
@@ -560,6 +568,14 @@ func (c *Client) getSecretMetadata(ctx context.Context, ref esv1beta1.ExternalSe
 	}
 
 	return j, nil
+}
+
+func (c *Client) extractMetadataKey(s, p string) string {
+	prefix := p + "."
+	if !strings.HasPrefix(s, prefix) {
+		return ""
+	}
+	return strings.TrimPrefix(s, prefix)
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.

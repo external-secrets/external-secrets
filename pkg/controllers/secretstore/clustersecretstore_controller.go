@@ -63,7 +63,12 @@ func (r *ClusterStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
-	return reconcile(ctx, req, &css, r.Client, log, r.ControllerClass, cssmetrics.GetGaugeVec, r.recorder, r.RequeueInterval)
+	return reconcile(ctx, req, &css, r.Client, log, Opts{
+		ControllerClass: r.ControllerClass,
+		GaugeVecGetter:  cssmetrics.GetGaugeVec,
+		Recorder:        r.recorder,
+		RequeueInterval: r.RequeueInterval,
+	})
 }
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.

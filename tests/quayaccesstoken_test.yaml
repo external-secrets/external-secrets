@@ -1,0 +1,7 @@
+suite: test QuayAccessToken generator
+template: tests/crds/quayaccesstoken.yml
+tests:
+  - it: matches QuayAccessToken correctly
+    asserts:
+      - matchSnapshot:
+          path: tests/__snapshot__

@@ -1,0 +1,22 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Webhook
+metadata: {}
+spec:
+  body: string
+  caBundle: c3RyaW5n
+  caProvider:
+    key: string
+    name: string
+    namespace: string
+    type: "Secret" # "Secret", "ConfigMap"
+  headers: {}
+  method: string
+  result:
+    jsonPath: string
+  secrets:
+  - name: string
+    secretRef:
+      key: string
+      name: string
+  timeout: string
+  url: string

@@ -1,0 +1,7 @@
+suite: test GithubAccessToken
+template: tests/crds/githubaccesstoken.yml
+tests:
+  - it: matches GithubAccessToken correctly
+    asserts:
+      - matchSnapshot:
+          path: tests/__snapshot__

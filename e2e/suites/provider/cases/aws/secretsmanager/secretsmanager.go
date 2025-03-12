@@ -26,10 +26,9 @@ import (
 )
 
 const (
-	withStaticAuth         = "with static auth"
-	withExtID              = "with externalID"
-	withSessionTags        = "with session tags"
-	withReferentStaticAuth = "with static referent auth"
+	withStaticAuth  = "with static auth"
+	withExtID       = "with externalID"
+	withSessionTags = "with session tags"
 )
 
 var _ = Describe("[aws] ", Label("aws", "secretsmanager"), func() {

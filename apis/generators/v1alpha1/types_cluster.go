@@ -27,7 +27,7 @@ type ClusterGeneratorSpec struct {
 }
 
 // GeneratorKind represents a kind of generator.
-// +kubebuilder:validation:Enum=ACRAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;Password;STSSessionToken;UUID;VaultDynamicSecret;Webhook
+// +kubebuilder:validation:Enum=ACRAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana
 type GeneratorKind string
 
 const (
@@ -36,26 +36,30 @@ const (
 	GeneratorKindFake                  GeneratorKind = "Fake"
 	GeneratorKindGCRAccessToken        GeneratorKind = "GCRAccessToken"
 	GeneratorKindGithubAccessToken     GeneratorKind = "GithubAccessToken"
+	GeneratorKindQuayAccessToken       GeneratorKind = "QuayAccessToken"
 	GeneratorKindPassword              GeneratorKind = "Password"
 	GeneratorKindSTSSessionToken       GeneratorKind = "STSSessionToken"
 	GeneratorKindUUID                  GeneratorKind = "UUID"
 	GeneratorKindVaultDynamicSecret    GeneratorKind = "VaultDynamicSecret"
 	GeneratorKindWebhook               GeneratorKind = "Webhook"
+	GeneratorKindGrafana               GeneratorKind = "Grafana"
 )
 
 // +kubebuilder:validation:MaxProperties=1
 // +kubebuilder:validation:MinProperties=1
 type GeneratorSpec struct {
 	ACRAccessTokenSpec        *ACRAccessTokenSpec        `json:"acrAccessTokenSpec,omitempty"`
-	ECRAuthorizationTokenSpec *ECRAuthorizationTokenSpec `json:"ecrRAuthorizationTokenSpec,omitempty"`
+	ECRAuthorizationTokenSpec *ECRAuthorizationTokenSpec `json:"ecrAuthorizationTokenSpec,omitempty"`
 	FakeSpec                  *FakeSpec                  `json:"fakeSpec,omitempty"`
 	GCRAccessTokenSpec        *GCRAccessTokenSpec        `json:"gcrAccessTokenSpec,omitempty"`
 	GithubAccessTokenSpec     *GithubAccessTokenSpec     `json:"githubAccessTokenSpec,omitempty"`
+	QuayAccessTokenSpec       *QuayAccessTokenSpec       `json:"quayAccessTokenSpec,omitempty"`
 	PasswordSpec              *PasswordSpec              `json:"passwordSpec,omitempty"`
 	STSSessionTokenSpec       *STSSessionTokenSpec       `json:"stsSessionTokenSpec,omitempty"`
 	UUIDSpec                  *UUIDSpec                  `json:"uuidSpec,omitempty"`
 	VaultDynamicSecretSpec    *VaultDynamicSecretSpec    `json:"vaultDynamicSecretSpec,omitempty"`
 	WebhookSpec               *WebhookSpec               `json:"webhookSpec,omitempty"`
+	GrafanaSpec               *GrafanaSpec               `json:"grafanaSpec,omitempty"`
 }
 
 // ClusterGenerator represents a cluster-wide generator which can be referenced as part of `generatorRef` fields.

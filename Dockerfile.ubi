@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/ubi as minimal-ubi
+FROM registry.access.redhat.com/ubi8/ubi@sha256:ecbeb81a4737dfca66ad18eaafb4892d8602b1ae938e0ac3251bb4335aa1a547 AS minimal-ubi
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -16,10 +16,7 @@ COPY ubi-build-files-${TARGETARCH}.txt /tmp
 # Copy all the required files from the base UBI image into the image directory
 # As the go binary is not statically compiled this includes everything needed for CGO to work, cacerts, tzdata and RH release files
 RUN tar cf /tmp/files.tar -T /tmp/ubi-build-files-${TARGETARCH}.txt && tar xf /tmp/files.tar -C /image/ \
-  && strip --strip-unneeded /image/usr/lib64/*[0-9].so
-
-# Generate a rpm database which contains all the packages that you said were needed in ubi-build-files-*.txt
-RUN rpm --root /image --initdb \
+  && strip --strip-unneeded /image/usr/lib64/*[0-9].so && rpm --root /image --initdb \
   && PACKAGES=$(rpm -qf $(cat /tmp/ubi-build-files-${TARGETARCH}.txt) | grep -v "is not owned by any package" | sort -u) \
   && echo dnf install -y 'dnf-command(download)' \
   && dnf download --destdir / ${PACKAGES} \

@@ -17,7 +17,7 @@ Secret](https://kubernetes.io/docs/concepts/configuration/secret/).
 ## Community Roles
 
 * **Users:** Members that engage with the ESO community via any medium (Slack, WeChat, GitHub, mailing lists, etc.).
-* **Contributors:** Regular contributions to projects (documentation, code reviews, responding to issues, participation in proposal discussions, contributing code, etc.). 
+* **Contributors:** Regular contributions to projects (documentation, code reviews, responding to issues, participation in proposal discussions, contributing code, etc.).
 * **Maintainers**: The ESO project leaders. They are responsible for the overall health and direction of the project; final reviewers of PRs and responsible for releases. Some Maintainers are responsible for one or more components within a project, acting as technical leads for that component. Maintainers are expected to contribute code and documentation, review PRs including ensuring quality of code, triage issues, proactively fix bugs, and perform maintenance tasks for these components.
 
 ### Maintainers
@@ -103,3 +103,23 @@ Lazy consensus does _not_ apply to the process of:
 ## Updating Governance
 
 All substantive changes in Governance require a supermajority agreement by all maintainers.
+
+## Example of Governance Process being enforced
+
+### Case @shuheiktgw
+
+The PR linking to acceptance of new maintainer member Shuhei Kitagawa. Consensus was achieved. Kitagawa was accepted as
+a maintainer and added to the relevant Organization.
+
+On June 12th, 2024 Kitagawa stepped down as maintainer. https://github.com/external-secrets/external-secrets/pull/3573 was
+created to remove him from the Maintainers file.
+
+### Case @Skarlso
+
+Skarlso (Gergely Brautigam) was added as a maintainer and organization member on 23th or October 2023. The corresponding PR: https://github.com/external-secrets/external-secrets/pull/2823.
+
+Lazy consensus was applied first in [Slack discussion](https://kubernetes.slack.com/archives/C047LA9MUPJ/p1698667596168189) on the external-secrets-dev channel, then in PR.
+
+## CNCF Governance
+
+This project abides by the [CNCF Code Of Conduct](https://github.com/cncf/foundation/blob/main/code-of-conduct.md).

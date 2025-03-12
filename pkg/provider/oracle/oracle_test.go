@@ -22,7 +22,6 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -148,7 +147,6 @@ func TestOracleVaultGetSecret(t *testing.T) {
 	sm := VaultManagementService{}
 	for k, v := range successCases {
 		sm.Client = v.mockClient
-		fmt.Println(*v.ref)
 		out, err := sm.GetSecret(context.Background(), *v.ref)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
@@ -321,7 +319,7 @@ func TestValidateStore(t *testing.T) {
 	}
 }
 
-func TestVaultManagementService_NewClient(t *testing.T) {
+func TestVaultManagementServiceNewClient(t *testing.T) {
 	t.Parallel()
 
 	namespace := "default"
@@ -442,7 +440,7 @@ func TestVaultManagementService_NewClient(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: `cannot get Kubernetes secret "non-existing-secret": secrets "non-existing-secret" not found`,
+			expectedErr: `cannot get Kubernetes secret "non-existing-secret" from namespace "default": secrets "non-existing-secret" not found`,
 		},
 		{
 			desc: "invalid retry interval",

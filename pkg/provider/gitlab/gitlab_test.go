@@ -26,8 +26,8 @@ import (
 
 	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
-	"github.com/xanzy/go-gitlab"
 	"github.com/yandex-cloud/go-sdk/iamkey"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -48,7 +48,7 @@ const (
 	groupvalue            = "groupvalue"
 	groupid               = "groupId"
 	defaultErrorMessage   = "[%d] unexpected error: [%s], expected: [%s]"
-	errMissingCredentials = "cannot get Kubernetes secret \"\": secrets \"\" not found"
+	errMissingCredentials = "cannot get Kubernetes secret \"\" from namespace \"namespace\": secrets \"\" not found"
 	testKey               = "testKey"
 	findTestPrefix        = "test.*"
 )
@@ -353,7 +353,7 @@ func TestNewClient(t *testing.T) {
 	store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken.Name = authorizedKeySecretName
 	store.Spec.Provider.Gitlab.Auth.SecretRef.AccessToken.Key = authorizedKeySecretKey
 	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
-	tassert.EqualError(t, err, "cannot get Kubernetes secret \"authorizedKeySecretName\": secrets \"authorizedKeySecretName\" not found")
+	tassert.EqualError(t, err, "cannot get Kubernetes secret \"authorizedKeySecretName\" from namespace \"namespace\": secrets \"authorizedKeySecretName\" not found")
 	tassert.Nil(t, secretClient)
 
 	err = createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, newFakeAuthorizedKey()))

@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	ctrlcommon "github.com/external-secrets/external-secrets/pkg/controllers/common"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -87,8 +88,17 @@ var _ = BeforeSuite(func() {
 	Expect(k8sClient).ToNot(BeNil())
 	leaderChan := make(chan struct{})
 	close(leaderChan)
-	reconciler = New(k8sClient, k8sManager.GetScheme(), leaderChan, ctrl.Log, ctrlSvcName, ctrlSvcNamespace, ctrlSecretName, ctrlSecretNamespace, time.Second)
-	reconciler.SetupWithManager(k8sManager, controller.Options{})
+	reconciler = New(k8sClient, k8sManager.GetScheme(), leaderChan, ctrl.Log, Opts{
+		SvcName:         ctrlSvcName,
+		SvcNamespace:    ctrlSvcNamespace,
+		SecretName:      ctrlSecretName,
+		SecretNamespace: ctrlSecretNamespace,
+		RequeueInterval: time.Second,
+	})
+	err = reconciler.SetupWithManager(k8sManager, controller.Options{
+		MaxConcurrentReconciles: 1,
+		RateLimiter:             ctrlcommon.BuildRateLimiter(),
+	})
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {

@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	ctrlcommon "github.com/external-secrets/external-secrets/pkg/controllers/common"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -81,10 +82,19 @@ var _ = BeforeSuite(func() {
 	leaderChan := make(chan struct{})
 	close(leaderChan)
 	rec := New(k8sClient, k8sManager.GetScheme(), leaderChan, log, time.Second*1,
-		"foo", "default", "foo", "default", []string{
-			"secretstores.test.io",
+		Opts{
+			SvcName:         "foo",
+			SvcNamespace:    "default",
+			SecretName:      "foo",
+			SecretNamespace: "default",
+			Resources: []string{
+				"secretstores.test.io",
+			},
 		})
-	rec.SetupWithManager(k8sManager, controller.Options{})
+	err = rec.SetupWithManager(k8sManager, controller.Options{
+		MaxConcurrentReconciles: 1,
+		RateLimiter:             ctrlcommon.BuildRateLimiter(),
+	})
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {

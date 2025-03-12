@@ -29,21 +29,25 @@ type Generator struct{}
 
 type generateFunc func() (string, error)
 
-func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ client.Client, _ string) (map[string][]byte, error) {
+func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ client.Client, _ string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(
 		jsonSpec,
 		generateUUID,
 	)
 }
 
-func (g *Generator) generate(_ *apiextensions.JSON, uuidGen generateFunc) (map[string][]byte, error) {
+func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
+	return nil
+}
+
+func (g *Generator) generate(_ *apiextensions.JSON, uuidGen generateFunc) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	uuid, err := uuidGen()
 	if err != nil {
-		return nil, fmt.Errorf("unable to generate UUID: %w", err)
+		return nil, nil, fmt.Errorf("unable to generate UUID: %w", err)
 	}
 	return map[string][]byte{
 		"uuid": []byte(uuid),
-	}, nil
+	}, nil, nil
 }
 
 func generateUUID() (string, error) {

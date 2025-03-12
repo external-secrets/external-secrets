@@ -35,7 +35,7 @@ const (
 	// we can remove this and replace it with a interface.
 	EmptyStoreKind = "EmptyStoreKind"
 
-	errGetKubeSecret         = "cannot get Kubernetes secret %q: %w"
+	errGetKubeSecret         = "cannot get Kubernetes secret %q from namespace %q: %w"
 	errSecretKeyFmt          = "cannot find secret data for key: %q"
 	errGetKubeSATokenRequest = "cannot request Kubernetes service account token for service account %q: %w"
 )
@@ -61,7 +61,7 @@ func SecretKeyRef(
 	secret := &corev1.Secret{}
 	err := c.Get(ctx, key, secret)
 	if err != nil {
-		return "", fmt.Errorf(errGetKubeSecret, ref.Name, err)
+		return "", fmt.Errorf(errGetKubeSecret, ref.Name, key.Namespace, err)
 	}
 	val, ok := secret.Data[ref.Key]
 	if !ok {

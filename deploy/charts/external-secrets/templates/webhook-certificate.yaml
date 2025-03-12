@@ -26,5 +26,8 @@ spec:
   {{- with .Values.webhook.certManager.cert.renewBefore }}
   renewBefore: {{ . | quote }}
   {{- end }}
+  {{- if gt (.Values.webhook.certManager.cert.revisionHistoryLimit | int) 0 }}
+  revisionHistoryLimit: {{ .Values.webhook.certManager.cert.revisionHistoryLimit }}
+  {{- end }}
   secretName: {{ include "external-secrets.fullname" . }}-webhook
 {{- end }}

@@ -29,7 +29,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
-	utilpointer "k8s.io/utils/ptr"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -38,15 +39,21 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
-// Declares metadata information for pushing secrets to AWS Parameter Store.
-const (
-	PushSecretType  = "parameterStoreType"
-	StoreTypeString = "String"
-	StoreKeyID      = "parameterStoreKeyID"
-	PushSecretKeyID = "keyID"
-)
+// Tier defines policy details for PushSecret.
+type Tier struct {
+	Type     string                `json:"type"`
+	Policies *apiextensionsv1.JSON `json:"policies"`
+}
+
+// PushSecretMetadataSpec defines the spec for the metadata for PushSecret.
+type PushSecretMetadataSpec struct {
+	SecretType string `json:"secretType,omitempty"`
+	KMSKeyID   string `json:"kmsKeyID,omitempty"`
+	Tier       Tier   `json:"tier,omitempty"`
+}
 
 // https://github.com/external-secrets/external-secrets/issues/644
 var (
@@ -120,7 +127,6 @@ func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 		return fmt.Errorf("unexpected error getting parameter %v: %w", secretName, err)
 	}
 	if existing != nil && existing.Parameter != nil {
-		fmt.Println("The existing value contains data:", existing.String())
 		tags, err := pm.getTagsByName(ctx, existing)
 		if err != nil {
 			return fmt.Errorf("error getting the existing tags for the parameter %v: %w", secretName, err)
@@ -144,8 +150,30 @@ func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	return nil
 }
 
-func (pm *ParameterStore) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
-	return false, errors.New("not implemented")
+func (pm *ParameterStore) SecretExists(ctx context.Context, pushSecretRef esv1beta1.PushSecretRemoteRef) (bool, error) {
+	secretName := pm.prefix + pushSecretRef.GetRemoteKey()
+
+	secretValue := ssm.GetParameterInput{
+		Name: &secretName,
+	}
+
+	_, err := pm.client.GetParameterWithContext(ctx, &secretValue)
+
+	if err != nil {
+		var aerr awserr.Error
+		if ok := errors.As(err, &aerr); !ok {
+			return false, err
+		}
+		if aerr.Code() == ssm.ErrCodeResourceNotFoundException {
+			return false, nil
+		}
+		if aerr.Code() == ssm.ErrCodeParameterNotFound {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
@@ -154,21 +182,10 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 		err   error
 	)
 
-	parameterTypeFormat, err := utils.FetchValueFromMetadata(PushSecretType, data.GetMetadata(), StoreTypeString)
+	meta, err := pm.constructMetadataWithDefaults(data.GetMetadata())
 	if err != nil {
-		return fmt.Errorf("failed to parse metadata: %w", err)
+		return err
 	}
-
-	parameterKeyIDFormat, err := utils.FetchValueFromMetadata(StoreKeyID, data.GetMetadata(), PushSecretKeyID)
-	if err != nil {
-		return fmt.Errorf("failed to parse metadata: %w", err)
-	}
-
-	if parameterKeyIDFormat == "keyID" || parameterKeyIDFormat == "" {
-		parameterKeyIDFormat = "alias/aws/ssm"
-	}
-
-	overwrite := true
 
 	key := data.GetSecretKey()
 
@@ -181,18 +198,23 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 		value = secret.Data[key]
 	}
 
-	stringValue := string(value)
 	secretName := pm.prefix + data.GetRemoteKey()
-
 	secretRequest := ssm.PutParameterInput{
-		Name:      &secretName,
-		Value:     &stringValue,
-		Type:      &parameterTypeFormat,
-		Overwrite: &overwrite,
+		Name:      ptr.To(pm.prefix + data.GetRemoteKey()),
+		Value:     ptr.To(string(value)),
+		Type:      ptr.To(meta.Spec.SecretType),
+		Overwrite: ptr.To(true),
 	}
 
-	if parameterTypeFormat == "SecureString" {
-		secretRequest.KeyId = &parameterKeyIDFormat
+	if meta.Spec.SecretType == "SecureString" {
+		secretRequest.KeyId = &meta.Spec.KMSKeyID
+	}
+
+	if meta.Spec.Tier.Type == "Advanced" {
+		secretRequest.Tier = ptr.To(meta.Spec.Tier.Type)
+		if meta.Spec.Tier.Policies != nil {
+			secretRequest.Policies = ptr.To(string(meta.Spec.Tier.Policies.Raw))
+		}
 	}
 
 	secretValue := ssm.GetParameterInput{
@@ -210,33 +232,37 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 
 	// If we have a valid parameter returned to us, check its tags
 	if existing != nil && existing.Parameter != nil {
-		tags, err := pm.getTagsByName(ctx, existing)
-		if err != nil {
-			return fmt.Errorf("error getting the existing tags for the parameter %v: %w", secretName, err)
-		}
-
-		isManaged := isManagedByESO(tags)
-
-		if !isManaged {
-			return errors.New("secret not managed by external-secrets")
-		}
-
-		// When fetching a remote SecureString parameter without decrypting, the default value will always be 'sensitive'
-		// in this case, no updates will be pushed remotely
-		if existing.Parameter.Value != nil && *existing.Parameter.Value == "sensitive" {
-			return errors.New("unable to compare 'sensitive' result, ensure to request a decrypted value")
-		}
-
-		if existing.Parameter.Value != nil && *existing.Parameter.Value == string(value) {
-			return nil
-		}
-
-		return pm.setManagedRemoteParameter(ctx, secretRequest, false)
+		return pm.setExisting(ctx, existing, secretName, value, secretRequest)
 	}
 
 	// let's set the secret
 	// Do we need to delete the existing parameter on the remote?
 	return pm.setManagedRemoteParameter(ctx, secretRequest, true)
+}
+
+func (pm *ParameterStore) setExisting(ctx context.Context, existing *ssm.GetParameterOutput, secretName string, value []byte, secretRequest ssm.PutParameterInput) error {
+	tags, err := pm.getTagsByName(ctx, existing)
+	if err != nil {
+		return fmt.Errorf("error getting the existing tags for the parameter %v: %w", secretName, err)
+	}
+
+	isManaged := isManagedByESO(tags)
+
+	if !isManaged {
+		return errors.New("secret not managed by external-secrets")
+	}
+
+	// When fetching a remote SecureString parameter without decrypting, the default value will always be 'sensitive'
+	// in this case, no updates will be pushed remotely
+	if existing.Parameter.Value != nil && *existing.Parameter.Value == "sensitive" {
+		return errors.New("unable to compare 'sensitive' result, ensure to request a decrypted value")
+	}
+
+	if existing.Parameter.Value != nil && *existing.Parameter.Value == string(value) {
+		return nil
+	}
+
+	return pm.setManagedRemoteParameter(ctx, secretRequest, false)
 }
 
 func isManagedByESO(tags []*ssm.Tag) bool {
@@ -309,14 +335,17 @@ func (pm *ParameterStore) findByName(ctx context.Context, ref esv1beta1.External
 				logger.Info("GetParametersByPath: access denied. using fallback to describe parameters. It is recommended to add ssm:GetParametersByPath permissions", "path", ref.Path)
 				return pm.fallbackFindByName(ctx, ref)
 			}
+
 			return nil, err
 		}
+
 		for _, param := range it.Parameters {
 			if !matcher.MatchName(*param.Name) {
 				continue
 			}
 			data[*param.Name] = []byte(*param.Value)
 		}
+
 		nextToken = it.NextToken
 		if nextToken == nil {
 			break
@@ -375,9 +404,9 @@ func (pm *ParameterStore) findByTags(ctx context.Context, ref esv1beta1.External
 	filters := make([]*ssm.ParameterStringFilter, 0)
 	for k, v := range ref.Tags {
 		filters = append(filters, &ssm.ParameterStringFilter{
-			Key:    utilpointer.To(fmt.Sprintf("tag:%s", k)),
-			Values: []*string{utilpointer.To(v)},
-			Option: utilpointer.To("Equals"),
+			Key:    ptr.To(fmt.Sprintf("tag:%s", k)),
+			Values: []*string{ptr.To(v)},
+			Option: ptr.To("Equals"),
 		})
 	}
 
@@ -419,7 +448,7 @@ func (pm *ParameterStore) findByTags(ctx context.Context, ref esv1beta1.External
 
 func (pm *ParameterStore) fetchAndSet(ctx context.Context, data map[string][]byte, name string) error {
 	out, err := pm.client.GetParameterWithContext(ctx, &ssm.GetParameterInput{
-		Name:           utilpointer.To(name),
+		Name:           ptr.To(name),
 		WithDecryption: aws.Bool(true),
 	})
 	metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSGetParameter, err)
@@ -549,4 +578,34 @@ func (pm *ParameterStore) Validate() (esv1beta1.ValidationResult, error) {
 		return esv1beta1.ValidationResultError, err
 	}
 	return esv1beta1.ValidationResultReady, nil
+}
+
+func (pm *ParameterStore) constructMetadataWithDefaults(data *apiextensionsv1.JSON) (*metadata.PushSecretMetadata[PushSecretMetadataSpec], error) {
+	var (
+		meta *metadata.PushSecretMetadata[PushSecretMetadataSpec]
+		err  error
+	)
+
+	meta, err = metadata.ParseMetadataParameters[PushSecretMetadataSpec](data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse metadata: %w", err)
+	}
+
+	if meta == nil {
+		meta = &metadata.PushSecretMetadata[PushSecretMetadataSpec]{}
+	}
+
+	if meta.Spec.Tier.Type == "" {
+		meta.Spec.Tier.Type = "Standard"
+	}
+
+	if meta.Spec.SecretType == "" {
+		meta.Spec.SecretType = "String"
+	}
+
+	if meta.Spec.KMSKeyID == "" {
+		meta.Spec.KMSKeyID = "alias/aws/ssm"
+	}
+
+	return meta, nil
 }

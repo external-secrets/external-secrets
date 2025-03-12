@@ -47,9 +47,8 @@ type AkeylessCtx string
 
 const (
 	defaultAPIUrl                   = "https://api.akeyless.io"
-	errNotImplemented               = "not implemented"
-	ExtSecretManagedTag             = "k8s-external-secrets"
-	AkeylessToken       AkeylessCtx = "AKEYLESS_TOKEN"
+	extSecretManagedTag             = "k8s-external-secrets"
+	aKeylessToken       AkeylessCtx = "AKEYLESS_TOKEN"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -230,14 +229,14 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 }
 
 func (a *Akeyless) contextWithToken(ctx context.Context) (context.Context, error) {
-	if v := ctx.Value(AkeylessToken); v != nil {
+	if v := ctx.Value(aKeylessToken); v != nil {
 		return ctx, nil
 	}
 	token, err := a.Client.TokenFromSecretRef(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return context.WithValue(ctx, AkeylessToken, token), nil
+	return context.WithValue(ctx, aKeylessToken, token), nil
 }
 
 func (a *Akeyless) Close(_ context.Context) error {
@@ -299,8 +298,8 @@ func (a *Akeyless) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 	return []byte(val.String()), nil
 }
 
-// Implements store.Client.GetAllSecrets Interface.
-// Retrieves a all secrets with defined in ref.Name or tags.
+// GetAllSecrets Implements store.Client.GetAllSecrets Interface.
+// Retrieves all secrets with defined in ref.Name or tags.
 func (a *Akeyless) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if utils.IsNil(a.Client) {
 		return nil, errors.New(errUninitalizedAkeylessProvider)
@@ -321,37 +320,32 @@ func (a *Akeyless) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 		}
 	}
 	if ref.Name != nil {
-		potentialSecrets, err := a.Client.ListSecrets(ctx, searchPath, "")
-		if err != nil {
-			return nil, err
-		}
-		if len(potentialSecrets) == 0 {
-			return nil, nil
-		}
-		return a.findSecretsFromName(ctx, potentialSecrets, *ref.Name)
+		return a.findSecretsFromName(ctx, searchPath, *ref.Name)
 	}
 	if len(ref.Tags) > 0 {
-		var potentialSecretsName []string
-		for _, v := range ref.Tags {
-			potentialSecrets, err := a.Client.ListSecrets(ctx, searchPath, v)
-			if err != nil {
-				return nil, err
-			}
-			if len(potentialSecrets) > 0 {
-				potentialSecretsName = append(potentialSecretsName, potentialSecrets...)
-			}
-		}
-		if len(potentialSecretsName) == 0 {
-			return nil, nil
-		}
-		return a.getSecrets(ctx, potentialSecretsName)
+		return a.getSecrets(ctx, searchPath, ref.Tags)
 	}
+
 	return nil, errors.New("unexpected find operator")
 }
 
-func (a *Akeyless) getSecrets(ctx context.Context, candidates []string) (map[string][]byte, error) {
+func (a *Akeyless) getSecrets(ctx context.Context, searchPath string, tags map[string]string) (map[string][]byte, error) {
+	var potentialSecretsName []string
+	for _, v := range tags {
+		potentialSecrets, err := a.Client.ListSecrets(ctx, searchPath, v)
+		if err != nil {
+			return nil, err
+		}
+		if len(potentialSecrets) > 0 {
+			potentialSecretsName = append(potentialSecretsName, potentialSecrets...)
+		}
+	}
+	if len(potentialSecretsName) == 0 {
+		return nil, nil
+	}
+
 	secrets := make(map[string][]byte)
-	for _, name := range candidates {
+	for _, name := range potentialSecretsName {
 		secretValue, err := a.Client.GetSecretByType(ctx, name, 0)
 		if err != nil {
 			return nil, err
@@ -363,13 +357,21 @@ func (a *Akeyless) getSecrets(ctx context.Context, candidates []string) (map[str
 	return secrets, nil
 }
 
-func (a *Akeyless) findSecretsFromName(ctx context.Context, candidates []string, ref esv1beta1.FindName) (map[string][]byte, error) {
+func (a *Akeyless) findSecretsFromName(ctx context.Context, searchPath string, ref esv1beta1.FindName) (map[string][]byte, error) {
+	potentialSecrets, err := a.Client.ListSecrets(ctx, searchPath, "")
+	if err != nil {
+		return nil, err
+	}
+	if len(potentialSecrets) == 0 {
+		return nil, nil
+	}
+
 	secrets := make(map[string][]byte)
 	matcher, err := find.New(ref)
 	if err != nil {
 		return nil, err
 	}
-	for _, name := range candidates {
+	for _, name := range potentialSecrets {
 		ok := matcher.MatchName(name)
 		if ok {
 			secretValue, err := a.Client.GetSecretByType(ctx, name, 0)
@@ -384,7 +386,7 @@ func (a *Akeyless) findSecretsFromName(ctx context.Context, candidates []string,
 	return secrets, nil
 }
 
-// Implements store.Client.GetSecretMap Interface.
+// GetSecretMap implements store.Client.GetSecretMap Interface.
 // New version of GetSecretMap.
 func (a *Akeyless) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if utils.IsNil(a.Client) {
@@ -495,7 +497,7 @@ func (a *Akeyless) DeleteSecret(ctx context.Context, psr esv1beta1.PushSecretRem
 	if err != nil {
 		return err
 	}
-	if item == nil || item.ItemTags == nil || !slices.Contains(*item.ItemTags, ExtSecretManagedTag) {
+	if item == nil || item.ItemTags == nil || !slices.Contains(*item.ItemTags, extSecretManagedTag) {
 		return nil
 	}
 	if psr.GetProperty() == "" {

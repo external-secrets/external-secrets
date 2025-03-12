@@ -14,14 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd
+package controller
 
 import (
 	"os"
 	"time"
 
 	"github.com/spf13/cobra"
-	"go.uber.org/zap/zapcore"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,7 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -40,8 +38,10 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
+	ctrlcommon "github.com/external-secrets/external-secrets/pkg/controllers/common"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/generatorstate"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
@@ -110,24 +110,8 @@ var rootCmd = &cobra.Command{
 	Short: "operator that reconciles ExternalSecrets and SecretStores",
 	Long:  `For more information visit https://external-secrets.io`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var lvl zapcore.Level
-		var enc zapcore.TimeEncoder
-		lvlErr := lvl.UnmarshalText([]byte(loglevel))
-		if lvlErr != nil {
-			setupLog.Error(lvlErr, "error unmarshalling loglevel")
-			os.Exit(1)
-		}
-		encErr := enc.UnmarshalText([]byte(zapTimeEncoding))
-		if encErr != nil {
-			setupLog.Error(encErr, "error unmarshalling timeEncoding")
-			os.Exit(1)
-		}
-		opts := zap.Options{
-			Level:       lvl,
-			TimeEncoder: enc,
-		}
-		logger := zap.New(zap.UseFlagOptions(&opts))
-		ctrl.SetLogger(logger)
+		setupLogger()
+
 		ctrlmetrics.SetUpLabelNames(enableExtendedMetricLabels)
 		esmetrics.SetUpMetrics()
 		config := ctrl.GetConfigOrDie()
@@ -148,7 +132,7 @@ var rootCmd = &cobra.Command{
 			clientCacheDisableFor = append(clientCacheDisableFor, &v1.ConfigMap{})
 		}
 
-		ctrlOpts := ctrl.Options{
+		mgrOpts := ctrl.Options{
 			Scheme: scheme,
 			Metrics: server.Options{
 				BindAddress: metricsAddr,
@@ -165,11 +149,11 @@ var rootCmd = &cobra.Command{
 			LeaderElectionID: "external-secrets-controller",
 		}
 		if namespace != "" {
-			ctrlOpts.Cache.DefaultNamespaces = map[string]cache.Config{
+			mgrOpts.Cache.DefaultNamespaces = map[string]cache.Config{
 				namespace: {},
 			}
 		}
-		mgr, err := ctrl.NewManager(config, ctrlOpts)
+		mgr, err := ctrl.NewManager(config, mgrOpts)
 		if err != nil {
 			setupLog.Error(err, "unable to start manager")
 			os.Exit(1)
@@ -181,7 +165,7 @@ var rootCmd = &cobra.Command{
 		// if we are already caching all secrets, we don't need to use the special client.
 		secretClient := mgr.GetClient()
 		if enableManagedSecretsCache && !enableSecretsCache {
-			secretClient, err = externalsecret.BuildManagedSecretClient(mgr)
+			secretClient, err = ctrlcommon.BuildManagedSecretClient(mgr, namespace)
 			if err != nil {
 				setupLog.Error(err, "unable to create managed secret client")
 				os.Exit(1)
@@ -197,6 +181,7 @@ var rootCmd = &cobra.Command{
 			RequeueInterval: storeRequeueInterval,
 		}).SetupWithManager(mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
+			RateLimiter:             ctrlcommon.BuildRateLimiter(),
 		}); err != nil {
 			setupLog.Error(err, errCreateController, "controller", "SecretStore")
 			os.Exit(1)
@@ -211,10 +196,23 @@ var rootCmd = &cobra.Command{
 				RequeueInterval: storeRequeueInterval,
 			}).SetupWithManager(mgr, controller.Options{
 				MaxConcurrentReconciles: concurrent,
+				RateLimiter:             ctrlcommon.BuildRateLimiter(),
 			}); err != nil {
 				setupLog.Error(err, errCreateController, "controller", "ClusterSecretStore")
 				os.Exit(1)
 			}
+		}
+		if err = (&generatorstate.Reconciler{
+			Client:     mgr.GetClient(),
+			Log:        ctrl.Log.WithName("controllers").WithName("GeneratorState"),
+			Scheme:     mgr.GetScheme(),
+			RestConfig: mgr.GetConfig(),
+		}).SetupWithManager(mgr, controller.Options{
+			MaxConcurrentReconciles: concurrent,
+			RateLimiter:             ctrlcommon.BuildRateLimiter(),
+		}); err != nil {
+			setupLog.Error(err, errCreateController, "controller", "GeneratorState")
+			os.Exit(1)
 		}
 		if err = (&externalsecret.Reconciler{
 			Client:                    mgr.GetClient(),
@@ -228,6 +226,7 @@ var rootCmd = &cobra.Command{
 			EnableFloodGate:           enableFloodGate,
 		}).SetupWithManager(mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
+			RateLimiter:             ctrlcommon.BuildRateLimiter(),
 		}); err != nil {
 			setupLog.Error(err, errCreateController, "controller", "ExternalSecret")
 			os.Exit(1)
@@ -243,6 +242,7 @@ var rootCmd = &cobra.Command{
 				RequeueInterval: time.Hour,
 			}).SetupWithManager(mgr, controller.Options{
 				MaxConcurrentReconciles: concurrent,
+				RateLimiter:             ctrlcommon.BuildRateLimiter(),
 			}); err != nil {
 				setupLog.Error(err, errCreateController, "controller", "PushSecret")
 				os.Exit(1)
@@ -258,6 +258,7 @@ var rootCmd = &cobra.Command{
 				RequeueInterval: time.Hour,
 			}).SetupWithManager(mgr, controller.Options{
 				MaxConcurrentReconciles: concurrent,
+				RateLimiter:             ctrlcommon.BuildRateLimiter(),
 			}); err != nil {
 				setupLog.Error(err, errCreateController, "controller", "ClusterExternalSecret")
 				os.Exit(1)
@@ -290,8 +291,8 @@ func init() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	rootCmd.Flags().IntVar(&concurrent, "concurrent", 1, "The number of concurrent reconciles.")
-	rootCmd.Flags().Float32Var(&clientQPS, "client-qps", 0, "QPS configuration to be passed to rest.Client")
-	rootCmd.Flags().IntVar(&clientBurst, "client-burst", 0, "Maximum Burst allowed to be passed to rest.Client")
+	rootCmd.Flags().Float32Var(&clientQPS, "client-qps", 50, "QPS configuration to be passed to rest.Client")
+	rootCmd.Flags().IntVar(&clientBurst, "client-burst", 100, "Maximum Burst allowed to be passed to rest.Client")
 	rootCmd.Flags().StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
 	rootCmd.Flags().StringVar(&zapTimeEncoding, "zap-time-encoding", "epoch", "Zap time encoding (one of 'epoch', 'millis', 'nano', 'iso8601', 'rfc3339' or 'rfc3339nano')")
 	rootCmd.Flags().StringVar(&namespace, "namespace", "", "watch external secrets scoped in the provided namespace only. ClusterSecretStore can be used but only work if it doesn't reference resources from other namespaces")

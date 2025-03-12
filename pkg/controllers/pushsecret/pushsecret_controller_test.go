@@ -125,7 +125,6 @@ var _ = Describe("PushSecret controller", func() {
 			},
 		})
 		// give a time for reconciler to remove finalizers before removing SecretStores
-		// TODO: Secret Stores should have finalizers bound to PushSecrets if DeletionPolicy == Delete
 		time.Sleep(2 * time.Second)
 		k8sClient.Delete(context.Background(), &v1beta1.SecretStore{
 			ObjectMeta: metav1.ObjectMeta{
@@ -742,7 +741,7 @@ var _ = Describe("PushSecret controller", func() {
 						Match: v1alpha1.PushSecretMatch{
 							SecretKey: "some-array[0].entity",
 							RemoteRef: v1alpha1.PushSecretRemoteRef{
-								RemoteKey: "path/to/key",
+								RemoteKey: defaultPath,
 							},
 						},
 					},
@@ -1181,15 +1180,9 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 	})
 
 	const (
-		defaultKey          = "key"
-		defaultVal          = "value"
-		defaultPath         = "path/to/key"
-		otherKey            = "other-key"
-		otherVal            = "other-value"
-		otherPath           = "path/to/other-key"
-		newKey              = "new-key"
-		newVal              = "new-value"
-		storePrefixTemplate = "SecretStore/%v"
+		defaultKey  = "key"
+		defaultVal  = "value"
+		defaultPath = "path/to/key"
 	)
 
 	makeDefaultTestcase := func() *testCase {

@@ -1,0 +1,7 @@
+suite: test ECRAuthorizationToken
+template: tests/crds/ecrauthorizationtoken.yml
+tests:
+  - it: matches ECRAuthorizationToken correctly
+    asserts:
+      - matchSnapshot:
+          path: tests/__snapshot__

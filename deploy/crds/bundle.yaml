@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.17.2
   labels:
     external-secrets.io/component: controller
   name: clusterexternalsecrets.external-secrets.io
@@ -155,11 +155,13 @@ spec:
                                       - Fake
                                       - GCRAccessToken
                                       - GithubAccessToken
+                                      - QuayAccessToken
                                       - Password
                                       - STSSessionToken
                                       - UUID
                                       - VaultDynamicSecret
                                       - Webhook
+                                      - Grafana
                                     type: string
                                   name:
                                     description: Specify the name of the generator resource
@@ -341,11 +343,13 @@ spec:
                                       - Fake
                                       - GCRAccessToken
                                       - GithubAccessToken
+                                      - QuayAccessToken
                                       - Password
                                       - STSSessionToken
                                       - UUID
                                       - VaultDynamicSecret
                                       - Webhook
+                                      - Grafana
                                     type: string
                                   name:
                                     description: Specify the name of the generator resource
@@ -734,7 +738,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.17.2
   labels:
     external-secrets.io/component: controller
   name: clustersecretstores.external-secrets.io
@@ -3553,6 +3557,8 @@ spec:
                           properties:
                             apiUrl:
                               type: string
+                            apiVersion:
+                              type: string
                             clientTimeOutSeconds:
                               description: Timeout specifies a time limit for requests made by this Client. The timeout includes connection time, any redirects, and reading the response body. Defaults to 45 seconds.
                               type: integer
@@ -4261,6 +4267,73 @@ spec:
                           description: ProjectID project where secret is located
                           type: string
                       type: object
+                    github:
+                      description: Github configures this store to push Github Action secrets using Github API provider
+                      properties:
+                        appID:
+                          description: appID specifies the Github APP that will be used to authenticate the client
+                          format: int64
+                          type: integer
+                        auth:
+                          description: auth configures how secret-manager authenticates with a Github instance.
+                          properties:
+                            privateKey:
+                              description: |-
+                                A reference to a specific 'key' within a Secret resource.
+                                In some instances, `key` is a required field.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                          required:
+                            - privateKey
+                          type: object
+                        environment:
+                          description: environment will be used to fetch secrets from a particular environment within a github repository
+                          type: string
+                        installationID:
+                          description: installationID specifies the Github APP installation that will be used to authenticate the client
+                          format: int64
+                          type: integer
+                        organization:
+                          description: organization will be used to fetch secrets from the Github organization
+                          type: string
+                        repository:
+                          description: repository will be used to fetch secrets from the Github repository within an organization
+                          type: string
+                        uploadURL:
+                          description: Upload URL for enterprise instances. Default to URL.
+                          type: string
+                        url:
+                          default: https://github.com/
+                          description: URL configures the Github instance URL. Defaults to https://github.com/.
+                          type: string
+                      required:
+                        - appID
+                        - auth
+                        - installationID
+                        - organization
+                      type: object
                     gitlab:
                       description: GitLab configures this store to sync secrets using GitLab Variables provider
                       properties:
@@ -4448,18 +4521,28 @@ spec:
                           type: object
                         hostAPI:
                           default: https://app.infisical.com/api
+                          description: HostAPI specifies the base URL of the Infisical API. If not provided, it defaults to "https://app.infisical.com/api".
                           type: string
                         secretsScope:
+                          description: SecretsScope defines the scope of the secrets within the workspace
                           properties:
                             environmentSlug:
+                              description: EnvironmentSlug is the required slug identifier for the environment.
                               type: string
+                            expandSecretReferences:
+                              default: true
+                              description: ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.
+                              type: boolean
                             projectSlug:
+                              description: ProjectSlug is the required slug identifier for the project.
                               type: string
                             recursive:
                               default: false
+                              description: Recursive indicates whether the secrets should be fetched recursively. Defaults to false if not provided.
                               type: boolean
                             secretsPath:
                               default: /
+                              description: SecretsPath specifies the path to the secrets within the workspace. Defaults to "/" if not provided.
                               type: string
                           required:
                             - environmentSlug
@@ -5948,7 +6031,7 @@ spec:
                                   type: object
                                 username:
                                   description: |-
-                                    Username is a LDAP user name used to authenticate using the LDAP Vault
+                                    Username is an LDAP username used to authenticate using the LDAP Vault
                                     authentication method
                                   type: string
                               required:
@@ -5993,10 +6076,10 @@ spec:
                               description: UserPass authenticates with Vault by passing username/password pair
                               properties:
                                 path:
-                                  default: user
+                                  default: userpass
                                   description: |-
                                     Path where the UserPassword authentication backend is mounted
-                                    in Vault, e.g: "user"
+                                    in Vault, e.g: "userpass"
                                   type: string
                                 secretRef:
                                   description: |-
@@ -6029,7 +6112,7 @@ spec:
                                   type: object
                                 username:
                                   description: |-
-                                    Username is a user name used to authenticate using the UserPass Vault
+                                    Username is a username used to authenticate using the UserPass Vault
                                     authentication method
                                   type: string
                               required:
@@ -6190,7 +6273,6 @@ spec:
                             - v2
                           type: string
                       required:
-                        - auth
                         - server
                       type: object
                     webhook:
@@ -6507,7 +6589,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.17.2
   labels:
     external-secrets.io/component: controller
   name: externalsecrets.external-secrets.io
@@ -6525,6 +6607,9 @@ spec:
   scope: Namespaced
   versions:
     - additionalPrinterColumns:
+        - jsonPath: .spec.secretStoreRef.kind
+          name: Store
+          type: string
         - jsonPath: .spec.secretStoreRef.name
           name: Store
           type: string
@@ -6824,6 +6909,9 @@ spec:
       subresources:
         status: {}
     - additionalPrinterColumns:
+        - jsonPath: .spec.secretStoreRef.kind
+          name: StoreType
+          type: string
         - jsonPath: .spec.secretStoreRef.name
           name: Store
           type: string
@@ -6939,11 +7027,13 @@ spec:
                                   - Fake
                                   - GCRAccessToken
                                   - GithubAccessToken
+                                  - QuayAccessToken
                                   - Password
                                   - STSSessionToken
                                   - UUID
                                   - VaultDynamicSecret
                                   - Webhook
+                                  - Grafana
                                 type: string
                               name:
                                 description: Specify the name of the generator resource
@@ -7125,11 +7215,13 @@ spec:
                                   - Fake
                                   - GCRAccessToken
                                   - GithubAccessToken
+                                  - QuayAccessToken
                                   - Password
                                   - STSSessionToken
                                   - UUID
                                   - VaultDynamicSecret
                                   - Webhook
+                                  - Grafana
                                 type: string
                               name:
                                 description: Specify the name of the generator resource
@@ -7413,7 +7505,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.17.2
   labels:
     external-secrets.io/component: controller
   name: pushsecrets.external-secrets.io
@@ -7425,6 +7517,8 @@ spec:
     kind: PushSecret
     listKind: PushSecretList
     plural: pushsecrets
+    shortNames:
+      - ps
     singular: pushsecret
   scope: Namespaced
   versions:
@@ -7508,6 +7602,7 @@ spec:
                     - None
                   type: string
                 refreshInterval:
+                  default: 1h
                   description: The Interval to which External Secrets will try to push a secret definition
                   type: string
                 secretStoreRefs:
@@ -7593,11 +7688,13 @@ spec:
                             - Fake
                             - GCRAccessToken
                             - GithubAccessToken
+                            - QuayAccessToken
                             - Password
                             - STSSessionToken
                             - UUID
                             - VaultDynamicSecret
                             - Webhook
+                            - Grafana
                           type: string
                         name:
                           description: Specify the name of the generator resource
@@ -7851,7 +7948,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.17.2
   labels:
     external-secrets.io/component: controller
   name: secretstores.external-secrets.io
@@ -10670,6 +10767,8 @@ spec:
                           properties:
                             apiUrl:
                               type: string
+                            apiVersion:
+                              type: string
                             clientTimeOutSeconds:
                               description: Timeout specifies a time limit for requests made by this Client. The timeout includes connection time, any redirects, and reading the response body. Defaults to 45 seconds.
                               type: integer
@@ -11378,6 +11477,73 @@ spec:
                           description: ProjectID project where secret is located
                           type: string
                       type: object
+                    github:
+                      description: Github configures this store to push Github Action secrets using Github API provider
+                      properties:
+                        appID:
+                          description: appID specifies the Github APP that will be used to authenticate the client
+                          format: int64
+                          type: integer
+                        auth:
+                          description: auth configures how secret-manager authenticates with a Github instance.
+                          properties:
+                            privateKey:
+                              description: |-
+                                A reference to a specific 'key' within a Secret resource.
+                                In some instances, `key` is a required field.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                          required:
+                            - privateKey
+                          type: object
+                        environment:
+                          description: environment will be used to fetch secrets from a particular environment within a github repository
+                          type: string
+                        installationID:
+                          description: installationID specifies the Github APP installation that will be used to authenticate the client
+                          format: int64
+                          type: integer
+                        organization:
+                          description: organization will be used to fetch secrets from the Github organization
+                          type: string
+                        repository:
+                          description: repository will be used to fetch secrets from the Github repository within an organization
+                          type: string
+                        uploadURL:
+                          description: Upload URL for enterprise instances. Default to URL.
+                          type: string
+                        url:
+                          default: https://github.com/
+                          description: URL configures the Github instance URL. Defaults to https://github.com/.
+                          type: string
+                      required:
+                        - appID
+                        - auth
+                        - installationID
+                        - organization
+                      type: object
                     gitlab:
                       description: GitLab configures this store to sync secrets using GitLab Variables provider
                       properties:
@@ -11565,18 +11731,28 @@ spec:
                           type: object
                         hostAPI:
                           default: https://app.infisical.com/api
+                          description: HostAPI specifies the base URL of the Infisical API. If not provided, it defaults to "https://app.infisical.com/api".
                           type: string
                         secretsScope:
+                          description: SecretsScope defines the scope of the secrets within the workspace
                           properties:
                             environmentSlug:
+                              description: EnvironmentSlug is the required slug identifier for the environment.
                               type: string
+                            expandSecretReferences:
+                              default: true
+                              description: ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.
+                              type: boolean
                             projectSlug:
+                              description: ProjectSlug is the required slug identifier for the project.
                               type: string
                             recursive:
                               default: false
+                              description: Recursive indicates whether the secrets should be fetched recursively. Defaults to false if not provided.
                               type: boolean
                             secretsPath:
                               default: /
+                              description: SecretsPath specifies the path to the secrets within the workspace. Defaults to "/" if not provided.
                               type: string
                           required:
                             - environmentSlug
@@ -13065,7 +13241,7 @@ spec:
                                   type: object
                                 username:
                                   description: |-
-                                    Username is a LDAP user name used to authenticate using the LDAP Vault
+                                    Username is an LDAP username used to authenticate using the LDAP Vault
                                     authentication method
                                   type: string
                               required:
@@ -13110,10 +13286,10 @@ spec:
                               description: UserPass authenticates with Vault by passing username/password pair
                               properties:
                                 path:
-                                  default: user
+                                  default: userpass
                                   description: |-
                                     Path where the UserPassword authentication backend is mounted
-                                    in Vault, e.g: "user"
+                                    in Vault, e.g: "userpass"
                                   type: string
                                 secretRef:
                                   description: |-
@@ -13146,7 +13322,7 @@ spec:
                                   type: object
                                 username:
                                   description: |-
-                                    Username is a user name used to authenticate using the UserPass Vault
+                                    Username is a username used to authenticate using the UserPass Vault
                                     authentication method
                                   type: string
                               required:
@@ -13307,7 +13483,6 @@ spec:
                             - v2
                           type: string
                       required:
-                        - auth
                         - server
                       type: object
                     webhook:
@@ -13624,7 +13799,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.17.2
   labels:
     external-secrets.io/component: controller
   name: acraccesstokens.generators.external-secrets.io
@@ -13644,7 +13819,7 @@ spec:
       schema:
         openAPIV3Schema:
           description: |-
-            ACRAccessToken returns a Azure Container Registry token
+            ACRAccessToken returns an Azure Container Registry token
             that can be used for pushing/pulling images.
             Note: by default it will return an ACR Refresh Token with full access
             (depending on the identity).
@@ -13841,7 +14016,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.17.2
   labels:
     external-secrets.io/component: controller
   name: clustergenerators.generators.external-secrets.io
@@ -14037,7 +14212,7 @@ spec:
                         - auth
                         - registry
                       type: object
-                    ecrRAuthorizationTokenSpec:
+                    ecrAuthorizationTokenSpec:
                       properties:
                         auth:
                           description: Auth defines how to authenticate with AWS
@@ -14169,6 +14344,11 @@ spec:
                           description: |-
                             You can assume a role before making calls to the
                             desired AWS service.
+                          type: string
+                        scope:
+                          description: |-
+                            Scope specifies the ECR service scope.
+                            Valid options are private and public.
                           type: string
                       required:
                         - region
@@ -14337,6 +14517,63 @@ spec:
                         - auth
                         - installID
                       type: object
+                    grafanaSpec:
+                      description: GrafanaSpec controls the behavior of the grafana generator.
+                      properties:
+                        auth:
+                          description: |-
+                            Auth is the authentication configuration to authenticate
+                            against the Grafana instance.
+                          properties:
+                            token:
+                              description: |-
+                                A service account token used to authenticate against the Grafana instance.
+                                Note: you need a token which has elevated permissions to create service accounts.
+                                See here for the documentation on basic roles offered by Grafana:
+                                https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/
+                              properties:
+                                key:
+                                  description: The key where the token is found.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                              type: object
+                          required:
+                            - token
+                          type: object
+                        serviceAccount:
+                          description: |-
+                            ServiceAccount is the configuration for the service account that
+                            is supposed to be generated by the generator.
+                          properties:
+                            name:
+                              description: Name is the name of the service account that will be created by ESO.
+                              type: string
+                            role:
+                              description: |-
+                                Role is the role of the service account.
+                                See here for the documentation on basic roles offered by Grafana:
+                                https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/
+                              type: string
+                          required:
+                            - name
+                            - role
+                          type: object
+                        url:
+                          description: URL is the URL of the Grafana instance.
+                          type: string
+                      required:
+                        - auth
+                        - serviceAccount
+                        - url
+                      type: object
                     passwordSpec:
                       description: PasswordSpec controls the behavior of the password generator.
                       properties:
@@ -14373,6 +14610,46 @@ spec:
                         - allowRepeat
                         - length
                         - noUpper
+                      type: object
+                    quayAccessTokenSpec:
+                      properties:
+                        robotAccount:
+                          description: Name of the robot account you are federating with
+                          type: string
+                        serviceAccountRef:
+                          description: Name of the service account you are federating with
+                          properties:
+                            audiences:
+                              description: |-
+                                Audience specifies the `aud` claim for the service account token
+                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          required:
+                            - name
+                          type: object
+                        url:
+                          description: URL configures the Quay instance URL. Defaults to quay.io.
+                          type: string
+                      required:
+                        - robotAccount
+                        - serviceAccountRef
                       type: object
                     stsSessionTokenSpec:
                       properties:
@@ -14536,6 +14813,10 @@ spec:
                       type: object
                     vaultDynamicSecretSpec:
                       properties:
+                        allowEmptyResponse:
+                          default: false
+                          description: Do not fail if no secrets are found. Useful for requests where no data is expected.
+                          type: boolean
                         controller:
                           description: |-
                             Used to select the correct ESO controller (think: ingress.ingressClassName)
@@ -15066,7 +15347,7 @@ spec:
                                       type: object
                                     username:
                                       description: |-
-                                        Username is a LDAP user name used to authenticate using the LDAP Vault
+                                        Username is an LDAP username used to authenticate using the LDAP Vault
                                         authentication method
                                       type: string
                                   required:
@@ -15111,10 +15392,10 @@ spec:
                                   description: UserPass authenticates with Vault by passing username/password pair
                                   properties:
                                     path:
-                                      default: user
+                                      default: userpass
                                       description: |-
                                         Path where the UserPassword authentication backend is mounted
-                                        in Vault, e.g: "user"
+                                        in Vault, e.g: "userpass"
                                       type: string
                                     secretRef:
                                       description: |-
@@ -15147,7 +15428,7 @@ spec:
                                       type: object
                                     username:
                                       description: |-
-                                        Username is a user name used to authenticate using the UserPass Vault
+                                        Username is a username used to authenticate using the UserPass Vault
                                         authentication method
                                       type: string
                                   required:
@@ -15308,7 +15589,6 @@ spec:
                                 - v2
                               type: string
                           required:
-                            - auth
                             - server
                           type: object
                         resultType:
@@ -15319,9 +15599,11 @@ spec:
                             When using e.g. /auth/token/create the "data" section is empty but
                             the "auth" section contains the generated token.
                             Please refer to the vault docs regarding the result data structure.
+                            Additionally, accessing the raw response is possibly by using "Raw" result type.
                           enum:
                             - Data
                             - Auth
+                            - Raw
                           type: string
                         retrySettings:
                           description: Used to configure http retries if failed
@@ -15445,11 +15727,13 @@ spec:
                     - Fake
                     - GCRAccessToken
                     - GithubAccessToken
+                    - QuayAccessToken
                     - Password
                     - STSSessionToken
                     - UUID
                     - VaultDynamicSecret
                     - Webhook
+                    - Grafana
                   type: string
               required:
                 - generator
@@ -15475,7 +15759,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.17.2
   labels:
     external-secrets.io/component: controller
   name: ecrauthorizationtokens.generators.external-secrets.io
@@ -15652,6 +15936,11 @@ spec:
                     You can assume a role before making calls to the
                     desired AWS service.
                   type: string
+                scope:
+                  description: |-
+                    Scope specifies the ECR service scope.
+                    Valid options are private and public.
+                  type: string
               required:
                 - region
               type: object
@@ -15675,7 +15964,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.17.2
   labels:
     external-secrets.io/component: controller
   name: fakes.generators.external-secrets.io
@@ -15751,7 +16040,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.17.2
   labels:
     external-secrets.io/component: controller
   name: gcraccesstokens.generators.external-secrets.io
@@ -15894,7 +16183,120 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.17.2
+  labels:
+    external-secrets.io/component: controller
+  name: generatorstates.generators.external-secrets.io
+spec:
+  group: generators.external-secrets.io
+  names:
+    categories:
+      - external-secrets
+      - external-secrets-generators
+    kind: GeneratorState
+    listKind: GeneratorStateList
+    plural: generatorstates
+    shortNames:
+      - gs
+    singular: generatorstate
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .spec.garbageCollectionDeadline
+          name: GC Deadline
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                garbageCollectionDeadline:
+                  description: |-
+                    GarbageCollectionDeadline is the time after which the generator state
+                    will be deleted.
+                    It is set by the controller which creates the generator state and
+                    can be set configured by the user.
+                    If the garbage collection deadline is not set the generator state will not be deleted.
+                  format: date-time
+                  type: string
+                resource:
+                  description: |-
+                    Resource is the generator manifest that produced the state.
+                    It is a snapshot of the generator manifest at the time the state was produced.
+                    This manifest will be used to delete the resource. Any configuration that is referenced
+                    in the manifest should be available at the time of garbage collection. If that is not the case deletion will
+                    be blocked by a finalizer.
+                  x-kubernetes-preserve-unknown-fields: true
+                state:
+                  description: State is the state that was produced by the generator implementation.
+                  x-kubernetes-preserve-unknown-fields: true
+              required:
+                - resource
+                - state
+              type: object
+            status:
+              properties:
+                conditions:
+                  items:
+                    properties:
+                      lastTransitionTime:
+                        format: date-time
+                        type: string
+                      message:
+                        type: string
+                      reason:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        type: string
+                    required:
+                      - status
+                      - type
+                    type: object
+                  type: array
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources: {}
+  conversion:
+    strategy: Webhook
+    webhook:
+      conversionReviewVersions:
+        - v1
+      clientConfig:
+        service:
+          name: kubernetes
+          namespace: default
+          path: /convert
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.2
   labels:
     external-secrets.io/component: controller
   name: githubaccesstokens.generators.external-secrets.io
@@ -16017,7 +16419,121 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.17.2
+  labels:
+    external-secrets.io/component: controller
+  name: grafanas.generators.external-secrets.io
+spec:
+  group: generators.external-secrets.io
+  names:
+    categories:
+      - external-secrets
+      - external-secrets-generators
+    kind: Grafana
+    listKind: GrafanaList
+    plural: grafanas
+    singular: grafana
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: GrafanaSpec controls the behavior of the grafana generator.
+              properties:
+                auth:
+                  description: |-
+                    Auth is the authentication configuration to authenticate
+                    against the Grafana instance.
+                  properties:
+                    token:
+                      description: |-
+                        A service account token used to authenticate against the Grafana instance.
+                        Note: you need a token which has elevated permissions to create service accounts.
+                        See here for the documentation on basic roles offered by Grafana:
+                        https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/
+                      properties:
+                        key:
+                          description: The key where the token is found.
+                          maxLength: 253
+                          minLength: 1
+                          pattern: ^[-._a-zA-Z0-9]+$
+                          type: string
+                        name:
+                          description: The name of the Secret resource being referred to.
+                          maxLength: 253
+                          minLength: 1
+                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                          type: string
+                      type: object
+                  required:
+                    - token
+                  type: object
+                serviceAccount:
+                  description: |-
+                    ServiceAccount is the configuration for the service account that
+                    is supposed to be generated by the generator.
+                  properties:
+                    name:
+                      description: Name is the name of the service account that will be created by ESO.
+                      type: string
+                    role:
+                      description: |-
+                        Role is the role of the service account.
+                        See here for the documentation on basic roles offered by Grafana:
+                        https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/
+                      type: string
+                  required:
+                    - name
+                    - role
+                  type: object
+                url:
+                  description: URL is the URL of the Grafana instance.
+                  type: string
+              required:
+                - auth
+                - serviceAccount
+                - url
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+  conversion:
+    strategy: Webhook
+    webhook:
+      conversionReviewVersions:
+        - v1
+      clientConfig:
+        service:
+          name: kubernetes
+          namespace: default
+          path: /convert
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.2
   labels:
     external-secrets.io/component: controller
   name: passwords.generators.external-secrets.io
@@ -16115,7 +16631,105 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.17.2
+  labels:
+    external-secrets.io/component: controller
+  name: quayaccesstokens.generators.external-secrets.io
+spec:
+  group: generators.external-secrets.io
+  names:
+    categories:
+      - external-secrets
+      - external-secrets-generators
+    kind: QuayAccessToken
+    listKind: QuayAccessTokenList
+    plural: quayaccesstokens
+    singular: quayaccesstoken
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: QuayAccessToken generates Quay oauth token for pulling/pushing images
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                robotAccount:
+                  description: Name of the robot account you are federating with
+                  type: string
+                serviceAccountRef:
+                  description: Name of the service account you are federating with
+                  properties:
+                    audiences:
+                      description: |-
+                        Audience specifies the `aud` claim for the service account token
+                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                        then this audiences will be appended to the list
+                      items:
+                        type: string
+                      type: array
+                    name:
+                      description: The name of the ServiceAccount resource being referred to.
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                      type: string
+                    namespace:
+                      description: |-
+                        Namespace of the resource being referred to.
+                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                      maxLength: 63
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                      type: string
+                  required:
+                    - name
+                  type: object
+                url:
+                  description: URL configures the Quay instance URL. Defaults to quay.io.
+                  type: string
+              required:
+                - robotAccount
+                - serviceAccountRef
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+  conversion:
+    strategy: Webhook
+    webhook:
+      conversionReviewVersions:
+        - v1
+      clientConfig:
+        service:
+          name: kubernetes
+          namespace: default
+          path: /convert
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.2
   labels:
     external-secrets.io/component: controller
   name: stssessiontokens.generators.external-secrets.io
@@ -16334,7 +16948,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.17.2
   labels:
     external-secrets.io/component: controller
   name: uuids.generators.external-secrets.io
@@ -16395,7 +17009,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.17.2
   labels:
     external-secrets.io/component: controller
   name: vaultdynamicsecrets.generators.external-secrets.io
@@ -16434,6 +17048,10 @@ spec:
               type: object
             spec:
               properties:
+                allowEmptyResponse:
+                  default: false
+                  description: Do not fail if no secrets are found. Useful for requests where no data is expected.
+                  type: boolean
                 controller:
                   description: |-
                     Used to select the correct ESO controller (think: ingress.ingressClassName)
@@ -16964,7 +17582,7 @@ spec:
                               type: object
                             username:
                               description: |-
-                                Username is a LDAP user name used to authenticate using the LDAP Vault
+                                Username is an LDAP username used to authenticate using the LDAP Vault
                                 authentication method
                               type: string
                           required:
@@ -17009,10 +17627,10 @@ spec:
                           description: UserPass authenticates with Vault by passing username/password pair
                           properties:
                             path:
-                              default: user
+                              default: userpass
                               description: |-
                                 Path where the UserPassword authentication backend is mounted
-                                in Vault, e.g: "user"
+                                in Vault, e.g: "userpass"
                               type: string
                             secretRef:
                               description: |-
@@ -17045,7 +17663,7 @@ spec:
                               type: object
                             username:
                               description: |-
-                                Username is a user name used to authenticate using the UserPass Vault
+                                Username is a username used to authenticate using the UserPass Vault
                                 authentication method
                               type: string
                           required:
@@ -17206,7 +17824,6 @@ spec:
                         - v2
                       type: string
                   required:
-                    - auth
                     - server
                   type: object
                 resultType:
@@ -17217,9 +17834,11 @@ spec:
                     When using e.g. /auth/token/create the "data" section is empty but
                     the "auth" section contains the generated token.
                     Please refer to the vault docs regarding the result data structure.
+                    Additionally, accessing the raw response is possibly by using "Raw" result type.
                   enum:
                     - Data
                     - Auth
+                    - Raw
                   type: string
                 retrySettings:
                   description: Used to configure http retries if failed
@@ -17254,7 +17873,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.17.2
   labels:
     external-secrets.io/component: controller
   name: webhooks.generators.external-secrets.io

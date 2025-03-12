@@ -38,8 +38,8 @@ plugins:
   - macros:
       include_dir: docs/snippets
 copyright: |
-  &copy; 2024 The external-secrets Authors.<br/>
-  &copy; 2024 The Linux Foundation. All rights reserved.<br/><br/>
+  &copy; 2025 The external-secrets Authors.<br/>
+  &copy; 2025 The Linux Foundation. All rights reserved.<br/><br/>
   The Linux Foundation has registered trademarks and uses trademarks.<br/>
   For a list of trademarks of The Linux Foundation, please see our <a href="https://www.linuxfoundation.org/trademark-usage/">Trademark Usage page</a>.
 extra:
@@ -52,6 +52,8 @@ nav:
   - Introduction:
       - Introduction: index.md
       - Overview: introduction/overview.md
+      - Glossary: introduction/glossary.md
+      - Prerequisites: introduction/prerequisites.md
       - Getting started: introduction/getting-started.md
       - FAQ: introduction/faq.md
       - Stability and Support: introduction/stability-support.md
@@ -71,6 +73,7 @@ nav:
       - AWS STS Session Token: api/generator/sts.md
       - Cluster Generator: api/generator/cluster.md
       - Google Container Registry: api/generator/gcr.md
+      - Quay: api/generator/quay.md
       - Vault Dynamic Secret: api/generator/vault.md
       - Password: api/generator/password.md
       - Fake: api/generator/fake.md
@@ -103,6 +106,8 @@ nav:
           - Upgrading to v1beta1: guides/v1beta1.md
           - Using Latest Image: guides/using-latest-image.md
           - Disable Cluster Features: guides/disable-cluster-features.md
+      - Tooling:
+          - Using the esoctl tool: guides/using-esoctl-tool.md
   - Provider:
       - AWS Secrets Manager: provider/aws-secrets-manager.md
       - AWS Parameter Store: provider/aws-parameter-store.md
@@ -121,6 +126,7 @@ nav:
       - Yandex Lockbox: provider/yandex-lockbox.md
       - Alibaba Cloud: provider/alibaba.md
       - GitLab Variables: provider/gitlab-variables.md
+      - Github Actions Secrets: provider/github.md
       - Oracle Vault: provider/oracle-vault.md
       - 1Password Secrets Automation: provider/1password-automation.md
       - Webhook: provider/webhook.md
@@ -143,13 +149,14 @@ nav:
       - FluxCD: examples/gitops-using-fluxcd.md
       - Anchore Engine: examples/anchore-engine-credentials.md
       - Jenkins: examples/jenkins-kubernetes-credentials.md
-      - BitWarden: examples/bitwarden.md
+      - Bitwarden: examples/bitwarden.md
   - Community:
       - Contributing:
           - Developer guide: contributing/devguide.md
           - Contributing Process: contributing/process.md
           - Release Process: contributing/release.md
           - Code of Conduct: contributing/coc.md
+          - Community meetings calendar: contributing/calendar.md
           - Roadmap: contributing/roadmap.md
       - External Resources:
           - Talks: eso-talks.md

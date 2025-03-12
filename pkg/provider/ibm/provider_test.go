@@ -15,6 +15,7 @@ limitations under the License.
 package ibm
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -68,7 +69,7 @@ func makeValidSecretManagerTestCase() *secretManagerTestCase {
 		ref:             makeValidRef(),
 		apiOutput:       makeValidAPIOutput(),
 		getByNameInput:  makeValidGetByNameInput(),
-		getByNameOutput: makeValidGetByNameOutput(),
+		getByNameOutput: makeValidAPIOutput(),
 		getByNameError:  nil,
 		serviceURL:      nil,
 		apiErr:          nil,
@@ -115,16 +116,6 @@ func makeValidGetByNameInput() *sm.GetSecretByNameTypeOptions {
 	return &sm.GetSecretByNameTypeOptions{}
 }
 
-func makeValidGetByNameOutput() sm.SecretIntf {
-	secret := &sm.Secret{
-		SecretType: utilpointer.To(sm.Secret_SecretType_Arbitrary),
-		Name:       utilpointer.To("testyname"),
-		ID:         utilpointer.To(secretUUID),
-	}
-	var i sm.SecretIntf = secret
-	return i
-}
-
 func makeValidSecretManagerTestCaseCustom(tweaks ...func(smtc *secretManagerTestCase)) *secretManagerTestCase {
 	smtc := makeValidSecretManagerTestCase()
 	for _, fn := range tweaks {
@@ -151,7 +142,7 @@ var setAPIErr = func(smtc *secretManagerTestCase) {
 
 var setNilMockClient = func(smtc *secretManagerTestCase) {
 	smtc.mockClient = nil
-	smtc.expectError = errUninitalizedIBMProvider
+	smtc.expectError = errUninitializedIBMProvider
 }
 
 // simple tests for Validate Store.
@@ -884,27 +875,20 @@ func TestGetSecretMap(t *testing.T) {
 
 		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
 		smtc.expectedData = map[string][]byte{
-			"certificate":           []byte(secretCertificate),
-			"created_at":            []byte(timeValue),
-			"created_by":            []byte(*secret.CreatedBy),
-			"crn":                   []byte(nilValue),
-			"downloaded":            []byte(strconv.FormatBool(*secret.Downloaded)),
-			"expiration_date":       []byte(nilValue),
-			"id":                    []byte(nilValue),
-			"intermediate":          []byte(secretIntermediate),
-			"intermediate_included": []byte(nilValue),
-			"issuer":                []byte(nilValue),
-			"labels":                []byte("[" + strings.Join(secret.Labels, " ") + "]"),
-			"locks_total":           []byte(strconv.Itoa(int(*secret.LocksTotal))),
-			"private_key":           []byte(secretPrivateKey),
-			"private_key_included":  []byte(nilValue),
-			"secret_group_id":       []byte(nilValue),
-			"secret_type":           []byte(nilValue),
-			"serial_number":         []byte(nilValue),
-			"signing_algorithm":     []byte(nilValue),
-			"updated_at":            []byte(nilValue),
-			"validity":              []byte(nilValue),
-			"versions_total":        []byte(nilValue),
+			"certificate":     []byte(secretCertificate),
+			"created_at":      []byte(timeValue),
+			"created_by":      []byte(*secret.CreatedBy),
+			"crn":             []byte(nilValue),
+			"downloaded":      []byte(strconv.FormatBool(*secret.Downloaded)),
+			"id":              []byte(nilValue),
+			"intermediate":    []byte(secretIntermediate),
+			"labels":          []byte("[" + strings.Join(secret.Labels, " ") + "]"),
+			"locks_total":     []byte(strconv.Itoa(int(*secret.LocksTotal))),
+			"private_key":     []byte(secretPrivateKey),
+			"secret_group_id": []byte(nilValue),
+			"secret_type":     []byte(nilValue),
+			"updated_at":      []byte(nilValue),
+			"versions_total":  []byte(nilValue),
 		}
 	}
 
@@ -951,7 +935,6 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
 		smtc.expectedData = map[string][]byte{
 			"certificate":     []byte(secretCertificate),
-			"common_name":     []byte(nilValue),
 			"created_at":      []byte(timeValue),
 			"created_by":      []byte(*secret.CreatedBy),
 			"crn":             []byte(nilValue),
@@ -1167,6 +1150,20 @@ func TestGetSecretMap(t *testing.T) {
 				t.Errorf("unexpected error: %s, expected: '%s'", err.Error(), v.expectError)
 			}
 			if err == nil && !reflect.DeepEqual(out, v.expectedData) {
+				// Add some debug logs because t.Errorf is hard to debug at a glance.
+				for k, val := range out {
+					if val2, ok := v.expectedData[k]; !ok {
+						t.Logf("%s was not in expected data\n", k)
+					} else if !bytes.Equal(val2, val) {
+						fmt.Printf("%s did not equal expected value: %s\n", string(val), string(val2))
+					}
+				}
+
+				for k := range v.expectedData {
+					if _, ok := out[k]; !ok {
+						t.Logf("%s expected key was not in out\n", k)
+					}
+				}
 				t.Errorf("unexpected secret data: expected:\n%+v\ngot:\n%+v", v.expectedData, out)
 			}
 		})

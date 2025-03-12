@@ -1,4 +1,4 @@
-{{- if .Values.webhook.create }}
+{{- if and .Values.webhook.create .Values.webhook.service.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -7,26 +7,24 @@ metadata:
   labels:
     {{- include "external-secrets-webhook.labels" . | nindent 4 }}
     external-secrets.io/component: webhook
-  {{- if .Values.webhook.metrics.service.enabled }}
-  {{- with .Values.webhook.metrics.service.annotations }}
-  annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
-  {{- end }}
+  {{- include "external-secrets-webhook.annotations" . | nindent 2 }}
 spec:
-  type: ClusterIP
+  type: {{ .Values.webhook.service.type }}
   {{- if .Values.service.ipFamilyPolicy }}
   ipFamilyPolicy: {{ .Values.service.ipFamilyPolicy }}
   {{- end }}
   {{- if .Values.service.ipFamilies }}
   ipFamilies: {{ .Values.service.ipFamilies | toYaml | nindent 2 }}
   {{- end }}
+  {{- with .Values.webhook.service.loadBalancerIP }}
+  loadBalancerIP: {{ . }}
+  {{- end }}
   ports:
   - port: 443
     targetPort: {{ .Values.webhook.port }}
     protocol: TCP
     name: webhook
-  {{- if .Values.webhook.metrics.service.enabled }}
+  {{- if or .Values.webhook.metrics.service.enabled ( and ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) .Values.serviceMonitor.enabled ) }}
   - port: {{ .Values.webhook.metrics.service.port }}
     protocol: TCP
     targetPort: metrics

@@ -27,7 +27,7 @@ _**The 1Password API calls the entries in vaults 'Items'. These docs use the sam
 * `dataFrom`:
     * `find.path` is equated to Item Title.
     * `find.name.regexp` is equated to field Labels.
-    * `find.tags` are not supported at this time.
+    * `find.tags` fetches for Items with the same tags matching the keys of `find.tags`.
 
 ### Prerequisites
 

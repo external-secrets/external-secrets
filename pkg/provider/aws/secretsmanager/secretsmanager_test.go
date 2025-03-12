@@ -62,6 +62,7 @@ const (
 	tagvalue1 = "tagvalue1"
 	tagname2  = "tagname2"
 	tagvalue2 = "tagvalue2"
+	fakeKey   = "fake-key"
 )
 
 func makeValidSecretsManagerTestCase() *secretsManagerTestCase {
@@ -464,11 +465,12 @@ func TestSetSecret(t *testing.T) {
 		ARN: &arn,
 	}
 
-	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: secretKey, RemoteKey: "fake-key", Property: ""}
-	pushSecretDataWithMetadata := fake.PushSecretData{SecretKey: secretKey, RemoteKey: "fake-key", Property: "", Metadata: &apiextensionsv1.JSON{
+	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: ""}
+	pushSecretDataWithoutSecretKey := fake.PushSecretData{RemoteKey: fakeKey, Property: ""}
+	pushSecretDataWithMetadata := fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "", Metadata: &apiextensionsv1.JSON{
 		Raw: []byte(`{"secretPushFormat": "string"}`),
 	}}
-	pushSecretDataWithProperty := fake.PushSecretData{SecretKey: secretKey, RemoteKey: "fake-key", Property: "other-fake-property"}
+	pushSecretDataWithProperty := fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "other-fake-property"}
 
 	type args struct {
 		store          *esv1beta1.AWSProvider
@@ -495,6 +497,22 @@ func TestSetSecret(t *testing.T) {
 					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretSucceedsWithoutSecretKey": {
+			reason: "a secret can be pushed to aws secrets manager without secret key",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
+					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+				},
+				pushSecretData: pushSecretDataWithoutSecretKey,
 			},
 			want: want{
 				err: nil,
@@ -655,7 +673,7 @@ func TestSetSecret(t *testing.T) {
 						Version:      &defaultUpdatedVersion,
 					}),
 				},
-				pushSecretData: fake.PushSecretData{SecretKey: secretKey, RemoteKey: "fake-key", Property: "fake-property.other-fake-property"},
+				pushSecretData: fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "fake-property.other-fake-property"},
 			},
 			want: want{
 				err: nil,
@@ -992,7 +1010,7 @@ func TestDeleteSecret(t *testing.T) {
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			ref := fake.PushSecretData{RemoteKey: "fake-key"}
+			ref := fake.PushSecretData{RemoteKey: fakeKey}
 			sm := SecretsManager{
 				client: &tc.args.client,
 				config: &tc.args.config,
@@ -1064,17 +1082,15 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 	}
 	// Test cases
 	testCases := []struct {
-		name string
-		ref  esv1beta1.ExternalSecretFind
-
-		secretName    string
-		secretVersion string
-		secretValue   string
-		fetchError    error
-		listSecretsFn func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error)
-
-		expectedData  map[string][]byte
-		expectedError string
+		name                             string
+		ref                              esv1beta1.ExternalSecretFind
+		secretName                       string
+		secretVersion                    string
+		secretValue                      string
+		batchGetSecretValueWithContextFn func(aws.Context, *awssm.BatchGetSecretValueInput, ...request.Option) (*awssm.BatchGetSecretValueOutput, error)
+		listSecretsFn                    func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error)
+		expectedData                     map[string][]byte
+		expectedError                    string
 	}{
 		{
 			name: "Matching secrets found",
@@ -1087,14 +1103,16 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			secretName:    secretName,
 			secretVersion: secretVersion,
 			secretValue:   secretValue,
-			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error) {
+			batchGetSecretValueWithContextFn: func(_ aws.Context, input *awssm.BatchGetSecretValueInput, _ ...request.Option) (*awssm.BatchGetSecretValueOutput, error) {
 				assert.Len(t, input.Filters, 1)
 				assert.Equal(t, "name", *input.Filters[0].Key)
 				assert.Equal(t, secretPath, *input.Filters[0].Values[0])
-				return &awssm.ListSecretsOutput{
-					SecretList: []*awssm.SecretListEntry{
+				return &awssm.BatchGetSecretValueOutput{
+					SecretValues: []*awssm.SecretValueEntry{
 						{
-							Name: ptr.To(secretName),
+							Name:          ptr.To(secretName),
+							VersionStages: []*string{ptr.To(secretVersion)},
+							SecretBinary:  []byte(secretValue),
 						},
 					},
 				}, nil
@@ -1115,15 +1133,14 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			secretName:    secretName,
 			secretVersion: secretVersion,
 			secretValue:   secretValue,
-			fetchError:    errBoom,
-			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error) {
-				return &awssm.ListSecretsOutput{
-					SecretList: []*awssm.SecretListEntry{
+			batchGetSecretValueWithContextFn: func(aws.Context, *awssm.BatchGetSecretValueInput, ...request.Option) (*awssm.BatchGetSecretValueOutput, error) {
+				return &awssm.BatchGetSecretValueOutput{
+					SecretValues: []*awssm.SecretValueEntry{
 						{
 							Name: ptr.To(secretName),
 						},
 					},
-				}, nil
+				}, errBoom
 			},
 			expectedData:  nil,
 			expectedError: errBoom.Error(),
@@ -1157,6 +1174,15 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 					},
 				}, nil
 			},
+			batchGetSecretValueWithContextFn: func(aws.Context, *awssm.BatchGetSecretValueInput, ...request.Option) (*awssm.BatchGetSecretValueOutput, error) {
+				return &awssm.BatchGetSecretValueOutput{
+					SecretValues: []*awssm.SecretValueEntry{
+						{
+							Name: ptr.To("other-secret"),
+						},
+					},
+				}, nil
+			},
 			expectedData:  make(map[string][]byte),
 			expectedError: "",
 		},
@@ -1179,16 +1205,18 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			secretName:    secretName,
 			secretVersion: secretVersion,
 			secretValue:   secretValue,
-			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error) {
+			batchGetSecretValueWithContextFn: func(_ aws.Context, input *awssm.BatchGetSecretValueInput, _ ...request.Option) (*awssm.BatchGetSecretValueOutput, error) {
 				assert.Len(t, input.Filters, 2)
 				assert.Equal(t, "tag-key", *input.Filters[0].Key)
 				assert.Equal(t, "foo", *input.Filters[0].Values[0])
 				assert.Equal(t, "tag-value", *input.Filters[1].Key)
 				assert.Equal(t, "bar", *input.Filters[1].Values[0])
-				return &awssm.ListSecretsOutput{
-					SecretList: []*awssm.SecretListEntry{
+				return &awssm.BatchGetSecretValueOutput{
+					SecretValues: []*awssm.SecretValueEntry{
 						{
-							Name: ptr.To(secretName),
+							Name:          ptr.To(secretName),
+							VersionStages: []*string{ptr.To(secretVersion)},
+							SecretBinary:  []byte(secretValue),
 						},
 					},
 				}, nil
@@ -1206,15 +1234,16 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			secretName:    secretName,
 			secretVersion: secretVersion,
 			secretValue:   secretValue,
-			fetchError:    errBoom,
-			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error) {
-				return &awssm.ListSecretsOutput{
-					SecretList: []*awssm.SecretListEntry{
+			batchGetSecretValueWithContextFn: func(aws.Context, *awssm.BatchGetSecretValueInput, ...request.Option) (*awssm.BatchGetSecretValueOutput, error) {
+				return &awssm.BatchGetSecretValueOutput{
+					SecretValues: []*awssm.SecretValueEntry{
 						{
-							Name: ptr.To(secretName),
+							Name:          ptr.To(secretName),
+							VersionStages: []*string{ptr.To(secretVersion)},
+							SecretBinary:  []byte(secretValue),
 						},
 					},
-				}, nil
+				}, errBoom
 			},
 			expectedData:  nil,
 			expectedError: errBoom.Error(),
@@ -1224,7 +1253,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			ref: esv1beta1.ExternalSecretFind{
 				Tags: secretTags,
 			},
-			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error) {
+			batchGetSecretValueWithContextFn: func(aws.Context, *awssm.BatchGetSecretValueInput, ...request.Option) (*awssm.BatchGetSecretValueOutput, error) {
 				return nil, errBoom
 			},
 			expectedData:  nil,
@@ -1235,15 +1264,8 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			fc := fakesm.NewClient()
+			fc.BatchGetSecretValueWithContextFn = tc.batchGetSecretValueWithContextFn
 			fc.ListSecretsFn = tc.listSecretsFn
-			fc.WithValue(&awssm.GetSecretValueInput{
-				SecretId:     ptr.To(tc.secretName),
-				VersionStage: ptr.To(tc.secretVersion),
-			}, &awssm.GetSecretValueOutput{
-				Name:          ptr.To(tc.secretName),
-				VersionStages: []*string{ptr.To(tc.secretVersion)},
-				SecretBinary:  []byte(tc.secretValue),
-			}, tc.fetchError)
 			sm := SecretsManager{
 				client: fc,
 				cache:  make(map[string]*awssm.GetSecretValueOutput),
@@ -1329,7 +1351,7 @@ func TestSecretExists(t *testing.T) {
 	getSecretCorrectErr := awssm.ResourceNotFoundException{}
 	getSecretWrongErr := awssm.InvalidRequestException{}
 
-	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: "fake-secret-key", RemoteKey: "fake-key", Property: ""}
+	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: "fake-secret-key", RemoteKey: fakeKey, Property: ""}
 
 	type args struct {
 		store          *esv1beta1.AWSProvider

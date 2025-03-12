@@ -283,6 +283,24 @@ func TestGetAllSecrets(t *testing.T) {
 				},
 			},
 		},
+		"FilterByPathReturnsNotFound": {
+			reason: "should return a not found error if there are no more secrets on the path",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ListWithContextFn: func(ctx context.Context, path string) (*vault.Secret, error) {
+						return nil, nil
+					},
+					ReadWithDataWithContextFn: newReadtWithContextFn(map[string]any{}),
+				},
+				data: esv1beta1.ExternalSecretFind{
+					Path: &path,
+				},
+			},
+			want: want{
+				err: esv1beta1.NoSecretError{},
+			},
+		},
 		"FilterByPathKv1": {
 			reason: "should filter secrets based on path for kv1",
 			args: args{

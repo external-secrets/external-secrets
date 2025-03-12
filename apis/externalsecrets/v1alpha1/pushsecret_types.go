@@ -73,6 +73,7 @@ const (
 // PushSecretSpec configures the behavior of the PushSecret.
 type PushSecretSpec struct {
 	// The Interval to which External Secrets will try to push a secret definition
+	// +kubebuilder:default="1h"
 	RefreshInterval *metav1.Duration `json:"refreshInterval,omitempty"`
 
 	SecretStoreRefs []PushSecretStoreRef `json:"secretStoreRefs"`
@@ -221,7 +222,7 @@ type PushSecretStatus struct {
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
-// +kubebuilder:resource:scope=Namespaced,categories={external-secrets}
+// +kubebuilder:resource:scope=Namespaced,categories={external-secrets},shortName=ps
 
 type PushSecret struct {
 	metav1.TypeMeta   `json:",inline"`
