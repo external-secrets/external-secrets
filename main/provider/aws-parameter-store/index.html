@@ -4148,7 +4148,8 @@ Please estimate your costs before using ESO. Cost depends on the RefreshInterval
 <p>Optionally, it is possible to configure additional options for the parameter. These are as follows:
 - type
 - keyID
-- tier &amp; policies</p>
+- tier &amp; policies
+- encodeAsDecoded</p>
 <p>To control this behaviour you can set the following provider's <code>metadata</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
@@ -4200,7 +4201,9 @@ Please estimate your costs before using ESO. Cost depends on the RefreshInterval
 <ul>
 <li><code>secretType</code> takes three options. <code>String</code>, <code>StringList</code>, and <code>SecureString</code>, where <code>String</code> is the <em>default</em></li>
 <li><code>kmsKeyID</code> takes a KMS Key <code>$ID</code> or <code>$ARN</code> (in case a key source is created in another account) as a string, where <code>alias/aws/ssm</code> is the <em>default</em>. This property is only used if <code>secretType</code> is set as <code>SecureString</code>.</li>
-<li></li>
+<li>tier &amp; policies contains advanced policy configs such as <code>ExpirationNotification</code>.</li>
+<li>encodeAsDecoded if set to true will get the secrets and push them as plain values when pushing the entire secret (instead of encoding them)
+instead of base64 encoding the []byte values from the secret.</li>
 </ul>
 <h4 id="check-successful-secret-sync">Check successful secret sync</h4>
 <p>To be able to check that the secret has been successfully synced you can run the following command:</p>
