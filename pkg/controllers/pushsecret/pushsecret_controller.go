@@ -546,6 +546,7 @@ func SetPushSecretCondition(ps *esapi.PushSecret, condition esapi.PushSecretStat
 	currentCond := GetPushSecretCondition(ps.Status.Conditions, condition.Type)
 	if currentCond != nil && currentCond.Status == condition.Status &&
 		currentCond.Reason == condition.Reason && currentCond.Message == condition.Message {
+		psmetrics.UpdatePushSecretCondition(ps, &condition, 1.0)
 		return
 	}
 
@@ -555,6 +556,12 @@ func SetPushSecretCondition(ps *esapi.PushSecret, condition esapi.PushSecretStat
 	}
 
 	ps.Status.Conditions = append(FilterOutCondition(ps.Status.Conditions, condition.Type), condition)
+
+	if currentCond != nil {
+		psmetrics.UpdatePushSecretCondition(ps, currentCond, 0.0)
+	}
+
+	psmetrics.UpdatePushSecretCondition(ps, &condition, 1.0)
 }
 
 // FilterOutCondition returns an empty set of conditions with the provided type.

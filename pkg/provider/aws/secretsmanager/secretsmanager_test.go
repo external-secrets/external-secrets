@@ -466,6 +466,7 @@ func TestSetSecret(t *testing.T) {
 	}
 
 	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: ""}
+	pushSecretDataWithoutSecretKey := fake.PushSecretData{RemoteKey: fakeKey, Property: ""}
 	pushSecretDataWithMetadata := fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "", Metadata: &apiextensionsv1.JSON{
 		Raw: []byte(`{"secretPushFormat": "string"}`),
 	}}
@@ -496,6 +497,22 @@ func TestSetSecret(t *testing.T) {
 					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretSucceedsWithoutSecretKey": {
+			reason: "a secret can be pushed to aws secrets manager without secret key",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
+					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+				},
+				pushSecretData: pushSecretDataWithoutSecretKey,
 			},
 			want: want{
 				err: nil,

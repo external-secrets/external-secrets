@@ -907,6 +907,7 @@ spec:
                         - None
                       type: string
                     refreshInterval:
+                      default: 1h
                       description: The Interval to which External Secrets will try to push a secret definition
                       type: string
                     secretStoreRefs:
@@ -1266,7 +1267,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.17.1
+    controller-gen.kubebuilder.io/version: v0.17.2
   labels:
     external-secrets.io/component: controller
   name: clustersecretstores.external-secrets.io
@@ -4795,6 +4796,73 @@ spec:
                           description: ProjectID project where secret is located
                           type: string
                       type: object
+                    github:
+                      description: Github configures this store to push Github Action secrets using Github API provider
+                      properties:
+                        appID:
+                          description: appID specifies the Github APP that will be used to authenticate the client
+                          format: int64
+                          type: integer
+                        auth:
+                          description: auth configures how secret-manager authenticates with a Github instance.
+                          properties:
+                            privateKey:
+                              description: |-
+                                A reference to a specific 'key' within a Secret resource.
+                                In some instances, `key` is a required field.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                          required:
+                            - privateKey
+                          type: object
+                        environment:
+                          description: environment will be used to fetch secrets from a particular environment within a github repository
+                          type: string
+                        installationID:
+                          description: installationID specifies the Github APP installation that will be used to authenticate the client
+                          format: int64
+                          type: integer
+                        organization:
+                          description: organization will be used to fetch secrets from the Github organization
+                          type: string
+                        repository:
+                          description: repository will be used to fetch secrets from the Github repository within an organization
+                          type: string
+                        uploadURL:
+                          description: Upload URL for enterprise instances. Default to URL.
+                          type: string
+                        url:
+                          default: https://github.com/
+                          description: URL configures the Github instance URL. Defaults to https://github.com/.
+                          type: string
+                      required:
+                        - appID
+                        - auth
+                        - installationID
+                        - organization
+                      type: object
                     gitlab:
                       description: GitLab configures this store to sync secrets using GitLab Variables provider
                       properties:
@@ -4982,18 +5050,28 @@ spec:
                           type: object
                         hostAPI:
                           default: https://app.infisical.com/api
+                          description: HostAPI specifies the base URL of the Infisical API. If not provided, it defaults to "https://app.infisical.com/api".
                           type: string
                         secretsScope:
+                          description: SecretsScope defines the scope of the secrets within the workspace
                           properties:
                             environmentSlug:
+                              description: EnvironmentSlug is the required slug identifier for the environment.
                               type: string
+                            expandSecretReferences:
+                              default: true
+                              description: ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.
+                              type: boolean
                             projectSlug:
+                              description: ProjectSlug is the required slug identifier for the project.
                               type: string
                             recursive:
                               default: false
+                              description: Recursive indicates whether the secrets should be fetched recursively. Defaults to false if not provided.
                               type: boolean
                             secretsPath:
                               default: /
+                              description: SecretsPath specifies the path to the secrets within the workspace. Defaults to "/" if not provided.
                               type: string
                           required:
                             - environmentSlug
@@ -6482,7 +6560,7 @@ spec:
                                   type: object
                                 username:
                                   description: |-
-                                    Username is a LDAP user name used to authenticate using the LDAP Vault
+                                    Username is an LDAP username used to authenticate using the LDAP Vault
                                     authentication method
                                   type: string
                               required:
@@ -6527,10 +6605,10 @@ spec:
                               description: UserPass authenticates with Vault by passing username/password pair
                               properties:
                                 path:
-                                  default: user
+                                  default: userpass
                                   description: |-
                                     Path where the UserPassword authentication backend is mounted
-                                    in Vault, e.g: "user"
+                                    in Vault, e.g: "userpass"
                                   type: string
                                 secretRef:
                                   description: |-
@@ -6563,7 +6641,7 @@ spec:
                                   type: object
                                 username:
                                   description: |-
-                                    Username is a user name used to authenticate using the UserPass Vault
+                                    Username is a username used to authenticate using the UserPass Vault
                                     authentication method
                                   type: string
                               required:
@@ -6724,7 +6802,6 @@ spec:
                             - v2
                           type: string
                       required:
-                        - auth
                         - server
                       type: object
                     webhook:
@@ -11971,6 +12048,73 @@ spec:
                           description: ProjectID project where secret is located
                           type: string
                       type: object
+                    github:
+                      description: Github configures this store to push Github Action secrets using Github API provider
+                      properties:
+                        appID:
+                          description: appID specifies the Github APP that will be used to authenticate the client
+                          format: int64
+                          type: integer
+                        auth:
+                          description: auth configures how secret-manager authenticates with a Github instance.
+                          properties:
+                            privateKey:
+                              description: |-
+                                A reference to a specific 'key' within a Secret resource.
+                                In some instances, `key` is a required field.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                          required:
+                            - privateKey
+                          type: object
+                        environment:
+                          description: environment will be used to fetch secrets from a particular environment within a github repository
+                          type: string
+                        installationID:
+                          description: installationID specifies the Github APP installation that will be used to authenticate the client
+                          format: int64
+                          type: integer
+                        organization:
+                          description: organization will be used to fetch secrets from the Github organization
+                          type: string
+                        repository:
+                          description: repository will be used to fetch secrets from the Github repository within an organization
+                          type: string
+                        uploadURL:
+                          description: Upload URL for enterprise instances. Default to URL.
+                          type: string
+                        url:
+                          default: https://github.com/
+                          description: URL configures the Github instance URL. Defaults to https://github.com/.
+                          type: string
+                      required:
+                        - appID
+                        - auth
+                        - installationID
+                        - organization
+                      type: object
                     gitlab:
                       description: GitLab configures this store to sync secrets using GitLab Variables provider
                       properties:
@@ -12158,18 +12302,28 @@ spec:
                           type: object
                         hostAPI:
                           default: https://app.infisical.com/api
+                          description: HostAPI specifies the base URL of the Infisical API. If not provided, it defaults to "https://app.infisical.com/api".
                           type: string
                         secretsScope:
+                          description: SecretsScope defines the scope of the secrets within the workspace
                           properties:
                             environmentSlug:
+                              description: EnvironmentSlug is the required slug identifier for the environment.
                               type: string
+                            expandSecretReferences:
+                              default: true
+                              description: ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.
+                              type: boolean
                             projectSlug:
+                              description: ProjectSlug is the required slug identifier for the project.
                               type: string
                             recursive:
                               default: false
+                              description: Recursive indicates whether the secrets should be fetched recursively. Defaults to false if not provided.
                               type: boolean
                             secretsPath:
                               default: /
+                              description: SecretsPath specifies the path to the secrets within the workspace. Defaults to "/" if not provided.
                               type: string
                           required:
                             - environmentSlug
@@ -13658,7 +13812,7 @@ spec:
                                   type: object
                                 username:
                                   description: |-
-                                    Username is a LDAP user name used to authenticate using the LDAP Vault
+                                    Username is an LDAP username used to authenticate using the LDAP Vault
                                     authentication method
                                   type: string
                               required:
@@ -13703,10 +13857,10 @@ spec:
                               description: UserPass authenticates with Vault by passing username/password pair
                               properties:
                                 path:
-                                  default: user
+                                  default: userpass
                                   description: |-
                                     Path where the UserPassword authentication backend is mounted
-                                    in Vault, e.g: "user"
+                                    in Vault, e.g: "userpass"
                                   type: string
                                 secretRef:
                                   description: |-
@@ -13739,7 +13893,7 @@ spec:
                                   type: object
                                 username:
                                   description: |-
-                                    Username is a user name used to authenticate using the UserPass Vault
+                                    Username is a username used to authenticate using the UserPass Vault
                                     authentication method
                                   type: string
                               required:
@@ -13900,7 +14054,6 @@ spec:
                             - v2
                           type: string
                       required:
-                        - auth
                         - server
                       type: object
                     webhook:
@@ -14237,7 +14390,7 @@ spec:
       schema:
         openAPIV3Schema:
           description: |-
-            ACRAccessToken returns a Azure Container Registry token
+            ACRAccessToken returns an Azure Container Registry token
             that can be used for pushing/pulling images.
             Note: by default it will return an ACR Refresh Token with full access
             (depending on the identity).
@@ -14943,6 +15096,36 @@ spec:
                             Auth is the authentication configuration to authenticate
                             against the Grafana instance.
                           properties:
+                            basic:
+                              description: |-
+                                Basic auth credentials used to authenticate against the Grafana instance.
+                                Note: you need a token which has elevated permissions to create service accounts.
+                                See here for the documentation on basic roles offered by Grafana:
+                                https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/
+                              properties:
+                                password:
+                                  description: A basic auth password used to authenticate against the Grafana instance.
+                                  properties:
+                                    key:
+                                      description: The key where the token is found.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                  type: object
+                                username:
+                                  description: A basic auth username used to authenticate against the Grafana instance.
+                                  type: string
+                              required:
+                                - password
+                                - username
+                              type: object
                             token:
                               description: |-
                                 A service account token used to authenticate against the Grafana instance.
@@ -14963,8 +15146,6 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                   type: string
                               type: object
-                          required:
-                            - token
                           type: object
                         serviceAccount:
                           description: |-
@@ -15765,7 +15946,7 @@ spec:
                                       type: object
                                     username:
                                       description: |-
-                                        Username is a LDAP user name used to authenticate using the LDAP Vault
+                                        Username is an LDAP username used to authenticate using the LDAP Vault
                                         authentication method
                                       type: string
                                   required:
@@ -15810,10 +15991,10 @@ spec:
                                   description: UserPass authenticates with Vault by passing username/password pair
                                   properties:
                                     path:
-                                      default: user
+                                      default: userpass
                                       description: |-
                                         Path where the UserPassword authentication backend is mounted
-                                        in Vault, e.g: "user"
+                                        in Vault, e.g: "userpass"
                                       type: string
                                     secretRef:
                                       description: |-
@@ -15846,7 +16027,7 @@ spec:
                                       type: object
                                     username:
                                       description: |-
-                                        Username is a user name used to authenticate using the UserPass Vault
+                                        Username is a username used to authenticate using the UserPass Vault
                                         authentication method
                                       type: string
                                   required:
@@ -16007,7 +16188,6 @@ spec:
                                 - v2
                               type: string
                           required:
-                            - auth
                             - server
                           type: object
                         resultType:
@@ -16883,6 +17063,36 @@ spec:
                     Auth is the authentication configuration to authenticate
                     against the Grafana instance.
                   properties:
+                    basic:
+                      description: |-
+                        Basic auth credentials used to authenticate against the Grafana instance.
+                        Note: you need a token which has elevated permissions to create service accounts.
+                        See here for the documentation on basic roles offered by Grafana:
+                        https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/
+                      properties:
+                        password:
+                          description: A basic auth password used to authenticate against the Grafana instance.
+                          properties:
+                            key:
+                              description: The key where the token is found.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                          type: object
+                        username:
+                          description: A basic auth username used to authenticate against the Grafana instance.
+                          type: string
+                      required:
+                        - password
+                        - username
+                      type: object
                     token:
                       description: |-
                         A service account token used to authenticate against the Grafana instance.
@@ -16903,8 +17113,6 @@ spec:
                           pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                           type: string
                       type: object
-                  required:
-                    - token
                   type: object
                 serviceAccount:
                   description: |-
@@ -18001,7 +18209,7 @@ spec:
                               type: object
                             username:
                               description: |-
-                                Username is a LDAP user name used to authenticate using the LDAP Vault
+                                Username is an LDAP username used to authenticate using the LDAP Vault
                                 authentication method
                               type: string
                           required:
@@ -18046,10 +18254,10 @@ spec:
                           description: UserPass authenticates with Vault by passing username/password pair
                           properties:
                             path:
-                              default: user
+                              default: userpass
                               description: |-
                                 Path where the UserPassword authentication backend is mounted
-                                in Vault, e.g: "user"
+                                in Vault, e.g: "userpass"
                               type: string
                             secretRef:
                               description: |-
@@ -18082,7 +18290,7 @@ spec:
                               type: object
                             username:
                               description: |-
-                                Username is a user name used to authenticate using the UserPass Vault
+                                Username is a username used to authenticate using the UserPass Vault
                                 authentication method
                               type: string
                           required:
@@ -18243,7 +18451,6 @@ spec:
                         - v2
                       type: string
                   required:
-                    - auth
                     - server
                   type: object
                 resultType:

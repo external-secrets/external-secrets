@@ -140,6 +140,33 @@ func (w *Webhook) GetTemplateData(ctx context.Context, ref *esv1beta1.ExternalSe
 	return data, nil
 }
 
+func (w *Webhook) GetTemplatePushData(ctx context.Context, ref esv1beta1.PushSecretData, secrets []Secret, urlEncode bool) (map[string]map[string]string, error) {
+	data := map[string]map[string]string{}
+	if ref != nil {
+		if urlEncode {
+			data["remoteRef"] = map[string]string{
+				"remoteKey": url.QueryEscape(ref.GetRemoteKey()),
+			}
+			if v := ref.GetSecretKey(); v != "" {
+				data["remoteRef"]["secretKey"] = url.QueryEscape(v)
+			}
+		} else {
+			data["remoteRef"] = map[string]string{
+				"remoteKey": ref.GetRemoteKey(),
+			}
+			if v := ref.GetSecretKey(); v != "" {
+				data["remoteRef"]["secretKey"] = v
+			}
+		}
+	}
+
+	if err := w.getTemplatedSecrets(ctx, secrets, data); err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
 func (w *Webhook) getTemplatedSecrets(ctx context.Context, secrets []Secret, data map[string]map[string]string) error {
 	for _, secref := range secrets {
 		if _, ok := data[secref.Name]; !ok {
@@ -197,27 +224,33 @@ func (w *Webhook) PushWebhookData(ctx context.Context, provider *Spec, data []by
 		method = http.MethodPost
 	}
 
-	rawData := map[string]map[string]string{
-		"remoteRef": {
-			"remoteKey": url.QueryEscape(remoteKey.GetRemoteKey()),
-		},
+	escapedData, err := w.GetTemplatePushData(ctx, remoteKey, provider.Secrets, true)
+	if err != nil {
+		return err
 	}
-	if remoteKey.GetSecretKey() != "" {
-		rawData["remoteRef"]["secretKey"] = url.QueryEscape(remoteKey.GetSecretKey())
-	}
+	escapedData["remoteRef"][remoteKey.GetRemoteKey()] = url.QueryEscape(string(data))
 
-	turl, err := ExecuteTemplateString(provider.URL, rawData)
+	rawData, err := w.GetTemplatePushData(ctx, remoteKey, provider.Secrets, false)
+	if err != nil {
+		return err
+	}
+	rawData["remoteRef"][remoteKey.GetRemoteKey()] = string(data)
+
+	url, err := ExecuteTemplateString(provider.URL, escapedData)
 	if err != nil {
 		return fmt.Errorf("failed to parse url: %w", err)
 	}
 
-	dataMap := make(map[string]map[string]string)
-	if err := w.getTemplatedSecrets(ctx, provider.Secrets, dataMap); err != nil {
-		return err
+	bodyt := provider.Body
+	if bodyt == "" {
+		bodyt = fmt.Sprintf("{{ .remoteRef.%s }}", remoteKey.GetRemoteKey())
+	}
+	body, err := ExecuteTemplate(bodyt, rawData)
+	if err != nil {
+		return fmt.Errorf("failed to parse body: %w", err)
 	}
 
-	// read the body into the void to prevent remaining garbage to be present
-	if _, err := w.executeRequest(ctx, provider, data, turl, method, dataMap); err != nil {
+	if _, err := w.executeRequest(ctx, provider, body.Bytes(), url, method, rawData); err != nil {
 		return fmt.Errorf("failed to push webhook data: %w", err)
 	}
 

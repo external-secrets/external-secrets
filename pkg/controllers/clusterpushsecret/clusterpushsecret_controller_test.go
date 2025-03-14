@@ -81,6 +81,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 			},
 			Spec: v1alpha1.ClusterPushSecretSpec{
 				PushSecretSpec: v1alpha1.PushSecretSpec{
+					RefreshInterval: &metav1.Duration{Duration: time.Hour},
 					SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
 						{
 							Name: "test-store",
@@ -461,6 +462,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 						Namespace: namespaces[0].Name,
 					},
 					Spec: v1alpha1.PushSecretSpec{
+						RefreshInterval: &metav1.Duration{Duration: time.Hour},
 						SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
 							{
 								Name: updateStoreName,
@@ -510,6 +512,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 							Name:      created.Name,
 						},
 						Spec: v1alpha1.PushSecretSpec{
+							RefreshInterval: &metav1.Duration{Duration: time.Hour},
 							SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
 								{
 									Name: updateStoreName,
@@ -546,6 +549,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 						Namespace: namespaces[0].Name,
 					},
 					Spec: v1alpha1.PushSecretSpec{
+						RefreshInterval: &metav1.Duration{Duration: time.Hour},
 						SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
 							{
 								Name: updateStoreName,

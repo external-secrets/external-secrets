@@ -664,7 +664,7 @@
                                     "type": "string"
                                 },
                                 "revisionHistoryLimit": {
-                                    "type": "string"
+                                    "type": "integer"
                                 }
                             },
                             "type": "object"

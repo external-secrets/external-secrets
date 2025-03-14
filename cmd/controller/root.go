@@ -168,7 +168,7 @@ var rootCmd = &cobra.Command{
 		// if we are already caching all secrets, we don't need to use the special client.
 		secretClient := mgr.GetClient()
 		if enableManagedSecretsCache && !enableSecretsCache {
-			secretClient, err = ctrlcommon.BuildManagedSecretClient(mgr)
+			secretClient, err = ctrlcommon.BuildManagedSecretClient(mgr, namespace)
 			if err != nil {
 				setupLog.Error(err, "unable to create managed secret client")
 				os.Exit(1)
