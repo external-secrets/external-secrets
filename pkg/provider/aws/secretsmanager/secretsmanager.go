@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -32,6 +33,7 @@ import (
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	utilpointer "k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -41,7 +43,15 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
+
+type PushSecretMetadataSpec struct {
+	Tags                map[string]string `json:"tags,omitempty"`
+	Description         string            `json:"description,omitempty"`
+	SecretPushFormatKey string            `json:"secretPushFormat,omitempty"`
+	KMSKeyID            string            `json:"kmsKeyId,omitempty"`
+}
 
 // Declares metadata information for pushing secrets to AWS Secret Store.
 const (
@@ -489,24 +499,41 @@ func (sm *SecretsManager) Capabilities() esv1beta1.SecretStoreCapabilities {
 }
 
 func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretName string, psd esv1beta1.PushSecretData, value []byte) error {
-	secretPushFormat, err := utils.FetchValueFromMetadata(SecretPushFormatKey, psd.GetMetadata(), SecretPushFormatBinary)
+	mdata, err := sm.constructMetadataWithDefaults(psd.GetMetadata())
 	if err != nil {
-		return fmt.Errorf("failed to parse metadata: %w", err)
+		return fmt.Errorf("failed to parse push secret metadata: %w", err)
+	}
+
+	tags := []*awssm.Tag{
+		{
+			Key:   utilpointer.To(managedBy),
+			Value: utilpointer.To(externalSecrets),
+		},
+	}
+
+	if mdata.Spec.Tags != nil && len(mdata.Spec.Tags) > 0 {
+		for k, v := range mdata.Spec.Tags {
+			tags = append(tags, &awssm.Tag{
+				Key:   utilpointer.To(k),
+				Value: utilpointer.To(v),
+			})
+		}
 	}
 
 	input := &awssm.CreateSecretInput{
-		Name:         &secretName,
-		SecretBinary: value,
-		Tags: []*awssm.Tag{
-			{
-				Key:   utilpointer.To(managedBy),
-				Value: utilpointer.To(externalSecrets),
-			},
-		},
+		Name:               &secretName,
+		SecretBinary:       value,
+		Tags:               tags,
+		Description:        utilpointer.To(mdata.Spec.Description),
 		ClientRequestToken: utilpointer.To(initialVersion),
 	}
-	if secretPushFormat == SecretPushFormatString {
+	if mdata.Spec.SecretPushFormatKey == SecretPushFormatString {
 		input.SetSecretBinary(nil).SetSecretString(string(value))
+	}
+
+	err = input.Validate()
+	if err != nil {
+		return fmt.Errorf("failed to validate input: %w", err)
 	}
 
 	_, err = sm.client.CreateSecretWithContext(ctx, input)
@@ -532,6 +559,7 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretI
 	if err != nil {
 		return err
 	}
+	// awssm.UpdateSecretInput
 	input := &awssm.PutSecretValueInput{
 		SecretId:           awsSecret.ARN,
 		SecretBinary:       value,
@@ -637,4 +665,44 @@ func (sm *SecretsManager) constructSecretValue(ctx context.Context, ref esv1beta
 	}
 
 	return secretOut, err
+}
+
+func (pm *SecretsManager) constructMetadataWithDefaults(data *apiextensionsv1.JSON) (*metadata.PushSecretMetadata[PushSecretMetadataSpec], error) {
+	var (
+		meta *metadata.PushSecretMetadata[PushSecretMetadataSpec]
+		err  error
+	)
+
+	meta, err = metadata.ParseMetadataParameters[PushSecretMetadataSpec](data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse metadata: %w", err)
+	}
+
+	if meta == nil {
+		meta = &metadata.PushSecretMetadata[PushSecretMetadataSpec]{}
+	}
+
+	if meta.Spec.SecretPushFormatKey == "" {
+		meta.Spec.SecretPushFormatKey = SecretPushFormatBinary
+	} else {
+		if !slices.Contains([]string{SecretPushFormatBinary, SecretPushFormatString}, meta.Spec.SecretPushFormatKey) {
+			return nil, fmt.Errorf("invalid secret push format: %s", meta.Spec.SecretPushFormatKey)
+		}
+	}
+
+	if meta.Spec.Description == "" {
+		meta.Spec.Description = fmt.Sprintf("secret '%s:%s'", managedBy, externalSecrets)
+	}
+
+	if meta.Spec.KMSKeyID == "" {
+		meta.Spec.KMSKeyID = "alias/aws/secretsmanager"
+	}
+
+	if meta.Spec.Tags != nil && len(meta.Spec.Tags) > 0 {
+		if _, exists := meta.Spec.Tags[managedBy]; exists {
+			return nil, fmt.Errorf("error parsing tags in metadata: Cannot specify a '%s' tag", managedBy)
+		}
+	}
+
+	return meta, nil
 }
