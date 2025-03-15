@@ -115,6 +115,7 @@ nav:
       - BeyondTrust: provider/beyondtrust.md
       - Bitwarden Secrets Manager: provider/bitwarden-secrets-manager.md
       - Chef: provider/chef.md
+      - Cloud.ru Secret Manager: provider/cloudru.md
       - CyberArk Conjur: provider/conjur.md
       - Device42: provider/device42.md
       - Google Cloud Secret Manager: provider/google-secrets-manager.md
