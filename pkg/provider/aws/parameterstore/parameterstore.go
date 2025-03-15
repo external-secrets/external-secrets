@@ -50,9 +50,10 @@ type Tier struct {
 
 // PushSecretMetadataSpec defines the spec for the metadata for PushSecret.
 type PushSecretMetadataSpec struct {
-	SecretType string `json:"secretType,omitempty"`
-	KMSKeyID   string `json:"kmsKeyID,omitempty"`
-	Tier       Tier   `json:"tier,omitempty"`
+	SecretType      string `json:"secretType,omitempty"`
+	KMSKeyID        string `json:"kmsKeyID,omitempty"`
+	Tier            Tier   `json:"tier,omitempty"`
+	EncodeAsDecoded bool   `json:"encodeAsDecoded,omitempty"`
 }
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -190,7 +191,7 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 	key := data.GetSecretKey()
 
 	if key == "" {
-		value, err = utils.JSONMarshal(secret.Data)
+		value, err = pm.encodeSecretData(meta.Spec.EncodeAsDecoded, secret.Data)
 		if err != nil {
 			return fmt.Errorf("failed to serialize secret content as JSON: %w", err)
 		}
@@ -238,6 +239,23 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 	// let's set the secret
 	// Do we need to delete the existing parameter on the remote?
 	return pm.setManagedRemoteParameter(ctx, secretRequest, true)
+}
+
+func (pm *ParameterStore) encodeSecretData(encodeAsDecoded bool, data map[string][]byte) ([]byte, error) {
+	if encodeAsDecoded {
+		// This will result in map byte slices not being base64 encoded by json.Marshal.
+		return utils.JSONMarshal(convertMap(data))
+	}
+
+	return utils.JSONMarshal(data)
+}
+
+func convertMap(in map[string][]byte) map[string]string {
+	m := make(map[string]string)
+	for k, v := range in {
+		m[k] = string(v)
+	}
+	return m
 }
 
 func (pm *ParameterStore) setExisting(ctx context.Context, existing *ssm.GetParameterOutput, secretName string, value []byte, secretRequest ssm.PutParameterInput) error {
