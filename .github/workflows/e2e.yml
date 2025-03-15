@@ -6,9 +6,9 @@ on:
 
 permissions:
   contents: read
-  issues: write
-  pull-requests: write
-  checks: write
+  issues: read
+  pull-requests: read
+  checks: read
   statuses: read
 name: e2e tests
 
@@ -85,6 +85,7 @@ jobs:
       id-token: write
       checks: write
       contents: read
+      pull-requests: write
     if: github.event_name == 'repository_dispatch'
     steps:
 
