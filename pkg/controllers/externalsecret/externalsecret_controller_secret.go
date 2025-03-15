@@ -170,7 +170,7 @@ func (r *Reconciler) handleGenerateSecrets(ctx context.Context, namespace string
 	}
 
 	// validate the keys
-	err = utils.ValidateKeys(secretMap)
+	err = utils.ValidateKeys(r.Log, secretMap)
 	if err != nil {
 		return nil, fmt.Errorf(errInvalidKeys, err)
 	}
@@ -210,7 +210,7 @@ func (r *Reconciler) handleExtractSecrets(ctx context.Context, externalSecret *e
 	}
 
 	// validate the keys
-	err = utils.ValidateKeys(secretMap)
+	err = utils.ValidateKeys(r.Log, secretMap)
 	if err != nil {
 		return nil, fmt.Errorf(errInvalidKeys, err)
 	}
@@ -250,7 +250,7 @@ func (r *Reconciler) handleFindAllSecrets(ctx context.Context, externalSecret *e
 	}
 
 	// validate the keys
-	err = utils.ValidateKeys(secretMap)
+	err = utils.ValidateKeys(r.Log, secretMap)
 	if err != nil {
 		return nil, fmt.Errorf(errInvalidKeys, err)
 	}
