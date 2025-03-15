@@ -131,6 +131,12 @@ func (r *Reconciler) handleSecretData(ctx context.Context, externalSecret esv1be
 		return fmt.Errorf(errDecode, secretRef.RemoteRef.DecodingStrategy, err)
 	}
 
+	// decrypt the secret if needed
+	secretData, err = utils.Decrypt(client, secretRef.RemoteRef.DecryptingStrategy, secretData)
+	if err != nil {
+		return fmt.Errorf(errDecode, secretRef.RemoteRef.DecryptingStrategy, err)
+	}
+
 	// store the secret data
 	providerData[secretRef.SecretKey] = secretData
 
