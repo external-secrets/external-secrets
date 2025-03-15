@@ -23,12 +23,13 @@ import (
 	"testing"
 	"time"
 
+	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
-	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -198,7 +199,7 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 		describeSecretOutput := &awssm.DescribeSecretOutput{
 			Tags: getTagSlice(),
 		}
-		smtc.fakeClient.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(describeSecretOutput, nil)
+		smtc.fakeClient.DescribeSecretFn = fakesm.NewDescribeSecretFn(describeSecretOutput, nil)
 		jsonTags, _ := util.SecretTagsToJSONString(getTagSlice())
 		smtc.apiOutput.SecretString = &jsonTags
 		smtc.expectedSecret = jsonTags
@@ -209,7 +210,7 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 		describeSecretOutput := &awssm.DescribeSecretOutput{
 			Tags: getTagSlice(),
 		}
-		smtc.fakeClient.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(describeSecretOutput, nil)
+		smtc.fakeClient.DescribeSecretFn = fakesm.NewDescribeSecretFn(describeSecretOutput, nil)
 		smtc.remoteRef.Property = tagname2
 		jsonTags, _ := util.SecretTagsToJSONString(getTagSlice())
 		smtc.apiOutput.SecretString = &jsonTags
@@ -221,7 +222,7 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 		describeSecretOutput := &awssm.DescribeSecretOutput{
 			Tags: getTagSlice(),
 		}
-		smtc.fakeClient.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(describeSecretOutput, nil)
+		smtc.fakeClient.DescribeSecretFn = fakesm.NewDescribeSecretFn(describeSecretOutput, nil)
 		smtc.remoteRef.Property = "fail"
 		jsonTags, _ := util.SecretTagsToJSONString(getTagSlice())
 		smtc.apiOutput.SecretString = &jsonTags
@@ -1034,13 +1035,13 @@ func makeValidSecretStore() *esv1beta1.SecretStore {
 	}
 }
 
-func getTagSlice() []*awssm.Tag {
+func getTagSlice() []types.Tag {
 	tagKey1 := tagname1
 	tagValue1 := tagvalue1
 	tagKey2 := tagname2
 	tagValue2 := tagvalue2
 
-	return []*awssm.Tag{
+	return []types.Tag{
 		{
 			Key:   &tagKey1,
 			Value: &tagValue1,

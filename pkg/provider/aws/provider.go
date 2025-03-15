@@ -20,11 +20,10 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/endpoints"
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
-	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
-	"github.com/aws/aws-sdk-go-v2/service/sts"
+	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -100,25 +99,32 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 }
 
 func validateRegion(prov *esv1beta1.AWSProvider) error {
-	cfg, err := config.LoadDefaultConfig(context.Background())
-	if err != nil {
-		return err
+	resolver := endpoints.NewResolver()
+	opts := endpoints.ResolveOptions{
+		StrictMatching: true, // Ensure exact service/region match
 	}
-	
-	resolver := cfg.EndpointResolver
-	_, err = resolver.ResolveEndpoint(prov.Service, prov.Region)
-	return err
+
+	// Try to resolve endpoint for service and region
+	_, err := resolver.ResolveEndpoint(
+		string(prov.Service), // Service name
+		prov.Region,          // Region
+		opts,
+	)
+
+	if err != nil {
+		return fmt.Errorf(errRegionNotFound, prov.Region)
+	}
+	return nil
 }
 
 func validateSecretsManagerConfig(prov *esv1beta1.AWSProvider) error {
 	if prov.SecretsManager == nil {
 		return nil
 	}
-	input := &secretsmanager.DeleteSecretInput{
+	return util.ValidateDeleteSecretInput(awssm.DeleteSecretInput{
 		ForceDeleteWithoutRecovery: &prov.SecretsManager.ForceDeleteWithoutRecovery,
 		RecoveryWindowInDays:       &prov.SecretsManager.RecoveryWindowInDays,
-	}
-	return util.ValidateDeleteSecretInput(input)
+	})
 }
 
 func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, assumeRoler awsauth.STSProvider) (esv1beta1.SecretsClient, error) {
@@ -149,11 +155,6 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 		return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 	}
 
-	sess, err := awsauth.New(ctx, store, kube, namespace, assumeRoler, awsauth.DefaultJWTProvider)
-	if err != nil {
-		return nil, fmt.Errorf(errUnableCreateSession, err)
-	}
-
 	// Setup retry options, if present in storeSpec
 	if storeSpec.RetrySettings != nil {
 		var retryAmount int
@@ -176,19 +177,16 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 		// 	MinRetryDelay:    retryDuration,
 		// 	MaxThrottleDelay: 120 * time.Second,  Not sure how to set this in sdk go v2
 		// }
-		cfg, err = config.LoadDefaultConfig(ctx,
-			config.WithRegion(prov.Region),
-			config.WithRetryer(func() aws.Retryer {
-				return retry.AddWithMaxAttempts(
-					retry.NewStandard(func(o *retry.StandardOptions) {
-						if retryDuration > 0 {
-							o.Backoff = fixedDelayer{delay: retryDuration}
-						}
-					}),
-					retryAmount,
-				)
-			}),
-		)
+		cfg, err = config.LoadDefaultConfig(ctx, config.WithRetryer(func() aws.Retryer {
+			return retry.AddWithMaxAttempts(
+				retry.NewStandard(func(o *retry.StandardOptions) {
+					if retryDuration > 0 {
+						o.Backoff = fixedDelayer{delay: retryDuration}
+					}
+				}),
+				retryAmount,
+			)
+		}))
 	}
 
 	switch prov.Service {

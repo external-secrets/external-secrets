@@ -224,13 +224,13 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 		}
 
 		if aerr.ErrorCode() == "ResourceNotFoundException" {
-			return sm.createSecret(ctx, secretName, psd, value)
+			return sm.createSecretWithContext(ctx, secretName, psd, value)
 		}
 
 		return err
 	}
 
-	return sm.putSecretValue(ctx, secretInput, awsSecret, psd, value)
+	return sm.putSecretValueWithContext(ctx, secretInput, awsSecret, psd, value)
 }
 
 func padOrTrim(b []byte) []byte {
@@ -486,7 +486,7 @@ func (sm *SecretsManager) Capabilities() esv1beta1.SecretStoreCapabilities {
 	return esv1beta1.SecretStoreReadWrite
 }
 
-func (sm *SecretsManager) createSecret(ctx context.Context, secretName string, psd esv1beta1.PushSecretData, value []byte) error {
+func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretName string, psd esv1beta1.PushSecretData, value []byte) error {
 	secretPushFormat, err := utils.FetchValueFromMetadata(SecretPushFormatKey, psd.GetMetadata(), SecretPushFormatBinary)
 	if err != nil {
 		return fmt.Errorf("failed to parse metadata: %w", err)
@@ -514,7 +514,7 @@ func (sm *SecretsManager) createSecret(ctx context.Context, secretName string, p
 	return err
 }
 
-func (sm *SecretsManager) putSecretValue(ctx context.Context, secretInput awssm.DescribeSecretInput, awsSecret *awssm.GetSecretValueOutput, psd esv1beta1.PushSecretData, value []byte) error {
+func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretInput awssm.DescribeSecretInput, awsSecret *awssm.GetSecretValueOutput, psd esv1beta1.PushSecretData, value []byte) error {
 	data, err := sm.client.DescribeSecret(ctx, &secretInput)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDescribeSecret, err)
 	if err != nil {
