@@ -22,7 +22,6 @@ import (
 	"time"
 
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
-	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/utils/ptr"
 )
@@ -43,8 +42,8 @@ type CreateSecretFn func(context.Context, *awssm.CreateSecretInput, ...func(*aws
 type GetSecretValueFn func(context.Context, *awssm.GetSecretValueInput, ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error)
 type PutSecretValueFn func(context.Context, *awssm.PutSecretValueInput, ...func(*awssm.Options)) (*awssm.PutSecretValueOutput, error)
 type DescribeSecretFn func(context.Context, *awssm.DescribeSecretInput, ...func(*awssm.Options)) (*awssm.DescribeSecretOutput, error)
-type DeleteSecretFn func(context.Context, *awssm.DeleteSecretInput, ...request.Option) (*awssm.DeleteSecretOutput, error)
-type ListSecretsFn func(context.Context, *awssm.ListSecretsInput, ...request.Option) (*awssm.ListSecretsOutput, error)
+type DeleteSecretFn func(context.Context, *awssm.DeleteSecretInput, ...func(*awssm.Options)) (*awssm.DeleteSecretOutput, error)
+type ListSecretsFn func(context.Context, *awssm.ListSecretsInput, ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error)
 type BatchGetSecretValueFn func(context.Context, *awssm.BatchGetSecretValueInput, ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error)
 
 func (sm Client) CreateSecret(ctx context.Context, input *awssm.CreateSecretInput, options ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error) {
@@ -66,12 +65,12 @@ func NewCreateSecretFn(output *awssm.CreateSecretOutput, err error, expectedSecr
 	}
 }
 
-func (sm Client) DeleteSecret(ctx context.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (*awssm.DeleteSecretOutput, error) {
+func (sm Client) DeleteSecret(ctx context.Context, input *awssm.DeleteSecretInput, opts ...func(*awssm.Options)) (*awssm.DeleteSecretOutput, error) {
 	return sm.DeleteSecretFn(ctx, input, opts...)
 }
 
 func NewDeleteSecretFn(output *awssm.DeleteSecretOutput, err error) DeleteSecretFn {
-	return func(ctx context.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (*awssm.DeleteSecretOutput, error) {
+	return func(ctx context.Context, input *awssm.DeleteSecretInput, opts ...func(*awssm.Options)) (*awssm.DeleteSecretOutput, error) {
 		if input.ForceDeleteWithoutRecovery != nil && *input.ForceDeleteWithoutRecovery {
 			output.DeletionDate = ptr.To(time.Now())
 		}
@@ -150,7 +149,7 @@ func NewClient() *Client {
 	}
 }
 
-func (sm *Client) GetSecretValue(in *awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error) {
+func (sm *Client) GetSecretValue(ctx context.Context, in *awssm.GetSecretValueInput, options ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error) {
 	sm.ExecutionCounter++
 	if entry, found := sm.valFn[sm.cacheKeyForInput(in)]; found {
 		return entry(in)
@@ -158,12 +157,12 @@ func (sm *Client) GetSecretValue(in *awssm.GetSecretValueInput) (*awssm.GetSecre
 	return nil, errors.New("test case not found")
 }
 
-func (sm *Client) ListSecrets(input *awssm.ListSecretsInput) (*awssm.ListSecretsOutput, error) {
-	return sm.ListSecretsFn(nil, input)
+func (sm *Client) ListSecrets(ctx context.Context, input *awssm.ListSecretsInput, options ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error) {
+	return sm.ListSecretsFn(ctx, input, options...)
 }
 
-func (sm *Client) BatchGetSecretValue(ctx context.Context, in *awssm.BatchGetSecretValueInput) (*awssm.BatchGetSecretValueOutput, error) {
-	return sm.BatchGetSecretValueFn(nil, in)
+func (sm *Client) BatchGetSecretValue(ctx context.Context, in *awssm.BatchGetSecretValueInput, options ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error) {
+	return sm.BatchGetSecretValueFn(ctx, in, options...)
 }
 
 func (sm *Client) cacheKeyForInput(in *awssm.GetSecretValueInput) string {
