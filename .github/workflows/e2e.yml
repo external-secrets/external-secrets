@@ -6,15 +6,15 @@ on:
 
 permissions:
   contents: read
-  issues: write
-  pull-requests: write
-  checks: write
+  issues: read
+  pull-requests: read
+  checks: read
   statuses: read
 name: e2e tests
 
 env:
   # Common versions
-  GO_VERSION: '1.23'
+  GO_VERSION: '1.24'
   GINKGO_VERSION: 'v2.8.0'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
   KIND_VERSION: 'v0.17.0'
@@ -85,6 +85,7 @@ jobs:
       id-token: write
       checks: write
       contents: read
+      pull-requests: write
     if: github.event_name == 'repository_dispatch'
     steps:
 
