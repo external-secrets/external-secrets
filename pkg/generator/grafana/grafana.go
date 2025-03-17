@@ -164,6 +164,7 @@ func createOrGetServiceAccount(cl *grafanaclient.GrafanaHTTPAPI, gen *genv1alpha
 	res, err := cl.ServiceAccounts.CreateServiceAccount(&grafanasa.CreateServiceAccountParams{
 		Body: &models.CreateServiceAccountForm{
 			Name: gen.Spec.ServiceAccount.Name,
+			Role: gen.Spec.ServiceAccount.Role,
 		},
 	}, nil)
 	if err != nil {
