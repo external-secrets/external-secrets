@@ -20,10 +20,12 @@ import (
 	tpl "text/template"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/yaml"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/pkg/feature"
 )
 
 var tplFuncs = tpl.FuncMap{
@@ -46,6 +48,8 @@ var tplFuncs = tpl.FuncMap{
 	"toYaml":   toYAML,
 	"fromYaml": fromYAML,
 }
+
+var leftDelim, rightDelim string
 
 // So other templating calls can use the same extra functions.
 func FuncMap() tpl.FuncMap {
@@ -71,6 +75,12 @@ func init() {
 	for k, v := range sprigFuncs {
 		tplFuncs[k] = v
 	}
+	fs := pflag.NewFlagSet("template", pflag.ExitOnError)
+	fs.StringVar(&leftDelim, "template-left-delimiter", "{{", "templating left delimiter")
+	fs.StringVar(&rightDelim, "template-right-delimiter", "}}", "templating right delimiter")
+	feature.Register(feature.Feature{
+		Flags: fs,
+	})
 }
 
 func applyToTarget(k, val string, target esapi.TemplateTarget, secret *corev1.Secret) {
@@ -154,6 +164,7 @@ func execute(k, val string, data map[string][]byte) ([]byte, error) {
 	t, err := tpl.New(k).
 		Option("missingkey=error").
 		Funcs(tplFuncs).
+		Delims("{{", "}}").
 		Parse(val)
 	if err != nil {
 		return nil, fmt.Errorf(errParse, k, err)
