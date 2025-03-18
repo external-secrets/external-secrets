@@ -16,7 +16,7 @@ variable "tenant_id" {
 }
 variable "client_object_id" {
   type        = string
-  description = "The object ID of a user, service principal or security group in the Azure Active Directory tenant for the vault"
+  description = "The object ID of a user, service principal or security group in the Microsoft Entra ID tenant for the vault"
 }
 variable "eso_sp_object_id" {
   type        = string

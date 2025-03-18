@@ -129,6 +129,7 @@ Optionally, it is possible to configure additional options for the parameter. Th
 - type
 - keyID
 - tier & policies
+- encodeAsDecoded
 
 To control this behaviour you can set the following provider's `metadata`:
 
@@ -138,9 +139,9 @@ To control this behaviour you can set the following provider's `metadata`:
 
 - `secretType` takes three options. `String`, `StringList`, and `SecureString`, where `String` is the _default_
 - `kmsKeyID` takes a KMS Key `$ID` or `$ARN` (in case a key source is created in another account) as a string, where `alias/aws/ssm` is the _default_. This property is only used if `secretType` is set as `SecureString`.
-- 
-
-
+- tier & policies contains advanced policy configs such as `ExpirationNotification`.
+- encodeAsDecoded if set to true will get the secrets and push them as plain values when pushing the entire secret (instead of encoding them)
+instead of base64 encoding the []byte values from the secret.
 
 #### Check successful secret sync
 

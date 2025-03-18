@@ -44,7 +44,21 @@ type GrafanaAuth struct {
 	// Note: you need a token which has elevated permissions to create service accounts.
 	// See here for the documentation on basic roles offered by Grafana:
 	// https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/
-	Token SecretKeySelector `json:"token"`
+	// +optional
+	Token *SecretKeySelector `json:"token,omitempty"`
+	// Basic auth credentials used to authenticate against the Grafana instance.
+	// Note: you need a token which has elevated permissions to create service accounts.
+	// See here for the documentation on basic roles offered by Grafana:
+	// https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/
+	// +optional
+	Basic *GrafanaBasicAuth `json:"basic,omitempty"`
+}
+
+type GrafanaBasicAuth struct {
+	// A basic auth username used to authenticate against the Grafana instance.
+	Username string `json:"username"`
+	// A basic auth password used to authenticate against the Grafana instance.
+	Password SecretKeySelector `json:"password"`
 }
 
 // GrafanaServiceAccountTokenState is the state type produced by the Grafana generator.

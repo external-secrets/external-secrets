@@ -48,13 +48,13 @@ func (mockClient *OnePasswordMockClient) GetVaults() ([]onepassword.Vault, error
 }
 
 // GetVault unused fake.
-func (mockClient *OnePasswordMockClient) GetVault(_ string) (*onepassword.Vault, error) {
-	return &onepassword.Vault{}, nil
+func (mockClient *OnePasswordMockClient) GetVault(uuid string) (*onepassword.Vault, error) {
+	return mockClient.GetVaultByTitle(uuid)
 }
 
 // GetVaultByUUID unused fake.
-func (mockClient *OnePasswordMockClient) GetVaultByUUID(_ string) (*onepassword.Vault, error) {
-	return &onepassword.Vault{}, nil
+func (mockClient *OnePasswordMockClient) GetVaultByUUID(uuid string) (*onepassword.Vault, error) {
+	return &mockClient.MockVaults[uuid][0], nil
 }
 
 // GetVaultByTitle returns a vault, you must preload, only one.
@@ -77,16 +77,7 @@ func (mockClient *OnePasswordMockClient) GetItems(vaultUUID string) ([]onepasswo
 
 // GetItem returns a *onepassword.Item, you must preload.
 func (mockClient *OnePasswordMockClient) GetItem(itemUUID, vaultUUID string) (*onepassword.Item, error) {
-	for _, item := range mockClient.MockItems[vaultUUID] {
-		if item.ID == itemUUID {
-			// load the fields that GetItemsByTitle does not
-			item.Fields = mockClient.MockItemFields[vaultUUID][itemUUID]
-
-			return &item, nil
-		}
-	}
-
-	return &onepassword.Item{}, errors.New("status 400: Invalid Item UUID")
+	return mockClient.GetItemByUUID(itemUUID, vaultUUID)
 }
 
 // GetItemByUUID returns a *onepassword.Item, you must preload.
@@ -100,7 +91,7 @@ func (mockClient *OnePasswordMockClient) GetItemByUUID(itemUUID, vaultUUID strin
 		}
 	}
 
-	return &onepassword.Item{}, errors.New("status 400: Invalid Item UUID")
+	return &onepassword.Item{}, errors.New("status 400: Invalid GetItemByUUID")
 }
 
 // GetItemByTitle unused fake.
@@ -233,6 +224,16 @@ func (mockClient *OnePasswordMockClient) AddPredictableVault(name string) *OnePa
 	return mockClient
 }
 
+// AddPredictableVaultUUID adds vaults to the mock client in a predictable way.
+func (mockClient *OnePasswordMockClient) AddPredictableVaultUUID(name string) *OnePasswordMockClient {
+	mockClient.MockVaults[name] = append(mockClient.MockVaults[name], onepassword.Vault{
+		ID:   name,
+		Name: name,
+	})
+
+	return mockClient
+}
+
 // AddPredictableItemWithField adds an item and it's fields to the mock client in a predictable way.
 func (mockClient *OnePasswordMockClient) AddPredictableItemWithField(vaultName, title, label, value string) *OnePasswordMockClient {
 	itemID := fmt.Sprintf("%s-id", title)
@@ -248,6 +249,25 @@ func (mockClient *OnePasswordMockClient) AddPredictableItemWithField(vaultName, 
 		mockClient.MockItemFields[vaultID] = make(map[string][]*onepassword.ItemField)
 	}
 	mockClient.MockItemFields[vaultID][itemID] = append(mockClient.MockItemFields[vaultID][itemID], &onepassword.ItemField{
+		Label: label,
+		Value: value,
+	})
+
+	return mockClient
+}
+
+// AddPredictableItemWithFieldUUID adds an item and it's fields to the mock client in a predictable way.
+func (mockClient *OnePasswordMockClient) AddPredictableItemWithFieldUUID(vaultName, title, label, value string) *OnePasswordMockClient {
+	mockClient.MockItems[vaultName] = append(mockClient.MockItems[vaultName], onepassword.Item{
+		ID:    title,
+		Title: title,
+		Vault: onepassword.ItemVault{ID: vaultName},
+	})
+
+	if mockClient.MockItemFields[vaultName] == nil {
+		mockClient.MockItemFields[vaultName] = make(map[string][]*onepassword.ItemField)
+	}
+	mockClient.MockItemFields[vaultName][title] = append(mockClient.MockItemFields[vaultName][title], &onepassword.ItemField{
 		Label: label,
 		Value: value,
 	})

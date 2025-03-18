@@ -192,12 +192,12 @@ func (sm *SecretsManager) handleSecretError(err error) (bool, error) {
 }
 
 func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret, psd esv1beta1.PushSecretData) error {
-	if psd.GetSecretKey() == "" {
-		return errors.New("pushing the whole secret is not yet implemented")
+	value, err := utils.ExtractSecretData(psd, secret)
+	if err != nil {
+		return fmt.Errorf("failed to extract secret data: %w", err)
 	}
 
 	secretName := psd.GetRemoteKey()
-	value := secret.Data[psd.GetSecretKey()]
 	secretValue := awssm.GetSecretValueInput{
 		SecretId: &secretName,
 	}
