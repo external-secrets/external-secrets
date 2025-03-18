@@ -7,20 +7,21 @@ This page lists the status, timeline and policy for currently supported ESO rele
 
 ## Supported Versions
 
-We want to provide security patches and critical bug fixes in a timely manner to our users.
-To do so, we offer long-term support for our latest two (N, N-1) software releases.
-We aim for a 2-3 month minor release cycle, i.e. a given release is supported for about 4-6 months.
+external-secrets only supports the most-up-to date, current minor version. Any other minor version releases are automatically deprecated as soon as a new minor version comes.
 
-We want to cover the following cases:
-
+During a minor version support time, we cover:
 - regular image rebuilds to update OS dependencies
 - regular go dependency updates
-- backport bug fixes on demand
+
+We do not do test coverage for any other kubernetes version than the ones running on our test suites.
+As of version 0.14.x , this is the only kubernetes version that we will guarantee support for.
 
 | ESO Version | Kubernetes Version | Release Date | End of Life     |
 | ----------- | ------------------ | ------------ | --------------- |
-| 0.12.x      | 1.19 → 1.31        | Dec 24, 2024 | Release of 0.14 |
-| 0.11.x      | 1.19 → 1.31        | Dec 2, 2024  | Release of 0.13 |
+| 0.14.x      | 1.32               | Feb 4, 2025  | Release of 0.14 |
+| 0.13.x      | 1.19 → 1.31        | Jan 21, 2025 | Feb 4, 2025     |
+| 0.12.x      | 1.19 → 1.31        | Dec 24, 2024 | Jan 21, 2025    |
+| 0.11.x      | 1.19 → 1.31        | Dec 2, 2024  | Dec 24, 2024    |
 | 0.10.x      | 1.19 → 1.31        | Aug 3, 2024  | Dec 24, 2024    |
 | 0.9.x       | 1.19 → 1.30        | Jun 22, 2023 | Dec 2, 2024     |
 | 0.8.x       | 1.19 → 1.28        | Mar 16, 2023 | Aug 3, 2024     |
@@ -83,7 +84,7 @@ The following table show the support for features across different providers.
 | Alibaba Cloud KMS         |              |              |                      |                         |        x         |             |                             |
 | Oracle Vault              |              |              |                      |                         |        x         |             |                             |
 | Akeyless                  |      x       |      x       |                      |            x            |        x         |      x      |              x              |
-| 1Password                 |      x       |              |                      |                         |        x         |      x      |              x              |
+| 1Password                 |      x       |      x       |                      |                         |        x         |      x      |              x              |
 | Generic Webhook           |              |              |                      |                         |                  |             |              x              |
 | senhasegura DSM           |              |              |                      |                         |        x         |             |                             |
 | Doppler                   |      x       |              |                      |                         |        x         |             |                             |

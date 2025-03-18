@@ -11,7 +11,7 @@ spec:
   scope: "repository:foo:pull,push"
 
   # Specify Azure cloud type, defaults to PublicCloud.
-  # This is used for authenticating with Azure Active Directory.
+  # This is used for authenticating with Microsoft Entra ID.
   # available options: PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
   environmentType: "PublicCloud"
 

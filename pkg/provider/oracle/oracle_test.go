@@ -22,7 +22,6 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -148,7 +147,6 @@ func TestOracleVaultGetSecret(t *testing.T) {
 	sm := VaultManagementService{}
 	for k, v := range successCases {
 		sm.Client = v.mockClient
-		fmt.Println(*v.ref)
 		out, err := sm.GetSecret(context.Background(), *v.ref)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
