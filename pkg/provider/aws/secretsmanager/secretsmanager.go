@@ -631,8 +631,15 @@ func (sm *SecretsManager) constructSecretValue(ctx context.Context, ref esv1beta
 	}
 	secretOut, err := sm.client.GetSecretValue(getSecretValueInput)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
-	var nf *awssm.ResourceNotFoundException
+	var (
+		nf *awssm.ResourceNotFoundException
+		ie *awssm.InvalidRequestException
+	)
 	if errors.As(err, &nf) {
+		return nil, esv1beta1.NoSecretErr
+	}
+
+	if errors.As(err, &ie) && strings.Contains(ie.Error(), "was marked for deletion") {
 		return nil, esv1beta1.NoSecretErr
 	}
 
