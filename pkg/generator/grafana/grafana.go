@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/google/uuid"
@@ -40,23 +41,12 @@ func (w *Grafana) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kc
 	if err != nil {
 		return nil, nil, err
 	}
-	secret, err := resolvers.SecretKeyRef(ctx, kclient, resolvers.EmptyStoreKind, ns, &esmeta.SecretKeySelector{
-		Namespace: &ns,
-		Name:      gen.Spec.Auth.Token.Name,
-		Key:       gen.Spec.Auth.Token.Key,
-	})
+
+	cl, err := newClient(ctx, gen, kclient, ns)
 	if err != nil {
 		return nil, nil, err
 	}
-	url := strings.TrimPrefix(gen.Spec.URL, "https://")
-	cfg := &grafanaclient.TransportConfig{
-		Host:     url,
-		BasePath: "/api",
-		Schemes:  []string{"https"},
-		APIKey:   secret,
-	}
 
-	cl := grafanaclient.NewHTTPClientWithConfig(nil, cfg)
 	state, err := createOrGetServiceAccount(cl, gen)
 	if err != nil {
 		return nil, nil, err
@@ -100,22 +90,57 @@ func (w *Grafana) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, pre
 }
 
 func newClient(ctx context.Context, gen *genv1alpha1.Grafana, kclient client.Client, ns string) (*grafanaclient.GrafanaHTTPAPI, error) {
-	secret, err := resolvers.SecretKeyRef(ctx, kclient, resolvers.EmptyStoreKind, ns, &esmeta.SecretKeySelector{
-		Namespace: &ns,
-		Name:      gen.Spec.Auth.Token.Name,
-		Key:       gen.Spec.Auth.Token.Key,
-	})
+	parsedURL, err := url.Parse(gen.Spec.URL)
 	if err != nil {
 		return nil, err
 	}
-	url := strings.TrimPrefix(gen.Spec.URL, "https://")
+
 	cfg := &grafanaclient.TransportConfig{
-		Host:     url,
-		BasePath: "/api",
-		Schemes:  []string{"https"},
-		APIKey:   secret,
+		Host:     parsedURL.Host,
+		BasePath: parsedURL.JoinPath("/api").Path,
+		Schemes:  []string{parsedURL.Scheme},
 	}
+
+	if err := setGrafanaClientCredentials(ctx, gen, kclient, ns, cfg); err != nil {
+		return nil, err
+	}
+
 	return grafanaclient.NewHTTPClientWithConfig(nil, cfg), nil
+}
+
+func setGrafanaClientCredentials(ctx context.Context, gen *genv1alpha1.Grafana, kclient client.Client, ns string, cfg *grafanaclient.TransportConfig) error {
+	// First try to use service account auth
+	if gen.Spec.Auth.Token != nil {
+		serviceAccountAPIKey, err := resolvers.SecretKeyRef(ctx, kclient, resolvers.EmptyStoreKind, ns, &esmeta.SecretKeySelector{
+			Namespace: &ns,
+			Name:      gen.Spec.Auth.Token.Name,
+			Key:       gen.Spec.Auth.Token.Key,
+		})
+		if err != nil {
+			return err
+		}
+
+		cfg.APIKey = serviceAccountAPIKey
+		return nil
+	}
+
+	// Next try to use basic auth
+	if gen.Spec.Auth.Basic != nil {
+		basicAuthPassword, err := resolvers.SecretKeyRef(ctx, kclient, resolvers.EmptyStoreKind, ns, &esmeta.SecretKeySelector{
+			Namespace: &ns,
+			Name:      gen.Spec.Auth.Basic.Password.Name,
+			Key:       gen.Spec.Auth.Basic.Password.Key,
+		})
+		if err != nil {
+			return err
+		}
+
+		cfg.BasicAuth = url.UserPassword(gen.Spec.Auth.Basic.Username, basicAuthPassword)
+		return nil
+	}
+
+	// No auth found, fail
+	return fmt.Errorf("no auth configuration found")
 }
 
 func createOrGetServiceAccount(cl *grafanaclient.GrafanaHTTPAPI, gen *genv1alpha1.Grafana) (*genv1alpha1.GrafanaServiceAccountTokenState, error) {
@@ -139,6 +164,7 @@ func createOrGetServiceAccount(cl *grafanaclient.GrafanaHTTPAPI, gen *genv1alpha
 	res, err := cl.ServiceAccounts.CreateServiceAccount(&grafanasa.CreateServiceAccountParams{
 		Body: &models.CreateServiceAccountForm{
 			Name: gen.Spec.ServiceAccount.Name,
+			Role: gen.Spec.ServiceAccount.Role,
 		},
 	}, nil)
 	if err != nil {

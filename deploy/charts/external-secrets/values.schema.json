@@ -273,6 +273,9 @@
                 "createClusterGenerator": {
                     "type": "boolean"
                 },
+                "createClusterPushSecret": {
+                    "type": "boolean"
+                },
                 "createClusterSecretStore": {
                     "type": "boolean"
                 },
@@ -466,6 +469,9 @@
             "type": "string"
         },
         "processClusterExternalSecret": {
+            "type": "boolean"
+        },
+        "processClusterPushSecret": {
             "type": "boolean"
         },
         "processClusterStore": {

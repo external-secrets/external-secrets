@@ -98,7 +98,7 @@ var _ = Describe("grafana generator", Label("grafana"), func() {
 					Role: "Viewer",
 				},
 				Auth: genv1alpha1.GrafanaAuth{
-					Token: genv1alpha1.SecretKeySelector{
+					Token: &genv1alpha1.SecretKeySelector{
 						Name: grafanaCredsSecretName,
 						Key:  "grafana-token",
 					},

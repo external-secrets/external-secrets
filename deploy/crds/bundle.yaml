@@ -664,7 +664,9 @@ spec:
                     x-kubernetes-map-type: atomic
                   type: array
                 namespaces:
-                  description: Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
+                  description: |-
+                    Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
+                    Deprecated: Use NamespaceSelectors instead.
                   items:
                     maxLength: 63
                     minLength: 1
@@ -717,6 +719,533 @@ spec:
                   items:
                     type: string
                   type: array
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+  conversion:
+    strategy: Webhook
+    webhook:
+      conversionReviewVersions:
+        - v1
+      clientConfig:
+        service:
+          name: kubernetes
+          namespace: default
+          path: /convert
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.2
+  labels:
+    external-secrets.io/component: controller
+  name: clusterpushsecrets.external-secrets.io
+spec:
+  group: external-secrets.io
+  names:
+    categories:
+      - external-secrets
+    kind: ClusterPushSecret
+    listKind: ClusterPushSecretList
+    plural: clusterpushsecrets
+    singular: clusterpushsecret
+  scope: Cluster
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .metadata.creationTimestamp
+          name: AGE
+          type: date
+        - jsonPath: .status.conditions[?(@.type=="Ready")].reason
+          name: Status
+          type: string
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                namespaceSelectors:
+                  description: A list of labels to select by to find the Namespaces to create the ExternalSecrets in. The selectors are ORed.
+                  items:
+                    description: |-
+                      A label selector is a label query over a set of resources. The result of matchLabels and
+                      matchExpressions are ANDed. An empty label selector matches all objects. A null
+                      label selector matches no objects.
+                    properties:
+                      matchExpressions:
+                        description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                        items:
+                          description: |-
+                            A label selector requirement is a selector that contains values, a key, and an operator that
+                            relates the key and values.
+                          properties:
+                            key:
+                              description: key is the label key that the selector applies to.
+                              type: string
+                            operator:
+                              description: |-
+                                operator represents a key's relationship to a set of values.
+                                Valid operators are In, NotIn, Exists and DoesNotExist.
+                              type: string
+                            values:
+                              description: |-
+                                values is an array of string values. If the operator is In or NotIn,
+                                the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                the values array must be empty. This array is replaced during a strategic
+                                merge patch.
+                              items:
+                                type: string
+                              type: array
+                              x-kubernetes-list-type: atomic
+                          required:
+                            - key
+                            - operator
+                          type: object
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                          map is equivalent to an element of matchExpressions, whose key field is "key", the
+                          operator is "In", and the values array contains only "value". The requirements are ANDed.
+                        type: object
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  type: array
+                pushSecretMetadata:
+                  description: The metadata of the external secrets to be created
+                  properties:
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    labels:
+                      additionalProperties:
+                        type: string
+                      type: object
+                  type: object
+                pushSecretName:
+                  description: |-
+                    The name of the push secrets to be created.
+                    Defaults to the name of the ClusterPushSecret
+                  maxLength: 253
+                  minLength: 1
+                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                  type: string
+                pushSecretSpec:
+                  description: PushSecretSpec defines what to do with the secrets.
+                  properties:
+                    data:
+                      description: Secret Data that should be pushed to providers
+                      items:
+                        properties:
+                          conversionStrategy:
+                            default: None
+                            description: Used to define a conversion Strategy for the secret keys
+                            enum:
+                              - None
+                              - ReverseUnicode
+                            type: string
+                          match:
+                            description: Match a given Secret Key to be pushed to the provider.
+                            properties:
+                              remoteRef:
+                                description: Remote Refs to push to providers.
+                                properties:
+                                  property:
+                                    description: Name of the property in the resulting secret
+                                    type: string
+                                  remoteKey:
+                                    description: Name of the resulting provider secret.
+                                    type: string
+                                required:
+                                  - remoteKey
+                                type: object
+                              secretKey:
+                                description: Secret Key to be pushed
+                                type: string
+                            required:
+                              - remoteRef
+                            type: object
+                          metadata:
+                            description: |-
+                              Metadata is metadata attached to the secret.
+                              The structure of metadata is provider specific, please look it up in the provider documentation.
+                            x-kubernetes-preserve-unknown-fields: true
+                        required:
+                          - match
+                        type: object
+                      type: array
+                    deletionPolicy:
+                      default: None
+                      description: Deletion Policy to handle Secrets in the provider.
+                      enum:
+                        - Delete
+                        - None
+                      type: string
+                    refreshInterval:
+                      default: 1h
+                      description: The Interval to which External Secrets will try to push a secret definition
+                      type: string
+                    secretStoreRefs:
+                      items:
+                        properties:
+                          kind:
+                            default: SecretStore
+                            description: Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                            enum:
+                              - SecretStore
+                              - ClusterSecretStore
+                            type: string
+                          labelSelector:
+                            description: Optionally, sync to secret stores with label selector
+                            properties:
+                              matchExpressions:
+                                description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                                items:
+                                  description: |-
+                                    A label selector requirement is a selector that contains values, a key, and an operator that
+                                    relates the key and values.
+                                  properties:
+                                    key:
+                                      description: key is the label key that the selector applies to.
+                                      type: string
+                                    operator:
+                                      description: |-
+                                        operator represents a key's relationship to a set of values.
+                                        Valid operators are In, NotIn, Exists and DoesNotExist.
+                                      type: string
+                                    values:
+                                      description: |-
+                                        values is an array of string values. If the operator is In or NotIn,
+                                        the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                        the values array must be empty. This array is replaced during a strategic
+                                        merge patch.
+                                      items:
+                                        type: string
+                                      type: array
+                                      x-kubernetes-list-type: atomic
+                                  required:
+                                    - key
+                                    - operator
+                                  type: object
+                                type: array
+                                x-kubernetes-list-type: atomic
+                              matchLabels:
+                                additionalProperties:
+                                  type: string
+                                description: |-
+                                  matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                  map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                  operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                type: object
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          name:
+                            description: Optionally, sync to the SecretStore of the given name
+                            maxLength: 253
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                            type: string
+                        type: object
+                      type: array
+                    selector:
+                      description: The Secret Selector (k8s source) for the Push Secret
+                      maxProperties: 1
+                      minProperties: 1
+                      properties:
+                        generatorRef:
+                          description: Point to a generator to create a Secret.
+                          properties:
+                            apiVersion:
+                              default: generators.external-secrets.io/v1alpha1
+                              description: Specify the apiVersion of the generator resource
+                              type: string
+                            kind:
+                              description: Specify the Kind of the generator resource
+                              enum:
+                                - ACRAccessToken
+                                - ClusterGenerator
+                                - ECRAuthorizationToken
+                                - Fake
+                                - GCRAccessToken
+                                - GithubAccessToken
+                                - QuayAccessToken
+                                - Password
+                                - STSSessionToken
+                                - UUID
+                                - VaultDynamicSecret
+                                - Webhook
+                                - Grafana
+                              type: string
+                            name:
+                              description: Specify the name of the generator resource
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                          required:
+                            - kind
+                            - name
+                          type: object
+                        secret:
+                          description: Select a Secret to Push.
+                          properties:
+                            name:
+                              description: |-
+                                Name of the Secret.
+                                The Secret must exist in the same namespace as the PushSecret manifest.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            selector:
+                              description: Selector chooses secrets using a labelSelector.
+                              properties:
+                                matchExpressions:
+                                  description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                                  items:
+                                    description: |-
+                                      A label selector requirement is a selector that contains values, a key, and an operator that
+                                      relates the key and values.
+                                    properties:
+                                      key:
+                                        description: key is the label key that the selector applies to.
+                                        type: string
+                                      operator:
+                                        description: |-
+                                          operator represents a key's relationship to a set of values.
+                                          Valid operators are In, NotIn, Exists and DoesNotExist.
+                                        type: string
+                                      values:
+                                        description: |-
+                                          values is an array of string values. If the operator is In or NotIn,
+                                          the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                          the values array must be empty. This array is replaced during a strategic
+                                          merge patch.
+                                        items:
+                                          type: string
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                    required:
+                                      - key
+                                      - operator
+                                    type: object
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                                matchLabels:
+                                  additionalProperties:
+                                    type: string
+                                  description: |-
+                                    matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                    map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                    operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                  type: object
+                              type: object
+                              x-kubernetes-map-type: atomic
+                          type: object
+                      type: object
+                    template:
+                      description: Template defines a blueprint for the created Secret resource.
+                      properties:
+                        data:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        engineVersion:
+                          default: v2
+                          description: |-
+                            EngineVersion specifies the template engine version
+                            that should be used to compile/execute the
+                            template specified in .data and .templateFrom[].
+                          enum:
+                            - v1
+                            - v2
+                          type: string
+                        mergePolicy:
+                          default: Replace
+                          enum:
+                            - Replace
+                            - Merge
+                          type: string
+                        metadata:
+                          description: ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
+                          properties:
+                            annotations:
+                              additionalProperties:
+                                type: string
+                              type: object
+                            labels:
+                              additionalProperties:
+                                type: string
+                              type: object
+                          type: object
+                        templateFrom:
+                          items:
+                            properties:
+                              configMap:
+                                properties:
+                                  items:
+                                    description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
+                                    items:
+                                      properties:
+                                        key:
+                                          description: A key in the ConfigMap/Secret
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        templateAs:
+                                          default: Values
+                                          enum:
+                                            - Values
+                                            - KeysAndValues
+                                          type: string
+                                      required:
+                                        - key
+                                      type: object
+                                    type: array
+                                  name:
+                                    description: The name of the ConfigMap/Secret resource
+                                    maxLength: 253
+                                    minLength: 1
+                                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                    type: string
+                                required:
+                                  - items
+                                  - name
+                                type: object
+                              literal:
+                                type: string
+                              secret:
+                                properties:
+                                  items:
+                                    description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
+                                    items:
+                                      properties:
+                                        key:
+                                          description: A key in the ConfigMap/Secret
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        templateAs:
+                                          default: Values
+                                          enum:
+                                            - Values
+                                            - KeysAndValues
+                                          type: string
+                                      required:
+                                        - key
+                                      type: object
+                                    type: array
+                                  name:
+                                    description: The name of the ConfigMap/Secret resource
+                                    maxLength: 253
+                                    minLength: 1
+                                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                    type: string
+                                required:
+                                  - items
+                                  - name
+                                type: object
+                              target:
+                                default: Data
+                                enum:
+                                  - Data
+                                  - Annotations
+                                  - Labels
+                                type: string
+                            type: object
+                          type: array
+                        type:
+                          type: string
+                      type: object
+                    updatePolicy:
+                      default: Replace
+                      description: UpdatePolicy to handle Secrets in the provider.
+                      enum:
+                        - Replace
+                        - IfNotExists
+                      type: string
+                  required:
+                    - secretStoreRefs
+                    - selector
+                  type: object
+                refreshTime:
+                  description: The time in which the controller should reconcile its objects and recheck namespaces for labels.
+                  type: string
+              required:
+                - pushSecretSpec
+              type: object
+            status:
+              properties:
+                conditions:
+                  items:
+                    description: PushSecretStatusCondition indicates the status of the PushSecret.
+                    properties:
+                      lastTransitionTime:
+                        format: date-time
+                        type: string
+                      message:
+                        type: string
+                      reason:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        description: PushSecretConditionType indicates the condition of the PushSecret.
+                        type: string
+                    required:
+                      - status
+                      - type
+                    type: object
+                  type: array
+                failedNamespaces:
+                  description: Failed namespaces are the namespaces that failed to apply an PushSecret
+                  items:
+                    description: ClusterPushSecretNamespaceFailure represents a failed namespace deployment and it's reason.
+                    properties:
+                      namespace:
+                        description: Namespace is the namespace that failed when trying to apply an PushSecret
+                        type: string
+                      reason:
+                        description: Reason is why the PushSecret failed to apply to the namespace
+                        type: string
+                    required:
+                      - namespace
+                    type: object
+                  type: array
+                provisionedNamespaces:
+                  description: ProvisionedNamespaces are the namespaces where the ClusterPushSecret has secrets
+                  items:
+                    type: string
+                  type: array
+                pushSecretName:
+                  type: string
               type: object
           type: object
       served: true
@@ -3727,6 +4256,78 @@ spec:
                         - auth
                         - serverUrl
                         - username
+                      type: object
+                    cloudrusm:
+                      description: CloudruSM configures this store to sync secrets using the Cloud.ru Secret Manager provider
+                      properties:
+                        auth:
+                          description: CSMAuth contains a secretRef for credentials.
+                          properties:
+                            secretRef:
+                              description: CSMAuthSecretRef holds secret references for Cloud.ru credentials.
+                              properties:
+                                accessKeyIDSecretRef:
+                                  description: The AccessKeyID is used for authentication
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                accessKeySecretSecretRef:
+                                  description: The AccessKeySecret is used for authentication
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - accessKeyIDSecretRef
+                                - accessKeySecretSecretRef
+                              type: object
+                          type: object
+                        projectID:
+                          description: ProjectID is the project, which the secrets are stored in.
+                          type: string
+                      required:
+                        - auth
                       type: object
                     conjur:
                       description: Conjur configures this store to sync secrets using conjur provider
@@ -7717,8 +8318,50 @@ spec:
                           minLength: 1
                           pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                           type: string
-                      required:
-                        - name
+                        selector:
+                          description: Selector chooses secrets using a labelSelector.
+                          properties:
+                            matchExpressions:
+                              description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                              items:
+                                description: |-
+                                  A label selector requirement is a selector that contains values, a key, and an operator that
+                                  relates the key and values.
+                                properties:
+                                  key:
+                                    description: key is the label key that the selector applies to.
+                                    type: string
+                                  operator:
+                                    description: |-
+                                      operator represents a key's relationship to a set of values.
+                                      Valid operators are In, NotIn, Exists and DoesNotExist.
+                                    type: string
+                                  values:
+                                    description: |-
+                                      values is an array of string values. If the operator is In or NotIn,
+                                      the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                      the values array must be empty. This array is replaced during a strategic
+                                      merge patch.
+                                    items:
+                                      type: string
+                                    type: array
+                                    x-kubernetes-list-type: atomic
+                                required:
+                                  - key
+                                  - operator
+                                type: object
+                              type: array
+                              x-kubernetes-list-type: atomic
+                            matchLabels:
+                              additionalProperties:
+                                type: string
+                              description: |-
+                                matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                operator is "In", and the values array contains only "value". The requirements are ANDed.
+                              type: object
+                          type: object
+                          x-kubernetes-map-type: atomic
                       type: object
                   type: object
                 template:
@@ -10937,6 +11580,78 @@ spec:
                         - auth
                         - serverUrl
                         - username
+                      type: object
+                    cloudrusm:
+                      description: CloudruSM configures this store to sync secrets using the Cloud.ru Secret Manager provider
+                      properties:
+                        auth:
+                          description: CSMAuth contains a secretRef for credentials.
+                          properties:
+                            secretRef:
+                              description: CSMAuthSecretRef holds secret references for Cloud.ru credentials.
+                              properties:
+                                accessKeyIDSecretRef:
+                                  description: The AccessKeyID is used for authentication
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                accessKeySecretSecretRef:
+                                  description: The AccessKeySecret is used for authentication
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - accessKeyIDSecretRef
+                                - accessKeySecretSecretRef
+                              type: object
+                          type: object
+                        projectID:
+                          description: ProjectID is the project, which the secrets are stored in.
+                          type: string
+                      required:
+                        - auth
                       type: object
                     conjur:
                       description: Conjur configures this store to sync secrets using conjur provider
@@ -14525,6 +15240,36 @@ spec:
                             Auth is the authentication configuration to authenticate
                             against the Grafana instance.
                           properties:
+                            basic:
+                              description: |-
+                                Basic auth credentials used to authenticate against the Grafana instance.
+                                Note: you need a token which has elevated permissions to create service accounts.
+                                See here for the documentation on basic roles offered by Grafana:
+                                https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/
+                              properties:
+                                password:
+                                  description: A basic auth password used to authenticate against the Grafana instance.
+                                  properties:
+                                    key:
+                                      description: The key where the token is found.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                  type: object
+                                username:
+                                  description: A basic auth username used to authenticate against the Grafana instance.
+                                  type: string
+                              required:
+                                - password
+                                - username
+                              type: object
                             token:
                               description: |-
                                 A service account token used to authenticate against the Grafana instance.
@@ -14545,8 +15290,6 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                   type: string
                               type: object
-                          required:
-                            - token
                           type: object
                         serviceAccount:
                           description: |-
@@ -16464,6 +17207,36 @@ spec:
                     Auth is the authentication configuration to authenticate
                     against the Grafana instance.
                   properties:
+                    basic:
+                      description: |-
+                        Basic auth credentials used to authenticate against the Grafana instance.
+                        Note: you need a token which has elevated permissions to create service accounts.
+                        See here for the documentation on basic roles offered by Grafana:
+                        https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/
+                      properties:
+                        password:
+                          description: A basic auth password used to authenticate against the Grafana instance.
+                          properties:
+                            key:
+                              description: The key where the token is found.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                          type: object
+                        username:
+                          description: A basic auth username used to authenticate against the Grafana instance.
+                          type: string
+                      required:
+                        - password
+                        - username
+                      type: object
                     token:
                       description: |-
                         A service account token used to authenticate against the Grafana instance.
@@ -16484,8 +17257,6 @@ spec:
                           pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                           type: string
                       type: object
-                  required:
-                    - token
                   type: object
                 serviceAccount:
                   description: |-
