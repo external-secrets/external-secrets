@@ -82,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#deploying-without-clustersecretstore-and-clusterexternalsecret" class="md-skip">
+        <a href="#deploying-without-clustersecretstore-and-clusterexternalsecret-and-clusterpushsecret" class="md-skip">
           Skip to content
         </a>
       
@@ -732,6 +732,8 @@
       
         
       
+        
+      
     
     
       
@@ -844,6 +846,28 @@
   
   <span class="md-ellipsis">
     ClusterExternalSecret
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/clusterpushsecret/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ClusterPushSecret
     
   </span>
   
@@ -3615,21 +3639,25 @@
   
 
 
-<h1 id="deploying-without-clustersecretstore-and-clusterexternalsecret">Deploying without ClusterSecretStore and ClusterExternalSecret</h1>
-<p>When deploying External Secrets Operator via Helm chart, the default configuration will install <code>ClusterSecretStore</code> and <code>ClusterExternalSecret</code> CRDs and these objects will be processed by the operator.</p>
+<h1 id="deploying-without-clustersecretstore-and-clusterexternalsecret-and-clusterpushsecret">Deploying without ClusterSecretStore and ClusterExternalSecret and ClusterPushSecret</h1>
+<p>When deploying External Secrets Operator via Helm chart, the default configuration will install <code>ClusterSecretStore</code> and <code>ClusterExternalSecret</code> and other CRDs and these objects will be processed by the operator.</p>
 <p>In order to disable both or one of these features, it is necessary to configure the <code>crds.*</code> Helm value, as well as the <code>process*</code> Helm value, as these 2 values are connected.</p>
-<p>If you would like to install the operator without <code>ClusterSecretStore</code> and <code>ClusterExternalSecret</code> management, you will have to :</p>
+<p>If you would like to install the operator without <code>ClusterSecretStore</code> and <code>ClusterExternalSecret</code> and <code>ClusterPushSecret</code> management, you will have to :</p>
 <ul>
 <li>set <code>crds.createClusterExternalSecret</code> to false</li>
 <li>set <code>crds.createClusterSecretStore</code> to false</li>
+<li>set <code>crds.createClusterPushSecret</code> to false</li>
 <li>set <code>processClusterExternalSecret</code> to false</li>
 <li>set <code>processClusterStore</code> to false</li>
+<li>set <code>processClusterPushSecret</code> to false</li>
 </ul>
 <p>Example:</p>
 <div class="highlight"><pre><span></span><code>helm<span class="w"> </span>install<span class="w"> </span>external-secrets<span class="w"> </span>external-secrets/external-secrets<span class="w"> </span>--set<span class="w"> </span>crds.createClusterExternalSecret<span class="o">=</span><span class="nb">false</span><span class="w"> </span><span class="se">\</span>
 --set<span class="w"> </span>crds.createClusterSecretStore<span class="o">=</span><span class="nb">false</span><span class="w"> </span><span class="se">\</span>
+--set<span class="w"> </span>crds.createClusterPushSecret<span class="o">=</span><span class="nb">false</span><span class="w"> </span><span class="se">\</span>
 --set<span class="w"> </span><span class="nv">processClusterExternalSecret</span><span class="o">=</span><span class="nb">false</span><span class="w"> </span><span class="se">\</span>
---set<span class="w"> </span><span class="nv">processClusterStore</span><span class="o">=</span><span class="nb">false</span>
+--set<span class="w"> </span><span class="nv">processClusterStore</span><span class="o">=</span><span class="nb">false</span><span class="w"> </span><span class="se">\</span>
+--set<span class="w"> </span><span class="nv">processClusterPushSecret</span><span class="o">=</span><span class="nb">false</span>
 </code></pre></div>
 
 
