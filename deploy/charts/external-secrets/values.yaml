@@ -81,6 +81,9 @@ scopedRBAC: false
 # -- if true, the operator will process cluster external secret. Else, it will ignore them.
 processClusterExternalSecret: true
 
+# -- if true, the operator will process cluster push secret. Else, it will ignore them.
+processClusterPushSecret: true
+
 # -- if true, the operator will process cluster store. Else, it will ignore them.
 processClusterStore: true
 
