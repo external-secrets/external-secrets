@@ -65,6 +65,7 @@ nav:
       - SecretStore: api/secretstore.md
       - ClusterSecretStore: api/clustersecretstore.md
       - ClusterExternalSecret: api/clusterexternalsecret.md
+      - ClusterPushSecret: api/clusterpushsecret.md
       - PushSecret: api/pushsecret.md
     - Generators:
       - "api/generator/index.md"
