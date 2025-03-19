@@ -20,4 +20,7 @@ version: "2"
 - group: external-secrets
   kind: ExternalSecret
   version: v1beta1
+- group: external-secrets
+  kind: ClusterPushSecret
+  version: v1alpha1
 version: "3"

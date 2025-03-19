@@ -41,6 +41,8 @@ crds:
   createClusterSecretStore: true
   # -- If true, create CRDs for Cluster Generator.
   createClusterGenerator: true
+  # -- If true, create CRDs for Cluster Push Secret.
+  createClusterPushSecret: true
   # -- If true, create CRDs for Push Secret.
   createPushSecret: true
   annotations: {}
@@ -78,6 +80,9 @@ scopedRBAC: false
 
 # -- if true, the operator will process cluster external secret. Else, it will ignore them.
 processClusterExternalSecret: true
+
+# -- if true, the operator will process cluster push secret. Else, it will ignore them.
+processClusterPushSecret: true
 
 # -- if true, the operator will process cluster store. Else, it will ignore them.
 processClusterStore: true

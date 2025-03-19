@@ -90,6 +90,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | crds.conversion.enabled | bool | `true` | If webhook is set to false this also needs to be set to false otherwise the kubeapi will be hammered because the conversion is looking for a webhook endpoint. |
 | crds.createClusterExternalSecret | bool | `true` | If true, create CRDs for Cluster External Secret. |
 | crds.createClusterGenerator | bool | `true` | If true, create CRDs for Cluster Generator. |
+| crds.createClusterPushSecret | bool | `true` | If true, create CRDs for Cluster Push Secret. |
 | crds.createClusterSecretStore | bool | `true` | If true, create CRDs for Cluster Secret Store. |
 | crds.createPushSecret | bool | `true` | If true, create CRDs for Push Secret. |
 | createOperator | bool | `true` | Specifies whether an external secret operator deployment be created. |
@@ -132,6 +133,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | podSpecExtra | object | `{}` | Any extra pod spec on the deployment |
 | priorityClassName | string | `""` | Pod priority class name. |
 | processClusterExternalSecret | bool | `true` | if true, the operator will process cluster external secret. Else, it will ignore them. |
+| processClusterPushSecret | bool | `true` | if true, the operator will process cluster push secret. Else, it will ignore them. |
 | processClusterStore | bool | `true` | if true, the operator will process cluster store. Else, it will ignore them. |
 | processPushSecret | bool | `true` | if true, the operator will process push secret. Else, it will ignore them. |
 | rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |

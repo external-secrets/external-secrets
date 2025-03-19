@@ -18,7 +18,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
 	"slices"
 	"sort"
 	"time"
@@ -35,14 +34,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // Reconciler reconciles a ClusterExternalSecret object.
@@ -112,7 +110,13 @@ func (r *Reconciler) reconcile(ctx context.Context, log logr.Logger, clusterExte
 	}
 	clusterExternalSecret.Status.ExternalSecretName = esName
 
-	namespaces, err := r.getTargetNamespaces(ctx, clusterExternalSecret)
+	selectors := []*metav1.LabelSelector{}
+	if s := clusterExternalSecret.Spec.NamespaceSelector; s != nil {
+		selectors = append(selectors, s)
+	}
+	selectors = append(selectors, clusterExternalSecret.Spec.NamespaceSelectors...)
+
+	namespaces, err := utils.GetTargetNamespaces(ctx, r.Client, clusterExternalSecret.Spec.Namespaces, selectors)
 	if err != nil {
 		log.Error(err, "failed to get target Namespaces")
 		failedNamespaces := map[string]error{
@@ -197,46 +201,6 @@ func (r *Reconciler) removeOldSecrets(ctx context.Context, log logr.Logger, clus
 	}
 
 	return nil
-}
-
-func (r *Reconciler) getTargetNamespaces(ctx context.Context, ces *esv1beta1.ClusterExternalSecret) ([]v1.Namespace, error) {
-	var selectors []*metav1.LabelSelector //nolint:prealloc // ces.Spec.NamespaceSelector might be empty.
-	if s := ces.Spec.NamespaceSelector; s != nil {
-		selectors = append(selectors, s)
-	}
-	for _, ns := range ces.Spec.Namespaces {
-		selectors = append(selectors, &metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"kubernetes.io/metadata.name": ns,
-			},
-		})
-	}
-	selectors = append(selectors, ces.Spec.NamespaceSelectors...)
-
-	var namespaces []v1.Namespace
-	namespaceSet := make(map[string]struct{})
-	for _, selector := range selectors {
-		labelSelector, err := metav1.LabelSelectorAsSelector(selector)
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert label selector %s: %w", selector, err)
-		}
-
-		var nl v1.NamespaceList
-		err = r.List(ctx, &nl, &client.ListOptions{LabelSelector: labelSelector})
-		if err != nil {
-			return nil, fmt.Errorf("failed to list namespaces by label selector %s: %w", selector, err)
-		}
-
-		for _, n := range nl.Items {
-			if _, exist := namespaceSet[n.Name]; exist {
-				continue
-			}
-			namespaceSet[n.Name] = struct{}{}
-			namespaces = append(namespaces, n)
-		}
-	}
-
-	return namespaces, nil
 }
 
 func (r *Reconciler) createOrUpdateExternalSecret(ctx context.Context, clusterExternalSecret *esv1beta1.ClusterExternalSecret, namespace v1.Namespace, esName string, esMetadata esv1beta1.ExternalSecretMetadata) error {
@@ -357,7 +321,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 		Watches(
 			&v1.Namespace{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForNamespace),
-			builder.WithPredicates(namespacePredicate()),
+			builder.WithPredicates(utils.NamespacePredicate()),
 		).
 		Complete(r)
 }
@@ -419,21 +383,4 @@ func (r *Reconciler) queueRequestsForItem(clusterExternalSecrets *esv1beta1.Clus
 	}
 
 	return requests
-}
-
-func namespacePredicate() predicate.Predicate {
-	return predicate.Funcs{
-		CreateFunc: func(e event.CreateEvent) bool {
-			return true
-		},
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			if e.ObjectOld == nil || e.ObjectNew == nil {
-				return false
-			}
-			return !reflect.DeepEqual(e.ObjectOld.GetLabels(), e.ObjectNew.GetLabels())
-		},
-		DeleteFunc: func(deleteEvent event.DeleteEvent) bool {
-			return true
-		},
-	}
 }
