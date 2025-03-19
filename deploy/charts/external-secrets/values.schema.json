@@ -471,6 +471,9 @@
         "processClusterExternalSecret": {
             "type": "boolean"
         },
+        "processClusterPushSecret": {
+            "type": "boolean"
+        },
         "processClusterStore": {
             "type": "boolean"
         },
