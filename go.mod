@@ -78,6 +78,8 @@ require (
 	github.com/avast/retry-go/v4 v4.6.1
 	github.com/bradleyfalzon/ghinstallation/v2 v2.14.0
 	github.com/cenkalti/backoff/v4 v4.3.0
+	github.com/cloudru-tech/iam-sdk v1.0.4
+	github.com/cloudru-tech/secret-manager-sdk v1.1.1
 	github.com/cyberark/conjur-api-go v0.12.12
 	github.com/fortanix/sdkms-client-go v0.4.0
 	github.com/go-openapi/strfmt v0.23.0
