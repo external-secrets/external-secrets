@@ -108,9 +108,9 @@ type PushSecretSecret struct {
 	// +optional
 	Name string `json:"name,omitempty"`
 
-	// SecretSelector chooses secrets using a labelSelector.
+	// Selector chooses secrets using a labelSelector.
 	// +optional
-	SecretSelector *metav1.LabelSelector `json:"secretSelector,omitempty"`
+	Selector *metav1.LabelSelector `json:"selector,omitempty"`
 }
 
 // +kubebuilder:validation:MinProperties=1

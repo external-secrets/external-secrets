@@ -419,8 +419,8 @@ func (r *Reconciler) resolveSecrets(ctx context.Context, ps *esapi.PushSecret) (
 		}
 
 		return []v1.Secret{*secret}, nil
-	case ps.Spec.Selector.Secret != nil && ps.Spec.Selector.Secret.SecretSelector != nil:
-		labelSelector, err := metav1.LabelSelectorAsSelector(ps.Spec.Selector.Secret.SecretSelector)
+	case ps.Spec.Selector.Secret != nil && ps.Spec.Selector.Secret.Selector != nil:
+		labelSelector, err := metav1.LabelSelectorAsSelector(ps.Spec.Selector.Secret.Selector)
 		if err != nil {
 			return nil, err
 		}
