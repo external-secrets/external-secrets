@@ -69,8 +69,14 @@ const (
 	managedByKey   = "managed-by"
 	managedByValue = "external-secrets"
 
-	providerName = "GCPSecretManager"
-	topicsKey    = "topics"
+	providerName               = "GCPSecretManager"
+	topicsKey                  = "topics"
+	globalSecretPath           = "projects/%s/secrets/%s"
+	globalSecretParentPath     = "projects/%s"
+	regionalSecretParentPath   = "projects/%s/locations/%s"
+	regionalSecretPath         = "projects/%s/locations/%s/secrets/%s"
+	globalSecretVersionsPath   = "projects/%s/secrets/%s/versions/%s"
+	regionalSecretVersionsPath = "projects/%s/locations/%s/secrets/%s/versions/%s"
 )
 
 type Client struct {
@@ -98,10 +104,7 @@ type GoogleSecretManagerClient interface {
 var log = ctrl.Log.WithName("provider").WithName("gcp").WithName("secretsmanager")
 
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
-	name := fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, remoteRef.GetRemoteKey())
-	if c.store.Location != "" {
-		name = fmt.Sprintf("projects/%s/locations/%s/secrets/%s", c.store.ProjectID, c.store.Location, remoteRef.GetRemoteKey())
-	}
+	name := getName(c.store.ProjectID, c.store.Location, remoteRef.GetRemoteKey())
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
 		Name: name,
 	})
@@ -135,7 +138,7 @@ func parseError(err error) error {
 }
 
 func (c *Client) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRemoteRef) (bool, error) {
-	secretName := fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, ref.GetRemoteKey())
+	secretName := fmt.Sprintf(globalSecretPath, c.store.ProjectID, ref.GetRemoteKey())
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
 		Name: secretName,
 	})
@@ -169,10 +172,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 	} else {
 		payload = secret.Data[pushSecretData.GetSecretKey()]
 	}
-	secretName := fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, pushSecretData.GetRemoteKey())
-	if c.store.Location != "" {
-		secretName = fmt.Sprintf("projects/%s/locations/%s/secrets/%s", c.store.ProjectID, c.store.Location, pushSecretData.GetRemoteKey())
-	}
+	secretName := getName(c.store.ProjectID, c.store.Location, pushSecretData.GetRemoteKey())
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
 		Name: secretName,
 	})
@@ -217,10 +217,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 				},
 			}
 		}
-		parent := fmt.Sprintf("projects/%s", c.store.ProjectID)
-		if c.store.Location != "" {
-			parent = fmt.Sprintf("projects/%s/locations/%s", c.store.ProjectID, c.store.Location)
-		}
+		parent := getParentName(c.store.ProjectID, c.store.Location)
 
 		scrt := &secretmanagerpb.Secret{
 			Labels: map[string]string{
@@ -336,10 +333,8 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 	if err != nil {
 		return err
 	}
-	parent := fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, pushSecretData.GetRemoteKey())
-	if c.store.Location != "" {
-		parent = fmt.Sprintf("projects/%s/locations/%s/secrets/%s", c.store.ProjectID, c.store.Location, pushSecretData.GetRemoteKey())
-	}
+
+	parent := getName(c.store.ProjectID, c.store.Location, pushSecretData.GetRemoteKey())
 
 	addSecretVersionReq := &secretmanagerpb.AddSecretVersionRequest{
 		Parent: parent,
@@ -371,10 +366,7 @@ func (c *Client) findByName(ctx context.Context, ref esv1beta1.ExternalSecretFin
 	if err != nil {
 		return nil, err
 	}
-	parent := fmt.Sprintf("projects/%s", c.store.ProjectID)
-	if c.store.Location != "" {
-		parent = fmt.Sprintf("projects/%s/locations/%s", c.store.ProjectID, c.store.Location)
-	}
+	parent := getParentName(c.store.ProjectID, c.store.Location)
 	req := &secretmanagerpb.ListSecretsRequest{
 		Parent: parent,
 	}
@@ -470,10 +462,7 @@ func (c *Client) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFin
 
 func (c *Client) trimName(name string) string {
 	projectIDNumuber := c.extractProjectIDNumber(name)
-	prefix := fmt.Sprintf("projects/%s/secrets/", projectIDNumuber)
-	if c.store.Location != "" {
-		prefix = fmt.Sprintf("projects/%s/locations/%s/secrets/", projectIDNumuber, c.store.Location)
-	}
+	prefix := getName(projectIDNumuber, c.store.Location, name)
 	key := strings.TrimPrefix(name, prefix)
 	return key
 }
@@ -501,9 +490,9 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	if version == "" {
 		version = defaultVersion
 	}
-	name := fmt.Sprintf("projects/%s/secrets/%s/versions/%s", c.store.ProjectID, ref.Key, version)
+	name := fmt.Sprintf(globalSecretVersionsPath, c.store.ProjectID, ref.Key, version)
 	if c.store.Location != "" {
-		name = fmt.Sprintf("projects/%s/locations/%s/secrets/%s/versions/%s", c.store.ProjectID, c.store.Location, ref.Key, version)
+		name = fmt.Sprintf(regionalSecretVersionsPath, c.store.ProjectID, c.store.Location, ref.Key, version)
 	}
 	req := &secretmanagerpb.AccessSecretVersionRequest{
 		Name: name,
@@ -530,10 +519,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 }
 
 func (c *Client) getSecretMetadata(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	name := fmt.Sprintf("projects/%s/secrets/%s", c.store.ProjectID, ref.Key)
-	if c.store.Location != "" {
-		name = fmt.Sprintf("projects/%s/locations/%s/secrets/%s", c.store.ProjectID, c.store.Location, ref.Key)
-	}
+	name := getName(c.store.ProjectID, c.store.Location, ref.Key)
 	secret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
 		Name: name,
 	})
@@ -675,4 +661,18 @@ func getDataByProperty(data []byte, property string) gjson.Result {
 		}
 	}
 	return gjson.Get(payload, property)
+}
+
+func getName(projectID, location, key string) string {
+	if location != "" {
+		return fmt.Sprintf(regionalSecretPath, projectID, location, key)
+	}
+	return fmt.Sprintf(globalSecretPath, projectID, key)
+}
+
+func getParentName(projectID, location string) string {
+	if location != "" {
+		return fmt.Sprintf(regionalSecretParentPath, projectID, location)
+	}
+	return fmt.Sprintf(globalSecretParentPath, projectID)
 }
