@@ -434,6 +434,9 @@
             "properties": {},
             "type": "object"
         },
+        "openshiftFinalizers": {
+            "type": "boolean"
+        },
         "podAnnotations": {
             "properties": {},
             "type": "object"
