@@ -78,6 +78,9 @@ scopedNamespace: ""
 # and implicitly disable cluster stores and cluster external secrets
 scopedRBAC: false
 
+# -- If true the OpenShift finalizer permissions will be added to RBAC
+openshiftFinalizers: true
+
 # -- if true, the operator will process cluster external secret. Else, it will ignore them.
 processClusterExternalSecret: true
 

@@ -62,6 +62,7 @@ spec:
           {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
           - --enable-cluster-store-reconciler=false
           - --enable-cluster-external-secret-reconciler=false
+          - --enable-cluster-push-secret-reconciler=false
           {{- else }}
             {{- if not .Values.processClusterStore }}
           - --enable-cluster-store-reconciler=false
