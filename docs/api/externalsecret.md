@@ -13,9 +13,9 @@ When the controller reconciles the `ExternalSecret` it will use the `spec.templa
 
 ## Update Behavior
 
-The `Kind=Secret` is updated when:
+The `Kind=Secret` is updated when one of the following conditions is met and `spec.refreshInterval` is not `0`:
 
-* the `spec.refreshInterval` has passed and is not `0`
+* the `spec.refreshInterval` has passed
 * the `ExternalSecret`'s `labels` or `annotations` are changed
 * the `ExternalSecret`'s `spec` has been changed
 
