@@ -31,22 +31,34 @@ rules:
     resources:
     - "externalsecrets"
     - "externalsecrets/status"
+    {{- if .Values.openshiftFinalizers }}
     - "externalsecrets/finalizers"
+    {{- end }}
     - "secretstores"
     - "secretstores/status"
+    {{- if .Values.openshiftFinalizers }}
     - "secretstores/finalizers"
+    {{- end }}
     - "clustersecretstores"
     - "clustersecretstores/status"
+    {{- if .Values.openshiftFinalizers }}
     - "clustersecretstores/finalizers"
+    {{- end }}
     - "clusterexternalsecrets"
     - "clusterexternalsecrets/status"
+    {{- if .Values.openshiftFinalizers }}
     - "clusterexternalsecrets/finalizers"
+    {{- end }}
     - "pushsecrets"
     - "pushsecrets/status"
+    {{- if .Values.openshiftFinalizers }}
     - "pushsecrets/finalizers"
+    {{- end }}
     - "clusterpushsecrets"
     - "clusterpushsecrets/status"
+    {{- if .Values.openshiftFinalizers }}
     - "clusterpushsecrets/finalizers"
+    {{- end }}
     verbs:
     - "get"
     - "update"

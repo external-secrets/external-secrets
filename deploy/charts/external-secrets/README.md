@@ -126,6 +126,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | nameOverride | string | `""` |  |
 | namespaceOverride | string | `""` |  |
 | nodeSelector | object | `{}` |  |
+| openshiftFinalizers | bool | `true` | If true the OpenShift finalizer permissions will be added to RBAC |
 | podAnnotations | object | `{}` | Annotations to add to Pod |
 | podDisruptionBudget | object | `{"enabled":false,"minAvailable":1}` | Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/ |
 | podLabels | object | `{}` |  |
