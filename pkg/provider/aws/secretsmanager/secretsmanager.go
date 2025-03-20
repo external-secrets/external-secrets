@@ -674,7 +674,7 @@ func (sm *SecretsManager) constructSecretValue(ctx context.Context, ref esv1beta
 	return secretOut, err
 }
 
-func (pm *SecretsManager) constructMetadataWithDefaults(data *apiextensionsv1.JSON) (*metadata.PushSecretMetadata[PushSecretMetadataSpec], error) {
+func (sm *SecretsManager) constructMetadataWithDefaults(data *apiextensionsv1.JSON) (*metadata.PushSecretMetadata[PushSecretMetadataSpec], error) {
 	var (
 		meta *metadata.PushSecretMetadata[PushSecretMetadataSpec]
 		err  error
