@@ -511,7 +511,7 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 		},
 	}
 
-	if mdata.Spec.Tags != nil && len(mdata.Spec.Tags) > 0 {
+	if len(mdata.Spec.Tags) > 0 {
 		for k, v := range mdata.Spec.Tags {
 			tags = append(tags, &awssm.Tag{
 				Key:   utilpointer.To(k),
@@ -691,10 +691,8 @@ func (pm *SecretsManager) constructMetadataWithDefaults(data *apiextensionsv1.JS
 
 	if meta.Spec.SecretPushFormatKey == "" {
 		meta.Spec.SecretPushFormatKey = SecretPushFormatBinary
-	} else {
-		if !slices.Contains([]string{SecretPushFormatBinary, SecretPushFormatString}, meta.Spec.SecretPushFormatKey) {
-			return nil, fmt.Errorf("invalid secret push format: %s", meta.Spec.SecretPushFormatKey)
-		}
+	} else if !slices.Contains([]string{SecretPushFormatBinary, SecretPushFormatString}, meta.Spec.SecretPushFormatKey) {
+		return nil, fmt.Errorf("invalid secret push format: %s", meta.Spec.SecretPushFormatKey)
 	}
 
 	if meta.Spec.Description == "" {
@@ -705,7 +703,7 @@ func (pm *SecretsManager) constructMetadataWithDefaults(data *apiextensionsv1.JS
 		meta.Spec.KMSKeyID = "alias/aws/secretsmanager"
 	}
 
-	if meta.Spec.Tags != nil && len(meta.Spec.Tags) > 0 {
+	if len(meta.Spec.Tags) > 0 {
 		if _, exists := meta.Spec.Tags[managedBy]; exists {
 			return nil, fmt.Errorf("error parsing tags in metadata: Cannot specify a '%s' tag", managedBy)
 		}
