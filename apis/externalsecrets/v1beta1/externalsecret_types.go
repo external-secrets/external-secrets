@@ -253,6 +253,11 @@ type ExternalSecretDataRemoteRef struct {
 	// Used to define a decoding Strategy
 	// +kubebuilder:default="None"
 	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
+
+	// +optional
+	// Used to define a decrypting Strategy
+	// +kubebuilder:default={"scheme":"None"}
+	DecryptingStrategy ExternalSecretDecryptingStrategy `json:"decryptingStrategy,omitempty"`
 }
 
 // +kubebuilder:validation:Enum=None;Fetch
@@ -280,6 +285,49 @@ const (
 	ExternalSecretDecodeBase64URL ExternalSecretDecodingStrategy = "Base64URL"
 	ExternalSecretDecodeNone      ExternalSecretDecodingStrategy = "None"
 )
+
+// +kubebuilder:validation:Enum=None;RSA-OAEP
+type ExternalSecretDecryptingScheme string
+
+const (
+	ExternalSecretDecryptSchemeNone    ExternalSecretDecryptingScheme = "None"
+	ExternalSecretDecryptSchemeRSAOAEP ExternalSecretDecryptingScheme = "RSA-OAEP"
+)
+
+// +kubebuilder:validation:Enum=None;SHA1;SHA256;SHA512
+type ExternalSecretDecryptingHash string
+
+const (
+	ExternalSecretDecryptHashNone   ExternalSecretDecryptingHash = "None"
+	ExternalSecretDecryptHashSHA1   ExternalSecretDecryptingHash = "SHA1"
+	ExternalSecretDecryptHashSHA256 ExternalSecretDecryptingHash = "SHA256"
+	ExternalSecretDecryptHashSHA512 ExternalSecretDecryptingHash = "SHA512"
+)
+
+// +kubebuilder:validation:Enum=None;PKCS8;PKCS1
+type ExternalSecretDecryptingPKType string
+
+const (
+	ExternalSecretDecryptPKTypeNone  ExternalSecretDecryptingPKType = "None"
+	ExternalSecretDecryptPKTypePKCS8 ExternalSecretDecryptingPKType = "PKCS8"
+	ExternalSecretDecryptPKTypePKCS1 ExternalSecretDecryptingPKType = "PKCS1"
+)
+
+type ExternalSecretDecryptingStrategy struct {
+	// +optional
+	// Used to define a decrypting Scheme
+	// +kubebuilder:default="None"
+	Scheme ExternalSecretDecryptingScheme `json:"scheme,omitempty"`
+	// +optional
+	// Used to define a decrypting Hash
+	// +kubebuilder:default="SHA1"
+	Hash ExternalSecretDecryptingHash `json:"hash,omitempty"`
+
+	// +optional
+	// Used to define a decrypting Private Key type
+	// +kubebuilder:default="PKCS8"
+	PrivateKeyType ExternalSecretDecryptingPKType `json:"privateKeyType,omitempty"`
+}
 
 type ExternalSecretDataFromRemoteRef struct {
 	// Used to extract multiple key/value pairs from one secret
