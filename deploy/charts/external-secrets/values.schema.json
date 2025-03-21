@@ -273,6 +273,9 @@
                 "createClusterGenerator": {
                     "type": "boolean"
                 },
+                "createClusterPushSecret": {
+                    "type": "boolean"
+                },
                 "createClusterSecretStore": {
                     "type": "boolean"
                 },
@@ -431,6 +434,9 @@
             "properties": {},
             "type": "object"
         },
+        "openshiftFinalizers": {
+            "type": "boolean"
+        },
         "podAnnotations": {
             "properties": {},
             "type": "object"
@@ -466,6 +472,9 @@
             "type": "string"
         },
         "processClusterExternalSecret": {
+            "type": "boolean"
+        },
+        "processClusterPushSecret": {
             "type": "boolean"
         },
         "processClusterStore": {

@@ -22,9 +22,10 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
-	"github.com/aws/smithy-go"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
+	"github.com/aws/smithy-go"
 
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/google/uuid"
@@ -34,13 +35,13 @@ import (
 	utilpointer "k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
-	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 )
 
 // Declares metadata information for pushing secrets to AWS Secret Store.
@@ -55,11 +56,11 @@ var _ esv1beta1.SecretsClient = &SecretsManager{}
 
 // SecretsManager is a provider for AWS SecretsManager.
 type SecretsManager struct {
-    cfg         *aws.Config
-    client      SMInterface        // Keep the interface
-    referentAuth bool
-    cache       map[string]*awssm.GetSecretValueOutput
-    config      *esv1beta1.SecretsManager
+	cfg          *aws.Config
+	client       SMInterface // Keep the interface
+	referentAuth bool
+	cache        map[string]*awssm.GetSecretValueOutput
+	config       *esv1beta1.SecretsManager
 }
 
 // SMInterface is a subset of the smiface api.
@@ -138,7 +139,7 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 			return err
 		}
 		if aerr.ErrorCode() == "ResourceNotFoundException" {
-				return nil
+			return nil
 		}
 		return err
 	}
@@ -631,8 +632,15 @@ func (sm *SecretsManager) constructSecretValue(ctx context.Context, ref esv1beta
 	}
 	secretOut, err := sm.client.GetSecretValue(ctx, getSecretValueInput)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
-	var nf *types.ResourceNotFoundException
+	var (
+		nf *awssm.ResourceNotFoundException
+		ie *awssm.InvalidRequestException
+	)
 	if errors.As(err, &nf) {
+		return nil, esv1beta1.NoSecretErr
+	}
+
+	if errors.As(err, &ie) && strings.Contains(ie.Error(), "was marked for deletion") {
 		return nil, esv1beta1.NoSecretErr
 	}
 

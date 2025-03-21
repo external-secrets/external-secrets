@@ -39,7 +39,16 @@ type ClusterExternalSecretSpec struct {
 	// The labels to select by to find the Namespaces to create the ExternalSecrets in
 	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
 
-	// Choose namespaces by name
+	// A list of labels to select by to find the Namespaces to create the ExternalSecrets in. The selectors are ORed.
+	// +optional
+	NamespaceSelectors []*metav1.LabelSelector `json:"namespaceSelectors,omitempty"`
+
+	// Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
+	// Deprecated: Use NamespaceSelectors instead.
+	// +optional
+	// +kubebuilder:validation:items:MinLength:=1
+	// +kubebuilder:validation:items:MaxLength:=63
+	// +kubebuilder:validation:items:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
 	Namespaces []string `json:"namespaces,omitempty"`
 
 	// The time in which the controller should reconcile its objects and recheck namespaces for labels.
