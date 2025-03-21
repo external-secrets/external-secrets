@@ -193,12 +193,12 @@ func (sm *SecretsManager) handleSecretError(err error) (bool, error) {
 }
 
 func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret, psd esv1beta1.PushSecretData) error {
-	value, err := utils.ExtractSecretData(psd, secret)
-	if err != nil {
-		return fmt.Errorf("failed to extract secret data: %w", err)
+	if psd.GetSecretKey() == "" {
+		return errors.New("pushing the whole secret is not yet implemented")
 	}
 
 	secretName := psd.GetRemoteKey()
+	value := secret.Data[psd.GetSecretKey()]
 	secretValue := awssm.GetSecretValueInput{
 		SecretId: &secretName,
 	}
@@ -632,15 +632,8 @@ func (sm *SecretsManager) constructSecretValue(ctx context.Context, ref esv1beta
 	}
 	secretOut, err := sm.client.GetSecretValue(ctx, getSecretValueInput)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
-	var (
-		nf *awssm.ResourceNotFoundException
-		ie *awssm.InvalidRequestException
-	)
+	var nf *types.ResourceNotFoundException
 	if errors.As(err, &nf) {
-		return nil, esv1beta1.NoSecretErr
-	}
-
-	if errors.As(err, &ie) && strings.Contains(ie.Error(), "was marked for deletion") {
 		return nil, esv1beta1.NoSecretErr
 	}
 
