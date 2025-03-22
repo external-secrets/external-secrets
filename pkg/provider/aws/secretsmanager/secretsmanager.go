@@ -23,11 +23,11 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
+	"github.com/aws/smithy-go"
+
+	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -35,6 +35,7 @@ import (
 	utilpointer "k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/find"
@@ -55,8 +56,8 @@ var _ esv1beta1.SecretsClient = &SecretsManager{}
 
 // SecretsManager is a provider for AWS SecretsManager.
 type SecretsManager struct {
-	sess         *session.Session
-	client       SMInterface
+	cfg          *aws.Config
+	client       SMInterface // Keep the interface
 	referentAuth bool
 	cache        map[string]*awssm.GetSecretValueOutput
 	config       *esv1beta1.SecretsManager
@@ -65,14 +66,13 @@ type SecretsManager struct {
 // SMInterface is a subset of the smiface api.
 // see: https://docs.aws.amazon.com/sdk-for-go/api/service/secretsmanager/secretsmanageriface/
 type SMInterface interface {
-	BatchGetSecretValueWithContext(aws.Context, *awssm.BatchGetSecretValueInput, ...request.Option) (*awssm.BatchGetSecretValueOutput, error)
-	ListSecrets(*awssm.ListSecretsInput) (*awssm.ListSecretsOutput, error)
-	GetSecretValue(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
-	CreateSecretWithContext(aws.Context, *awssm.CreateSecretInput, ...request.Option) (*awssm.CreateSecretOutput, error)
-	GetSecretValueWithContext(aws.Context, *awssm.GetSecretValueInput, ...request.Option) (*awssm.GetSecretValueOutput, error)
-	PutSecretValueWithContext(aws.Context, *awssm.PutSecretValueInput, ...request.Option) (*awssm.PutSecretValueOutput, error)
-	DescribeSecretWithContext(aws.Context, *awssm.DescribeSecretInput, ...request.Option) (*awssm.DescribeSecretOutput, error)
-	DeleteSecretWithContext(ctx aws.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (*awssm.DeleteSecretOutput, error)
+	BatchGetSecretValue(ctx context.Context, params *awssm.BatchGetSecretValueInput, optFuncs ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error)
+	ListSecrets(ctx context.Context, params *awssm.ListSecretsInput, optFuncs ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error)
+	GetSecretValue(ctx context.Context, params *awssm.GetSecretValueInput, optFuncs ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error)
+	CreateSecret(ctx context.Context, params *awssm.CreateSecretInput, optFuncs ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error)
+	PutSecretValue(ctx context.Context, params *awssm.PutSecretValueInput, optFuncs ...func(*awssm.Options)) (*awssm.PutSecretValueOutput, error)
+	DescribeSecret(ctx context.Context, params *awssm.DescribeSecretInput, optFuncs ...func(*awssm.Options)) (*awssm.DescribeSecretOutput, error)
+	DeleteSecret(ctx context.Context, params *awssm.DeleteSecretInput, optFuncs ...func(*awssm.Options)) (*awssm.DeleteSecretOutput, error)
 }
 
 const (
@@ -85,13 +85,13 @@ const (
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager")
 
 // New creates a new SecretsManager client.
-func New(sess *session.Session, cfg *aws.Config, secretsManagerCfg *esv1beta1.SecretsManager, referentAuth bool) (*SecretsManager, error) {
+func New(ctx context.Context, cfg *aws.Config, secretsMasnagerCfg *esv1beta1.SecretsManager, referentAuth bool) (*SecretsManager, error) {
 	return &SecretsManager{
-		sess:         sess,
-		client:       awssm.New(sess, cfg),
+		cfg:          cfg,
+		client:       awssm.NewFromConfig(*cfg),
 		referentAuth: referentAuth,
 		cache:        make(map[string]*awssm.GetSecretValueOutput),
-		config:       secretsManagerCfg,
+		config:       secretsMasnagerCfg,
 	}, nil
 }
 
@@ -131,19 +131,19 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	secretInput := awssm.DescribeSecretInput{
 		SecretId: &secretName,
 	}
-	awsSecret, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
+	awsSecret, err := sm.client.GetSecretValue(ctx, &secretValue)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
-	var aerr awserr.Error
+	var aerr smithy.APIError
 	if err != nil {
 		if ok := errors.As(err, &aerr); !ok {
 			return err
 		}
-		if aerr.Code() == awssm.ErrCodeResourceNotFoundException {
+		if aerr.ErrorCode() == "ResourceNotFoundException" {
 			return nil
 		}
 		return err
 	}
-	data, err := sm.client.DescribeSecretWithContext(ctx, &secretInput)
+	data, err := sm.client.DescribeSecret(ctx, &secretInput)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDescribeSecret, err)
 	if err != nil {
 		return err
@@ -164,7 +164,7 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 	if err != nil {
 		return err
 	}
-	_, err = sm.client.DeleteSecretWithContext(ctx, deleteInput)
+	_, err = sm.client.DeleteSecret(ctx, deleteInput)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDeleteSecret, err)
 	return err
 }
@@ -174,7 +174,7 @@ func (sm *SecretsManager) SecretExists(ctx context.Context, pushSecretRef esv1be
 	secretValue := awssm.GetSecretValueInput{
 		SecretId: &secretName,
 	}
-	_, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
+	_, err := sm.client.GetSecretValue(ctx, &secretValue)
 	if err != nil {
 		return sm.handleSecretError(err)
 	}
@@ -182,23 +182,23 @@ func (sm *SecretsManager) SecretExists(ctx context.Context, pushSecretRef esv1be
 }
 
 func (sm *SecretsManager) handleSecretError(err error) (bool, error) {
-	var aerr awserr.Error
+	var aerr smithy.APIError
 	if ok := errors.As(err, &aerr); !ok {
 		return false, err
 	}
-	if aerr.Code() == awssm.ErrCodeResourceNotFoundException {
+	if aerr.ErrorCode() == "ResourceNotFoundException" {
 		return false, nil
 	}
 	return false, err
 }
 
 func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret, psd esv1beta1.PushSecretData) error {
-	value, err := utils.ExtractSecretData(psd, secret)
-	if err != nil {
-		return fmt.Errorf("failed to extract secret data: %w", err)
+	if psd.GetSecretKey() == "" {
+		return errors.New("pushing the whole secret is not yet implemented")
 	}
 
 	secretName := psd.GetRemoteKey()
+	value := secret.Data[psd.GetSecretKey()]
 	secretValue := awssm.GetSecretValueInput{
 		SecretId: &secretName,
 	}
@@ -207,7 +207,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 		SecretId: &secretName,
 	}
 
-	awsSecret, err := sm.client.GetSecretValueWithContext(ctx, &secretValue)
+	awsSecret, err := sm.client.GetSecretValue(ctx, &secretValue)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
 
 	if psd.GetProperty() != "" {
@@ -218,13 +218,13 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 		value, _ = sjson.SetBytes([]byte(currentSecret), psd.GetProperty(), value)
 	}
 
-	var aerr awserr.Error
+	var aerr smithy.APIError
 	if err != nil {
 		if ok := errors.As(err, &aerr); !ok {
 			return err
 		}
 
-		if aerr.Code() == awssm.ErrCodeResourceNotFoundException {
+		if aerr.ErrorCode() == "ResourceNotFoundException" {
 			return sm.createSecretWithContext(ctx, secretName, psd, value)
 		}
 
@@ -297,12 +297,12 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.External
 		return nil, err
 	}
 
-	filters := make([]*awssm.Filter, 0)
+	filters := make([]types.Filter, 0)
 	if ref.Path != nil {
-		filters = append(filters, &awssm.Filter{
-			Key: utilpointer.To(awssm.FilterNameStringTypeName),
-			Values: []*string{
-				ref.Path,
+		filters = append(filters, types.Filter{
+			Key: types.FilterNameStringTypeName,
+			Values: []string{
+				*ref.Path,
 			},
 		})
 
@@ -315,7 +315,7 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.External
 	for {
 		// I put this into the for loop on purpose.
 		log.V(0).Info("using ListSecret to fetch all secrets; this is a costly operations, please use batching by defining a _path_")
-		it, err := sm.client.ListSecrets(&awssm.ListSecretsInput{
+		it, err := sm.client.ListSecrets(ctx, &awssm.ListSecretsInput{
 			Filters:   filters,
 			NextToken: nextToken,
 		})
@@ -342,26 +342,26 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1beta1.External
 }
 
 func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	filters := make([]*awssm.Filter, 0)
+	filters := make([]types.Filter, 0)
 	for k, v := range ref.Tags {
-		filters = append(filters, &awssm.Filter{
-			Key: utilpointer.To(awssm.FilterNameStringTypeTagKey),
-			Values: []*string{
-				utilpointer.To(k),
+		filters = append(filters, types.Filter{
+			Key: types.FilterNameStringTypeTagKey,
+			Values: []string{
+				k,
 			},
-		}, &awssm.Filter{
-			Key: utilpointer.To(awssm.FilterNameStringTypeTagValue),
-			Values: []*string{
-				utilpointer.To(v),
+		}, types.Filter{
+			Key: types.FilterNameStringTypeTagValue,
+			Values: []string{
+				v,
 			},
 		})
 	}
 
 	if ref.Path != nil {
-		filters = append(filters, &awssm.Filter{
-			Key: utilpointer.To(awssm.FilterNameStringTypeName),
-			Values: []*string{
-				ref.Path,
+		filters = append(filters, types.Filter{
+			Key: types.FilterNameStringTypeTagKey,
+			Values: []string{
+				*ref.Path,
 			},
 		})
 	}
@@ -472,12 +472,11 @@ func (sm *SecretsManager) Close(_ context.Context) error {
 }
 
 func (sm *SecretsManager) Validate() (esv1beta1.ValidationResult, error) {
-	// skip validation stack because it depends on the namespace
-	// of the ExternalSecret
 	if sm.referentAuth {
 		return esv1beta1.ValidationResultUnknown, nil
 	}
-	_, err := sm.sess.Config.Credentials.Get()
+	// Load default config to validate credentials
+	_, err := awsconfig.LoadDefaultConfig(context.Background())
 	if err != nil {
 		return esv1beta1.ValidationResultError, util.SanitizeErr(err)
 	}
@@ -497,7 +496,7 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 	input := &awssm.CreateSecretInput{
 		Name:         &secretName,
 		SecretBinary: value,
-		Tags: []*awssm.Tag{
+		Tags: []types.Tag{
 			{
 				Key:   utilpointer.To(managedBy),
 				Value: utilpointer.To(externalSecrets),
@@ -506,17 +505,18 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 		ClientRequestToken: utilpointer.To(initialVersion),
 	}
 	if secretPushFormat == SecretPushFormatString {
-		input.SetSecretBinary(nil).SetSecretString(string(value))
+		input.SecretBinary = nil
+		input.SecretString = aws.String(string(value))
 	}
 
-	_, err = sm.client.CreateSecretWithContext(ctx, input)
+	_, err = sm.client.CreateSecret(ctx, input)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMCreateSecret, err)
 
 	return err
 }
 
 func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretInput awssm.DescribeSecretInput, awsSecret *awssm.GetSecretValueOutput, psd esv1beta1.PushSecretData, value []byte) error {
-	data, err := sm.client.DescribeSecretWithContext(ctx, &secretInput)
+	data, err := sm.client.DescribeSecret(ctx, &secretInput)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDescribeSecret, err)
 	if err != nil {
 		return err
@@ -542,21 +542,22 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretI
 		return fmt.Errorf("failed to parse metadata: %w", err)
 	}
 	if secretPushFormat == SecretPushFormatString {
-		input.SetSecretBinary(nil).SetSecretString(string(value))
+		input.SecretBinary = nil
+		input.SecretString = aws.String(string(value))
 	}
 
-	_, err = sm.client.PutSecretValueWithContext(ctx, input)
+	_, err = sm.client.PutSecretValue(ctx, input)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutSecretValue, err)
 
 	return err
 }
 
-func (sm *SecretsManager) fetchWithBatch(ctx context.Context, filters []*awssm.Filter, matcher *find.Matcher) (map[string][]byte, error) {
+func (sm *SecretsManager) fetchWithBatch(ctx context.Context, filters []types.Filter, matcher *find.Matcher) (map[string][]byte, error) {
 	data := make(map[string][]byte)
 	var nextToken *string
 
 	for {
-		it, err := sm.client.BatchGetSecretValueWithContext(ctx, &awssm.BatchGetSecretValueInput{
+		it, err := sm.client.BatchGetSecretValue(ctx, &awssm.BatchGetSecretValueInput{
 			Filters:   filters,
 			NextToken: nextToken,
 		})
@@ -571,7 +572,7 @@ func (sm *SecretsManager) fetchWithBatch(ctx context.Context, filters []*awssm.F
 			}
 			log.V(1).Info("aws sm findByName matches", "name", *secret.Name)
 
-			sm.setSecretValues(secret, data)
+			sm.setSecretValues(&secret, data)
 		}
 		nextToken = it.NextToken
 		if nextToken == nil {
@@ -582,7 +583,7 @@ func (sm *SecretsManager) fetchWithBatch(ctx context.Context, filters []*awssm.F
 	return data, nil
 }
 
-func (sm *SecretsManager) setSecretValues(secret *awssm.SecretValueEntry, data map[string][]byte) {
+func (sm *SecretsManager) setSecretValues(secret *types.SecretValueEntry, data map[string][]byte) {
 	if secret.SecretString != nil {
 		data[*secret.Name] = []byte(*secret.SecretString)
 	}
@@ -597,7 +598,7 @@ func (sm *SecretsManager) constructSecretValue(ctx context.Context, ref esv1beta
 			SecretId: &ref.Key,
 		}
 
-		descOutput, err := sm.client.DescribeSecretWithContext(ctx, describeSecretInput)
+		descOutput, err := sm.client.DescribeSecret(ctx, describeSecretInput)
 		if err != nil {
 			return nil, err
 		}
@@ -629,17 +630,10 @@ func (sm *SecretsManager) constructSecretValue(ctx context.Context, ref esv1beta
 			VersionStage: &ver,
 		}
 	}
-	secretOut, err := sm.client.GetSecretValue(getSecretValueInput)
+	secretOut, err := sm.client.GetSecretValue(ctx, getSecretValueInput)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
-	var (
-		nf *awssm.ResourceNotFoundException
-		ie *awssm.InvalidRequestException
-	)
+	var nf *types.ResourceNotFoundException
 	if errors.As(err, &nf) {
-		return nil, esv1beta1.NoSecretErr
-	}
-
-	if errors.As(err, &ie) && strings.Contains(ie.Error(), "was marked for deletion") {
 		return nil, esv1beta1.NoSecretErr
 	}
 
