@@ -83,7 +83,7 @@ require (
 	github.com/cyberark/conjur-api-go v0.12.12
 	github.com/fortanix/sdkms-client-go v0.4.0
 	github.com/go-openapi/strfmt v0.23.0
-	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/google/go-github/v56 v56.0.0
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20250108132429-8d7e1f158f65
 	github.com/hashicorp/golang-lru v1.0.2
