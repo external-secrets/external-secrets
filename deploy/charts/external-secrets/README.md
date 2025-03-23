@@ -179,7 +179,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.certManager.cert.renewBefore | string | `""` | How long before the currently issued certificate’s expiry cert-manager should renew the certificate. See https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec Note that renewBefore should be greater than .webhook.lookaheadInterval since the webhook will check this far in advance that the certificate is valid. |
 | webhook.certManager.cert.revisionHistoryLimit | int | `0` | Set the revisionHistoryLimit on the Certificate. See https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec Defaults to 0 (ignored). |
 | webhook.certManager.enabled | bool | `false` | Enabling cert-manager support will disable the built in secret and switch to using cert-manager (installed separately) to automatically issue and renew the webhook certificate. This chart does not install cert-manager for you, See https://cert-manager.io/docs/ |
-| webhook.create | bool | `true` | Specifies whether a webhook deployment be created. |
+| webhook.create | bool | `true` | Specifies whether a webhook deployment be created. If set to false, crds.conversion.enabled should also be set to false otherwise the kubeapi will be hammered because the conversion is looking for a webhook endpoint. |
 | webhook.deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
 | webhook.extraArgs | object | `{}` |  |
 | webhook.extraEnv | list | `[]` |  |
