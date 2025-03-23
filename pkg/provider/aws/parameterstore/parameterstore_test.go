@@ -20,9 +20,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	ssmtypes "github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -81,7 +81,7 @@ func makeValidAPIInput() *ssm.GetParameterInput {
 
 func makeValidAPIOutput() *ssm.GetParameterOutput {
 	return &ssm.GetParameterOutput{
-		Parameter: &ssm.Parameter{
+		Parameter: &ssmtypes.Parameter{
 			Value: aws.String("RRRRR"),
 		},
 	}
@@ -107,7 +107,7 @@ func TestDeleteSecret(t *testing.T) {
 	parameterName := "parameter"
 	managedBy := "managed-by"
 	manager := "external-secrets"
-	ssmTag := ssm.Tag{
+	ssmTag := ssmtypes.Tag{
 		Key:   &managedBy,
 		Value: &manager,
 	}
@@ -135,12 +135,12 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 				client: fakeClient,
 				getParameterOutput: &ssm.GetParameterOutput{
-					Parameter: &ssm.Parameter{
+					Parameter: &ssmtypes.Parameter{
 						Name: &parameterName,
 					},
 				},
 				listTagsOutput: &ssm.ListTagsForResourceOutput{
-					TagList: []*ssm.Tag{&ssmTag},
+					TagList: []ssmtypes.Tag{ssmTag},
 				},
 				deleteParameterOutput: nil,
 				getParameterError:     nil,
@@ -158,9 +158,11 @@ func TestDeleteSecret(t *testing.T) {
 				getParameterOutput:    nil,
 				listTagsOutput:        nil,
 				deleteParameterOutput: nil,
-				getParameterError:     awserr.New(ssm.ErrCodeParameterNotFound, "not here, sorry dude", nil),
-				listTagsError:         nil,
-				deleteParameterError:  nil,
+				getParameterError: &ssmtypes.ParameterNotFound{
+					Message: aws.String("not here, sorry dude"),
+				},
+				listTagsError:        nil,
+				deleteParameterError: nil,
 			},
 			want: want{
 				err: nil,
@@ -186,7 +188,7 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 				client: fakeClient,
 				getParameterOutput: &ssm.GetParameterOutput{
-					Parameter: &ssm.Parameter{
+					Parameter: &ssmtypes.Parameter{
 						Name: &parameterName,
 					},
 				},
@@ -205,12 +207,12 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 				client: fakeClient,
 				getParameterOutput: &ssm.GetParameterOutput{
-					Parameter: &ssm.Parameter{
+					Parameter: &ssmtypes.Parameter{
 						Name: &parameterName,
 					},
 				},
 				listTagsOutput: &ssm.ListTagsForResourceOutput{
-					TagList: []*ssm.Tag{},
+					TagList: []ssmtypes.Tag{},
 				},
 				deleteParameterOutput: nil,
 				getParameterError:     nil,
@@ -226,12 +228,12 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 				client: fakeClient,
 				getParameterOutput: &ssm.GetParameterOutput{
-					Parameter: &ssm.Parameter{
+					Parameter: &ssmtypes.Parameter{
 						Name: &parameterName,
 					},
 				},
 				listTagsOutput: &ssm.ListTagsForResourceOutput{
-					TagList: []*ssm.Tag{&ssmTag},
+					TagList: []ssmtypes.Tag{ssmTag},
 				},
 				deleteParameterOutput: nil,
 				getParameterError:     nil,
@@ -251,9 +253,9 @@ func TestDeleteSecret(t *testing.T) {
 			ps := ParameterStore{
 				client: &tc.args.client,
 			}
-			tc.args.client.GetParameterWithContextFn = fakeps.NewGetParameterWithContextFn(tc.args.getParameterOutput, tc.args.getParameterError)
-			tc.args.client.ListTagsForResourceWithContextFn = fakeps.NewListTagsForResourceWithContextFn(tc.args.listTagsOutput, tc.args.listTagsError)
-			tc.args.client.DeleteParameterWithContextFn = fakeps.NewDeleteParameterWithContextFn(tc.args.deleteParameterOutput, tc.args.deleteParameterError)
+			tc.args.client.GetParameterFn = fakeps.NewGetParameterFn(tc.args.getParameterOutput, tc.args.getParameterError)
+			tc.args.client.ListTagsForResourceFn = fakeps.NewListTagsForResourceFn(tc.args.listTagsOutput, tc.args.listTagsError)
+			tc.args.client.DeleteParameterFn = fakeps.NewDeleteParameterFn(tc.args.deleteParameterOutput, tc.args.deleteParameterError)
 			err := ps.DeleteSecret(context.TODO(), ref)
 
 			// Error nil XOR tc.want.err nil
@@ -274,15 +276,15 @@ func TestDeleteSecret(t *testing.T) {
 const remoteKey = "fake-key"
 
 func TestPushSecret(t *testing.T) {
-	invalidParameters := errors.New(ssm.ErrCodeInvalidParameters)
-	alreadyExistsError := errors.New(ssm.ErrCodeAlreadyExistsException)
+	invalidParameters := &ssmtypes.InvalidParameters{}
+	alreadyExistsError := &ssmtypes.AlreadyExistsException{}
 	fakeSecret := &corev1.Secret{
 		Data: map[string][]byte{
 			fakeSecretKey: []byte(fakeValue),
 		},
 	}
 
-	managedByESO := ssm.Tag{
+	managedByESO := ssmtypes.Tag{
 		Key:   &managedBy,
 		Value: &externalSecrets,
 	}
@@ -291,26 +293,16 @@ func TestPushSecret(t *testing.T) {
 	getParameterOutput := &ssm.GetParameterOutput{}
 	describeParameterOutput := &ssm.DescribeParametersOutput{}
 	validListTagsForResourceOutput := &ssm.ListTagsForResourceOutput{
-		TagList: []*ssm.Tag{&managedByESO},
+		TagList: []ssmtypes.Tag{managedByESO},
 	}
 	noTagsResourceOutput := &ssm.ListTagsForResourceOutput{}
 
 	validGetParameterOutput := &ssm.GetParameterOutput{
-		Parameter: &ssm.Parameter{
-			ARN:              nil,
-			DataType:         nil,
-			LastModifiedDate: nil,
-			Name:             nil,
-			Selector:         nil,
-			SourceResult:     nil,
-			Type:             nil,
-			Value:            nil,
-			Version:          nil,
-		},
+		Parameter: &ssmtypes.Parameter{},
 	}
 
 	sameGetParameterOutput := &ssm.GetParameterOutput{
-		Parameter: &ssm.Parameter{
+		Parameter: &ssmtypes.Parameter{
 			Value: &fakeValue,
 		},
 	}
@@ -335,10 +327,10 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
 				client: fakeps.Client{
-					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
-					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(getParameterOutput, nil),
-					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
-					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+					PutParameterFn:        fakeps.NewPutParameterFn(putParameterOutput, nil),
+					GetParameterFn:        fakeps.NewGetParameterFn(getParameterOutput, nil),
+					DescribeParametersFn:  fakeps.NewDescribeParametersFn(describeParameterOutput, nil),
+					ListTagsForResourceFn: fakeps.NewListTagsForResourceFn(validListTagsForResourceOutput, nil),
 				},
 			},
 			want: want{
@@ -350,10 +342,10 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
 				client: fakeps.Client{
-					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
-					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(getParameterOutput, invalidParameters),
-					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
-					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+					PutParameterFn:        fakeps.NewPutParameterFn(putParameterOutput, nil),
+					GetParameterFn:        fakeps.NewGetParameterFn(getParameterOutput, invalidParameters),
+					DescribeParametersFn:  fakeps.NewDescribeParametersFn(describeParameterOutput, nil),
+					ListTagsForResourceFn: fakeps.NewListTagsForResourceFn(validListTagsForResourceOutput, nil),
 				},
 			},
 			want: want{
@@ -365,10 +357,10 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
 				client: fakeps.Client{
-					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, alreadyExistsError),
-					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(getParameterOutput, nil),
-					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
-					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+					PutParameterFn:        fakeps.NewPutParameterFn(putParameterOutput, alreadyExistsError),
+					GetParameterFn:        fakeps.NewGetParameterFn(getParameterOutput, nil),
+					DescribeParametersFn:  fakeps.NewDescribeParametersFn(describeParameterOutput, nil),
+					ListTagsForResourceFn: fakeps.NewListTagsForResourceFn(validListTagsForResourceOutput, nil),
 				},
 			},
 			want: want{
@@ -380,10 +372,10 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
 				client: fakeps.Client{
-					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
-					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(validGetParameterOutput, nil),
-					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
-					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+					PutParameterFn:        fakeps.NewPutParameterFn(putParameterOutput, nil),
+					GetParameterFn:        fakeps.NewGetParameterFn(validGetParameterOutput, nil),
+					DescribeParametersFn:  fakeps.NewDescribeParametersFn(describeParameterOutput, nil),
+					ListTagsForResourceFn: fakeps.NewListTagsForResourceFn(validListTagsForResourceOutput, nil),
 				},
 			},
 			want: want{
@@ -395,10 +387,10 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
 				client: fakeps.Client{
-					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
-					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(validGetParameterOutput, nil),
-					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
-					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(noTagsResourceOutput, nil),
+					PutParameterFn:        fakeps.NewPutParameterFn(putParameterOutput, nil),
+					GetParameterFn:        fakeps.NewGetParameterFn(validGetParameterOutput, nil),
+					DescribeParametersFn:  fakeps.NewDescribeParametersFn(describeParameterOutput, nil),
+					ListTagsForResourceFn: fakeps.NewListTagsForResourceFn(noTagsResourceOutput, nil),
 				},
 			},
 			want: want{
@@ -410,10 +402,10 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
 				client: fakeps.Client{
-					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
-					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(validGetParameterOutput, nil),
-					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
-					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(nil, errors.New("you shall not tag")),
+					PutParameterFn:        fakeps.NewPutParameterFn(putParameterOutput, nil),
+					GetParameterFn:        fakeps.NewGetParameterFn(validGetParameterOutput, nil),
+					DescribeParametersFn:  fakeps.NewDescribeParametersFn(describeParameterOutput, nil),
+					ListTagsForResourceFn: fakeps.NewListTagsForResourceFn(nil, errors.New("you shall not tag")),
 				},
 			},
 			want: want{
@@ -425,10 +417,10 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
 				client: fakeps.Client{
-					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
-					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(sameGetParameterOutput, nil),
-					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
-					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+					PutParameterFn:        fakeps.NewPutParameterFn(putParameterOutput, nil),
+					GetParameterFn:        fakeps.NewGetParameterFn(sameGetParameterOutput, nil),
+					DescribeParametersFn:  fakeps.NewDescribeParametersFn(describeParameterOutput, nil),
+					ListTagsForResourceFn: fakeps.NewListTagsForResourceFn(validListTagsForResourceOutput, nil),
 				},
 			},
 			want: want{
@@ -450,10 +442,10 @@ func TestPushSecret(t *testing.T) {
 					}`),
 				},
 				client: fakeps.Client{
-					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
-					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(sameGetParameterOutput, nil),
-					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
-					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+					PutParameterFn:        fakeps.NewPutParameterFn(putParameterOutput, nil),
+					GetParameterFn:        fakeps.NewGetParameterFn(sameGetParameterOutput, nil),
+					DescribeParametersFn:  fakeps.NewDescribeParametersFn(describeParameterOutput, nil),
+					ListTagsForResourceFn: fakeps.NewListTagsForResourceFn(validListTagsForResourceOutput, nil),
 				},
 			},
 			want: want{
@@ -474,10 +466,10 @@ func TestPushSecret(t *testing.T) {
 					}`),
 				},
 				client: fakeps.Client{
-					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
-					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(sameGetParameterOutput, nil),
-					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
-					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+					PutParameterFn:        fakeps.NewPutParameterFn(putParameterOutput, nil),
+					GetParameterFn:        fakeps.NewGetParameterFn(sameGetParameterOutput, nil),
+					DescribeParametersFn:  fakeps.NewDescribeParametersFn(describeParameterOutput, nil),
+					ListTagsForResourceFn: fakeps.NewListTagsForResourceFn(validListTagsForResourceOutput, nil),
 				},
 			},
 			want: want{
@@ -492,10 +484,10 @@ func TestPushSecret(t *testing.T) {
 					Raw: []byte(`{ fakeMetadataKey: "" }`),
 				},
 				client: fakeps.Client{
-					PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
-					GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(sameGetParameterOutput, nil),
-					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
-					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+					PutParameterFn:        fakeps.NewPutParameterFn(putParameterOutput, nil),
+					GetParameterFn:        fakeps.NewGetParameterFn(sameGetParameterOutput, nil),
+					DescribeParametersFn:  fakeps.NewDescribeParametersFn(describeParameterOutput, nil),
+					ListTagsForResourceFn: fakeps.NewListTagsForResourceFn(validListTagsForResourceOutput, nil),
 				},
 			},
 			want: want{
@@ -517,15 +509,15 @@ func TestPushSecret(t *testing.T) {
 					}`),
 				},
 				client: fakeps.Client{
-					PutParameterWithContextFn: fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
-					GetParameterWithContextFn: fakeps.NewGetParameterWithContextFn(&ssm.GetParameterOutput{
-						Parameter: &ssm.Parameter{
-							Type:  aws.String("SecureString"),
+					PutParameterFn: fakeps.NewPutParameterFn(putParameterOutput, nil),
+					GetParameterFn: fakeps.NewGetParameterFn(&ssm.GetParameterOutput{
+						Parameter: &ssmtypes.Parameter{
+							Type:  ssmtypes.ParameterTypeSecureString,
 							Value: aws.String("sensitive"),
 						},
 					}, nil),
-					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
-					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+					DescribeParametersFn:  fakeps.NewDescribeParametersFn(describeParameterOutput, nil),
+					ListTagsForResourceFn: fakeps.NewListTagsForResourceFn(validListTagsForResourceOutput, nil),
 				},
 			},
 			want: want{
@@ -567,15 +559,15 @@ func TestPushSecret(t *testing.T) {
 					}`),
 				},
 				client: fakeps.Client{
-					PutParameterWithContextFn: fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
-					GetParameterWithContextFn: fakeps.NewGetParameterWithContextFn(&ssm.GetParameterOutput{
-						Parameter: &ssm.Parameter{
-							Type:  aws.String("SecureString"),
+					PutParameterFn: fakeps.NewPutParameterFn(putParameterOutput, nil),
+					GetParameterFn: fakeps.NewGetParameterFn(&ssm.GetParameterOutput{
+						Parameter: &ssmtypes.Parameter{
+							Type:  ssmtypes.ParameterTypeSecureString,
 							Value: aws.String("sensitive"),
 						},
 					}, nil),
-					DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
-					ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+					DescribeParametersFn:  fakeps.NewDescribeParametersFn(describeParameterOutput, nil),
+					ListTagsForResourceFn: fakeps.NewListTagsForResourceFn(validListTagsForResourceOutput, nil),
 				},
 			},
 			want: want{
@@ -616,7 +608,7 @@ func TestPushSecretWithPrefix(t *testing.T) {
 			fakeSecretKey: []byte(fakeValue),
 		},
 	}
-	managedByESO := ssm.Tag{
+	managedByESO := ssmtypes.Tag{
 		Key:   &managedBy,
 		Value: &externalSecrets,
 	}
@@ -624,14 +616,14 @@ func TestPushSecretWithPrefix(t *testing.T) {
 	getParameterOutput := &ssm.GetParameterOutput{}
 	describeParameterOutput := &ssm.DescribeParametersOutput{}
 	validListTagsForResourceOutput := &ssm.ListTagsForResourceOutput{
-		TagList: []*ssm.Tag{&managedByESO},
+		TagList: []ssmtypes.Tag{managedByESO},
 	}
 
 	client := fakeps.Client{
-		PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
-		GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(getParameterOutput, nil),
-		DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
-		ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+		PutParameterFn:        fakeps.NewPutParameterFn(putParameterOutput, nil),
+		GetParameterFn:        fakeps.NewGetParameterFn(getParameterOutput, nil),
+		DescribeParametersFn:  fakeps.NewDescribeParametersFn(describeParameterOutput, nil),
+		ListTagsForResourceFn: fakeps.NewListTagsForResourceFn(validListTagsForResourceOutput, nil),
 	}
 
 	psd := fake.PushSecretData{SecretKey: fakeSecretKey, RemoteKey: remoteKey}
@@ -642,7 +634,7 @@ func TestPushSecretWithPrefix(t *testing.T) {
 	err := ps.PushSecret(context.TODO(), fakeSecret, psd)
 	require.NoError(t, err)
 
-	input := client.PutParameterWithContextFnCalledWith[0][0]
+	input := client.PutParameterFnCalledWith[0][0]
 	assert.Equal(t, "/test/this/thing/fake-key", *input.Name)
 }
 
@@ -652,7 +644,7 @@ func TestPushSecretWithoutKeyAndEncodedAsDecodedTrue(t *testing.T) {
 			fakeSecretKey: []byte(fakeValue),
 		},
 	}
-	managedByESO := ssm.Tag{
+	managedByESO := ssmtypes.Tag{
 		Key:   &managedBy,
 		Value: &externalSecrets,
 	}
@@ -660,14 +652,14 @@ func TestPushSecretWithoutKeyAndEncodedAsDecodedTrue(t *testing.T) {
 	getParameterOutput := &ssm.GetParameterOutput{}
 	describeParameterOutput := &ssm.DescribeParametersOutput{}
 	validListTagsForResourceOutput := &ssm.ListTagsForResourceOutput{
-		TagList: []*ssm.Tag{&managedByESO},
+		TagList: []ssmtypes.Tag{managedByESO},
 	}
 
 	client := fakeps.Client{
-		PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
-		GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(getParameterOutput, nil),
-		DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
-		ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+		PutParameterFn:        fakeps.NewPutParameterFn(putParameterOutput, nil),
+		GetParameterFn:        fakeps.NewGetParameterFn(getParameterOutput, nil),
+		DescribeParametersFn:  fakeps.NewDescribeParametersFn(describeParameterOutput, nil),
+		ListTagsForResourceFn: fakeps.NewListTagsForResourceFn(validListTagsForResourceOutput, nil),
 	}
 
 	psd := fake.PushSecretData{RemoteKey: remoteKey, Metadata: &apiextensionsv1.JSON{Raw: []byte(`
@@ -683,7 +675,7 @@ spec:
 	err := ps.PushSecret(context.TODO(), fakeSecret, psd)
 	require.NoError(t, err)
 
-	input := client.PutParameterWithContextFnCalledWith[0][0]
+	input := client.PutParameterFnCalledWith[0][0]
 	assert.Equal(t, "{\"fakeSecretKey\":\"fakeValue\"}", *input.Value)
 }
 
@@ -694,27 +686,27 @@ func TestPushSecretCalledOnlyOnce(t *testing.T) {
 		},
 	}
 
-	managedByESO := ssm.Tag{
+	managedByESO := ssmtypes.Tag{
 		Key:   &managedBy,
 		Value: &externalSecrets,
 	}
 
 	putParameterOutput := &ssm.PutParameterOutput{}
 	validGetParameterOutput := &ssm.GetParameterOutput{
-		Parameter: &ssm.Parameter{
+		Parameter: &ssmtypes.Parameter{
 			Value: &fakeValue,
 		},
 	}
 	describeParameterOutput := &ssm.DescribeParametersOutput{}
 	validListTagsForResourceOutput := &ssm.ListTagsForResourceOutput{
-		TagList: []*ssm.Tag{&managedByESO},
+		TagList: []ssmtypes.Tag{managedByESO},
 	}
 
 	client := fakeps.Client{
-		PutParameterWithContextFn:        fakeps.NewPutParameterWithContextFn(putParameterOutput, nil),
-		GetParameterWithContextFn:        fakeps.NewGetParameterWithContextFn(validGetParameterOutput, nil),
-		DescribeParametersWithContextFn:  fakeps.NewDescribeParametersWithContextFn(describeParameterOutput, nil),
-		ListTagsForResourceWithContextFn: fakeps.NewListTagsForResourceWithContextFn(validListTagsForResourceOutput, nil),
+		PutParameterFn:        fakeps.NewPutParameterFn(putParameterOutput, nil),
+		GetParameterFn:        fakeps.NewGetParameterFn(validGetParameterOutput, nil),
+		DescribeParametersFn:  fakeps.NewDescribeParametersFn(describeParameterOutput, nil),
+		ListTagsForResourceFn: fakeps.NewListTagsForResourceFn(validListTagsForResourceOutput, nil),
 	}
 
 	psd := fake.PushSecretData{SecretKey: fakeSecretKey, RemoteKey: remoteKey}
@@ -724,7 +716,7 @@ func TestPushSecretCalledOnlyOnce(t *testing.T) {
 
 	require.NoError(t, ps.PushSecret(context.TODO(), fakeSecret, psd))
 
-	assert.Equal(t, 0, client.PutParameterWithContextCalledN)
+	assert.Equal(t, 0, client.PutParameterCalledN)
 }
 
 // test the ssm<->aws interface
@@ -801,7 +793,7 @@ func TestGetSecret(t *testing.T) {
 		output := ssm.ListTagsForResourceOutput{
 			TagList: getTagSlice(),
 		}
-		pstc.fakeClient.ListTagsForResourceWithContextFn = fakeps.NewListTagsForResourceWithContextFn(&output, nil)
+		pstc.fakeClient.ListTagsForResourceFn = fakeps.NewListTagsForResourceFn(&output, nil)
 		pstc.expectedSecret, _ = util.ParameterTagsToJSONString(getTagSlice())
 	}
 
@@ -811,7 +803,7 @@ func TestGetSecret(t *testing.T) {
 		output := ssm.ListTagsForResourceOutput{
 			TagList: getTagSlice(),
 		}
-		pstc.fakeClient.ListTagsForResourceWithContextFn = fakeps.NewListTagsForResourceWithContextFn(&output, nil)
+		pstc.fakeClient.ListTagsForResourceFn = fakeps.NewListTagsForResourceFn(&output, nil)
 		pstc.remoteRef.Property = "tagname2"
 		pstc.expectedSecret = "tagvalue2"
 	}
@@ -822,7 +814,7 @@ func TestGetSecret(t *testing.T) {
 		output := ssm.ListTagsForResourceOutput{
 			TagList: getTagSlice(),
 		}
-		pstc.fakeClient.ListTagsForResourceWithContextFn = fakeps.NewListTagsForResourceWithContextFn(&output, nil)
+		pstc.fakeClient.ListTagsForResourceFn = fakeps.NewListTagsForResourceFn(&output, nil)
 		pstc.remoteRef.Property = invalidProp
 		pstc.expectError = errInvalidProperty
 	}
@@ -873,7 +865,7 @@ func TestGetSecretMap(t *testing.T) {
 
 	// bad case: api error returned
 	setAPIError := func(pstc *parameterstoreTestCase) {
-		pstc.apiOutput.Parameter = &ssm.Parameter{}
+		pstc.apiOutput.Parameter = &ssmtypes.Parameter{}
 		pstc.expectError = "some api err"
 		pstc.apiErr = errors.New("some api err")
 	}
@@ -930,13 +922,13 @@ func ErrorContains(out error, want string) bool {
 	return strings.Contains(out.Error(), want)
 }
 
-func getTagSlice() []*ssm.Tag {
+func getTagSlice() []ssmtypes.Tag {
 	tagKey1 := "tagname1"
 	tagValue1 := "tagvalue1"
 	tagKey2 := "tagname2"
 	tagValue2 := "tagvalue2"
 
-	return []*ssm.Tag{
+	return []ssmtypes.Tag{
 		{
 			Key:   &tagKey1,
 			Value: &tagValue1,
@@ -950,14 +942,14 @@ func getTagSlice() []*ssm.Tag {
 
 func TestSecretExists(t *testing.T) {
 	parameterOutput := &ssm.GetParameterOutput{
-		Parameter: &ssm.Parameter{
+		Parameter: &ssmtypes.Parameter{
 			Value: aws.String("sensitive"),
 		},
 	}
 
 	blankParameterOutput := &ssm.GetParameterOutput{}
-	getParameterCorrectErr := ssm.ResourceNotFoundException{}
-	getParameterWrongErr := ssm.InvalidParameters{}
+	getParameterCorrectErr := ssmtypes.ResourceNotFoundException{}
+	getParameterWrongErr := ssmtypes.InvalidParameters{}
 
 	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: "fake-secret-key", RemoteKey: fakeSecretKey, Property: ""}
 
@@ -980,7 +972,7 @@ func TestSecretExists(t *testing.T) {
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
 				client: fakeps.Client{
-					GetParameterWithContextFn: fakeps.NewGetParameterWithContextFn(parameterOutput, nil),
+					GetParameterFn: fakeps.NewGetParameterFn(parameterOutput, nil),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -993,7 +985,7 @@ func TestSecretExists(t *testing.T) {
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
 				client: fakeps.Client{
-					GetParameterWithContextFn: fakeps.NewGetParameterWithContextFn(blankParameterOutput, &getParameterCorrectErr),
+					GetParameterFn: fakeps.NewGetParameterFn(blankParameterOutput, &getParameterCorrectErr),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -1006,7 +998,7 @@ func TestSecretExists(t *testing.T) {
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
 				client: fakeps.Client{
-					GetParameterWithContextFn: fakeps.NewGetParameterWithContextFn(blankParameterOutput, &getParameterWrongErr),
+					GetParameterFn: fakeps.NewGetParameterFn(blankParameterOutput, &getParameterWrongErr),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
