@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/aws/endpoints"
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
@@ -99,17 +98,10 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 }
 
 func validateRegion(prov *esv1beta1.AWSProvider) error {
-	resolver := endpoints.NewResolver()
-	opts := endpoints.ResolveOptions{
-		StrictMatching: true, // Ensure exact service/region match
-	}
-
-	// Try to resolve endpoint for service and region
-	_, err := resolver.ResolveEndpoint(
-		string(prov.Service), // Service name
-		prov.Region,          // Region
-		opts,
-	)
+	resolver := awssm.NewDefaultEndpointResolverV2()
+	_, err := resolver.ResolveEndpoint(context.TODO(), awssm.EndpointParameters{
+		Region: &prov.Region,
+	})
 
 	if err != nil {
 		return fmt.Errorf(errRegionNotFound, prov.Region)
