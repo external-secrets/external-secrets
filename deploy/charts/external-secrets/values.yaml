@@ -78,6 +78,9 @@ scopedNamespace: ""
 # and implicitly disable cluster stores and cluster external secrets
 scopedRBAC: false
 
+# -- If true the OpenShift finalizer permissions will be added to RBAC
+openshiftFinalizers: true
+
 # -- if true, the operator will process cluster external secret. Else, it will ignore them.
 processClusterExternalSecret: true
 
@@ -247,7 +250,7 @@ podDisruptionBudget:
 hostNetwork: false
 
 webhook:
-  # -- Specifies whether a webhook deployment be created.
+  # -- Specifies whether a webhook deployment be created. If set to false, crds.conversion.enabled should also be set to false otherwise the kubeapi will be hammered because the conversion is looking for a webhook endpoint.
   create: true
   # -- Specifices the time to check if the cert is valid
   certCheckInterval: "5m"
