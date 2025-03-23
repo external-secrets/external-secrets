@@ -462,8 +462,8 @@ func (c *Client) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFin
 
 func (c *Client) trimName(name string) string {
 	projectIDNumuber := c.extractProjectIDNumber(name)
-	prefix := getName(projectIDNumuber, c.store.Location, name)
-	key := strings.TrimPrefix(name, prefix)
+	prefix := getParentName(projectIDNumuber, c.store.Location)
+	key := strings.TrimPrefix(name, fmt.Sprintf("%s/secrets/", prefix))
 	return key
 }
 
