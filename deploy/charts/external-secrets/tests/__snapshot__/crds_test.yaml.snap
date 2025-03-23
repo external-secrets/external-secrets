@@ -3080,15 +3080,18 @@ should match snapshot of default values:
                           description: Conjur configures this store to sync secrets using conjur provider
                           properties:
                             auth:
+                              description: Defines authentication settings for connecting to Conjur.
                               properties:
                                 apikey:
+                                  description: Authenticates with Conjur using an API key.
                                   properties:
                                     account:
+                                      description: Account is the Conjur organization account name.
                                       type: string
                                     apiKeyRef:
                                       description: |-
-                                        A reference to a specific 'key' within a Secret resource.
-                                        In some instances, `key` is a required field.
+                                        A reference to a specific 'key' containing the Conjur API key
+                                        within a Secret resource. In some instances, `key` is a required field.
                                       properties:
                                         key:
                                           description: |-
@@ -3115,8 +3118,8 @@ should match snapshot of default values:
                                       type: object
                                     userRef:
                                       description: |-
-                                        A reference to a specific 'key' within a Secret resource.
-                                        In some instances, `key` is a required field.
+                                        A reference to a specific 'key' containing the Conjur username
+                                        within a Secret resource. In some instances, `key` is a required field.
                                       properties:
                                         key:
                                           description: |-
@@ -3147,8 +3150,10 @@ should match snapshot of default values:
                                     - userRef
                                   type: object
                                 jwt:
+                                  description: Jwt enables JWT authentication using Kubernetes service account tokens.
                                   properties:
                                     account:
+                                      description: Account is the Conjur organization account name.
                                       type: string
                                     hostId:
                                       description: |-
@@ -3222,6 +3227,7 @@ should match snapshot of default values:
                                   type: object
                               type: object
                             caBundle:
+                              description: CABundle is a PEM encoded CA bundle that will be used to validate the Conjur server certificate.
                               type: string
                             caProvider:
                               description: |-
@@ -3260,6 +3266,7 @@ should match snapshot of default values:
                                 - type
                               type: object
                             url:
+                              description: URL is the endpoint of the Conjur instance.
                               type: string
                           required:
                             - auth

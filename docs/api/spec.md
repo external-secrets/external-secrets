@@ -2468,6 +2468,7 @@ string
 </em>
 </td>
 <td>
+<p>Account is the Conjur organization account name.</p>
 </td>
 </tr>
 <tr>
@@ -2480,6 +2481,8 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+<p>A reference to a specific &lsquo;key&rsquo; containing the Conjur username
+within a Secret resource. In some instances, <code>key</code> is a required field.</p>
 </td>
 </tr>
 <tr>
@@ -2492,6 +2495,8 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+<p>A reference to a specific &lsquo;key&rsquo; containing the Conjur API key
+within a Secret resource. In some instances, <code>key</code> is a required field.</p>
 </td>
 </tr>
 </tbody>
@@ -2523,6 +2528,7 @@ ConjurAPIKey
 </td>
 <td>
 <em>(Optional)</em>
+<p>Authenticates with Conjur using an API key.</p>
 </td>
 </tr>
 <tr>
@@ -2536,6 +2542,7 @@ ConjurJWT
 </td>
 <td>
 <em>(Optional)</em>
+<p>Jwt enables JWT authentication using Kubernetes service account tokens.</p>
 </td>
 </tr>
 </tbody>
@@ -2564,6 +2571,7 @@ string
 </em>
 </td>
 <td>
+<p>Account is the Conjur organization account name.</p>
 </td>
 </tr>
 <tr>
@@ -2646,6 +2654,7 @@ string
 </em>
 </td>
 <td>
+<p>URL is the endpoint of the Conjur instance.</p>
 </td>
 </tr>
 <tr>
@@ -2657,6 +2666,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
+<p>CABundle is a PEM encoded CA bundle that will be used to validate the Conjur server certificate.</p>
 </td>
 </tr>
 <tr>
@@ -2670,6 +2680,9 @@ CAProvider
 </td>
 <td>
 <em>(Optional)</em>
+<p>Used to provide custom certificate authority (CA) certificates
+for a secret store. The CAProvider points to a Secret or ConfigMap resource
+that contains a PEM-encoded certificate.</p>
 </td>
 </tr>
 <tr>
@@ -2682,6 +2695,7 @@ ConjurAuth
 </em>
 </td>
 <td>
+<p>Defines authentication settings for connecting to Conjur.</p>
 </td>
 </tr>
 </tbody>
