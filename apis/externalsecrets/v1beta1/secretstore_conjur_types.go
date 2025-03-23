@@ -17,28 +17,48 @@ package v1beta1
 import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 
 type ConjurProvider struct {
+	// URL is the endpoint of the Conjur instance.
 	URL string `json:"url"`
+
+	// CABundle is a PEM encoded CA bundle that will be used to validate the Conjur server certificate.
 	// +optional
 	CABundle string `json:"caBundle,omitempty"`
+
+	// Used to provide custom certificate authority (CA) certificates
+	// for a secret store. The CAProvider points to a Secret or ConfigMap resource
+	// that contains a PEM-encoded certificate.
 	// +optional
 	CAProvider *CAProvider `json:"caProvider,omitempty"`
-	Auth       ConjurAuth  `json:"auth"`
+
+	// Defines authentication settings for connecting to Conjur.
+	Auth ConjurAuth `json:"auth"`
 }
 
 type ConjurAuth struct {
+	// Authenticates with Conjur using an API key.
 	// +optional
 	APIKey *ConjurAPIKey `json:"apikey,omitempty"`
+
+	// Jwt enables JWT authentication using Kubernetes service account tokens.
 	// +optional
 	Jwt *ConjurJWT `json:"jwt,omitempty"`
 }
 
 type ConjurAPIKey struct {
-	Account   string                    `json:"account"`
-	UserRef   *esmeta.SecretKeySelector `json:"userRef"`
+	// Account is the Conjur organization account name.
+	Account string `json:"account"`
+
+	// A reference to a specific 'key' containing the Conjur username
+	// within a Secret resource. In some instances, `key` is a required field.
+	UserRef *esmeta.SecretKeySelector `json:"userRef"`
+
+	// A reference to a specific 'key' containing the Conjur API key
+	// within a Secret resource. In some instances, `key` is a required field.
 	APIKeyRef *esmeta.SecretKeySelector `json:"apiKeyRef"`
 }
 
 type ConjurJWT struct {
+	// Account is the Conjur organization account name.
 	Account string `json:"account"`
 
 	// The conjur authn jwt webservice id
