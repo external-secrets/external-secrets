@@ -37,7 +37,10 @@ import (
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
@@ -606,6 +609,63 @@ func FetchCACertFromSource(ctx context.Context, opts CreateCertOpts) ([]byte, er
 	}
 
 	return nil, fmt.Errorf("unsupported CA provider type: %s", opts.CAProvider.Type)
+}
+
+// GetTargetNamespaces extracts namespaces based on selectors.
+func GetTargetNamespaces(ctx context.Context, cl client.Client, namespaceList []string, lbs []*metav1.LabelSelector) ([]corev1.Namespace, error) {
+	// make sure we don't alter the passed in slice.
+	selectors := make([]*metav1.LabelSelector, 0, len(namespaceList)+len(lbs))
+	for _, ns := range namespaceList {
+		selectors = append(selectors, &metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"kubernetes.io/metadata.name": ns,
+			},
+		})
+	}
+	selectors = append(selectors, lbs...)
+
+	var namespaces []corev1.Namespace
+	namespaceSet := make(map[string]struct{})
+	for _, selector := range selectors {
+		labelSelector, err := metav1.LabelSelectorAsSelector(selector)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert label selector %s: %w", selector, err)
+		}
+
+		var nl corev1.NamespaceList
+		err = cl.List(ctx, &nl, &client.ListOptions{LabelSelector: labelSelector})
+		if err != nil {
+			return nil, fmt.Errorf("failed to list namespaces by label selector %s: %w", selector, err)
+		}
+
+		for _, n := range nl.Items {
+			if _, exist := namespaceSet[n.Name]; exist {
+				continue
+			}
+			namespaceSet[n.Name] = struct{}{}
+			namespaces = append(namespaces, n)
+		}
+	}
+
+	return namespaces, nil
+}
+
+// NamespacePredicate can be used to watch for new or updated or deleted namespaces.
+func NamespacePredicate() predicate.Predicate {
+	return predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			return true
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			if e.ObjectOld == nil || e.ObjectNew == nil {
+				return false
+			}
+			return !reflect.DeepEqual(e.ObjectOld.GetLabels(), e.ObjectNew.GetLabels())
+		},
+		DeleteFunc: func(deleteEvent event.DeleteEvent) bool {
+			return true
+		},
+	}
 }
 
 func base64decode(cert []byte) ([]byte, error) {

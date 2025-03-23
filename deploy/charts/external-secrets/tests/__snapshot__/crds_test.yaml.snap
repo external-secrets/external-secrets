@@ -3004,19 +3004,94 @@ should match snapshot of default values:
                             - serverUrl
                             - username
                           type: object
+                        cloudrusm:
+                          description: CloudruSM configures this store to sync secrets using the Cloud.ru Secret Manager provider
+                          properties:
+                            auth:
+                              description: CSMAuth contains a secretRef for credentials.
+                              properties:
+                                secretRef:
+                                  description: CSMAuthSecretRef holds secret references for Cloud.ru credentials.
+                                  properties:
+                                    accessKeyIDSecretRef:
+                                      description: The AccessKeyID is used for authentication
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                    accessKeySecretSecretRef:
+                                      description: The AccessKeySecret is used for authentication
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                  required:
+                                    - accessKeyIDSecretRef
+                                    - accessKeySecretSecretRef
+                                  type: object
+                              type: object
+                            projectID:
+                              description: ProjectID is the project, which the secrets are stored in.
+                              type: string
+                          required:
+                            - auth
+                          type: object
                         conjur:
                           description: Conjur configures this store to sync secrets using conjur provider
                           properties:
                             auth:
+                              description: Defines authentication settings for connecting to Conjur.
                               properties:
                                 apikey:
+                                  description: Authenticates with Conjur using an API key.
                                   properties:
                                     account:
+                                      description: Account is the Conjur organization account name.
                                       type: string
                                     apiKeyRef:
                                       description: |-
-                                        A reference to a specific 'key' within a Secret resource.
-                                        In some instances, `key` is a required field.
+                                        A reference to a specific 'key' containing the Conjur API key
+                                        within a Secret resource. In some instances, `key` is a required field.
                                       properties:
                                         key:
                                           description: |-
@@ -3043,8 +3118,8 @@ should match snapshot of default values:
                                       type: object
                                     userRef:
                                       description: |-
-                                        A reference to a specific 'key' within a Secret resource.
-                                        In some instances, `key` is a required field.
+                                        A reference to a specific 'key' containing the Conjur username
+                                        within a Secret resource. In some instances, `key` is a required field.
                                       properties:
                                         key:
                                           description: |-
@@ -3075,8 +3150,10 @@ should match snapshot of default values:
                                     - userRef
                                   type: object
                                 jwt:
+                                  description: Jwt enables JWT authentication using Kubernetes service account tokens.
                                   properties:
                                     account:
+                                      description: Account is the Conjur organization account name.
                                       type: string
                                     hostId:
                                       description: |-
@@ -3150,6 +3227,7 @@ should match snapshot of default values:
                                   type: object
                               type: object
                             caBundle:
+                              description: CABundle is a PEM encoded CA bundle that will be used to validate the Conjur server certificate.
                               type: string
                             caProvider:
                               description: |-
@@ -3188,6 +3266,7 @@ should match snapshot of default values:
                                 - type
                               type: object
                             url:
+                              description: URL is the endpoint of the Conjur instance.
                               type: string
                           required:
                             - auth

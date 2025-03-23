@@ -200,6 +200,10 @@ type SecretStoreProvider struct {
 	// Beyondtrust configures this store to sync secrets using Password Safe provider.
 	// +optional
 	Beyondtrust *BeyondtrustProvider `json:"beyondtrust,omitempty"`
+
+	// CloudruSM configures this store to sync secrets using the Cloud.ru Secret Manager provider
+	// +optional
+	CloudruSM *CloudruSMProvider `json:"cloudrusm,omitempty"`
 }
 
 type CAProviderType string

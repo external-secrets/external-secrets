@@ -1536,6 +1536,83 @@ Can only be defined when used in a ClusterSecretStore.</p>
 <td></td>
 </tr></tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.CSMAuth">CSMAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.CloudruSMProvider">CloudruSMProvider</a>)
+</p>
+<p>
+<p>CSMAuth contains a secretRef for credentials.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.CSMAuthSecretRef">
+CSMAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.CSMAuthSecretRef">CSMAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.CSMAuth">CSMAuth</a>)
+</p>
+<p>
+<p>CSMAuthSecretRef holds secret references for Cloud.ru credentials.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessKeyIDSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>The AccessKeyID is used for authentication</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>accessKeySecretSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>The AccessKeySecret is used for authentication</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.CertAuth">CertAuth
 </h3>
 <p>
@@ -1695,6 +1772,48 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.CloudruSMProvider">CloudruSMProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>CloudruSMProvider configures a store to sync secrets using the Cloud.ru Secret Manager provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.CSMAuth">
+CSMAuth
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>projectID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ProjectID is the project, which the secrets are stored in.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.ClusterExternalSecret">ClusterExternalSecret
 </h3>
 <p>
@@ -1813,7 +1932,8 @@ Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.</p>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
+Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -2002,7 +2122,8 @@ Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.</p>
+<p>Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
+Deprecated: Use NamespaceSelectors instead.</p>
 </td>
 </tr>
 <tr>
@@ -2347,6 +2468,7 @@ string
 </em>
 </td>
 <td>
+<p>Account is the Conjur organization account name.</p>
 </td>
 </tr>
 <tr>
@@ -2359,6 +2481,8 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+<p>A reference to a specific &lsquo;key&rsquo; containing the Conjur username
+within a Secret resource. In some instances, <code>key</code> is a required field.</p>
 </td>
 </tr>
 <tr>
@@ -2371,6 +2495,8 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+<p>A reference to a specific &lsquo;key&rsquo; containing the Conjur API key
+within a Secret resource. In some instances, <code>key</code> is a required field.</p>
 </td>
 </tr>
 </tbody>
@@ -2402,6 +2528,7 @@ ConjurAPIKey
 </td>
 <td>
 <em>(Optional)</em>
+<p>Authenticates with Conjur using an API key.</p>
 </td>
 </tr>
 <tr>
@@ -2415,6 +2542,7 @@ ConjurJWT
 </td>
 <td>
 <em>(Optional)</em>
+<p>Jwt enables JWT authentication using Kubernetes service account tokens.</p>
 </td>
 </tr>
 </tbody>
@@ -2443,6 +2571,7 @@ string
 </em>
 </td>
 <td>
+<p>Account is the Conjur organization account name.</p>
 </td>
 </tr>
 <tr>
@@ -2525,6 +2654,7 @@ string
 </em>
 </td>
 <td>
+<p>URL is the endpoint of the Conjur instance.</p>
 </td>
 </tr>
 <tr>
@@ -2536,6 +2666,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
+<p>CABundle is a PEM encoded CA bundle that will be used to validate the Conjur server certificate.</p>
 </td>
 </tr>
 <tr>
@@ -2549,6 +2680,9 @@ CAProvider
 </td>
 <td>
 <em>(Optional)</em>
+<p>Used to provide custom certificate authority (CA) certificates
+for a secret store. The CAProvider points to a Secret or ConfigMap resource
+that contains a PEM-encoded certificate.</p>
 </td>
 </tr>
 <tr>
@@ -2561,6 +2695,7 @@ ConjurAuth
 </em>
 </td>
 <td>
+<p>Defines authentication settings for connecting to Conjur.</p>
 </td>
 </tr>
 </tbody>
@@ -7262,6 +7397,20 @@ BeyondtrustProvider
 <td>
 <em>(Optional)</em>
 <p>Beyondtrust configures this store to sync secrets using Password Safe provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>cloudrusm</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.CloudruSMProvider">
+CloudruSMProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CloudruSM configures this store to sync secrets using the Cloud.ru Secret Manager provider</p>
 </td>
 </tr>
 </tbody>
