@@ -17,6 +17,8 @@ package secretmanager
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -45,6 +47,7 @@ type workloadIdentityTest struct {
 	genAccessToken func(context.Context, *credentialspb.GenerateAccessTokenRequest, ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error)
 	genIDBindToken func(ctx context.Context, client *http.Client, k8sToken, idPool, idProvider string) (*oauth2.Token, error)
 	genSAToken     func(c context.Context, s1 []string, s2, s3 string) (*authv1.TokenRequest, error)
+	instMetadata   map[string]string
 	store          esv1beta1.GenericStore
 	kubeObjects    []client.Object
 }
@@ -134,15 +137,30 @@ func TestWorkloadIdentity(t *testing.T) {
 				},
 			}),
 		),
+		composeTestcase(
+			defaultTestCase("lookup cluster id from instance metadata"),
+			expTokenSource(),
+			expectToken(defaultGenAccessToken),
+			withStore(
+				composeStore(defaultStore(), withClusterID("", "", "")),
+			),
+			withInstMetadata(map[string]string{
+				"project-id":       "1234",
+				"cluster-location": "example",
+				"cluster-name":     "foobar",
+			}),
+		),
 	}
 
 	for _, row := range tbl {
 		t.Run(row.name, func(t *testing.T) {
 			fakeIam := &fakeIAMClient{generateAccessTokenFunc: row.genAccessToken}
+			fakeMeta := &fakeMetadataClient{metadata: row.instMetadata}
 			fakeIDBGen := &fakeIDBindTokenGen{generateFunc: row.genIDBindToken}
 			fakeSATG := &fakeSATokenGen{GenerateFunc: row.genSAToken}
 			w := &workloadIdentity{
 				iamClient:            fakeIam,
+				metadataClient:       fakeMeta,
 				idBindTokenGenerator: fakeIDBGen,
 				saTokenGenerator:     fakeSATG,
 			}
@@ -258,6 +276,12 @@ func withK8sResources(objs []client.Object) testCaseMutator {
 	}
 }
 
+func withInstMetadata(metadata map[string]string) testCaseMutator {
+	return func(tc *workloadIdentityTest) {
+		tc.instMetadata = metadata
+	}
+}
+
 var (
 	defaultGenAccessToken = "default-gen-access-token"
 	defaultIDBindToken    = "default-id-bind-token"
@@ -283,6 +307,9 @@ func defaultTestCase(name string) *workloadIdentityTest {
 					Token: defaultSAToken,
 				},
 			}, nil
+		},
+		instMetadata: map[string]string{
+			"project-id": "1234",
 		},
 		kubeObjects: []client.Object{
 			&v1.ServiceAccount{
@@ -378,6 +405,15 @@ func composeStore(store esv1beta1.GenericStore, mutators ...storeMutator) esv1be
 	return store
 }
 
+func withClusterID(project, location, name string) storeMutator {
+	return func(store esv1beta1.GenericStore) {
+		spc := store.GetSpec()
+		spc.Provider.GCPSM.Auth.WorkloadIdentity.ClusterProjectID = project
+		spc.Provider.GCPSM.Auth.WorkloadIdentity.ClusterLocation = location
+		spc.Provider.GCPSM.Auth.WorkloadIdentity.ClusterName = name
+	}
+}
+
 func withSANamespace(namespace string) storeMutator {
 	return func(store esv1beta1.GenericStore) {
 		spc := store.GetSpec()
@@ -405,6 +441,25 @@ func (f *fakeIAMClient) GenerateAccessToken(ctx context.Context, req *credential
 
 func (f *fakeIAMClient) Close() error {
 	return nil
+}
+
+// fake Metadata Client.
+type fakeMetadataClient struct {
+	metadata map[string]string
+}
+
+func (f *fakeMetadataClient) InstanceAttributeValueWithContext(ctx context.Context, attr string) (string, error) {
+	if val, ok := f.metadata[attr]; ok {
+		return val, nil
+	}
+	return "", fmt.Errorf("attr %s not found", attr)
+}
+
+func (f *fakeMetadataClient) ProjectIDWithContext(ctx context.Context) (string, error) {
+	if val, ok := f.metadata["project-id"]; ok {
+		return val, nil
+	}
+	return "", errors.New("attr project-id not found")
 }
 
 // fake SA Token Generator.
