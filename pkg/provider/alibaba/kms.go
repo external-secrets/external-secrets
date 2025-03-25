@@ -214,8 +214,8 @@ func newRRSAAuth(store esv1beta1.GenericStore) (credential.Credential, error) {
 		RoleArn:           &alibabaSpec.Auth.RRSAAuth.RoleARN,
 		RoleSessionName:   &alibabaSpec.Auth.RRSAAuth.SessionName,
 		Type:              utils.Ptr("oidc_role_arn"),
-		ConnectTimeout:    utils.Ptr(30),
-		Timeout:           utils.Ptr(60),
+		ConnectTimeout:    utils.Ptr(30 * 1000),
+		Timeout:           utils.Ptr(60 * 1000),
 	}
 
 	return credential.NewCredential(credentialConfig)
