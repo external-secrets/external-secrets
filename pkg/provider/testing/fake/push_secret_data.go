@@ -14,7 +14,10 @@ limitations under the License.
 
 package fake
 
-import apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+import (
+
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+)
 
 type PushSecretData struct {
 	Metadata  *apiextensionsv1.JSON

@@ -47,10 +47,10 @@ import (
 )
 
 type PushSecretMetadataSpec struct {
-	Tags                map[string]string `json:"tags,omitempty"`
-	Description         string            `json:"description,omitempty"`
-	SecretPushFormatKey string            `json:"secretPushFormat,omitempty"`
-	KMSKeyID            string            `json:"kmsKeyId,omitempty"`
+	Tags             map[string]string `json:"tags,omitempty"`
+	Description      string            `json:"description,omitempty"`
+	SecretPushFormat string            `json:"secretPushFormat,omitempty"`
+	KMSKeyID         string            `json:"kmsKeyId,omitempty"`
 }
 
 // Declares metadata information for pushing secrets to AWS Secret Store.
@@ -527,7 +527,7 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 		Description:        utilpointer.To(mdata.Spec.Description),
 		ClientRequestToken: utilpointer.To(initialVersion),
 	}
-	if mdata.Spec.SecretPushFormatKey == SecretPushFormatString {
+	if mdata.Spec.SecretPushFormat == SecretPushFormatString {
 		input.SetSecretBinary(nil).SetSecretString(string(value))
 	}
 
@@ -689,10 +689,10 @@ func (sm *SecretsManager) constructMetadataWithDefaults(data *apiextensionsv1.JS
 		meta = &metadata.PushSecretMetadata[PushSecretMetadataSpec]{}
 	}
 
-	if meta.Spec.SecretPushFormatKey == "" {
-		meta.Spec.SecretPushFormatKey = SecretPushFormatBinary
-	} else if !slices.Contains([]string{SecretPushFormatBinary, SecretPushFormatString}, meta.Spec.SecretPushFormatKey) {
-		return nil, fmt.Errorf("invalid secret push format: %s", meta.Spec.SecretPushFormatKey)
+	if meta.Spec.SecretPushFormat == "" {
+		meta.Spec.SecretPushFormat = SecretPushFormatBinary
+	} else if !slices.Contains([]string{SecretPushFormatBinary, SecretPushFormatString}, meta.Spec.SecretPushFormat) {
+		return nil, fmt.Errorf("invalid secret push format: %s", meta.Spec.SecretPushFormat)
 	}
 
 	if meta.Spec.Description == "" {
