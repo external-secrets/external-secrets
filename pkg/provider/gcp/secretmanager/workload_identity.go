@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"time"
 
+	"cloud.google.com/go/compute/metadata"
 	iam "cloud.google.com/go/iam/credentials/apiv1"
 	"cloud.google.com/go/iam/credentials/apiv1/credentialspb"
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
@@ -52,6 +53,7 @@ const (
 	errFetchPodToken  = "unable to fetch pod token: %w"
 	errFetchIBToken   = "unable to fetch identitybindingtoken: %w"
 	errGenAccessToken = "unable to generate gcp access token: %w"
+	errLookupIdentity = "unable to lookup workload identity: %w"
 	errNoProjectID    = "unable to find ProjectID in storeSpec"
 )
 
@@ -59,6 +61,7 @@ const (
 // to create a gcp oauth token.
 type workloadIdentity struct {
 	iamClient            IamClient
+	metadataClient       MetadataClient
 	idBindTokenGenerator idBindTokenGenerator
 	saTokenGenerator     saTokenGenerator
 	clusterProjectID     string
@@ -68,6 +71,12 @@ type workloadIdentity struct {
 type IamClient interface {
 	GenerateAccessToken(ctx context.Context, req *credentialspb.GenerateAccessTokenRequest, opts ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error)
 	Close() error
+}
+
+// interface to GCP Metadata API.
+type MetadataClient interface {
+	InstanceAttributeValueWithContext(ctx context.Context, attr string) (string, error)
+	ProjectIDWithContext(ctx context.Context) (string, error)
 }
 
 // interface to securetoken/identitybindingtoken API.
@@ -91,10 +100,44 @@ func newWorkloadIdentity(ctx context.Context, projectID string) (*workloadIdenti
 	}
 	return &workloadIdentity{
 		iamClient:            iamc,
+		metadataClient:       newMetadataClient(),
 		idBindTokenGenerator: newIDBindTokenGenerator(),
 		saTokenGenerator:     satg,
 		clusterProjectID:     projectID,
 	}, nil
+}
+
+func (w *workloadIdentity) gcpWorkloadIdentity(ctx context.Context, id *esv1beta1.GCPWorkloadIdentity) (string, string, error) {
+	var err error
+
+	projectID := id.ClusterProjectID
+	if projectID == "" {
+		if projectID, err = w.metadataClient.ProjectIDWithContext(ctx); err != nil {
+			return "", "", fmt.Errorf("unable to get project id: %w", err)
+		}
+	}
+
+	clusterLocation := id.ClusterLocation
+	if clusterLocation == "" {
+		if clusterLocation, err = w.metadataClient.InstanceAttributeValueWithContext(ctx, "cluster-location"); err != nil {
+			return "", "", fmt.Errorf("unable to determine cluster location: %w", err)
+		}
+	}
+
+	clusterName := id.ClusterName
+	if clusterName == "" {
+		if clusterName, err = w.metadataClient.InstanceAttributeValueWithContext(ctx, "cluster-name"); err != nil {
+			return "", "", fmt.Errorf("unable to determine cluster name: %w", err)
+		}
+	}
+
+	idPool := fmt.Sprintf("%s.svc.id.goog", projectID)
+	idProvider := fmt.Sprintf("https://container.googleapis.com/v1/projects/%s/locations/%s/clusters/%s",
+		projectID,
+		clusterLocation,
+		clusterName,
+	)
+	return idPool, idProvider, nil
 }
 
 func (w *workloadIdentity) TokenSource(ctx context.Context, auth esv1beta1.GCPSMAuth, isClusterKind bool, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
@@ -118,11 +161,11 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, auth esv1beta1.GCPSM
 		return nil, err
 	}
 
-	idProvider := fmt.Sprintf("https://container.googleapis.com/v1/projects/%s/locations/%s/clusters/%s",
-		w.clusterProjectID,
-		wi.ClusterLocation,
-		wi.ClusterName)
-	idPool := fmt.Sprintf("%s.svc.id.goog", w.clusterProjectID)
+	idPool, idProvider, err := w.gcpWorkloadIdentity(ctx, wi)
+	if err != nil {
+		return nil, fmt.Errorf(errLookupIdentity, err)
+	}
+
 	audiences := []string{idPool}
 	if len(wi.ServiceAccountRef.Audiences) > 0 {
 		audiences = append(audiences, wi.ServiceAccountRef.Audiences...)
@@ -179,6 +222,12 @@ func newIAMClient(ctx context.Context) (IamClient, error) {
 		option.WithGRPCConnectionPool(5),
 	}
 	return iam.NewIamCredentialsClient(ctx, iamOpts...)
+}
+
+func newMetadataClient() MetadataClient {
+	return metadata.NewClient(&http.Client{
+		Timeout: 5 * time.Second,
+	})
 }
 
 type k8sSATokenGenerator struct {
