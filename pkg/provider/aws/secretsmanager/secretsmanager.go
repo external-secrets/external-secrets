@@ -559,7 +559,6 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretI
 	if err != nil {
 		return err
 	}
-	// awssm.UpdateSecretInput
 	input := &awssm.PutSecretValueInput{
 		SecretId:           awsSecret.ARN,
 		SecretBinary:       value,

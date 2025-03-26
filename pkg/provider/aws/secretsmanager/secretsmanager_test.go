@@ -548,7 +548,7 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, &getSecretCorrectErr),
 					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
 					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil),
 					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
@@ -1327,7 +1327,6 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				cache:  make(map[string]*awssm.GetSecretValueOutput),
 			}
 			data, err := sm.GetAllSecrets(ctx, tc.ref)
-			fmt.Println("DATA:", data)
 			if err != nil && err.Error() != tc.expectedError {
 				t.Errorf("unexpected error: got %v, want %v", err, tc.expectedError)
 			}
