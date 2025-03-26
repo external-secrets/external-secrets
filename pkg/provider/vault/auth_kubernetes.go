@@ -31,11 +31,12 @@ import (
 )
 
 const (
-	serviceAccTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-	errServiceAccount   = "cannot read Kubernetes service account token from file system: %w"
-	errGetKubeSA        = "cannot get Kubernetes service account %q: %w"
-	errGetKubeSASecrets = "cannot find secrets bound to service account: %q"
-	errGetKubeSANoToken = "cannot find token in secrets bound to service account: %q"
+	serviceAccTokenPath       = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	errServiceAccount         = "cannot read Kubernetes service account token from file system: %w"
+	errGetKubeSA              = "cannot get Kubernetes service account %q: %w"
+	errGetKubeSASecrets       = "cannot find secrets bound to service account: %q"
+	errGetKubeSANoToken       = "cannot find token in secrets bound to service account: %q"
+	errServiceAccountNotFound = "serviceaccounts %q not found"
 )
 
 func setKubernetesAuthToken(ctx context.Context, v *client) (bool, error) {
@@ -69,19 +70,10 @@ func (c *client) requestTokenWithKubernetesAuth(ctx context.Context, kubernetesA
 
 func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1beta1.VaultKubernetesAuth) (string, error) {
 	if kubernetesAuth.ServiceAccountRef != nil {
-		// Kubernetes <v1.24 fetch token via ServiceAccount.Secrets[]
-		// this behavior was removed in v1.24 and we must use TokenRequest API (see below)
-		jwt, err := v.secretKeyRefForServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
-		if jwt != "" {
-			return jwt, err
-		}
-		if err != nil {
-			v.log.V(1).Info("unable to fetch jwt from service account secret, trying service account token next")
-		}
 		// Kubernetes >=v1.24: fetch token via TokenRequest API
 		// note: this is a massive change from vault perspective: the `iss` claim will very likely change.
 		// Vault 1.9 deprecated issuer validation by default, and authentication with Vault clusters <1.9 will likely fail.
-		jwt, err = createServiceAccountToken(
+		jwt, err := createServiceAccountToken(
 			ctx,
 			v.corev1,
 			v.storeKind,
@@ -89,8 +81,15 @@ func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1beta1.Vaul
 			*kubernetesAuth.ServiceAccountRef,
 			nil,
 			600)
+		if jwt != "" && err == nil {
+			return jwt, nil
+		}
+		v.log.V(1).Info("unable to create service account token, trying to fetch jwt from service account secret next")
+		// Kubernetes <v1.24 fetch token via ServiceAccount.Secrets[]
+		// this behavior was removed in v1.24 and we must use TokenRequest API (see below)
+		jwt, err = v.secretKeyRefForServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf(errGetKubeSATokenRequest, kubernetesAuth.ServiceAccountRef.Name, err)
 		}
 		return jwt, nil
 	} else if kubernetesAuth.SecretRef != nil {
