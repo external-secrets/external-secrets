@@ -84,7 +84,7 @@ func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1beta1.Vaul
 		if jwt != "" && err == nil {
 			return jwt, nil
 		}
-		v.log.V(1).Info("unable to fetch jwt from service account secret, trying service account token next")
+		v.log.V(1).Info("unable to create service account token, trying to fetch jwt from service account secret next")
 		// Kubernetes <v1.24 fetch token via ServiceAccount.Secrets[]
 		// this behavior was removed in v1.24 and we must use TokenRequest API (see below)
 		jwt, err = v.secretKeyRefForServiceAccount(ctx, kubernetesAuth.ServiceAccountRef)
