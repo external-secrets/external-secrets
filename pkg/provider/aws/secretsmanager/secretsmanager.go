@@ -511,13 +511,11 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 		},
 	}
 
-	if len(mdata.Spec.Tags) > 0 {
-		for k, v := range mdata.Spec.Tags {
-			tags = append(tags, &awssm.Tag{
-				Key:   utilpointer.To(k),
-				Value: utilpointer.To(v),
-			})
-		}
+	for k, v := range mdata.Spec.Tags {
+		tags = append(tags, &awssm.Tag{
+			Key:   utilpointer.To(k),
+			Value: utilpointer.To(v),
+		})
 	}
 
 	input := &awssm.CreateSecretInput{
