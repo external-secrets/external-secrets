@@ -1472,8 +1472,6 @@ func TestSecretExists(t *testing.T) {
 			}
 			got, err := sm.SecretExists(context.Background(), tc.args.pushSecretData)
 
-			fmt.Println("SECRET EXISTS:", got)
-
 			assert.Equal(
 				t,
 				tc.want,
