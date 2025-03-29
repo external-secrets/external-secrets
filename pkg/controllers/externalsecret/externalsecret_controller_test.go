@@ -2472,6 +2472,24 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 			Expect(shouldRefresh(es)).To(BeFalse())
 		})
 
+		It("should refresh when refreshInterval is 0 and update labels or annotations", func() {
+			es := &esv1beta1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 1,
+					Labels: map[string]string{
+						"foo": "bar",
+					},
+				},
+				Spec: esv1beta1.ExternalSecretSpec{
+					RefreshInterval: &metav1.Duration{Duration: 0},
+				},
+				Status: esv1beta1.ExternalSecretStatus{},
+			}
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
+			es.ObjectMeta.Labels["new"] = "w00t"
+			Expect(shouldRefresh(es)).To(BeTrue())
+		})
+
 		It("should refresh when refresh interval has passed", func() {
 			es := &esv1beta1.ExternalSecret{
 				ObjectMeta: metav1.ObjectMeta{
