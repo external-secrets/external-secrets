@@ -17,7 +17,7 @@ package auth
 import (
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws/endpoints"
+	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
 const (
@@ -28,7 +28,7 @@ const (
 
 // ResolveEndpoint returns a ResolverFunc with
 // customizable endpoints.
-func ResolveEndpoint() endpoints.ResolverFunc {
+func ResolveEndpoint() aws.EndpointResolver {
 	customEndpoints := make(map[string]string)
 	if v := os.Getenv(SecretsManagerEndpointEnv); v != "" {
 		customEndpoints["secretsmanager"] = v
@@ -42,9 +42,9 @@ func ResolveEndpoint() endpoints.ResolverFunc {
 	return ResolveEndpointWithServiceMap(customEndpoints)
 }
 
-func ResolveEndpointWithServiceMap(customEndpoints map[string]string) endpoints.ResolverFunc {
+func ResolveEndpointWithServiceMap(customEndpoints map[string]string) aws.EndpointResolver {
 	defaultResolver := endpoints.DefaultResolver()
-	return func(service, region string, opts ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
+	return func(service, region string, opts ...func(*endpoints.Options)) (aws.EndpointResolver, error) {
 		if ep, ok := customEndpoints[service]; ok {
 			return endpoints.ResolvedEndpoint{
 				URL: ep,

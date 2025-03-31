@@ -109,7 +109,12 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 		}
 	}
 
-	config := aws.NewConfig().WithEndpointResolver(ResolveEndpoint())
+	// global endpoint resolver is deprecated, should we EndpointResolverV2 field on service client options
+
+	config, err := config.LoadDefaultConfig(context.TODO(), config.WithEndpointResolver(ResolveEndpoint()))
+	if err != nil {
+		return nil, err
+	}
 	if creds != nil {
 		config.WithCredentials(creds)
 	}
@@ -212,25 +217,29 @@ func NewGeneratorSession(ctx context.Context, auth esv1beta1.AWSAuth, role, regi
 // construct a aws.Credentials object
 // The namespace of the external secret is used if the ClusterSecretStore does not specify a namespace (referentAuth)
 // If the ClusterSecretStore defines a namespace it will take precedence.
-func credsFromSecretRef(ctx context.Context, auth esv1beta1.AWSAuth, storeKind string, kube client.Client, namespace string) (credentials.StaticCredentialsProvider, error) {
+func credsFromSecretRef(ctx context.Context, auth esv1beta1.AWSAuth, storeKind string, kube client.Client, namespace string) (*aws.Credentials, error) {
 	sak, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &auth.SecretRef.SecretAccessKey)
 	if err != nil {
-		return credentials.StaticCredentialsProvider{}, fmt.Errorf(errFetchSAKSecret, err)
+		return nil, fmt.Errorf(errFetchSAKSecret, err)
 	}
 	aks, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &auth.SecretRef.AccessKeyID)
 	if err != nil {
-		return credentials.StaticCredentialsProvider{}, fmt.Errorf(errFetchAKIDSecret, err)
+		return nil, fmt.Errorf(errFetchAKIDSecret, err)
 	}
 
 	var sessionToken string
 	if auth.SecretRef.SessionToken != nil {
 		sessionToken, err = resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, auth.SecretRef.SessionToken)
 		if err != nil {
-			return credentials.StaticCredentialsProvider{}, fmt.Errorf(errFetchSTSecret, err)
+			return nil, fmt.Errorf(errFetchSTSecret, err)
 		}
 	}
-
-	return credentials.NewStaticCredentialsProvider(aks, sak, sessionToken), err
+	credsProvider := credentials.NewStaticCredentialsProvider(aks, sak, sessionToken)
+	creds, err := credsProvider.Retrieve(ctx)
+	if err != nil {
+		return nil, fmt.Errorf(errFetchSTSecret, err)
+	}
+	return &creds, nil
 }
 
 // credsFromServiceAccount uses a Kubernetes Service Account to acquire temporary
