@@ -372,7 +372,7 @@ type ExternalSecretSpec struct {
 	// RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
 	// specified as Golang Duration strings.
 	// Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-	// Example values: "1h", "2h30m", "5d", "10s"
+	// Example values: "1h", "2h30m", "10s"
 	// May be set to zero to fetch and create it once. Defaults to 1h.
 	// +kubebuilder:default="1h"
 	RefreshInterval *metav1.Duration `json:"refreshInterval,omitempty"`
