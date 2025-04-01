@@ -60,6 +60,7 @@ type SecretsManager struct {
 	referentAuth bool
 	cache        map[string]*awssm.GetSecretValueOutput
 	config       *esv1beta1.SecretsManager
+	prefix       string
 }
 
 // SMInterface is a subset of the smiface api.
@@ -85,13 +86,14 @@ const (
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager")
 
 // New creates a new SecretsManager client.
-func New(sess *session.Session, cfg *aws.Config, secretsManagerCfg *esv1beta1.SecretsManager, referentAuth bool) (*SecretsManager, error) {
+func New(sess *session.Session, cfg *aws.Config, secretsManagerCfg *esv1beta1.SecretsManager, prefix string, referentAuth bool) (*SecretsManager, error) {
 	return &SecretsManager{
 		sess:         sess,
 		client:       awssm.New(sess, cfg),
 		referentAuth: referentAuth,
 		cache:        make(map[string]*awssm.GetSecretValueOutput),
 		config:       secretsManagerCfg,
+		prefix:       prefix,
 	}, nil
 }
 
@@ -105,15 +107,16 @@ func (sm *SecretsManager) fetch(ctx context.Context, ref esv1beta1.ExternalSecre
 		valueFrom = "TAG"
 	}
 
-	log.Info("fetching secret value", "key", ref.Key, "version", ver, "value", valueFrom)
+	key := sm.prefix + ref.Key
+	log.Info("fetching secret value", "key", key, "version", ver, "value", valueFrom)
 
-	cacheKey := fmt.Sprintf("%s#%s#%s", ref.Key, ver, valueFrom)
+	cacheKey := fmt.Sprintf("%s#%s#%s", key, ver, valueFrom)
 	if secretOut, found := sm.cache[cacheKey]; found {
-		log.Info("found secret in cache", "key", ref.Key, "version", ver)
+		log.Info("found secret in cache", "key", key, "version", ver)
 		return secretOut, nil
 	}
 
-	secretOut, err := sm.constructSecretValue(ctx, ref, ver)
+	secretOut, err := sm.constructSecretValue(ctx, key, ver, ref.MetadataPolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +127,7 @@ func (sm *SecretsManager) fetch(ctx context.Context, ref esv1beta1.ExternalSecre
 }
 
 func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
-	secretName := remoteRef.GetRemoteKey()
+	secretName := sm.prefix + remoteRef.GetRemoteKey()
 	secretValue := awssm.GetSecretValueInput{
 		SecretId: &secretName,
 	}
@@ -170,7 +173,7 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.
 }
 
 func (sm *SecretsManager) SecretExists(ctx context.Context, pushSecretRef esv1beta1.PushSecretRemoteRef) (bool, error) {
-	secretName := pushSecretRef.GetRemoteKey()
+	secretName := sm.prefix + pushSecretRef.GetRemoteKey()
 	secretValue := awssm.GetSecretValueInput{
 		SecretId: &secretName,
 	}
@@ -198,7 +201,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 		return fmt.Errorf("failed to extract secret data: %w", err)
 	}
 
-	secretName := psd.GetRemoteKey()
+	secretName := sm.prefix + psd.GetRemoteKey()
 	secretValue := awssm.GetSecretValueInput{
 		SecretId: &secretName,
 	}
@@ -591,17 +594,17 @@ func (sm *SecretsManager) setSecretValues(secret *awssm.SecretValueEntry, data m
 	}
 }
 
-func (sm *SecretsManager) constructSecretValue(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef, ver string) (*awssm.GetSecretValueOutput, error) {
-	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
+func (sm *SecretsManager) constructSecretValue(ctx context.Context, key, ver string, metadataPolicy esv1beta1.ExternalSecretMetadataPolicy) (*awssm.GetSecretValueOutput, error) {
+	if metadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
 		describeSecretInput := &awssm.DescribeSecretInput{
-			SecretId: &ref.Key,
+			SecretId: &key,
 		}
 
 		descOutput, err := sm.client.DescribeSecretWithContext(ctx, describeSecretInput)
 		if err != nil {
 			return nil, err
 		}
-		log.Info("found metadata secret", "key", ref.Key, "output", descOutput)
+		log.Info("found metadata secret", "key", key, "output", descOutput)
 
 		jsonTags, err := util.SecretTagsToJSONString(descOutput.Tags)
 		if err != nil {
@@ -620,12 +623,12 @@ func (sm *SecretsManager) constructSecretValue(ctx context.Context, ref esv1beta
 	if strings.HasPrefix(ver, "uuid/") {
 		versionID := strings.TrimPrefix(ver, "uuid/")
 		getSecretValueInput = &awssm.GetSecretValueInput{
-			SecretId:  &ref.Key,
+			SecretId:  &key,
 			VersionId: &versionID,
 		}
 	} else {
 		getSecretValueInput = &awssm.GetSecretValueInput{
-			SecretId:     &ref.Key,
+			SecretId:     &key,
 			VersionStage: &ver,
 		}
 	}
