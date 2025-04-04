@@ -26,6 +26,7 @@ import (
 	"github.com/go-logr/logr"
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -109,7 +110,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	log.Info("updating webhook config")
-	err = r.updateConfig(ctx, &cfg)
+	err = r.updateConfig(logr.NewContext(ctx, log), &cfg)
 	if err != nil {
 		log.Error(err, "could not update webhook config")
 		r.recorder.Eventf(&cfg, v1.EventTypeWarning, ReasonUpdateFailed, err.Error())
@@ -117,7 +118,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			RequeueAfter: time.Minute,
 		}, err
 	}
-	log.Info("updated webhook config")
 
 	// right now we only have one single
 	// webhook config we care about
@@ -172,6 +172,9 @@ func (r *Reconciler) ReadyCheck(_ *http.Request) error {
 
 // reads the ca cert and updates the webhook config.
 func (r *Reconciler) updateConfig(ctx context.Context, cfg *admissionregistration.ValidatingWebhookConfiguration) error {
+	log := logr.FromContextOrDiscard(ctx)
+	before := cfg.DeepCopyObject()
+
 	secret := v1.Secret{}
 	secretName := types.NamespacedName{
 		Name:      r.SecretName,
@@ -186,13 +189,21 @@ func (r *Reconciler) updateConfig(ctx context.Context, cfg *admissionregistratio
 	if !ok {
 		return errors.New(errCACertNotReady)
 	}
-	if err := r.inject(cfg, r.SvcName, r.SvcNamespace, crt); err != nil {
-		return err
+
+	r.inject(cfg, r.SvcName, r.SvcNamespace, crt)
+
+	if !equality.Semantic.DeepEqual(before, cfg) {
+		if err := r.Update(ctx, cfg); err != nil {
+			return err
+		}
+		log.Info("updated webhook config")
+		return nil
 	}
-	return r.Update(ctx, cfg)
+	log.V(1).Info("webhook config unchanged")
+	return nil
 }
 
-func (r *Reconciler) inject(cfg *admissionregistration.ValidatingWebhookConfiguration, svcName, svcNamespace string, certData []byte) error {
+func (r *Reconciler) inject(cfg *admissionregistration.ValidatingWebhookConfiguration, svcName, svcNamespace string, certData []byte) {
 	r.Log.Info("injecting ca certificate and service names", "cacrt", base64.StdEncoding.EncodeToString(certData), "name", cfg.Name)
 	for idx, w := range cfg.Webhooks {
 		if !strings.HasSuffix(w.Name, "external-secrets.io") {
@@ -204,5 +215,4 @@ func (r *Reconciler) inject(cfg *admissionregistration.ValidatingWebhookConfigur
 		cfg.Webhooks[idx].ClientConfig.Service.Namespace = svcNamespace
 		cfg.Webhooks[idx].ClientConfig.CABundle = certData
 	}
-	return nil
 }

@@ -330,7 +330,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				corev1:        utilfake.NewCreateTokenMock().WithError(errBoom),
 			},
 			want: want{
-				err: fmt.Errorf(errGetKubeSATokenRequest, "example-sa", errBoom),
+				err: fmt.Errorf(errGetKubeSATokenRequest, "example-sa", fmt.Errorf(errGetKubeSA, "example-sa", fmt.Errorf(errServiceAccountNotFound, "example-sa"))),
 			},
 		},
 		"GetKubeSecretError": {

@@ -154,7 +154,7 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 		sess := &session.Session{Config: cfg}
 		switch prov.Service {
 		case esv1beta1.AWSServiceSecretsManager:
-			return secretsmanager.New(sess, cfg, prov.SecretsManager, true)
+			return secretsmanager.New(sess, cfg, prov.SecretsManager, storeSpec.Provider.AWS.Prefix, true)
 		case esv1beta1.AWSServiceParameterStore:
 			return parameterstore.New(sess, cfg, storeSpec.Provider.AWS.Prefix, true)
 		}
@@ -193,7 +193,7 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 
 	switch prov.Service {
 	case esv1beta1.AWSServiceSecretsManager:
-		return secretsmanager.New(sess, cfg, prov.SecretsManager, false)
+		return secretsmanager.New(sess, cfg, prov.SecretsManager, storeSpec.Provider.AWS.Prefix, false)
 	case esv1beta1.AWSServiceParameterStore:
 		return parameterstore.New(sess, cfg, storeSpec.Provider.AWS.Prefix, false)
 	}

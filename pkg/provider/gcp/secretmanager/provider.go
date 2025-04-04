@@ -104,9 +104,19 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return nil, fmt.Errorf(errUnableGetCredentials, err)
 	}
 
-	clientGCPSM, err := secretmanager.NewClient(ctx, option.WithTokenSource(ts))
-	if err != nil {
-		return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
+	var clientGCPSM *secretmanager.Client
+	if gcpStore.Location != "" {
+		ep := fmt.Sprintf("secretmanager.%s.rep.googleapis.com:443", gcpStore.Location)
+		regional := option.WithEndpoint(ep)
+		clientGCPSM, err = secretmanager.NewClient(ctx, option.WithTokenSource(ts), regional)
+		if err != nil {
+			return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
+		}
+	} else {
+		clientGCPSM, err = secretmanager.NewClient(ctx, option.WithTokenSource(ts))
+		if err != nil {
+			return nil, fmt.Errorf(errUnableCreateGCPSMClient, err)
+		}
 	}
 	client.smClient = clientGCPSM
 	return client, nil

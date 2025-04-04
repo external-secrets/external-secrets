@@ -95,21 +95,61 @@ func newCRD() apiextensionsv1.CustomResourceDefinition {
 }
 
 func TestUpdateCRD(t *testing.T) {
-	rec := newReconciler()
 	svc := newService()
 	secret := newSecret()
 	crd := newCRD()
 	c := client.NewClientBuilder().WithObjects(&svc, &secret, &crd).Build()
+
+	rec := newReconciler()
 	rec.Client = c
+
 	ctx := context.Background()
 	req := ctrl.Request{
 		NamespacedName: types.NamespacedName{
 			Name: "one",
 		},
 	}
+
 	err := rec.updateCRD(ctx, req)
 	if err != nil {
-		t.Errorf("Failed updating CRD: %v", err)
+		t.Fatalf("Failed updating CRD: %v", err)
+	}
+
+	var updatedCRD apiextensionsv1.CustomResourceDefinition
+	var updatedSecret corev1.Secret
+
+	err = c.Get(ctx, req.NamespacedName, &updatedCRD)
+	if err != nil {
+		t.Fatalf("Failed getting updated CRD: %v", err)
+	}
+
+	err = c.Get(ctx, types.NamespacedName{Name: secret.Name, Namespace: secret.Namespace}, &updatedSecret)
+	if err != nil {
+		t.Fatalf("Failed getting updated secret: %v", err)
+	}
+
+	if updatedCRD.Spec.Conversion.Webhook.ClientConfig.Service.Name != svc.Name {
+		t.Fatalf("Failed updating CRD webhook service name: expected %v, got %v", svc.Name, updatedCRD.Spec.Conversion.Webhook.ClientConfig.Service.Name)
+	}
+
+	if !bytes.Equal(updatedSecret.Data[caCertName], updatedCRD.Spec.Conversion.Webhook.ClientConfig.CABundle) {
+		t.Fatalf("Failed updating CRD webhook ca bundle: expected %v, got %v", string(updatedSecret.Data[caCertName]), string(updatedCRD.Spec.Conversion.Webhook.ClientConfig.CABundle))
+	}
+
+	err = rec.updateCRD(ctx, req)
+	if err != nil {
+		t.Fatalf("Failed updating CRD: %v", err)
+	}
+
+	resourceVersion := updatedCRD.ResourceVersion
+
+	err = c.Get(ctx, req.NamespacedName, &updatedCRD)
+	if err != nil {
+		t.Fatalf("Failed getting updated CRD: %v", err)
+	}
+
+	if updatedCRD.ResourceVersion != resourceVersion {
+		t.Errorf("expected no change in resource version: %v, got %v", resourceVersion, updatedCRD.ResourceVersion)
 	}
 }
 
