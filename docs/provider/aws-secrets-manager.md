@@ -117,15 +117,22 @@ Additional settings can be set at the `SecretStore` level to control the behavio
 
 #### Additional Metadata for PushSecret
 
-It's possible to configure AWS Secrets Manager to either push secrets in `binary` format or as plain `string`.
+Optionally, it is possible to configure additional options for the parameter. These are as follows:
+- kmsKeyID
+- secretPushFormat
+- description
+- tags
 
-To control this behaviour set the following provider metadata:
+To control this behavior set the following provider metadata:
 
 ```yaml
 {% include 'aws-sm-push-secret-with-metadata.yaml' %}
 ```
 
-`secretPushFormat` takes two options. `binary` and `string`, where `binary` is the _default_.
+- `secretPushFormat` takes two options. `binary` and `string`, where `binary` is the _default_.
+- `kmsKeyID` takes a KMS Key `$ID` or `$ARN` (in case a key source is created in another account) as a string, where `alias/aws/secretsmanager` is the _default_.
+- `description` Description of the secret.
+- `tags` Key-value map of user-defined tags that are attached to the secret.
 
 ### JSON Secret Values
 

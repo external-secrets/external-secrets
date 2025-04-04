@@ -415,6 +415,10 @@ func TestSetSecret(t *testing.T) {
 			Key:   &managedBy,
 			Value: &externalSecrets,
 		},
+		{
+			Key:   ptr.To("taname1"),
+			Value: ptr.To("tagvalue1"),
+		},
 	}
 
 	externalSecretsTagFaulty := []*awssm.Tag{
@@ -481,8 +485,13 @@ func TestSetSecret(t *testing.T) {
 	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: ""}
 	pushSecretDataWithoutSecretKey := fake.PushSecretData{RemoteKey: fakeKey, Property: ""}
 	pushSecretDataWithMetadata := fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "", Metadata: &apiextensionsv1.JSON{
-		Raw: []byte(`{"secretPushFormat": "string"}`),
-	}}
+		Raw: []byte(`{
+					"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+					"kind": "PushSecretMetadata",
+					"spec": {
+						"secretPushFormat": "string"
+					}
+				}`)}}
 	pushSecretDataWithProperty := fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "other-fake-property"}
 
 	type args struct {
@@ -542,6 +551,53 @@ func TestSetSecret(t *testing.T) {
 					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
 				},
 				pushSecretData: pushSecretDataWithMetadata,
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretSucceedsWithExistingSecretAndKMSKeyAndDescription": {
+			reason: "a secret can be pushed to aws secrets manager when it already exists",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, &getSecretCorrectErr),
+					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+				},
+				pushSecretData: fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "", Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{
+							"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+							"kind": "PushSecretMetadata",
+							"spec": {
+								"kmsKeyID": "bb123123-b2b0-4f60-ac3a-44a13f0e6b6c",
+								"description": "this is a description"
+							}
+						}`)}},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretSucceedsWithExistingSecretAndAdditionalTags": {
+			reason: "a secret can be pushed to aws secrets manager when it already exists",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
+					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+				},
+				pushSecretData: fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "", Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{
+							"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+							"kind": "PushSecretMetadata",
+							"spec": {
+								"tags": {"tagname12": "tagvalue1"}
+							}
+						}`)}},
 			},
 			want: want{
 				err: nil,
