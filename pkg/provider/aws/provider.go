@@ -128,13 +128,13 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 		return nil, fmt.Errorf(errInitAWSProvider, "nil store")
 	}
 	storeSpec := store.GetSpec()
-	var cfg aws.Config
+	var cfg *aws.Config
 
 	// allow SecretStore controller validation to pass
 	// when using referent namespace.
 	if util.IsReferentSpec(prov.Auth) && namespace == "" &&
 		store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
-		cfg, err = config.LoadDefaultConfig(ctx, config.WithRegion("eu-west-1"))
+		cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("eu-west-1"))
 		if err != nil {
 			return nil, fmt.Errorf(errInitAWSProvider, err)
 		}
@@ -145,6 +145,11 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 			return parameterstore.New(ctx, &cfg, storeSpec.Provider.AWS.Prefix, true)
 		}
 		return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
+	}
+
+	cfg, err = awsauth.New(ctx, store, kube, namespace, assumeRoler, awsauth.DefaultJWTProvider)
+	if err != nil {
+		return nil, fmt.Errorf(errUnableCreateSession, err)
 	}
 
 	// Setup retry options, if present in storeSpec
@@ -169,7 +174,8 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 		// 	MinRetryDelay:    retryDuration,
 		// 	MaxThrottleDelay: 120 * time.Second,  Not sure how to set this in sdk go v2
 		// }
-		cfg, err = config.LoadDefaultConfig(ctx, config.WithRetryer(func() aws.Retryer {
+
+		cfg.Retryer = func() aws.Retryer {
 			return retry.AddWithMaxAttempts(
 				retry.NewStandard(func(o *retry.StandardOptions) {
 					if retryDuration > 0 {
@@ -178,14 +184,14 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 				}),
 				retryAmount,
 			)
-		}))
+		}
 	}
 
 	switch prov.Service {
 	case esv1beta1.AWSServiceSecretsManager:
-		return secretsmanager.New(ctx, &cfg, prov.SecretsManager, false)
+		return secretsmanager.New(ctx, cfg, prov.SecretsManager, false)
 	case esv1beta1.AWSServiceParameterStore:
-		return parameterstore.New(ctx, &cfg, storeSpec.Provider.AWS.Prefix, false)
+		return parameterstore.New(ctx, cfg, storeSpec.Provider.AWS.Prefix, false)
 	}
 	return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 }

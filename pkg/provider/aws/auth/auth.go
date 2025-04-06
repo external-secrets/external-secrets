@@ -23,7 +23,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
-	stsTypes "github.com/aws/aws-sdk-go-v2/service/sts/types"
 	"github.com/spf13/pflag"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -72,7 +71,7 @@ func init() {
 	sessionCache = cache.Must[*aws.Config](1024, nil)
 }
 
-// New creates a new aws session based on the provided store
+// New creates a new aws config based on the provided store
 // it uses the following authentication mechanisms in order:
 // * service-account token authentication via AssumeRoleWithWebIdentity
 // * static credentials from a Kind=Secret, optionally with doing a AssumeRole.
@@ -333,9 +332,17 @@ func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region st
 		}), nil
 }
 
-type STSProvider func(aws.Config) *sts.Client
+type STSprovider interface {
+	AssumeRole(ctx context.Context, params *sts.AssumeRoleInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleOutput, error)
+	AssumeRoleWithSAML(ctx context.Context, params *sts.AssumeRoleWithSAMLInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleWithSAMLOutput, error)
+	AssumeRoleWithWebIdentity(ctx context.Context, params *sts.AssumeRoleWithWebIdentityInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleWithWebIdentityOutput, error)
+	AssumeRoot(ctx context.Context, params *sts.AssumeRootInput, optFns ...func(*sts.Options)) (*sts.AssumeRootOutput, error)
+	DecodeAuthorizationMessage(ctx context.Context, params *sts.DecodeAuthorizationMessageInput, optFns ...func(*sts.Options)) (*sts.DecodeAuthorizationMessageOutput, error)
+}
 
-func DefaultSTSProvider(cfg aws.Config) *sts.Client {
+type STSProvider func(aws.Config) STSprovider
+
+func DefaultSTSProvider(cfg aws.Config) STSprovider {
 	stsClient := sts.NewFromConfig(cfg, func(o *sts.Options) {
 		o.EndpointResolverV2 = customEndpointResolver{}
 	})

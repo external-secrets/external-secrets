@@ -36,11 +36,11 @@ type authTokenFetcher struct {
 	k8sClient      corev1.CoreV1Interface
 }
 
-// FetchToken satisfies the stscreds.TokenFetcher interface
+// GetIdentityToken satisfies the stscreds.IdentityTokenRetriever interface
 // it is used to generate service account tokens which are consumed by the aws sdk.
-func (p authTokenFetcher) FetchToken(ctx context.Context) ([]byte, error) {
+func (p authTokenFetcher) GetIdentityToken() ([]byte, error) {
 	log.V(1).Info("fetching token", "ns", p.Namespace, "sa", p.ServiceAccount)
-	tokRsp, err := p.k8sClient.ServiceAccounts(p.Namespace).CreateToken(ctx, p.ServiceAccount, &authv1.TokenRequest{
+	tokRsp, err := p.k8sClient.ServiceAccounts(p.Namespace).CreateToken(context.Background(), p.ServiceAccount, &authv1.TokenRequest{
 		Spec: authv1.TokenRequestSpec{
 			Audiences: p.Audiences,
 		},
