@@ -4829,10 +4829,19 @@ spec:
                             workloadIdentity:
                               properties:
                                 clusterLocation:
+                                  description: |-
+                                    ClusterLocation is the location of the cluster
+                                    If not specified, it fetches information from the metadata server
                                   type: string
                                 clusterName:
+                                  description: |-
+                                    ClusterName is the name of the cluster
+                                    If not specified, it fetches information from the metadata server
                                   type: string
                                 clusterProjectID:
+                                  description: |-
+                                    ClusterProjectID is the project ID of the cluster
+                                    If not specified, it fetches information from the metadata server
                                   type: string
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
@@ -4863,8 +4872,6 @@ spec:
                                     - name
                                   type: object
                               required:
-                                - clusterLocation
-                                - clusterName
                                 - serviceAccountRef
                               type: object
                           type: object
@@ -12160,10 +12167,19 @@ spec:
                             workloadIdentity:
                               properties:
                                 clusterLocation:
+                                  description: |-
+                                    ClusterLocation is the location of the cluster
+                                    If not specified, it fetches information from the metadata server
                                   type: string
                                 clusterName:
+                                  description: |-
+                                    ClusterName is the name of the cluster
+                                    If not specified, it fetches information from the metadata server
                                   type: string
                                 clusterProjectID:
+                                  description: |-
+                                    ClusterProjectID is the project ID of the cluster
+                                    If not specified, it fetches information from the metadata server
                                   type: string
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
@@ -12194,8 +12210,6 @@ spec:
                                     - name
                                   type: object
                               required:
-                                - clusterLocation
-                                - clusterName
                                 - serviceAccountRef
                               type: object
                           type: object
