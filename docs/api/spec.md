@@ -4701,6 +4701,9 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>ClusterLocation is the location of the cluster
+If not specified, it fetches information from the metadata server</p>
 </td>
 </tr>
 <tr>
@@ -4711,6 +4714,9 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>ClusterName is the name of the cluster
+If not specified, it fetches information from the metadata server</p>
 </td>
 </tr>
 <tr>
@@ -4721,6 +4727,9 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>ClusterProjectID is the project ID of the cluster
+If not specified, it fetches information from the metadata server</p>
 </td>
 </tr>
 </tbody>
