@@ -5922,7 +5922,74 @@ map[string]int
 </tr>
 </tbody>
 </table>
+<<<<<<< HEAD
 <h3 id="external-secrets.io/v1.OracleAuth">OracleAuth
+=======
+<h3 id="external-secrets.io/v1beta1.OnePasswordSDKAuth">OnePasswordSDKAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.OnePasswordSDKProvider">OnePasswordSDKProvider</a>)
+</p>
+<p>
+<p>OnePasswordSDKAuth contains a secretRef for the service account token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceAccountSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.OnePasswordSDKProvider">OnePasswordSDKProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>OnePasswordSDKProvider configures a store to sync secrets using the 1Password sdk.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.OnePasswordSDKAuth">
+OnePasswordSDKAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth defines the information necessary to authenticate against OnePassword API</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.OracleAuth">OracleAuth
+>>>>>>> d192c9d2d (feat: add 1Password SDK based provider)
 </h3>
 <p>
 (<em>Appears on:</em>
@@ -7191,6 +7258,20 @@ OnePasswordProvider
 <td>
 <em>(Optional)</em>
 <p>OnePassword configures this store to sync secrets using the 1Password Cloud provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>onepasswordSDK</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.OnePasswordSDKProvider">
+OnePasswordSDKProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OnePasswordSDK configures this store to use 1Password&rsquo;s new Go SDK to sync secrets.</p>
 </td>
 </tr>
 <tr>

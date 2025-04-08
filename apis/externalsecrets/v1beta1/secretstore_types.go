@@ -121,6 +121,10 @@ type SecretStoreProvider struct {
 	// +optional
 	OnePassword *OnePasswordProvider `json:"onepassword,omitempty"`
 
+	// OnePasswordSDK configures this store to use 1Password's new Go SDK to sync secrets.
+	// +optional
+	OnePasswordSDK *OnePasswordSDKProvider `json:"onepasswordSDK,omitempty"`
+
 	// Webhook configures this store to sync secrets using a generic templated webhook
 	// +optional
 	Webhook *WebhookProvider `json:"webhook,omitempty"`
