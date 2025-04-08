@@ -575,7 +575,7 @@ func (r *Reconciler) markAsDone(externalSecret *esv1beta1.ExternalSecret, start 
 	SetExternalSecretCondition(externalSecret, *newReadyCondition)
 
 	externalSecret.Status.RefreshTime = metav1.NewTime(start)
-	externalSecret.Status.SyncedResourceVersion = util.GetResourceVersion(externalSecret.ObjectMeta)
+	externalSecret.Status.SyncedResourceVersion = util.GetResourceVersionExternalSecret(externalSecret)
 
 	// if the status or reason has changed, log at the appropriate verbosity level
 	if oldReadyCondition == nil || oldReadyCondition.Status != newReadyCondition.Status || oldReadyCondition.Reason != newReadyCondition.Reason {
@@ -856,28 +856,45 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 }
 
 func shouldRefresh(es *esv1beta1.ExternalSecret) bool {
-	// if the refresh interval is 0, and we have synced previously, we should not refresh
-	if es.Spec.RefreshInterval.Duration <= 0 && es.Status.SyncedResourceVersion != "" {
+	switch es.Spec.RefreshPolicy {
+	case esv1beta1.RefreshPolicyCreatedOnce:
+		if es.Status.SyncedResourceVersion == "" || es.Status.RefreshTime.IsZero() {
+			return true
+		}
 		return false
-	}
 
-	// if the ExternalSecret has been updated, we should refresh
-	if es.Status.SyncedResourceVersion != util.GetResourceVersion(es.ObjectMeta) {
-		return true
-	}
+	case esv1beta1.RefreshPolicyOnChange:
+		if es.Status.SyncedResourceVersion == "" || es.Status.RefreshTime.IsZero() {
+			return true
+		}
 
-	// if the last refresh time is zero, we should refresh
-	if es.Status.RefreshTime.IsZero() {
-		return true
-	}
+		return es.Status.SyncedResourceVersion != util.GetResourceVersionExternalSecret(es)
 
-	// if the last refresh time is in the future, we should refresh
-	if es.Status.RefreshTime.Time.After(time.Now()) {
-		return true
-	}
+	// for Periodic, we should refresh if the refresh interval is 0, and we have synced previously
+	default:
+		// if the refresh interval is 0, and we have synced previously, we should not refresh
+		if es.Spec.RefreshInterval.Duration <= 0 && es.Status.SyncedResourceVersion != "" {
+			return false
+		}
 
-	// if the last refresh time + refresh interval is before now, we should refresh
-	return es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).Before(time.Now())
+		// if the ExternalSecret has been updated, we should refresh
+		if es.Status.SyncedResourceVersion != util.GetResourceVersionExternalSecret(es) {
+			return true
+		}
+
+		// if the last refresh time is zero, we should refresh
+		if es.Status.RefreshTime.IsZero() {
+			return true
+		}
+
+		// if the last refresh time is in the future, we should refresh
+		if es.Status.RefreshTime.Time.After(time.Now()) {
+			return true
+		}
+
+		// if the last refresh time + refresh interval is before now, we should refresh
+		return es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).Before(time.Now())
+	}
 }
 
 // isSecretValid checks if the secret exists, and it's data is consistent with the calculated hash.
