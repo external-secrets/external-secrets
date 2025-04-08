@@ -40,6 +40,7 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/kubernetes"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/onboardbase"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/onepassword"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/onepasswordsdk"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/oracle"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/passbolt"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/passworddepot"
