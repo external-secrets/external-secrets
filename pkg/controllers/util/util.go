@@ -16,6 +16,7 @@ package util
 import (
 	"fmt"
 
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -33,5 +34,22 @@ func HashMeta(m metav1.ObjectMeta) string {
 	return utils.ObjectHash(meta{
 		annotations: m.Annotations,
 		labels:      m.Labels,
+	})
+}
+
+func GetResourceVersionExternalSecret(es *esv1beta1.ExternalSecret) string {
+	return fmt.Sprintf("%d-%s", es.GetGeneration(), HashMetaWithSpec(es.ObjectMeta, es.Spec))
+}
+
+func HashMetaWithSpec(m metav1.ObjectMeta, spec any) string {
+	type meta struct {
+		annotations map[string]string
+		labels      map[string]string
+		spec        any
+	}
+	return utils.ObjectHash(meta{
+		annotations: m.Annotations,
+		labels:      m.Labels,
+		spec:        spec,
 	})
 }
