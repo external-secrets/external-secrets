@@ -135,18 +135,6 @@ var webhookCmd = &cobra.Command{
 			setupLog.Error(err, errCreateWebhook, "webhook", "ClusterSecretStore-v1beta1")
 			os.Exit(1)
 		}
-		if err = (&esv1alpha1.ExternalSecret{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, errCreateWebhook, "webhook", "ExternalSecret-v1alpha1")
-			os.Exit(1)
-		}
-		if err = (&esv1alpha1.SecretStore{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, errCreateWebhook, "webhook", "SecretStore-v1alpha1")
-			os.Exit(1)
-		}
-		if err = (&esv1alpha1.ClusterSecretStore{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, errCreateWebhook, "webhook", "ClusterSecretStore-v1alpha1")
-			os.Exit(1)
-		}
 
 		err = mgr.AddReadyzCheck("certs", func(_ *http.Request) error {
 			return crds.CheckCerts(c, dnsName, time.Now().Add(time.Hour))
