@@ -118,11 +118,10 @@ const (
 	MergePolicyMerge   TemplateMergePolicy = "Merge"
 )
 
-// +kubebuilder:validation:Enum=v1;v2
+// +kubebuilder:validation:Enum=v2
 type TemplateEngineVersion string
 
 const (
-	TemplateEngineV1 TemplateEngineVersion = "v1"
 	TemplateEngineV2 TemplateEngineVersion = "v2"
 )
 

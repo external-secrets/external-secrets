@@ -39,7 +39,6 @@ var _ = Describe("[template]", Label("template"), func() {
 	fakeSecretClient := fake.New()
 
 	DescribeTable("sync secrets", framework.TableFuncWithExternalSecret(f, prov),
-		framework.Compose("template v1", f, genericExternalSecretTemplate, useTemplateV1),
 		framework.Compose("template v2", f, genericExternalSecretTemplate, useTemplateV2),
 	)
 
@@ -47,21 +46,6 @@ var _ = Describe("[template]", Label("template"), func() {
 		framework.Compose("template", f, genericPushSecretTemplate, useTemplateWithPushSecret),
 	)
 })
-
-// useTemplateV1 specifies a test case which uses the template engine v1.
-func useTemplateV1(tc *framework.TestCase) {
-	tc.ExternalSecret.Spec.Target.Template = &esv1beta1.ExternalSecretTemplate{
-		EngineVersion: esv1beta1.TemplateEngineV1,
-		Data: map[string]string{
-			"tplv1": "executed: {{ .singlefoo | toString }}|{{ .singlebaz | toString }}",
-			"other": `{{ .foo | toString }}|{{ .bar | toString }}`,
-		},
-	}
-	tc.ExpectedSecret.Data = map[string][]byte{
-		"tplv1": []byte(`executed: bar|bang`),
-		"other": []byte(`barmap|bangmap`),
-	}
-}
 
 // useTemplateV2 specifies a test case which uses the template engine v2.
 func useTemplateV2(tc *framework.TestCase) {

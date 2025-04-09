@@ -860,7 +860,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 				},
 			},
 			Type:          v1.SecretTypeOpaque,
-			EngineVersion: esv1beta1.TemplateEngineV1,
+			EngineVersion: esv1beta1.TemplateEngineV2,
 			Data: map[string]string{
 				targetProp:   targetPropObj,
 				tplStaticKey: tplStaticVal,

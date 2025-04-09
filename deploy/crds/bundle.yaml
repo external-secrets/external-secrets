@@ -463,7 +463,6 @@ spec:
                                 that should be used to compile/execute the
                                 template specified in .data and .templateFrom[].
                               enum:
-                                - v1
                                 - v2
                               type: string
                             mergePolicy:
@@ -1082,7 +1081,6 @@ spec:
                             that should be used to compile/execute the
                             template specified in .data and .templateFrom[].
                           enum:
-                            - v1
                             - v2
                           type: string
                         mergePolicy:
@@ -7950,7 +7948,6 @@ spec:
                             that should be used to compile/execute the
                             template specified in .data and .templateFrom[].
                           enum:
-                            - v1
                             - v2
                           type: string
                         mergePolicy:
@@ -8392,7 +8389,6 @@ spec:
                         that should be used to compile/execute the
                         template specified in .data and .templateFrom[].
                       enum:
-                        - v1
                         - v2
                       type: string
                     mergePolicy:

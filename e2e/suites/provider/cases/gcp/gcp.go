@@ -173,7 +173,7 @@ x6HaRh+EUwU51von6M9lEF9/p5Q=
 
 		tc.ExternalSecret.Spec.Target.Template = &esv1beta1.ExternalSecretTemplate{
 			Type:          v1.SecretTypeTLS,
-			EngineVersion: esv1beta1.TemplateEngineV1,
+			EngineVersion: esv1beta1.TemplateEngineV2,
 			Data: map[string]string{
 				"tls.crt": "{{ .mysecret | pkcs12cert | pemCertificate }}",
 				"tls.key": "{{ .mysecret | pkcs12key | pemPrivateKey }}",
