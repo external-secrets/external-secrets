@@ -99,9 +99,9 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	// If a Push of a property only, we should merge and add/update the property
 	if data.GetProperty() != "" {
 		if _, ok := vaultSecret[data.GetProperty()]; ok {
-			d := vaultSecret[data.GetProperty()].(string)
-			if err != nil {
-				return fmt.Errorf("error marshaling vault secret: %w", err)
+			d, ok := vaultSecret[data.GetProperty()].(string)
+			if !ok {
+				return fmt.Errorf("error accessing %s on vault secret: %w", data.GetProperty(), err)
 			}
 			// If the property has the same value, don't update the secret
 			if bytes.Equal([]byte(d), value) {
