@@ -25,7 +25,8 @@ import (
 type ExecFunc func(tpl, data map[string][]byte, scope esapi.TemplateScope, target esapi.TemplateTarget, secret *corev1.Secret) error
 
 func EngineForVersion(version esapi.TemplateEngineVersion) (ExecFunc, error) {
-	switch version {
+	// We want to leave this for new versions
+	switch version { //nolint:gocritic
 	case esapi.TemplateEngineV2:
 		return v2.Execute, nil
 	}

@@ -770,10 +770,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 							{
 								Key:     "foo",
 								Version: "",
-								ValueMap: map[string]string{
-									"foo":  "bar",
-									"foo2": "bar2",
-								},
+								Value:   `{"foo":"bar","foo2":"bar2"}`,
 							},
 						},
 					},
@@ -793,10 +790,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 							{
 								Key:     "baz",
 								Version: "",
-								ValueMap: map[string]string{
-									"baz":  "bang",
-									"baz2": "bang2",
-								},
+								Value:   `{"baz":"bang","baz2":"bang2"}`,
 							},
 						},
 					},

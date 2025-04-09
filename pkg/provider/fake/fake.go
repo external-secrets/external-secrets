@@ -35,7 +35,7 @@ var (
 	errMissingStore        = errors.New("missing store provider")
 	errMissingFakeProvider = errors.New("missing store provider fake")
 	errMissingKeyField     = "key must be set in data %v"
-	errMissingValueField   = "at least one of value or valueMap must be set in data %v"
+	errMissingValueField   = "at least one value must be set in data %v"
 )
 
 type SourceOrigin string
@@ -46,10 +46,9 @@ const (
 )
 
 type Data struct {
-	Value    string
-	Version  string
-	ValueMap map[string]string
-	Origin   SourceOrigin
+	Value   string
+	Version string
+	Origin  SourceOrigin
 }
 type Config map[string]*Data
 type Provider struct {
@@ -87,9 +86,6 @@ func (p *Provider) NewClient(_ context.Context, store esv1beta1.GenericStore, _ 
 			Value:   data.Value,
 			Version: data.Version,
 			Origin:  FakeSecretStore,
-		}
-		if data.ValueMap != nil {
-			cfg[key].ValueMap = data.ValueMap
 		}
 	}
 	p.database[store.GetName()] = cfg
@@ -198,11 +194,6 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 		return nil, esv1beta1.NoSecretErr
 	}
 
-	// Due to backward compatibility valueMap will still be returned for now
-	if ddata.ValueMap != nil {
-		return convertMap(ddata.ValueMap), nil
-	}
-
 	data, err := p.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -228,14 +219,6 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 	return secretData, nil
 }
 
-func convertMap(in map[string]string) map[string][]byte {
-	m := make(map[string][]byte)
-	for k, v := range in {
-		m[k] = []byte(v)
-	}
-	return m
-}
-
 func (p *Provider) Close(_ context.Context) error {
 	return nil
 }
@@ -253,7 +236,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 		if data.Key == "" {
 			return nil, fmt.Errorf(errMissingKeyField, pos)
 		}
-		if data.Value == "" && data.ValueMap == nil {
+		if data.Value == "" {
 			return nil, fmt.Errorf(errMissingValueField, pos)
 		}
 	}

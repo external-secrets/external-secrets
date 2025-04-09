@@ -73,7 +73,6 @@ func TestValidateStore(t *testing.T) {
 	gomega.Expect(err).To(gomega.BeEquivalentTo(fmt.Errorf(errMissingValueField, 0)))
 	// spec ok
 	data.Value = "bar"
-	data.ValueMap = map[string]string{"foo": "bar"}
 	store.Spec.Provider.Fake.Data = []esv1beta1.FakeProviderData{data}
 	_, err = p.ValidateStore(store)
 	gomega.Expect(err).To(gomega.BeNil())
@@ -522,27 +521,6 @@ func TestGetSecretMap(t *testing.T) {
 			expErr: "unable to unmarshal secret: invalid character '-' in numeric literal",
 		},
 		{
-			name: "get correct value from ValueMap due to retrocompatibility",
-			input: []esv1beta1.FakeProviderData{
-				{
-					Key:     "/foo/bar",
-					Version: "v3",
-					ValueMap: map[string]string{
-						"john": "doe",
-						"baz":  "bang",
-					},
-				},
-			},
-			request: esv1beta1.ExternalSecretDataRemoteRef{
-				Key:     "/foo/bar",
-				Version: "v3",
-			},
-			expValue: map[string][]byte{
-				"john": []byte("doe"),
-				"baz":  []byte("bang"),
-			},
-		},
-		{
 			name: "get correct value from multiple versions",
 			input: []esv1beta1.FakeProviderData{
 				{
@@ -551,25 +529,17 @@ func TestGetSecretMap(t *testing.T) {
 					Version: "v2",
 				},
 				{
-					Key: "junk",
-					ValueMap: map[string]string{
-						"junk": "ok",
-					},
+					Key:   "junk",
+					Value: `{"junk":"ok"}`,
 				},
 				{
-					Key: "/foo",
-					ValueMap: map[string]string{
-						"foo": "bar",
-						"baz": "bang",
-					},
+					Key:     "/foo",
+					Value:   `{"foo":"bar","baz":"bang"}`,
 					Version: "v1",
 				},
 				{
-					Key: "/foo",
-					ValueMap: map[string]string{
-						"foo": "bar",
-						"baz": "bang",
-					},
+					Key:     "/foo",
+					Value:   `{"foo":"bar","baz":"bang"}`,
 					Version: "v2",
 				},
 			},
