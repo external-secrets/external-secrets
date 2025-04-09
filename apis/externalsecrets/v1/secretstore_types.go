@@ -12,7 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -291,6 +291,7 @@ type SecretStoreStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:storageversion
 
 // SecretStore represents a secure external location for storing secrets, which can be referenced as part of `storeRef` fields.
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
@@ -318,6 +319,7 @@ type SecretStoreList struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:storageversion
 
 // ClusterSecretStore represents a secure external location for storing secrets, which can be referenced as part of `storeRef` fields.
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
