@@ -4377,17 +4377,6 @@ string
 </tr>
 <tr>
 <td>
-<code>valueMap</code></br>
-<em>
-map[string]string
-</em>
-</td>
-<td>
-<p>Deprecated: ValueMap is deprecated and is intended to be removed in the future, use the <code>value</code> field instead.</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>version</code></br>
 <em>
 string
@@ -8052,9 +8041,7 @@ string
 <th>Description</th>
 </tr>
 </thead>
-<tbody><tr><td><p>&#34;v1&#34;</p></td>
-<td></td>
-</tr><tr><td><p>&#34;v2&#34;</p></td>
+<tbody><tr><td><p>&#34;v2&#34;</p></td>
 <td></td>
 </tr></tbody>
 </table>
