@@ -14,7 +14,7 @@ webhooks:
 - name: "validate.secretstore.external-secrets.io"
   rules:
   - apiGroups:   ["external-secrets.io"]
-    apiVersions: ["v1beta1"]
+    apiVersions: ["v1"]
     operations:  ["CREATE", "UPDATE", "DELETE"]
     resources:   ["secretstores"]
     scope:       "Namespaced"
@@ -22,7 +22,7 @@ webhooks:
     service:
       namespace: {{ template "external-secrets.namespace" . }}
       name: {{ include "external-secrets.fullname" . }}-webhook
-      path: /validate-external-secrets-io-v1beta1-secretstore
+      path: /validate-external-secrets-io-v1-secretstore
   admissionReviewVersions: ["v1", "v1beta1"]
   sideEffects: None
   timeoutSeconds: 5
@@ -30,7 +30,7 @@ webhooks:
 - name: "validate.clustersecretstore.external-secrets.io"
   rules:
   - apiGroups:   ["external-secrets.io"]
-    apiVersions: ["v1beta1"]
+    apiVersions: ["v1"]
     operations:  ["CREATE", "UPDATE", "DELETE"]
     resources:   ["clustersecretstores"]
     scope:       "Cluster"
@@ -38,7 +38,7 @@ webhooks:
     service:
       namespace: {{ template "external-secrets.namespace" . }}
       name: {{ include "external-secrets.fullname" . }}-webhook
-      path: /validate-external-secrets-io-v1beta1-clustersecretstore
+      path: /validate-external-secrets-io-v1-clustersecretstore
   admissionReviewVersions: ["v1", "v1beta1"]
   sideEffects: None
   timeoutSeconds: 5
@@ -58,7 +58,7 @@ webhooks:
 - name: "validate.externalsecret.external-secrets.io"
   rules:
   - apiGroups:   ["external-secrets.io"]
-    apiVersions: ["v1beta1"]
+    apiVersions: ["v1"]
     operations:  ["CREATE", "UPDATE", "DELETE"]
     resources:   ["externalsecrets"]
     scope:       "Namespaced"
@@ -66,7 +66,7 @@ webhooks:
     service:
       namespace: {{ template "external-secrets.namespace" . }}
       name: {{ include "external-secrets.fullname" . }}-webhook
-      path: /validate-external-secrets-io-v1beta1-externalsecret
+      path: /validate-external-secrets-io-v1-externalsecret
   admissionReviewVersions: ["v1", "v1beta1"]
   sideEffects: None
   timeoutSeconds: 5
