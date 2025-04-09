@@ -23,14 +23,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
-type getSecretFn func(ctx context.Context, ref esv1beta1.PushSecretRemoteRef) (*github.Secret, *github.Response, error)
+type getSecretFn func(ctx context.Context, ref esv1.PushSecretRemoteRef) (*github.Secret, *github.Response, error)
 
 func withGetSecretFn(secret *github.Secret, response *github.Response, err error) getSecretFn {
-	return func(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (*github.Secret, *github.Response, error) {
+	return func(_ context.Context, _ esv1.PushSecretRemoteRef) (*github.Secret, *github.Response, error) {
 		return secret, response, err
 	}
 }
@@ -54,8 +54,8 @@ func withCreateOrUpdateSecretFn(response *github.Response, err error) createOrUp
 func TestSecretExists(t *testing.T) {
 	type testCase struct {
 		name        string
-		prov        *esv1beta1.GithubProvider
-		remoteRef   esv1beta1.PushSecretData
+		prov        *esv1.GithubProvider
+		remoteRef   esv1.PushSecretData
 		getSecretFn getSecretFn
 		wantErr     error
 		exists      bool
@@ -98,9 +98,9 @@ func TestSecretExists(t *testing.T) {
 func TestPushSecret(t *testing.T) {
 	type testCase struct {
 		name             string
-		prov             *esv1beta1.GithubProvider
+		prov             *esv1.GithubProvider
 		secret           *corev1.Secret
-		remoteRef        esv1beta1.PushSecretData
+		remoteRef        esv1.PushSecretData
 		getSecretFn      getSecretFn
 		getPublicKeyFn   getPublicKeyFn
 		createOrUpdateFn createOrUpdateSecretFn

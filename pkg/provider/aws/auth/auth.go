@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/cache"
 	"github.com/external-secrets/external-secrets/pkg/feature"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
@@ -78,13 +78,13 @@ func init() {
 // * service-account token authentication via AssumeRoleWithWebIdentity
 // * static credentials from a Kind=Secret, optionally with doing a AssumeRole.
 // * sdk default provider chain, see: https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default
-func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, assumeRoler STSProvider, jwtProvider jwtProviderFactory) (*session.Session, error) {
+func New(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string, assumeRoler STSProvider, jwtProvider jwtProviderFactory) (*session.Session, error) {
 	prov, err := util.GetAWSProvider(store)
 	if err != nil {
 		return nil, err
 	}
 	var creds *credentials.Credentials
-	isClusterKind := store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind
+	isClusterKind := store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind
 
 	// use credentials via service account token
 	jwtAuth := prov.Auth.JWTAuth
@@ -160,7 +160,7 @@ func New(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, 
 // * service-account token authentication via AssumeRoleWithWebIdentity
 // * static credentials from a Kind=Secret, optionally with doing a AssumeRole.
 // * sdk default provider chain, see: https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default
-func NewGeneratorSession(ctx context.Context, auth esv1beta1.AWSAuth, role, region string, kube client.Client, namespace string, assumeRoler STSProvider, jwtProvider jwtProviderFactory) (*session.Session, error) {
+func NewGeneratorSession(ctx context.Context, auth esv1.AWSAuth, role, region string, kube client.Client, namespace string, assumeRoler STSProvider, jwtProvider jwtProviderFactory) (*session.Session, error) {
 	var creds *credentials.Credentials
 	var err error
 
@@ -208,7 +208,7 @@ func NewGeneratorSession(ctx context.Context, auth esv1beta1.AWSAuth, role, regi
 // construct a aws.Credentials object
 // The namespace of the external secret is used if the ClusterSecretStore does not specify a namespace (referentAuth)
 // If the ClusterSecretStore defines a namespace it will take precedence.
-func credsFromSecretRef(ctx context.Context, auth esv1beta1.AWSAuth, storeKind string, kube client.Client, namespace string) (*credentials.Credentials, error) {
+func credsFromSecretRef(ctx context.Context, auth esv1.AWSAuth, storeKind string, kube client.Client, namespace string) (*credentials.Credentials, error) {
 	sak, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &auth.SecretRef.SecretAccessKey)
 	if err != nil {
 		return nil, fmt.Errorf(errFetchSAKSecret, err)
@@ -234,7 +234,7 @@ func credsFromSecretRef(ctx context.Context, auth esv1beta1.AWSAuth, storeKind s
 // in the ServiceAccount annotation.
 // If the ClusterSecretStore does not define a namespace it will use the namespace from the ExternalSecret (referentAuth).
 // If the ClusterSecretStore defines the namespace it will take precedence.
-func credsFromServiceAccount(ctx context.Context, auth esv1beta1.AWSAuth, region string, isClusterKind bool, kube client.Client, namespace string, jwtProvider jwtProviderFactory) (*credentials.Credentials, error) {
+func credsFromServiceAccount(ctx context.Context, auth esv1.AWSAuth, region string, isClusterKind bool, kube client.Client, namespace string, jwtProvider jwtProviderFactory) (*credentials.Credentials, error) {
 	name := auth.JWTAuth.ServiceAccountRef.Name
 	if isClusterKind && auth.JWTAuth.ServiceAccountRef.Namespace != nil {
 		namespace = *auth.JWTAuth.ServiceAccountRef.Namespace

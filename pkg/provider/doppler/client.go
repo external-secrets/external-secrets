@@ -26,7 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	dClient "github.com/external-secrets/external-secrets/pkg/provider/doppler/client"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -55,7 +55,7 @@ type Client struct {
 	format          string
 
 	kube      kclient.Client
-	store     *esv1beta1.DopplerProvider
+	store     *esv1.DopplerProvider
 	namespace string
 	storeKind string
 }
@@ -83,22 +83,22 @@ func (c *Client) setAuth(ctx context.Context) error {
 	return nil
 }
 
-func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
+func (c *Client) Validate() (esv1.ValidationResult, error) {
 	timeout := 15 * time.Second
 	clientURL := c.doppler.BaseURL().String()
 
 	if err := utils.NetworkValidate(clientURL, timeout); err != nil {
-		return esv1beta1.ValidationResultError, err
+		return esv1.ValidationResultError, err
 	}
 
 	if err := c.doppler.Authenticate(); err != nil {
-		return esv1beta1.ValidationResultError, err
+		return esv1.ValidationResultError, err
 	}
 
-	return esv1beta1.ValidationResultReady, nil
+	return esv1.ValidationResultReady, nil
 }
 
-func (c *Client) DeleteSecret(_ context.Context, ref esv1beta1.PushSecretRemoteRef) error {
+func (c *Client) DeleteSecret(_ context.Context, ref esv1.PushSecretRemoteRef) error {
 	request := dClient.UpdateSecretsRequest{
 		ChangeRequests: []dClient.Change{
 			{
@@ -119,11 +119,11 @@ func (c *Client) DeleteSecret(_ context.Context, ref esv1beta1.PushSecretRemoteR
 	return nil
 }
 
-func (c *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (c *Client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New("not implemented")
 }
 
-func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	value := secret.Data[data.GetSecretKey()]
 
 	request := dClient.UpdateSecretsRequest{
@@ -142,7 +142,7 @@ func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1b
 	return nil
 }
 
-func (c *Client) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (c *Client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	request := dClient.SecretRequest{
 		Name:    ref.Key,
 		Project: c.project,
@@ -157,7 +157,7 @@ func (c *Client) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRe
 	return []byte(secret.Value), nil
 }
 
-func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := c.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -182,7 +182,7 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 	return secretData, nil
 }
 
-func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	secrets, err := c.getSecrets(ctx)
 	selected := map[string][]byte{}
 

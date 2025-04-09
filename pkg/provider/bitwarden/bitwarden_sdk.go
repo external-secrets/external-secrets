@@ -23,8 +23,9 @@ import (
 	"net/http"
 	"strings"
 
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 // Defined Header Keys.

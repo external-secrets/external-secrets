@@ -23,7 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
@@ -51,7 +51,7 @@ func setKubernetesAuthToken(ctx context.Context, v *client) (bool, error) {
 	return false, nil
 }
 
-func (c *client) requestTokenWithKubernetesAuth(ctx context.Context, kubernetesAuth *esv1beta1.VaultKubernetesAuth) error {
+func (c *client) requestTokenWithKubernetesAuth(ctx context.Context, kubernetesAuth *esv1.VaultKubernetesAuth) error {
 	jwtString, err := getJwtString(ctx, c, kubernetesAuth)
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func (c *client) requestTokenWithKubernetesAuth(ctx context.Context, kubernetesA
 	return nil
 }
 
-func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1beta1.VaultKubernetesAuth) (string, error) {
+func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1.VaultKubernetesAuth) (string, error) {
 	if kubernetesAuth.ServiceAccountRef != nil {
 		// Kubernetes >=v1.24: fetch token via TokenRequest API
 		// note: this is a massive change from vault perspective: the `iss` claim will very likely change.
@@ -124,7 +124,7 @@ func (c *client) secretKeyRefForServiceAccount(ctx context.Context, serviceAccou
 		Namespace: c.namespace,
 		Name:      serviceAccountRef.Name,
 	}
-	if (c.storeKind == esv1beta1.ClusterSecretStoreKind) &&
+	if (c.storeKind == esv1.ClusterSecretStoreKind) &&
 		(serviceAccountRef.Namespace != nil) {
 		ref.Namespace = *serviceAccountRef.Namespace
 	}

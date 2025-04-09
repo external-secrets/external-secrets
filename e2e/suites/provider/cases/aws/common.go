@@ -23,7 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmetav1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -48,12 +48,12 @@ func MountedIRSAStoreName(f *framework.Framework) string {
 }
 
 func UseClusterSecretStore(tc *framework.TestCase) {
-	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1beta1.ClusterSecretStoreKind
+	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1.ClusterSecretStoreKind
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = ReferencedIRSAStoreName(tc.Framework)
 }
 
 func UseMountedIRSAStore(tc *framework.TestCase) {
-	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1beta1.SecretStoreKind
+	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1.SecretStoreKind
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = MountedIRSAStoreName(tc.Framework)
 }
 
@@ -66,16 +66,16 @@ const (
 	staticySessionToken   = "st"
 )
 
-func newStaticStoreProvider(serviceType esv1beta1.AWSServiceType, region, secretName, role, externalID string, sessionTags []*esv1beta1.Tag) *esv1beta1.SecretStoreProvider {
-	return &esv1beta1.SecretStoreProvider{
-		AWS: &esv1beta1.AWSProvider{
+func newStaticStoreProvider(serviceType esv1.AWSServiceType, region, secretName, role, externalID string, sessionTags []*esv1.Tag) *esv1.SecretStoreProvider {
+	return &esv1.SecretStoreProvider{
+		AWS: &esv1.AWSProvider{
 			Service:     serviceType,
 			Region:      region,
 			Role:        role,
 			ExternalID:  externalID,
 			SessionTags: sessionTags,
-			Auth: esv1beta1.AWSAuth{
-				SecretRef: &esv1beta1.AWSAuthSecretRef{
+			Auth: esv1.AWSAuth{
+				SecretRef: &esv1.AWSAuthSecretRef{
 					AccessKeyID: esmetav1.SecretKeySelector{
 						Name: secretName,
 						Key:  staticKeyID,
@@ -104,7 +104,7 @@ type AccessOpts struct {
 
 // SetupSessionTagsStore is namespaced and references
 // static credentials from a secret. It assumes a Role and specifies session tags
-func SetupSessionTagsStore(f *framework.Framework, access AccessOpts, sessionTags []*esv1beta1.Tag, serviceType esv1beta1.AWSServiceType) {
+func SetupSessionTagsStore(f *framework.Framework, access AccessOpts, sessionTags []*esv1.Tag, serviceType esv1.AWSServiceType) {
 	credsName := "provider-secret-sess-tags"
 	awsCreds := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -120,12 +120,12 @@ func SetupSessionTagsStore(f *framework.Framework, access AccessOpts, sessionTag
 	err := f.CRClient.Create(context.Background(), awsCreds)
 	Expect(err).ToNot(HaveOccurred())
 
-	secretStore := &esv1beta1.SecretStore{
+	secretStore := &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      SessionTagsStoreName,
 			Namespace: f.Namespace.Name,
 		},
-		Spec: esv1beta1.SecretStoreSpec{
+		Spec: esv1.SecretStoreSpec{
 			Provider: newStaticStoreProvider(serviceType, access.Region, credsName, access.Role, "", sessionTags),
 		},
 	}
@@ -135,7 +135,7 @@ func SetupSessionTagsStore(f *framework.Framework, access AccessOpts, sessionTag
 
 // SetupExternalIDStore is namespaced and references
 // static credentials from a secret. It assumes a role and specifies an externalID
-func SetupExternalIDStore(f *framework.Framework, access AccessOpts, externalID string, sessionTags []*esv1beta1.Tag, serviceType esv1beta1.AWSServiceType) {
+func SetupExternalIDStore(f *framework.Framework, access AccessOpts, externalID string, sessionTags []*esv1.Tag, serviceType esv1.AWSServiceType) {
 	credsName := "provider-secret-ext-id"
 	awsCreds := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -151,12 +151,12 @@ func SetupExternalIDStore(f *framework.Framework, access AccessOpts, externalID 
 	err := f.CRClient.Create(context.Background(), awsCreds)
 	Expect(err).ToNot(HaveOccurred())
 
-	secretStore := &esv1beta1.SecretStore{
+	secretStore := &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      ExternalIDStoreName,
 			Namespace: f.Namespace.Name,
 		},
-		Spec: esv1beta1.SecretStoreSpec{
+		Spec: esv1.SecretStoreSpec{
 			Provider: newStaticStoreProvider(serviceType, access.Region, credsName, access.Role, externalID, sessionTags),
 		},
 	}
@@ -166,7 +166,7 @@ func SetupExternalIDStore(f *framework.Framework, access AccessOpts, externalID 
 
 // SetupStaticStore is namespaced and references
 // static credentials from a secret.
-func SetupStaticStore(f *framework.Framework, access AccessOpts, serviceType esv1beta1.AWSServiceType) {
+func SetupStaticStore(f *framework.Framework, access AccessOpts, serviceType esv1.AWSServiceType) {
 	awsCreds := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      StaticCredentialsSecretName,
@@ -181,12 +181,12 @@ func SetupStaticStore(f *framework.Framework, access AccessOpts, serviceType esv
 	err := f.CRClient.Create(context.Background(), awsCreds)
 	Expect(err).ToNot(HaveOccurred())
 
-	secretStore := &esv1beta1.SecretStore{
+	secretStore := &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      StaticStoreName,
 			Namespace: f.Namespace.Name,
 		},
-		Spec: esv1beta1.SecretStoreSpec{
+		Spec: esv1.SecretStoreSpec{
 			Provider: newStaticStoreProvider(serviceType, access.Region, StaticCredentialsSecretName, "", "", nil),
 		},
 	}
@@ -196,7 +196,7 @@ func SetupStaticStore(f *framework.Framework, access AccessOpts, serviceType esv
 
 // CreateReferentStaticStore creates a CSS with referent auth and
 // creates a secret with static authentication credentials in the ExternalSecret namespace.
-func CreateReferentStaticStore(f *framework.Framework, access AccessOpts, serviceType esv1beta1.AWSServiceType) {
+func CreateReferentStaticStore(f *framework.Framework, access AccessOpts, serviceType esv1.AWSServiceType) {
 	ns := f.Namespace.Name
 
 	awsCreds := &corev1.Secret{
@@ -213,11 +213,11 @@ func CreateReferentStaticStore(f *framework.Framework, access AccessOpts, servic
 	err := f.CRClient.Create(context.Background(), awsCreds)
 	Expect(err).ToNot(HaveOccurred())
 
-	secretStore := &esv1beta1.ClusterSecretStore{
+	secretStore := &esv1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: ReferentSecretStoreName(f),
 		},
-		Spec: esv1beta1.SecretStoreSpec{
+		Spec: esv1.SecretStoreSpec{
 			Provider: newStaticStoreProvider(serviceType, access.Region, StaticReferentCredentialsSecretName, "", "", nil),
 		},
 	}

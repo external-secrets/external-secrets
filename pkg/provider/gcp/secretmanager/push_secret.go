@@ -23,7 +23,7 @@ import (
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/tidwall/sjson"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
@@ -42,7 +42,7 @@ type PushSecretMetadataSpec struct {
 	CMEKKeyName string                        `json:"cmekKeyName,omitempty"`
 }
 
-func newPushSecretBuilder(payload []byte, data esv1beta1.PushSecretData) (pushSecretBuilder, error) {
+func newPushSecretBuilder(payload []byte, data esv1.PushSecretData) (pushSecretBuilder, error) {
 	if data.GetProperty() == "" {
 		return &psBuilder{
 			payload:        payload,
@@ -68,7 +68,7 @@ type pushSecretBuilder interface {
 
 type psBuilder struct {
 	payload        []byte
-	pushSecretData esv1beta1.PushSecretData
+	pushSecretData esv1.PushSecretData
 }
 
 func (b *psBuilder) buildMetadata(_, labels map[string]string, _ []*secretmanagerpb.Topic) (map[string]string, map[string]string, []string, error) {
@@ -115,7 +115,7 @@ func (b *psBuilder) buildData(_ []byte) ([]byte, error) {
 
 type propertyPSBuilder struct {
 	payload        []byte
-	pushSecretData esv1beta1.PushSecretData
+	pushSecretData esv1.PushSecretData
 }
 
 func (b *propertyPSBuilder) buildMetadata(annotations, labels map[string]string, topics []*secretmanagerpb.Topic) (map[string]string, map[string]string, []string, error) {

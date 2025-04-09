@@ -34,8 +34,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/crds"
 )
 
@@ -48,7 +48,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	// external-secrets schemes
-	utilruntime.Must(esv1beta1.AddToScheme(scheme))
+	utilruntime.Must(esv1.AddToScheme(scheme))
 	utilruntime.Must(esv1alpha1.AddToScheme(scheme))
 }
 
@@ -123,16 +123,16 @@ var webhookCmd = &cobra.Command{
 			setupLog.Error(err, "unable to start manager")
 			os.Exit(1)
 		}
-		if err = (&esv1beta1.ExternalSecret{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, errCreateWebhook, "webhook", "ExternalSecret-v1beta1")
+		if err = (&esv1.ExternalSecret{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, errCreateWebhook, "webhook", "ExternalSecret-v1")
 			os.Exit(1)
 		}
-		if err = (&esv1beta1.SecretStore{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, errCreateWebhook, "webhook", "SecretStore-v1beta1")
+		if err = (&esv1.SecretStore{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, errCreateWebhook, "webhook", "SecretStore-v1")
 			os.Exit(1)
 		}
-		if err = (&esv1beta1.ClusterSecretStore{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, errCreateWebhook, "webhook", "ClusterSecretStore-v1beta1")
+		if err = (&esv1.ClusterSecretStore{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, errCreateWebhook, "webhook", "ClusterSecretStore-v1")
 			os.Exit(1)
 		}
 

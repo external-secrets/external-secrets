@@ -23,7 +23,7 @@ import (
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -31,14 +31,14 @@ type client struct {
 	api secretAPI
 }
 
-var _ esv1beta1.SecretsClient = &client{}
+var _ esv1.SecretsClient = &client{}
 
 // GetSecret supports two types:
 //  1. get the full secret as json-encoded value
 //     by leaving the ref.Property empty.
 //  2. get a key from the secret.
 //     Nested values are supported by specifying a gjson expression
-func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	secret, err := c.getSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -58,29 +58,29 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	// extract key from secret using gjson
 	val := gjson.Get(string(jsonStr), ref.Property)
 	if !val.Exists() {
-		return nil, esv1beta1.NoSecretError{}
+		return nil, esv1.NoSecretError{}
 	}
 	return []byte(val.String()), nil
 }
 
-func (c *client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
+func (c *client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
 	return errors.New("pushing secrets is not supported by Delinea DevOps Secrets Vault")
 }
 
-func (c *client) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
+func (c *client) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	return errors.New("deleting secrets is not supported by Delinea DevOps Secrets Vault")
 }
 
-func (c *client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (c *client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New("not implemented")
 }
 
-func (c *client) Validate() (esv1beta1.ValidationResult, error) {
-	return esv1beta1.ValidationResultReady, nil
+func (c *client) Validate() (esv1.ValidationResult, error) {
+	return esv1.ValidationResultReady, nil
 }
 
 // GetSecret gets the full secret as json-encoded value.
-func (c *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	secret, err := c.getSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -97,7 +97,7 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 }
 
 // GetAllSecrets lists secrets matching the given criteria and return their latest versions.
-func (c *client) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (c *client) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, errors.New("getting all secrets is not supported by Delinea DevOps Secrets Vault")
 }
 
@@ -106,7 +106,7 @@ func (c *client) Close(context.Context) error {
 }
 
 // getSecret retrieves the secret referenced by ref from the Vault API.
-func (c *client) getSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (*vault.Secret, error) {
+func (c *client) getSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (*vault.Secret, error) {
 	if ref.Version != "" {
 		return nil, errors.New("specifying a version is not yet supported")
 	}

@@ -39,7 +39,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	awsutil "github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
@@ -150,7 +150,7 @@ func (p authTokenFetcher) FetchToken(ctx credentials.Context) ([]byte, error) {
 // in the ServiceAccount annotation.
 // If the ClusterSecretStore does not define a namespace it will use the namespace from the ExternalSecret (referentAuth).
 // If the ClusterSecretStore defines the namespace it will take precedence.
-func CredsFromServiceAccount(ctx context.Context, auth esv1beta1.VaultIamAuth, region string, isClusterKind bool, kube kclient.Client, namespace string, jwtProvider util.JwtProviderFactory) (*credentials.Credentials, error) {
+func CredsFromServiceAccount(ctx context.Context, auth esv1.VaultIamAuth, region string, isClusterKind bool, kube kclient.Client, namespace string, jwtProvider util.JwtProviderFactory) (*credentials.Credentials, error) {
 	name := auth.JWTAuth.ServiceAccountRef.Name
 	if isClusterKind && auth.JWTAuth.ServiceAccountRef.Namespace != nil {
 		namespace = *auth.JWTAuth.ServiceAccountRef.Namespace
@@ -226,7 +226,7 @@ func CredsFromControllerServiceAccount(ctx context.Context, saname, ns, region s
 // construct a aws.Credentials object
 // The namespace of the external secret is used if the ClusterSecretStore does not specify a namespace (referentAuth)
 // If the ClusterSecretStore defines a namespace it will take precedence.
-func CredsFromSecretRef(ctx context.Context, auth esv1beta1.VaultIamAuth, storeKind string, kube kclient.Client, namespace string) (*credentials.Credentials, error) {
+func CredsFromSecretRef(ctx context.Context, auth esv1.VaultIamAuth, storeKind string, kube kclient.Client, namespace string) (*credentials.Credentials, error) {
 	akid, err := resolvers.SecretKeyRef(
 		ctx,
 		kube,
