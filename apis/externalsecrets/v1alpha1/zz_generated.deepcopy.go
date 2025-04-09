@@ -19,7 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	externalsecretsv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -359,7 +359,7 @@ func (in *PushSecretSelector) DeepCopyInto(out *PushSecretSelector) {
 	}
 	if in.GeneratorRef != nil {
 		in, out := &in.GeneratorRef, &out.GeneratorRef
-		*out = new(v1beta1.GeneratorRef)
+		*out = new(externalsecretsv1.GeneratorRef)
 		**out = **in
 	}
 }
@@ -399,7 +399,7 @@ func (in *PushSecretSpec) DeepCopyInto(out *PushSecretSpec) {
 	}
 	if in.Template != nil {
 		in, out := &in.Template, &out.Template
-		*out = new(v1beta1.ExternalSecretTemplate)
+		*out = new(externalsecretsv1.ExternalSecretTemplate)
 		(*in).DeepCopyInto(*out)
 	}
 }

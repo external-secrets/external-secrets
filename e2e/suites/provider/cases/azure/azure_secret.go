@@ -19,7 +19,7 @@ import (
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
-	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 const (
@@ -53,9 +53,6 @@ var _ = Describe("[azure]", Label("azure", "keyvault", "secret"), func() {
 
 func useStaticCredentials(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = tc.Framework.Namespace.Name
-	if tc.ExternalSecretV1Alpha1 != nil {
-		tc.ExternalSecretV1Alpha1.Spec.SecretStoreRef.Name = tc.Framework.Namespace.Name
-	}
 }
 
 func useReferentAuth(tc *framework.TestCase) {

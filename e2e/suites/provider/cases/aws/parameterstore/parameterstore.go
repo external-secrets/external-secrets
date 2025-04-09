@@ -22,7 +22,7 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	awscommon "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/aws"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
-	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 const (
@@ -67,9 +67,6 @@ var _ = Describe("[aws] ", Label("aws", "parameterstore"), func() {
 
 func useStaticAuth(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = awscommon.StaticStoreName
-	if tc.ExternalSecretV1Alpha1 != nil {
-		tc.ExternalSecretV1Alpha1.Spec.SecretStoreRef.Name = awscommon.StaticStoreName
-	}
 }
 
 func useReferentStaticAuth(tc *framework.TestCase) {

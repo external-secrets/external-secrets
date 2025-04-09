@@ -245,8 +245,8 @@ string
 <td>
 <code>sessionTags</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.*github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1.Tag">
-[]*github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1.Tag
+<a href="#external-secrets.io/v1beta1.*github.com/external-secrets/external-secrets/apis/externalsecrets/v1.Tag">
+[]*github.com/external-secrets/external-secrets/apis/externalsecrets/v1.Tag
 </a>
 </em>
 </td>
