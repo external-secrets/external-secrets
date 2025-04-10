@@ -120,7 +120,9 @@ func generateAdditionalObjects(tc *TestCase) {
 }
 
 func createProvidedExternalSecret(tc *TestCase) {
-	// create v1beta1 external secret otherwise
+	if tc.ExternalSecret == nil {
+		return
+	}
 	err := tc.Framework.CRClient.Create(context.Background(), tc.ExternalSecret)
 	Expect(err).ToNot(HaveOccurred())
 }
