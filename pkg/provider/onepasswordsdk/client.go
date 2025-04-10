@@ -47,12 +47,12 @@ func (p *Provider) Close(_ context.Context) error {
 }
 
 // DeleteSecret Not Implemented.
-func (p *Provider) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
+func (p *Provider) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
 	return fmt.Errorf(errOnePasswordSdkStore, errors.New(errNotImplemented))
 }
 
 // GetAllSecrets Not Implemented.
-func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (p *Provider) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, fmt.Errorf(errOnePasswordSdkStore, errors.New(errNotImplemented))
 }
 
@@ -85,12 +85,12 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 }
 
 // PushSecret Not Implemented.
-func (p *Provider) PushSecret(ctx context.Context, secret *v1.Secret, data esv1beta1.PushSecretData) error {
+func (p *Provider) PushSecret(_ context.Context, _ *v1.Secret, _ esv1beta1.PushSecretData) error {
 	return fmt.Errorf(errOnePasswordSdkStore, errors.New(errNotImplemented))
 }
 
 // SecretExists Not Implemented.
-func (p *Provider) SecretExists(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (p *Provider) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
 	return false, fmt.Errorf(errOnePasswordSdkStore, errors.New(errNotImplemented))
 }
 
