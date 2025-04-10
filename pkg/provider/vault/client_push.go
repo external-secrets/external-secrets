@@ -101,7 +101,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		if _, ok := vaultSecret[data.GetProperty()]; ok {
 			d, ok := vaultSecret[data.GetProperty()].(string)
 			if !ok {
-				return fmt.Errorf("error accessing %s on vault secret: %w", data.GetProperty(), err)
+				return fmt.Errorf("error converting %s to string", data.GetProperty())
 			}
 			// If the property has the same value, don't update the secret
 			if bytes.Equal([]byte(d), value) {
