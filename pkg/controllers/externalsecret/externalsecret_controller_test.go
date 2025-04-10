@@ -2404,7 +2404,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 					RefreshTime: metav1.Now(),
 				},
 			}
-			es.Status.SyncedResourceVersion = util.GetResourceVersionExternalSecret(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			// this should not refresh, rv matches object
 			Expect(shouldRefresh(es)).To(BeFalse())
 
@@ -2428,7 +2428,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 					RefreshTime: metav1.Now(),
 				},
 			}
-			es.Status.SyncedResourceVersion = util.GetResourceVersionExternalSecret(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			// this should not refresh, rv matches object
 			Expect(shouldRefresh(es)).To(BeFalse())
 
@@ -2449,7 +2449,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 					RefreshTime: metav1.Now(),
 				},
 			}
-			es.Status.SyncedResourceVersion = util.GetResourceVersionExternalSecret(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeFalse())
 
 			// update gen -> refresh
@@ -2468,7 +2468,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 				Status: esv1beta1.ExternalSecretStatus{},
 			}
 			// resource version matches
-			es.Status.SyncedResourceVersion = util.GetResourceVersionExternalSecret(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeFalse())
 		})
 
@@ -2485,7 +2485,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 				},
 			}
 			// resource version matches
-			es.Status.SyncedResourceVersion = util.GetResourceVersionExternalSecret(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeTrue())
 		})
 
@@ -2500,7 +2500,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 				Status: esv1beta1.ExternalSecretStatus{},
 			}
 			// resource version matches
-			es.Status.SyncedResourceVersion = util.GetResourceVersionExternalSecret(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeTrue())
 		})
 
@@ -2670,7 +2670,7 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 				},
 			}
 			// Set the synced resource version to match the current resource version
-			es.Status.SyncedResourceVersion = util.GetResourceVersionExternalSecret(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeFalse())
 		})
 
@@ -2690,7 +2690,7 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 				},
 			}
 			// Set the synced resource version to match the current resource version
-			es.Status.SyncedResourceVersion = util.GetResourceVersionExternalSecret(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeFalse())
 
 			es.Annotations["foo"] = "bar1"
@@ -2718,12 +2718,13 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 				},
 			}
 			// Set the synced resource version to match the current resource version
-			es.Status.SyncedResourceVersion = util.GetResourceVersionExternalSecret(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 
 			// Initially should not refresh
 			Expect(shouldRefresh(es)).To(BeFalse())
 
 			// Update the spec by adding a new data item
+			es.ObjectMeta.Generation = 2
 			es.Spec.Data = append(es.Spec.Data, esv1beta1.ExternalSecretData{
 				SecretKey: "key2",
 				RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
@@ -2750,7 +2751,7 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 					RefreshTime: metav1.Now(),
 				},
 			}
-			es.Status.SyncedResourceVersion = util.GetResourceVersionExternalSecret(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeFalse())
 
 			// When refresh interval has passed
@@ -2774,7 +2775,7 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 				},
 			}
 			// Set the synced resource version to match the current resource version
-			es.Status.SyncedResourceVersion = util.GetResourceVersionExternalSecret(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeFalse())
 		})
 
@@ -2809,7 +2810,7 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 				},
 			}
 			// Resource version matches
-			es.Status.SyncedResourceVersion = util.GetResourceVersionExternalSecret(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeTrue())
 		})
 
@@ -2825,7 +2826,7 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 				Status: esv1beta1.ExternalSecretStatus{},
 			}
 			// Resource version matches
-			es.Status.SyncedResourceVersion = util.GetResourceVersionExternalSecret(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeTrue())
 		})
 
@@ -2843,7 +2844,7 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 				},
 			}
 			// Resource version matches
-			es.Status.SyncedResourceVersion = util.GetResourceVersionExternalSecret(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeTrue())
 		})
 
@@ -2869,9 +2870,10 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 					RefreshTime:           metav1.NewTime(metav1.Now().Add(-time.Second * 5)),
 				},
 			}
-			es.Status.SyncedResourceVersion = util.GetResourceVersionExternalSecret(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeFalse())
 
+			es.ObjectMeta.Generation = 2
 			es.Spec.Data = append(es.Spec.Data, esv1beta1.ExternalSecretData{
 				SecretKey: "key2",
 				RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
@@ -2905,10 +2907,11 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 				},
 			}
 			// Set the synced resource version to match the current resource version
-			es.Status.SyncedResourceVersion = util.GetResourceVersionExternalSecret(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeFalse())
 
 			// Update the spec by adding a new data item
+			es.ObjectMeta.Generation = 2
 			es.Spec.Data = append(es.Spec.Data, esv1beta1.ExternalSecretData{
 				SecretKey: "key2",
 				RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
@@ -2941,7 +2944,7 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 				},
 			}
 			// Set the synced resource version to match the current resource version
-			es.Status.SyncedResourceVersion = util.GetResourceVersionExternalSecret(es)
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
 			Expect(shouldRefresh(es)).To(BeFalse())
 
 			// Update labels and annotations

@@ -575,7 +575,7 @@ func (r *Reconciler) markAsDone(externalSecret *esv1beta1.ExternalSecret, start 
 	SetExternalSecretCondition(externalSecret, *newReadyCondition)
 
 	externalSecret.Status.RefreshTime = metav1.NewTime(start)
-	externalSecret.Status.SyncedResourceVersion = util.GetResourceVersionExternalSecret(externalSecret)
+	externalSecret.Status.SyncedResourceVersion = util.GetResourceVersion(externalSecret.ObjectMeta)
 
 	// if the status or reason has changed, log at the appropriate verbosity level
 	if oldReadyCondition == nil || oldReadyCondition.Status != newReadyCondition.Status || oldReadyCondition.Reason != newReadyCondition.Reason {
@@ -868,9 +868,10 @@ func shouldRefresh(es *esv1beta1.ExternalSecret) bool {
 			return true
 		}
 
-		return es.Status.SyncedResourceVersion != util.GetResourceVersionExternalSecret(es)
+		return es.Status.SyncedResourceVersion != util.GetResourceVersion(es.ObjectMeta)
 
-	// for Periodic, we should refresh if the refresh interval is 0, and we have synced previously
+	case esv1beta1.RefreshPolicyPeriodic:
+		fallthrough
 	default:
 		// if the refresh interval is 0, and we have synced previously, we should not refresh
 		if es.Spec.RefreshInterval.Duration <= 0 && es.Status.SyncedResourceVersion != "" {
@@ -878,7 +879,7 @@ func shouldRefresh(es *esv1beta1.ExternalSecret) bool {
 		}
 
 		// if the ExternalSecret has been updated, we should refresh
-		if es.Status.SyncedResourceVersion != util.GetResourceVersionExternalSecret(es) {
+		if es.Status.SyncedResourceVersion != util.GetResourceVersion(es.ObjectMeta) {
 			return true
 		}
 
