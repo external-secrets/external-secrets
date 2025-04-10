@@ -57,7 +57,6 @@ var _ = Describe("[gcp]", Label("gcp", "secretsmanager"), func() {
 		framework.Compose(withStaticAuth, f, common.FindByNameWithPath, useStaticAuth),
 		framework.Compose(withStaticAuth, f, common.FindByTag, useStaticAuth),
 		framework.Compose(withStaticAuth, f, common.FindByTagWithPath, useStaticAuth),
-		framework.Compose(withStaticAuth, f, common.SyncV1Alpha1, useStaticAuth),
 		framework.Compose(withStaticAuth, f, p12Cert, useStaticAuth),
 
 		// referent auth
@@ -172,8 +171,8 @@ x6HaRh+EUwU51von6M9lEF9/p5Q=
 			Type:          v1.SecretTypeTLS,
 			EngineVersion: esv1.TemplateEngineV2,
 			Data: map[string]string{
-				"tls.crt": "{{ .mysecret | pkcs12cert | pemCertificate }}",
-				"tls.key": "{{ .mysecret | pkcs12key | pemPrivateKey }}",
+				"tls.crt": "{{ .mysecret | pkcs12cert }}",
+				"tls.key": "{{ .mysecret | pkcs12key }}",
 			},
 		}
 	}

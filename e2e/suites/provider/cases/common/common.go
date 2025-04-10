@@ -38,28 +38,6 @@ const (
 	secretValue2 = "{\"foo2\":\"foo2-val\",\"bar2\":\"bar2-val\"}"
 )
 
-// This case creates one secret with json values and syncs them using a single .Spec.DataFrom block.
-func SyncV1Alpha1(f *framework.Framework) (string, func(*framework.TestCase)) {
-	return "[common] should sync secrets from v1alpha1 spec", func(tc *framework.TestCase) {
-		secretKey1 := fmt.Sprintf("%s-%s", f.Namespace.Name, "one")
-		targetSecretKey1 := "alpha-name"
-		targetSecretValue1 := "alpha-great-name"
-		targetSecretKey2 := "alpha-surname"
-		targetSecretValue2 := "alpha-great-surname"
-		secretValue := fmt.Sprintf("{ %q: %q, %q: %q }", targetSecretKey1, targetSecretValue1, targetSecretKey2, targetSecretValue2)
-		tc.Secrets = map[string]framework.SecretEntry{
-			secretKey1: {Value: secretValue},
-		}
-		tc.ExpectedSecret = &v1.Secret{
-			Type: v1.SecretTypeOpaque,
-			Data: map[string][]byte{
-				targetSecretKey1: []byte(targetSecretValue1),
-				targetSecretKey2: []byte(targetSecretValue2),
-			},
-		}
-	}
-}
-
 // This case creates multiple secrets with simple key/value pairs and syncs them using multiple .Spec.Data blocks.
 // Not supported by: vault.
 func SimpleDataSync(f *framework.Framework) (string, func(*framework.TestCase)) {

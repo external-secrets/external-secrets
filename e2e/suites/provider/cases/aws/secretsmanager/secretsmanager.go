@@ -54,7 +54,6 @@ var _ = Describe("[aws] ", Label("aws", "secretsmanager"), func() {
 		framework.Compose(withStaticAuth, f, common.FindByNameWithPath, useStaticAuth),
 		framework.Compose(withStaticAuth, f, common.FindByTag, useStaticAuth),
 		framework.Compose(withStaticAuth, f, common.FindByTagWithPath, useStaticAuth),
-		framework.Compose(withStaticAuth, f, common.SyncV1Alpha1, useStaticAuth),
 		framework.Compose(withStaticAuth, f, common.DeletionPolicyDelete, useStaticAuth),
 
 		// referent auth

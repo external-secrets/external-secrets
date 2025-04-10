@@ -45,7 +45,6 @@ var _ = Describe("[azure]", Label("azure", "keyvault", "secret"), func() {
 		framework.Compose(withStaticCredentials, f, common.SSHKeySyncDataProperty, useStaticCredentials),
 		framework.Compose(withStaticCredentials, f, common.SyncWithoutTargetName, useStaticCredentials),
 		framework.Compose(withStaticCredentials, f, common.JSONDataWithoutTargetName, useStaticCredentials),
-		framework.Compose(withStaticCredentials, f, common.SyncV1Alpha1, useStaticCredentials),
 
 		framework.Compose(withStaticCredentials, f, common.SimpleDataSync, useReferentAuth),
 	)

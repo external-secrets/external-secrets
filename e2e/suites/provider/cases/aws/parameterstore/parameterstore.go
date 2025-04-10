@@ -50,7 +50,6 @@ var _ = Describe("[aws] ", Label("aws", "parameterstore"), func() {
 		framework.Compose(withStaticAuth, f, common.SyncWithoutTargetName, useStaticAuth),
 		framework.Compose(withStaticAuth, f, common.JSONDataWithoutTargetName, useStaticAuth),
 
-		framework.Compose(withStaticAuth, f, common.SyncV1Alpha1, useStaticAuth),
 		framework.Compose(withStaticAuth, f, common.DeletionPolicyDelete, useStaticAuth),
 
 		// referent auth
