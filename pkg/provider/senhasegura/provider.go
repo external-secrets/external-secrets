@@ -123,5 +123,5 @@ Register SenhaseguraProvider in ESO init.
 func init() {
 	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
 		Senhasegura: &esv1.SenhaseguraProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }

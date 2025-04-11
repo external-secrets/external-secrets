@@ -131,7 +131,7 @@ type PushSecretMetadataSpec struct {
 func init() {
 	esv1.Register(&Azure{}, &esv1.SecretStoreProvider{
 		AzureKV: &esv1.AzureKVProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).

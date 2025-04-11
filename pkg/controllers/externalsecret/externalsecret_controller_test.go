@@ -2577,7 +2577,7 @@ func init() {
 		AWS: &esv1.AWSProvider{
 			Service: esv1.AWSServiceSecretsManager,
 		},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 
 	ctrlmetrics.SetUpLabelNames(false)
 	esmetrics.SetUpMetrics()

@@ -39,7 +39,7 @@ import (
 )
 
 func init() {
-	esv1.Register(NewProvider(), &esv1.SecretStoreProvider{CloudruSM: &esv1.CloudruSMProvider{}})
+	esv1.Register(NewProvider(), &esv1.SecretStoreProvider{CloudruSM: &esv1.CloudruSMProvider{}}, esv1.MaintenanceStatusMaintained)
 }
 
 var _ esv1.Provider = &Provider{}

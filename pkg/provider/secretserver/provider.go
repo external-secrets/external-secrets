@@ -175,5 +175,5 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 func init() {
 	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
 		SecretServer: &esv1.SecretServerProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }

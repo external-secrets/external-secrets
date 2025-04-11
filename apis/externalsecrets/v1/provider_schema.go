@@ -30,12 +30,13 @@ func init() {
 
 // Register a store backend type. Register panics if a
 // backend with the same store is already registered.
-func Register(s Provider, storeSpec *SecretStoreProvider) {
+func Register(s Provider, storeSpec *SecretStoreProvider, maintenanceStatus MaintenanceStatus) {
 	storeName, err := getProviderName(storeSpec)
 	if err != nil {
 		panic(fmt.Sprintf("store error registering schema: %s", err.Error()))
 	}
 
+	RegisterMaintenanceStatus(maintenanceStatus, storeSpec)
 	buildlock.Lock()
 	defer buildlock.Unlock()
 	_, exists := builder[storeName]
@@ -48,7 +49,7 @@ func Register(s Provider, storeSpec *SecretStoreProvider) {
 
 // ForceRegister adds to store schema, overwriting a store if
 // already registered. Should only be used for testing.
-func ForceRegister(s Provider, storeSpec *SecretStoreProvider) {
+func ForceRegister(s Provider, storeSpec *SecretStoreProvider, maintenanceStatus MaintenanceStatus) {
 	storeName, err := getProviderName(storeSpec)
 	if err != nil {
 		panic(fmt.Sprintf("store error registering schema: %s", err.Error()))
@@ -57,6 +58,7 @@ func ForceRegister(s Provider, storeSpec *SecretStoreProvider) {
 	buildlock.Lock()
 	builder[storeName] = s
 	buildlock.Unlock()
+	RegisterMaintenanceStatus(maintenanceStatus, storeSpec)
 }
 
 // GetProviderByName returns the provider implementation by name.

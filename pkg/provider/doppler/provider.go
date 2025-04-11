@@ -45,7 +45,7 @@ var _ esv1.Provider = &Provider{}
 func init() {
 	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
 		Doppler: &esv1.DopplerProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }
 
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {

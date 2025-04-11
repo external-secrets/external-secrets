@@ -169,5 +169,5 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 func init() {
 	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
 		Scaleway: &esv1.ScalewayProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }

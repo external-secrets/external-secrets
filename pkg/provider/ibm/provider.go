@@ -686,7 +686,7 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1.GenericStore, 
 func init() {
 	esv1.Register(&providerIBM{}, &esv1.SecretStoreProvider{
 		IBM: &esv1.IBMProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }
 
 // populateSecretMap populates the secretMap with metadata information that is pulled from IBM provider.

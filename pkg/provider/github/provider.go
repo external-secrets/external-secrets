@@ -41,7 +41,7 @@ var _ esv1.Provider = &Provider{}
 func init() {
 	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
 		Github: &esv1.GithubProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).

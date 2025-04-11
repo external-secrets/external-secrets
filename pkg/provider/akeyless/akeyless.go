@@ -94,7 +94,7 @@ type akeylessVaultInterface interface {
 func init() {
 	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
 		Akeyless: &esv1.AkeylessProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).

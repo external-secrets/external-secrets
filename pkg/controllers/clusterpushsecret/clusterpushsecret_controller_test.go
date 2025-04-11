@@ -42,7 +42,7 @@ func init() {
 	fakeProvider = fake.New()
 	esv1.ForceRegister(fakeProvider, &esv1.SecretStoreProvider{
 		Fake: &esv1.FakeProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }
 
 var (

@@ -428,5 +428,5 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 func init() {
 	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
 		Beyondtrust: &esv1.BeyondtrustProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }

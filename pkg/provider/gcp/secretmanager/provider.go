@@ -41,7 +41,7 @@ var _ esv1.Provider = &Provider{}
 func init() {
 	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
 		GCPSM: &esv1.GCPSMProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }
 
 /*

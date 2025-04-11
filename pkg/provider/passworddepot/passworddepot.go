@@ -183,5 +183,5 @@ func (p *PasswordDepot) Close(_ context.Context) error {
 func init() {
 	esv1.Register(&PasswordDepot{}, &esv1.SecretStoreProvider{
 		PasswordDepot: &esv1.PasswordDepotProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }

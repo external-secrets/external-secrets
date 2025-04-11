@@ -783,5 +783,5 @@ func hasUniqueVaultNumbers(vaults map[string]int) bool {
 func init() {
 	esv1.Register(&ProviderOnePassword{}, &esv1.SecretStoreProvider{
 		OnePassword: &esv1.OnePasswordProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }

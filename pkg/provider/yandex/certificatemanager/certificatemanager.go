@@ -77,5 +77,6 @@ func init() {
 		&esv1.SecretStoreProvider{
 			YandexCertificateManager: &esv1.YandexCertificateManagerProvider{},
 		},
+		esv1.MaintenanceStatusMaintained,
 	)
 }

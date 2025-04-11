@@ -67,5 +67,5 @@ func init() {
 		NewConjurProvider: newConjurProvider,
 	}, &esv1.SecretStoreProvider{
 		Conjur: &esv1.ConjurProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }

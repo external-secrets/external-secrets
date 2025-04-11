@@ -49,7 +49,7 @@ func TestManagerGet(t *testing.T) {
 	fakeProvider := &WrapProvider{}
 	esv1.ForceRegister(fakeProvider, &esv1.SecretStoreProvider{
 		AWS: &esv1.AWSProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 
 	// fake clients are re-used to compare the
 	// in-memory reference

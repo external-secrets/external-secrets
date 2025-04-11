@@ -203,5 +203,5 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 func init() {
 	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
 		AWS: &esv1.AWSProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }

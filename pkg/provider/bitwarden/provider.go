@@ -39,7 +39,7 @@ type Provider struct {
 }
 
 func init() {
-	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{BitwardenSecretsManager: &esv1.BitwardenSecretsManagerProvider{}})
+	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{BitwardenSecretsManager: &esv1.BitwardenSecretsManagerProvider{}}, esv1.MaintenanceStatusMaintained)
 }
 
 // NewClient creates a new Bitwarden Secret Manager client.

@@ -43,7 +43,7 @@ var _ esv1.Provider = &Provider{}
 func init() {
 	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
 		Onboardbase: &esv1.OnboardbaseProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }
 
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {

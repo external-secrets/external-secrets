@@ -64,8 +64,15 @@ func validateStore(store GenericStore) (admission.Warnings, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	return provider.ValidateStore(store)
+	isMaintained, err := GetMaintenanceStatus(store)
+	if err != nil {
+		return nil, err
+	}
+	warns, err := provider.ValidateStore(store)
+	if !isMaintained {
+		warns = append(warns, fmt.Sprintf("store %s isn't currently maintained. Please plan and prepare accordingly.", store.GetName()))
+	}
+	return warns, err
 }
 
 func validateConditions(store GenericStore) error {

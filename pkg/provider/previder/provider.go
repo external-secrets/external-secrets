@@ -40,7 +40,7 @@ type SecretManager struct {
 func init() {
 	esv1.Register(&SecretManager{}, &esv1.SecretStoreProvider{
 		Previder: &esv1.PreviderProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }
 
 func (s *SecretManager) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {

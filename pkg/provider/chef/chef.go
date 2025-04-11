@@ -93,7 +93,7 @@ var _ esv1.Provider = &Providerchef{}
 func init() {
 	esv1.Register(&Providerchef{}, &esv1.SecretStoreProvider{
 		Chef: &esv1.ChefProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }
 
 func (providerchef *Providerchef) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {

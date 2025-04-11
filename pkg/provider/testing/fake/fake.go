@@ -76,7 +76,7 @@ func New() *Client {
 
 // RegisterAs registers the fake client in the schema.
 func (v *Client) RegisterAs(provider *esv1.SecretStoreProvider) {
-	esv1.ForceRegister(v, provider)
+	esv1.ForceRegister(v, provider, esv1.MaintenanceStatusMaintained)
 }
 
 // GetAllSecrets implements the provider.Provider interface.

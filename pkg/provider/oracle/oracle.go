@@ -654,5 +654,5 @@ func sanitizeOCISDKErr(err error) error {
 func init() {
 	esv1.Register(&VaultManagementService{}, &esv1.SecretStoreProvider{
 		Oracle: &esv1.OracleProvider{},
-	})
+	}, esv1.MaintenanceStatusNotMaintained)
 }

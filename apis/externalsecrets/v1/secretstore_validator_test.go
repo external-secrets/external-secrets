@@ -55,7 +55,7 @@ func TestValidateSecretStore(t *testing.T) {
 			mock: func() {
 				ForceRegister(&ValidationProvider{}, &SecretStoreProvider{
 					AWS: &AWSProvider{},
-				})
+				}, MaintenanceStatusMaintained)
 			},
 			assertErr: func(t *testing.T, err error) {
 				require.NoError(t, err)
@@ -78,7 +78,7 @@ func TestValidateSecretStore(t *testing.T) {
 			mock: func() {
 				ForceRegister(&ValidationProvider{}, &SecretStoreProvider{
 					AWS: &AWSProvider{},
-				})
+				}, MaintenanceStatusMaintained)
 			},
 			assertErr: func(t *testing.T, err error) {
 				assert.EqualError(t, err, "failed to compile 0th namespace regex in 0th condition: error parsing regexp: invalid escape sequence: `\\1`")
@@ -101,7 +101,7 @@ func TestValidateSecretStore(t *testing.T) {
 			mock: func() {
 				ForceRegister(&ValidationProvider{}, &SecretStoreProvider{
 					AWS: &AWSProvider{},
-				})
+				}, MaintenanceStatusMaintained)
 			},
 			assertErr: func(t *testing.T, err error) {
 				assert.EqualError(t, err, "failed to compile 0th namespace regex in 0th condition: error parsing regexp: invalid escape sequence: `\\1`\nfailed to compile 1th namespace regex in 0th condition: error parsing regexp: invalid escape sequence: `\\2`")

@@ -77,5 +77,6 @@ func init() {
 		&esv1.SecretStoreProvider{
 			YandexLockbox: &esv1.YandexLockboxProvider{},
 		},
+		esv1.MaintenanceStatusMaintained,
 	)
 }

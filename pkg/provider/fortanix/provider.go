@@ -45,7 +45,7 @@ var _ esv1.Provider = &Provider{}
 func init() {
 	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
 		Fortanix: &esv1.FortanixProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }
 
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {

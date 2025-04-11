@@ -179,5 +179,5 @@ func (p *Device42) Close(_ context.Context) error {
 func init() {
 	esv1.Register(&Device42{}, &esv1.SecretStoreProvider{
 		Device42: &esv1.Device42Provider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }

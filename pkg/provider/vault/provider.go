@@ -307,5 +307,5 @@ func init() {
 		NewVaultClient: NewVaultClient,
 	}, &esv1.SecretStoreProvider{
 		Vault: &esv1.VaultProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }

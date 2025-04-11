@@ -153,5 +153,5 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 func init() {
 	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
 		Pulumi: &esv1.PulumiProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }

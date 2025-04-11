@@ -79,7 +79,7 @@ type Client struct {
 func init() {
 	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
 		Kubernetes: &esv1.KubernetesProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }
 
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {

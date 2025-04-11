@@ -355,5 +355,5 @@ func (kms *KeyManagementService) validateStoreAccessKeyAuth(store esv1.GenericSt
 func init() {
 	esv1.Register(&KeyManagementService{}, &esv1.SecretStoreProvider{
 		Alibaba: &esv1.AlibabaProvider{},
-	})
+	}, esv1.MaintenanceStatusNotMaintained)
 }

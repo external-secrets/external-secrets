@@ -54,7 +54,7 @@ type WebHook struct {
 func init() {
 	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
 		Webhook: &esv1.WebhookProvider{},
-	})
+	}, esv1.MaintenanceStatusMaintained)
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
