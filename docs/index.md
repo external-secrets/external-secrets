@@ -3,7 +3,7 @@
 [![cs-logo](./pictures/cs_logo.png)](https://container-solutions.com)
 [![External Secrets inc.](./pictures/ESI_Logo.svg)](https://externalsecrets.com)
 [![Form3](./pictures/form3_logo.png)](https://www.form3.tech/)
-[![Pento](./pictures/pento_logo.png)](https://pento.io)
+[![Pento](./pictures/pento_logo.png)](https://www.pento.io)
 
 # Introduction
 
