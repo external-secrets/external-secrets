@@ -257,6 +257,7 @@ const (
 	ReasonInvalidProviderConfig = "InvalidProviderConfig"
 	ReasonValidationFailed      = "ValidationFailed"
 	ReasonStoreValid            = "Valid"
+	StoreUnmaintained           = "StoreUnmaintained"
 )
 
 type SecretStoreStatusCondition struct {
