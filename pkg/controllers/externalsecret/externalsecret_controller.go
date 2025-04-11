@@ -870,9 +870,8 @@ func shouldRefresh(es *esv1beta1.ExternalSecret) bool {
 
 		return es.Status.SyncedResourceVersion != util.GetResourceVersion(es.ObjectMeta)
 
-	case esv1beta1.RefreshPolicyPeriodic:
-		fallthrough
 	default:
+		// esv1beta1.RefreshPolicyPeriodic:
 		// if the refresh interval is 0, and we have synced previously, we should not refresh
 		if es.Spec.RefreshInterval.Duration <= 0 && es.Status.SyncedResourceVersion != "" {
 			return false
