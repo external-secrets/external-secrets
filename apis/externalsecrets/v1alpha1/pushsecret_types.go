@@ -19,7 +19,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 const (
@@ -96,7 +96,7 @@ type PushSecretSpec struct {
 
 	// Template defines a blueprint for the created Secret resource.
 	// +optional
-	Template *esv1beta1.ExternalSecretTemplate `json:"template,omitempty"`
+	Template *esv1.ExternalSecretTemplate `json:"template,omitempty"`
 }
 
 type PushSecretSecret struct {
@@ -122,7 +122,7 @@ type PushSecretSelector struct {
 
 	// Point to a generator to create a Secret.
 	// +optional
-	GeneratorRef *esv1beta1.GeneratorRef `json:"generatorRef,omitempty"`
+	GeneratorRef *esv1.GeneratorRef `json:"generatorRef,omitempty"`
 }
 
 type PushSecretRemoteRef struct {

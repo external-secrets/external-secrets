@@ -4,7 +4,7 @@ package fakes
 import (
 	"sync"
 
-	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 type PushRemoteRef struct {
@@ -103,4 +103,4 @@ func (fake *PushRemoteRef) recordInvocation(key string, args []any) {
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ v1beta1.PushSecretRemoteRef = new(PushRemoteRef)
+var _ esv1.PushSecretRemoteRef = new(PushRemoteRef)

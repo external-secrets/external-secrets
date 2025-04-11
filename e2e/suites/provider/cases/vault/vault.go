@@ -28,7 +28,7 @@ import (
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
-	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 const (
@@ -59,7 +59,6 @@ var _ = Describe("[vault]", Label("vault"), func() {
 		framework.Compose(withTokenAuth, f, common.JSONDataWithTemplate, useTokenAuth),
 		framework.Compose(withTokenAuth, f, common.DataPropertyDockerconfigJSON, useTokenAuth),
 		framework.Compose(withTokenAuth, f, common.JSONDataWithoutTargetName, useTokenAuth),
-		framework.Compose(withTokenAuth, f, common.SyncV1Alpha1, useTokenAuth),
 		framework.Compose(withTokenAuth, f, common.DecodingPolicySync, useTokenAuth),
 		framework.Compose(withTokenAuth, f, common.JSONDataWithTemplateFromLiteral, useTokenAuth),
 		framework.Compose(withTokenAuth, f, common.TemplateFromConfigmaps, useTokenAuth),

@@ -291,7 +291,6 @@ type SecretStoreStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:storageversion
 
 // SecretStore represents a secure external location for storing secrets, which can be referenced as part of `storeRef` fields.
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
@@ -319,7 +318,6 @@ type SecretStoreList struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:storageversion
 
 // ClusterSecretStore represents a secure external location for storing secrets, which can be referenced as part of `storeRef` fields.
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"

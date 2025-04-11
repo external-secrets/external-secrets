@@ -87,7 +87,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | concurrent | int | `1` | Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at a time. |
 | controllerClass | string | `""` | If set external secrets will filter matching Secret Stores with the appropriate controller values. |
 | crds.annotations | object | `{}` |  |
-| crds.conversion.enabled | bool | `true` | If webhook is set to false this also needs to be set to false otherwise the kubeapi will be hammered because the conversion is looking for a webhook endpoint. |
+| crds.conversion.enabled | bool | `false` | Conversion is disabled by default as we stopped supporting v1alpha1. |
 | crds.createClusterExternalSecret | bool | `true` | If true, create CRDs for Cluster External Secret. |
 | crds.createClusterGenerator | bool | `true` | If true, create CRDs for Cluster Generator. |
 | crds.createClusterPushSecret | bool | `true` | If true, create CRDs for Cluster Push Secret. |

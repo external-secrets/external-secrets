@@ -24,24 +24,24 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	k8sSpec := storeSpec.Provider.Kubernetes
 	if k8sSpec.AuthRef == nil && k8sSpec.Server.CABundle == nil && k8sSpec.Server.CAProvider == nil {
 		return nil, errors.New("a CABundle or CAProvider is required")
 	}
-	if store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind &&
+	if store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind &&
 		k8sSpec.Server.CAProvider != nil &&
 		k8sSpec.Server.CAProvider.Namespace == nil {
 		return nil, errors.New("CAProvider.namespace must not be empty with ClusterSecretStore")
 	}
-	if store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.SecretStoreKind &&
+	if store.GetObjectKind().GroupVersionKind().Kind == esv1.SecretStoreKind &&
 		k8sSpec.Server.CAProvider != nil &&
 		k8sSpec.Server.CAProvider.Namespace != nil {
 		return nil, errors.New("CAProvider.namespace must be empty with SecretStore")
@@ -76,12 +76,12 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 	return nil, nil
 }
 
-func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
+func (c *Client) Validate() (esv1.ValidationResult, error) {
 	// when using referent namespace we can not validate the token
 	// because the namespace is not known yet when Validate() is called
 	// from the SecretStore controller.
-	if c.storeKind == esv1beta1.ClusterSecretStoreKind && isReferentSpec(c.store) {
-		return esv1beta1.ValidationResultUnknown, nil
+	if c.storeKind == esv1.ClusterSecretStoreKind && isReferentSpec(c.store) {
+		return esv1.ValidationResultUnknown, nil
 	}
 	ctx := context.Background()
 	t := authv1.SelfSubjectRulesReview{
@@ -92,14 +92,14 @@ func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
 	authReview, err := c.userReviewClient.Create(ctx, &t, metav1.CreateOptions{})
 	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesCreateSelfSubjectRulesReview, err)
 	if err != nil {
-		return esv1beta1.ValidationResultUnknown, fmt.Errorf("could not verify if client is valid: %w", err)
+		return esv1.ValidationResultUnknown, fmt.Errorf("could not verify if client is valid: %w", err)
 	}
 	for _, rev := range authReview.Status.ResourceRules {
 		if (slices.Contains(rev.Resources, "secrets") || slices.Contains(rev.Resources, "*")) &&
 			(slices.Contains(rev.Verbs, "get") || slices.Contains(rev.Verbs, "*")) &&
 			(len(rev.APIGroups) == 0 || (slices.Contains(rev.APIGroups, "") || slices.Contains(rev.APIGroups, "*"))) {
-			return esv1beta1.ValidationResultReady, nil
+			return esv1.ValidationResultReady, nil
 		}
 	}
-	return esv1beta1.ValidationResultError, errors.New("client is not allowed to get secrets")
+	return esv1.ValidationResultError, errors.New("client is not allowed to get secrets")
 }

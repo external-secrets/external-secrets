@@ -28,13 +28,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 // BuildManagedSecretClient creates a new client that only sees secrets with the "managed" label.
 func BuildManagedSecretClient(mgr ctrl.Manager, namespace string) (client.Client, error) {
 	// secrets we manage will have the `reconcile.external-secrets.io/managed=true` label
-	managedLabelReq, _ := labels.NewRequirement(esv1beta1.LabelManaged, selection.Equals, []string{esv1beta1.LabelManagedValue})
+	managedLabelReq, _ := labels.NewRequirement(esv1.LabelManaged, selection.Equals, []string{esv1.LabelManagedValue})
 	managedLabelSelector := labels.NewSelector().Add(*managedLabelReq)
 
 	// create a new cache with a label selector for managed secrets

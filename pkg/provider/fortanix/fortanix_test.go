@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 var (
@@ -81,7 +81,7 @@ func TestGetOpaqueSecurityObject(t *testing.T) {
 	})
 
 	t.Run("get raw secret value from opaque security object", func(t *testing.T) {
-		ref := esv1beta1.ExternalSecretDataRemoteRef{
+		ref := esv1.ExternalSecretDataRemoteRef{
 			Key: securityObjectName,
 		}
 
@@ -92,7 +92,7 @@ func TestGetOpaqueSecurityObject(t *testing.T) {
 	})
 
 	t.Run("get inner property value from opaque security object", func(t *testing.T) {
-		ref := esv1beta1.ExternalSecretDataRemoteRef{
+		ref := esv1.ExternalSecretDataRemoteRef{
 			Key:      securityObjectName,
 			Property: "property",
 		}
@@ -127,7 +127,7 @@ func TestGetSecretSecurityObject(t *testing.T) {
 	})
 
 	t.Run("get raw secret value from secret security object", func(t *testing.T) {
-		ref := esv1beta1.ExternalSecretDataRemoteRef{
+		ref := esv1.ExternalSecretDataRemoteRef{
 			Key: securityObjectName,
 		}
 
@@ -138,7 +138,7 @@ func TestGetSecretSecurityObject(t *testing.T) {
 	})
 
 	t.Run("get inner property value from secret security object", func(t *testing.T) {
-		ref := esv1beta1.ExternalSecretDataRemoteRef{
+		ref := esv1.ExternalSecretDataRemoteRef{
 			Key:      securityObjectName,
 			Property: "property",
 		}
@@ -173,7 +173,7 @@ func TestDataFromExtract(t *testing.T) {
 	})
 
 	t.Run("extract data from secret security object", func(t *testing.T) {
-		ref := esv1beta1.ExternalSecretDataRemoteRef{
+		ref := esv1.ExternalSecretDataRemoteRef{
 			Key: securityObjectName,
 		}
 

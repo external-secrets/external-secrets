@@ -27,7 +27,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -84,10 +84,10 @@ var _ = Describe("ecr generator", Label("ecr"), func() {
 	}
 
 	customResourceGenerator := func(tc *testCase) {
-		tc.ExternalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
+		tc.ExternalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
 			{
-				SourceRef: &esv1beta1.StoreGeneratorSourceRef{
-					GeneratorRef: &esv1beta1.GeneratorRef{
+				SourceRef: &esv1.StoreGeneratorSourceRef{
+					GeneratorRef: &esv1.GeneratorRef{
 						// we don't need to specify the apiVersion,
 						// this should be inferred by the controller.
 						Kind: "ECRAuthorizationToken",

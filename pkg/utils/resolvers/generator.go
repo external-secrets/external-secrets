@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 )
 
@@ -39,7 +39,7 @@ var (
 )
 
 // GeneratorRef resolves a generator reference to a generator implementation.
-func GeneratorRef(ctx context.Context, cl client.Client, scheme *runtime.Scheme, namespace string, generatorRef *esv1beta1.GeneratorRef) (genv1alpha1.Generator, *apiextensions.JSON, error) {
+func GeneratorRef(ctx context.Context, cl client.Client, scheme *runtime.Scheme, namespace string, generatorRef *esv1.GeneratorRef) (genv1alpha1.Generator, *apiextensions.JSON, error) {
 	generator, jsonObj, err := getGenerator(ctx, cl, scheme, namespace, generatorRef)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%w: %w", ErrUnableToGetGenerator, err)
@@ -47,7 +47,7 @@ func GeneratorRef(ctx context.Context, cl client.Client, scheme *runtime.Scheme,
 	return generator, jsonObj, nil
 }
 
-func getGenerator(ctx context.Context, cl client.Client, scheme *runtime.Scheme, namespace string, generatorRef *esv1beta1.GeneratorRef) (genv1alpha1.Generator, *apiextensions.JSON, error) {
+func getGenerator(ctx context.Context, cl client.Client, scheme *runtime.Scheme, namespace string, generatorRef *esv1.GeneratorRef) (genv1alpha1.Generator, *apiextensions.JSON, error) {
 	// get a GVK from the generatorRef
 	gv, err := schema.ParseGroupVersion(generatorRef.APIVersion)
 	if err != nil {

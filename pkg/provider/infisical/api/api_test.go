@@ -21,7 +21,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 const (
@@ -291,7 +291,7 @@ func TestGetSecretByKeyV3(t *testing.T) {
 		})
 		assert.Error(t, err)
 		// Importantly, we return the standard error for no secrets found.
-		assert.ErrorIs(t, err, esv1beta1.NoSecretError{})
+		assert.ErrorIs(t, err, esv1.NoSecretError{})
 	})
 
 	// Test case where the request is unauthorized

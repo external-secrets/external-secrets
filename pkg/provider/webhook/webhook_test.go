@@ -29,8 +29,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 )
 
 type testCase struct {
@@ -96,7 +96,7 @@ args:
   response: not found
 want:
   path: /api/getsecret?id=testkey&version=1
-  err: ` + esv1beta1.NoSecretErr.Error() + `
+  err: ` + esv1.NoSecretErr.Error() + `
 ---
 case: error server error
 args:
@@ -544,8 +544,8 @@ func runTestCase(tc testCase, t *testing.T) {
 	})
 }
 
-func testGetSecretMap(tc testCase, t *testing.T, client esv1beta1.SecretsClient) {
-	testRef := esv1beta1.ExternalSecretDataRemoteRef{
+func testGetSecretMap(tc testCase, t *testing.T, client esv1.SecretsClient) {
+	testRef := esv1.ExternalSecretDataRemoteRef{
 		Key:     tc.Args.Key,
 		Version: tc.Args.Version,
 	}
@@ -569,8 +569,8 @@ func testGetSecretMap(tc testCase, t *testing.T, client esv1beta1.SecretsClient)
 	}
 }
 
-func testGetSecret(tc testCase, t *testing.T, client esv1beta1.SecretsClient) {
-	testRef := esv1beta1.ExternalSecretDataRemoteRef{
+func testGetSecret(tc testCase, t *testing.T, client esv1.SecretsClient) {
+	testRef := esv1.ExternalSecretDataRemoteRef{
 		Key:      tc.Args.Key,
 		Property: tc.Args.Property,
 		Version:  tc.Args.Version,
@@ -590,7 +590,7 @@ func testGetSecret(tc testCase, t *testing.T, client esv1beta1.SecretsClient) {
 	}
 }
 
-func testPushSecret(tc testCase, t *testing.T, client esv1beta1.SecretsClient) {
+func testPushSecret(tc testCase, t *testing.T, client esv1.SecretsClient) {
 	testRef := v1alpha1.PushSecretData{
 		Match: v1alpha1.PushSecretMatch{
 			SecretKey: tc.Args.SecretKey,
@@ -626,8 +626,8 @@ func testPushSecret(tc testCase, t *testing.T, client esv1beta1.SecretsClient) {
 	}
 }
 
-func makeClusterSecretStore(url string, args args) *esv1beta1.ClusterSecretStore {
-	store := &esv1beta1.ClusterSecretStore{
+func makeClusterSecretStore(url string, args args) *esv1.ClusterSecretStore {
+	store := &esv1.ClusterSecretStore{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "ClusterSecretStore",
 		},
@@ -635,16 +635,16 @@ func makeClusterSecretStore(url string, args args) *esv1beta1.ClusterSecretStore
 			Name:      "wehbook-store",
 			Namespace: "default",
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Webhook: &esv1beta1.WebhookProvider{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Webhook: &esv1.WebhookProvider{
 					URL:  url + args.URL,
 					Body: args.Body,
 					Headers: map[string]string{
 						"Content-Type": "application.json",
 						"X-SecretKey":  "{{ .remoteRef.key }}",
 					},
-					Result: esv1beta1.WebhookResult{
+					Result: esv1.WebhookResult{
 						JSONPath: args.JSONPath,
 					},
 				},

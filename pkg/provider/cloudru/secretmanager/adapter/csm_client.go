@@ -29,7 +29,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 // CredentialsResolver returns the actual client credentials.
@@ -124,7 +124,7 @@ func (c *APIClient) AccessSecretVersionByPath(ctx context.Context, projectID, pa
 	if err != nil {
 		st, _ := status.FromError(err)
 		if st.Code() == codes.NotFound {
-			return nil, esv1beta1.NoSecretErr
+			return nil, esv1.NoSecretErr
 		}
 
 		return nil, fmt.Errorf("failed to get the secret by path '%s': %w", path, err)
@@ -151,7 +151,7 @@ func (c *APIClient) AccessSecretVersion(ctx context.Context, id, version string)
 	if err != nil {
 		st, _ := status.FromError(err)
 		if st.Code() == codes.NotFound {
-			return nil, esv1beta1.NoSecretErr
+			return nil, esv1.NoSecretErr
 		}
 
 		return nil, fmt.Errorf("failed to get the secret by id '%s v%s': %w", id, version, err)

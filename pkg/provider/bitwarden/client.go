@@ -26,7 +26,7 @@ import (
 	"k8s.io/kube-openapi/pkg/validation/strfmt"
 	"k8s.io/utils/ptr"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -51,7 +51,7 @@ var (
 // the secret belongs to even though technically Create allows multiple projects. This is
 // to ensure that we push to the same project always, and so we can determine reliably that
 // we don't need to push again.
-func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	spec := p.store.GetSpec()
 	if spec == nil || spec.Provider == nil {
 		return errors.New(errNoProvider)
@@ -133,7 +133,7 @@ func (p *Provider) isOnlyValueDifferent(sec *SecretResponse, remoteKey, note, pr
 }
 
 // GetSecret returns a single secret from the provider.
-func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (p *Provider) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if strfmt.IsUUID(ref.Key) {
 		resp, err := p.bitwardenSdkClient.GetSecret(ctx, ref.Key)
 		if err != nil {
@@ -161,7 +161,7 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 	return []byte(secret.Value), nil
 }
 
-func (p *Provider) DeleteSecret(ctx context.Context, ref esv1beta1.PushSecretRemoteRef) error {
+func (p *Provider) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
 	if strfmt.IsUUID(ref.GetRemoteKey()) {
 		return p.deleteSecret(ctx, ref.GetRemoteKey())
 	}
@@ -202,7 +202,7 @@ func (p *Provider) deleteSecret(ctx context.Context, id string) error {
 	return nil
 }
 
-func (p *Provider) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (p *Provider) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 	if strfmt.IsUUID(ref.GetRemoteKey()) {
 		_, err := p.bitwardenSdkClient.GetSecret(ctx, ref.GetRemoteKey())
 		if err != nil {
@@ -230,7 +230,7 @@ func (p *Provider) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRem
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (p *Provider) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := p.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -289,7 +289,7 @@ func (p *Provider) parseYamlSecretData(data []byte) (map[string][]byte, error) {
 // GetAllSecrets gets multiple secrets from the provider and loads into a kubernetes secret.
 // First load all secrets from secretStore path configuration
 // Then, gets secrets from a matching name or matching custom_metadata.
-func (p *Provider) GetAllSecrets(ctx context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (p *Provider) GetAllSecrets(ctx context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	spec := p.store.GetSpec()
 	if spec == nil {
 		return nil, errors.New(errNoProvider)
@@ -314,8 +314,8 @@ func (p *Provider) GetAllSecrets(ctx context.Context, _ esv1beta1.ExternalSecret
 }
 
 // Validate validates the provider.
-func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
-	return esv1beta1.ValidationResultReady, nil
+func (p *Provider) Validate() (esv1.ValidationResult, error) {
+	return esv1.ValidationResultReady, nil
 }
 
 // Close closes the provider.

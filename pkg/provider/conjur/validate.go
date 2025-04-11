@@ -21,13 +21,13 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/conjur/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // ValidateStore validates the store.
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	prov, err := util.GetConjurProvider(store)
 	if err != nil {
 		return nil, err
@@ -58,7 +58,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 	return nil, nil
 }
 
-func validateAPIKeyStore(store esv1beta1.GenericStore, auth esv1beta1.ConjurAPIKey) error {
+func validateAPIKeyStore(store esv1.GenericStore, auth esv1.ConjurAPIKey) error {
 	if auth.Account == "" {
 		return errors.New("missing Auth.ApiKey.Account")
 	}
@@ -77,7 +77,7 @@ func validateAPIKeyStore(store esv1beta1.GenericStore, auth esv1beta1.ConjurAPIK
 	return nil
 }
 
-func validateJWTStore(store esv1beta1.GenericStore, auth esv1beta1.ConjurJWT) error {
+func validateJWTStore(store esv1.GenericStore, auth esv1.ConjurJWT) error {
 	if auth.Account == "" {
 		return errors.New("missing Auth.Jwt.Account")
 	}

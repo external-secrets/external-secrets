@@ -32,7 +32,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/conjur/fake"
 	utilfake "github.com/external-secrets/external-secrets/pkg/provider/util/fake"
@@ -48,21 +48,21 @@ var (
 	jwtSecretName    = "jwt-secret"
 )
 
-func makeValidRef(k string) *esv1beta1.ExternalSecretDataRemoteRef {
-	return &esv1beta1.ExternalSecretDataRemoteRef{
+func makeValidRef(k string) *esv1.ExternalSecretDataRemoteRef {
+	return &esv1.ExternalSecretDataRemoteRef{
 		Key:     k,
 		Version: "default",
 	}
 }
 
-func makeValidFindRef(search string, tags map[string]string) *esv1beta1.ExternalSecretFind {
-	var name *esv1beta1.FindName
+func makeValidFindRef(search string, tags map[string]string) *esv1.ExternalSecretFind {
+	var name *esv1.FindName
 	if search != "" {
-		name = &esv1beta1.FindName{
+		name = &esv1.FindName{
 			RegExp: search,
 		}
 	}
-	return &esv1beta1.ExternalSecretFind{
+	return &esv1.ExternalSecretFind{
 		Name: name,
 		Tags: tags,
 	}
@@ -70,7 +70,7 @@ func makeValidFindRef(search string, tags map[string]string) *esv1beta1.External
 
 func TestGetSecret(t *testing.T) {
 	type args struct {
-		store      esv1beta1.GenericStore
+		store      esv1.GenericStore
 		kube       kclient.Client
 		corev1     typedcorev1.CoreV1Interface
 		namespace  string
@@ -208,7 +208,7 @@ func TestGetSecret(t *testing.T) {
 
 func TestGetAllSecrets(t *testing.T) {
 	type args struct {
-		store     esv1beta1.GenericStore
+		store     esv1.GenericStore
 		kube      kclient.Client
 		corev1    typedcorev1.CoreV1Interface
 		namespace string
@@ -330,11 +330,11 @@ func TestGetAllSecrets(t *testing.T) {
 
 func TestGetSecretMap(t *testing.T) {
 	type args struct {
-		store     esv1beta1.GenericStore
+		store     esv1.GenericStore
 		kube      kclient.Client
 		corev1    typedcorev1.CoreV1Interface
 		namespace string
-		ref       *esv1beta1.ExternalSecretDataRemoteRef
+		ref       *esv1.ExternalSecretDataRemoteRef
 	}
 
 	type want struct {
@@ -387,7 +387,7 @@ func TestGetSecretMap(t *testing.T) {
 				kube: clientfake.NewClientBuilder().
 					WithObjects(makeFakeAPIKeySecrets()...).Build(),
 				namespace: "default",
-				ref: &esv1beta1.ExternalSecretDataRemoteRef{
+				ref: &esv1.ExternalSecretDataRemoteRef{
 					Key:      "json_nested",
 					Version:  "default",
 					Property: "key2",
@@ -408,7 +408,7 @@ func TestGetSecretMap(t *testing.T) {
 				kube: clientfake.NewClientBuilder().
 					WithObjects(makeFakeAPIKeySecrets()...).Build(),
 				namespace: "default",
-				ref: &esv1beta1.ExternalSecretDataRemoteRef{
+				ref: &esv1.ExternalSecretDataRemoteRef{
 					Key:      "json_map",
 					Version:  "default",
 					Property: "key3",
@@ -441,7 +441,7 @@ func TestGetSecretMap(t *testing.T) {
 
 func TestGetCA(t *testing.T) {
 	type args struct {
-		store     esv1beta1.GenericStore
+		store     esv1.GenericStore
 		kube      kclient.Client
 		corev1    typedcorev1.CoreV1Interface
 		namespace string
@@ -521,7 +521,7 @@ DXZDjC5Ty3zfDBeWUA==
 
 	runTest := func(t *testing.T, _ string, tc testCase) {
 		provider, _ := newConjurProvider(context.Background(), tc.args.store, tc.args.kube, tc.args.namespace, tc.args.corev1, &ConjurMockAPIClient{})
-		_, err := provider.GetSecret(context.Background(), esv1beta1.ExternalSecretDataRemoteRef{
+		_, err := provider.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
 			Key: "path/to/secret",
 		})
 		if diff := cmp.Diff(tc.want.err, err, EquateErrors()); diff != "" {
@@ -536,7 +536,7 @@ DXZDjC5Ty3zfDBeWUA==
 	}
 }
 
-func makeAPIKeySecretStore(svcURL, svcUser, svcApikey, svcAccount string) *esv1beta1.SecretStore {
+func makeAPIKeySecretStore(svcURL, svcUser, svcApikey, svcAccount string) *esv1.SecretStore {
 	uref := &esmeta.SecretKeySelector{
 		Name: "user",
 		Key:  "conjur-hostid",
@@ -551,13 +551,13 @@ func makeAPIKeySecretStore(svcURL, svcUser, svcApikey, svcAccount string) *esv1b
 	if svcApikey == "" {
 		aref = nil
 	}
-	store := &esv1beta1.SecretStore{
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Conjur: &esv1beta1.ConjurProvider{
+	store := &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Conjur: &esv1.ConjurProvider{
 					URL: svcURL,
-					Auth: esv1beta1.ConjurAuth{
-						APIKey: &esv1beta1.ConjurAPIKey{
+					Auth: esv1.ConjurAuth{
+						APIKey: &esv1.ConjurAPIKey{
 							Account:   svcAccount,
 							UserRef:   uref,
 							APIKeyRef: aref,
@@ -570,7 +570,7 @@ func makeAPIKeySecretStore(svcURL, svcUser, svcApikey, svcAccount string) *esv1b
 	return store
 }
 
-func makeJWTSecretStore(svcURL, serviceAccountName, secretName, jwtServiceID, jwtHostID, conjurAccount string) *esv1beta1.SecretStore {
+func makeJWTSecretStore(svcURL, serviceAccountName, secretName, jwtServiceID, jwtHostID, conjurAccount string) *esv1.SecretStore {
 	serviceAccountRef := &esmeta.ServiceAccountSelector{
 		Name:      serviceAccountName,
 		Audiences: []string{"conjur"},
@@ -587,13 +587,13 @@ func makeJWTSecretStore(svcURL, serviceAccountName, secretName, jwtServiceID, jw
 		secretRef = nil
 	}
 
-	store := &esv1beta1.SecretStore{
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Conjur: &esv1beta1.ConjurProvider{
+	store := &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Conjur: &esv1.ConjurProvider{
 					URL: svcURL,
-					Auth: esv1beta1.ConjurAuth{
-						Jwt: &esv1beta1.ConjurJWT{
+					Auth: esv1.ConjurAuth{
+						Jwt: &esv1.ConjurJWT{
 							Account:           conjurAccount,
 							ServiceID:         jwtServiceID,
 							ServiceAccountRef: serviceAccountRef,
@@ -608,17 +608,17 @@ func makeJWTSecretStore(svcURL, serviceAccountName, secretName, jwtServiceID, jw
 	return store
 }
 
-func makeStoreWithCA(caSource, caData string) *esv1beta1.SecretStore {
+func makeStoreWithCA(caSource, caData string) *esv1.SecretStore {
 	store := makeJWTSecretStore(svcURL, "conjur", "", jwtAuthnService, "", "myconjuraccount")
 	if caSource == "secret" {
-		store.Spec.Provider.Conjur.CAProvider = &esv1beta1.CAProvider{
-			Type: esv1beta1.CAProviderTypeSecret,
+		store.Spec.Provider.Conjur.CAProvider = &esv1.CAProvider{
+			Type: esv1.CAProviderTypeSecret,
 			Name: "conjur-cert",
 			Key:  "ca",
 		}
 	} else if caSource == "configmap" {
-		store.Spec.Provider.Conjur.CAProvider = &esv1beta1.CAProvider{
-			Type: esv1beta1.CAProviderTypeConfigMap,
+		store.Spec.Provider.Conjur.CAProvider = &esv1.CAProvider{
+			Type: esv1.CAProviderTypeConfigMap,
 			Name: "conjur-cert",
 			Key:  "ca",
 		}
@@ -628,11 +628,11 @@ func makeStoreWithCA(caSource, caData string) *esv1beta1.SecretStore {
 	return store
 }
 
-func makeNoAuthSecretStore(svcURL string) *esv1beta1.SecretStore {
-	store := &esv1beta1.SecretStore{
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Conjur: &esv1beta1.ConjurProvider{
+func makeNoAuthSecretStore(svcURL string) *esv1.SecretStore {
+	store := &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Conjur: &esv1.ConjurProvider{
 					URL: svcURL,
 				},
 			},

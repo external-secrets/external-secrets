@@ -5,7 +5,7 @@ import (
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -85,21 +85,21 @@ func createResources(ctx context.Context, f *framework.Framework, cfg *config) {
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 	// Creating SecretStore.
-	secretStoreSpec := esv1beta1.SecretStore{
+	secretStoreSpec := esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      f.Namespace.Name,
 			Namespace: f.Namespace.Name,
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Delinea: &esv1beta1.DelineaProvider{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Delinea: &esv1.DelineaProvider{
 					Tenant:      cfg.tenant,
 					TLD:         cfg.tld,
 					URLTemplate: cfg.urlTemplate,
-					ClientID: &esv1beta1.DelineaProviderSecretRef{
+					ClientID: &esv1.DelineaProviderSecretRef{
 						Value: cfg.clientID,
 					},
-					ClientSecret: &esv1beta1.DelineaProviderSecretRef{
+					ClientSecret: &esv1.DelineaProviderSecretRef{
 						SecretRef: &esmeta.SecretKeySelector{
 							Name: secretName,
 							Key:  secretKey,

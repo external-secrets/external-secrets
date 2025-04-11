@@ -24,7 +24,7 @@ import (
 	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/cloudru/secretmanager/fake"
 )
 
@@ -41,14 +41,14 @@ var (
 func TestClientGetSecret(t *testing.T) {
 	tests := []struct {
 		name        string
-		ref         esv1beta1.ExternalSecretDataRemoteRef
+		ref         esv1.ExternalSecretDataRemoteRef
 		setup       func(mock *fake.MockSecretProvider)
 		wantPayload []byte
 		wantErr     error
 	}{
 		{
 			name: "success",
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:     uuid.NewString(),
 				Version: "1",
 			},
@@ -60,7 +60,7 @@ func TestClientGetSecret(t *testing.T) {
 		},
 		{
 			name: "success_named_secret",
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:     "very_secret",
 				Version: "1",
 			},
@@ -79,7 +79,7 @@ func TestClientGetSecret(t *testing.T) {
 		},
 		{
 			name: "success_multikv",
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      uuid.NewString(),
 				Version:  "1",
 				Property: "another.secret",
@@ -92,7 +92,7 @@ func TestClientGetSecret(t *testing.T) {
 		},
 		{
 			name: "error_access_secret",
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:     uuid.NewString(),
 				Version: "1",
 			},
@@ -104,7 +104,7 @@ func TestClientGetSecret(t *testing.T) {
 		},
 		{
 			name: "error_access_named_secret",
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:     "very_secret",
 				Version: "1",
 			},
@@ -116,7 +116,7 @@ func TestClientGetSecret(t *testing.T) {
 		},
 		{
 			name: "error_access_named_secret:invalid_version",
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:     "very_secret",
 				Version: "hello",
 			},
@@ -127,7 +127,7 @@ func TestClientGetSecret(t *testing.T) {
 		},
 		{
 			name: "error_multikv:invalid_json",
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      keyID,
 				Version:  "1",
 				Property: "some",
@@ -140,7 +140,7 @@ func TestClientGetSecret(t *testing.T) {
 		},
 		{
 			name: "error_multikv:not_found",
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      keyID,
 				Version:  "1",
 				Property: "unexpected",
@@ -173,14 +173,14 @@ func TestClientGetSecret(t *testing.T) {
 func TestClientGetSecretMap(t *testing.T) {
 	tests := []struct {
 		name        string
-		ref         esv1beta1.ExternalSecretDataRemoteRef
+		ref         esv1.ExternalSecretDataRemoteRef
 		setup       func(mock *fake.MockSecretProvider)
 		wantPayload map[string][]byte
 		wantErr     error
 	}{
 		{
 			name: "success",
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:     keyID,
 				Version: "1",
 			},
@@ -196,7 +196,7 @@ func TestClientGetSecretMap(t *testing.T) {
 		},
 		{
 			name: "error_access_secret",
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:     keyID,
 				Version: "1",
 			},
@@ -208,7 +208,7 @@ func TestClientGetSecretMap(t *testing.T) {
 		},
 		{
 			name: "error_not_json",
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:     keyID,
 				Version: "1",
 			},
@@ -243,15 +243,15 @@ func TestClientGetSecretMap(t *testing.T) {
 func TestClientGetAllSecrets(t *testing.T) {
 	tests := []struct {
 		name        string
-		ref         esv1beta1.ExternalSecretFind
+		ref         esv1.ExternalSecretFind
 		setup       func(mock *fake.MockSecretProvider)
 		wantPayload map[string][]byte
 		wantErr     error
 	}{
 		{
 			name: "success",
-			ref: esv1beta1.ExternalSecretFind{
-				Name: &esv1beta1.FindName{RegExp: "secret.*"},
+			ref: esv1.ExternalSecretFind{
+				Name: &esv1.FindName{RegExp: "secret.*"},
 				Tags: map[string]string{
 					"env": "prod",
 				},
@@ -273,8 +273,8 @@ func TestClientGetAllSecrets(t *testing.T) {
 		},
 		{
 			name: "success_not_json",
-			ref: esv1beta1.ExternalSecretFind{
-				Name: &esv1beta1.FindName{RegExp: "secr.*"},
+			ref: esv1.ExternalSecretFind{
+				Name: &esv1.FindName{RegExp: "secr.*"},
 				Tags: map[string]string{
 					"env": "prod",
 				},
@@ -297,14 +297,14 @@ func TestClientGetAllSecrets(t *testing.T) {
 		},
 		{
 			name:        "error_no_filters",
-			ref:         esv1beta1.ExternalSecretFind{},
+			ref:         esv1.ExternalSecretFind{},
 			wantPayload: nil,
 			wantErr:     errors.New("at least one of the following fields must be set: tags, name"),
 		},
 		{
 			name: "error_list_secrets",
-			ref: esv1beta1.ExternalSecretFind{
-				Name: &esv1beta1.FindName{RegExp: "label.*"},
+			ref: esv1.ExternalSecretFind{
+				Name: &esv1.FindName{RegExp: "label.*"},
 				Tags: map[string]string{
 					"env": "prod",
 				},

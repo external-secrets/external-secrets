@@ -28,7 +28,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	utilfake "github.com/external-secrets/external-secrets/pkg/provider/util/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/fake"
@@ -48,20 +48,20 @@ var (
 	secretStorePath = "secret"
 )
 
-func makeValidSecretStoreWithVersion(v esv1beta1.VaultKVStoreVersion) *esv1beta1.SecretStore {
-	return &esv1beta1.SecretStore{
+func makeValidSecretStoreWithVersion(v esv1.VaultKVStoreVersion) *esv1.SecretStore {
+	return &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vault-store",
 			Namespace: "default",
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Vault: &esv1beta1.VaultProvider{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Vault: &esv1.VaultProvider{
 					Server:  "vault.example.com",
 					Path:    &secretStorePath,
 					Version: v,
-					Auth: &esv1beta1.VaultAuth{
-						Kubernetes: &esv1beta1.VaultKubernetesAuth{
+					Auth: &esv1.VaultAuth{
+						Kubernetes: &esv1.VaultKubernetesAuth{
 							Path: "kubernetes",
 							Role: "kubernetes-auth-role",
 							ServiceAccountRef: &esmeta.ServiceAccountSelector{
@@ -75,24 +75,24 @@ func makeValidSecretStoreWithVersion(v esv1beta1.VaultKVStoreVersion) *esv1beta1
 	}
 }
 
-func makeValidSecretStore() *esv1beta1.SecretStore {
-	return makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2)
+func makeValidSecretStore() *esv1.SecretStore {
+	return makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2)
 }
 
-func makeValidSecretStoreWithCerts() *esv1beta1.SecretStore {
-	return &esv1beta1.SecretStore{
+func makeValidSecretStoreWithCerts() *esv1.SecretStore {
+	return &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vault-store",
 			Namespace: "default",
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Vault: &esv1beta1.VaultProvider{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Vault: &esv1.VaultProvider{
 					Server:  "vault.example.com",
 					Path:    &secretStorePath,
-					Version: esv1beta1.VaultKVStoreV2,
-					Auth: &esv1beta1.VaultAuth{
-						Cert: &esv1beta1.VaultCertAuth{
+					Version: esv1.VaultKVStoreV2,
+					Auth: &esv1.VaultAuth{
+						Cert: &esv1.VaultCertAuth{
 							ClientCert: esmeta.SecretKeySelector{
 								Name: tlsAuthCerts,
 								Key:  tlsCrt,
@@ -109,9 +109,9 @@ func makeValidSecretStoreWithCerts() *esv1beta1.SecretStore {
 	}
 }
 
-func makeValidSecretStoreWithK8sCerts(isSecret bool) *esv1beta1.SecretStore {
+func makeValidSecretStoreWithK8sCerts(isSecret bool) *esv1.SecretStore {
 	store := makeSecretStore()
-	caProvider := &esv1beta1.CAProvider{
+	caProvider := &esv1.CAProvider{
 		Name: vaultCert,
 		Key:  "cert",
 	}
@@ -126,8 +126,8 @@ func makeValidSecretStoreWithK8sCerts(isSecret bool) *esv1beta1.SecretStore {
 	return store
 }
 
-func makeInvalidClusterSecretStoreWithK8sCerts() *esv1beta1.ClusterSecretStore {
-	return &esv1beta1.ClusterSecretStore{
+func makeInvalidClusterSecretStoreWithK8sCerts() *esv1.ClusterSecretStore {
+	return &esv1.ClusterSecretStore{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "ClusterSecretStore",
 		},
@@ -135,14 +135,14 @@ func makeInvalidClusterSecretStoreWithK8sCerts() *esv1beta1.ClusterSecretStore {
 			Name:      "vault-store",
 			Namespace: "default",
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Vault: &esv1beta1.VaultProvider{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Vault: &esv1.VaultProvider{
 					Server:  "vault.example.com",
 					Path:    &secretStorePath,
 					Version: "v2",
-					Auth: &esv1beta1.VaultAuth{
-						Kubernetes: &esv1beta1.VaultKubernetesAuth{
+					Auth: &esv1.VaultAuth{
+						Kubernetes: &esv1.VaultKubernetesAuth{
 							Path: "kubernetes",
 							Role: "kubernetes-auth-role",
 							ServiceAccountRef: &esmeta.ServiceAccountSelector{
@@ -150,7 +150,7 @@ func makeInvalidClusterSecretStoreWithK8sCerts() *esv1beta1.ClusterSecretStore {
 							},
 						},
 					},
-					CAProvider: &esv1beta1.CAProvider{
+					CAProvider: &esv1.CAProvider{
 						Name: vaultCert,
 						Key:  "cert",
 						Type: "Secret",
@@ -161,24 +161,24 @@ func makeInvalidClusterSecretStoreWithK8sCerts() *esv1beta1.ClusterSecretStore {
 	}
 }
 
-func makeValidSecretStoreWithIamAuthSecret() *esv1beta1.SecretStore {
-	return &esv1beta1.SecretStore{
+func makeValidSecretStoreWithIamAuthSecret() *esv1.SecretStore {
+	return &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "vault-store",
 			Namespace: "default",
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Vault: &esv1beta1.VaultProvider{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Vault: &esv1.VaultProvider{
 					Server:  "https://vault.example.com:8200",
 					Path:    &secretStorePath,
-					Version: esv1beta1.VaultKVStoreV2,
-					Auth: &esv1beta1.VaultAuth{
-						Iam: &esv1beta1.VaultIamAuth{
+					Version: esv1.VaultKVStoreV2,
+					Auth: &esv1.VaultAuth{
+						Iam: &esv1.VaultIamAuth{
 							Path:   "aws",
 							Region: "us-east-1",
 							Role:   "vault-role",
-							SecretRef: &esv1beta1.VaultAwsAuthSecretRef{
+							SecretRef: &esv1.VaultAwsAuthSecretRef{
 								AccessKeyID: esmeta.SecretKeySelector{
 									Name: "vault-iam-creds-secret",
 									Key:  "access-key",
@@ -200,9 +200,9 @@ func makeValidSecretStoreWithIamAuthSecret() *esv1beta1.SecretStore {
 	}
 }
 
-type secretStoreTweakFn func(s *esv1beta1.SecretStore)
+type secretStoreTweakFn func(s *esv1.SecretStore)
 
-func makeSecretStore(tweaks ...secretStoreTweakFn) *esv1beta1.SecretStore {
+func makeSecretStore(tweaks ...secretStoreTweakFn) *esv1.SecretStore {
 	store := makeValidSecretStore()
 
 	for _, fn := range tweaks {
@@ -212,16 +212,16 @@ func makeSecretStore(tweaks ...secretStoreTweakFn) *esv1beta1.SecretStore {
 	return store
 }
 
-func makeClusterSecretStore(tweaks ...secretStoreTweakFn) *esv1beta1.ClusterSecretStore {
+func makeClusterSecretStore(tweaks ...secretStoreTweakFn) *esv1.ClusterSecretStore {
 	store := makeValidSecretStore()
 
 	for _, fn := range tweaks {
 		fn(store)
 	}
 
-	return &esv1beta1.ClusterSecretStore{
+	return &esv1.ClusterSecretStore{
 		TypeMeta: metav1.TypeMeta{
-			Kind: esv1beta1.ClusterSecretStoreKind,
+			Kind: esv1.ClusterSecretStoreKind,
 		},
 		ObjectMeta: store.ObjectMeta,
 		Spec:       store.Spec,
@@ -230,7 +230,7 @@ func makeClusterSecretStore(tweaks ...secretStoreTweakFn) *esv1beta1.ClusterSecr
 
 type args struct {
 	newClientFunc func(c *vault.Config) (util.Client, error)
-	store         esv1beta1.GenericStore
+	store         esv1.GenericStore
 	kube          kclient.Client
 	corev1        typedcorev1.CoreV1Interface
 	ns            string
@@ -260,7 +260,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 		"InvalidVaultStore": {
 			reason: "Should return error if given an invalid vault store.",
 			args: args{
-				store: &esv1beta1.SecretStore{},
+				store: &esv1.SecretStore{},
 			},
 			want: want{
 				err: errors.New(errVaultStore),
@@ -269,8 +269,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 		"InvalidRetrySettings": {
 			reason: "Should return error if given an invalid Retry Interval.",
 			args: args{
-				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
-					s.Spec.RetrySettings = &esv1beta1.SecretStoreRetrySettings{
+				store: makeSecretStore(func(s *esv1.SecretStore) {
+					s.Spec.RetrySettings = &esv1.SecretStoreRetrySettings{
 						MaxRetries:    ptr.To(int32(3)),
 						RetryInterval: ptr.To("not-an-interval"),
 					}
@@ -283,8 +283,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 		"ValidRetrySettings": {
 			reason: "Should return a Vault provider with custom retry settings",
 			args: args{
-				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
-					s.Spec.RetrySettings = &esv1beta1.SecretStoreRetrySettings{
+				store: makeSecretStore(func(s *esv1.SecretStore) {
+					s.Spec.RetrySettings = &esv1.SecretStoreRetrySettings{
 						MaxRetries:    ptr.To(int32(3)),
 						RetryInterval: ptr.To("10m"),
 					}
@@ -301,7 +301,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 		"AddVaultStoreCertsError": {
 			reason: "Should return error if given an invalid CA certificate.",
 			args: args{
-				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
+				store: makeSecretStore(func(s *esv1.SecretStore) {
 					s.Spec.Provider.Vault.CABundle = []byte("badcertdata")
 				}),
 			},
@@ -312,8 +312,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 		"VaultAuthFormatError": {
 			reason: "Should return error if no valid authentication method is given.",
 			args: args{
-				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
-					s.Spec.Provider.Vault.Auth = &esv1beta1.VaultAuth{}
+				store: makeSecretStore(func(s *esv1.SecretStore) {
+					s.Spec.Provider.Vault.Auth = &esv1.VaultAuth{}
 				}),
 			},
 			want: want{
@@ -337,7 +337,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			reason: "Should return error if fetching kubernetes secret fails.",
 			args: args{
 				ns: "default",
-				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
+				store: makeSecretStore(func(s *esv1.SecretStore) {
 					s.Spec.Provider.Vault.Auth.Kubernetes.ServiceAccountRef = nil
 					s.Spec.Provider.Vault.Auth.Kubernetes.SecretRef = &esmeta.SecretKeySelector{
 						Name: "vault-secret",
@@ -539,8 +539,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 		"ClientTlsInvalidCertificatesError": {
 			reason: "Should return error if client key is in wrong format.",
 			args: args{
-				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
-					s.Spec.Provider.Vault.ClientTLS = esv1beta1.VaultClientTLS{
+				store: makeSecretStore(func(s *esv1.SecretStore) {
+					s.Spec.Provider.Vault.ClientTLS = esv1.VaultClientTLS{
 						CertSecretRef: &esmeta.SecretKeySelector{
 							Name: tlsAuthCerts,
 						},
@@ -570,8 +570,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 		"SuccessfulVaultStoreValidClientTls": {
 			reason: "Should return a Vault provider with the cert from k8s",
 			args: args{
-				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
-					s.Spec.Provider.Vault.ClientTLS = esv1beta1.VaultClientTLS{
+				store: makeSecretStore(func(s *esv1.SecretStore) {
+					s.Spec.Provider.Vault.ClientTLS = esv1.VaultClientTLS{
 						CertSecretRef: &esmeta.SecretKeySelector{
 							Name: tlsAuthCerts,
 						},
@@ -601,7 +601,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 		"SuccessfulVaultStoreWithSecretRef": {
 			reason: "Should return a Vault provider with secret ref auth",
 			args: args{
-				store: makeClusterSecretStore(func(s *esv1beta1.SecretStore) {
+				store: makeClusterSecretStore(func(s *esv1.SecretStore) {
 					s.Spec.Provider.Vault.Auth.Kubernetes = nil
 					s.Spec.Provider.Vault.Auth.TokenSecretRef = &esmeta.SecretKeySelector{
 						Name:      "vault-token",
@@ -626,9 +626,9 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 		"SuccessfulVaultStoreWithApproleRef": {
 			reason: "Should return a Vault provider with approle auth",
 			args: args{
-				store: makeSecretStore(func(s *esv1beta1.SecretStore) {
+				store: makeSecretStore(func(s *esv1.SecretStore) {
 					s.Spec.Provider.Vault.Auth.Kubernetes = nil
-					s.Spec.Provider.Vault.Auth.AppRole = &esv1beta1.VaultAppRole{
+					s.Spec.Provider.Vault.Auth.AppRole = &esv1.VaultAppRole{
 						SecretRef: esmeta.SecretKeySelector{
 							Name: "vault-secret-id",
 							Key:  "secret-id",
@@ -658,7 +658,7 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 		"SuccessfulVaultStoreWithSecretRefAndReferentSpec": {
 			reason: "Should return a Vault provider with secret ref auth",
 			args: args{
-				store: makeClusterSecretStore(func(s *esv1beta1.SecretStore) {
+				store: makeClusterSecretStore(func(s *esv1.SecretStore) {
 					s.Spec.Provider.Vault.Auth.TokenSecretRef = &esmeta.SecretKeySelector{
 						Name: "vault-token",
 						Key:  "token",
@@ -672,9 +672,9 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 		"SuccessfulVaultStoreWithJwtAuthAndReferentSpec": {
 			reason: "Should return a Vault provider with jwt auth",
 			args: args{
-				store: makeClusterSecretStore(func(s *esv1beta1.SecretStore) {
+				store: makeClusterSecretStore(func(s *esv1.SecretStore) {
 					s.Spec.Provider.Vault.Auth.Kubernetes = nil
-					s.Spec.Provider.Vault.Auth.Jwt = &esv1beta1.VaultJwtAuth{
+					s.Spec.Provider.Vault.Auth.Jwt = &esv1.VaultJwtAuth{
 						Role: "test-role",
 						SecretRef: &esmeta.SecretKeySelector{
 							Name: "vault-token",

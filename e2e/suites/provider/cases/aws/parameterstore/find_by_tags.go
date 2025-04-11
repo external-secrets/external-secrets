@@ -18,7 +18,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
-	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 // This case creates multiple secrets with simple key/value pairs and syncs them using multiple .Spec.Data blocks.

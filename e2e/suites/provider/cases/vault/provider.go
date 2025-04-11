@@ -31,7 +31,7 @@ import (
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -42,7 +42,7 @@ type vaultProvider struct {
 	framework *framework.Framework
 }
 
-type StoreCustomizer = func(provider *vaultProvider, secret *v1.Secret, secretStore *metav1.ObjectMeta, secretStoreSpec *esv1beta1.SecretStoreSpec, isClusterStore bool)
+type StoreCustomizer = func(provider *vaultProvider, secret *v1.Secret, secretStore *metav1.ObjectMeta, secretStoreSpec *esv1.SecretStoreSpec, isClusterStore bool)
 
 const (
 	clientTlsCertName       = "vault-client-tls"
@@ -103,11 +103,11 @@ func (s *vaultProvider) BeforeEach() {
 	s.url = v.VaultURL
 	s.mtlsUrl = v.VaultMtlsURL
 
-	mtlsCustomizer := func(provider *vaultProvider, secret *v1.Secret, secretStore *metav1.ObjectMeta, secretStoreSpec *esv1beta1.SecretStoreSpec, isClusterStore bool) {
+	mtlsCustomizer := func(provider *vaultProvider, secret *v1.Secret, secretStore *metav1.ObjectMeta, secretStoreSpec *esv1.SecretStoreSpec, isClusterStore bool) {
 		secret.Name = secret.Name + mtlsSuffix
 		secretStore.Name = secretStore.Name + mtlsSuffix
 		secretStoreSpec.Provider.Vault.Server = provider.mtlsUrl
-		secretStoreSpec.Provider.Vault.ClientTLS = esv1beta1.VaultClientTLS{
+		secretStoreSpec.Provider.Vault.ClientTLS = esv1.VaultClientTLS{
 			CertSecretRef: &esmeta.SecretKeySelector{
 				Name: clientTlsCertName,
 			},
@@ -121,7 +121,7 @@ func (s *vaultProvider) BeforeEach() {
 		}
 	}
 
-	invalidMtlsCustomizer := func(provider *vaultProvider, secret *v1.Secret, secretStore *metav1.ObjectMeta, secretStoreSpec *esv1beta1.SecretStoreSpec, isClusterStore bool) {
+	invalidMtlsCustomizer := func(provider *vaultProvider, secret *v1.Secret, secretStore *metav1.ObjectMeta, secretStoreSpec *esv1.SecretStoreSpec, isClusterStore bool) {
 		secret.Name = secret.Name + invalidMtlSuffix
 		secretStore.Name = secretStore.Name + invalidMtlSuffix
 		secretStoreSpec.Provider.Vault.Server = provider.mtlsUrl
@@ -146,16 +146,16 @@ func (s *vaultProvider) AfterEach() {
 	s.DeleteClusterSecretStore(referentSecretStoreName(s.framework) + mtlsSuffix)
 }
 
-func makeStore(name, ns string, v *addon.Vault) *esv1beta1.SecretStore {
-	return &esv1beta1.SecretStore{
+func makeStore(name, ns string, v *addon.Vault) *esv1.SecretStore {
+	return &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: ns,
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Vault: &esv1beta1.VaultProvider{
-					Version:  esv1beta1.VaultKVStoreV2,
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Vault: &esv1.VaultProvider{
+					Version:  esv1.VaultKVStoreV2,
 					Path:     &secretStorePath,
 					Server:   v.VaultURL,
 					CABundle: v.VaultServerCA,
@@ -165,9 +165,9 @@ func makeStore(name, ns string, v *addon.Vault) *esv1beta1.SecretStore {
 	}
 }
 
-func makeClusterStore(name, ns string, v *addon.Vault) *esv1beta1.ClusterSecretStore {
+func makeClusterStore(name, ns string, v *addon.Vault) *esv1.ClusterSecretStore {
 	store := makeStore(name, ns, v)
-	return &esv1beta1.ClusterSecretStore{
+	return &esv1.ClusterSecretStore{
 		ObjectMeta: store.ObjectMeta,
 		Spec:       store.Spec,
 	}
@@ -211,8 +211,8 @@ func (s *vaultProvider) CreateCertStore(v *addon.Vault, ns string) {
 
 	By("creating an secret store for vault")
 	secretStore := makeStore(certAuthProviderName, ns, v)
-	secretStore.Spec.Provider.Vault.Auth = &esv1beta1.VaultAuth{
-		Cert: &esv1beta1.VaultCertAuth{
+	secretStore.Spec.Provider.Vault.Auth = &esv1.VaultAuth{
+		Cert: &esv1.VaultCertAuth{
 			ClientCert: esmeta.SecretKeySelector{
 				Name: certAuthProviderName,
 				Key:  "client_cert",
@@ -238,7 +238,7 @@ func (s vaultProvider) CreateTokenStore(v *addon.Vault, ns string, customizers .
 		},
 	}
 	secretStore := makeStore(s.framework.Namespace.Name, ns, v)
-	secretStore.Spec.Provider.Vault.Auth = &esv1beta1.VaultAuth{
+	secretStore.Spec.Provider.Vault.Auth = &esv1.VaultAuth{
 		TokenSecretRef: &esmeta.SecretKeySelector{
 			Name: vaultCreds.Name,
 			Key:  "token",
@@ -269,7 +269,7 @@ func (s vaultProvider) CreateReferentTokenStore(v *addon.Vault, ns string, custo
 		},
 	}
 	secretStore := makeClusterStore(referentSecretStoreName(s.framework), ns, v)
-	secretStore.Spec.Provider.Vault.Auth = &esv1beta1.VaultAuth{
+	secretStore.Spec.Provider.Vault.Auth = &esv1.VaultAuth{
 		TokenSecretRef: &esmeta.SecretKeySelector{
 			Name: referentSecret.Name,
 			Key:  referentKey,
@@ -287,7 +287,7 @@ func (s vaultProvider) CreateReferentTokenStore(v *addon.Vault, ns string, custo
 }
 
 func (s *vaultProvider) DeleteClusterSecretStore(name string) {
-	err := s.framework.CRClient.Delete(context.Background(), &esv1beta1.ClusterSecretStore{
+	err := s.framework.CRClient.Delete(context.Background(), &esv1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
@@ -311,8 +311,8 @@ func (s vaultProvider) CreateAppRoleStore(v *addon.Vault, ns string) {
 
 	By("creating an secret store for vault")
 	secretStore := makeStore(appRoleAuthProviderName, ns, v)
-	secretStore.Spec.Provider.Vault.Auth = &esv1beta1.VaultAuth{
-		AppRole: &esv1beta1.VaultAppRole{
+	secretStore.Spec.Provider.Vault.Auth = &esv1.VaultAuth{
+		AppRole: &esv1.VaultAppRole{
 			Path:   v.AppRolePath,
 			RoleID: v.AppRoleID,
 			SecretRef: esmeta.SecretKeySelector{
@@ -339,9 +339,9 @@ func (s vaultProvider) CreateV1Store(v *addon.Vault, ns string) {
 	Expect(err).ToNot(HaveOccurred())
 	secretStore := makeStore(kvv1ProviderName, ns, v)
 	secretV1StorePath := "secret_v1"
-	secretStore.Spec.Provider.Vault.Version = esv1beta1.VaultKVStoreV1
+	secretStore.Spec.Provider.Vault.Version = esv1.VaultKVStoreV1
 	secretStore.Spec.Provider.Vault.Path = &secretV1StorePath
-	secretStore.Spec.Provider.Vault.Auth = &esv1beta1.VaultAuth{
+	secretStore.Spec.Provider.Vault.Auth = &esv1.VaultAuth{
 		TokenSecretRef: &esmeta.SecretKeySelector{
 			Name: "v1-provider",
 			Key:  "token",
@@ -364,8 +364,8 @@ func (s vaultProvider) CreateJWTStore(v *addon.Vault, ns string) {
 	err := s.framework.CRClient.Create(context.Background(), vaultCreds)
 	Expect(err).ToNot(HaveOccurred())
 	secretStore := makeStore(jwtProviderName, ns, v)
-	secretStore.Spec.Provider.Vault.Auth = &esv1beta1.VaultAuth{
-		Jwt: &esv1beta1.VaultJwtAuth{
+	secretStore.Spec.Provider.Vault.Auth = &esv1.VaultAuth{
+		Jwt: &esv1.VaultJwtAuth{
 			Path: v.JWTPath,
 			Role: v.JWTRole,
 			SecretRef: &esmeta.SecretKeySelector{
@@ -380,11 +380,11 @@ func (s vaultProvider) CreateJWTStore(v *addon.Vault, ns string) {
 
 func (s vaultProvider) CreateJWTK8sStore(v *addon.Vault, ns string) {
 	secretStore := makeStore(jwtK8sProviderName, ns, v)
-	secretStore.Spec.Provider.Vault.Auth = &esv1beta1.VaultAuth{
-		Jwt: &esv1beta1.VaultJwtAuth{
+	secretStore.Spec.Provider.Vault.Auth = &esv1.VaultAuth{
+		Jwt: &esv1.VaultJwtAuth{
 			Path: v.JWTK8sPath,
 			Role: v.JWTRole,
-			KubernetesServiceAccountToken: &esv1beta1.VaultKubernetesServiceAccountTokenAuth{
+			KubernetesServiceAccountToken: &esv1.VaultKubernetesServiceAccountTokenAuth{
 				ServiceAccountRef: esmeta.ServiceAccountSelector{
 					Name: "default",
 				},
@@ -400,8 +400,8 @@ func (s vaultProvider) CreateJWTK8sStore(v *addon.Vault, ns string) {
 
 func (s vaultProvider) CreateKubernetesAuthStore(v *addon.Vault, ns string) {
 	secretStore := makeStore(kubernetesProviderName, ns, v)
-	secretStore.Spec.Provider.Vault.Auth = &esv1beta1.VaultAuth{
-		Kubernetes: &esv1beta1.VaultKubernetesAuth{
+	secretStore.Spec.Provider.Vault.Auth = &esv1.VaultAuth{
+		Kubernetes: &esv1.VaultKubernetesAuth{
 			Path: v.KubernetesAuthPath,
 			Role: v.KubernetesAuthRole,
 			ServiceAccountRef: &esmeta.ServiceAccountSelector{

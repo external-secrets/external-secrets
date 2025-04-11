@@ -18,7 +18,7 @@ import (
 
 	pointer "k8s.io/utils/ptr"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -26,8 +26,8 @@ const fakeValidationValue = "fake-value"
 
 func TestValidateStore(t *testing.T) {
 	type args struct {
-		auth      esv1beta1.VaultAuth
-		clientTLS esv1beta1.VaultClientTLS
+		auth      esv1.VaultAuth
+		clientTLS esv1.VaultClientTLS
 	}
 
 	tests := []struct {
@@ -43,8 +43,8 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "invalid approle with namespace",
 			args: args{
-				auth: esv1beta1.VaultAuth{
-					AppRole: &esv1beta1.VaultAppRole{
+				auth: esv1.VaultAuth{
+					AppRole: &esv1.VaultAppRole{
 						SecretRef: esmeta.SecretKeySelector{
 							Namespace: pointer.To("invalid"),
 						},
@@ -56,8 +56,8 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "invalid approle with roleId and no roleRef",
 			args: args{
-				auth: esv1beta1.VaultAuth{
-					AppRole: &esv1beta1.VaultAppRole{
+				auth: esv1.VaultAuth{
+					AppRole: &esv1.VaultAppRole{
 						RoleID:  "",
 						RoleRef: nil,
 					},
@@ -68,8 +68,8 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "valid approle with roleId and no roleRef",
 			args: args{
-				auth: esv1beta1.VaultAuth{
-					AppRole: &esv1beta1.VaultAppRole{
+				auth: esv1.VaultAuth{
+					AppRole: &esv1.VaultAppRole{
 						RoleID: fakeValidationValue,
 					},
 				},
@@ -79,8 +79,8 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "valid approle with roleId and no roleRef",
 			args: args{
-				auth: esv1beta1.VaultAuth{
-					AppRole: &esv1beta1.VaultAppRole{
+				auth: esv1.VaultAuth{
+					AppRole: &esv1.VaultAppRole{
 						RoleRef: &esmeta.SecretKeySelector{
 							Name: fakeValidationValue,
 						},
@@ -92,8 +92,8 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "invalid clientcert",
 			args: args{
-				auth: esv1beta1.VaultAuth{
-					Cert: &esv1beta1.VaultCertAuth{
+				auth: esv1.VaultAuth{
+					Cert: &esv1.VaultCertAuth{
 						ClientCert: esmeta.SecretKeySelector{
 							Namespace: pointer.To("invalid"),
 						},
@@ -105,8 +105,8 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "invalid cert secret",
 			args: args{
-				auth: esv1beta1.VaultAuth{
-					Cert: &esv1beta1.VaultCertAuth{
+				auth: esv1.VaultAuth{
+					Cert: &esv1.VaultCertAuth{
 						SecretRef: esmeta.SecretKeySelector{
 							Namespace: pointer.To("invalid"),
 						},
@@ -118,8 +118,8 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "invalid jwt secret",
 			args: args{
-				auth: esv1beta1.VaultAuth{
-					Jwt: &esv1beta1.VaultJwtAuth{
+				auth: esv1.VaultAuth{
+					Jwt: &esv1.VaultJwtAuth{
 						SecretRef: &esmeta.SecretKeySelector{
 							Namespace: pointer.To("invalid"),
 						},
@@ -131,8 +131,8 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "invalid kubernetes sa",
 			args: args{
-				auth: esv1beta1.VaultAuth{
-					Kubernetes: &esv1beta1.VaultKubernetesAuth{
+				auth: esv1.VaultAuth{
+					Kubernetes: &esv1.VaultKubernetesAuth{
 						ServiceAccountRef: &esmeta.ServiceAccountSelector{
 							Namespace: pointer.To("invalid"),
 						},
@@ -144,8 +144,8 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "invalid kubernetes secret",
 			args: args{
-				auth: esv1beta1.VaultAuth{
-					Kubernetes: &esv1beta1.VaultKubernetesAuth{
+				auth: esv1.VaultAuth{
+					Kubernetes: &esv1.VaultKubernetesAuth{
 						SecretRef: &esmeta.SecretKeySelector{
 							Namespace: pointer.To("invalid"),
 						},
@@ -157,8 +157,8 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "invalid ldap secret",
 			args: args{
-				auth: esv1beta1.VaultAuth{
-					Ldap: &esv1beta1.VaultLdapAuth{
+				auth: esv1.VaultAuth{
+					Ldap: &esv1.VaultLdapAuth{
 						SecretRef: esmeta.SecretKeySelector{
 							Namespace: pointer.To("invalid"),
 						},
@@ -170,8 +170,8 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "invalid userpass secret",
 			args: args{
-				auth: esv1beta1.VaultAuth{
-					UserPass: &esv1beta1.VaultUserPassAuth{
+				auth: esv1.VaultAuth{
+					UserPass: &esv1.VaultUserPassAuth{
 						SecretRef: esmeta.SecretKeySelector{
 							Namespace: pointer.To("invalid"),
 						},
@@ -183,7 +183,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "invalid token secret",
 			args: args{
-				auth: esv1beta1.VaultAuth{
+				auth: esv1.VaultAuth{
 					TokenSecretRef: &esmeta.SecretKeySelector{
 						Namespace: pointer.To("invalid"),
 					},
@@ -194,14 +194,14 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "valid clientTls config",
 			args: args{
-				auth: esv1beta1.VaultAuth{
-					AppRole: &esv1beta1.VaultAppRole{
+				auth: esv1.VaultAuth{
+					AppRole: &esv1.VaultAppRole{
 						RoleRef: &esmeta.SecretKeySelector{
 							Name: fakeValidationValue,
 						},
 					},
 				},
-				clientTLS: esv1beta1.VaultClientTLS{
+				clientTLS: esv1.VaultClientTLS{
 					CertSecretRef: &esmeta.SecretKeySelector{
 						Name: "tls-auth-certs",
 					},
@@ -215,14 +215,14 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "invalid clientTls config, missing SecretRef",
 			args: args{
-				auth: esv1beta1.VaultAuth{
-					AppRole: &esv1beta1.VaultAppRole{
+				auth: esv1.VaultAuth{
+					AppRole: &esv1.VaultAppRole{
 						RoleRef: &esmeta.SecretKeySelector{
 							Name: fakeValidationValue,
 						},
 					},
 				},
-				clientTLS: esv1beta1.VaultClientTLS{
+				clientTLS: esv1.VaultClientTLS{
 					CertSecretRef: &esmeta.SecretKeySelector{
 						Name: "tls-auth-certs",
 					},
@@ -233,14 +233,14 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "invalid clientTls config, missing ClientCert",
 			args: args{
-				auth: esv1beta1.VaultAuth{
-					AppRole: &esv1beta1.VaultAppRole{
+				auth: esv1.VaultAuth{
+					AppRole: &esv1.VaultAppRole{
 						RoleRef: &esmeta.SecretKeySelector{
 							Name: fakeValidationValue,
 						},
 					},
 				},
-				clientTLS: esv1beta1.VaultClientTLS{
+				clientTLS: esv1.VaultClientTLS{
 					KeySecretRef: &esmeta.SecretKeySelector{
 						Name: "tls-auth-certs",
 					},
@@ -255,10 +255,10 @@ func TestValidateStore(t *testing.T) {
 				NewVaultClient: nil,
 			}
 			auth := tt.args.auth
-			store := &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Vault: &esv1beta1.VaultProvider{
+			store := &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Vault: &esv1.VaultProvider{
 							Auth:      &auth,
 							ClientTLS: tt.args.clientTLS,
 						},

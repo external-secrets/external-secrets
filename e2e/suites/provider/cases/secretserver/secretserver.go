@@ -2,10 +2,11 @@ package secretserver
 
 import (
 	"context"
-	_"fmt"
+	_ "fmt"
+
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -35,7 +36,7 @@ var _ = ginkgo.Describe("[secretserver]", ginkgo.Label("secretserver"), func() {
 		ginkgo.Entry(common.JSONDataWithoutTargetName(f)),
 		ginkgo.Entry(common.JSONDataWithTemplateFromLiteral(f)),
 		ginkgo.Entry(common.TemplateFromConfigmaps(f)),
-		ginkgo.Entry(common.JSONDataFromSync(f)), // <--
+		ginkgo.Entry(common.JSONDataFromSync(f)),    // <--
 		ginkgo.Entry(common.JSONDataFromRewrite(f)), // <--
 		ginkgo.Entry(common.NestedJSONWithGJSON(f)),
 		ginkgo.Entry(common.DockerJSONConfig(f)),
@@ -64,19 +65,19 @@ func createResources(ctx context.Context, f *framework.Framework, cfg *config) {
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 	// Creating SecretStore.
-	secretStoreSpec := esv1beta1.SecretStore{
+	secretStoreSpec := esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      f.Namespace.Name,
 			Namespace: f.Namespace.Name,
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				SecretServer: &esv1beta1.SecretServerProvider{
-					ServerURL:      cfg.serverURL,
-					Username: &esv1beta1.SecretServerProviderRef{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				SecretServer: &esv1.SecretServerProvider{
+					ServerURL: cfg.serverURL,
+					Username: &esv1.SecretServerProviderRef{
 						Value: cfg.username,
 					},
-					Password: &esv1beta1.SecretServerProviderRef{
+					Password: &esv1.SecretServerProviderRef{
 						SecretRef: &esmeta.SecretKeySelector{
 							Name: secretName,
 							Key:  secretKey,

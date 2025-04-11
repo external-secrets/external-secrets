@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/common/webhook"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
@@ -38,31 +38,31 @@ const (
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1beta1.SecretsClient = &WebHook{}
-var _ esv1beta1.Provider = &Provider{}
+var _ esv1.SecretsClient = &WebHook{}
+var _ esv1.Provider = &Provider{}
 
 // Provider satisfies the provider interface.
 type Provider struct{}
 
 type WebHook struct {
 	wh        webhook.Webhook
-	store     esv1beta1.GenericStore
+	store     esv1.GenericStore
 	storeKind string
 	url       string
 }
 
 func init() {
-	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
-		Webhook: &esv1beta1.WebhookProvider{},
-	})
+	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
+		Webhook: &esv1.WebhookProvider{},
+	}, esv1.MaintenanceStatusMaintained)
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadOnly
+func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadOnly
 }
 
-func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 	wh := webhook.Webhook{
 		Kube:      kube,
 		Namespace: namespace,
@@ -74,7 +74,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
 	}
 	whClient.wh.EnforceLabels = true
-	if whClient.storeKind == esv1beta1.ClusterSecretStoreKind {
+	if whClient.storeKind == esv1.ClusterSecretStoreKind {
 		whClient.wh.ClusterScoped = true
 	}
 	provider, err := getProvider(store)
@@ -90,11 +90,11 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return whClient, nil
 }
 
-func (p *Provider) ValidateStore(_ esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *Provider) ValidateStore(_ esv1.GenericStore) (admission.Warnings, error) {
 	return nil, nil
 }
 
-func getProvider(store esv1beta1.GenericStore) (*webhook.Spec, error) {
+func getProvider(store esv1.GenericStore) (*webhook.Spec, error) {
 	spc := store.GetSpec()
 	if spc == nil || spc.Provider == nil || spc.Provider.Webhook == nil {
 		return nil, errors.New("missing store provider webhook")
@@ -108,15 +108,15 @@ func getProvider(store esv1beta1.GenericStore) (*webhook.Spec, error) {
 	return &out, err
 }
 
-func (w *WebHook) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
+func (w *WebHook) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	return errors.New(errNotImplemented)
 }
 
-func (w *WebHook) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (w *WebHook) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New(errNotImplemented)
 }
 
-func (w *WebHook) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+func (w *WebHook) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	if data.GetRemoteKey() == "" {
 		return errors.New("remote key must be defined")
 	}
@@ -139,12 +139,12 @@ func (w *WebHook) PushSecret(ctx context.Context, secret *corev1.Secret, data es
 }
 
 // GetAllSecrets Empty .
-func (w *WebHook) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (w *WebHook) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, errors.New(errNotImplemented)
 }
 
-func (w *WebHook) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (w *WebHook) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	provider, err := getProvider(w.store)
 	if err != nil {
 		return nil, fmt.Errorf(errFailedToGetStore, err)
@@ -212,7 +212,7 @@ func extractSecretData(jsondata any) ([]byte, error) {
 	}
 }
 
-func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	provider, err := getProvider(w.store)
 	if err != nil {
 		return nil, fmt.Errorf(errFailedToGetStore, err)
@@ -224,12 +224,12 @@ func (w *WebHook) Close(_ context.Context) error {
 	return nil
 }
 
-func (w *WebHook) Validate() (esv1beta1.ValidationResult, error) {
+func (w *WebHook) Validate() (esv1.ValidationResult, error) {
 	timeout := 15 * time.Second
 	url := w.url
 
 	if err := utils.NetworkValidate(url, timeout); err != nil {
-		return esv1beta1.ValidationResultError, err
+		return esv1.ValidationResultError, err
 	}
-	return esv1beta1.ValidationResultReady, nil
+	return esv1.ValidationResultReady, nil
 }

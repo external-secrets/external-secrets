@@ -39,6 +39,5 @@ var _ = Describe("[gitlab]", Label("gitlab"), func() {
 		Entry(common.JSONDataWithTemplate(f)),
 		Entry(common.SyncWithoutTargetName(f)),
 		Entry(common.JSONDataWithoutTargetName(f)),
-		Entry(common.SyncV1Alpha1(f)),
 	)
 })

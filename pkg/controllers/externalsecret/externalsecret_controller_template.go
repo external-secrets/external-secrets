@@ -21,7 +21,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
 	"github.com/external-secrets/external-secrets/pkg/template"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -34,14 +34,14 @@ import (
 // * template.TemplateFrom
 // * secret via es.data or es.dataFrom (if template.MergePolicy is Merge, or there is no template)
 // * existing secret keys (if CreationPolicy is Merge).
-func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSecret, secret *v1.Secret, dataMap map[string][]byte) error {
+func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1.ExternalSecret, secret *v1.Secret, dataMap map[string][]byte) error {
 	// update metadata (labels, annotations) of the secret
 	if err := setMetadata(secret, es); err != nil {
 		return err
 	}
 
 	// we only keep existing keys if creation policy is Merge, otherwise we clear the secret
-	if es.Spec.Target.CreationPolicy != esv1beta1.CreatePolicyMerge {
+	if es.Spec.Target.CreationPolicy != esv1.CreatePolicyMerge {
 		secret.Data = make(map[string][]byte)
 	}
 
@@ -58,7 +58,7 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 
 	// when TemplateMergePolicy is Merge, or there is no data template, we include the keys from `dataMap`
 	noTemplate := len(es.Spec.Target.Template.Data) == 0 && len(es.Spec.Target.Template.TemplateFrom) == 0
-	if es.Spec.Target.Template.MergePolicy == esv1beta1.MergePolicyMerge || noTemplate {
+	if es.Spec.Target.Template.MergePolicy == esv1.MergePolicyMerge || noTemplate {
 		maps.Insert(secret.Data, maps.All(dataMap))
 	}
 
@@ -82,21 +82,21 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 
 	// apply data templates
 	// NOTE: explicitly defined template.data templates take precedence over templateFrom
-	err = p.MergeMap(es.Spec.Target.Template.Data, esv1beta1.TemplateTargetData)
+	err = p.MergeMap(es.Spec.Target.Template.Data, esv1.TemplateTargetData)
 	if err != nil {
 		return fmt.Errorf(errExecTpl, err)
 	}
 
 	// apply templates for labels
 	// NOTE: this only works for v2 templates
-	err = p.MergeMap(es.Spec.Target.Template.Metadata.Labels, esv1beta1.TemplateTargetLabels)
+	err = p.MergeMap(es.Spec.Target.Template.Metadata.Labels, esv1.TemplateTargetLabels)
 	if err != nil {
 		return fmt.Errorf(errExecTpl, err)
 	}
 
 	// apply template for annotations
 	// NOTE: this only works for v2 templates
-	err = p.MergeMap(es.Spec.Target.Template.Metadata.Annotations, esv1beta1.TemplateTargetAnnotations)
+	err = p.MergeMap(es.Spec.Target.Template.Metadata.Annotations, esv1.TemplateTargetAnnotations)
 	if err != nil {
 		return fmt.Errorf(errExecTpl, err)
 	}
@@ -105,7 +105,7 @@ func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1beta1.ExternalSe
 }
 
 // setMetadata sets Labels and Annotations to the given secret.
-func setMetadata(secret *v1.Secret, es *esv1beta1.ExternalSecret) error {
+func setMetadata(secret *v1.Secret, es *esv1.ExternalSecret) error {
 	// ensure that Labels and Annotations are not nil
 	// so it is safe to merge them
 	if secret.Labels == nil {

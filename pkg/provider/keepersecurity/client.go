@@ -26,7 +26,7 @@ import (
 	ksm "github.com/keeper-security/secrets-manager-go/core"
 	corev1 "k8s.io/api/core/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 const (
@@ -96,11 +96,11 @@ type Secret struct {
 	Files  []File        `json:"files"`
 }
 
-func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
-	return esv1beta1.ValidationResultReady, nil
+func (c *Client) Validate() (esv1.ValidationResult, error) {
+	return esv1.ValidationResultReady, nil
 }
 
-func (c *Client) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (c *Client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	record, err := c.findSecretByID(ref.Key)
 	if err != nil {
 		return nil, err
@@ -113,7 +113,7 @@ func (c *Client) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRe
 	return secret.getItem(ref)
 }
 
-func (c *Client) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (c *Client) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	record, err := c.findSecretByID(ref.Key)
 	if err != nil {
 		return nil, err
@@ -126,7 +126,7 @@ func (c *Client) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSecretDat
 	return secret.getItems(ref)
 }
 
-func (c *Client) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (c *Client) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Tags != nil {
 		return nil, errors.New(errTagsNotImplemented)
 	}
@@ -150,7 +150,7 @@ func (c *Client) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecretFi
 		if !match {
 			continue
 		}
-		secretData[secret.Title], err = secret.getItem(esv1beta1.ExternalSecretDataRemoteRef{})
+		secretData[secret.Title], err = secret.getItem(esv1.ExternalSecretDataRemoteRef{})
 		if err != nil {
 			return nil, err
 		}
@@ -163,7 +163,7 @@ func (c *Client) Close(_ context.Context) error {
 	return nil
 }
 
-func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	if data.GetSecretKey() == "" {
 		return errors.New("pushing the whole secret is not yet implemented")
 	}
@@ -191,7 +191,7 @@ func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1b
 	}
 }
 
-func (c *Client) DeleteSecret(_ context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
+func (c *Client) DeleteSecret(_ context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	parts, err := c.buildSecretNameAndKey(remoteRef)
 	if err != nil {
 		return err
@@ -210,11 +210,11 @@ func (c *Client) DeleteSecret(_ context.Context, remoteRef esv1beta1.PushSecretR
 	return err
 }
 
-func (c *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (c *Client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New("not implemented")
 }
 
-func (c *Client) buildSecretNameAndKey(remoteRef esv1beta1.PushSecretRemoteRef) ([]string, error) {
+func (c *Client) buildSecretNameAndKey(remoteRef esv1.PushSecretRemoteRef) ([]string, error) {
 	parts := strings.Split(remoteRef.GetRemoteKey(), "/")
 	if len(parts) != 2 {
 		return nil, fmt.Errorf(errInvalidRemoteRefKey, remoteRef.GetRemoteKey())
@@ -389,7 +389,7 @@ func (s *Secret) addFiles(keeperFiles []*ksm.KeeperFile) {
 	}
 }
 
-func (s *Secret) getItem(ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (s *Secret) getItem(ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if ref.Property != "" {
 		return s.getProperty(ref.Property)
 	}
@@ -398,7 +398,7 @@ func (s *Secret) getItem(ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, err
 	return []byte(secret), err
 }
 
-func (s *Secret) getItems(ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (s *Secret) getItems(ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	secretData := make(map[string][]byte)
 	if ref.Property != "" {
 		value, err := s.getProperty(ref.Property)

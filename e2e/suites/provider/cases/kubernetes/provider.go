@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -82,7 +82,7 @@ func (s *Provider) DeleteSecret(key string) {
 	Expect(err).ToNot(HaveOccurred())
 }
 
-func makeDefaultStore(suffix, namespace string) (*rbac.Role, *rbac.RoleBinding, *esv1beta1.SecretStore) {
+func makeDefaultStore(suffix, namespace string) (*rbac.Role, *rbac.RoleBinding, *esv1.SecretStore) {
 	roleName := fmt.Sprintf("%s-%s", "allow-eso-secret-read", suffix)
 	role := &rbac.Role{
 		ObjectMeta: metav1.ObjectMeta{
@@ -122,22 +122,22 @@ func makeDefaultStore(suffix, namespace string) (*rbac.Role, *rbac.RoleBinding, 
 		},
 	}
 
-	store := &esv1beta1.SecretStore{
+	store := &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      namespace,
 			Namespace: namespace,
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Kubernetes: &esv1beta1.KubernetesProvider{
-					Server: esv1beta1.KubernetesServer{
-						CAProvider: &esv1beta1.CAProvider{
-							Type: esv1beta1.CAProviderTypeConfigMap,
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Kubernetes: &esv1.KubernetesProvider{
+					Server: esv1.KubernetesServer{
+						CAProvider: &esv1.CAProvider{
+							Type: esv1.CAProviderTypeConfigMap,
 							Name: "kube-root-ca.crt",
 							Key:  "ca.crt",
 						},
 					},
-					Auth: esv1beta1.KubernetesAuth{
+					Auth: esv1.KubernetesAuth{
 						ServiceAccount: &esmeta.ServiceAccountSelector{
 							Name: "default",
 						},
@@ -168,7 +168,7 @@ func (s *Provider) CreateReferentStore() {
 	rb, role, store := makeDefaultStore("referent", s.framework.Namespace.Name)
 	// ServiceAccount Namespace is not set, this will be inferred
 	// from the ExternalSecret
-	css := &esv1beta1.ClusterSecretStore{
+	css := &esv1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: referentStoreName(s.framework),
 		},

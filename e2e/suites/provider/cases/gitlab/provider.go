@@ -29,7 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -116,17 +116,17 @@ func (s *gitlabProvider) BeforeEach() {
 
 	// Create a secret store - change these values to match YAML
 	By("creating a secret store for credentials")
-	secretStore := &esv1beta1.SecretStore{
+	secretStore := &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      s.framework.Namespace.Name,
 			Namespace: s.framework.Namespace.Name,
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Gitlab: &esv1beta1.GitlabProvider{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Gitlab: &esv1.GitlabProvider{
 					ProjectID: s.projectID,
-					Auth: esv1beta1.GitlabAuth{
-						SecretRef: esv1beta1.GitlabSecretRef{
+					Auth: esv1.GitlabAuth{
+						SecretRef: esv1.GitlabSecretRef{
 							AccessToken: esmeta.SecretKeySelector{
 								Name: "provider-secret",
 								Key:  "token",

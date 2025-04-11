@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
@@ -35,7 +35,7 @@ var (
 	errMissingStore        = errors.New("missing store provider")
 	errMissingFakeProvider = errors.New("missing store provider fake")
 	errMissingKeyField     = "key must be set in data %v"
-	errMissingValueField   = "at least one of value or valueMap must be set in data %v"
+	errMissingValueField   = "at least one value must be set in data %v"
 )
 
 type SourceOrigin string
@@ -46,10 +46,9 @@ const (
 )
 
 type Data struct {
-	Value    string
-	Version  string
-	ValueMap map[string]string
-	Origin   SourceOrigin
+	Value   string
+	Version string
+	Origin  SourceOrigin
 }
 type Config map[string]*Data
 type Provider struct {
@@ -58,11 +57,11 @@ type Provider struct {
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadWrite
+func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadWrite
 }
 
-func (p *Provider) NewClient(_ context.Context, store esv1beta1.GenericStore, _ client.Client, _ string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(_ context.Context, store esv1.GenericStore, _ client.Client, _ string) (esv1.SecretsClient, error) {
 	if p.database == nil {
 		p.database = make(map[string]Config)
 	}
@@ -88,9 +87,6 @@ func (p *Provider) NewClient(_ context.Context, store esv1beta1.GenericStore, _ 
 			Version: data.Version,
 			Origin:  FakeSecretStore,
 		}
-		if data.ValueMap != nil {
-			cfg[key].ValueMap = data.ValueMap
-		}
 	}
 	p.database[store.GetName()] = cfg
 	return &Provider{
@@ -98,7 +94,7 @@ func (p *Provider) NewClient(_ context.Context, store esv1beta1.GenericStore, _ 
 	}, nil
 }
 
-func getProvider(store esv1beta1.GenericStore) (*esv1beta1.FakeProvider, error) {
+func getProvider(store esv1.GenericStore) (*esv1.FakeProvider, error) {
 	if store == nil {
 		return nil, errMissingStore
 	}
@@ -109,16 +105,16 @@ func getProvider(store esv1beta1.GenericStore) (*esv1beta1.FakeProvider, error) 
 	return spc.Provider.Fake, nil
 }
 
-func (p *Provider) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
+func (p *Provider) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	return nil
 }
 
-func (p *Provider) SecretExists(_ context.Context, ref esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (p *Provider) SecretExists(_ context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 	_, ok := p.config[ref.GetRemoteKey()]
 	return ok, nil
 }
 
-func (p *Provider) PushSecret(_ context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+func (p *Provider) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	value := secret.Data[data.GetSecretKey()]
 	currentData, ok := p.config[data.GetRemoteKey()]
 	if !ok {
@@ -139,7 +135,7 @@ func (p *Provider) PushSecret(_ context.Context, secret *corev1.Secret, data esv
 
 // GetAllSecrets returns multiple secrets from the given ExternalSecretFind
 // Currently, only the Name operator is supported.
-func (p *Provider) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Name != nil {
 		matcher, err := find.New(*ref.Name)
 		if err != nil {
@@ -173,16 +169,16 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecret
 }
 
 // GetSecret returns a single secret from the provider.
-func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	data, ok := p.config[mapKey(ref.Key, ref.Version)]
 	if !ok || data.Version != ref.Version {
-		return nil, esv1beta1.NoSecretErr
+		return nil, esv1.NoSecretErr
 	}
 
 	if ref.Property != "" {
 		val := gjson.Get(data.Value, ref.Property)
 		if !val.Exists() {
-			return nil, esv1beta1.NoSecretErr
+			return nil, esv1.NoSecretErr
 		}
 
 		return []byte(val.String()), nil
@@ -192,15 +188,10 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretData
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (p *Provider) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	ddata, ok := p.config[mapKey(ref.Key, ref.Version)]
 	if !ok || ddata.Version != ref.Version {
-		return nil, esv1beta1.NoSecretErr
-	}
-
-	// Due to backward compatibility valueMap will still be returned for now
-	if ddata.ValueMap != nil {
-		return convertMap(ddata.ValueMap), nil
+		return nil, esv1.NoSecretErr
 	}
 
 	data, err := p.GetSecret(ctx, ref)
@@ -228,23 +219,15 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 	return secretData, nil
 }
 
-func convertMap(in map[string]string) map[string][]byte {
-	m := make(map[string][]byte)
-	for k, v := range in {
-		m[k] = []byte(v)
-	}
-	return m
-}
-
 func (p *Provider) Close(_ context.Context) error {
 	return nil
 }
 
-func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
-	return esv1beta1.ValidationResultReady, nil
+func (p *Provider) Validate() (esv1.ValidationResult, error) {
+	return esv1.ValidationResultReady, nil
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	prov := store.GetSpec().Provider.Fake
 	if prov == nil {
 		return nil, nil
@@ -253,7 +236,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 		if data.Key == "" {
 			return nil, fmt.Errorf(errMissingKeyField, pos)
 		}
-		if data.Value == "" && data.ValueMap == nil {
+		if data.Value == "" {
 			return nil, fmt.Errorf(errMissingValueField, pos)
 		}
 	}
@@ -266,7 +249,7 @@ func mapKey(key, version string) string {
 }
 
 func init() {
-	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
-		Fake: &esv1beta1.FakeProvider{},
-	})
+	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
+		Fake: &esv1.FakeProvider{},
+	}, esv1.MaintenanceStatusNotMaintained) // TODO - update this post tests
 }

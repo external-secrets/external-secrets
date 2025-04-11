@@ -30,7 +30,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
@@ -44,8 +44,8 @@ const (
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1beta1.SecretsClient = &KeyManagementService{}
-var _ esv1beta1.Provider = &KeyManagementService{}
+var _ esv1.SecretsClient = &KeyManagementService{}
+var _ esv1.Provider = &KeyManagementService{}
 
 type KeyManagementService struct {
 	Client SMInterface
@@ -57,26 +57,26 @@ type SMInterface interface {
 	Endpoint() string
 }
 
-func (kms *KeyManagementService) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
+func (kms *KeyManagementService) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
 	return errors.New(errNotImplemented)
 }
 
-func (kms *KeyManagementService) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
+func (kms *KeyManagementService) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	return errors.New(errNotImplemented)
 }
 
-func (kms *KeyManagementService) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (kms *KeyManagementService) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New(errNotImplemented)
 }
 
 // Empty GetAllSecrets.
-func (kms *KeyManagementService) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (kms *KeyManagementService) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	// TO be implemented
 	return nil, errors.New(errNotImplemented)
 }
 
 // GetSecret returns a single secret from the provider.
-func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(kms.Client) {
 		return nil, errors.New(errUninitalizedAlibabaProvider)
 	}
@@ -111,7 +111,7 @@ func (kms *KeyManagementService) GetSecret(ctx context.Context, ref esv1beta1.Ex
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := kms.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -129,12 +129,12 @@ func (kms *KeyManagementService) GetSecretMap(ctx context.Context, ref esv1beta1
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (kms *KeyManagementService) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadOnly
+func (kms *KeyManagementService) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadOnly
 }
 
 // NewClient constructs a new secrets client based on the provided store.
-func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	alibabaSpec := storeSpec.Provider.Alibaba
 
@@ -159,7 +159,7 @@ func (kms *KeyManagementService) NewClient(ctx context.Context, store esv1beta1.
 	return kms, nil
 }
 
-func newOptions(store esv1beta1.GenericStore) *util.RuntimeOptions {
+func newOptions(store esv1.GenericStore) *util.RuntimeOptions {
 	storeSpec := store.GetSpec()
 
 	options := &util.RuntimeOptions{}
@@ -180,7 +180,7 @@ func newOptions(store esv1beta1.GenericStore) *util.RuntimeOptions {
 	return options
 }
 
-func newAuth(ctx context.Context, kube kclient.Client, store esv1beta1.GenericStore, namespace string) (credential.Credential, error) {
+func newAuth(ctx context.Context, kube kclient.Client, store esv1.GenericStore, namespace string) (credential.Credential, error) {
 	storeSpec := store.GetSpec()
 	alibabaSpec := storeSpec.Provider.Alibaba
 
@@ -204,7 +204,7 @@ func newAuth(ctx context.Context, kube kclient.Client, store esv1beta1.GenericSt
 	}
 }
 
-func newRRSAAuth(store esv1beta1.GenericStore) (credential.Credential, error) {
+func newRRSAAuth(store esv1.GenericStore) (credential.Credential, error) {
 	storeSpec := store.GetSpec()
 	alibabaSpec := storeSpec.Provider.Alibaba
 
@@ -221,7 +221,7 @@ func newRRSAAuth(store esv1beta1.GenericStore) (credential.Credential, error) {
 	return credential.NewCredential(credentialConfig)
 }
 
-func newAccessKeyAuth(ctx context.Context, kube kclient.Client, store esv1beta1.GenericStore, namespace string) (credential.Credential, error) {
+func newAccessKeyAuth(ctx context.Context, kube kclient.Client, store esv1.GenericStore, namespace string) (credential.Credential, error) {
 	storeSpec := store.GetSpec()
 	alibabaSpec := storeSpec.Provider.Alibaba
 	storeKind := store.GetObjectKind().GroupVersionKind().Kind
@@ -248,7 +248,7 @@ func (kms *KeyManagementService) Close(_ context.Context) error {
 	return nil
 }
 
-func (kms *KeyManagementService) Validate() (esv1beta1.ValidationResult, error) {
+func (kms *KeyManagementService) Validate() (esv1.ValidationResult, error) {
 	err := retry.Do(
 		func() error {
 			_, err := kms.Config.Credential.GetCredential()
@@ -261,13 +261,13 @@ func (kms *KeyManagementService) Validate() (esv1beta1.ValidationResult, error) 
 		retry.Attempts(5),
 	)
 	if err != nil {
-		return esv1beta1.ValidationResultError, SanitizeErr(err)
+		return esv1.ValidationResultError, SanitizeErr(err)
 	}
 
-	return esv1beta1.ValidationResultReady, nil
+	return esv1.ValidationResultReady, nil
 }
 
-func (kms *KeyManagementService) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (kms *KeyManagementService) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	alibabaSpec := storeSpec.Provider.Alibaba
 
@@ -280,7 +280,7 @@ func (kms *KeyManagementService) ValidateStore(store esv1beta1.GenericStore) (ad
 	return nil, kms.validateStoreAuth(store)
 }
 
-func (kms *KeyManagementService) validateStoreAuth(store esv1beta1.GenericStore) error {
+func (kms *KeyManagementService) validateStoreAuth(store esv1.GenericStore) error {
 	storeSpec := store.GetSpec()
 	alibabaSpec := storeSpec.Provider.Alibaba
 
@@ -294,7 +294,7 @@ func (kms *KeyManagementService) validateStoreAuth(store esv1beta1.GenericStore)
 	}
 }
 
-func (kms *KeyManagementService) validateStoreRRSAAuth(store esv1beta1.GenericStore) error {
+func (kms *KeyManagementService) validateStoreRRSAAuth(store esv1.GenericStore) error {
 	storeSpec := store.GetSpec()
 	alibabaSpec := storeSpec.Provider.Alibaba
 
@@ -317,7 +317,7 @@ func (kms *KeyManagementService) validateStoreRRSAAuth(store esv1beta1.GenericSt
 	return nil
 }
 
-func (kms *KeyManagementService) validateStoreAccessKeyAuth(store esv1beta1.GenericStore) error {
+func (kms *KeyManagementService) validateStoreAccessKeyAuth(store esv1.GenericStore) error {
 	storeSpec := store.GetSpec()
 	alibabaSpec := storeSpec.Provider.Alibaba
 
@@ -353,7 +353,7 @@ func (kms *KeyManagementService) validateStoreAccessKeyAuth(store esv1beta1.Gene
 }
 
 func init() {
-	esv1beta1.Register(&KeyManagementService{}, &esv1beta1.SecretStoreProvider{
-		Alibaba: &esv1beta1.AlibabaProvider{},
-	})
+	esv1.Register(&KeyManagementService{}, &esv1.SecretStoreProvider{
+		Alibaba: &esv1.AlibabaProvider{},
+	}, esv1.MaintenanceStatusNotMaintained)
 }

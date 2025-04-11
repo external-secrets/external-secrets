@@ -26,7 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 // Constants for content type and value.
@@ -83,12 +83,12 @@ func TestGetSecret(t *testing.T) {
 	})
 
 	testCases := map[string]struct {
-		ref  esv1beta1.ExternalSecretDataRemoteRef
+		ref  esv1.ExternalSecretDataRemoteRef
 		want []byte
 		err  error
 	}{
 		"querying for the key returns the value": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "b",
 			},
 			want: []byte(`{"b":"world"}`),
@@ -112,7 +112,7 @@ func TestGetSecret(t *testing.T) {
 func TestGetSecretMap(t *testing.T) {
 	tests := []struct {
 		name  string
-		ref   esv1beta1.ExternalSecretDataRemoteRef
+		ref   esv1.ExternalSecretDataRemoteRef
 		input map[string]interface{}
 
 		want    map[string][]byte
@@ -120,7 +120,7 @@ func TestGetSecretMap(t *testing.T) {
 	}{
 		{
 			name: "successful case (basic types)",
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "mysec",
 			},
 			input: map[string]interface{}{
@@ -188,7 +188,7 @@ func TestGetSecretMap(t *testing.T) {
 		},
 		{
 			name: "successful case (nested)",
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "mysec",
 			},
 			input: map[string]interface{}{
@@ -275,7 +275,7 @@ func TestGetSecretMap(t *testing.T) {
 		},
 		{
 			name: "successful case (basic + nested)",
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "mysec",
 			},
 			input: map[string]interface{}{

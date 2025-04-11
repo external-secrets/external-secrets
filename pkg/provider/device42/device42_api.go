@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"time"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 const (
@@ -119,7 +119,7 @@ func (api *API) GetSecret(secretID string) (D42Password, error) {
 	return d42PasswordResponse.Passwords[0], err
 }
 
-func (api *API) GetSecretMap(_ context.Context, _ esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (api *API) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	return nil, errors.New(errNotImplemented)
 }
 

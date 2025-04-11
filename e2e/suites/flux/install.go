@@ -60,6 +60,11 @@ func installESO(cfg *addon.Config) {
 		HelmRevision:    helmChartRevision,
 		HelmValues: fmt.Sprintf(`{
 			"installCRDs": true,
+			"crds": {
+				"conversion": {
+				  "enabled": true
+				}
+			},
 			"image": {
 			  "tag": "%s"
 			},

@@ -33,7 +33,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
@@ -53,7 +53,7 @@ type Tokener interface {
 	SetUidToken(v string)
 }
 
-func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeParam string, k8sAuth *esv1beta1.AkeylessKubernetesAuth) (string, error) {
+func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeParam string, k8sAuth *esv1.AkeylessKubernetesAuth) (string, error) {
 	authBody := akeyless.NewAuthWithDefaults()
 	authBody.AccessId = akeyless.PtrString(accessID)
 	if accType == "api_key" || accType == "access_key" {
@@ -359,7 +359,7 @@ func (a *akeylessBase) DeleteSecret(ctx context.Context, remoteKey string) error
 	return err
 }
 
-func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAuth *esv1beta1.AkeylessKubernetesAuth) (string, error) {
+func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAuth *esv1.AkeylessKubernetesAuth) (string, error) {
 	if kubernetesAuth == nil {
 		return readK8SServiceAccountJWT()
 	}
@@ -398,7 +398,7 @@ func (a *akeylessBase) getJWTFromServiceAccount(ctx context.Context, serviceAcco
 		Namespace: a.namespace,
 		Name:      serviceAccountRef.Name,
 	}
-	if (a.storeKind == esv1beta1.ClusterSecretStoreKind) &&
+	if (a.storeKind == esv1.ClusterSecretStoreKind) &&
 		(serviceAccountRef.Namespace != nil) {
 		ref.Namespace = *serviceAccountRef.Namespace
 	}
@@ -438,7 +438,7 @@ func (a *akeylessBase) getJWTfromServiceAccountToken(ctx context.Context, servic
 			ExpirationSeconds: &expirationSeconds,
 		},
 	}
-	if (a.storeKind == esv1beta1.ClusterSecretStoreKind) &&
+	if (a.storeKind == esv1.ClusterSecretStoreKind) &&
 		(serviceAccountRef.Namespace != nil) {
 		tokenRequest.Namespace = *serviceAccountRef.Namespace
 	}

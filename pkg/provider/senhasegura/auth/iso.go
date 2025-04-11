@@ -27,12 +27,12 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 type ISOInterface interface {
-	IsoSessionFromSecretRef(ctx context.Context, provider *esv1beta1.SenhaseguraProvider, store esv1beta1.GenericStore, kube client.Client, namespace string) (*SenhaseguraIsoSession, error)
+	IsoSessionFromSecretRef(ctx context.Context, provider *esv1.SenhaseguraProvider, store esv1.GenericStore, kube client.Client, namespace string) (*SenhaseguraIsoSession, error)
 	GetIsoToken(clientID, clientSecret, systemURL string, ignoreSslCertificate bool) (token string, err error)
 }
 
@@ -65,7 +65,7 @@ var (
 /*
 Authenticate check required authentication method based on provider spec and initialize ISO OAuth2 session.
 */
-func Authenticate(ctx context.Context, store esv1beta1.GenericStore, provider *esv1beta1.SenhaseguraProvider, kube client.Client, namespace string) (isoSession *SenhaseguraIsoSession, err error) {
+func Authenticate(ctx context.Context, store esv1.GenericStore, provider *esv1.SenhaseguraProvider, kube client.Client, namespace string) (isoSession *SenhaseguraIsoSession, err error) {
 	isoSession, err = isoSession.IsoSessionFromSecretRef(ctx, provider, store, kube, namespace)
 	if err != nil {
 		return nil, err
@@ -76,7 +76,7 @@ func Authenticate(ctx context.Context, store esv1beta1.GenericStore, provider *e
 /*
 IsoSessionFromSecretRef initialize an ISO OAuth2 flow with .spec.provider.senhasegura.auth.isoSecretRef parameters.
 */
-func (s *SenhaseguraIsoSession) IsoSessionFromSecretRef(ctx context.Context, provider *esv1beta1.SenhaseguraProvider, store esv1beta1.GenericStore, kube client.Client, namespace string) (*SenhaseguraIsoSession, error) {
+func (s *SenhaseguraIsoSession) IsoSessionFromSecretRef(ctx context.Context, provider *esv1.SenhaseguraProvider, store esv1.GenericStore, kube client.Client, namespace string) (*SenhaseguraIsoSession, error) {
 	secret, err := resolvers.SecretKeyRef(
 		ctx,
 		kube,

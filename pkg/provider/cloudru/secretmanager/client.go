@@ -27,7 +27,7 @@ import (
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/cloudru/secretmanager/adapter"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
@@ -55,7 +55,7 @@ type Client struct {
 }
 
 // GetSecret gets the secret by the remote reference.
-func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	secret, err := c.accessSecret(ctx, ref.Key, ref.Version)
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	return []byte(result.Str), nil
 }
 
-func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	secret, err := c.accessSecret(ctx, ref.Key, ref.Version)
 	if err != nil {
 		return nil, err
@@ -104,7 +104,7 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 }
 
 // GetAllSecrets gets all secrets by the remote reference.
-func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	if len(ref.Tags) == 0 && ref.Name == nil {
 		return nil, fmt.Errorf("at least one of the following fields must be set: tags, name")
 	}
@@ -159,21 +159,21 @@ func (c *Client) accessSecret(ctx context.Context, key, version string) ([]byte,
 	return c.apiClient.AccessSecretVersion(ctx, key, version)
 }
 
-func (c *Client) PushSecret(context.Context, *corev1.Secret, esv1beta1.PushSecretData) error {
+func (c *Client) PushSecret(context.Context, *corev1.Secret, esv1.PushSecretData) error {
 	return fmt.Errorf("push secret is not supported")
 }
 
-func (c *Client) DeleteSecret(context.Context, esv1beta1.PushSecretRemoteRef) error {
+func (c *Client) DeleteSecret(context.Context, esv1.PushSecretRemoteRef) error {
 	return fmt.Errorf("delete secret is not supported")
 }
 
-func (c *Client) SecretExists(context.Context, esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (c *Client) SecretExists(context.Context, esv1.PushSecretRemoteRef) (bool, error) {
 	return false, fmt.Errorf("secret exists is not supported")
 }
 
 // Validate validates the client.
-func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
-	return esv1beta1.ValidationResultUnknown, nil
+func (c *Client) Validate() (esv1.ValidationResult, error) {
+	return esv1.ValidationResultUnknown, nil
 }
 
 // Close closes the client.

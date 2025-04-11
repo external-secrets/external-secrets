@@ -29,7 +29,7 @@ import (
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 )
 
@@ -87,7 +87,7 @@ args:
   response: not found
 want:
   path: /api/getsecret?id=testkey&version=1
-  err: ` + esv1beta1.NoSecretErr.Error() + `
+  err: ` + esv1.NoSecretErr.Error() + `
 ---
 case: error server error
 args:

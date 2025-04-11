@@ -27,38 +27,38 @@ import (
 	kubeClient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 func TestDoesConfigDependOnNamespace(t *testing.T) {
 	tests := map[string]struct {
-		cfg  esv1beta1.SecretServerProvider
+		cfg  esv1.SecretServerProvider
 		want bool
 	}{
 		"true when Username references a secret without explicit namespace": {
-			cfg: esv1beta1.SecretServerProvider{
-				Username: &esv1beta1.SecretServerProviderRef{
+			cfg: esv1.SecretServerProvider{
+				Username: &esv1.SecretServerProviderRef{
 					SecretRef: &v1.SecretKeySelector{Name: "foo"},
 				},
-				Password: &esv1beta1.SecretServerProviderRef{SecretRef: nil},
+				Password: &esv1.SecretServerProviderRef{SecretRef: nil},
 			},
 			want: true,
 		},
 		"true when password references a secret without explicit namespace": {
-			cfg: esv1beta1.SecretServerProvider{
-				Username: &esv1beta1.SecretServerProviderRef{SecretRef: nil},
-				Password: &esv1beta1.SecretServerProviderRef{
+			cfg: esv1.SecretServerProvider{
+				Username: &esv1.SecretServerProviderRef{SecretRef: nil},
+				Password: &esv1.SecretServerProviderRef{
 					SecretRef: &v1.SecretKeySelector{Name: "foo"},
 				},
 			},
 			want: true,
 		},
 		"false when neither Username or Password reference a secret": {
-			cfg: esv1beta1.SecretServerProvider{
-				Username: &esv1beta1.SecretServerProviderRef{SecretRef: nil},
-				Password: &esv1beta1.SecretServerProviderRef{SecretRef: nil},
+			cfg: esv1.SecretServerProvider{
+				Username: &esv1.SecretServerProviderRef{SecretRef: nil},
+				Password: &esv1.SecretServerProviderRef{SecretRef: nil},
 			},
 			want: false,
 		},
@@ -73,17 +73,17 @@ func TestDoesConfigDependOnNamespace(t *testing.T) {
 
 func TestValidateStore(t *testing.T) {
 	validSecretRefUsingValue := makeSecretRefUsingValue("foo")
-	ambiguousSecretRef := &esv1beta1.SecretServerProviderRef{
+	ambiguousSecretRef := &esv1.SecretServerProviderRef{
 		SecretRef: &v1.SecretKeySelector{Name: "foo"}, Value: "foo",
 	}
 	testURL := "https://example.com"
 
 	tests := map[string]struct {
-		cfg  esv1beta1.SecretServerProvider
+		cfg  esv1.SecretServerProvider
 		want error
 	}{
 		"invalid without username": {
-			cfg: esv1beta1.SecretServerProvider{
+			cfg: esv1.SecretServerProvider{
 				Username:  nil,
 				Password:  validSecretRefUsingValue,
 				ServerURL: testURL,
@@ -91,7 +91,7 @@ func TestValidateStore(t *testing.T) {
 			want: errEmptyUserName,
 		},
 		"invalid without password": {
-			cfg: esv1beta1.SecretServerProvider{
+			cfg: esv1.SecretServerProvider{
 				Username:  validSecretRefUsingValue,
 				Password:  nil,
 				ServerURL: testURL,
@@ -99,7 +99,7 @@ func TestValidateStore(t *testing.T) {
 			want: errEmptyPassword,
 		},
 		"invalid without serverURL": {
-			cfg: esv1beta1.SecretServerProvider{
+			cfg: esv1.SecretServerProvider{
 				Username: validSecretRefUsingValue,
 				Password: validSecretRefUsingValue,
 				/*ServerURL: testURL,*/
@@ -107,7 +107,7 @@ func TestValidateStore(t *testing.T) {
 			want: errEmptyServerURL,
 		},
 		"invalid with ambiguous Username": {
-			cfg: esv1beta1.SecretServerProvider{
+			cfg: esv1.SecretServerProvider{
 				Username:  ambiguousSecretRef,
 				Password:  validSecretRefUsingValue,
 				ServerURL: testURL,
@@ -115,7 +115,7 @@ func TestValidateStore(t *testing.T) {
 			want: errSecretRefAndValueConflict,
 		},
 		"invalid with ambiguous Password": {
-			cfg: esv1beta1.SecretServerProvider{
+			cfg: esv1.SecretServerProvider{
 				Username:  validSecretRefUsingValue,
 				Password:  ambiguousSecretRef,
 				ServerURL: testURL,
@@ -123,7 +123,7 @@ func TestValidateStore(t *testing.T) {
 			want: errSecretRefAndValueConflict,
 		},
 		"invalid with invalid Username": {
-			cfg: esv1beta1.SecretServerProvider{
+			cfg: esv1.SecretServerProvider{
 				Username:  makeSecretRefUsingValue(""),
 				Password:  validSecretRefUsingValue,
 				ServerURL: testURL,
@@ -131,7 +131,7 @@ func TestValidateStore(t *testing.T) {
 			want: errSecretRefAndValueMissing,
 		},
 		"invalid with invalid Password": {
-			cfg: esv1beta1.SecretServerProvider{
+			cfg: esv1.SecretServerProvider{
 				Username:  validSecretRefUsingValue,
 				Password:  makeSecretRefUsingValue(""),
 				ServerURL: testURL,
@@ -139,7 +139,7 @@ func TestValidateStore(t *testing.T) {
 			want: errSecretRefAndValueMissing,
 		},
 		"valid with tenant/clientID/clientSecret": {
-			cfg: esv1beta1.SecretServerProvider{
+			cfg: esv1.SecretServerProvider{
 				Username:  validSecretRefUsingValue,
 				Password:  validSecretRefUsingValue,
 				ServerURL: testURL,
@@ -149,9 +149,9 @@ func TestValidateStore(t *testing.T) {
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			s := esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
+			s := esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
 						SecretServer: &tc.cfg,
 					},
 				},
@@ -177,15 +177,15 @@ func TestNewClient(t *testing.T) {
 		},
 	}
 
-	validProvider := &esv1beta1.SecretServerProvider{
+	validProvider := &esv1.SecretServerProvider{
 		Username:  makeSecretRefUsingRef(clientSecret.Name, userNameKey),
 		Password:  makeSecretRefUsingRef(clientSecret.Name, passwordKey),
 		ServerURL: "https://example.com",
 	}
 
 	tests := map[string]struct {
-		store    esv1beta1.GenericStore          // leave nil for namespaced store
-		provider *esv1beta1.SecretServerProvider // discarded when store is set
+		store    esv1.GenericStore          // leave nil for namespaced store
+		provider *esv1.SecretServerProvider // discarded when store is set
 		kube     kubeClient.Client
 		errCheck func(t *testing.T, err error)
 	}{
@@ -196,10 +196,10 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 		"namespace-dependent cluster secret store": {
-			store: &esv1beta1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{Kind: esv1beta1.ClusterSecretStoreKind},
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
+			store: &esv1.ClusterSecretStore{
+				TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
 						SecretServer: validProvider,
 					},
 				},
@@ -209,7 +209,7 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 		"dangling password ref": {
-			provider: &esv1beta1.SecretServerProvider{
+			provider: &esv1.SecretServerProvider{
 				Username:  validProvider.Username,
 				Password:  makeSecretRefUsingRef("typo", passwordKey),
 				ServerURL: validProvider.ServerURL,
@@ -220,7 +220,7 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 		"dangling username ref": {
-			provider: &esv1beta1.SecretServerProvider{
+			provider: &esv1.SecretServerProvider{
 				Username:  makeSecretRefUsingRef("typo", userNameKey),
 				Password:  validProvider.Password,
 				ServerURL: validProvider.ServerURL,
@@ -231,7 +231,7 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 		"secret ref without name": {
-			provider: &esv1beta1.SecretServerProvider{
+			provider: &esv1.SecretServerProvider{
 				Username:  makeSecretRefUsingRef("", userNameKey),
 				Password:  validProvider.Password,
 				ServerURL: validProvider.ServerURL,
@@ -242,7 +242,7 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 		"secret ref without key": {
-			provider: &esv1beta1.SecretServerProvider{
+			provider: &esv1.SecretServerProvider{
 				Username:  validProvider.Password,
 				Password:  makeSecretRefUsingRef(clientSecret.Name, ""),
 				ServerURL: validProvider.ServerURL,
@@ -253,7 +253,7 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 		"secret ref with non-existent keys": {
-			provider: &esv1beta1.SecretServerProvider{
+			provider: &esv1.SecretServerProvider{
 				Username:  makeSecretRefUsingRef(clientSecret.Name, "typo"),
 				Password:  makeSecretRefUsingRef(clientSecret.Name, passwordKey),
 				ServerURL: validProvider.ServerURL,
@@ -268,7 +268,7 @@ func TestNewClient(t *testing.T) {
 			kube:     clientfake.NewClientBuilder().WithObjects(clientSecret).Build(),
 		},
 		"secret values": {
-			provider: &esv1beta1.SecretServerProvider{
+			provider: &esv1.SecretServerProvider{
 				Username:  makeSecretRefUsingValue(userNameValue),
 				Password:  makeSecretRefUsingValue(passwordValue),
 				ServerURL: validProvider.ServerURL,
@@ -276,11 +276,11 @@ func TestNewClient(t *testing.T) {
 			kube: clientfake.NewClientBuilder().WithObjects(clientSecret).Build(),
 		},
 		"cluster secret store": {
-			store: &esv1beta1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{Kind: esv1beta1.ClusterSecretStoreKind},
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						SecretServer: &esv1beta1.SecretServerProvider{
+			store: &esv1.ClusterSecretStore{
+				TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						SecretServer: &esv1.SecretServerProvider{
 							Username:  makeSecretRefUsingNamespacedRef(clientSecret.Namespace, clientSecret.Name, userNameKey),
 							Password:  makeSecretRefUsingNamespacedRef(clientSecret.Namespace, clientSecret.Name, passwordKey),
 							ServerURL: validProvider.ServerURL,
@@ -296,10 +296,10 @@ func TestNewClient(t *testing.T) {
 			p := &Provider{}
 			store := tc.store
 			if store == nil {
-				store = &esv1beta1.SecretStore{
-					TypeMeta: metav1.TypeMeta{Kind: esv1beta1.SecretStoreKind},
-					Spec: esv1beta1.SecretStoreSpec{
-						Provider: &esv1beta1.SecretStoreProvider{
+				store = &esv1.SecretStore{
+					TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
 							SecretServer: tc.provider,
 						},
 					},
@@ -324,18 +324,18 @@ func TestNewClient(t *testing.T) {
 	}
 }
 
-func makeSecretRefUsingNamespacedRef(namespace, name, key string) *esv1beta1.SecretServerProviderRef {
-	return &esv1beta1.SecretServerProviderRef{
+func makeSecretRefUsingNamespacedRef(namespace, name, key string) *esv1.SecretServerProviderRef {
+	return &esv1.SecretServerProviderRef{
 		SecretRef: &v1.SecretKeySelector{Namespace: utils.Ptr(namespace), Name: name, Key: key},
 	}
 }
 
-func makeSecretRefUsingValue(val string) *esv1beta1.SecretServerProviderRef {
-	return &esv1beta1.SecretServerProviderRef{Value: val}
+func makeSecretRefUsingValue(val string) *esv1.SecretServerProviderRef {
+	return &esv1.SecretServerProviderRef{Value: val}
 }
 
-func makeSecretRefUsingRef(name, key string) *esv1beta1.SecretServerProviderRef {
-	return &esv1beta1.SecretServerProviderRef{
+func makeSecretRefUsingRef(name, key string) *esv1.SecretServerProviderRef {
+	return &esv1.SecretServerProviderRef{
 		SecretRef: &v1.SecretKeySelector{Name: name, Key: key},
 	}
 }

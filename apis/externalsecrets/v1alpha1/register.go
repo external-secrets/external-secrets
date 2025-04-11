@@ -36,30 +36,6 @@ var (
 	AddToScheme   = SchemeBuilder.AddToScheme
 )
 
-// ExternalSecret type metadata.
-var (
-	ExtSecretKind             = reflect.TypeOf(ExternalSecret{}).Name()
-	ExtSecretGroupKind        = schema.GroupKind{Group: Group, Kind: ExtSecretKind}.String()
-	ExtSecretKindAPIVersion   = ExtSecretKind + "." + SchemeGroupVersion.String()
-	ExtSecretGroupVersionKind = SchemeGroupVersion.WithKind(ExtSecretKind)
-)
-
-// SecretStore type metadata.
-var (
-	SecretStoreKind             = reflect.TypeOf(SecretStore{}).Name()
-	SecretStoreGroupKind        = schema.GroupKind{Group: Group, Kind: SecretStoreKind}.String()
-	SecretStoreKindAPIVersion   = SecretStoreKind + "." + SchemeGroupVersion.String()
-	SecretStoreGroupVersionKind = SchemeGroupVersion.WithKind(SecretStoreKind)
-)
-
-// ClusterSecretStore type metadata.
-var (
-	ClusterSecretStoreKind             = reflect.TypeOf(ClusterSecretStore{}).Name()
-	ClusterSecretStoreGroupKind        = schema.GroupKind{Group: Group, Kind: ClusterSecretStoreKind}.String()
-	ClusterSecretStoreKindAPIVersion   = ClusterSecretStoreKind + "." + SchemeGroupVersion.String()
-	ClusterSecretStoreGroupVersionKind = SchemeGroupVersion.WithKind(ClusterSecretStoreKind)
-)
-
 var (
 	PushSecretKind             = reflect.TypeOf(PushSecret{}).Name()
 	PushSecretGroupKind        = schema.GroupKind{Group: Group, Kind: PushSecretKind}.String()
@@ -75,9 +51,6 @@ var (
 )
 
 func init() {
-	SchemeBuilder.Register(&ExternalSecret{}, &ExternalSecretList{})
-	SchemeBuilder.Register(&SecretStore{}, &SecretStoreList{})
-	SchemeBuilder.Register(&ClusterSecretStore{}, &ClusterSecretStoreList{})
 	SchemeBuilder.Register(&PushSecret{}, &PushSecretList{})
 	SchemeBuilder.Register(&ClusterPushSecret{}, &ClusterPushSecretList{})
 }

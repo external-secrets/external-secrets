@@ -18,11 +18,11 @@ import (
 	"errors"
 	"testing"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 type ValidateStoreTestCase struct {
-	store *esv1beta1.SecretStore
+	store *esv1.SecretStore
 	err   error
 }
 

@@ -24,7 +24,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
@@ -43,21 +43,21 @@ const (
 type Provider struct{}
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1beta1.SecretsClient = &Client{}
-var _ esv1beta1.Provider = &Provider{}
+var _ esv1.SecretsClient = &Client{}
+var _ esv1.Provider = &Provider{}
 
 func init() {
-	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
-		KeeperSecurity: &esv1beta1.KeeperSecurityProvider{},
-	})
+	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
+		KeeperSecurity: &esv1.KeeperSecurityProvider{},
+	}, esv1.MaintenanceStatusMaintained)
 }
 
-func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadWrite
+func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadWrite
 }
 
 // NewClient constructs a GCP Provider.
-func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.KeeperSecurity == nil {
 		return nil, fmt.Errorf(errKeeperSecurityStore, store)
@@ -82,7 +82,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return client, nil
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
 		return nil, fmt.Errorf(errKeeperSecurityStore, store)
 	}
@@ -110,7 +110,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 	return nil, nil
 }
 
-func getKeeperSecurityAuth(ctx context.Context, store *esv1beta1.KeeperSecurityProvider, kube kclient.Client, storeKind, namespace string) (string, error) {
+func getKeeperSecurityAuth(ctx context.Context, store *esv1.KeeperSecurityProvider, kube kclient.Client, storeKind, namespace string) (string, error) {
 	return resolvers.SecretKeyRef(
 		ctx,
 		kube,

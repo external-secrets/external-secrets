@@ -40,7 +40,7 @@ require (
 	github.com/tidwall/gjson v1.18.0
 	github.com/yandex-cloud/go-genproto v0.0.0-20250325081613-cd85d9003939
 	github.com/yandex-cloud/go-sdk v0.0.0-20250325134853-dcb34ef70818
-	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
+	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.37.0
 	golang.org/x/oauth2 v0.29.0

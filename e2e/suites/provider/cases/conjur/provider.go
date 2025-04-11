@@ -29,7 +29,7 @@ import (
 	"github.com/cyberark/conjur-api-go/conjurapi"
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -83,15 +83,15 @@ func (s *conjurProvider) BeforeEach() {
 	s.CreateJWTK8sHostIDStore(c, ns)
 }
 
-func makeStore(name, ns string, c *addon.Conjur) *esv1beta1.SecretStore {
-	return &esv1beta1.SecretStore{
+func makeStore(name, ns string, c *addon.Conjur) *esv1.SecretStore {
+	return &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: ns,
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Conjur: &esv1beta1.ConjurProvider{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Conjur: &esv1.ConjurProvider{
 					URL:      c.ConjurURL,
 					CABundle: base64.StdEncoding.EncodeToString(c.ConjurServerCA),
 				},
@@ -117,8 +117,8 @@ func (s *conjurProvider) CreateApiKeyStore(c *addon.Conjur, ns string) {
 
 	By("creating an secret store for conjur")
 	secretStore := makeStore(ns, ns, c)
-	secretStore.Spec.Provider.Conjur.Auth = esv1beta1.ConjurAuth{
-		APIKey: &esv1beta1.ConjurAPIKey{
+	secretStore.Spec.Provider.Conjur.Auth = esv1.ConjurAuth{
+		APIKey: &esv1.ConjurAPIKey{
 			Account: "default",
 			UserRef: &esmeta.SecretKeySelector{
 				Name: ns,
@@ -155,8 +155,8 @@ func (s conjurProvider) CreateJWTK8sStore(c *addon.Conjur, ns string) {
 
 	// Now create a secret store that uses the service account to authenticate
 	secretStore := makeStore(jwtK8sProviderName, ns, c)
-	secretStore.Spec.Provider.Conjur.Auth = esv1beta1.ConjurAuth{
-		Jwt: &esv1beta1.ConjurJWT{
+	secretStore.Spec.Provider.Conjur.Auth = esv1.ConjurAuth{
+		Jwt: &esv1.ConjurJWT{
 			Account:   "default",
 			ServiceID: "eso-tests",
 			ServiceAccountRef: &esmeta.ServiceAccountSelector{
@@ -192,8 +192,8 @@ func (s conjurProvider) CreateJWTK8sHostIDStore(c *addon.Conjur, ns string) {
 
 	// Now create a secret store that uses the service account to authenticate
 	secretStore := makeStore(jwtK8sHostIDProviderName, ns, c)
-	secretStore.Spec.Provider.Conjur.Auth = esv1beta1.ConjurAuth{
-		Jwt: &esv1beta1.ConjurJWT{
+	secretStore.Spec.Provider.Conjur.Auth = esv1.ConjurAuth{
+		Jwt: &esv1.ConjurJWT{
 			Account:   "default",
 			HostID:    "host/" + saName,
 			ServiceID: "eso-tests-hostid",

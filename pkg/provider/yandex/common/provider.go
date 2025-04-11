@@ -28,7 +28,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	clock2 "github.com/external-secrets/external-secrets/pkg/provider/yandex/common/clock"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
@@ -37,7 +37,7 @@ import (
 const maxSecretsClientLifetime = 5 * time.Minute // supposed SecretsClient lifetime is quite short
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1beta1.Provider = &YandexCloudProvider{}
+var _ esv1.Provider = &YandexCloudProvider{}
 
 // Implementation of v1beta1.Provider.
 type YandexCloudProvider struct {
@@ -90,7 +90,7 @@ func InitYandexCloudProvider(
 }
 
 type NewSecretSetterFunc func()
-type AdaptInputFunc func(store esv1beta1.GenericStore) (*SecretsClientInput, error)
+type AdaptInputFunc func(store esv1.GenericStore) (*SecretsClientInput, error)
 type NewSecretGetterFunc func(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (SecretGetter, error)
 type NewIamTokenFunc func(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (*IamToken, error)
 
@@ -105,12 +105,12 @@ type SecretsClientInput struct {
 	CACertificate *esmeta.SecretKeySelector
 }
 
-func (p *YandexCloudProvider) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadOnly
+func (p *YandexCloudProvider) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadOnly
 }
 
 // NewClient constructs a Yandex.Cloud Provider.
-func (p *YandexCloudProvider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *YandexCloudProvider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	input, err := p.adaptInputFunc(store)
 	if err != nil {
 		return nil, err
@@ -232,7 +232,7 @@ func (p *YandexCloudProvider) CleanUpIamTokenMap() {
 	}
 }
 
-func (p *YandexCloudProvider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *YandexCloudProvider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	_, err := p.adaptInputFunc(store) // adaptInputFunc validates the input store
 	if err != nil {
 		return nil, err

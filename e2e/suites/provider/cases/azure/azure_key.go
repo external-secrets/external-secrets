@@ -23,7 +23,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 // azure keyvault type=key should retrieve a jwk from the api.
@@ -55,10 +55,10 @@ var _ = Describe("[azure]", Label("azure", "keyvault", "key"), func() {
 					secretKey: keyBytes,
 				},
 			}
-			tc.ExternalSecret.Spec.Data = []esv1beta1.ExternalSecretData{
+			tc.ExternalSecret.Spec.Data = []esv1.ExternalSecretData{
 				{
 					SecretKey: secretKey,
-					RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
+					RemoteRef: esv1.ExternalSecretDataRemoteRef{
 						Key: "key/" + keyName,
 					},
 				},

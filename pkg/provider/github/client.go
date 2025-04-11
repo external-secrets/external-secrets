@@ -27,11 +27,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1beta1.SecretsClient = &Client{}
+var _ esv1.SecretsClient = &Client{}
 
 type ActionsServiceClient interface {
 	CreateOrUpdateOrgSecret(ctx context.Context, org string, eSecret *github.EncryptedSecret) (response *github.Response, err error)
@@ -40,20 +40,20 @@ type ActionsServiceClient interface {
 }
 type Client struct {
 	crClient         client.Client
-	store            esv1beta1.GenericStore
-	provider         *esv1beta1.GithubProvider
+	store            esv1.GenericStore
+	provider         *esv1.GithubProvider
 	baseClient       github.ActionsService
 	namespace        string
 	storeKind        string
 	repoID           int64
-	getSecretFn      func(ctx context.Context, ref esv1beta1.PushSecretRemoteRef) (*github.Secret, *github.Response, error)
+	getSecretFn      func(ctx context.Context, ref esv1.PushSecretRemoteRef) (*github.Secret, *github.Response, error)
 	getPublicKeyFn   func(ctx context.Context) (*github.PublicKey, *github.Response, error)
 	createOrUpdateFn func(ctx context.Context, eSecret *github.EncryptedSecret) (*github.Response, error)
 	listSecretsFn    func(ctx context.Context) (*github.Secrets, *github.Response, error)
-	deleteSecretFn   func(ctx context.Context, ref esv1beta1.PushSecretRemoteRef) (*github.Response, error)
+	deleteSecretFn   func(ctx context.Context, ref esv1.PushSecretRemoteRef) (*github.Response, error)
 }
 
-func (g *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
+func (g *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	_, err := g.deleteSecretFn(ctx, remoteRef)
 	if err != nil {
 		return fmt.Errorf("failed to delete secret: %w", err)
@@ -61,7 +61,7 @@ func (g *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecre
 	return nil
 }
 
-func (g *Client) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (g *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 	githubSecret, _, err := g.getSecretFn(ctx, ref)
 	if err != nil {
 		return false, fmt.Errorf("error fetching secret: %w", err)
@@ -72,7 +72,7 @@ func (g *Client) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRemot
 	return false, nil
 }
 
-func (g *Client) PushSecret(ctx context.Context, secret *corev1.Secret, remoteRef esv1beta1.PushSecretData) error {
+func (g *Client) PushSecret(ctx context.Context, secret *corev1.Secret, remoteRef esv1.PushSecretData) error {
 	githubSecret, response, err := g.getSecretFn(ctx, remoteRef)
 	if err != nil && (response == nil || response.StatusCode != 404) {
 		return fmt.Errorf("error fetching secret: %w", err)
@@ -131,15 +131,15 @@ func (g *Client) PushSecret(ctx context.Context, secret *corev1.Secret, remoteRe
 	return nil
 }
 
-func (g *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (g *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, fmt.Errorf("not implemented - this provider supports write-only operations")
 }
 
-func (g *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (g *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	return nil, fmt.Errorf("not implemented - this provider supports write-only operations")
 }
 
-func (g *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (g *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	return nil, fmt.Errorf("not implemented - this provider supports write-only operations")
 }
 
@@ -148,17 +148,17 @@ func (g *Client) Close(ctx context.Context) error {
 	return nil
 }
 
-func (g *Client) Validate() (esv1beta1.ValidationResult, error) {
-	if g.store.GetKind() == esv1beta1.ClusterSecretStoreKind {
-		return esv1beta1.ValidationResultUnknown, nil
+func (g *Client) Validate() (esv1.ValidationResult, error) {
+	if g.store.GetKind() == esv1.ClusterSecretStoreKind {
+		return esv1.ValidationResultUnknown, nil
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_, _, err := g.listSecretsFn(ctx)
 
 	if err != nil {
-		return esv1beta1.ValidationResultError, fmt.Errorf("store is not allowed to list secrets: %w", err)
+		return esv1.ValidationResultError, fmt.Errorf("store is not allowed to list secrets: %w", err)
 	}
 
-	return esv1beta1.ValidationResultReady, nil
+	return esv1.ValidationResultReady, nil
 }

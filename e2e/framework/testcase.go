@@ -20,8 +20,8 @@ import (
 
 	//nolint
 	"github.com/external-secrets/external-secrets-e2e/framework/log"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,15 +33,14 @@ var TargetSecretName = "target-secret"
 // TestCase contains the test infra to run a table driven test.
 type TestCase struct {
 	Framework               *Framework
-	ExternalSecret          *esv1beta1.ExternalSecret
-	ExternalSecretV1Alpha1  *esv1alpha1.ExternalSecret
+	ExternalSecret          *esv1.ExternalSecret
 	PushSecret              *esv1alpha1.PushSecret
 	PushSecretSource        *v1.Secret
 	AdditionalObjects       []client.Object
 	Secrets                 map[string]SecretEntry
 	ExpectedSecret          *v1.Secret
 	AfterSync               func(SecretStoreProvider, *v1.Secret)
-	VerifyPushSecretOutcome func(ps *esv1alpha1.PushSecret, pushClient esv1beta1.SecretsClient)
+	VerifyPushSecretOutcome func(ps *esv1alpha1.PushSecret, pushClient esv1.SecretsClient)
 }
 
 type SecretEntry struct {
@@ -121,18 +120,15 @@ func generateAdditionalObjects(tc *TestCase) {
 }
 
 func createProvidedExternalSecret(tc *TestCase) {
-	if tc.ExternalSecretV1Alpha1 != nil {
-		err := tc.Framework.CRClient.Create(context.Background(), tc.ExternalSecretV1Alpha1)
-		Expect(err).ToNot(HaveOccurred())
-	} else if tc.ExternalSecret != nil {
-		// create v1beta1 external secret otherwise
-		err := tc.Framework.CRClient.Create(context.Background(), tc.ExternalSecret)
-		Expect(err).ToNot(HaveOccurred())
+	if tc.ExternalSecret == nil {
+		return
 	}
+	err := tc.Framework.CRClient.Create(context.Background(), tc.ExternalSecret)
+	Expect(err).ToNot(HaveOccurred())
 }
 
 // TableFuncWithPushSecret returns the main func that runs a TestCase in a table driven test for push secrets.
-func TableFuncWithPushSecret(f *Framework, prov SecretStoreProvider, pushClient esv1beta1.SecretsClient) func(...func(*TestCase)) {
+func TableFuncWithPushSecret(f *Framework, prov SecretStoreProvider, pushClient esv1.SecretsClient) func(...func(*TestCase)) {
 	return func(tweaks ...func(*TestCase)) {
 		var err error
 
@@ -167,17 +163,17 @@ func makeDefaultExternalSecretTestCase(f *Framework) *TestCase {
 	return &TestCase{
 		AfterSync: func(ssp SecretStoreProvider, s *v1.Secret) {},
 		Framework: f,
-		ExternalSecret: &esv1beta1.ExternalSecret{
+		ExternalSecret: &esv1.ExternalSecret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "e2e-es",
 				Namespace: f.Namespace.Name,
 			},
-			Spec: esv1beta1.ExternalSecretSpec{
+			Spec: esv1.ExternalSecretSpec{
 				RefreshInterval: &metav1.Duration{Duration: time.Second * 5},
-				SecretStoreRef: esv1beta1.SecretStoreRef{
+				SecretStoreRef: esv1.SecretStoreRef{
 					Name: f.Namespace.Name,
 				},
-				Target: esv1beta1.ExternalSecretTarget{
+				Target: esv1.ExternalSecretTarget{
 					Name: TargetSecretName,
 				},
 			},

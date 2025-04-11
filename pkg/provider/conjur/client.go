@@ -25,7 +25,7 @@ import (
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/conjur/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
@@ -43,7 +43,7 @@ var (
 type Client struct {
 	StoreKind string
 	kube      client.Client
-	store     esv1beta1.GenericStore
+	store     esv1.GenericStore
 	namespace string
 	corev1    typedcorev1.CoreV1Interface
 	clientAPI SecretsClientFactory
@@ -88,23 +88,23 @@ func (c *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 }
 
 // PushSecret will write a single secret into the provider.
-func (c *Client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
+func (c *Client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
 	// NOT IMPLEMENTED
 	return nil
 }
 
-func (c *Client) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
+func (c *Client) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	// NOT IMPLEMENTED
 	return nil
 }
 
-func (c *Client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (c *Client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New("not implemented")
 }
 
 // Validate validates the provider.
-func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
-	return esv1beta1.ValidationResultReady, nil
+func (c *Client) Validate() (esv1.ValidationResult, error) {
+	return esv1.ValidationResultReady, nil
 }
 
 // Close closes the provider.
@@ -112,7 +112,7 @@ func (c *Client) Close(_ context.Context) error {
 	return nil
 }
 
-func (c *Client) conjurClientFromAPIKey(ctx context.Context, config conjurapi.Config, prov *esv1beta1.ConjurProvider) (SecretsClient, error) {
+func (c *Client) conjurClientFromAPIKey(ctx context.Context, config conjurapi.Config, prov *esv1.ConjurProvider) (SecretsClient, error) {
 	config.Account = prov.Auth.APIKey.Account
 	conjUser, secErr := resolvers.SecretKeyRef(
 		ctx,
@@ -146,7 +146,7 @@ func (c *Client) conjurClientFromAPIKey(ctx context.Context, config conjurapi.Co
 	return conjur, nil
 }
 
-func (c *Client) conjurClientFromJWT(ctx context.Context, config conjurapi.Config, prov *esv1beta1.ConjurProvider) (SecretsClient, error) {
+func (c *Client) conjurClientFromJWT(ctx context.Context, config conjurapi.Config, prov *esv1.ConjurProvider) (SecretsClient, error) {
 	config.AuthnType = "jwt"
 	config.Account = prov.Auth.Jwt.Account
 	config.JWTHostID = prov.Auth.Jwt.HostID

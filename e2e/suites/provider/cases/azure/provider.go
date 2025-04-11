@@ -33,7 +33,7 @@ import (
 	utilpointer "k8s.io/utils/pointer"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	esoazkv "github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault"
 )
@@ -120,7 +120,7 @@ func newFromWorkloadIdentity(f *framework.Framework) *azureProvider {
 			}
 
 			// exchange the federated token for an access token
-			aadEndpoint := esoazkv.AadEndpointForType(esv1beta1.AzureEnvironmentPublicCloud)
+			aadEndpoint := esoazkv.AadEndpointForType(esv1.AzureEnvironmentPublicCloud)
 			kvResource := strings.TrimSuffix(azure.PublicCloud.KeyVaultEndpoint, "/")
 			tokenProvider, err := esoazkv.NewTokenProvider(context.Background(), string(token), clientID, tenantID, aadEndpoint, kvResource)
 			if err != nil {
@@ -241,11 +241,11 @@ const (
 	credentialKeyClientSecret         = "client-secret"
 )
 
-func newProviderWithStaticCredentials(tenantID, vaultURL, secretName string) *esv1beta1.AzureKVProvider {
-	return &esv1beta1.AzureKVProvider{
+func newProviderWithStaticCredentials(tenantID, vaultURL, secretName string) *esv1.AzureKVProvider {
+	return &esv1.AzureKVProvider{
 		TenantID: &tenantID,
 		VaultURL: &vaultURL,
-		AuthSecretRef: &esv1beta1.AzureKVAuth{
+		AuthSecretRef: &esv1.AzureKVAuth{
 			ClientID: &esmeta.SecretKeySelector{
 				Name: staticSecretName,
 				Key:  credentialKeyClientID,
@@ -258,8 +258,8 @@ func newProviderWithStaticCredentials(tenantID, vaultURL, secretName string) *es
 	}
 }
 
-func newProviderWithServiceAccount(tenantID, vaultURL string, authType esv1beta1.AzureAuthType, serviceAccountName string, serviceAccountNamespace *string) *esv1beta1.AzureKVProvider {
-	return &esv1beta1.AzureKVProvider{
+func newProviderWithServiceAccount(tenantID, vaultURL string, authType esv1.AzureAuthType, serviceAccountName string, serviceAccountNamespace *string) *esv1.AzureKVProvider {
+	return &esv1.AzureKVProvider{
 		TenantID: &tenantID,
 		VaultURL: &vaultURL,
 		AuthType: &authType,
@@ -283,13 +283,13 @@ func (s *azureProvider) CreateSecretStore() {
 	}
 	err := s.framework.CRClient.Create(context.Background(), azureCreds)
 	Expect(err).ToNot(HaveOccurred())
-	secretStore := &esv1beta1.SecretStore{
+	secretStore := &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      s.framework.Namespace.Name,
 			Namespace: s.framework.Namespace.Name,
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
 				AzureKV: newProviderWithStaticCredentials(s.tenantID, s.vaultURL, staticSecretName),
 			},
 		},
@@ -311,13 +311,13 @@ func (s *azureProvider) CreateReferentSecretStore() {
 	}
 	err := s.framework.CRClient.Create(context.Background(), azureCreds)
 	Expect(err).ToNot(HaveOccurred())
-	secretStore := &esv1beta1.ClusterSecretStore{
+	secretStore := &esv1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      referentAuthName(s.framework),
 			Namespace: s.framework.Namespace.Name,
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
 				AzureKV: newProviderWithStaticCredentials(s.tenantID, s.vaultURL, referentSecretName),
 			},
 		},
@@ -331,14 +331,14 @@ func referentAuthName(f *framework.Framework) string {
 }
 
 func (s *azureProvider) CreateSecretStoreWithWI() {
-	authType := esv1beta1.AzureWorkloadIdentity
+	authType := esv1.AzureWorkloadIdentity
 	namespace := "external-secrets-operator"
-	ClusterSecretStore := &esv1beta1.ClusterSecretStore{
+	ClusterSecretStore := &esv1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: s.framework.Namespace.Name,
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
 				AzureKV: newProviderWithServiceAccount(s.tenantID, s.vaultURL, authType, workloadIdentityServiceAccountNme, &namespace),
 			},
 		},
@@ -348,13 +348,13 @@ func (s *azureProvider) CreateSecretStoreWithWI() {
 }
 
 func (s *azureProvider) CreateReferentSecretStoreWithWI() {
-	authType := esv1beta1.AzureWorkloadIdentity
-	ClusterSecretStore := &esv1beta1.ClusterSecretStore{
+	authType := esv1.AzureWorkloadIdentity
+	ClusterSecretStore := &esv1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: referentAuthName(s.framework),
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
 				AzureKV: newProviderWithServiceAccount(s.tenantID, s.vaultURL, authType, workloadIdentityServiceAccountNme, nil),
 			},
 		},

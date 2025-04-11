@@ -29,7 +29,7 @@ import (
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/find"
 )
 
@@ -68,7 +68,7 @@ func decodeScwSecretRef(key string) (*scwSecretRef, error) {
 	}, nil
 }
 
-func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	scwRef, err := decodeScwSecretRef(ref.Key)
 	if err != nil {
 		return nil, err
@@ -83,9 +83,9 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	if err != nil {
 		//nolint:errorlint
 		if _, isNotFoundErr := err.(*scw.ResourceNotFoundError); isNotFoundErr {
-			return nil, esv1beta1.NoSecretError{}
+			return nil, esv1.NoSecretError{}
 		} else if errors.Is(err, errNoSecretForName) {
-			return nil, esv1beta1.NoSecretError{}
+			return nil, esv1.NoSecretError{}
 		}
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	return value, nil
 }
 
-func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	if data.GetSecretKey() == "" {
 		return errors.New("pushing the whole secret is not yet implemented")
 	}
@@ -216,7 +216,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	return nil
 }
 
-func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
+func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	scwRef, err := decodeScwSecretRef(remoteRef.GetRemoteKey())
 	if err != nil {
 		return err
@@ -264,11 +264,11 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecre
 	return nil
 }
 
-func (c *client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (c *client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New("not implemented")
 }
 
-func (c *client) Validate() (esv1beta1.ValidationResult, error) {
+func (c *client) Validate() (esv1.ValidationResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -278,13 +278,13 @@ func (c *client) Validate() (esv1beta1.ValidationResult, error) {
 		PageSize:  scw.Uint32Ptr(0),
 	}, scw.WithContext(ctx))
 	if err != nil {
-		return esv1beta1.ValidationResultError, nil
+		return esv1.ValidationResultError, nil
 	}
 
-	return esv1beta1.ValidationResultReady, nil
+	return esv1.ValidationResultReady, nil
 }
 
-func (c *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	rawData, err := c.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -307,7 +307,7 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 }
 
 // GetAllSecrets lists secrets matching the given criteria and return their latest versions.
-func (c *client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (c *client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	request := smapi.ListSecretsRequest{
 		ProjectID: &c.projectID,
 		Page:      scw.Int32Ptr(1),
@@ -480,7 +480,7 @@ func extractJSONProperty(secretData []byte, property string) ([]byte, error) {
 	result := gjson.Get(string(secretData), property)
 
 	if !result.Exists() {
-		return nil, esv1beta1.NoSecretError{}
+		return nil, esv1.NoSecretError{}
 	}
 
 	return jsonToSecretData(json.RawMessage(result.Raw)), nil

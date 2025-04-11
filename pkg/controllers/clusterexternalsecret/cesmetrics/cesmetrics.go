@@ -19,7 +19,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 )
 
@@ -58,7 +58,7 @@ func GetGaugeVec(key string) *prometheus.GaugeVec {
 	return gaugeVecMetrics[key]
 }
 
-func UpdateClusterExternalSecretCondition(ces *esv1beta1.ClusterExternalSecret, condition *esv1beta1.ClusterExternalSecretStatusCondition) {
+func UpdateClusterExternalSecretCondition(ces *esv1.ClusterExternalSecret, condition *esv1.ClusterExternalSecretStatusCondition) {
 	if condition.Status != v1.ConditionTrue {
 		// This should not happen
 		return

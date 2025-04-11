@@ -22,7 +22,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 )
 
@@ -38,7 +38,7 @@ func TestUpdateClusterExternalSecretCondition(t *testing.T) {
 
 	tests := []struct {
 		desc           string
-		condition      *esv1beta1.ClusterExternalSecretStatusCondition
+		condition      *esv1.ClusterExternalSecretStatusCondition
 		expectedCount  int
 		expectedValues []struct {
 			labels        prometheus.Labels
@@ -47,8 +47,8 @@ func TestUpdateClusterExternalSecretCondition(t *testing.T) {
 	}{
 		{
 			desc: "ConditionTrue",
-			condition: &esv1beta1.ClusterExternalSecretStatusCondition{
-				Type:   esv1beta1.ClusterExternalSecretReady,
+			condition: &esv1.ClusterExternalSecretStatusCondition{
+				Type:   esv1.ClusterExternalSecretReady,
 				Status: v1.ConditionTrue,
 			},
 			expectedValues: []struct {
@@ -77,8 +77,8 @@ func TestUpdateClusterExternalSecretCondition(t *testing.T) {
 		},
 		{
 			desc: "ConditionFalse",
-			condition: &esv1beta1.ClusterExternalSecretStatusCondition{
-				Type:   esv1beta1.ClusterExternalSecretReady,
+			condition: &esv1.ClusterExternalSecretStatusCondition{
+				Type:   esv1.ClusterExternalSecretReady,
 				Status: v1.ConditionFalse,
 			},
 		},
@@ -86,7 +86,7 @@ func TestUpdateClusterExternalSecretCondition(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.desc, func(t *testing.T) {
-			ces := &esv1beta1.ClusterExternalSecret{
+			ces := &esv1.ClusterExternalSecret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: name,
 				},

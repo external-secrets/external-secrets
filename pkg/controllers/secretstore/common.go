@@ -25,7 +25,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/metrics"
 )
 
@@ -36,7 +36,8 @@ const (
 	errUnableCreateClient  = "unable to create client"
 	errUnableValidateStore = "unable to validate store: %s"
 
-	msgStoreValidated = "store validated"
+	msgStoreValidated     = "store validated"
+	msgStoreNotMaintained = "store isn't currently maintained. Please plan and prepare accordingly."
 )
 
 type Opts struct {
@@ -79,6 +80,18 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
+	isMaintained, err := esapi.GetMaintenanceStatus(ss)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	annotations := ss.GetAnnotations()
+	_, ok := annotations["external-secrets.io/ignore-maintenance-checks"]
+
+	if !bool(isMaintained) && !ok {
+		opts.Recorder.Event(ss, v1.EventTypeWarning, esapi.StoreUnmaintained, msgStoreNotMaintained)
+	}
+
 	capStatus := esapi.SecretStoreStatus{
 		Capabilities: storeProvider.Capabilities(),
 		Conditions:   ss.GetStatus().Conditions,

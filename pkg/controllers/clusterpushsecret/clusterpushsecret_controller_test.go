@@ -26,8 +26,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret/cpsmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
@@ -40,9 +40,9 @@ func init() {
 	ctrlmetrics.SetUpLabelNames(false)
 	cpsmetrics.SetUpMetrics()
 	fakeProvider = fake.New()
-	v1beta1.ForceRegister(fakeProvider, &v1beta1.SecretStoreProvider{
-		Fake: &v1beta1.FakeProvider{},
-	})
+	esv1.ForceRegister(fakeProvider, &esv1.SecretStoreProvider{
+		Fake: &esv1.FakeProvider{},
+	}, esv1.MaintenanceStatusMaintained)
 }
 
 var (

@@ -27,7 +27,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
@@ -48,8 +48,8 @@ type ProviderPassbolt struct {
 	client Client
 }
 
-func (provider *ProviderPassbolt) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadOnly
+func (provider *ProviderPassbolt) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadOnly
 }
 
 type Client interface {
@@ -63,7 +63,7 @@ type Client interface {
 	GetSecret(ctx context.Context, resourceID string) (*api.Secret, error)
 }
 
-func (provider *ProviderPassbolt) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (provider *ProviderPassbolt) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	config := store.GetSpec().Provider.Passbolt
 
 	password, err := resolvers.SecretKeyRef(
@@ -97,11 +97,11 @@ func (provider *ProviderPassbolt) NewClient(ctx context.Context, store esv1beta1
 	return provider, nil
 }
 
-func (provider *ProviderPassbolt) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (provider *ProviderPassbolt) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New(errNotImplemented)
 }
 
-func (provider *ProviderPassbolt) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (provider *ProviderPassbolt) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if err := assureLoggedIn(ctx, provider.client); err != nil {
 		return nil, err
 	}
@@ -118,23 +118,23 @@ func (provider *ProviderPassbolt) GetSecret(ctx context.Context, ref esv1beta1.E
 	return secret.GetProp(ref.Property)
 }
 
-func (provider *ProviderPassbolt) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
+func (provider *ProviderPassbolt) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
 	return errors.New(errNotImplemented)
 }
 
-func (provider *ProviderPassbolt) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
+func (provider *ProviderPassbolt) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	return errors.New(errNotImplemented)
 }
 
-func (provider *ProviderPassbolt) Validate() (esv1beta1.ValidationResult, error) {
-	return esv1beta1.ValidationResultUnknown, nil
+func (provider *ProviderPassbolt) Validate() (esv1.ValidationResult, error) {
+	return esv1.ValidationResultUnknown, nil
 }
 
-func (provider *ProviderPassbolt) GetSecretMap(_ context.Context, _ esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (provider *ProviderPassbolt) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	return nil, errors.New(errNotImplemented)
 }
 
-func (provider *ProviderPassbolt) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (provider *ProviderPassbolt) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	res := make(map[string][]byte)
 
 	if ref.Name == nil || ref.Name.RegExp == "" {
@@ -178,7 +178,7 @@ func (provider *ProviderPassbolt) Close(ctx context.Context) error {
 	return provider.client.Logout(ctx)
 }
 
-func (provider *ProviderPassbolt) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (provider *ProviderPassbolt) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	config := store.GetSpec().Provider.Passbolt
 	if config == nil {
 		return nil, errors.New(errPassboltStoreMissingProvider)
@@ -212,9 +212,9 @@ func (provider *ProviderPassbolt) ValidateStore(store esv1beta1.GenericStore) (a
 }
 
 func init() {
-	esv1beta1.Register(&ProviderPassbolt{}, &esv1beta1.SecretStoreProvider{
-		Passbolt: &esv1beta1.PassboltProvider{},
-	})
+	esv1.Register(&ProviderPassbolt{}, &esv1.SecretStoreProvider{
+		Passbolt: &esv1.PassboltProvider{},
+	}, esv1.MaintenanceStatusNotMaintained)
 }
 
 type Secret struct {

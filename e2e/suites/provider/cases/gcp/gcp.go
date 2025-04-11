@@ -26,7 +26,7 @@ import (
 	// nolint
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 const (
@@ -57,7 +57,6 @@ var _ = Describe("[gcp]", Label("gcp", "secretsmanager"), func() {
 		framework.Compose(withStaticAuth, f, common.FindByNameWithPath, useStaticAuth),
 		framework.Compose(withStaticAuth, f, common.FindByTag, useStaticAuth),
 		framework.Compose(withStaticAuth, f, common.FindByTagWithPath, useStaticAuth),
-		framework.Compose(withStaticAuth, f, common.SyncV1Alpha1, useStaticAuth),
 		framework.Compose(withStaticAuth, f, p12Cert, useStaticAuth),
 
 		// referent auth
@@ -67,14 +66,11 @@ var _ = Describe("[gcp]", Label("gcp", "secretsmanager"), func() {
 
 func useStaticAuth(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = tc.Framework.Namespace.Name
-	if tc.ExternalSecretV1Alpha1 != nil {
-		tc.ExternalSecretV1Alpha1.Spec.SecretStoreRef.Name = tc.Framework.Namespace.Name
-	}
 }
 
 func useReferentAuth(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = referentName(tc.Framework)
-	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1beta1.ClusterSecretStoreKind
+	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1.ClusterSecretStoreKind
 }
 
 // P12Cert case creates a secret with a p12 cert containing a privkey and cert bundled together.
@@ -162,21 +158,21 @@ x6HaRh+EUwU51von6M9lEF9/p5Q=
 			},
 		}
 
-		tc.ExternalSecret.Spec.Data = []esv1beta1.ExternalSecretData{
+		tc.ExternalSecret.Spec.Data = []esv1.ExternalSecretData{
 			{
 				SecretKey: "mysecret",
-				RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
+				RemoteRef: esv1.ExternalSecretDataRemoteRef{
 					Key: cloudSecretName,
 				},
 			},
 		}
 
-		tc.ExternalSecret.Spec.Target.Template = &esv1beta1.ExternalSecretTemplate{
+		tc.ExternalSecret.Spec.Target.Template = &esv1.ExternalSecretTemplate{
 			Type:          v1.SecretTypeTLS,
-			EngineVersion: esv1beta1.TemplateEngineV1,
+			EngineVersion: esv1.TemplateEngineV2,
 			Data: map[string]string{
-				"tls.crt": "{{ .mysecret | pkcs12cert | pemCertificate }}",
-				"tls.key": "{{ .mysecret | pkcs12key | pemPrivateKey }}",
+				"tls.crt": "{{ .mysecret | pkcs12cert }}",
+				"tls.key": "{{ .mysecret | pkcs12key }}",
 			},
 		}
 	}

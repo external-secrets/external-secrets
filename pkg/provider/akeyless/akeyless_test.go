@@ -25,7 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakeakeyless "github.com/external-secrets/external-secrets/pkg/provider/akeyless/fake"
 	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
@@ -36,7 +36,7 @@ type akeylessTestCase struct {
 	mockClient     *fakeakeyless.AkeylessMockClient
 	apiInput       *fakeakeyless.Input
 	apiOutput      *fakeakeyless.Output
-	ref            *esv1beta1.ExternalSecretDataRemoteRef
+	ref            *esv1.ExternalSecretDataRemoteRef
 	input          any
 	input2         any
 	expectError    string
@@ -93,8 +93,8 @@ func failGetTestCase() *akeylessTestCase {
 		SetMockClient(fakeakeyless.New().SetGetSecretFn(func(secretName string, version int32) (string, error) { return "", errors.New("fail get") }))
 }
 
-func makeValidRef() *esv1beta1.ExternalSecretDataRemoteRef {
-	return &esv1beta1.ExternalSecretDataRemoteRef{
+func makeValidRef() *esv1.ExternalSecretDataRemoteRef {
+	return &esv1.ExternalSecretDataRemoteRef{
 		Key:     "test-secret",
 		Version: "1",
 	}
@@ -169,13 +169,13 @@ func TestValidateStore(t *testing.T) {
 	akeylessGWApiURL := ""
 
 	t.Run("secret auth", func(t *testing.T) {
-		store := &esv1beta1.SecretStore{
-			Spec: esv1beta1.SecretStoreSpec{
-				Provider: &esv1beta1.SecretStoreProvider{
-					Akeyless: &esv1beta1.AkeylessProvider{
+		store := &esv1.SecretStore{
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Akeyless: &esv1.AkeylessProvider{
 						AkeylessGWApiURL: &akeylessGWApiURL,
-						Auth: &esv1beta1.AkeylessAuth{
-							SecretRef: esv1beta1.AkeylessAuthSecretRef{
+						Auth: &esv1.AkeylessAuth{
+							SecretRef: esv1.AkeylessAuthSecretRef{
 								AccessID: esmeta.SecretKeySelector{
 									Name: "accessId",
 									Key:  "key-1",
@@ -200,13 +200,13 @@ func TestValidateStore(t *testing.T) {
 	})
 
 	t.Run("k8s auth", func(t *testing.T) {
-		store := &esv1beta1.SecretStore{
-			Spec: esv1beta1.SecretStoreSpec{
-				Provider: &esv1beta1.SecretStoreProvider{
-					Akeyless: &esv1beta1.AkeylessProvider{
+		store := &esv1.SecretStore{
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Akeyless: &esv1.AkeylessProvider{
 						AkeylessGWApiURL: &akeylessGWApiURL,
-						Auth: &esv1beta1.AkeylessAuth{
-							KubernetesAuth: &esv1beta1.AkeylessKubernetesAuth{
+						Auth: &esv1.AkeylessAuth{
+							KubernetesAuth: &esv1.AkeylessKubernetesAuth{
 								K8sConfName: "name",
 								AccessID:    "id",
 								ServiceAccountRef: &esmeta.ServiceAccountSelector{
@@ -224,12 +224,12 @@ func TestValidateStore(t *testing.T) {
 	})
 
 	t.Run("bad conf auth", func(t *testing.T) {
-		store := &esv1beta1.SecretStore{
-			Spec: esv1beta1.SecretStoreSpec{
-				Provider: &esv1beta1.SecretStoreProvider{
-					Akeyless: &esv1beta1.AkeylessProvider{
+		store := &esv1.SecretStore{
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Akeyless: &esv1.AkeylessProvider{
 						AkeylessGWApiURL: &akeylessGWApiURL,
-						Auth:             &esv1beta1.AkeylessAuth{},
+						Auth:             &esv1.AkeylessAuth{},
 					},
 				},
 			},
@@ -240,13 +240,13 @@ func TestValidateStore(t *testing.T) {
 	})
 
 	t.Run("bad k8s conf auth", func(t *testing.T) {
-		store := &esv1beta1.SecretStore{
-			Spec: esv1beta1.SecretStoreSpec{
-				Provider: &esv1beta1.SecretStoreProvider{
-					Akeyless: &esv1beta1.AkeylessProvider{
+		store := &esv1.SecretStore{
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Akeyless: &esv1.AkeylessProvider{
 						AkeylessGWApiURL: &akeylessGWApiURL,
-						Auth: &esv1beta1.AkeylessAuth{
-							KubernetesAuth: &esv1beta1.AkeylessKubernetesAuth{
+						Auth: &esv1.AkeylessAuth{
+							KubernetesAuth: &esv1.AkeylessKubernetesAuth{
 								AccessID: "id",
 								ServiceAccountRef: &esmeta.ServiceAccountSelector{
 									Name: "name",
@@ -326,7 +326,7 @@ func TestSecretExists(t *testing.T) {
 			if v.input == nil {
 				v.input = &testingfake.PushSecretData{}
 			}
-			out, err := sm.SecretExists(context.Background(), v.input.(esv1beta1.PushSecretRemoteRef))
+			out, err := sm.SecretExists(context.Background(), v.input.(esv1.PushSecretRemoteRef))
 			require.Truef(t, ErrorContains(err, v.expectError), fmtExpectedError, err, v.expectError)
 			require.Equal(t, out, v.expectedVal.(bool))
 		})
@@ -380,7 +380,7 @@ func TestPushSecret(t *testing.T) {
 			if v.input2 == nil {
 				v.input2 = &testingfake.PushSecretData{}
 			}
-			err := sm.PushSecret(context.Background(), v.input.(*corev1.Secret), v.input2.(esv1beta1.PushSecretData))
+			err := sm.PushSecret(context.Background(), v.input.(*corev1.Secret), v.input2.(esv1.PushSecretData))
 			require.Truef(t, ErrorContains(err, v.expectError), fmtExpectedError, err, v.expectError)
 		})
 	}
@@ -443,7 +443,7 @@ func TestDeleteSecret(t *testing.T) {
 			if v.input == nil {
 				v.input = &testingfake.PushSecretData{}
 			}
-			err := sm.DeleteSecret(context.Background(), v.input.(esv1beta1.PushSecretData))
+			err := sm.DeleteSecret(context.Background(), v.input.(esv1.PushSecretData))
 			require.Truef(t, ErrorContains(err, v.expectError), fmtExpectedError, err, v.expectError)
 		})
 	}

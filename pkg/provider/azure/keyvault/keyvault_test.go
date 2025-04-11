@@ -32,7 +32,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	pointer "k8s.io/utils/ptr"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault/fake"
 	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
@@ -45,12 +45,12 @@ type secretManagerTestCase struct {
 	secretName              string
 	secretVersion           string
 	serviceURL              string
-	ref                     *esv1beta1.ExternalSecretDataRemoteRef
-	refFind                 *esv1beta1.ExternalSecretFind
+	ref                     *esv1.ExternalSecretDataRemoteRef
+	refFind                 *esv1.ExternalSecretFind
 	apiErr                  error
 	setErr                  error
 	deleteErr               error
-	pushData                esv1beta1.PushSecretData
+	pushData                esv1.PushSecretData
 	secretOutput            keyvault.SecretBundle
 	setSecretOutput         keyvault.SecretBundle
 	keyOutput               keyvault.KeyBundle
@@ -372,7 +372,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
+		provider: &esv1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -942,7 +942,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
+		provider: &esv1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -992,21 +992,21 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	secretNotFound := func(smtc *secretManagerTestCase) {
 		smtc.expectedSecret = ""
 		smtc.apiErr = autorest.DetailedError{StatusCode: 404}
-		smtc.expectError = esv1beta1.NoSecretError{}.Error()
+		smtc.expectError = esv1.NoSecretError{}.Error()
 	}
 
 	certNotFound := func(smtc *secretManagerTestCase) {
 		smtc.expectedSecret = ""
 		smtc.secretName = certName
 		smtc.apiErr = autorest.DetailedError{StatusCode: 404}
-		smtc.expectError = esv1beta1.NoSecretError{}.Error()
+		smtc.expectError = esv1.NoSecretError{}.Error()
 	}
 
 	keyNotFound := func(smtc *secretManagerTestCase) {
 		smtc.expectedSecret = ""
 		smtc.secretName = keyName
 		smtc.apiErr = autorest.DetailedError{StatusCode: 404}
-		smtc.expectError = esv1beta1.NoSecretError{}.Error()
+		smtc.expectError = esv1.NoSecretError{}.Error()
 	}
 
 	setSecretStringWithVersion := func(smtc *secretManagerTestCase) {
@@ -1077,7 +1077,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	}
 
 	setSecretWithTag := func(smtc *secretManagerTestCase) {
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		smtc.ref.Property = tagname
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &secretString, Tags: tagMap,
@@ -1086,7 +1086,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	}
 
 	badSecretWithTag := func(smtc *secretManagerTestCase) {
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		smtc.ref.Property = something
 		smtc.expectedSecret = ""
 		smtc.expectError = errorNoTag
@@ -1094,7 +1094,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	}
 
 	setSecretWithNoSpecificTag := func(smtc *secretManagerTestCase) {
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &secretString, Tags: tagMap,
 		}
@@ -1102,7 +1102,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	}
 
 	setSecretWithNoTags := func(smtc *secretManagerTestCase) {
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		smtc.secretOutput = keyvault.SecretBundle{}
 		smtc.expectedSecret = "{}"
 	}
@@ -1113,7 +1113,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		smtc.certOutput = keyvault.CertificateBundle{
 			Cer: &byteArrString, Tags: tagMap,
 		}
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		smtc.ref.Property = tagname
 		smtc.expectedSecret = tagvalue
 		smtc.ref.Key = smtc.secretName
@@ -1126,7 +1126,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		smtc.certOutput = keyvault.CertificateBundle{
 			Cer: &byteArrString,
 		}
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		smtc.ref.Property = something
 		smtc.expectedSecret = ""
 		smtc.expectError = errorNoTag
@@ -1140,7 +1140,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		smtc.certOutput = keyvault.CertificateBundle{
 			Cer: &byteArrString, Tags: tagMap,
 		}
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		smtc.expectedSecret = jsonTagTestString
 	}
 
@@ -1151,7 +1151,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		smtc.certOutput = keyvault.CertificateBundle{
 			Cer: &byteArrString,
 		}
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		smtc.expectedSecret = "{}"
 	}
 
@@ -1160,7 +1160,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		smtc.keyOutput = keyvault.KeyBundle{
 			Key: newKVJWK([]byte(jwkPubRSA)), Tags: tagMap,
 		}
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		smtc.ref.Property = tagname
 		smtc.expectedSecret = tagvalue
 		smtc.ref.Key = smtc.secretName
@@ -1172,7 +1172,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		smtc.keyOutput = keyvault.KeyBundle{
 			Key: newKVJWK([]byte(jwkPubRSA)), Tags: tagMap,
 		}
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		smtc.ref.Property = something
 		smtc.expectedSecret = ""
 		smtc.expectError = errorNoTag
@@ -1185,7 +1185,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		smtc.keyOutput = keyvault.KeyBundle{
 			Key: newKVJWK([]byte(jwkPubRSA)), Tags: tagMap,
 		}
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		smtc.expectedSecret = jsonTagTestString
 	}
 
@@ -1195,7 +1195,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		smtc.keyOutput = keyvault.KeyBundle{
 			Key: newKVJWK([]byte(jwkPubRSA)),
 		}
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		smtc.expectedSecret = "{}"
 	}
 
@@ -1209,7 +1209,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	fetchSingleTag := func(smtc *secretManagerTestCase) {
 		jsonString := jsonTestString
 		smtc.expectedSecret = bar
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		secretTags := map[string]*string{}
 		tagValue := bar
 		secretTags[foo] = &tagValue
@@ -1222,7 +1222,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 
 	fetchJSONTag := func(smtc *secretManagerTestCase) {
 		jsonString := jsonTestString
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		secretTags := map[string]*string{}
 		tagValue := "{\"key\":\"value\"}"
 		secretTags[foo] = &tagValue
@@ -1236,7 +1236,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 
 	fetchDottedJSONTag := func(smtc *secretManagerTestCase) {
 		jsonString := jsonTestString
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		secretTags := map[string]*string{}
 		tagValue := "{\"key\":\"value\"}"
 		secretTags[foo] = &tagValue
@@ -1250,7 +1250,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 
 	fetchNestedJSONTag := func(smtc *secretManagerTestCase) {
 		jsonString := jsonTestString
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		secretTags := map[string]*string{}
 		tagValue := "{\"key\":\"value\", \"nested\": {\"foo\":\"bar\"}}"
 		secretTags["foo"] = &tagValue
@@ -1264,7 +1264,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 
 	fetchNestedDottedJSONTag := func(smtc *secretManagerTestCase) {
 		jsonString := jsonTestString
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		secretTags := map[string]*string{}
 		tagValue := "{\"key\":\"value\", \"nested\": {\"foo\":\"bar\"}}"
 		secretTags[foo] = &tagValue
@@ -1278,7 +1278,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 
 	fetchDottedKeyJSONTag := func(smtc *secretManagerTestCase) {
 		jsonString := jsonTestString
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		secretTags := map[string]*string{}
 		tagValue := "{\"foo.json\":\"bar\"}"
 		secretTags[foo] = &tagValue
@@ -1335,7 +1335,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
+		provider: &esv1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -1422,7 +1422,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 	}
 
 	setSecretTags := func(smtc *secretManagerTestCase) {
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: tagMap,
 		}
@@ -1434,7 +1434,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		tagJSONMap := make(map[string]*string)
 		tagJSONData := `{"keyname":"keyvalue","x":"y"}`
 		tagJSONMap["json"] = &tagJSONData
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		smtc.secretOutput = keyvault.SecretBundle{
 			Value: &secretString, Tags: tagJSONMap,
 		}
@@ -1443,7 +1443,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 	}
 
 	setSecretWithNoTags := func(smtc *secretManagerTestCase) {
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		tagMapTestEmpty := make(map[string]*string)
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: tagMapTestEmpty,
@@ -1470,7 +1470,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		secretTags["dev"] = &tagValue
 		secretTags["bug"] = &bug
 
-		smtc.ref.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: secretTags,
 		}
@@ -1494,7 +1494,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
+		provider: &esv1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -1637,7 +1637,7 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
+		provider: &esv1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -1651,17 +1651,17 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 	}
 }
 
-func makeValidRef() *esv1beta1.ExternalSecretDataRemoteRef {
-	return &esv1beta1.ExternalSecretDataRemoteRef{
+func makeValidRef() *esv1.ExternalSecretDataRemoteRef {
+	return &esv1.ExternalSecretDataRemoteRef{
 		Key:      "test-secret",
 		Version:  "default",
 		Property: "",
 	}
 }
 
-func makeValidFind() *esv1beta1.ExternalSecretFind {
-	return &esv1beta1.ExternalSecretFind{
-		Name: &esv1beta1.FindName{
+func makeValidFind() *esv1.ExternalSecretFind {
+	return &esv1.ExternalSecretFind{
+		Name: &esv1.FindName{
 			RegExp: "^example",
 		},
 		Tags: map[string]string{},
@@ -1670,7 +1670,7 @@ func makeValidFind() *esv1beta1.ExternalSecretFind {
 
 func TestValidateStore(t *testing.T) {
 	type args struct {
-		store *esv1beta1.SecretStore
+		store *esv1.SecretStore
 	}
 	tests := []struct {
 		name    string
@@ -1685,15 +1685,15 @@ func TestValidateStore(t *testing.T) {
 			name:    "specIsNil",
 			wantErr: true,
 			args: args{
-				store: &esv1beta1.SecretStore{},
+				store: &esv1.SecretStore{},
 			},
 		},
 		{
 			name:    "providerIsNil",
 			wantErr: true,
 			args: args{
-				store: &esv1beta1.SecretStore{
-					Spec: esv1beta1.SecretStoreSpec{},
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{},
 				},
 			},
 		},
@@ -1701,9 +1701,9 @@ func TestValidateStore(t *testing.T) {
 			name:    "azureKVIsNil",
 			wantErr: true,
 			args: args{
-				store: &esv1beta1.SecretStore{
-					Spec: esv1beta1.SecretStoreSpec{
-						Provider: &esv1beta1.SecretStoreProvider{},
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{},
 					},
 				},
 			},
@@ -1712,10 +1712,10 @@ func TestValidateStore(t *testing.T) {
 			name:    "empty auth",
 			wantErr: false,
 			args: args{
-				store: &esv1beta1.SecretStore{
-					Spec: esv1beta1.SecretStoreSpec{
-						Provider: &esv1beta1.SecretStoreProvider{
-							AzureKV: &esv1beta1.AzureKVProvider{},
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							AzureKV: &esv1.AzureKVProvider{},
 						},
 					},
 				},
@@ -1725,11 +1725,11 @@ func TestValidateStore(t *testing.T) {
 			name:    "empty client id",
 			wantErr: false,
 			args: args{
-				store: &esv1beta1.SecretStore{
-					Spec: esv1beta1.SecretStoreSpec{
-						Provider: &esv1beta1.SecretStoreProvider{
-							AzureKV: &esv1beta1.AzureKVProvider{
-								AuthSecretRef: &esv1beta1.AzureKVAuth{},
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							AzureKV: &esv1.AzureKVProvider{
+								AuthSecretRef: &esv1.AzureKVAuth{},
 							},
 						},
 					},
@@ -1740,11 +1740,11 @@ func TestValidateStore(t *testing.T) {
 			name:    "invalid client id",
 			wantErr: true,
 			args: args{
-				store: &esv1beta1.SecretStore{
-					Spec: esv1beta1.SecretStoreSpec{
-						Provider: &esv1beta1.SecretStoreProvider{
-							AzureKV: &esv1beta1.AzureKVProvider{
-								AuthSecretRef: &esv1beta1.AzureKVAuth{
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							AzureKV: &esv1.AzureKVProvider{
+								AuthSecretRef: &esv1.AzureKVAuth{
 									ClientID: &v1.SecretKeySelector{
 										Namespace: pointer.To("invalid"),
 									},
@@ -1759,11 +1759,11 @@ func TestValidateStore(t *testing.T) {
 			name:    "invalid client secret",
 			wantErr: true,
 			args: args{
-				store: &esv1beta1.SecretStore{
-					Spec: esv1beta1.SecretStoreSpec{
-						Provider: &esv1beta1.SecretStoreProvider{
-							AzureKV: &esv1beta1.AzureKVProvider{
-								AuthSecretRef: &esv1beta1.AzureKVAuth{
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							AzureKV: &esv1.AzureKVProvider{
+								AuthSecretRef: &esv1.AzureKVAuth{
 									ClientSecret: &v1.SecretKeySelector{
 										Namespace: pointer.To("invalid"),
 									},
@@ -1840,7 +1840,7 @@ func TestAzureKeyVaultSecretExists(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1beta1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
+		provider: &esv1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
 	}
 
 	for k, tc := range testCases {
