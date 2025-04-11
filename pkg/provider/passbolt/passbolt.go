@@ -214,7 +214,7 @@ func (provider *ProviderPassbolt) ValidateStore(store esv1.GenericStore) (admiss
 func init() {
 	esv1.Register(&ProviderPassbolt{}, &esv1.SecretStoreProvider{
 		Passbolt: &esv1.PassboltProvider{},
-	}, esv1.MaintenanceStatusMaintained)
+	}, esv1.MaintenanceStatusNotMaintained)
 }
 
 type Secret struct {

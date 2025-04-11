@@ -251,5 +251,5 @@ func mapKey(key, version string) string {
 func init() {
 	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
 		Fake: &esv1.FakeProvider{},
-	}, esv1.MaintenanceStatusMaintained)
+	}, esv1.MaintenanceStatusNotMaintained) // TODO - update this post tests
 }
