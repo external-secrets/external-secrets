@@ -36,6 +36,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/crds"
 )
 
@@ -49,6 +50,7 @@ func init() {
 
 	// external-secrets schemes
 	utilruntime.Must(esv1.AddToScheme(scheme))
+	utilruntime.Must(esv1beta1.AddToScheme(scheme))
 	utilruntime.Must(esv1alpha1.AddToScheme(scheme))
 }
 
