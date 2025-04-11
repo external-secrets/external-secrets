@@ -15,6 +15,7 @@ limitations under the License.
 package v1
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -33,10 +34,11 @@ func (v *ValidationProvider) ValidateStore(_ GenericStore) (admission.Warnings, 
 
 func TestValidateSecretStore(t *testing.T) {
 	tests := []struct {
-		name      string
-		obj       *SecretStore
-		mock      func()
-		assertErr func(t *testing.T, err error)
+		name        string
+		obj         *SecretStore
+		mock        func()
+		assertWarns func(t *testing.T, warns admission.Warnings)
+		assertErr   func(t *testing.T, err error)
 	}{
 		{
 			name: "valid regex",
@@ -59,6 +61,9 @@ func TestValidateSecretStore(t *testing.T) {
 			},
 			assertErr: func(t *testing.T, err error) {
 				require.NoError(t, err)
+			},
+			assertWarns: func(t *testing.T, warns admission.Warnings) {
+				require.Equal(t, 0, len(warns))
 			},
 		},
 		{
@@ -83,6 +88,9 @@ func TestValidateSecretStore(t *testing.T) {
 			assertErr: func(t *testing.T, err error) {
 				assert.EqualError(t, err, "failed to compile 0th namespace regex in 0th condition: error parsing regexp: invalid escape sequence: `\\1`")
 			},
+			assertWarns: func(t *testing.T, warns admission.Warnings) {
+				require.Equal(t, 0, len(warns))
+			},
 		},
 		{
 			name: "multiple errors",
@@ -98,6 +106,10 @@ func TestValidateSecretStore(t *testing.T) {
 					},
 				},
 			},
+			assertWarns: func(t *testing.T, warns admission.Warnings) {
+				require.Equal(t, 0, len(warns))
+			},
+
 			mock: func() {
 				ForceRegister(&ValidationProvider{}, &SecretStoreProvider{
 					AWS: &AWSProvider{},
@@ -120,6 +132,9 @@ func TestValidateSecretStore(t *testing.T) {
 			assertErr: func(t *testing.T, err error) {
 				assert.EqualError(t, err, "store error for : secret stores must only have exactly one backend specified, found 2")
 			},
+			assertWarns: func(t *testing.T, warns admission.Warnings) {
+				require.Equal(t, 0, len(warns))
+			},
 		},
 		{
 			name: "no registered store backend",
@@ -135,6 +150,36 @@ func TestValidateSecretStore(t *testing.T) {
 			assertErr: func(t *testing.T, err error) {
 				assert.EqualError(t, err, "store error for : secret stores must only have exactly one backend specified, found 0")
 			},
+			assertWarns: func(t *testing.T, warns admission.Warnings) {
+				require.Equal(t, 0, len(warns))
+			},
+		},
+		{
+			name: "unmaintained warning",
+			obj: &SecretStore{
+				Spec: SecretStoreSpec{
+					Conditions: []ClusterSecretStoreCondition{
+						{
+							NamespaceRegexes: []string{`.*`},
+						},
+					},
+					Provider: &SecretStoreProvider{
+						AWS: &AWSProvider{},
+					},
+				},
+			},
+			mock: func() {
+				ForceRegister(&ValidationProvider{}, &SecretStoreProvider{
+					AWS: &AWSProvider{},
+				}, MaintenanceStatusNotMaintained)
+			},
+			assertErr: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+			assertWarns: func(t *testing.T, warns admission.Warnings) {
+				require.Equal(t, 1, len(warns))
+				assert.Equal(t, warns[0], fmt.Sprintf(warnStoreUnmaintained, ""))
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -143,8 +188,9 @@ func TestValidateSecretStore(t *testing.T) {
 				tt.mock()
 			}
 
-			_, err := validateStore(tt.obj)
+			warns, err := validateStore(tt.obj)
 			tt.assertErr(t, err)
+			tt.assertWarns(t, warns)
 		})
 	}
 }
