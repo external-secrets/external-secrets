@@ -19,7 +19,8 @@ You can control how and when the `ExternalSecret` is refreshed by setting the `s
 
 With `refreshPolicy: CreatedOnce`, the controller will:
 - Create the `Kind=Secret` only if it does not exist yet
-- Never update the `Kind=Secret` afterward, even if the source data changes
+- Never update the `Kind=Secret` afterwards if the source data changes
+- Update/ Recreate the `Kind=Secret` if it gets changed/Deleted
 - Useful for immutable credentials or when you want to manage updates manually
 
 Example:
