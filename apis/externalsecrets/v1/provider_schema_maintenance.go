@@ -49,6 +49,17 @@ func RegisterMaintenanceStatus(status MaintenanceStatus, storeSpec *SecretStoreP
 	maintenance[storeName] = status
 }
 
+func ForceRegisterMaintenanceStatus(status MaintenanceStatus, storeSpec *SecretStoreProvider) {
+	storeName, err := getProviderName(storeSpec)
+	if err != nil {
+		panic(fmt.Sprintf("store error registering schema: %s", err.Error()))
+	}
+
+	mlock.Lock()
+	defer mlock.Unlock()
+	maintenance[storeName] = status
+}
+
 // GetMaintenanceStatus returns the maintenance status of the provider from the generic store.
 func GetMaintenanceStatus(s GenericStore) (MaintenanceStatus, error) {
 	if s == nil {

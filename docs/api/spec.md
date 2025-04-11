@@ -5605,6 +5605,23 @@ bool
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.MaintenanceStatus">MaintenanceStatus
+(<code>bool</code> alias)</p></h3>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>true</p></td>
+<td></td>
+</tr><tr><td><p>false</p></td>
+<td></td>
+</tr></tbody>
+</table>
 <h3 id="external-secrets.io/v1.NoSecretError">NoSecretError
 </h3>
 <p>

@@ -58,7 +58,7 @@ func ForceRegister(s Provider, storeSpec *SecretStoreProvider, maintenanceStatus
 	buildlock.Lock()
 	builder[storeName] = s
 	buildlock.Unlock()
-	RegisterMaintenanceStatus(maintenanceStatus, storeSpec)
+	ForceRegisterMaintenanceStatus(maintenanceStatus, storeSpec)
 }
 
 // GetProviderByName returns the provider implementation by name.
