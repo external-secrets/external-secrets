@@ -870,31 +870,37 @@ func shouldRefresh(es *esv1beta1.ExternalSecret) bool {
 
 		return es.Status.SyncedResourceVersion != util.GetResourceVersion(es.ObjectMeta)
 
+	case esv1beta1.RefreshPolicyPeriodic:
+		return shouldRefreshPeriodic(es)
+
 	default:
-		// esv1beta1.RefreshPolicyPeriodic:
-		// if the refresh interval is 0, and we have synced previously, we should not refresh
-		if es.Spec.RefreshInterval.Duration <= 0 && es.Status.SyncedResourceVersion != "" {
-			return false
-		}
-
-		// if the ExternalSecret has been updated, we should refresh
-		if es.Status.SyncedResourceVersion != util.GetResourceVersion(es.ObjectMeta) {
-			return true
-		}
-
-		// if the last refresh time is zero, we should refresh
-		if es.Status.RefreshTime.IsZero() {
-			return true
-		}
-
-		// if the last refresh time is in the future, we should refresh
-		if es.Status.RefreshTime.Time.After(time.Now()) {
-			return true
-		}
-
-		// if the last refresh time + refresh interval is before now, we should refresh
-		return es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).Before(time.Now())
+		return shouldRefreshPeriodic(es)
 	}
+}
+
+func shouldRefreshPeriodic(es *esv1beta1.ExternalSecret) bool {
+	// if the refresh interval is 0, and we have synced previously, we should not refresh
+	if es.Spec.RefreshInterval.Duration <= 0 && es.Status.SyncedResourceVersion != "" {
+		return false
+	}
+
+	// if the ExternalSecret has been updated, we should refresh
+	if es.Status.SyncedResourceVersion != util.GetResourceVersion(es.ObjectMeta) {
+		return true
+	}
+
+	// if the last refresh time is zero, we should refresh
+	if es.Status.RefreshTime.IsZero() {
+		return true
+	}
+
+	// if the last refresh time is in the future, we should refresh
+	if es.Status.RefreshTime.Time.After(time.Now()) {
+		return true
+	}
+
+	// if the last refresh time + refresh interval is before now, we should refresh
+	return es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).Before(time.Now())
 }
 
 // isSecretValid checks if the secret exists, and it's data is consistent with the calculated hash.
