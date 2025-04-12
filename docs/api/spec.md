@@ -3143,6 +3143,24 @@ ExternalSecretTarget
 </tr>
 <tr>
 <td>
+<code>refreshPolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretRefreshPolicy">
+ExternalSecretRefreshPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RefreshPolicy determines how the ExternalSecret should be refreshed:
+- CreatedOnce: Creates the Secret only if it does not exist and does not update it thereafter
+- Periodic: Synchronizes the Secret from the external source at regular intervals specified by refreshInterval.
+No periodic updates occur if refreshInterval is 0.
+- OnChange: Only synchronizes the Secret when the ExternalSecret&rsquo;s metadata or specification changes</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>refreshInterval</code></br>
 <em>
 <a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
@@ -3721,6 +3739,29 @@ map[string]string
 <td></td>
 </tr></tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.ExternalSecretRefreshPolicy">ExternalSecretRefreshPolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretSpec">ExternalSecretSpec</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;CreatedOnce&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;OnChange&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Periodic&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.ExternalSecretRewrite">ExternalSecretRewrite
 </h3>
 <p>
@@ -3881,6 +3922,24 @@ ExternalSecretTarget
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>refreshPolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ExternalSecretRefreshPolicy">
+ExternalSecretRefreshPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RefreshPolicy determines how the ExternalSecret should be refreshed:
+- CreatedOnce: Creates the Secret only if it does not exist and does not update it thereafter
+- Periodic: Synchronizes the Secret from the external source at regular intervals specified by refreshInterval.
+No periodic updates occur if refreshInterval is 0.
+- OnChange: Only synchronizes the Secret when the ExternalSecret&rsquo;s metadata or specification changes</p>
 </td>
 </tr>
 <tr>
