@@ -15,35 +15,29 @@ limitations under the License.
 package fake
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/aws/aws-sdk-go/service/sts/stsiface"
+	"context"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
+type stsAPI interface {
+	AssumeRole(ctx context.Context, params *sts.AssumeRoleInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleOutput, error)
+}
+
 type AssumeRoler struct {
-	stsiface.STSAPI
-	AssumeRoleFunc func(*sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error)
+	stsAPI
+	AssumeRoleFunc func(ctx context.Context, input *sts.AssumeRoleInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleOutput, error)
 }
 
-func (f *AssumeRoler) AssumeRole(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error) {
-	return f.AssumeRoleFunc(input)
-}
-
-func (f *AssumeRoler) AssumeRoleWithContext(_ aws.Context, input *sts.AssumeRoleInput, _ ...request.Option) (*sts.AssumeRoleOutput, error) {
-	return f.AssumeRoleFunc(input)
+func (f *AssumeRoler) AssumeRole(ctx context.Context, input *sts.AssumeRoleInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleOutput, error) {
+	return f.AssumeRoleFunc(ctx, input, optFns...)
 }
 
 type CredentialsProvider struct {
-	RetrieveFunc  func() (credentials.Value, error)
-	IsExpiredFunc func() bool
+	RetrieveFunc func() (aws.Credentials, error)
 }
 
-func (t CredentialsProvider) Retrieve() (credentials.Value, error) {
+func (t CredentialsProvider) Retrieve() (aws.Credentials, error) {
 	return t.RetrieveFunc()
-}
-
-func (t CredentialsProvider) IsExpired() bool {
-	return t.IsExpiredFunc()
 }

@@ -34,6 +34,8 @@ type customEndpointResolver struct{}
 
 // ResolveEndpoint returns a ResolverFunc with
 // customizable endpoints.
+
+// should this reside somewhere else since it's specific to sts?
 func (c customEndpointResolver) ResolveEndpoint(ctx context.Context, params sts.EndpointParameters) (smithyendpoints.Endpoint, error) {
 	endpoint := smithyendpoints.Endpoint{}
 	if v := os.Getenv(STSEndpointEnv); v != "" {

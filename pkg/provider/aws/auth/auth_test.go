@@ -365,7 +365,7 @@ func TestNewSession(t *testing.T) {
 					},
 				},
 			},
-			jwtProvider: func(name, namespace, roleArn string, aud []string, region string) (credentials.Provider, error) {
+			jwtProvider: func(name, namespace, roleArn string, aud []string, region string) (aws.CredentialsProvider, error) {
 				assert.Equal(t, myServiceAccountKey, name)
 				assert.Equal(t, otherNsName, namespace)
 				assert.Equal(t, "my-sa-role", roleArn)
