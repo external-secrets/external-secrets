@@ -3932,11 +3932,14 @@ You just need to change an annotation, label or the spec of the resource:</p>
 <div class="highlight"><pre><span></span><code>kubectl annotate es my-es force-sync=$(date +%s) --overwrite
 </code></pre></div>
 <h2 id="how-do-i-know-when-my-secret-was-last-synced">How do I know when my secret was last synced?</h2>
-<p>The last synchronization timestamp of an ExternalSecret can be retrieved from the field <code>refreshTime</code>. </p>
+<p>The last synchronization timestamp of an ExternalSecret can be retrieved from the field <code>refreshTime</code>.</p>
 <div class="highlight"><pre><span></span><code>kubectl get es my-external-secret -o yaml | grep refreshTime
   refreshTime: &quot;2022-05-21T23:02:47Z&quot;
 </code></pre></div>
-<p>The interval can be changed by the <code>spec.refreshInterval</code> in the ExternalSecret.</p>
+<p>The interval can be changed by the <code>spec.refreshInterval</code> in the ExternalSecret. You can also control the refresh behavior by setting <code>spec.refreshPolicy</code> to one of the following options:
+- <code>Periodic</code> (default): Update regularly based on refreshInterval
+- <code>CreatedOnce</code>: Create the Secret only once and never update it afterward
+- <code>OnChange</code>: Only update when the ExternalSecret's metadata or specification changes</p>
 <h2 id="how-do-i-know-when-the-status-of-my-secret-changed-the-last-time">How do I know when the status of my secret changed the last time?</h2>
 <p>Every ExternalSecret resource contains a status condition that indicates whether a secret was successfully synchronized, along with the timestamp of the last status change of the ExternalSecret (e.g. from SecretSyncedError to SecretSynced). This can be obtained from the field <code>lastTransitionTime</code>:</p>
 <div class="highlight"><pre><span></span><code>kubectl get es my-external-secret -o yaml | grep condition -A 5

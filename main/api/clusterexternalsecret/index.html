@@ -3924,6 +3924,12 @@ If there is a conflict with an existing resource the controller will error out.<
 <span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-store-name</span>
 <span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 
+<span class="w">    </span><span class="c1"># RefreshPolicy determines how the ExternalSecret should be refreshed:</span>
+<span class="w">    </span><span class="c1"># - CreatedOnce: Creates the Secret only if it does not exist and does not update it afterward</span>
+<span class="w">    </span><span class="c1"># - Periodic: (default) Synchronizes the Secret at intervals specified by refreshInterval</span>
+<span class="w">    </span><span class="c1"># - OnChange: Only synchronizes when the ExternalSecret&#39;s metadata or specification changes</span>
+<span class="w">    </span><span class="nt">refreshPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Periodic</span>
+
 <span class="w">    </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1h&quot;</span>
 <span class="w">    </span><span class="nt">target</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-secret</span>
@@ -3968,7 +3974,7 @@ If there is a conflict with an existing resource the controller will error out.<
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;matching-ns-3&quot;</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;matching-ns-2&quot;</span>
 
-<span class="w">  </span><span class="c1"># The condition can be Ready, PartiallyReady, or NotReady </span>
+<span class="w">  </span><span class="c1"># The condition can be Ready, PartiallyReady, or NotReady</span>
 <span class="w">  </span><span class="c1"># PartiallyReady would indicate an error in 1 or more namespaces</span>
 <span class="w">  </span><span class="c1"># NotReady would indicate errors in all namespaces meaning all ExternalSecrets resulted in errors</span>
 <span class="w">  </span><span class="nt">conditions</span><span class="p">:</span>

@@ -862,9 +862,51 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#update-behavior" class="md-nav__link">
+  <a href="#update-behavior-with-3-different-refresh-policies" class="md-nav__link">
     <span class="md-ellipsis">
-      Update Behavior
+      Update behavior with 3 different refresh policies
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Update behavior with 3 different refresh policies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#createdonce" class="md-nav__link">
+    <span class="md-ellipsis">
+      CreatedOnce
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#periodic" class="md-nav__link">
+    <span class="md-ellipsis">
+      Periodic
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#onchange" class="md-nav__link">
+    <span class="md-ellipsis">
+      OnChange
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manual-refresh" class="md-nav__link">
+    <span class="md-ellipsis">
+      Manual Refresh
     </span>
   </a>
   
@@ -3843,9 +3885,51 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#update-behavior" class="md-nav__link">
+  <a href="#update-behavior-with-3-different-refresh-policies" class="md-nav__link">
     <span class="md-ellipsis">
-      Update Behavior
+      Update behavior with 3 different refresh policies
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Update behavior with 3 different refresh policies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#createdonce" class="md-nav__link">
+    <span class="md-ellipsis">
+      CreatedOnce
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#periodic" class="md-nav__link">
+    <span class="md-ellipsis">
+      Periodic
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#onchange" class="md-nav__link">
+    <span class="md-ellipsis">
+      OnChange
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manual-refresh" class="md-nav__link">
+    <span class="md-ellipsis">
+      Manual Refresh
     </span>
   </a>
   
@@ -3901,14 +3985,56 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 </ul>
 <h2 id="template">Template</h2>
 <p>When the controller reconciles the <code>ExternalSecret</code> it will use the <code>spec.template</code> as a blueprint to construct a new <code>Kind=Secret</code>. You can use golang templates to define the blueprint and use template functions to transform secret values. You can also pull in <code>ConfigMaps</code> that contain golang-template data using <code>templateFrom</code>. See <a href="../../guides/templating/">advanced templating</a> for details.</p>
-<h2 id="update-behavior">Update Behavior</h2>
-<p>The <code>Kind=Secret</code> is updated when one of the following conditions is met and <code>spec.refreshInterval</code> is not <code>0</code>:</p>
-<ul>
-<li>the <code>spec.refreshInterval</code> has passed</li>
-<li>the <code>ExternalSecret</code>'s <code>labels</code> or <code>annotations</code> are changed</li>
-<li>the <code>ExternalSecret</code>'s <code>spec</code> has been changed</li>
-</ul>
-<p>You can trigger a secret refresh by using kubectl or any other kubernetes api client:</p>
+<h2 id="update-behavior-with-3-different-refresh-policies">Update behavior with 3 different refresh policies</h2>
+<p>You can control how and when the <code>ExternalSecret</code> is refreshed by setting the <code>spec.refreshPolicy</code> field. If not specified, the default behavior is <code>Periodic</code>.</p>
+<h3 id="createdonce">CreatedOnce</h3>
+<p>With <code>refreshPolicy: CreatedOnce</code>, the controller will:
+- Create the <code>Kind=Secret</code> only if it does not exist yet
+- Never update the <code>Kind=Secret</code> afterwards if the source data changes
+- Update/ Recreate the <code>Kind=Secret</code> if it gets changed/Deleted
+- Useful for immutable credentials or when you want to manage updates manually</p>
+<p>Example:
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CreatedOnce</span>
+<span class="w">  </span><span class="c1"># other fields...</span>
+</code></pre></div></p>
+<h3 id="periodic">Periodic</h3>
+<p>With <code>refreshPolicy: Periodic</code> (the default behavior), the controller will:
+- Create the <code>Kind=Secret</code> if it doesn't exist
+- Update the <code>Kind=Secret</code> regularly based on the <code>spec.refreshInterval</code> duration
+- When <code>spec.refreshInterval</code> is set to zero, it will only create the secret once and not update it afterward
+- When <code>spec.refreshInterval</code> is set to a value greater than zero, the controller will update the <code>Kind=Secret</code> at the specified interval or when the <code>ExternalSecret</code> specification changes</p>
+<p>Example:
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Periodic</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span><span class="w">  </span><span class="c1"># Update every hour</span>
+<span class="w">  </span><span class="c1"># other fields...</span>
+</code></pre></div></p>
+<h3 id="onchange">OnChange</h3>
+<p>With <code>refreshPolicy: OnChange</code>, the controller will:
+- Create the <code>Kind=Secret</code> if it doesn't exist
+- Update the <code>Kind=Secret</code> only when the <code>ExternalSecret</code>'s metadata or specification changes
+- This policy is independent of the <code>refreshInterval</code> value
+- Useful when you want to manually control when the secret is updated, by modifying the <code>ExternalSecret</code> resource</p>
+<p>Example:
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OnChange</span>
+<span class="w">  </span><span class="c1"># other fields...</span>
+</code></pre></div></p>
+<h2 id="manual-refresh">Manual Refresh</h2>
+<p>Regardless of the refresh policy, you can always manually trigger a refresh of the <code>Kind=Secret</code> by updating the annotations of the <code>ExternalSecret</code>:</p>
 <div class="highlight"><pre><span></span><code>kubectl annotate es my-es force-sync=$(date +%s) --overwrite
 </code></pre></div>
 <h2 id="features">Features</h2>
@@ -3942,6 +4068,12 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 <span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-store</span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span><span class="w">  </span><span class="c1"># or ClusterSecretStore</span>
+
+<span class="w">  </span><span class="c1"># RefreshPolicy determines how the ExternalSecret should be refreshed.</span>
+<span class="w">  </span><span class="c1"># - CreatedOnce: Creates the Secret only if it does not exist and does not update it afterward</span>
+<span class="w">  </span><span class="c1"># - Periodic: (default) Synchronizes the Secret at intervals specified by refreshInterval</span>
+<span class="w">  </span><span class="c1"># - OnChange: Only synchronizes when the ExternalSecret&#39;s metadata or specification changes</span>
+<span class="w">  </span><span class="nt">refreshPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Periodic</span>
 
 <span class="w">  </span><span class="c1"># RefreshInterval is the amount of time before the values reading again from the SecretStore provider</span>
 <span class="w">  </span><span class="c1"># Valid time units are &quot;ns&quot;, &quot;us&quot; (or &quot;µs&quot;), &quot;ms&quot;, &quot;s&quot;, &quot;m&quot;, &quot;h&quot; (from time.ParseDuration)</span>
