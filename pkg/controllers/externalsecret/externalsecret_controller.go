@@ -856,6 +856,29 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 }
 
 func shouldRefresh(es *esv1.ExternalSecret) bool {
+	switch es.Spec.RefreshPolicy {
+	case esv1.RefreshPolicyCreatedOnce:
+		if es.Status.SyncedResourceVersion == "" || es.Status.RefreshTime.IsZero() {
+			return true
+		}
+		return false
+
+	case esv1.RefreshPolicyOnChange:
+		if es.Status.SyncedResourceVersion == "" || es.Status.RefreshTime.IsZero() {
+			return true
+		}
+
+		return es.Status.SyncedResourceVersion != util.GetResourceVersion(es.ObjectMeta)
+
+	case esv1.RefreshPolicyPeriodic:
+		return shouldRefreshPeriodic(es)
+
+	default:
+		return shouldRefreshPeriodic(es)
+	}
+}
+
+func shouldRefreshPeriodic(es *esv1.ExternalSecret) bool {
 	// if the refresh interval is 0, and we have synced previously, we should not refresh
 	if es.Spec.RefreshInterval.Duration <= 0 && es.Status.SyncedResourceVersion != "" {
 		return false

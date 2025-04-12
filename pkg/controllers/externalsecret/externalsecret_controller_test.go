@@ -2564,6 +2564,392 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 	})
 })
 
+var _ = Describe("ExternalSecret refresh policy", func() {
+	Context("RefreshPolicy=CreatedOnce", func() {
+		It("should refresh when SyncedResourceVersion is empty", func() {
+			es := &esv1.ExternalSecret{
+				Spec: esv1.ExternalSecretSpec{
+					RefreshPolicy: esv1.RefreshPolicyCreatedOnce,
+				},
+				Status: esv1.ExternalSecretStatus{
+					SyncedResourceVersion: "",
+				},
+			}
+			Expect(shouldRefresh(es)).To(BeTrue())
+		})
+
+		It("should refresh when RefreshTime is zero", func() {
+			es := &esv1.ExternalSecret{
+				Spec: esv1.ExternalSecretSpec{
+					RefreshPolicy: esv1.RefreshPolicyCreatedOnce,
+				},
+				Status: esv1.ExternalSecretStatus{
+					SyncedResourceVersion: "some-version",
+					RefreshTime:           metav1.Time{},
+				},
+			}
+			Expect(shouldRefresh(es)).To(BeTrue())
+		})
+
+		It("should not refresh when already synced", func() {
+			es := &esv1.ExternalSecret{
+				Spec: esv1.ExternalSecretSpec{
+					RefreshPolicy: esv1.RefreshPolicyCreatedOnce,
+				},
+				Status: esv1.ExternalSecretStatus{
+					SyncedResourceVersion: "some-version",
+					RefreshTime:           metav1.Now(),
+				},
+			}
+			Expect(shouldRefresh(es)).To(BeFalse())
+		})
+	})
+
+	Context("RefreshPolicy=OnChange", func() {
+		It("should refresh when SyncedResourceVersion is empty", func() {
+			es := &esv1.ExternalSecret{
+				Spec: esv1.ExternalSecretSpec{
+					RefreshPolicy: esv1.RefreshPolicyOnChange,
+				},
+				Status: esv1.ExternalSecretStatus{
+					SyncedResourceVersion: "",
+				},
+			}
+			Expect(shouldRefresh(es)).To(BeTrue())
+		})
+
+		It("should refresh when RefreshTime is zero", func() {
+			es := &esv1.ExternalSecret{
+				Spec: esv1.ExternalSecretSpec{
+					RefreshPolicy: esv1.RefreshPolicyOnChange,
+				},
+				Status: esv1.ExternalSecretStatus{
+					RefreshTime: metav1.Time{},
+				},
+			}
+			Expect(shouldRefresh(es)).To(BeTrue())
+		})
+
+		It("should refresh when resource version changes", func() {
+			es := &esv1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 1,
+					Annotations: map[string]string{
+						"foo": "bar",
+					},
+				},
+				Spec: esv1.ExternalSecretSpec{
+					RefreshPolicy: esv1.RefreshPolicyOnChange,
+				},
+				Status: esv1.ExternalSecretStatus{
+					RefreshTime:           metav1.Now(),
+					SyncedResourceVersion: "old-version",
+				},
+			}
+			// The temp annotation is added in the shouldRefresh function
+			Expect(shouldRefresh(es)).To(BeTrue())
+		})
+
+		It("should not refresh when resource version matches", func() {
+			es := &esv1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 1,
+				},
+				Spec: esv1.ExternalSecretSpec{
+					RefreshPolicy: esv1.RefreshPolicyOnChange,
+				},
+				Status: esv1.ExternalSecretStatus{
+					RefreshTime: metav1.Now(),
+				},
+			}
+			// Set the synced resource version to match the current resource version
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
+			Expect(shouldRefresh(es)).To(BeFalse())
+		})
+
+		It("should refresh when annotations change", func() {
+			es := &esv1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 1,
+					Annotations: map[string]string{
+						"foo": "bar",
+					},
+				},
+				Spec: esv1.ExternalSecretSpec{
+					RefreshPolicy: esv1.RefreshPolicyOnChange,
+				},
+				Status: esv1.ExternalSecretStatus{
+					RefreshTime: metav1.Now(),
+				},
+			}
+			// Set the synced resource version to match the current resource version
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
+			Expect(shouldRefresh(es)).To(BeFalse())
+
+			es.Annotations["foo"] = "bar1"
+			Expect(shouldRefresh(es)).To(BeTrue())
+		})
+
+		It("should refresh when spec changes", func() {
+			es := &esv1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 1,
+				},
+				Spec: esv1.ExternalSecretSpec{
+					RefreshPolicy: esv1.RefreshPolicyOnChange,
+					Data: []esv1.ExternalSecretData{
+						{
+							SecretKey: "key1",
+							RemoteRef: esv1.ExternalSecretDataRemoteRef{
+								Key: "remote-key1",
+							},
+						},
+					},
+				},
+				Status: esv1.ExternalSecretStatus{
+					RefreshTime: metav1.Now(),
+				},
+			}
+			// Set the synced resource version to match the current resource version
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
+
+			// Initially should not refresh
+			Expect(shouldRefresh(es)).To(BeFalse())
+
+			// Update the spec by adding a new data item
+			es.ObjectMeta.Generation = 2
+			es.Spec.Data = append(es.Spec.Data, esv1.ExternalSecretData{
+				SecretKey: "key2",
+				RemoteRef: esv1.ExternalSecretDataRemoteRef{
+					Key: "remote-key2",
+				},
+			})
+
+			// The temp annotation is added in the shouldRefresh function to track spec hash
+			Expect(shouldRefresh(es)).To(BeTrue())
+		})
+	})
+
+	Context("Default refresh policy (Periodic)", func() {
+		It("should behave like Periodic when RefreshPolicy is not set", func() {
+			es := &esv1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 1,
+				},
+				Spec: esv1.ExternalSecretSpec{
+					// No RefreshPolicy set, should default to Periodic behavior
+					RefreshInterval: &metav1.Duration{Duration: time.Minute},
+				},
+				Status: esv1.ExternalSecretStatus{
+					RefreshTime: metav1.Now(),
+				},
+			}
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
+			Expect(shouldRefresh(es)).To(BeFalse())
+
+			// When refresh interval has passed
+			es.Status.RefreshTime = metav1.NewTime(metav1.Now().Add(-time.Minute * 2))
+			Expect(shouldRefresh(es)).To(BeTrue())
+		})
+	})
+
+	Context("RefreshPolicy=Periodic", func() {
+		It("should not refresh when refreshInterval is 0 and already synced", func() {
+			es := &esv1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 1,
+				},
+				Spec: esv1.ExternalSecretSpec{
+					RefreshPolicy:   esv1.RefreshPolicyPeriodic,
+					RefreshInterval: &metav1.Duration{Duration: 0},
+				},
+				Status: esv1.ExternalSecretStatus{
+					SyncedResourceVersion: "some-version",
+				},
+			}
+			// Set the synced resource version to match the current resource version
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
+			Expect(shouldRefresh(es)).To(BeFalse())
+		})
+
+		It("should refresh when resource version changes", func() {
+			es := &esv1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 2,
+				},
+				Spec: esv1.ExternalSecretSpec{
+					RefreshPolicy:   esv1.RefreshPolicyPeriodic,
+					RefreshInterval: &metav1.Duration{Duration: time.Minute},
+				},
+				Status: esv1.ExternalSecretStatus{
+					RefreshTime:           metav1.Now(),
+					SyncedResourceVersion: "old-version",
+				},
+			}
+			Expect(shouldRefresh(es)).To(BeTrue())
+		})
+
+		It("should refresh when refresh interval has passed", func() {
+			es := &esv1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 1,
+				},
+				Spec: esv1.ExternalSecretSpec{
+					RefreshPolicy:   esv1.RefreshPolicyPeriodic,
+					RefreshInterval: &metav1.Duration{Duration: time.Second},
+				},
+				Status: esv1.ExternalSecretStatus{
+					RefreshTime: metav1.NewTime(metav1.Now().Add(-time.Second * 5)),
+				},
+			}
+			// Resource version matches
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
+			Expect(shouldRefresh(es)).To(BeTrue())
+		})
+
+		It("should refresh when no refresh time was set", func() {
+			es := &esv1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 1,
+				},
+				Spec: esv1.ExternalSecretSpec{
+					RefreshPolicy:   esv1.RefreshPolicyPeriodic,
+					RefreshInterval: &metav1.Duration{Duration: time.Second},
+				},
+				Status: esv1.ExternalSecretStatus{},
+			}
+			// Resource version matches
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
+			Expect(shouldRefresh(es)).To(BeTrue())
+		})
+
+		It("should refresh when refresh time is in the future", func() {
+			es := &esv1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 1,
+				},
+				Spec: esv1.ExternalSecretSpec{
+					RefreshPolicy:   esv1.RefreshPolicyPeriodic,
+					RefreshInterval: &metav1.Duration{Duration: time.Second},
+				},
+				Status: esv1.ExternalSecretStatus{
+					RefreshTime: metav1.NewTime(time.Now().Add(time.Hour)), // Future time
+				},
+			}
+			// Resource version matches
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
+			Expect(shouldRefresh(es)).To(BeTrue())
+		})
+
+		It("should refresh when refreshInterval not 0 and spec changes", func() {
+			es := &esv1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 1,
+				},
+				Spec: esv1.ExternalSecretSpec{
+					RefreshPolicy:   esv1.RefreshPolicyPeriodic,
+					RefreshInterval: &metav1.Duration{Duration: 10 * time.Second},
+					Data: []esv1.ExternalSecretData{
+						{
+							SecretKey: "key1",
+							RemoteRef: esv1.ExternalSecretDataRemoteRef{
+								Key: "remote-key1",
+							},
+						},
+					},
+				},
+				Status: esv1.ExternalSecretStatus{
+					SyncedResourceVersion: "some-version",
+					RefreshTime:           metav1.NewTime(metav1.Now().Add(-time.Second * 5)),
+				},
+			}
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
+			Expect(shouldRefresh(es)).To(BeFalse())
+
+			es.ObjectMeta.Generation = 2
+			es.Spec.Data = append(es.Spec.Data, esv1.ExternalSecretData{
+				SecretKey: "key2",
+				RemoteRef: esv1.ExternalSecretDataRemoteRef{
+					Key: "remote-key2",
+				},
+			})
+
+			Expect(shouldRefresh(es)).To(BeTrue())
+		})
+
+		It("should not refresh when refreshInterval is 0 even if spec changes", func() {
+			es := &esv1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 1,
+				},
+				Spec: esv1.ExternalSecretSpec{
+					RefreshPolicy:   esv1.RefreshPolicyPeriodic,
+					RefreshInterval: &metav1.Duration{Duration: 0},
+					Data: []esv1.ExternalSecretData{
+						{
+							SecretKey: "key1",
+							RemoteRef: esv1.ExternalSecretDataRemoteRef{
+								Key: "remote-key1",
+							},
+						},
+					},
+				},
+				Status: esv1.ExternalSecretStatus{
+					SyncedResourceVersion: "some-version",
+					RefreshTime:           metav1.Now(),
+				},
+			}
+			// Set the synced resource version to match the current resource version
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
+			Expect(shouldRefresh(es)).To(BeFalse())
+
+			// Update the spec by adding a new data item
+			es.ObjectMeta.Generation = 2
+			es.Spec.Data = append(es.Spec.Data, esv1.ExternalSecretData{
+				SecretKey: "key2",
+				RemoteRef: esv1.ExternalSecretDataRemoteRef{
+					Key: "remote-key2",
+				},
+			})
+
+			// Should still not refresh because interval is 0
+			Expect(shouldRefresh(es)).To(BeFalse())
+		})
+
+		It("should not refresh when refreshInterval is 0 even if labels or annotations change", func() {
+			es := &esv1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 1,
+					Labels: map[string]string{
+						"original-label": "value",
+					},
+					Annotations: map[string]string{
+						"original-annotation": "value",
+					},
+				},
+				Spec: esv1.ExternalSecretSpec{
+					RefreshPolicy:   esv1.RefreshPolicyPeriodic,
+					RefreshInterval: &metav1.Duration{Duration: 0},
+				},
+				Status: esv1.ExternalSecretStatus{
+					SyncedResourceVersion: "some-version",
+					RefreshTime:           metav1.Now(),
+				},
+			}
+			// Set the synced resource version to match the current resource version
+			es.Status.SyncedResourceVersion = util.GetResourceVersion(es.ObjectMeta)
+			Expect(shouldRefresh(es)).To(BeFalse())
+
+			// Update labels and annotations
+			es.ObjectMeta.Labels["new-label"] = "new-value"
+			es.ObjectMeta.Annotations["new-annotation"] = "new-value"
+
+			// Should still not refresh because interval is 0
+			Expect(shouldRefresh(es)).To(BeFalse())
+		})
+	})
+})
+
 func externalSecretConditionShouldBe(name, ns string, ct esv1.ExternalSecretConditionType, cs v1.ConditionStatus, v float64) bool {
 	return Eventually(func() float64 {
 		Expect(testExternalSecretCondition.WithLabelValues(name, ns, string(ct), string(cs)).Write(&metric)).To(Succeed())

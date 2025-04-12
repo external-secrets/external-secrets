@@ -169,6 +169,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | tolerations | list | `[]` |  |
 | topologySpreadConstraints | list | `[]` |  |
 | webhook.affinity | object | `{}` |  |
+| webhook.annotations | object | `{}` | Annotations to place on validating webhook configuration. |
 | webhook.certCheckInterval | string | `"5m"` | Specifices the time to check if the cert is valid |
 | webhook.certDir | string | `"/tmp/certs"` |  |
 | webhook.certManager.addInjectorAnnotations | bool | `true` | Automatically add the cert-manager.io/inject-ca-from annotation to the webhooks and CRDs. As long as you have the cert-manager CA Injector enabled, this will automatically setup your webhook's CA to the one used by cert-manager. See https://cert-manager.io/docs/concepts/ca-injector |

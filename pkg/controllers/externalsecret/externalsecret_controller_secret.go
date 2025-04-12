@@ -100,7 +100,7 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, externalSecret *
 	}
 
 	for i, secretRef := range externalSecret.Spec.Data {
-		err := r.handleSecretData(ctx, *externalSecret, secretRef, providerData, mgr)
+		err := r.handleSecretData(ctx, externalSecret, secretRef, providerData, mgr)
 		if errors.Is(err, esv1.NoSecretErr) && externalSecret.Spec.Target.DeletionPolicy != esv1.DeletionPolicyRetain {
 			r.recorder.Eventf(externalSecret, v1.EventTypeNormal, esv1.ReasonMissingProviderSecret, eventMissingProviderSecretKey, i, secretRef.RemoteRef.Key)
 			continue
@@ -113,7 +113,7 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, externalSecret *
 	return providerData, nil
 }
 
-func (r *Reconciler) handleSecretData(ctx context.Context, externalSecret esv1.ExternalSecret, secretRef esv1.ExternalSecretData, providerData map[string][]byte, cmgr *secretstore.Manager) error {
+func (r *Reconciler) handleSecretData(ctx context.Context, externalSecret *esv1.ExternalSecret, secretRef esv1.ExternalSecretData, providerData map[string][]byte, cmgr *secretstore.Manager) error {
 	client, err := cmgr.Get(ctx, externalSecret.Spec.SecretStoreRef, externalSecret.Namespace, toStoreGenSourceRef(secretRef.SourceRef))
 	if err != nil {
 		return err

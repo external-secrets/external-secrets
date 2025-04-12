@@ -359,6 +359,15 @@ type FindName struct {
 	RegExp string `json:"regexp,omitempty"`
 }
 
+// +kubebuilder:validation:Enum=CreatedOnce;Periodic;OnChange
+type ExternalSecretRefreshPolicy string
+
+const (
+	RefreshPolicyCreatedOnce ExternalSecretRefreshPolicy = "CreatedOnce"
+	RefreshPolicyPeriodic    ExternalSecretRefreshPolicy = "Periodic"
+	RefreshPolicyOnChange    ExternalSecretRefreshPolicy = "OnChange"
+)
+
 // ExternalSecretSpec defines the desired state of ExternalSecret.
 type ExternalSecretSpec struct {
 	// +optional
@@ -367,6 +376,14 @@ type ExternalSecretSpec struct {
 	// +kubebuilder:default={creationPolicy:Owner,deletionPolicy:Retain}
 	// +optional
 	Target ExternalSecretTarget `json:"target,omitempty"`
+
+	// RefreshPolicy determines how the ExternalSecret should be refreshed:
+	// - CreatedOnce: Creates the Secret only if it does not exist and does not update it thereafter
+	// - Periodic: Synchronizes the Secret from the external source at regular intervals specified by refreshInterval.
+	//   No periodic updates occur if refreshInterval is 0.
+	// - OnChange: Only synchronizes the Secret when the ExternalSecret's metadata or specification changes
+	// +optional
+	RefreshPolicy ExternalSecretRefreshPolicy `json:"refreshPolicy,omitempty"`
 
 	// RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
 	// specified as Golang Duration strings.
