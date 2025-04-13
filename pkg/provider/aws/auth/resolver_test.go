@@ -20,6 +20,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// do we need this file now that resolving logic is isolated to each service?
+
 func TestResolver(t *testing.T) {
 	tbl := []struct {
 		env     string
