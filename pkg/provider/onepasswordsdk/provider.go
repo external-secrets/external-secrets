@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
@@ -35,15 +35,17 @@ const (
 	errOnePasswordSdkStoreNilSpecProviderOnePasswordSdk = "nil spec.provider.onepasswordsdk"
 	errOnePasswordSdkStoreMissingRefName                = "missing: spec.provider.onepasswordsdk.auth.secretRef.serviceAccountTokenSecretRef.name"
 	errOnePasswordSdkStoreMissingRefKey                 = "missing: spec.provider.onepasswordsdk.auth.secretRef.serviceAccountTokenSecretRef.key"
+	errOnePasswordSdkStoreMissingVaultKey               = "missing: spec.provider.onepasswordsdk.vault"
 	errVersionNotImplemented                            = "'remoteRef.version' is not implemented in the 1Password SDK provider"
 	errNotImplemented                                   = "not implemented"
 )
 
 type Provider struct {
-	client *onepassword.Client
+	client      *onepassword.Client
+	vaultPrefix string
 }
 
-func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 	config := store.GetSpec().Provider.OnePasswordSDK
 	serviceAccountToken, err := resolvers.SecretKeyRef(
 		ctx,
@@ -55,21 +57,29 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	if err != nil {
 		return nil, err
 	}
-	client, err := onepassword.NewClient(
+
+	if config.IntegrationInfo == nil {
+		config.IntegrationInfo = &esv1.IntegrationInfo{
+			Name:    "DefaultIntegrationName",
+			Version: "DefaultIntegrationVersion",
+		}
+	}
+
+	c, err := onepassword.NewClient(
 		ctx,
 		onepassword.WithServiceAccountToken(serviceAccountToken),
-		// TODO: Set the following to your own integration name and version.
-		onepassword.WithIntegrationInfo("My 1Password Integration", "v1.0.0"),
+		onepassword.WithIntegrationInfo(config.IntegrationInfo.Name, config.IntegrationInfo.Version),
 	)
 	if err != nil {
 		return nil, err
 	}
-	p.client = client
+	p.client = c
+	p.vaultPrefix = "op://" + config.Vault + "/"
 
 	return p, nil
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil {
 		return nil, fmt.Errorf(errOnePasswordSdkStore, errors.New(errOnePasswordSdkStoreNilSpec))
@@ -89,6 +99,10 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 		return nil, fmt.Errorf(errOnePasswordSdkStore, errors.New(errOnePasswordSdkStoreMissingRefKey))
 	}
 
+	if config.Vault == "" {
+		return nil, fmt.Errorf(errOnePasswordSdkStore, errors.New(errOnePasswordSdkStoreMissingVaultKey))
+	}
+
 	// check namespace compared to kind
 	if err := utils.ValidateSecretSelector(store, config.Auth.ServiceAccountSecretRef); err != nil {
 		return nil, fmt.Errorf(errOnePasswordSdkStore, err)
@@ -97,12 +111,12 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 	return nil, nil
 }
 
-func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadWrite
+func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadWrite
 }
 
 func init() {
-	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
-		OnePasswordSDK: &esv1beta1.OnePasswordSDKProvider{},
-	})
+	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
+		OnePasswordSDK: &esv1.OnePasswordSDKProvider{},
+	}, esv1.MaintenanceStatusMaintained)
 }

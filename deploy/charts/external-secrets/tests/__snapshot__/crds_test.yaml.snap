@@ -2456,12 +2456,10 @@ should match snapshot of default values:
                           description: OnePasswordSDK configures this store to use 1Password's new Go SDK to sync secrets.
                           properties:
                             auth:
-                              description: Auth defines the information necessary to authenticate against OnePassword API
+                              description: Auth defines the information necessary to authenticate against OnePassword API.
                               properties:
                                 serviceAccountSecretRef:
-                                  description: |-
-                                    A reference to a specific 'key' within a Secret resource.
-                                    In some instances, `key` is a required field.
+                                  description: ServiceAccountSecretRef points to the secret containing the token to access 1Password vault.
                                   properties:
                                     key:
                                       description: |-
@@ -2489,8 +2487,26 @@ should match snapshot of default values:
                               required:
                                 - serviceAccountSecretRef
                               type: object
+                            integrationInfo:
+                              description: |-
+                                IntegrationInfo specifies the name and version of the integration built using the 1Password Go SDK.
+                                If you don't know which name and version to use, use `DefaultIntegrationName` and `DefaultIntegrationVersion`, respectively.
+                              properties:
+                                name:
+                                  default: DefaultIntegrationName
+                                  description: Name defaults to DefaultIntegrationName.
+                                  type: string
+                                version:
+                                  default: DefaultIntegrationVersion
+                                  description: Version defaults to DefaultIntegrationVersion.
+                                  type: string
+                              type: object
+                            vault:
+                              description: Vault defines the vault's name to access. Do NOT add op:// prefix. This will be done automatically.
+                              type: string
                           required:
                             - auth
+                            - vault
                           type: object
                         oracle:
                           description: Oracle configures this store to sync secrets using Oracle Vault provider

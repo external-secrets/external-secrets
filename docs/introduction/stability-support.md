@@ -50,6 +50,7 @@ The following table describes the stability level of each provider and who's res
 | [Oracle Vault](https://external-secrets.io/latest/provider/oracle-vault)                                   | alpha     | **UNMAINTAINED**                                                                                    |
 | [Akeyless](https://external-secrets.io/latest/provider/akeyless)                                           | stable    | [external-secrets](https://github.com/external-secrets)                                             |
 | [1Password](https://external-secrets.io/latest/provider/1password-automation)                              | alpha     | [@SimSpaceCorp](https://github.com/Simspace) [@snarlysodboxer](https://github.com/snarlysodboxer)   |
+| [1Password SDK](https://external-secrets.io/latest/provider/1password-sdk)                                 | alpha     | [@Skarlso](https://github.com/Skarlso)                                                              |
 | [Generic Webhook](https://external-secrets.io/latest/provider/webhook)                                     | alpha     | [@willemm](https://github.com/willemm)                                                              |
 | [senhasegura DevOps Secrets Management (DSM)](https://external-secrets.io/latest/provider/senhasegura-dsm) | alpha     | [@lfraga](https://github.com/lfraga)                                                                |
 | [Doppler SecretOps Platform](https://external-secrets.io/latest/provider/doppler)                          | alpha     | [@ryan-blunden](https://github.com/ryan-blunden/) [@nmanoogian](https://github.com/nmanoogian/)     |
@@ -73,7 +74,7 @@ The following table describes the stability level of each provider and who's res
 The following table show the support for features across different providers.
 
 | Provider                  | find by name | find by tags | metadataPolicy Fetch | referent authentication | store validation | push secret | DeletionPolicy Merge/Delete |
-| ------------------------- | :----------: | :----------: | :------------------: | :---------------------: | :--------------: | :---------: | :-------------------------: |
+|---------------------------|:------------:|:------------:| :------------------: | :---------------------: | :--------------: |:-----------:|:---------------------------:|
 | AWS Secrets Manager       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | AWS Parameter Store       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Hashicorp Vault           |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
@@ -87,6 +88,7 @@ The following table show the support for features across different providers.
 | Oracle Vault              |              |              |                      |                         |        x         |             |                             |
 | Akeyless                  |      x       |      x       |                      |            x            |        x         |      x      |              x              |
 | 1Password                 |      x       |      x       |                      |                         |        x         |      x      |              x              |
+| 1Password SDK             |              |              |                      |                         |        x         |             |                             |
 | Generic Webhook           |              |              |                      |                         |                  |             |              x              |
 | senhasegura DSM           |              |              |                      |                         |        x         |             |                             |
 | Doppler                   |      x       |              |                      |                         |        x         |             |                             |
