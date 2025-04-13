@@ -23,21 +23,25 @@ import (
 
 type stsAPI interface {
 	AssumeRole(ctx context.Context, params *sts.AssumeRoleInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleOutput, error)
+	AssumeRoleWithSAML(ctx context.Context, params *sts.AssumeRoleWithSAMLInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleWithSAMLOutput, error)
+	AssumeRoleWithWebIdentity(ctx context.Context, params *sts.AssumeRoleWithWebIdentityInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleWithWebIdentityOutput, error)
+	AssumeRoot(ctx context.Context, params *sts.AssumeRootInput, optFns ...func(*sts.Options)) (*sts.AssumeRootOutput, error)
+	DecodeAuthorizationMessage(ctx context.Context, params *sts.DecodeAuthorizationMessageInput, optFns ...func(*sts.Options)) (*sts.DecodeAuthorizationMessageOutput, error)
 }
 
 type AssumeRoler struct {
 	stsAPI
-	AssumeRoleFunc func(ctx context.Context, input *sts.AssumeRoleInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleOutput, error)
+	AssumeRoleFunc func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error)
 }
 
-func (f *AssumeRoler) AssumeRole(ctx context.Context, input *sts.AssumeRoleInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleOutput, error) {
-	return f.AssumeRoleFunc(ctx, input, optFns...)
+func (f *AssumeRoler) AssumeRole(ctx context.Context, params *sts.AssumeRoleInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleOutput, error) {
+	return f.AssumeRoleFunc(params)
 }
 
 type CredentialsProvider struct {
 	RetrieveFunc func() (aws.Credentials, error)
 }
 
-func (t CredentialsProvider) Retrieve() (aws.Credentials, error) {
+func (t CredentialsProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
 	return t.RetrieveFunc()
 }

@@ -20,11 +20,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	awssess "github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/aws/aws-sdk-go/service/sts/stsiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
+	ststypes "github.com/aws/aws-sdk-go-v2/service/sts/types"
 	"github.com/stretchr/testify/assert"
 	authv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
@@ -90,16 +88,16 @@ func TestNewSession(t *testing.T) {
 		},
 		{
 			name: "configure aws using environment variables + assume role",
-			stsProvider: func(*awssess.Session) stsiface.STSAPI {
+			stsProvider: func(cfg aws.Config) STSprovider {
 				return &fakesess.AssumeRoler{
 					AssumeRoleFunc: func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error) {
 						assert.Equal(t, *input.RoleArn, "foo-bar-baz")
 						return &sts.AssumeRoleOutput{
-							AssumedRoleUser: &sts.AssumedRoleUser{
+							AssumedRoleUser: &ststypes.AssumedRoleUser{
 								Arn:           aws.String("1123132"),
 								AssumedRoleId: aws.String("xxxxx"),
 							},
-							Credentials: &sts.Credentials{
+							Credentials: &ststypes.Credentials{
 								AccessKeyId:     aws.String("3333"),
 								SecretAccessKey: aws.String("4444"),
 								Expiration:      aws.Time(time.Now().Add(time.Hour)),
@@ -370,15 +368,14 @@ func TestNewSession(t *testing.T) {
 				assert.Equal(t, otherNsName, namespace)
 				assert.Equal(t, "my-sa-role", roleArn)
 				return fakesess.CredentialsProvider{
-					RetrieveFunc: func() (credentials.Value, error) {
-						return credentials.Value{
+					RetrieveFunc: func() (aws.Credentials, error) {
+						return aws.Credentials{
 							AccessKeyID:     "3333",
 							SecretAccessKey: "4444",
 							SessionToken:    "1234",
-							ProviderName:    "fake",
+							Source:          "fake",
 						}, nil
 					},
-					IsExpiredFunc: func() bool { return false },
 				}, nil
 			},
 			store: &esv1beta1.ClusterSecretStore{
@@ -407,16 +404,16 @@ func TestNewSession(t *testing.T) {
 		},
 		{
 			name: "configure aws using environment variables + assume role + check external id",
-			stsProvider: func(*awssess.Session) stsiface.STSAPI {
+			stsProvider: func(cfg aws.Config) STSprovider {
 				return &fakesess.AssumeRoler{
 					AssumeRoleFunc: func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error) {
 						assert.Equal(t, *input.ExternalId, "12345678")
 						return &sts.AssumeRoleOutput{
-							AssumedRoleUser: &sts.AssumedRoleUser{
+							AssumedRoleUser: &ststypes.AssumedRoleUser{
 								Arn:           aws.String("1123132"),
 								AssumedRoleId: aws.String("xxxxx"),
 							},
-							Credentials: &sts.Credentials{
+							Credentials: &ststypes.Credentials{
 								AccessKeyId:     aws.String("3333"),
 								SecretAccessKey: aws.String("4444"),
 								Expiration:      aws.Time(time.Now().Add(time.Hour)),
@@ -500,7 +497,7 @@ func testRow(t *testing.T, row TestSessionRow) {
 		t.Errorf("expected provider object, found nil")
 		return
 	}
-	creds, _ := s.Config.Credentials.Get()
+	creds, _ := s.Credentials.Retrieve(context.Background())
 	assert.Equal(t, row.expectedKeyID, creds.AccessKeyID)
 	assert.Equal(t, row.expectedSecretKey, creds.SecretAccessKey)
 }
@@ -519,7 +516,7 @@ func TestSMEnvCredentials(t *testing.T) {
 	}, k8sClient, "example-ns", DefaultSTSProvider, nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, s)
-	creds, err := s.Config.Credentials.Get()
+	creds, err := s.Credentials.Retrieve(context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, creds.AccessKeyID, "2222")
 	assert.Equal(t, creds.SecretAccessKey, "1111")
@@ -531,11 +528,11 @@ func TestSMAssumeRole(t *testing.T) {
 		AssumeRoleFunc: func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error) {
 			if *input.RoleArn == "chained-role-1" {
 				return &sts.AssumeRoleOutput{
-					AssumedRoleUser: &sts.AssumedRoleUser{
+					AssumedRoleUser: &ststypes.AssumedRoleUser{
 						Arn:           aws.String("1111111"),
 						AssumedRoleId: aws.String("yyyyy1"),
 					},
-					Credentials: &sts.Credentials{
+					Credentials: &ststypes.Credentials{
 						AccessKeyId:     aws.String("77771"),
 						SecretAccessKey: aws.String("88881"),
 						Expiration:      aws.Time(time.Now().Add(time.Hour)),
@@ -544,11 +541,11 @@ func TestSMAssumeRole(t *testing.T) {
 				}, nil
 			} else if *input.RoleArn == "chained-role-2" {
 				return &sts.AssumeRoleOutput{
-					AssumedRoleUser: &sts.AssumedRoleUser{
+					AssumedRoleUser: &ststypes.AssumedRoleUser{
 						Arn:           aws.String("2222222"),
 						AssumedRoleId: aws.String("yyyyy2"),
 					},
-					Credentials: &sts.Credentials{
+					Credentials: &ststypes.Credentials{
 						AccessKeyId:     aws.String("77772"),
 						SecretAccessKey: aws.String("88882"),
 						Expiration:      aws.Time(time.Now().Add(time.Hour)),
@@ -559,11 +556,11 @@ func TestSMAssumeRole(t *testing.T) {
 				// make sure the correct role is passed in
 				assert.Equal(t, *input.RoleArn, "my-awesome-role")
 				return &sts.AssumeRoleOutput{
-					AssumedRoleUser: &sts.AssumedRoleUser{
+					AssumedRoleUser: &ststypes.AssumedRoleUser{
 						Arn:           aws.String("1123132"),
 						AssumedRoleId: aws.String("xxxxx"),
 					},
-					Credentials: &sts.Credentials{
+					Credentials: &ststypes.Credentials{
 						AccessKeyId:     aws.String("3333"),
 						SecretAccessKey: aws.String("4444"),
 						Expiration:      aws.Time(time.Now().Add(time.Hour)),
@@ -585,9 +582,9 @@ func TestSMAssumeRole(t *testing.T) {
 				},
 			},
 		},
-	}, k8sClient, "example-ns", func(se *awssess.Session) stsiface.STSAPI {
+	}, k8sClient, "example-ns", func(cfg aws.Config) STSprovider {
 		// check if the correct temporary credentials were used
-		creds, err := se.Config.Credentials.Get()
+		creds, err := cfg.Credentials.Retrieve(context.Background())
 		assert.Nil(t, err)
 		if creds.SessionToken == "" {
 			// called with credentials from envvars
@@ -607,7 +604,7 @@ func TestSMAssumeRole(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, s)
 
-	creds, err := s.Config.Credentials.Get()
+	creds, err := s.Credentials.Retrieve(context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, creds.AccessKeyID, "3333")
 	assert.Equal(t, creds.SecretAccessKey, "4444")
