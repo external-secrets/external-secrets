@@ -22,15 +22,13 @@ import (
 	"github.com/1password/onepassword-sdk-go"
 	"github.com/stretchr/testify/require"
 
-	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 func TestProviderGetSecret(t *testing.T) {
-	r := require.New(t)
-
 	tests := []struct {
 		name        string
-		ref         v1beta1.ExternalSecretDataRemoteRef
+		ref         v1.ExternalSecretDataRemoteRef
 		want        []byte
 		assertError func(t *testing.T, err error)
 		client      func() *onepassword.Client
@@ -47,10 +45,10 @@ func TestProviderGetSecret(t *testing.T) {
 				}
 			},
 			assertError: func(t *testing.T, err error) {
-				r.NoError(err)
+				require.NoError(t, err)
 			},
-			ref: v1beta1.ExternalSecretDataRemoteRef{
-				Key: "op://vault/secret",
+			ref: v1.ExternalSecretDataRemoteRef{
+				Key: "secret",
 			},
 			want: []byte("secret"),
 		},
@@ -66,28 +64,10 @@ func TestProviderGetSecret(t *testing.T) {
 				}
 			},
 			assertError: func(t *testing.T, err error) {
-				r.ErrorContains(err, "fobar")
+				require.ErrorContains(t, err, "fobar")
 			},
-			ref: v1beta1.ExternalSecretDataRemoteRef{
-				Key: "op://vault/secret",
-			},
-		},
-		{
-			name: "get secret invalid ref key",
-			client: func() *onepassword.Client {
-				fc := &fakeClient{
-					resolveResult: "secret",
-				}
-				return &onepassword.Client{
-					SecretsAPI: fc,
-					VaultsAPI:  fc,
-				}
-			},
-			ref: v1beta1.ExternalSecretDataRemoteRef{
-				Key: "invalid",
-			},
-			assertError: func(t *testing.T, err error) {
-				r.ErrorContains(err, "invalid key: key must start with op://")
+			ref: v1.ExternalSecretDataRemoteRef{
+				Key: "secret",
 			},
 		},
 		{
@@ -101,33 +81,32 @@ func TestProviderGetSecret(t *testing.T) {
 					VaultsAPI:  fc,
 				}
 			},
-			ref: v1beta1.ExternalSecretDataRemoteRef{
-				Key:     "op://vault/secret",
+			ref: v1.ExternalSecretDataRemoteRef{
+				Key:     "secret",
 				Version: "1",
 			},
 			assertError: func(t *testing.T, err error) {
-				r.ErrorContains(err, "is not implemented in the 1Password SDK provider")
+				require.ErrorContains(t, err, "is not implemented in the 1Password SDK provider")
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &Provider{
-				client: tt.client(),
+				client:      tt.client(),
+				vaultPrefix: "op://vault/",
 			}
 			got, err := p.GetSecret(context.Background(), tt.ref)
 			tt.assertError(t, err)
-			r.Equal(string(got), string(tt.want))
+			require.Equal(t, string(got), string(tt.want))
 		})
 	}
 }
 
 func TestProviderGetSecretMap(t *testing.T) {
-	r := require.New(t)
-
 	tests := []struct {
 		name        string
-		ref         v1beta1.ExternalSecretDataRemoteRef
+		ref         v1.ExternalSecretDataRemoteRef
 		want        map[string][]byte
 		assertError func(t *testing.T, err error)
 		client      func() *onepassword.Client
@@ -144,10 +123,10 @@ func TestProviderGetSecretMap(t *testing.T) {
 				}
 			},
 			assertError: func(t *testing.T, err error) {
-				r.NoError(err)
+				require.NoError(t, err)
 			},
-			ref: v1beta1.ExternalSecretDataRemoteRef{
-				Key: "op://vault/secret",
+			ref: v1.ExternalSecretDataRemoteRef{
+				Key: "secret",
 			},
 			want: map[string][]byte{
 				"key": []byte("value"),
@@ -157,23 +136,23 @@ func TestProviderGetSecretMap(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &Provider{
-				client: tt.client(),
+				client:      tt.client(),
+				vaultPrefix: "op://vault/",
 			}
 			got, err := p.GetSecretMap(context.Background(), tt.ref)
 			tt.assertError(t, err)
-			r.Equal(got, tt.want)
+			require.Equal(t, got, tt.want)
 		})
 	}
 }
 
 func TestProviderValidate(t *testing.T) {
-	r := require.New(t)
-
 	tests := []struct {
 		name        string
-		want        v1beta1.ValidationResult
+		want        v1.ValidationResult
 		assertError func(t *testing.T, err error)
 		client      func() *onepassword.Client
+		vaultPrefix string
 	}{
 		{
 			name: "validate successfully",
@@ -194,10 +173,11 @@ func TestProviderValidate(t *testing.T) {
 					VaultsAPI:  fc,
 				}
 			},
-			want: v1beta1.ValidationResultReady,
+			want: v1.ValidationResultReady,
 			assertError: func(t *testing.T, err error) {
-				r.NoError(err)
+				require.NoError(t, err)
 			},
+			vaultPrefix: "op://vault/",
 		},
 		{
 			name: "validate error",
@@ -213,20 +193,41 @@ func TestProviderValidate(t *testing.T) {
 					VaultsAPI:  fc,
 				}
 			},
-			want: v1beta1.ValidationResultError,
+			want: v1.ValidationResultError,
 			assertError: func(t *testing.T, err error) {
-				r.ErrorContains(err, "no vaults found when listing")
+				require.ErrorContains(t, err, "no vaults found when listing")
+			},
+			vaultPrefix: "op://vault/",
+		},
+		{
+			name: "validate error missing vault prefix",
+			client: func() *onepassword.Client {
+				fc := &fakeClient{
+					listAllResult: onepassword.NewIterator[onepassword.VaultOverview](
+						[]onepassword.VaultOverview{},
+					),
+				}
+
+				return &onepassword.Client{
+					SecretsAPI: fc,
+					VaultsAPI:  fc,
+				}
+			},
+			want: v1.ValidationResultError,
+			assertError: func(t *testing.T, err error) {
+				require.ErrorContains(t, err, "no vaults found when listing")
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &Provider{
-				client: tt.client(),
+				client:      tt.client(),
+				vaultPrefix: tt.vaultPrefix,
 			}
 			got, err := p.Validate()
 			tt.assertError(t, err)
-			r.Equal(got, tt.want)
+			require.Equal(t, got, tt.want)
 		})
 	}
 }

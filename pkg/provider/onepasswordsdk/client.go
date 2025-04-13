@@ -23,18 +23,16 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 // GetSecret returns a single secret from the provider.
-func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (p *Provider) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if ref.Version != "" {
 		return nil, errors.New(errVersionNotImplemented)
 	}
-	if err := checkKeyIsValid(ref.Key); err != nil {
-		return nil, fmt.Errorf("invalid key: %w", err)
-	}
-	secret, err := p.client.Secrets().Resolve(ctx, ref.Key)
+	key := p.constructRefKey(ref.Key)
+	secret, err := p.client.Secrets().Resolve(ctx, key)
 	if err != nil {
 		return nil, err
 	}
@@ -47,17 +45,17 @@ func (p *Provider) Close(_ context.Context) error {
 }
 
 // DeleteSecret Not Implemented.
-func (p *Provider) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
+func (p *Provider) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	return fmt.Errorf(errOnePasswordSdkStore, errors.New(errNotImplemented))
 }
 
 // GetAllSecrets Not Implemented.
-func (p *Provider) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (p *Provider) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, fmt.Errorf(errOnePasswordSdkStore, errors.New(errNotImplemented))
 }
 
 // GetSecretMap implements v1beta1.SecretsClient.
-func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (p *Provider) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if ref.Version != "" {
 		return nil, errors.New(errVersionNotImplemented)
 	}
@@ -85,33 +83,30 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 }
 
 // PushSecret Not Implemented.
-func (p *Provider) PushSecret(_ context.Context, _ *v1.Secret, _ esv1beta1.PushSecretData) error {
+func (p *Provider) PushSecret(_ context.Context, _ *v1.Secret, _ esv1.PushSecretData) error {
 	return fmt.Errorf(errOnePasswordSdkStore, errors.New(errNotImplemented))
 }
 
 // SecretExists Not Implemented.
-func (p *Provider) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (p *Provider) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 	return false, fmt.Errorf(errOnePasswordSdkStore, errors.New(errNotImplemented))
 }
 
 // Validate checks if the client is configured correctly
 // currently only checks if it is possible to list vaults.
-func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
+func (p *Provider) Validate() (esv1.ValidationResult, error) {
 	vaults, err := p.client.Vaults().ListAll(context.Background())
 	if err != nil {
-		return esv1beta1.ValidationResultError, fmt.Errorf("error listing vaults: %w", err)
+		return esv1.ValidationResultError, fmt.Errorf("error listing vaults: %w", err)
 	}
 	_, err = vaults.Next()
 	if err != nil {
-		return esv1beta1.ValidationResultError, fmt.Errorf("no vaults found when listing: %w", err)
+		return esv1.ValidationResultError, fmt.Errorf("no vaults found when listing: %w", err)
 	}
-	return esv1beta1.ValidationResultReady, nil
+	return esv1.ValidationResultReady, nil
 }
 
-func checkKeyIsValid(key string) error {
-	if !strings.HasPrefix(key, "op://") {
-		return fmt.Errorf("key must start with op://")
-	}
-
-	return nil
+func (p *Provider) constructRefKey(key string) string {
+	// remove any possible leading slashes because the vaultPrefix already contains it.
+	return p.vaultPrefix + strings.TrimPrefix(key, "/")
 }

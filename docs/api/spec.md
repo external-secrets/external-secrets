@@ -5358,6 +5358,47 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.IntegrationInfo">IntegrationInfo
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OnePasswordSDKProvider">OnePasswordSDKProvider</a>)
+</p>
+<p>
+<p>IntegrationInfo specifies the name and version of the integration built using the 1Password Go SDK.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name defaults to DefaultIntegrationName.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Version defaults to DefaultIntegrationVersion.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.KeeperSecurityProvider">KeeperSecurityProvider
 </h3>
 <p>
@@ -5922,14 +5963,11 @@ map[string]int
 </tr>
 </tbody>
 </table>
-<<<<<<< HEAD
-<h3 id="external-secrets.io/v1.OracleAuth">OracleAuth
-=======
-<h3 id="external-secrets.io/v1beta1.OnePasswordSDKAuth">OnePasswordSDKAuth
+<h3 id="external-secrets.io/v1.OnePasswordSDKAuth">OnePasswordSDKAuth
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.OnePasswordSDKProvider">OnePasswordSDKProvider</a>)
+<a href="#external-secrets.io/v1.OnePasswordSDKProvider">OnePasswordSDKProvider</a>)
 </p>
 <p>
 <p>OnePasswordSDKAuth contains a secretRef for the service account token.</p>
@@ -5952,15 +5990,16 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+<p>ServiceAccountSecretRef points to the secret containing the token to access 1Password vault.</p>
 </td>
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1beta1.OnePasswordSDKProvider">OnePasswordSDKProvider
+<h3 id="external-secrets.io/v1.OnePasswordSDKProvider">OnePasswordSDKProvider
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.SecretStoreProvider">SecretStoreProvider</a>)
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
 <p>OnePasswordSDKProvider configures a store to sync secrets using the 1Password sdk.</p>
@@ -5975,21 +6014,46 @@ External Secrets meta/v1.SecretKeySelector
 <tbody>
 <tr>
 <td>
+<code>vault</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Vault defines the vault&rsquo;s name to access. Do NOT add op:// prefix. This will be done automatically.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>integrationInfo</code></br>
+<em>
+<a href="#external-secrets.io/v1.IntegrationInfo">
+IntegrationInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IntegrationInfo specifies the name and version of the integration built using the 1Password Go SDK.
+If you don&rsquo;t know which name and version to use, use <code>DefaultIntegrationName</code> and <code>DefaultIntegrationVersion</code>, respectively.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>auth</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.OnePasswordSDKAuth">
+<a href="#external-secrets.io/v1.OnePasswordSDKAuth">
 OnePasswordSDKAuth
 </a>
 </em>
 </td>
 <td>
-<p>Auth defines the information necessary to authenticate against OnePassword API</p>
+<p>Auth defines the information necessary to authenticate against OnePassword API.</p>
 </td>
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1beta1.OracleAuth">OracleAuth
->>>>>>> d192c9d2d (feat: add 1Password SDK based provider)
+<h3 id="external-secrets.io/v1.OracleAuth">OracleAuth
 </h3>
 <p>
 (<em>Appears on:</em>
@@ -7264,7 +7328,7 @@ OnePasswordProvider
 <td>
 <code>onepasswordSDK</code></br>
 <em>
-<a href="#external-secrets.io/v1beta1.OnePasswordSDKProvider">
+<a href="#external-secrets.io/v1.OnePasswordSDKProvider">
 OnePasswordSDKProvider
 </a>
 </em>
