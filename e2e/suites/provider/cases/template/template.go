@@ -19,8 +19,8 @@ import (
 	"time"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 	"github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
@@ -39,6 +39,7 @@ var _ = Describe("[template]", Label("template"), func() {
 	fakeSecretClient := fake.New()
 
 	DescribeTable("sync secrets", framework.TableFuncWithExternalSecret(f, prov),
+		framework.Compose("template v1", f, genericExternalSecretTemplate, useTemplateV1),
 		framework.Compose("template v2", f, genericExternalSecretTemplate, useTemplateV2),
 	)
 
@@ -47,10 +48,25 @@ var _ = Describe("[template]", Label("template"), func() {
 	)
 })
 
+// useTemplateV1 specifies a test case which uses the template engine v1.
+func useTemplateV1(tc *framework.TestCase) {
+	tc.ExternalSecret.Spec.Target.Template = &esv1beta1.ExternalSecretTemplate{
+		EngineVersion: esv1beta1.TemplateEngineV1,
+		Data: map[string]string{
+			"tplv1": "executed: {{ .singlefoo | toString }}|{{ .singlebaz | toString }}",
+			"other": `{{ .foo | toString }}|{{ .bar | toString }}`,
+		},
+	}
+	tc.ExpectedSecret.Data = map[string][]byte{
+		"tplv1": []byte(`executed: bar|bang`),
+		"other": []byte(`barmap|bangmap`),
+	}
+}
+
 // useTemplateV2 specifies a test case which uses the template engine v2.
 func useTemplateV2(tc *framework.TestCase) {
-	tc.ExternalSecret.Spec.Target.Template = &esv1.ExternalSecretTemplate{
-		EngineVersion: esv1.TemplateEngineV2,
+	tc.ExternalSecret.Spec.Target.Template = &esv1beta1.ExternalSecretTemplate{
+		EngineVersion: esv1beta1.TemplateEngineV2,
 		Data: map[string]string{
 			"tplv2":     "executed: {{ .singlefoo }}|{{ .singlebaz }}",
 			"other":     `{{ .foo }}|{{ .bar }}`,
@@ -72,29 +88,29 @@ func genericExternalSecretTemplate(f *framework.Framework) (string, func(*framew
 		tc.ExpectedSecret = &v1.Secret{
 			Type: v1.SecretTypeOpaque,
 		}
-		tc.ExternalSecret.Spec.Data = []esv1.ExternalSecretData{
+		tc.ExternalSecret.Spec.Data = []esv1beta1.ExternalSecretData{
 			{
 				SecretKey: "singlefoo",
-				RemoteRef: esv1.ExternalSecretDataRemoteRef{
+				RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
 					Key: "foo",
 				},
 			},
 			{
 				SecretKey: "singlebaz",
-				RemoteRef: esv1.ExternalSecretDataRemoteRef{
+				RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
 					Key: "baz",
 				},
 			},
 			{
 				SecretKey: "singlejson",
-				RemoteRef: esv1.ExternalSecretDataRemoteRef{
+				RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
 					Key: "json",
 				},
 			},
 		}
-		tc.ExternalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
+		tc.ExternalSecret.Spec.DataFrom = []esv1beta1.ExternalSecretDataFromRemoteRef{
 			{
-				Extract: &esv1.ExternalSecretDataRemoteRef{
+				Extract: &esv1beta1.ExternalSecretDataRemoteRef{
 					Key: "map",
 				},
 			},
@@ -132,7 +148,7 @@ func genericPushSecretTemplate(f *framework.Framework) (string, func(*framework.
 				},
 			},
 		}
-		tc.VerifyPushSecretOutcome = func(sourcePs *esv1alpha1.PushSecret, pushClient esv1.SecretsClient) {
+		tc.VerifyPushSecretOutcome = func(sourcePs *esv1alpha1.PushSecret, pushClient esv1beta1.SecretsClient) {
 			gomega.Eventually(func() bool {
 				s := &esv1alpha1.PushSecret{}
 				err := tc.Framework.CRClient.Get(context.Background(), types.NamespacedName{Name: tc.PushSecret.Name, Namespace: tc.PushSecret.Namespace}, s)
@@ -150,23 +166,23 @@ func genericPushSecretTemplate(f *framework.Framework) (string, func(*framework.
 			// create an external secret that fetches the created remote secret
 			// and check the value
 			exampleOutput := "example-output"
-			es := &esv1.ExternalSecret{
+			es := &esv1beta1.ExternalSecret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "e2e-es",
 					Namespace: f.Namespace.Name,
 				},
-				Spec: esv1.ExternalSecretSpec{
+				Spec: esv1beta1.ExternalSecretSpec{
 					RefreshInterval: &metav1.Duration{Duration: time.Second * 5},
-					SecretStoreRef: esv1.SecretStoreRef{
+					SecretStoreRef: esv1beta1.SecretStoreRef{
 						Name: f.Namespace.Name,
 					},
-					Target: esv1.ExternalSecretTarget{
+					Target: esv1beta1.ExternalSecretTarget{
 						Name: exampleOutput,
 					},
-					Data: []esv1.ExternalSecretData{
+					Data: []esv1beta1.ExternalSecretData{
 						{
 							SecretKey: exampleOutput,
-							RemoteRef: esv1.ExternalSecretDataRemoteRef{
+							RemoteRef: esv1beta1.ExternalSecretDataRemoteRef{
 								Key: "key",
 							},
 						},
@@ -199,8 +215,8 @@ func genericPushSecretTemplate(f *framework.Framework) (string, func(*framework.
 
 // useTemplateWithPushSecret specifies a test case which uses the template engine v1.
 func useTemplateWithPushSecret(tc *framework.TestCase) {
-	tc.PushSecret.Spec.Template = &esv1.ExternalSecretTemplate{
-		EngineVersion: esv1.TemplateEngineV2,
+	tc.PushSecret.Spec.Template = &esv1beta1.ExternalSecretTemplate{
+		EngineVersion: esv1beta1.TemplateEngineV2,
 		Data: map[string]string{
 			"singlefoo": "executed: {{ .singlefoo | upper }}",
 		},

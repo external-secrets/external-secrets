@@ -63,7 +63,7 @@ jobs:
         git config --global user.name "External Secrets Operator"
         BRANCH=update-deps-$(date "+%s")
         make update-deps || true
-        make check-diff || true
+
         if git diff-index --quiet HEAD --; then
           echo "nothing changed. skipping."
           exit 0;

@@ -37,7 +37,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
@@ -82,7 +82,7 @@ const (
 type Client struct {
 	smClient  GoogleSecretManagerClient
 	kube      kclient.Client
-	store     *esv1.GCPSMProvider
+	store     *esv1beta1.GCPSMProvider
 	storeKind string
 
 	// namespace of the external secret
@@ -103,7 +103,7 @@ type GoogleSecretManagerClient interface {
 
 var log = ctrl.Log.WithName("provider").WithName("gcp").WithName("secretsmanager")
 
-func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
+func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
 	name := getName(c.store.ProjectID, c.store.Location, remoteRef.GetRemoteKey())
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
 		Name: name,
@@ -132,12 +132,12 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 func parseError(err error) error {
 	var gerr *apierror.APIError
 	if errors.As(err, &gerr) && gerr.GRPCStatus().Code() == codes.NotFound {
-		return esv1.NoSecretError{}
+		return esv1beta1.NoSecretError{}
 	}
 	return err
 }
 
-func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
+func (c *Client) SecretExists(ctx context.Context, ref esv1beta1.PushSecretRemoteRef) (bool, error) {
 	secretName := fmt.Sprintf(globalSecretPath, c.store.ProjectID, ref.GetRemoteKey())
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
 		Name: secretName,
@@ -154,7 +154,7 @@ func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef)
 }
 
 // PushSecret pushes a kubernetes secret key into gcp provider Secret.
-func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecretData esv1.PushSecretData) error {
+func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecretData esv1beta1.PushSecretData) error {
 	var (
 		payload []byte
 		err     error
@@ -349,7 +349,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 }
 
 // GetAllSecrets syncs multiple secrets from gcp provider into a single Kubernetes Secret.
-func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+func (c *Client) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Name != nil {
 		return c.findByName(ctx, ref)
 	}
@@ -360,7 +360,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 	return nil, errors.New(errUnexpectedFindOperator)
 }
 
-func (c *Client) findByName(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+func (c *Client) findByName(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	// regex matcher
 	matcher, err := find.New(*ref.Name)
 	if err != nil {
@@ -408,7 +408,7 @@ func (c *Client) findByName(ctx context.Context, ref esv1.ExternalSecretFind) (m
 }
 
 func (c *Client) getData(ctx context.Context, key string) ([]byte, error) {
-	dataRef := esv1.ExternalSecretDataRemoteRef{
+	dataRef := esv1beta1.ExternalSecretDataRemoteRef{
 		Key: key,
 	}
 	data, err := c.GetSecret(ctx, dataRef)
@@ -418,7 +418,7 @@ func (c *Client) getData(ctx context.Context, key string) ([]byte, error) {
 	return data, nil
 }
 
-func (c *Client) findByTags(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+func (c *Client) findByTags(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
 	var tagFilter string
 	for k, v := range ref.Tags {
 		tagFilter = fmt.Sprintf("%slabels.%s=%s ", tagFilter, k, v)
@@ -477,12 +477,12 @@ func (c *Client) extractProjectIDNumber(secretFullName string) string {
 }
 
 // GetSecret returns a single secret from the provider.
-func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (c *Client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(c.smClient) || c.store.ProjectID == "" {
 		return nil, errors.New(errUninitalizedGCPProvider)
 	}
 
-	if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
+	if ref.MetadataPolicy == esv1beta1.ExternalSecretMetadataPolicyFetch {
 		return c.getSecretMetadata(ctx, ref)
 	}
 
@@ -518,7 +518,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	return []byte(val.String()), nil
 }
 
-func (c *Client) getSecretMetadata(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (c *Client) getSecretMetadata(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	name := getName(c.store.ProjectID, c.store.Location, ref.Key)
 	secret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
 		Name: name,
@@ -594,7 +594,7 @@ func (c *Client) extractMetadataKey(s, p string) string {
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (c *Client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if c.smClient == nil || c.store.ProjectID == "" {
 		return nil, errors.New(errUninitalizedGCPProvider)
 	}
@@ -639,11 +639,11 @@ func (c *Client) Close(_ context.Context) error {
 	return nil
 }
 
-func (c *Client) Validate() (esv1.ValidationResult, error) {
-	if c.storeKind == esv1.ClusterSecretStoreKind && isReferentSpec(c.store) {
-		return esv1.ValidationResultUnknown, nil
+func (c *Client) Validate() (esv1beta1.ValidationResult, error) {
+	if c.storeKind == esv1beta1.ClusterSecretStoreKind && isReferentSpec(c.store) {
+		return esv1beta1.ValidationResultUnknown, nil
 	}
-	return esv1.ValidationResultReady, nil
+	return esv1beta1.ValidationResultReady, nil
 }
 
 func getDataByProperty(data []byte, property string) gjson.Result {
