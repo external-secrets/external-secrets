@@ -24,7 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/template"
 )
 
@@ -46,7 +46,7 @@ type Parser struct {
 	TemplateFromSecret    *v1.Secret
 }
 
-func (p *Parser) MergeConfigMap(ctx context.Context, namespace string, tpl esv1beta1.TemplateFrom) error {
+func (p *Parser) MergeConfigMap(ctx context.Context, namespace string, tpl esv1.TemplateFrom) error {
 	if tpl.ConfigMap == nil {
 		return nil
 	}
@@ -71,9 +71,9 @@ func (p *Parser) MergeConfigMap(ctx context.Context, namespace string, tpl esv1b
 			return fmt.Errorf(errTplCMMissingKey, tpl.ConfigMap.Name, k.Key)
 		}
 		switch k.TemplateAs {
-		case esv1beta1.TemplateScopeValues:
+		case esv1.TemplateScopeValues:
 			out[k.Key] = []byte(val)
-		case esv1beta1.TemplateScopeKeysAndValues:
+		case esv1.TemplateScopeKeysAndValues:
 			out[val] = []byte(val)
 		}
 		err := p.Exec(out, p.DataMap, k.TemplateAs, tpl.Target, p.TargetSecret)
@@ -84,7 +84,7 @@ func (p *Parser) MergeConfigMap(ctx context.Context, namespace string, tpl esv1b
 	return nil
 }
 
-func (p *Parser) MergeSecret(ctx context.Context, namespace string, tpl esv1beta1.TemplateFrom) error {
+func (p *Parser) MergeSecret(ctx context.Context, namespace string, tpl esv1.TemplateFrom) error {
 	if tpl.Secret == nil {
 		return nil
 	}
@@ -109,9 +109,9 @@ func (p *Parser) MergeSecret(ctx context.Context, namespace string, tpl esv1beta
 		}
 		out := make(map[string][]byte)
 		switch k.TemplateAs {
-		case esv1beta1.TemplateScopeValues:
+		case esv1.TemplateScopeValues:
 			out[k.Key] = val
-		case esv1beta1.TemplateScopeKeysAndValues:
+		case esv1.TemplateScopeKeysAndValues:
 			out[string(val)] = val
 		}
 		err := p.Exec(out, p.DataMap, k.TemplateAs, tpl.Target, p.TargetSecret)
@@ -122,16 +122,16 @@ func (p *Parser) MergeSecret(ctx context.Context, namespace string, tpl esv1beta
 	return nil
 }
 
-func (p *Parser) MergeLiteral(_ context.Context, tpl esv1beta1.TemplateFrom) error {
+func (p *Parser) MergeLiteral(_ context.Context, tpl esv1.TemplateFrom) error {
 	if tpl.Literal == nil {
 		return nil
 	}
 	out := make(map[string][]byte)
 	out[*tpl.Literal] = []byte(*tpl.Literal)
-	return p.Exec(out, p.DataMap, esv1beta1.TemplateScopeKeysAndValues, tpl.Target, p.TargetSecret)
+	return p.Exec(out, p.DataMap, esv1.TemplateScopeKeysAndValues, tpl.Target, p.TargetSecret)
 }
 
-func (p *Parser) MergeTemplateFrom(ctx context.Context, namespace string, template *esv1beta1.ExternalSecretTemplate) error {
+func (p *Parser) MergeTemplateFrom(ctx context.Context, namespace string, template *esv1.ExternalSecretTemplate) error {
 	if template == nil {
 		return nil
 	}
@@ -153,12 +153,12 @@ func (p *Parser) MergeTemplateFrom(ctx context.Context, namespace string, templa
 	return nil
 }
 
-func (p *Parser) MergeMap(tplMap map[string]string, target esv1beta1.TemplateTarget) error {
+func (p *Parser) MergeMap(tplMap map[string]string, target esv1.TemplateTarget) error {
 	byteMap := make(map[string][]byte)
 	for k, v := range tplMap {
 		byteMap[k] = []byte(v)
 	}
-	err := p.Exec(byteMap, p.DataMap, esv1beta1.TemplateScopeValues, target, p.TargetSecret)
+	err := p.Exec(byteMap, p.DataMap, esv1.TemplateScopeValues, target, p.TargetSecret)
 	if err != nil {
 		return fmt.Errorf(errExecTpl, err)
 	}

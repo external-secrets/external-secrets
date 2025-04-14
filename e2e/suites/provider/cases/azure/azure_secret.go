@@ -19,7 +19,7 @@ import (
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
-	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 const (
@@ -45,7 +45,6 @@ var _ = Describe("[azure]", Label("azure", "keyvault", "secret"), func() {
 		framework.Compose(withStaticCredentials, f, common.SSHKeySyncDataProperty, useStaticCredentials),
 		framework.Compose(withStaticCredentials, f, common.SyncWithoutTargetName, useStaticCredentials),
 		framework.Compose(withStaticCredentials, f, common.JSONDataWithoutTargetName, useStaticCredentials),
-		framework.Compose(withStaticCredentials, f, common.SyncV1Alpha1, useStaticCredentials),
 
 		framework.Compose(withStaticCredentials, f, common.SimpleDataSync, useReferentAuth),
 	)
@@ -53,9 +52,6 @@ var _ = Describe("[azure]", Label("azure", "keyvault", "secret"), func() {
 
 func useStaticCredentials(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = tc.Framework.Namespace.Name
-	if tc.ExternalSecretV1Alpha1 != nil {
-		tc.ExternalSecretV1Alpha1.Spec.SecretStoreRef.Name = tc.Framework.Namespace.Name
-	}
 }
 
 func useReferentAuth(tc *framework.TestCase) {

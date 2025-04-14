@@ -22,7 +22,7 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 const (
@@ -109,7 +109,7 @@ func usePodIDESReference(tc *framework.TestCase) {
 
 func useSpecifcSAESReference(prov *GcpProvider) func(*framework.TestCase) {
 	return func(tc *framework.TestCase) {
-		tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1beta1.ClusterSecretStoreKind
+		tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1.ClusterSecretStoreKind
 		tc.ExternalSecret.Spec.SecretStoreRef.Name = prov.SAClusterSecretStoreName()
 	}
 }

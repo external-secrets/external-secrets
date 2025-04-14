@@ -25,7 +25,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/infisical/api"
 	"github.com/external-secrets/external-secrets/pkg/provider/infisical/constants"
@@ -51,20 +51,20 @@ type InfisicalClientScope struct {
 }
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1beta1.SecretsClient = &Provider{}
-var _ esv1beta1.Provider = &Provider{}
+var _ esv1.SecretsClient = &Provider{}
+var _ esv1.Provider = &Provider{}
 
 func init() {
-	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
-		Infisical: &esv1beta1.InfisicalProvider{},
-	})
+	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
+		Infisical: &esv1.InfisicalProvider{},
+	}, esv1.MaintenanceStatusMaintained)
 }
 
-func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadOnly
+func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadOnly
 }
 
-func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Infisical == nil {
@@ -118,7 +118,7 @@ func (p *Provider) Close(ctx context.Context) error {
 	return nil
 }
 
-func GetStoreSecretData(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string, secret esmeta.SecretKeySelector) (string, error) {
+func GetStoreSecretData(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string, secret esmeta.SecretKeySelector) (string, error) {
 	secretRef := esmeta.SecretKeySelector{
 		Name: secret.Name,
 		Key:  secret.Key,
@@ -134,7 +134,7 @@ func GetStoreSecretData(ctx context.Context, store esv1beta1.GenericStore, kube 
 	return secretData, nil
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	infisicalStoreSpec := storeSpec.Provider.Infisical
 	if infisicalStoreSpec == nil {

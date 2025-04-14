@@ -18,7 +18,7 @@ import (
 	"errors"
 	"fmt"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 const (
@@ -30,7 +30,7 @@ const (
 
 // GetConjurProvider does the necessary nil checks on the generic store
 // it returns the conjur provider or an error.
-func GetConjurProvider(store esv1beta1.GenericStore) (*esv1beta1.ConjurProvider, error) {
+func GetConjurProvider(store esv1.GenericStore) (*esv1.ConjurProvider, error) {
 	if store == nil {
 		return nil, errors.New(errNilStore)
 	}

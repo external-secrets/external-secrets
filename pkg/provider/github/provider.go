@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 const (
@@ -36,25 +36,25 @@ const (
 type Provider struct {
 }
 
-var _ esv1beta1.Provider = &Provider{}
+var _ esv1.Provider = &Provider{}
 
 func init() {
-	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
-		Github: &esv1beta1.GithubProvider{},
-	})
+	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
+		Github: &esv1.GithubProvider{},
+	}, esv1.MaintenanceStatusMaintained)
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreWriteOnly
+func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreWriteOnly
 }
 
 // NewClient constructs a new secrets client based on the provided store.
-func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 	return newClient(ctx, store, kube, namespace)
 }
 
-func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 	provider, err := getProvider(store)
 	if err != nil {
 		return nil, err
@@ -100,7 +100,7 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 	return g, nil
 }
 
-func getProvider(store esv1beta1.GenericStore) (*esv1beta1.GithubProvider, error) {
+func getProvider(store esv1.GenericStore) (*esv1.GithubProvider, error) {
 	spc := store.GetSpec()
 	if spc == nil || spc.Provider.Github == nil {
 		return nil, errors.New(errUnexpectedStoreSpec)
@@ -109,7 +109,7 @@ func getProvider(store esv1beta1.GenericStore) (*esv1beta1.GithubProvider, error
 	return spc.Provider.Github, nil
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
 		return nil, errors.New(errInvalidStore)
 	}

@@ -32,7 +32,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
@@ -87,16 +87,16 @@ type Providerchef struct {
 	log            logr.Logger
 }
 
-var _ v1beta1.SecretsClient = &Providerchef{}
-var _ v1beta1.Provider = &Providerchef{}
+var _ esv1.SecretsClient = &Providerchef{}
+var _ esv1.Provider = &Providerchef{}
 
 func init() {
-	v1beta1.Register(&Providerchef{}, &v1beta1.SecretStoreProvider{
-		Chef: &v1beta1.ChefProvider{},
-	})
+	esv1.Register(&Providerchef{}, &esv1.SecretStoreProvider{
+		Chef: &esv1.ChefProvider{},
+	}, esv1.MaintenanceStatusMaintained)
 }
 
-func (providerchef *Providerchef) NewClient(ctx context.Context, store v1beta1.GenericStore, kube kclient.Client, namespace string) (v1beta1.SecretsClient, error) {
+func (providerchef *Providerchef) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	chefProvider, err := getChefProvider(store)
 	if err != nil {
 		return nil, fmt.Errorf(errChefProvider, err)
@@ -108,7 +108,7 @@ func (providerchef *Providerchef) NewClient(ctx context.Context, store v1beta1.G
 		Namespace: namespace,
 	}
 
-	if store.GetObjectKind().GroupVersionKind().Kind == v1beta1.ClusterSecretStoreKind {
+	if store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind {
 		if chefProvider.Auth.SecretRef.SecretKey.Namespace == nil {
 			return nil, errors.New(errInvalidClusterStoreMissingPKNamespace)
 		}
@@ -147,22 +147,22 @@ func (providerchef *Providerchef) Close(_ context.Context) error {
 
 // Validate checks if the client is configured correctly
 // to be able to retrieve secrets from the provider.
-func (providerchef *Providerchef) Validate() (v1beta1.ValidationResult, error) {
+func (providerchef *Providerchef) Validate() (esv1.ValidationResult, error) {
 	_, err := providerchef.userService.Get(providerchef.clientName)
 	metrics.ObserveAPICall(ProviderChef, CallChefGetUser, err)
 	if err != nil {
-		return v1beta1.ValidationResultError, errors.New(errStoreValidateFailed)
+		return esv1.ValidationResultError, errors.New(errStoreValidateFailed)
 	}
-	return v1beta1.ValidationResultReady, nil
+	return esv1.ValidationResultReady, nil
 }
 
 // GetAllSecrets Retrieves a map[string][]byte with the Databag names as key and the Databag's Items as secrets.
-func (providerchef *Providerchef) GetAllSecrets(_ context.Context, _ v1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (providerchef *Providerchef) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, errors.New("dataFrom.find not suppported")
 }
 
 // GetSecret returns a databagItem present in the databag. format example: databagName/databagItemName.
-func (providerchef *Providerchef) GetSecret(ctx context.Context, ref v1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (providerchef *Providerchef) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(providerchef.databagService) {
 		return nil, errors.New(errUninitalizedChefProvider)
 	}
@@ -250,7 +250,7 @@ func getPropertyFromDatabagItem(jsonByte []byte, propertyName string) ([]byte, e
 // GetSecretMap returns multiple k/v pairs from the provider, for dataFrom.extract.key
 // dataFrom.extract.key only accepts dataBagName, example : dataFrom.extract.key: myDatabag
 // databagItemName or Property not expected in key.
-func (providerchef *Providerchef) GetSecretMap(ctx context.Context, ref v1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (providerchef *Providerchef) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if utils.IsNil(providerchef.databagService) {
 		return nil, errors.New(errUninitalizedChefProvider)
 	}
@@ -278,7 +278,7 @@ func (providerchef *Providerchef) GetSecretMap(ctx context.Context, ref v1beta1.
 }
 
 // ValidateStore checks if the provided store is valid.
-func (providerchef *Providerchef) ValidateStore(store v1beta1.GenericStore) (admission.Warnings, error) {
+func (providerchef *Providerchef) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	chefProvider, err := getChefProvider(store)
 	if err != nil {
 		return nil, fmt.Errorf(errChefStore, err)
@@ -291,7 +291,7 @@ func (providerchef *Providerchef) ValidateStore(store v1beta1.GenericStore) (adm
 }
 
 // getChefProvider validates the incoming store and return the chef provider.
-func getChefProvider(store v1beta1.GenericStore) (*v1beta1.ChefProvider, error) {
+func getChefProvider(store esv1.GenericStore) (*esv1.ChefProvider, error) {
 	if store == nil {
 		return nil, errors.New(errMissingStore)
 	}
@@ -331,20 +331,20 @@ func getChefProvider(store v1beta1.GenericStore) (*v1beta1.ChefProvider, error) 
 }
 
 // Not Implemented DeleteSecret.
-func (providerchef *Providerchef) DeleteSecret(_ context.Context, _ v1beta1.PushSecretRemoteRef) error {
+func (providerchef *Providerchef) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	return errors.New(errNotImplemented)
 }
 
 // Not Implemented PushSecret.
-func (providerchef *Providerchef) PushSecret(_ context.Context, _ *corev1.Secret, _ v1beta1.PushSecretData) error {
+func (providerchef *Providerchef) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
 	return errors.New(errNotImplemented)
 }
 
-func (providerchef *Providerchef) SecretExists(_ context.Context, _ v1beta1.PushSecretRemoteRef) (bool, error) {
+func (providerchef *Providerchef) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New(errNotImplemented)
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (providerchef *Providerchef) Capabilities() v1beta1.SecretStoreCapabilities {
-	return v1beta1.SecretStoreReadOnly
+func (providerchef *Providerchef) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadOnly
 }

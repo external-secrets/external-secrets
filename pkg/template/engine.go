@@ -18,20 +18,15 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	v1 "github.com/external-secrets/external-secrets/pkg/template/v1"
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v2 "github.com/external-secrets/external-secrets/pkg/template/v2"
 )
 
 type ExecFunc func(tpl, data map[string][]byte, scope esapi.TemplateScope, target esapi.TemplateTarget, secret *corev1.Secret) error
 
 func EngineForVersion(version esapi.TemplateEngineVersion) (ExecFunc, error) {
-	switch version {
-	// NOTE: the version can be empty if the ExternalSecret was created with version 0.4.3 or earlier,
-	//       all versions after this will default to "v1" (for v1alpha1 ES) or "v2" (for v1beta1 ES).
-	//       so if we encounter an empty version, we must default to the v1 engine.
-	case esapi.TemplateEngineV1, "":
-		return v1.Execute, nil
+	// We want to leave this for new versions
+	switch version { //nolint:gocritic
 	case esapi.TemplateEngineV2:
 		return v2.Execute, nil
 	}

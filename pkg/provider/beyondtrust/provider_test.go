@@ -23,7 +23,7 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kubeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 const (
@@ -97,9 +97,9 @@ func createMockPasswordSafeClient(t *testing.T) kubeclient.Client {
 
 func TestNewClient(t *testing.T) {
 	type args struct {
-		store    esv1beta1.SecretStore
+		store    esv1.SecretStore
 		kube     kubeclient.Client
-		provider esv1beta1.Provider
+		provider esv1.Provider
 	}
 	tests := []struct {
 		name              string
@@ -113,20 +113,20 @@ func TestNewClient(t *testing.T) {
 			name:      "Client ok",
 			nameSpace: "test",
 			args: args{
-				store: esv1beta1.SecretStore{
-					Spec: esv1beta1.SecretStoreSpec{
-						Provider: &esv1beta1.SecretStoreProvider{
-							Beyondtrust: &esv1beta1.BeyondtrustProvider{
-								Server: &esv1beta1.BeyondtrustServer{
+				store: esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							Beyondtrust: &esv1.BeyondtrustProvider{
+								Server: &esv1.BeyondtrustServer{
 									APIURL:        fakeAPIURL,
 									RetrievalType: "SECRET",
 								},
 
-								Auth: &esv1beta1.BeyondtrustAuth{
-									ClientID: &esv1beta1.BeyondTrustProviderSecretRef{
+								Auth: &esv1.BeyondtrustAuth{
+									ClientID: &esv1.BeyondTrustProviderSecretRef{
 										Value: clientID,
 									},
-									ClientSecret: &esv1beta1.BeyondTrustProviderSecretRef{
+									ClientSecret: &esv1.BeyondTrustProviderSecretRef{
 										Value: clientSecret,
 									},
 								},
@@ -144,20 +144,20 @@ func TestNewClient(t *testing.T) {
 			name:      "Bad Client Id",
 			nameSpace: "test",
 			args: args{
-				store: esv1beta1.SecretStore{
-					Spec: esv1beta1.SecretStoreSpec{
-						Provider: &esv1beta1.SecretStoreProvider{
-							Beyondtrust: &esv1beta1.BeyondtrustProvider{
-								Server: &esv1beta1.BeyondtrustServer{
+				store: esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							Beyondtrust: &esv1.BeyondtrustProvider{
+								Server: &esv1.BeyondtrustServer{
 									APIURL:        fakeAPIURL,
 									RetrievalType: "SECRET",
 								},
 
-								Auth: &esv1beta1.BeyondtrustAuth{
-									ClientID: &esv1beta1.BeyondTrustProviderSecretRef{
+								Auth: &esv1.BeyondtrustAuth{
+									ClientID: &esv1.BeyondTrustProviderSecretRef{
 										Value: "6138d050",
 									},
-									ClientSecret: &esv1beta1.BeyondTrustProviderSecretRef{
+									ClientSecret: &esv1.BeyondTrustProviderSecretRef{
 										Value: clientSecret,
 									},
 								},
@@ -176,20 +176,20 @@ func TestNewClient(t *testing.T) {
 			name:      "Bad Client Secret",
 			nameSpace: "test",
 			args: args{
-				store: esv1beta1.SecretStore{
-					Spec: esv1beta1.SecretStoreSpec{
-						Provider: &esv1beta1.SecretStoreProvider{
-							Beyondtrust: &esv1beta1.BeyondtrustProvider{
-								Server: &esv1beta1.BeyondtrustServer{
+				store: esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							Beyondtrust: &esv1.BeyondtrustProvider{
+								Server: &esv1.BeyondtrustServer{
 									APIURL:        fakeAPIURL,
 									RetrievalType: "SECRET",
 								},
 
-								Auth: &esv1beta1.BeyondtrustAuth{
-									ClientSecret: &esv1beta1.BeyondTrustProviderSecretRef{
+								Auth: &esv1.BeyondtrustAuth{
+									ClientSecret: &esv1.BeyondTrustProviderSecretRef{
 										Value: "8i7U0Yulabon8mTc",
 									},
-									ClientID: &esv1beta1.BeyondTrustProviderSecretRef{
+									ClientID: &esv1.BeyondTrustProviderSecretRef{
 										Value: clientID,
 									},
 								},
@@ -208,20 +208,20 @@ func TestNewClient(t *testing.T) {
 			name:      "Bad Separator",
 			nameSpace: "test",
 			args: args{
-				store: esv1beta1.SecretStore{
-					Spec: esv1beta1.SecretStoreSpec{
-						Provider: &esv1beta1.SecretStoreProvider{
-							Beyondtrust: &esv1beta1.BeyondtrustProvider{
-								Server: &esv1beta1.BeyondtrustServer{
+				store: esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							Beyondtrust: &esv1.BeyondtrustProvider{
+								Server: &esv1.BeyondtrustServer{
 									APIURL:        fakeAPIURL,
 									Separator:     "//",
 									RetrievalType: "SECRET",
 								},
-								Auth: &esv1beta1.BeyondtrustAuth{
-									ClientID: &esv1beta1.BeyondTrustProviderSecretRef{
+								Auth: &esv1.BeyondtrustAuth{
+									ClientID: &esv1.BeyondTrustProviderSecretRef{
 										Value: clientID,
 									},
-									ClientSecret: &esv1beta1.BeyondTrustProviderSecretRef{
+									ClientSecret: &esv1.BeyondTrustProviderSecretRef{
 										Value: clientSecret,
 									},
 								},
@@ -240,21 +240,21 @@ func TestNewClient(t *testing.T) {
 			name:      "Time Out",
 			nameSpace: "test",
 			args: args{
-				store: esv1beta1.SecretStore{
-					Spec: esv1beta1.SecretStoreSpec{
-						Provider: &esv1beta1.SecretStoreProvider{
-							Beyondtrust: &esv1beta1.BeyondtrustProvider{
-								Server: &esv1beta1.BeyondtrustServer{
+				store: esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							Beyondtrust: &esv1.BeyondtrustProvider{
+								Server: &esv1.BeyondtrustServer{
 									APIURL:               fakeAPIURL,
 									Separator:            "/",
 									ClientTimeOutSeconds: 400,
 									RetrievalType:        "SECRET",
 								},
-								Auth: &esv1beta1.BeyondtrustAuth{
-									ClientID: &esv1beta1.BeyondTrustProviderSecretRef{
+								Auth: &esv1.BeyondtrustAuth{
+									ClientID: &esv1.BeyondTrustProviderSecretRef{
 										Value: clientID,
 									},
-									ClientSecret: &esv1beta1.BeyondTrustProviderSecretRef{
+									ClientSecret: &esv1.BeyondTrustProviderSecretRef{
 										Value: clientSecret,
 									},
 								},
@@ -273,17 +273,17 @@ func TestNewClient(t *testing.T) {
 			name:      "ApiKey ok",
 			nameSpace: "test",
 			args: args{
-				store: esv1beta1.SecretStore{
-					Spec: esv1beta1.SecretStoreSpec{
-						Provider: &esv1beta1.SecretStoreProvider{
-							Beyondtrust: &esv1beta1.BeyondtrustProvider{
-								Server: &esv1beta1.BeyondtrustServer{
+				store: esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							Beyondtrust: &esv1.BeyondtrustProvider{
+								Server: &esv1.BeyondtrustServer{
 									APIURL:        fakeAPIURL,
 									RetrievalType: "SECRET",
 								},
 
-								Auth: &esv1beta1.BeyondtrustAuth{
-									APIKey: &esv1beta1.BeyondTrustProviderSecretRef{
+								Auth: &esv1.BeyondtrustAuth{
+									APIKey: &esv1.BeyondTrustProviderSecretRef{
 										Value: apiKey,
 									},
 								},
@@ -301,17 +301,17 @@ func TestNewClient(t *testing.T) {
 			name:      "Bad ApiKey",
 			nameSpace: "test",
 			args: args{
-				store: esv1beta1.SecretStore{
-					Spec: esv1beta1.SecretStoreSpec{
-						Provider: &esv1beta1.SecretStoreProvider{
-							Beyondtrust: &esv1beta1.BeyondtrustProvider{
-								Server: &esv1beta1.BeyondtrustServer{
+				store: esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							Beyondtrust: &esv1.BeyondtrustProvider{
+								Server: &esv1.BeyondtrustServer{
 									APIURL:        fakeAPIURL,
 									RetrievalType: "SECRET",
 								},
 
-								Auth: &esv1beta1.BeyondtrustAuth{
-									APIKey: &esv1beta1.BeyondTrustProviderSecretRef{
+								Auth: &esv1.BeyondtrustAuth{
+									APIKey: &esv1.BeyondTrustProviderSecretRef{
 										Value: "bad_api_key",
 									},
 								},

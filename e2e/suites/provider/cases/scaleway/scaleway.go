@@ -6,7 +6,7 @@ import (
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -89,20 +89,20 @@ func createResources(ctx context.Context, f *framework.Framework, cfg *config) {
 
 	// Creating SecretStore.
 
-	secretStoreSpec := esv1beta1.SecretStore{
+	secretStoreSpec := esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      f.Namespace.Name,
 			Namespace: f.Namespace.Name,
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Scaleway: &esv1beta1.ScalewayProvider{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Scaleway: &esv1.ScalewayProvider{
 					Region:    cfg.region,
 					ProjectID: cfg.projectId,
-					AccessKey: &esv1beta1.ScalewayProviderSecretRef{
+					AccessKey: &esv1.ScalewayProviderSecretRef{
 						Value: cfg.accessKey, // TODO: test with secretRef as well
 					},
-					SecretKey: &esv1beta1.ScalewayProviderSecretRef{
+					SecretKey: &esv1.ScalewayProviderSecretRef{
 						SecretRef: &esmeta.SecretKeySelector{
 							Name: apiKeySecretName,
 							Key:  apiKeySecretKey,
