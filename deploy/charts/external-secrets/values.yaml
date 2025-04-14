@@ -47,8 +47,8 @@ crds:
   createPushSecret: true
   annotations: {}
   conversion:
-    # -- Conversion is disabled by default as we stopped supporting v1alpha1.
-    enabled: false
+    # -- If webhook is set to false this also needs to be set to false otherwise the kubeapi will be hammered because the conversion is looking for a webhook endpoint.
+    enabled: true
 
 imagePullSecrets: []
 nameOverride: ""
@@ -250,8 +250,6 @@ podDisruptionBudget:
 hostNetwork: false
 
 webhook:
-  # -- Annotations to place on validating webhook configuration.
-  annotations: {}
   # -- Specifies whether a webhook deployment be created. If set to false, crds.conversion.enabled should also be set to false otherwise the kubeapi will be hammered because the conversion is looking for a webhook endpoint.
   create: true
   # -- Specifices the time to check if the cert is valid

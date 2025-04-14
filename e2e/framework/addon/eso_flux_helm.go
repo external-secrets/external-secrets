@@ -104,7 +104,7 @@ func (c *FluxHelmRelease) Install() error {
 	}
 
 	// wait for app to become ready
-	err = wait.PollUntilContextTimeout(context.Background(), time.Second*5, time.Minute*3, true, func(ctx context.Context) (bool, error) {
+	err = wait.PollImmediate(time.Second*5, time.Minute*3, func() (bool, error) {
 		var hr fluxhelm.HelmRelease
 		err := c.config.CRClient.Get(context.Background(), types.NamespacedName{
 			Name:      c.Name,
@@ -131,14 +131,14 @@ func (c *FluxHelmRelease) Install() error {
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
-	return wait.PollUntilContextTimeout(context.Background(), time.Second, time.Minute*5, true, func(ctx context.Context) (bool, error) {
-		const payload = `{"apiVersion": "admission.k8s.io/v1","kind": "AdmissionReview","request": {"uid": "test","kind": {"group": "external-secrets.io","version": "v1","kind": "ExternalSecret"}, "resource": "external-secrets.io/v1.externalsecrets","dryRun": true, "operation": "CREATE", "userInfo":{"username":"test","uid":"test","groups":[],"extra":{}}}}`
-		res, err := client.Post("https://external-secrets-webhook.external-secrets.svc.cluster.local/validate-external-secrets-io-v1-externalsecret", "application/json", bytes.NewBufferString(payload))
+	return wait.PollImmediate(time.Second, time.Minute*5, func() (bool, error) {
+		const payload = `{"apiVersion": "apiextensions.k8s.io/v1","kind": "ConversionReview","request": {}}`
+		res, err := client.Post("https://external-secrets-webhook.external-secrets.svc.cluster.local/convert", "application/json", bytes.NewBufferString(payload))
 		if err != nil {
 			return false, nil
 		}
 		defer res.Body.Close()
-		ginkgo.GinkgoWriter.Printf("webhook res: %d", res.StatusCode)
+		ginkgo.GinkgoWriter.Printf("conversion res: %d", res.StatusCode)
 		return res.StatusCode == http.StatusOK, nil
 	})
 }

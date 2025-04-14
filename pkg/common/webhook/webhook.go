@@ -31,7 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/template/v2"
@@ -73,7 +73,7 @@ func (w *Webhook) getStoreSecret(ctx context.Context, ref SecretKeySelector) (*c
 	}
 	return secret, nil
 }
-func (w *Webhook) GetSecretMap(ctx context.Context, provider *Spec, ref *esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (w *Webhook) GetSecretMap(ctx context.Context, provider *Spec, ref *esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	result, err := w.GetWebhookData(ctx, provider, ref)
 	if err != nil {
 		return nil, err
@@ -115,7 +115,7 @@ func (w *Webhook) GetSecretMap(ctx context.Context, provider *Spec, ref *esv1.Ex
 	return values, nil
 }
 
-func (w *Webhook) GetTemplateData(ctx context.Context, ref *esv1.ExternalSecretDataRemoteRef, secrets []Secret, urlEncode bool) (map[string]map[string]string, error) {
+func (w *Webhook) GetTemplateData(ctx context.Context, ref *esv1beta1.ExternalSecretDataRemoteRef, secrets []Secret, urlEncode bool) (map[string]map[string]string, error) {
 	data := map[string]map[string]string{}
 	if ref != nil {
 		if urlEncode {
@@ -140,7 +140,7 @@ func (w *Webhook) GetTemplateData(ctx context.Context, ref *esv1.ExternalSecretD
 	return data, nil
 }
 
-func (w *Webhook) GetTemplatePushData(ctx context.Context, ref esv1.PushSecretData, secrets []Secret, urlEncode bool) (map[string]map[string]string, error) {
+func (w *Webhook) GetTemplatePushData(ctx context.Context, ref esv1beta1.PushSecretData, secrets []Secret, urlEncode bool) (map[string]map[string]string, error) {
 	data := map[string]map[string]string{}
 	if ref != nil {
 		if urlEncode {
@@ -184,7 +184,7 @@ func (w *Webhook) getTemplatedSecrets(ctx context.Context, secrets []Secret, dat
 	return nil
 }
 
-func (w *Webhook) GetWebhookData(ctx context.Context, provider *Spec, ref *esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (w *Webhook) GetWebhookData(ctx context.Context, provider *Spec, ref *esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if w.HTTP == nil {
 		return nil, errors.New("http client not initialized")
 	}
@@ -214,7 +214,7 @@ func (w *Webhook) GetWebhookData(ctx context.Context, provider *Spec, ref *esv1.
 	return w.executeRequest(ctx, provider, body.Bytes(), url, method, rawData)
 }
 
-func (w *Webhook) PushWebhookData(ctx context.Context, provider *Spec, data []byte, remoteKey esv1.PushSecretData) error {
+func (w *Webhook) PushWebhookData(ctx context.Context, provider *Spec, data []byte, remoteKey esv1beta1.PushSecretData) error {
 	if w.HTTP == nil {
 		return errors.New("http client not initialized")
 	}
@@ -278,11 +278,11 @@ func (w *Webhook) executeRequest(ctx context.Context, provider *Spec, data []byt
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == 404 {
-		return nil, esv1.NoSecretError{}
+		return nil, esv1beta1.NoSecretError{}
 	}
 
 	if resp.StatusCode == http.StatusNotModified {
-		return nil, esv1.NotModifiedError{}
+		return nil, esv1beta1.NotModifiedError{}
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

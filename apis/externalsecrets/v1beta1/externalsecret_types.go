@@ -118,10 +118,11 @@ const (
 	MergePolicyMerge   TemplateMergePolicy = "Merge"
 )
 
-// +kubebuilder:validation:Enum=v2
+// +kubebuilder:validation:Enum=v1;v2
 type TemplateEngineVersion string
 
 const (
+	TemplateEngineV1 TemplateEngineVersion = "v1"
 	TemplateEngineV2 TemplateEngineVersion = "v2"
 )
 
@@ -359,15 +360,6 @@ type FindName struct {
 	RegExp string `json:"regexp,omitempty"`
 }
 
-// +kubebuilder:validation:Enum=CreatedOnce;Periodic;OnChange
-type ExternalSecretRefreshPolicy string
-
-const (
-	RefreshPolicyCreatedOnce ExternalSecretRefreshPolicy = "CreatedOnce"
-	RefreshPolicyPeriodic    ExternalSecretRefreshPolicy = "Periodic"
-	RefreshPolicyOnChange    ExternalSecretRefreshPolicy = "OnChange"
-)
-
 // ExternalSecretSpec defines the desired state of ExternalSecret.
 type ExternalSecretSpec struct {
 	// +optional
@@ -377,18 +369,10 @@ type ExternalSecretSpec struct {
 	// +optional
 	Target ExternalSecretTarget `json:"target,omitempty"`
 
-	// RefreshPolicy determines how the ExternalSecret should be refreshed:
-	// - CreatedOnce: Creates the Secret only if it does not exist and does not update it thereafter
-	// - Periodic: Synchronizes the Secret from the external source at regular intervals specified by refreshInterval.
-	//   No periodic updates occur if refreshInterval is 0.
-	// - OnChange: Only synchronizes the Secret when the ExternalSecret's metadata or specification changes
-	// +optional
-	RefreshPolicy ExternalSecretRefreshPolicy `json:"refreshPolicy,omitempty"`
-
 	// RefreshInterval is the amount of time before the values are read again from the SecretStore provider,
 	// specified as Golang Duration strings.
 	// Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h"
-	// Example values: "1h", "2h30m", "10s"
+	// Example values: "1h", "2h30m", "5d", "10s"
 	// May be set to zero to fetch and create it once. Defaults to 1h.
 	// +kubebuilder:default="1h"
 	RefreshInterval *metav1.Duration `json:"refreshInterval,omitempty"`
@@ -506,6 +490,7 @@ type ExternalSecretStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:storageversion
 // ExternalSecret is the Schema for the external-secrets API.
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"

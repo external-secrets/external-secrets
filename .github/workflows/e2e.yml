@@ -101,11 +101,43 @@ jobs:
     - id: e2e
       uses: ./.github/actions/e2e
     - id: create_token
-      if: always()
       uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a # v2.1.0
       with:
         app_id: ${{ secrets.APP_ID }}
         private_key: ${{ secrets.PRIVATE_KEY }}
+    # Update check run called "integration-fork"
+    - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+      id: update-check-run
+      if: ${{ always() }}
+      env:
+        number: ${{ github.event.client_payload.pull_request.number }}
+        job: ${{ github.job }}
+        # Conveniently, job.status maps to https://developer.github.com/v3/checks/runs/#update-a-check-run
+        conclusion: ${{ job.status }}
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const { data: pull } = await github.rest.pulls.get({
+            ...context.repo,
+            pull_number: process.env.number
+          });
+          const ref = pull.head.sha;
+          console.log("\n\nPR sha: " + ref)
+          const { data: checks } = await github.rest.checks.listForRef({
+            ...context.repo,
+            ref
+          });
+          console.log("\n\nPR CHECKS: " + checks)
+          const check = checks.check_runs.filter(c => c.name === process.env.job);
+          console.log("\n\nPR Filtered CHECK: " + check)
+          console.log(check)
+          const { data: result } = await github.rest.checks.update({
+            ...context.repo,
+            check_run_id: check[0].id,
+            status: 'completed',
+            conclusion: process.env.conclusion
+          });
+          return result;
     - name: Update on Succeess
       if: always() && steps.e2e.conclusion == 'success'
       uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4.0.0

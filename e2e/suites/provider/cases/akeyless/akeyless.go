@@ -40,5 +40,6 @@ var _ = Describe("[akeyless]", Label("akeyless"), func() {
 		Entry(common.SSHKeySyncDataProperty(f)),
 		Entry(common.SyncWithoutTargetName(f)),
 		Entry(common.JSONDataWithoutTargetName(f)),
+		Entry(common.SyncV1Alpha1(f)),
 	)
 })

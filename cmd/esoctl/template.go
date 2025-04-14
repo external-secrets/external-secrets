@@ -27,8 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
 
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
 	"github.com/external-secrets/external-secrets/pkg/template"
 )
@@ -143,11 +143,11 @@ func templateRun(_ *cobra.Command, _ []string) error {
 	return err
 }
 
-func fetchTemplateFromSourceObject(obj *unstructured.Unstructured) (*esv1.ExternalSecretTemplate, error) {
-	var tmpl *esv1.ExternalSecretTemplate
+func fetchTemplateFromSourceObject(obj *unstructured.Unstructured) (*esv1beta1.ExternalSecretTemplate, error) {
+	var tmpl *esv1beta1.ExternalSecretTemplate
 	switch obj.GetKind() {
 	case "ExternalSecret":
-		es := &esv1.ExternalSecret{}
+		es := &esv1beta1.ExternalSecret{}
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, es); err != nil {
 			return nil, err
 		}
@@ -167,7 +167,7 @@ func fetchTemplateFromSourceObject(obj *unstructured.Unstructured) (*esv1.Extern
 	return tmpl, nil
 }
 
-func executeTemplate(p *templating.Parser, ctx context.Context, tmpl *esv1.ExternalSecretTemplate) error {
+func executeTemplate(p *templating.Parser, ctx context.Context, tmpl *esv1beta1.ExternalSecretTemplate) error {
 	// apply templates defined in template.templateFrom
 	err := p.MergeTemplateFrom(ctx, "default", tmpl)
 	if err != nil {
@@ -176,21 +176,21 @@ func executeTemplate(p *templating.Parser, ctx context.Context, tmpl *esv1.Exter
 
 	// apply data templates
 	// NOTE: explicitly defined template.data templates take precedence over templateFrom
-	err = p.MergeMap(tmpl.Data, esv1.TemplateTargetData)
+	err = p.MergeMap(tmpl.Data, esv1beta1.TemplateTargetData)
 	if err != nil {
 		return fmt.Errorf("could not merge data: %w", err)
 	}
 
 	// apply templates for labels
 	// NOTE: this only works for v2 templates
-	err = p.MergeMap(tmpl.Metadata.Labels, esv1.TemplateTargetLabels)
+	err = p.MergeMap(tmpl.Metadata.Labels, esv1beta1.TemplateTargetLabels)
 	if err != nil {
 		return fmt.Errorf("could not merge labels: %w", err)
 	}
 
 	// apply template for annotations
 	// NOTE: this only works for v2 templates
-	err = p.MergeMap(tmpl.Metadata.Annotations, esv1.TemplateTargetAnnotations)
+	err = p.MergeMap(tmpl.Metadata.Annotations, esv1beta1.TemplateTargetAnnotations)
 	if err != nil {
 		return fmt.Errorf("could not merge annotations: %w", err)
 	}
