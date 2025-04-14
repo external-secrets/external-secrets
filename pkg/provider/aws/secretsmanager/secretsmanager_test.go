@@ -36,7 +36,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
@@ -46,7 +46,7 @@ type secretsManagerTestCase struct {
 	fakeClient     *fakesm.Client
 	apiInput       *awssm.GetSecretValueInput
 	apiOutput      *awssm.GetSecretValueOutput
-	remoteRef      *esv1beta1.ExternalSecretDataRemoteRef
+	remoteRef      *esv1.ExternalSecretDataRemoteRef
 	apiErr         error
 	expectError    string
 	expectedSecret string
@@ -54,6 +54,7 @@ type secretsManagerTestCase struct {
 	expectedData map[string][]byte
 	// for testing caching
 	expectedCounter *int
+	prefix          string
 }
 
 const unexpectedErrorString = "[%d] unexpected error: %s, expected: '%s'"
@@ -80,8 +81,8 @@ func makeValidSecretsManagerTestCase() *secretsManagerTestCase {
 	return &smtc
 }
 
-func makeValidRemoteRef() *esv1beta1.ExternalSecretDataRemoteRef {
-	return &esv1beta1.ExternalSecretDataRemoteRef{
+func makeValidRemoteRef() *esv1.ExternalSecretDataRemoteRef {
+	return &esv1.ExternalSecretDataRemoteRef{
 		Key:     "/baz",
 		Version: "AWSCURRENT",
 	}
@@ -124,6 +125,16 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 	setSecretString := func(smtc *secretsManagerTestCase) {
 		smtc.apiOutput.SecretString = aws.String("testtesttest")
 		smtc.expectedSecret = "testtesttest"
+	}
+
+	// good case: key is passed in with prefix
+	setSecretStringWithPrefix := func(smtc *secretsManagerTestCase) {
+		smtc.remoteRef.Key = "secret-key"
+		smtc.apiInput = &awssm.GetSecretValueInput{
+			SecretId:     aws.String("my-prefix/secret-key"),
+			VersionStage: aws.String("AWSCURRENT"),
+		}
+		smtc.prefix = "my-prefix/"
 	}
 
 	// good case: extract property
@@ -194,7 +205,7 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 	}
 
 	fetchMetadata := func(smtc *secretsManagerTestCase) {
-		smtc.remoteRef.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.remoteRef.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		describeSecretOutput := &awssm.DescribeSecretOutput{
 			Tags: getTagSlice(),
 		}
@@ -205,7 +216,7 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 	}
 
 	fetchMetadataProperty := func(smtc *secretsManagerTestCase) {
-		smtc.remoteRef.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.remoteRef.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		describeSecretOutput := &awssm.DescribeSecretOutput{
 			Tags: getTagSlice(),
 		}
@@ -217,7 +228,7 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 	}
 
 	failMetadataWrongProperty := func(smtc *secretsManagerTestCase) {
-		smtc.remoteRef.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		smtc.remoteRef.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		describeSecretOutput := &awssm.DescribeSecretOutput{
 			Tags: getTagSlice(),
 		}
@@ -231,6 +242,7 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 	successCases := []*secretsManagerTestCase{
 		makeValidSecretsManagerTestCase(),
 		makeValidSecretsManagerTestCaseCustom(setSecretString),
+		makeValidSecretsManagerTestCaseCustom(setSecretStringWithPrefix),
 		makeValidSecretsManagerTestCaseCustom(setRemoteRefPropertyExistsInKey),
 		makeValidSecretsManagerTestCaseCustom(setRemoteRefMissingProperty),
 		makeValidSecretsManagerTestCaseCustom(setRemoteRefMissingPropertyInvalidJSON),
@@ -250,6 +262,7 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 		sm := SecretsManager{
 			cache:  make(map[string]*awssm.GetSecretValueOutput),
 			client: v.fakeClient,
+			prefix: v.prefix,
 		}
 		out, err := sm.GetSecret(context.Background(), *v.remoteRef)
 		if !ErrorContains(err, v.expectError) {
@@ -402,6 +415,10 @@ func TestSetSecret(t *testing.T) {
 			Key:   &managedBy,
 			Value: &externalSecrets,
 		},
+		{
+			Key:   ptr.To("taname1"),
+			Value: ptr.To("tagvalue1"),
+		},
 	}
 
 	externalSecretsTagFaulty := []*awssm.Tag{
@@ -468,12 +485,17 @@ func TestSetSecret(t *testing.T) {
 	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: ""}
 	pushSecretDataWithoutSecretKey := fake.PushSecretData{RemoteKey: fakeKey, Property: ""}
 	pushSecretDataWithMetadata := fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "", Metadata: &apiextensionsv1.JSON{
-		Raw: []byte(`{"secretPushFormat": "string"}`),
-	}}
+		Raw: []byte(`{
+					"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+					"kind": "PushSecretMetadata",
+					"spec": {
+						"secretPushFormat": "string"
+					}
+				}`)}}
 	pushSecretDataWithProperty := fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "other-fake-property"}
 
 	type args struct {
-		store          *esv1beta1.AWSProvider
+		store          *esv1.AWSProvider
 		client         fakesm.Client
 		pushSecretData fake.PushSecretData
 	}
@@ -529,6 +551,53 @@ func TestSetSecret(t *testing.T) {
 					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
 				},
 				pushSecretData: pushSecretDataWithMetadata,
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretSucceedsWithExistingSecretAndKMSKeyAndDescription": {
+			reason: "a secret can be pushed to aws secrets manager when it already exists",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, &getSecretCorrectErr),
+					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+				},
+				pushSecretData: fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "", Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{
+							"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+							"kind": "PushSecretMetadata",
+							"spec": {
+								"kmsKeyID": "bb123123-b2b0-4f60-ac3a-44a13f0e6b6c",
+								"description": "this is a description"
+							}
+						}`)}},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretSucceedsWithExistingSecretAndAdditionalTags": {
+			reason: "a secret can be pushed to aws secrets manager when it already exists",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
+					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
+					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil),
+					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+				},
+				pushSecretData: fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "", Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{
+							"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+							"kind": "PushSecretMetadata",
+							"spec": {
+								"tags": {"tagname12": "tagvalue1"}
+							}
+						}`)}},
 			},
 			want: want{
 				err: nil,
@@ -790,13 +859,40 @@ func TestSetSecret(t *testing.T) {
 				err: errors.New("secret not managed by external-secrets"),
 			},
 		},
+		"SetSecretWithPrefix": {
+			reason: "secret key is properly prefixed when creating a new secret",
+			args: args{
+
+				store: &esv1.AWSProvider{
+					Service: esv1.AWSServiceSecretsManager,
+					Region:  "eu-west-2",
+					Prefix:  "prefix-",
+				},
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretCorrectErr),
+					CreateSecretWithContextFn: func(ctx aws.Context, input *awssm.CreateSecretInput, opts ...request.Option) (*awssm.CreateSecretOutput, error) {
+						// Verify that the input name has the prefix applied
+						if *input.Name != "prefix-"+fakeKey {
+							return nil, fmt.Errorf("expected secret name to be prefixed with 'prefix-', got %s", *input.Name)
+						}
+						return secretOutput, nil
+					},
+				},
+				pushSecretData: pushSecretDataWithoutProperty,
+			},
+			want: want{
+				err: nil,
+			},
+		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			sm := SecretsManager{
 				client: &tc.args.client,
+				prefix: tc.args.store.Prefix,
 			}
+
 			err := sm.PushSecret(context.Background(), fakeSecret, tc.args.pushSecretData)
 
 			// Error nil XOR tc.want.err nil
@@ -824,7 +920,8 @@ func TestDeleteSecret(t *testing.T) {
 	}
 	type args struct {
 		client               fakesm.Client
-		config               esv1beta1.SecretsManager
+		config               esv1.SecretsManager
+		prefix               string
 		getSecretOutput      *awssm.GetSecretValueOutput
 		describeSecretOutput *awssm.DescribeSecretOutput
 		deleteSecretOutput   *awssm.DeleteSecretOutput
@@ -845,7 +942,7 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 
 				client:          fakeClient,
-				config:          esv1beta1.SecretsManager{},
+				config:          esv1.SecretsManager{},
 				getSecretOutput: &awssm.GetSecretValueOutput{},
 				describeSecretOutput: &awssm.DescribeSecretOutput{
 					Tags: []*awssm.Tag{&secretTag},
@@ -864,7 +961,7 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 
 				client: fakeClient,
-				config: esv1beta1.SecretsManager{
+				config: esv1.SecretsManager{
 					ForceDeleteWithoutRecovery: true,
 				},
 				getSecretOutput: &awssm.GetSecretValueOutput{},
@@ -887,7 +984,7 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 
 				client:          fakeClient,
-				config:          esv1beta1.SecretsManager{},
+				config:          esv1.SecretsManager{},
 				getSecretOutput: &awssm.GetSecretValueOutput{},
 				describeSecretOutput: &awssm.DescribeSecretOutput{
 					Tags: []*awssm.Tag{},
@@ -906,7 +1003,7 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 
 				client: fakesm.Client{},
-				config: esv1beta1.SecretsManager{
+				config: esv1.SecretsManager{
 					RecoveryWindowInDays: 1,
 				},
 				getSecretOutput: &awssm.GetSecretValueOutput{},
@@ -927,7 +1024,7 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 
 				client: fakesm.Client{},
-				config: esv1beta1.SecretsManager{
+				config: esv1.SecretsManager{
 					RecoveryWindowInDays:       7,
 					ForceDeleteWithoutRecovery: true,
 				},
@@ -949,7 +1046,7 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 
 				client:               fakeClient,
-				config:               esv1beta1.SecretsManager{},
+				config:               esv1.SecretsManager{},
 				getSecretOutput:      &awssm.GetSecretValueOutput{},
 				describeSecretOutput: nil,
 				deleteSecretOutput:   nil,
@@ -965,7 +1062,7 @@ func TestDeleteSecret(t *testing.T) {
 		"Secret Not Found": {
 			args: args{
 				client:               fakeClient,
-				config:               esv1beta1.SecretsManager{},
+				config:               esv1.SecretsManager{},
 				getSecretOutput:      nil,
 				describeSecretOutput: nil,
 				deleteSecretOutput:   nil,
@@ -980,7 +1077,7 @@ func TestDeleteSecret(t *testing.T) {
 		"Not expected AWS error": {
 			args: args{
 				client:               fakeClient,
-				config:               esv1beta1.SecretsManager{},
+				config:               esv1.SecretsManager{},
 				getSecretOutput:      nil,
 				describeSecretOutput: nil,
 				deleteSecretOutput:   nil,
@@ -995,7 +1092,7 @@ func TestDeleteSecret(t *testing.T) {
 		"unexpected error": {
 			args: args{
 				client:               fakeClient,
-				config:               esv1beta1.SecretsManager{},
+				config:               esv1.SecretsManager{},
 				getSecretOutput:      nil,
 				describeSecretOutput: nil,
 				deleteSecretOutput:   nil,
@@ -1007,6 +1104,43 @@ func TestDeleteSecret(t *testing.T) {
 				err: errors.New("timeout"),
 			},
 		},
+		"DeleteWithPrefix": {
+			args: args{
+				client: fakesm.Client{
+					GetSecretValueWithContextFn: func(ctx aws.Context, input *awssm.GetSecretValueInput, opts ...request.Option) (*awssm.GetSecretValueOutput, error) {
+						// Verify that the input secret ID has the prefix applied
+						if *input.SecretId != "my-prefix-"+fakeKey {
+							return nil, fmt.Errorf("expected secret name to be prefixed with 'my-prefix-', got %s", *input.SecretId)
+						}
+						return &awssm.GetSecretValueOutput{}, nil
+					},
+					DescribeSecretWithContextFn: func(ctx aws.Context, input *awssm.DescribeSecretInput, opts ...request.Option) (*awssm.DescribeSecretOutput, error) {
+						// Verify that the input secret ID has the prefix applied
+						if *input.SecretId != "my-prefix-"+fakeKey {
+							return nil, fmt.Errorf("expected secret name to be prefixed with 'my-prefix-', got %s", *input.SecretId)
+						}
+						return &awssm.DescribeSecretOutput{
+							Tags: []*awssm.Tag{&secretTag},
+						}, nil
+					},
+					DeleteSecretWithContextFn: func(ctx aws.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (*awssm.DeleteSecretOutput, error) {
+						return &awssm.DeleteSecretOutput{}, nil
+					},
+				},
+				config:               esv1.SecretsManager{},
+				prefix:               "my-prefix-",
+				getSecretOutput:      nil,
+				describeSecretOutput: nil,
+				deleteSecretOutput:   nil,
+				getSecretErr:         nil,
+				describeSecretErr:    nil,
+				deleteSecretErr:      nil,
+			},
+			want: want{
+				err: nil,
+			},
+			reason: "Verifies that the prefix is correctly applied when deleting a secret",
+		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -1014,10 +1148,19 @@ func TestDeleteSecret(t *testing.T) {
 			sm := SecretsManager{
 				client: &tc.args.client,
 				config: &tc.args.config,
+				prefix: tc.args.prefix,
 			}
-			tc.args.client.GetSecretValueWithContextFn = fakesm.NewGetSecretValueWithContextFn(tc.args.getSecretOutput, tc.args.getSecretErr)
-			tc.args.client.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(tc.args.describeSecretOutput, tc.args.describeSecretErr)
-			tc.args.client.DeleteSecretWithContextFn = fakesm.NewDeleteSecretWithContextFn(tc.args.deleteSecretOutput, tc.args.deleteSecretErr)
+
+			if tc.args.client.GetSecretValueWithContextFn == nil {
+				tc.args.client.GetSecretValueWithContextFn = fakesm.NewGetSecretValueWithContextFn(tc.args.getSecretOutput, tc.args.getSecretErr)
+			}
+			if tc.args.client.DescribeSecretWithContextFn == nil {
+				tc.args.client.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(tc.args.describeSecretOutput, tc.args.describeSecretErr)
+			}
+			if tc.args.client.DeleteSecretWithContextFn == nil {
+				tc.args.client.DeleteSecretWithContextFn = fakesm.NewDeleteSecretWithContextFn(tc.args.deleteSecretOutput, tc.args.deleteSecretErr)
+			}
+
 			err := sm.DeleteSecret(context.TODO(), ref)
 			t.Logf("DeleteSecret error: %v", err)
 
@@ -1035,16 +1178,16 @@ func TestDeleteSecret(t *testing.T) {
 		})
 	}
 }
-func makeValidSecretStore() *esv1beta1.SecretStore {
-	return &esv1beta1.SecretStore{
+func makeValidSecretStore() *esv1.SecretStore {
+	return &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "aws-secret-store",
 			Namespace: "default",
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				AWS: &esv1beta1.AWSProvider{
-					Service: esv1beta1.AWSServiceSecretsManager,
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				AWS: &esv1.AWSProvider{
+					Service: esv1.AWSServiceSecretsManager,
 					Region:  "eu-west-2",
 				},
 			},
@@ -1083,7 +1226,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 	// Test cases
 	testCases := []struct {
 		name                             string
-		ref                              esv1beta1.ExternalSecretFind
+		ref                              esv1.ExternalSecretFind
 		secretName                       string
 		secretVersion                    string
 		secretValue                      string
@@ -1094,8 +1237,8 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 	}{
 		{
 			name: "Matching secrets found",
-			ref: esv1beta1.ExternalSecretFind{
-				Name: &esv1beta1.FindName{
+			ref: esv1.ExternalSecretFind{
+				Name: &esv1.FindName{
 					RegExp: secretName,
 				},
 				Path: ptr.To(secretPath),
@@ -1124,8 +1267,8 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 		},
 		{
 			name: "Error occurred while fetching secret value",
-			ref: esv1beta1.ExternalSecretFind{
-				Name: &esv1beta1.FindName{
+			ref: esv1.ExternalSecretFind{
+				Name: &esv1.FindName{
 					RegExp: secretName,
 				},
 				Path: ptr.To(secretPath),
@@ -1147,8 +1290,8 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 		},
 		{
 			name: "regexp: error occurred while listing secrets",
-			ref: esv1beta1.ExternalSecretFind{
-				Name: &esv1beta1.FindName{
+			ref: esv1.ExternalSecretFind{
+				Name: &esv1.FindName{
 					RegExp: secretName,
 				},
 			},
@@ -1160,8 +1303,8 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 		},
 		{
 			name: "regep: no matching secrets found",
-			ref: esv1beta1.ExternalSecretFind{
-				Name: &esv1beta1.FindName{
+			ref: esv1.ExternalSecretFind{
+				Name: &esv1.FindName{
 					RegExp: secretName,
 				},
 			},
@@ -1188,8 +1331,8 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 		},
 		{
 			name: "invalid regexp",
-			ref: esv1beta1.ExternalSecretFind{
-				Name: &esv1beta1.FindName{
+			ref: esv1.ExternalSecretFind{
+				Name: &esv1.FindName{
 					RegExp: "[",
 				},
 			},
@@ -1199,7 +1342,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 
 		{
 			name: "tags: Matching secrets found",
-			ref: esv1beta1.ExternalSecretFind{
+			ref: esv1.ExternalSecretFind{
 				Tags: secretTags,
 			},
 			secretName:    secretName,
@@ -1228,7 +1371,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 		},
 		{
 			name: "tags: error occurred while fetching secret value",
-			ref: esv1beta1.ExternalSecretFind{
+			ref: esv1.ExternalSecretFind{
 				Tags: secretTags,
 			},
 			secretName:    secretName,
@@ -1250,7 +1393,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 		},
 		{
 			name: "tags: error occurred while listing secrets",
-			ref: esv1beta1.ExternalSecretFind{
+			ref: esv1.ExternalSecretFind{
 				Tags: secretTags,
 			},
 			batchGetSecretValueWithContextFn: func(aws.Context, *awssm.BatchGetSecretValueInput, ...request.Option) (*awssm.BatchGetSecretValueOutput, error) {
@@ -1295,7 +1438,7 @@ func TestSecretsManagerValidate(t *testing.T) {
 	tests := []struct {
 		name    string
 		fields  fields
-		want    esv1beta1.ValidationResult
+		want    esv1.ValidationResult
 		wantErr bool
 	}{
 		{
@@ -1303,21 +1446,21 @@ func TestSecretsManagerValidate(t *testing.T) {
 			fields: fields{
 				referentAuth: true,
 			},
-			want: esv1beta1.ValidationResultUnknown,
+			want: esv1.ValidationResultUnknown,
 		},
 		{
 			name: "Valid credentials should return ready",
 			fields: fields{
 				sess: validSession,
 			},
-			want: esv1beta1.ValidationResultReady,
+			want: esv1.ValidationResultReady,
 		},
 		{
 			name: "Invalid credentials should return error",
 			fields: fields{
 				sess: invalidSession,
 			},
-			want:    esv1beta1.ValidationResultError,
+			want:    esv1.ValidationResultError,
 			wantErr: true,
 		},
 	}
@@ -1354,7 +1497,7 @@ func TestSecretExists(t *testing.T) {
 	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: "fake-secret-key", RemoteKey: fakeKey, Property: ""}
 
 	type args struct {
-		store          *esv1beta1.AWSProvider
+		store          *esv1.AWSProvider
 		client         fakesm.Client
 		pushSecretData fake.PushSecretData
 	}

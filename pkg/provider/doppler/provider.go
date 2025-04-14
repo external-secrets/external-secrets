@@ -24,7 +24,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	dClient "github.com/external-secrets/external-secrets/pkg/provider/doppler/client"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
@@ -35,24 +35,24 @@ const (
 	errDopplerStore = "missing or invalid Doppler SecretStore"
 )
 
-// Provider is a Doppler secrets provider implementing NewClient and ValidateStore for the esv1beta1.Provider interface.
+// Provider is a Doppler secrets provider implementing NewClient and ValidateStore for the esv1.Provider interface.
 type Provider struct{}
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1beta1.SecretsClient = &Client{}
-var _ esv1beta1.Provider = &Provider{}
+var _ esv1.SecretsClient = &Client{}
+var _ esv1.Provider = &Provider{}
 
 func init() {
-	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
-		Doppler: &esv1beta1.DopplerProvider{},
-	})
+	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
+		Doppler: &esv1.DopplerProvider{},
+	}, esv1.MaintenanceStatusMaintained)
 }
 
-func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadOnly
+func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadOnly
 }
 
-func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Doppler == nil {
@@ -104,7 +104,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return client, nil
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	dopplerStoreSpec := storeSpec.Provider.Doppler
 	dopplerTokenSecretRef := dopplerStoreSpec.Auth.SecretRef.DopplerToken

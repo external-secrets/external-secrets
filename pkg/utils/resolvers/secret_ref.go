@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -54,7 +54,7 @@ func SecretKeyRef(
 		Namespace: esNamespace,
 		Name:      ref.Name,
 	}
-	if (storeKind == esv1beta1.ClusterSecretStoreKind) &&
+	if (storeKind == esv1.ClusterSecretStoreKind) &&
 		(ref.Namespace != nil) {
 		key.Namespace = *ref.Namespace
 	}

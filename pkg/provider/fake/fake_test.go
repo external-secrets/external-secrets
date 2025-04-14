@@ -27,8 +27,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
 
@@ -41,18 +41,18 @@ func TestNewClient(t *testing.T) {
 	gomega.Expect(err).To(gomega.HaveOccurred())
 
 	// missing provider
-	_, err = p.NewClient(context.Background(), &esv1beta1.SecretStore{}, nil, "")
+	_, err = p.NewClient(context.Background(), &esv1.SecretStore{}, nil, "")
 	gomega.Expect(err).To(gomega.HaveOccurred())
 }
 
 func TestValidateStore(t *testing.T) {
 	p := &Provider{}
 	gomega.RegisterTestingT(t)
-	store := &esv1beta1.SecretStore{
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Fake: &esv1beta1.FakeProvider{
-					Data: []esv1beta1.FakeProviderData{},
+	store := &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Fake: &esv1.FakeProvider{
+					Data: []esv1.FakeProviderData{},
 				},
 			},
 		},
@@ -61,20 +61,19 @@ func TestValidateStore(t *testing.T) {
 	_, err := p.ValidateStore(store)
 	gomega.Expect(err).To(gomega.BeNil())
 	// missing key in data
-	data := esv1beta1.FakeProviderData{}
+	data := esv1.FakeProviderData{}
 	data.Version = "v1"
-	store.Spec.Provider.Fake.Data = []esv1beta1.FakeProviderData{data}
+	store.Spec.Provider.Fake.Data = []esv1.FakeProviderData{data}
 	_, err = p.ValidateStore(store)
 	gomega.Expect(err).To(gomega.BeEquivalentTo(fmt.Errorf(errMissingKeyField, 0)))
 	// missing values in data
 	data.Key = "/foo"
-	store.Spec.Provider.Fake.Data = []esv1beta1.FakeProviderData{data}
+	store.Spec.Provider.Fake.Data = []esv1.FakeProviderData{data}
 	_, err = p.ValidateStore(store)
 	gomega.Expect(err).To(gomega.BeEquivalentTo(fmt.Errorf(errMissingValueField, 0)))
 	// spec ok
 	data.Value = "bar"
-	data.ValueMap = map[string]string{"foo": "bar"}
-	store.Spec.Provider.Fake.Data = []esv1beta1.FakeProviderData{data}
+	store.Spec.Provider.Fake.Data = []esv1.FakeProviderData{data}
 	_, err = p.ValidateStore(store)
 	gomega.Expect(err).To(gomega.BeNil())
 }
@@ -87,8 +86,8 @@ func TestClose(t *testing.T) {
 
 type testCase struct {
 	name     string
-	input    []esv1beta1.FakeProviderData
-	request  esv1beta1.ExternalSecretDataRemoteRef
+	input    []esv1.FakeProviderData
+	request  esv1.ExternalSecretDataRemoteRef
 	expValue string
 	expErr   string
 }
@@ -96,16 +95,16 @@ type testCase struct {
 func TestGetAllSecrets(t *testing.T) {
 	cases := []struct {
 		desc        string
-		data        []esv1beta1.FakeProviderData
-		ref         esv1beta1.ExternalSecretFind
+		data        []esv1.FakeProviderData
+		ref         esv1.ExternalSecretFind
 		expected    map[string][]byte
 		expectedErr string
 	}{
 		{
 			desc: "no matches",
-			data: []esv1beta1.FakeProviderData{},
-			ref: esv1beta1.ExternalSecretFind{
-				Name: &esv1beta1.FindName{
+			data: []esv1.FakeProviderData{},
+			ref: esv1.ExternalSecretFind{
+				Name: &esv1.FindName{
 					RegExp: "some-key",
 				},
 			},
@@ -113,7 +112,7 @@ func TestGetAllSecrets(t *testing.T) {
 		},
 		{
 			desc: "matches",
-			data: []esv1beta1.FakeProviderData{
+			data: []esv1.FakeProviderData{
 				{
 					Key:   "some-key1",
 					Value: "some-value1",
@@ -127,8 +126,8 @@ func TestGetAllSecrets(t *testing.T) {
 					Value: "another-value1",
 				},
 			},
-			ref: esv1beta1.ExternalSecretFind{
-				Name: &esv1beta1.FindName{
+			ref: esv1.ExternalSecretFind{
+				Name: &esv1.FindName{
 					RegExp: "some-key.*",
 				},
 			},
@@ -139,7 +138,7 @@ func TestGetAllSecrets(t *testing.T) {
 		},
 		{
 			desc: "matches with version",
-			data: []esv1beta1.FakeProviderData{
+			data: []esv1.FakeProviderData{
 				{
 					Key:     "some-key1",
 					Value:   "some-value1-version1",
@@ -176,8 +175,8 @@ func TestGetAllSecrets(t *testing.T) {
 					Version: "2",
 				},
 			},
-			ref: esv1beta1.ExternalSecretFind{
-				Name: &esv1beta1.FindName{
+			ref: esv1.ExternalSecretFind{
+				Name: &esv1.FindName{
 					RegExp: "some-key.*",
 				},
 			},
@@ -188,8 +187,8 @@ func TestGetAllSecrets(t *testing.T) {
 		},
 		{
 			desc: "unsupported operator",
-			data: []esv1beta1.FakeProviderData{},
-			ref: esv1beta1.ExternalSecretFind{
+			data: []esv1.FakeProviderData{},
+			ref: esv1.ExternalSecretFind{
 				Path: ptr.To("some-path"),
 			},
 			expectedErr: "unsupported find operator",
@@ -201,13 +200,13 @@ func TestGetAllSecrets(t *testing.T) {
 			ctx := context.Background()
 			p := Provider{}
 
-			client, err := p.NewClient(ctx, &esv1beta1.SecretStore{
+			client, err := p.NewClient(ctx, &esv1.SecretStore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: fmt.Sprintf("secret-store-%v", i),
 				},
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Fake: &esv1beta1.FakeProvider{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Fake: &esv1.FakeProvider{
 							Data: tc.data,
 						},
 					},
@@ -247,16 +246,16 @@ func TestGetSecret(t *testing.T) {
 	tbl := []testCase{
 		{
 			name:  "return err when not found",
-			input: []esv1beta1.FakeProviderData{},
-			request: esv1beta1.ExternalSecretDataRemoteRef{
+			input: []esv1.FakeProviderData{},
+			request: esv1.ExternalSecretDataRemoteRef{
 				Key:     "/foo",
 				Version: "v2",
 			},
-			expErr: esv1beta1.NoSecretErr.Error(),
+			expErr: esv1.NoSecretErr.Error(),
 		},
 		{
 			name: "get correct value from multiple versions",
-			input: []esv1beta1.FakeProviderData{
+			input: []esv1.FakeProviderData{
 				{
 					Key:     "/foo",
 					Value:   "bar2",
@@ -272,7 +271,7 @@ func TestGetSecret(t *testing.T) {
 					Version: "v1",
 				},
 			},
-			request: esv1beta1.ExternalSecretDataRemoteRef{
+			request: esv1.ExternalSecretDataRemoteRef{
 				Key:     "/foo",
 				Version: "v2",
 			},
@@ -280,7 +279,7 @@ func TestGetSecret(t *testing.T) {
 		},
 		{
 			name: "get correct value from multiple properties",
-			input: []esv1beta1.FakeProviderData{
+			input: []esv1.FakeProviderData{
 				{
 					Key:   "junk",
 					Value: "xxxxx",
@@ -290,7 +289,7 @@ func TestGetSecret(t *testing.T) {
 					Value: `{"p1":"bar","p2":"bar2"}`,
 				},
 			},
-			request: esv1beta1.ExternalSecretDataRemoteRef{
+			request: esv1.ExternalSecretDataRemoteRef{
 				Key:      "/foo",
 				Property: "p2",
 			},
@@ -300,13 +299,13 @@ func TestGetSecret(t *testing.T) {
 
 	for i, row := range tbl {
 		t.Run(row.name, func(t *testing.T) {
-			cl, err := p.NewClient(context.Background(), &esv1beta1.SecretStore{
+			cl, err := p.NewClient(context.Background(), &esv1.SecretStore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: fmt.Sprintf("secret-store-%v", i),
 				},
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Fake: &esv1beta1.FakeProvider{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Fake: &esv1.FakeProvider{
 							Data: row.input,
 						},
 					},
@@ -326,7 +325,7 @@ func TestGetSecret(t *testing.T) {
 
 type setSecretTestCase struct {
 	name       string
-	input      []esv1beta1.FakeProviderData
+	input      []esv1.FakeProviderData
 	requestKey string
 	expValue   string
 	expErr     string
@@ -339,13 +338,13 @@ func TestSetSecret(t *testing.T) {
 	tbl := []setSecretTestCase{
 		{
 			name:       "return nil if no existing secret",
-			input:      []esv1beta1.FakeProviderData{},
+			input:      []esv1.FakeProviderData{},
 			requestKey: "/foo",
 			expValue:   "my-secret-value",
 		},
 		{
 			name: "return err if existing secret",
-			input: []esv1beta1.FakeProviderData{
+			input: []esv1.FakeProviderData{
 				{
 					Key:   "/foo",
 					Value: "bar2",
@@ -358,13 +357,13 @@ func TestSetSecret(t *testing.T) {
 
 	for i, row := range tbl {
 		t.Run(row.name, func(t *testing.T) {
-			cl, err := p.NewClient(context.Background(), &esv1beta1.SecretStore{
+			cl, err := p.NewClient(context.Background(), &esv1.SecretStore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: fmt.Sprintf("secret-store-%v", i),
 				},
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Fake: &esv1beta1.FakeProvider{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Fake: &esv1.FakeProvider{
 							Data: row.input,
 						},
 					},
@@ -384,7 +383,7 @@ func TestSetSecret(t *testing.T) {
 				gomega.Expect(err).To(gomega.MatchError(row.expErr))
 			} else {
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
-				out, err := cl.GetSecret(context.Background(), esv1beta1.ExternalSecretDataRemoteRef{
+				out, err := cl.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
 					Key: row.requestKey,
 				})
 				gomega.Expect(err).ToNot(gomega.HaveOccurred())
@@ -396,7 +395,7 @@ func TestSetSecret(t *testing.T) {
 
 type secretExistsTestCase struct {
 	name      string
-	input     []esv1beta1.FakeProviderData
+	input     []esv1.FakeProviderData
 	request   esv1alpha1.PushSecretRemoteRef
 	expExists bool
 }
@@ -407,7 +406,7 @@ func TestSecretExists(t *testing.T) {
 	tbl := []secretExistsTestCase{
 		{
 			name:  "return false, nil if no existing secret",
-			input: []esv1beta1.FakeProviderData{},
+			input: []esv1.FakeProviderData{},
 			request: esv1alpha1.PushSecretRemoteRef{
 				RemoteKey: "/foo",
 			},
@@ -415,7 +414,7 @@ func TestSecretExists(t *testing.T) {
 		},
 		{
 			name: "return true, nil if existing secret",
-			input: []esv1beta1.FakeProviderData{
+			input: []esv1.FakeProviderData{
 				{
 					Key:   "/foo",
 					Value: "bar",
@@ -430,13 +429,13 @@ func TestSecretExists(t *testing.T) {
 
 	for i, row := range tbl {
 		t.Run(row.name, func(t *testing.T) {
-			cl, err := p.NewClient(context.Background(), &esv1beta1.SecretStore{
+			cl, err := p.NewClient(context.Background(), &esv1.SecretStore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: fmt.Sprintf("secret-store-%v", i),
 				},
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Fake: &esv1beta1.FakeProvider{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Fake: &esv1.FakeProvider{
 							Data: row.input,
 						},
 					},
@@ -452,8 +451,8 @@ func TestSecretExists(t *testing.T) {
 
 type testMapCase struct {
 	name     string
-	input    []esv1beta1.FakeProviderData
-	request  esv1beta1.ExternalSecretDataRemoteRef
+	input    []esv1.FakeProviderData
+	request  esv1.ExternalSecretDataRemoteRef
 	expValue map[string][]byte
 	expErr   string
 }
@@ -464,23 +463,23 @@ func TestGetSecretMap(t *testing.T) {
 	tbl := []testMapCase{
 		{
 			name:  "return err when not found",
-			input: []esv1beta1.FakeProviderData{},
-			request: esv1beta1.ExternalSecretDataRemoteRef{
+			input: []esv1.FakeProviderData{},
+			request: esv1.ExternalSecretDataRemoteRef{
 				Key:     "/foo",
 				Version: "v2",
 			},
-			expErr: esv1beta1.NoSecretErr.Error(),
+			expErr: esv1.NoSecretErr.Error(),
 		},
 		{
 			name: "get correct map from multiple versions by using Value only",
-			input: []esv1beta1.FakeProviderData{
+			input: []esv1.FakeProviderData{
 				{
 					Key:     "/bar",
 					Version: "v1",
 					Value:   `{"john":"doe"}`,
 				},
 			},
-			request: esv1beta1.ExternalSecretDataRemoteRef{
+			request: esv1.ExternalSecretDataRemoteRef{
 				Key:     "/bar",
 				Version: "v1",
 			},
@@ -490,14 +489,14 @@ func TestGetSecretMap(t *testing.T) {
 		},
 		{
 			name: "get correct maps from multiple versions by using Value only",
-			input: []esv1beta1.FakeProviderData{
+			input: []esv1.FakeProviderData{
 				{
 					Key:     "/bar",
 					Version: "v3",
 					Value:   `{"john":"doe", "foo": "bar"}`,
 				},
 			},
-			request: esv1beta1.ExternalSecretDataRemoteRef{
+			request: esv1.ExternalSecretDataRemoteRef{
 				Key:     "/bar",
 				Version: "v3",
 			},
@@ -508,72 +507,43 @@ func TestGetSecretMap(t *testing.T) {
 		},
 		{
 			name: "invalid marshal",
-			input: []esv1beta1.FakeProviderData{
+			input: []esv1.FakeProviderData{
 				{
 					Key:     "/bar",
 					Version: "v3",
 					Value:   `---------`,
 				},
 			},
-			request: esv1beta1.ExternalSecretDataRemoteRef{
+			request: esv1.ExternalSecretDataRemoteRef{
 				Key:     "/bar",
 				Version: "v3",
 			},
 			expErr: "unable to unmarshal secret: invalid character '-' in numeric literal",
 		},
 		{
-			name: "get correct value from ValueMap due to retrocompatibility",
-			input: []esv1beta1.FakeProviderData{
-				{
-					Key:     "/foo/bar",
-					Version: "v3",
-					ValueMap: map[string]string{
-						"john": "doe",
-						"baz":  "bang",
-					},
-				},
-			},
-			request: esv1beta1.ExternalSecretDataRemoteRef{
-				Key:     "/foo/bar",
-				Version: "v3",
-			},
-			expValue: map[string][]byte{
-				"john": []byte("doe"),
-				"baz":  []byte("bang"),
-			},
-		},
-		{
 			name: "get correct value from multiple versions",
-			input: []esv1beta1.FakeProviderData{
+			input: []esv1.FakeProviderData{
 				{
 					Key:     "john",
 					Value:   "doe",
 					Version: "v2",
 				},
 				{
-					Key: "junk",
-					ValueMap: map[string]string{
-						"junk": "ok",
-					},
+					Key:   "junk",
+					Value: `{"junk":"ok"}`,
 				},
 				{
-					Key: "/foo",
-					ValueMap: map[string]string{
-						"foo": "bar",
-						"baz": "bang",
-					},
+					Key:     "/foo",
+					Value:   `{"foo":"bar","baz":"bang"}`,
 					Version: "v1",
 				},
 				{
-					Key: "/foo",
-					ValueMap: map[string]string{
-						"foo": "bar",
-						"baz": "bang",
-					},
+					Key:     "/foo",
+					Value:   `{"foo":"bar","baz":"bang"}`,
 					Version: "v2",
 				},
 			},
-			request: esv1beta1.ExternalSecretDataRemoteRef{
+			request: esv1.ExternalSecretDataRemoteRef{
 				Key:     "/foo",
 				Version: "v2",
 			},
@@ -586,13 +556,13 @@ func TestGetSecretMap(t *testing.T) {
 
 	for i, row := range tbl {
 		t.Run(row.name, func(t *testing.T) {
-			cl, err := p.NewClient(context.Background(), &esv1beta1.SecretStore{
+			cl, err := p.NewClient(context.Background(), &esv1.SecretStore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: fmt.Sprintf("secret-store-%v", i),
 				},
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Fake: &esv1beta1.FakeProvider{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Fake: &esv1.FakeProvider{
 							Data: row.input,
 						},
 					},

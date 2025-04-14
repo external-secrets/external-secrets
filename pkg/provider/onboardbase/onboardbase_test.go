@@ -22,7 +22,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/onboardbase/client"
 	"github.com/external-secrets/external-secrets/pkg/provider/onboardbase/fake"
@@ -44,8 +44,8 @@ type onboardbaseTestCase struct {
 	fakeClient          *fake.OnboardbaseClient
 	request             client.SecretRequest
 	response            *client.SecretResponse
-	remoteRef           *esv1beta1.ExternalSecretDataRemoteRef
-	PushSecretRemoteRef esv1beta1.PushSecretRemoteRef
+	remoteRef           *esv1.ExternalSecretDataRemoteRef
+	PushSecretRemoteRef esv1.PushSecretRemoteRef
 	apiErr              error
 	expectError         string
 	expectedSecret      string
@@ -65,8 +65,8 @@ func makeValidAPIOutput() *client.SecretResponse {
 	}
 }
 
-func makeValidRemoteRef() *esv1beta1.ExternalSecretDataRemoteRef {
-	return &esv1beta1.ExternalSecretDataRemoteRef{
+func makeValidRemoteRef() *esv1.ExternalSecretDataRemoteRef {
+	return &esv1.ExternalSecretDataRemoteRef{
 		Key: validSecretName,
 	}
 }
@@ -83,7 +83,7 @@ func (pRef pushRemoteRef) GetRemoteKey() string {
 	return pRef.secretKey
 }
 
-func makeValidPushRemoteRef(key string) esv1beta1.PushSecretRemoteRef {
+func makeValidPushRemoteRef(key string) esv1.PushSecretRemoteRef {
 	return pushRemoteRef{
 		secretKey: key,
 	}
@@ -272,14 +272,14 @@ func ErrorContains(out error, want string) bool {
 	return strings.Contains(out.Error(), want)
 }
 
-type storeModifier func(*esv1beta1.SecretStore) *esv1beta1.SecretStore
+type storeModifier func(*esv1.SecretStore) *esv1.SecretStore
 
-func makeSecretStore(fn ...storeModifier) *esv1beta1.SecretStore {
-	store := &esv1beta1.SecretStore{
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Onboardbase: &esv1beta1.OnboardbaseProvider{
-					Auth: &esv1beta1.OnboardbaseAuthSecretRef{},
+func makeSecretStore(fn ...storeModifier) *esv1.SecretStore {
+	store := &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Onboardbase: &esv1.OnboardbaseProvider{
+					Auth: &esv1.OnboardbaseAuthSecretRef{},
 				},
 			},
 		},
@@ -291,7 +291,7 @@ func makeSecretStore(fn ...storeModifier) *esv1beta1.SecretStore {
 }
 
 func withAuth(name, key string, namespace *string, passcode string) storeModifier {
-	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
+	return func(store *esv1.SecretStore) *esv1.SecretStore {
 		store.Spec.Provider.Onboardbase.Auth.OnboardbaseAPIKeyRef = v1.SecretKeySelector{
 			Name:      name,
 			Key:       key,
@@ -308,7 +308,7 @@ func withAuth(name, key string, namespace *string, passcode string) storeModifie
 
 type ValidateStoreTestCase struct {
 	label string
-	store *esv1beta1.SecretStore
+	store *esv1.SecretStore
 	err   error
 }
 

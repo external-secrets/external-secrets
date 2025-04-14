@@ -26,7 +26,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -35,13 +35,13 @@ import (
 type Provider struct{}
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1beta1.SecretsClient = &Client{}
-var _ esv1beta1.Provider = &Provider{}
+var _ esv1.SecretsClient = &Client{}
+var _ esv1.Provider = &Provider{}
 
 func init() {
-	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
-		GCPSM: &esv1beta1.GCPSMProvider{},
-	})
+	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
+		GCPSM: &esv1.GCPSMProvider{},
+	}, esv1.MaintenanceStatusMaintained)
 }
 
 /*
@@ -53,12 +53,12 @@ A Mutex was implemented to make sure only one connection can be in place at a ti
 */
 var useMu = sync.Mutex{}
 
-func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadWrite
+func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadWrite
 }
 
 // NewClient constructs a GCP Provider.
-func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.GCPSM == nil {
 		return nil, errors.New(errGCPSMStore)
@@ -84,7 +84,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	if err != nil {
 		return nil, err
 	}
-	isClusterKind := store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind
+	isClusterKind := store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind
 	// allow SecretStore controller validation to pass
 	// when using referent namespace.
 	if namespace == "" && isClusterKind && isReferentSpec(gcpStore) {
@@ -122,7 +122,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return client, nil
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
 		return nil, errors.New(errInvalidStore)
 	}
@@ -150,7 +150,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 	return nil, nil
 }
 
-func clusterProjectID(spec *esv1beta1.SecretStoreSpec) (string, error) {
+func clusterProjectID(spec *esv1.SecretStoreSpec) (string, error) {
 	if spec.Provider.GCPSM.Auth.WorkloadIdentity != nil && spec.Provider.GCPSM.Auth.WorkloadIdentity.ClusterProjectID != "" {
 		return spec.Provider.GCPSM.Auth.WorkloadIdentity.ClusterProjectID, nil
 	} else if spec.Provider.GCPSM.ProjectID != "" {
@@ -160,7 +160,7 @@ func clusterProjectID(spec *esv1beta1.SecretStoreSpec) (string, error) {
 	}
 }
 
-func isReferentSpec(prov *esv1beta1.GCPSMProvider) bool {
+func isReferentSpec(prov *esv1.GCPSMProvider) bool {
 	if prov.Auth.SecretRef != nil &&
 		prov.Auth.SecretRef.SecretAccessKey.Namespace == nil {
 		return true

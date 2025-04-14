@@ -23,7 +23,7 @@ import (
 	vault "github.com/hashicorp/vault/api"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 )
@@ -139,11 +139,11 @@ func TestGetAllSecrets(t *testing.T) {
 		},
 	}
 	type args struct {
-		store    *esv1beta1.VaultProvider
+		store    *esv1.VaultProvider
 		kube     kclient.Client
 		vLogical util.Logical
 		ns       string
-		data     esv1beta1.ExternalSecretFind
+		data     esv1.ExternalSecretFind
 	}
 
 	type want struct {
@@ -159,13 +159,13 @@ func TestGetAllSecrets(t *testing.T) {
 		"FindByNameKv2": {
 			reason: "should map multiple secrets matching name for kv2",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ListWithContextFn:         newListWithContextFn(kv2secret),
 					ReadWithDataWithContextFn: newReadtWithContextFn(kv2secret),
 				},
-				data: esv1beta1.ExternalSecretFind{
-					Name: &esv1beta1.FindName{
+				data: esv1.ExternalSecretFind{
+					Name: &esv1.FindName{
 						RegExp: "secret.*",
 					},
 				},
@@ -181,13 +181,13 @@ func TestGetAllSecrets(t *testing.T) {
 		"FindByNameKv1": {
 			reason: "should map multiple secrets matching name for kv1",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV1).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ListWithContextFn:         newListWithContextKvv1Fn(kv1secret),
 					ReadWithDataWithContextFn: newReadtWithContextKvv1Fn(kv1secret),
 				},
-				data: esv1beta1.ExternalSecretFind{
-					Name: &esv1beta1.FindName{
+				data: esv1.ExternalSecretFind{
+					Name: &esv1.FindName{
 						RegExp: "secret.*",
 					},
 				},
@@ -203,12 +203,12 @@ func TestGetAllSecrets(t *testing.T) {
 		"FindByTagKv2": {
 			reason: "should map multiple secrets matching tags",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ListWithContextFn:         newListWithContextFn(kv2secret),
 					ReadWithDataWithContextFn: newReadtWithContextFn(kv2secret),
 				},
-				data: esv1beta1.ExternalSecretFind{
+				data: esv1.ExternalSecretFind{
 					Tags: map[string]string{
 						"foo": "baz",
 					},
@@ -225,12 +225,12 @@ func TestGetAllSecrets(t *testing.T) {
 		"FindByTagKv1": {
 			reason: "find by tag should not work if using kv1 store",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV1).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ListWithContextFn:         newListWithContextKvv1Fn(kv1secret),
 					ReadWithDataWithContextFn: newReadtWithContextKvv1Fn(kv1secret),
 				},
-				data: esv1beta1.ExternalSecretFind{
+				data: esv1.ExternalSecretFind{
 					Tags: map[string]string{
 						"foo": "baz",
 					},
@@ -243,12 +243,12 @@ func TestGetAllSecrets(t *testing.T) {
 		"FilterByPathKv2WithTags": {
 			reason: "should filter secrets based on path for kv2 with tags",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ListWithContextFn:         newListWithContextFn(kv2secret),
 					ReadWithDataWithContextFn: newReadtWithContextFn(kv2secret),
 				},
-				data: esv1beta1.ExternalSecretFind{
+				data: esv1.ExternalSecretFind{
 					Path: &path,
 					Tags: map[string]string{
 						"foo": "path",
@@ -266,12 +266,12 @@ func TestGetAllSecrets(t *testing.T) {
 		"FilterByPathKv2WithoutTags": {
 			reason: "should filter secrets based on path for kv2 without tags",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ListWithContextFn:         newListWithContextFn(kv2secret),
 					ReadWithDataWithContextFn: newReadtWithContextFn(kv2secret),
 				},
-				data: esv1beta1.ExternalSecretFind{
+				data: esv1.ExternalSecretFind{
 					Path: &path,
 				},
 			},
@@ -286,30 +286,30 @@ func TestGetAllSecrets(t *testing.T) {
 		"FilterByPathReturnsNotFound": {
 			reason: "should return a not found error if there are no more secrets on the path",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ListWithContextFn: func(ctx context.Context, path string) (*vault.Secret, error) {
 						return nil, nil
 					},
 					ReadWithDataWithContextFn: newReadtWithContextFn(map[string]any{}),
 				},
-				data: esv1beta1.ExternalSecretFind{
+				data: esv1.ExternalSecretFind{
 					Path: &path,
 				},
 			},
 			want: want{
-				err: esv1beta1.NoSecretError{},
+				err: esv1.NoSecretError{},
 			},
 		},
 		"FilterByPathKv1": {
 			reason: "should filter secrets based on path for kv1",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV1).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV1).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ListWithContextFn:         newListWithContextKvv1Fn(kv1secret),
 					ReadWithDataWithContextFn: newReadtWithContextKvv1Fn(kv1secret),
 				},
-				data: esv1beta1.ExternalSecretFind{
+				data: esv1.ExternalSecretFind{
 					Path: &path,
 				},
 			},
@@ -324,14 +324,14 @@ func TestGetAllSecrets(t *testing.T) {
 		"MetadataNotFound": {
 			reason: "metadata secret not found",
 			args: args{
-				store: makeValidSecretStoreWithVersion(esv1beta1.VaultKVStoreV2).Spec.Provider.Vault,
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
 				vLogical: &fake.Logical{
 					ListWithContextFn: newListWithContextFn(kv2secret),
 					ReadWithDataWithContextFn: func(ctx context.Context, path string, d map[string][]string) (*vault.Secret, error) {
 						return nil, nil
 					},
 				},
-				data: esv1beta1.ExternalSecretFind{
+				data: esv1.ExternalSecretFind{
 					Tags: map[string]string{
 						"foo": "baz",
 					},

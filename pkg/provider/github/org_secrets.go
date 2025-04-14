@@ -18,10 +18,10 @@ import (
 
 	github "github.com/google/go-github/v56/github"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
-func (g *Client) orgGetSecretFn(ctx context.Context, ref esv1beta1.PushSecretRemoteRef) (*github.Secret, *github.Response, error) {
+func (g *Client) orgGetSecretFn(ctx context.Context, ref esv1.PushSecretRemoteRef) (*github.Secret, *github.Response, error) {
 	return g.baseClient.GetOrgSecret(ctx, g.provider.Organization, ref.GetRemoteKey())
 }
 
@@ -37,6 +37,6 @@ func (g *Client) orgListSecretsFn(ctx context.Context) (*github.Secrets, *github
 	return g.baseClient.ListOrgSecrets(ctx, g.provider.Organization, &github.ListOptions{})
 }
 
-func (g *Client) orgDeleteSecretsFn(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) (*github.Response, error) {
+func (g *Client) orgDeleteSecretsFn(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (*github.Response, error) {
 	return g.baseClient.DeleteOrgSecret(ctx, g.provider.Organization, remoteRef.GetRemoteKey())
 }

@@ -25,7 +25,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -47,18 +47,18 @@ type Device42 struct {
 	client Client
 }
 
-func (p *Device42) ValidateStore(esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *Device42) ValidateStore(esv1.GenericStore) (admission.Warnings, error) {
 	return nil, nil
 }
 
-func (p *Device42) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadOnly
+func (p *Device42) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadOnly
 }
 
 // Client for interacting with kubernetes.
 type device42Client struct {
 	kube      kclient.Client
-	store     *esv1beta1.Device42Provider
+	store     *esv1.Device42Provider
 	namespace string
 	storeKind string
 }
@@ -75,7 +75,7 @@ func (c *device42Client) getAuth(ctx context.Context) (string, string, error) {
 		Namespace: c.namespace,
 	}
 	// only ClusterStore is allowed to set namespace (and then it's required)
-	if c.storeKind == esv1beta1.ClusterSecretStoreKind {
+	if c.storeKind == esv1.ClusterSecretStoreKind {
 		if c.store.Auth.SecretRef.Credentials.Namespace == nil {
 			return "", "", errors.New(errInvalidClusterStoreMissingSAKNamespace)
 		}
@@ -101,7 +101,7 @@ func NewDevice42Provider() *Device42 {
 	return &Device42{}
 }
 
-func (p *Device42) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Device42) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Device42 == nil {
 		return nil, errors.New("no store type or wrong store type")
@@ -125,33 +125,33 @@ func (p *Device42) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return p, nil
 }
 
-func (p *Device42) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (p *Device42) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New(errNotImplemented)
 }
 
-func (p *Device42) Validate() (esv1beta1.ValidationResult, error) {
+func (p *Device42) Validate() (esv1.ValidationResult, error) {
 	timeout := 15 * time.Second
 	url := fmt.Sprintf("https://%s:%s", p.client.(*API).baseURL, p.client.(*API).hostPort)
 
 	if err := utils.NetworkValidate(url, timeout); err != nil {
-		return esv1beta1.ValidationResultError, err
+		return esv1.ValidationResultError, err
 	}
-	return esv1beta1.ValidationResultReady, nil
+	return esv1.ValidationResultReady, nil
 }
 
-func (p *Device42) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
+func (p *Device42) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
 	return errors.New(errNotImplemented)
 }
 
-func (p *Device42) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (p *Device42) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, errors.New(errNotImplemented)
 }
 
-func (p *Device42) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
+func (p *Device42) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	return errors.New(errNotImplemented)
 }
 
-func (p *Device42) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (p *Device42) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(p.client) {
 		return nil, errors.New(errUninitializedProvider)
 	}
@@ -163,7 +163,7 @@ func (p *Device42) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretData
 	return []byte(data.Password), nil
 }
 
-func (p *Device42) GetSecretMap(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (p *Device42) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := p.client.GetSecret(ref.Key)
 	if err != nil {
 		return nil, fmt.Errorf("error getting secret %s: %w", ref.Key, err)
@@ -177,7 +177,7 @@ func (p *Device42) Close(_ context.Context) error {
 }
 
 func init() {
-	esv1beta1.Register(&Device42{}, &esv1beta1.SecretStoreProvider{
-		Device42: &esv1beta1.Device42Provider{},
-	})
+	esv1.Register(&Device42{}, &esv1.SecretStoreProvider{
+		Device42: &esv1.Device42Provider{},
+	}, esv1.MaintenanceStatusNotMaintained)
 }

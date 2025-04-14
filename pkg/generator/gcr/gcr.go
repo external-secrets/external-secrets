@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
@@ -68,9 +68,9 @@ func (g *Generator) generate(
 	if err != nil {
 		return nil, nil, fmt.Errorf(errParseSpec, err)
 	}
-	ts, err := tokenSource(ctx, esv1beta1.GCPSMAuth{
-		SecretRef:        (*esv1beta1.GCPSMAuthSecretRef)(res.Spec.Auth.SecretRef),
-		WorkloadIdentity: (*esv1beta1.GCPWorkloadIdentity)(res.Spec.Auth.WorkloadIdentity),
+	ts, err := tokenSource(ctx, esv1.GCPSMAuth{
+		SecretRef:        (*esv1.GCPSMAuthSecretRef)(res.Spec.Auth.SecretRef),
+		WorkloadIdentity: (*esv1.GCPWorkloadIdentity)(res.Spec.Auth.WorkloadIdentity),
 	}, res.Spec.ProjectID, resolvers.EmptyStoreKind, kube, namespace)
 	if err != nil {
 		return nil, nil, err
@@ -87,7 +87,7 @@ func (g *Generator) generate(
 	}, nil, nil
 }
 
-type tokenSourceFunc func(ctx context.Context, auth esv1beta1.GCPSMAuth, projectID string, storeKind string, kube client.Client, namespace string) (oauth2.TokenSource, error)
+type tokenSourceFunc func(ctx context.Context, auth esv1.GCPSMAuth, projectID string, storeKind string, kube client.Client, namespace string) (oauth2.TokenSource, error)
 
 func parseSpec(data []byte) (*genv1alpha1.GCRAccessToken, error) {
 	var spec genv1alpha1.GCRAccessToken

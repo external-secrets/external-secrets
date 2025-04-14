@@ -24,7 +24,7 @@ import (
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/provider/infisical/api"
 )
@@ -45,7 +45,7 @@ func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
 
 // if GetSecret returns an error with type NoSecretError.
 // then the secret entry will be deleted depending on the deletionPolicy.
-func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (p *Provider) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	secret, err := p.apiClient.GetSecretByKeyV3(api.GetSecretByKeyV3Request{
 		EnvironmentSlug:        p.apiScope.EnvironmentSlug,
 		ProjectSlug:            p.apiScope.ProjectSlug,
@@ -71,7 +71,7 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (p *Provider) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	secret, err := p.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -96,7 +96,7 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 }
 
 // GetAllSecrets returns multiple k/v pairs from the provider.
-func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Tags != nil {
 		return nil, errTagsNotImplemented
 	}
@@ -142,7 +142,7 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 // Validate checks if the client is configured correctly.
 // and is able to retrieve secrets from the provider.
 // If the validation result is unknown it will be ignored.
-func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
+func (p *Provider) Validate() (esv1.ValidationResult, error) {
 	// try to fetch the secrets to ensure provided credentials has access to read secrets
 	_, err := p.apiClient.GetSecretsV3(api.GetSecretsV3Request{
 		EnvironmentSlug:        p.apiScope.EnvironmentSlug,
@@ -153,23 +153,23 @@ func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
 	})
 
 	if err != nil {
-		return esv1beta1.ValidationResultError, fmt.Errorf("cannot read secrets with provided project scope project:%s environment:%s secret-path:%s recursive:%t, %w", p.apiScope.ProjectSlug, p.apiScope.EnvironmentSlug, p.apiScope.SecretPath, p.apiScope.Recursive, err)
+		return esv1.ValidationResultError, fmt.Errorf("cannot read secrets with provided project scope project:%s environment:%s secret-path:%s recursive:%t, %w", p.apiScope.ProjectSlug, p.apiScope.EnvironmentSlug, p.apiScope.SecretPath, p.apiScope.Recursive, err)
 	}
 
-	return esv1beta1.ValidationResultReady, nil
+	return esv1.ValidationResultReady, nil
 }
 
 // PushSecret will write a single secret into the provider.
-func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	return errNotImplemented
 }
 
 // DeleteSecret will delete the secret from a provider.
-func (p *Provider) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
+func (p *Provider) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	return errNotImplemented
 }
 
 // SecretExists checks if a secret is already present in the provider at the given location.
-func (p *Provider) SecretExists(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (p *Provider) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errNotImplemented
 }

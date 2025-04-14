@@ -22,7 +22,7 @@ import (
 	authenticationv1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
@@ -30,7 +30,7 @@ import (
 const JwtLifespan = 600 // 10 minutes
 
 // getJWTToken retrieves a JWT token either using the TokenRequest API for a specified service account, or from a jwt stored in a k8s secret.
-func (c *Client) getJWTToken(ctx context.Context, conjurJWTConfig *esv1beta1.ConjurJWT) (string, error) {
+func (c *Client) getJWTToken(ctx context.Context, conjurJWTConfig *esv1.ConjurJWT) (string, error) {
 	if conjurJWTConfig.ServiceAccountRef != nil {
 		// Should work for Kubernetes >=v1.22: fetch token via TokenRequest API
 		jwtToken, err := c.getJwtFromServiceAccountTokenRequest(ctx, *conjurJWTConfig.ServiceAccountRef, nil, JwtLifespan)
@@ -73,7 +73,7 @@ func (c *Client) getJwtFromServiceAccountTokenRequest(ctx context.Context, servi
 			ExpirationSeconds: &expirationSeconds,
 		},
 	}
-	if (c.StoreKind == esv1beta1.ClusterSecretStoreKind) &&
+	if (c.StoreKind == esv1.ClusterSecretStoreKind) &&
 		(serviceAccountRef.Namespace != nil) {
 		tokenRequest.Namespace = *serviceAccountRef.Namespace
 	}
