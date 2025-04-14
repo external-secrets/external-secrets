@@ -92,8 +92,10 @@ func New(ctx context.Context, cfg *aws.Config, prefix string, referentAuth bool)
 	return &ParameterStore{
 		cfg:          cfg,
 		referentAuth: referentAuth,
-		client:       ssm.NewFromConfig(*cfg),
-		prefix:       prefix,
+		client: ssm.NewFromConfig(*cfg, func(o *ssm.Options) {
+			o.EndpointResolverV2 = customEndpointResolver{}
+		}),
+		prefix: prefix,
 	}, nil
 }
 

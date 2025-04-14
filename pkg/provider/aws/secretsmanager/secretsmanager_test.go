@@ -114,6 +114,18 @@ var setAPIErr = func(smtc *secretsManagerTestCase) {
 	smtc.expectError = "oh no"
 }
 
+func TestSecretsManagerResolver(t *testing.T) {
+	endpoint_env_key := SecretsManagerEndpointEnv
+	endpoint_url := "http://sm.foo"
+
+	t.Setenv(endpoint_env_key, endpoint_url)
+
+	f, err := customEndpointResolver{}.ResolveEndpoint(context.Background(), awssm.EndpointParameters{})
+
+	assert.Nil(t, err)
+	assert.Equal(t, endpoint_url, f.URI.String())
+}
+
 // test the sm<->aws interface
 // make sure correct values are passed and errors are handled accordingly.
 func TestSecretsManagerGetSecret(t *testing.T) {

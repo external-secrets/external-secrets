@@ -87,8 +87,10 @@ var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager
 // New creates a new SecretsManager client.
 func New(ctx context.Context, cfg *aws.Config, secretsMasnagerCfg *esv1beta1.SecretsManager, referentAuth bool) (*SecretsManager, error) {
 	return &SecretsManager{
-		cfg:          cfg,
-		client:       awssm.NewFromConfig(*cfg),
+		cfg: cfg,
+		client: awssm.NewFromConfig(*cfg, func(o *awssm.Options) {
+			o.EndpointResolverV2 = customEndpointResolver{}
+		}),
 		referentAuth: referentAuth,
 		cache:        make(map[string]*awssm.GetSecretValueOutput),
 		config:       secretsMasnagerCfg,

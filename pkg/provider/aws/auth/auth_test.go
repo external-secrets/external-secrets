@@ -41,6 +41,18 @@ const (
 	otherNsName         = "other-ns"
 )
 
+func TestSTSResolver(t *testing.T) {
+	endpoint_env_key := STSEndpointEnv
+	endpoint_url := "http://sts.foo"
+
+	t.Setenv(endpoint_env_key, endpoint_url)
+
+	f, err := customEndpointResolver{}.ResolveEndpoint(context.Background(), sts.EndpointParameters{})
+
+	assert.Nil(t, err)
+	assert.Equal(t, endpoint_url, f.URI.String())
+}
+
 func TestNewSession(t *testing.T) {
 	rows := []TestSessionRow{
 		{
