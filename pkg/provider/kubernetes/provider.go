@@ -27,12 +27,12 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1beta1.SecretsClient = &Client{}
-var _ esv1beta1.Provider = &Provider{}
+var _ esv1.SecretsClient = &Client{}
+var _ esv1.Provider = &Provider{}
 
 type KClient interface {
 	Get(ctx context.Context, name string, opts metav1.GetOptions) (*v1.Secret, error)
@@ -68,7 +68,7 @@ type Client struct {
 
 	// store is the Kubernetes Provider spec
 	// which contains the configuration for this provider.
-	store     *esv1beta1.KubernetesProvider
+	store     *esv1.KubernetesProvider
 	storeKind string
 
 	// namespace is the namespace of the
@@ -77,17 +77,17 @@ type Client struct {
 }
 
 func init() {
-	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
-		Kubernetes: &esv1beta1.KubernetesProvider{},
-	})
+	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
+		Kubernetes: &esv1.KubernetesProvider{},
+	}, esv1.MaintenanceStatusMaintained)
 }
 
-func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadWrite
+func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadWrite
 }
 
 // NewClient constructs a Kubernetes Provider.
-func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	restCfg, err := ctrlcfg.GetConfig()
 	if err != nil {
 		return nil, err
@@ -99,7 +99,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return p.newClient(ctx, store, kube, clientset, namespace)
 }
 
-func (p *Provider) newClient(ctx context.Context, store esv1beta1.GenericStore, ctrlClient kclient.Client, ctrlClientset kubernetes.Interface, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, ctrlClient kclient.Client, ctrlClientset kubernetes.Interface, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Kubernetes == nil {
 		return nil, errors.New("no store type or wrong store type")
@@ -115,7 +115,7 @@ func (p *Provider) newClient(ctx context.Context, store esv1beta1.GenericStore, 
 
 	// allow SecretStore controller validation to pass
 	// when using referent namespace.
-	if client.storeKind == esv1beta1.ClusterSecretStoreKind && client.namespace == "" && isReferentSpec(storeSpecKubernetes) {
+	if client.storeKind == esv1.ClusterSecretStoreKind && client.namespace == "" && isReferentSpec(storeSpecKubernetes) {
 		return client, nil
 	}
 
@@ -133,7 +133,7 @@ func (p *Provider) newClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return client, nil
 }
 
-func isReferentSpec(prov *esv1beta1.KubernetesProvider) bool {
+func isReferentSpec(prov *esv1.KubernetesProvider) bool {
 	if prov.Auth.Cert != nil {
 		if prov.Auth.Cert.ClientCert.Namespace == nil {
 			return true

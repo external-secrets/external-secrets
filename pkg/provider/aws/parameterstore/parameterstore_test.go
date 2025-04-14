@@ -30,7 +30,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	fakeps "github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore/fake"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
@@ -50,7 +50,7 @@ type parameterstoreTestCase struct {
 	fakeClient     *fakeps.Client
 	apiInput       *ssm.GetParameterInput
 	apiOutput      *ssm.GetParameterOutput
-	remoteRef      *esv1beta1.ExternalSecretDataRemoteRef
+	remoteRef      *esv1.ExternalSecretDataRemoteRef
 	apiErr         error
 	expectError    string
 	expectedSecret string
@@ -87,8 +87,8 @@ func makeValidAPIOutput() *ssm.GetParameterOutput {
 	}
 }
 
-func makeValidRemoteRef() *esv1beta1.ExternalSecretDataRemoteRef {
-	return &esv1beta1.ExternalSecretDataRemoteRef{
+func makeValidRemoteRef() *esv1.ExternalSecretDataRemoteRef {
+	return &esv1.ExternalSecretDataRemoteRef{
 		Key: "/baz",
 	}
 }
@@ -316,7 +316,7 @@ func TestPushSecret(t *testing.T) {
 	}
 
 	type args struct {
-		store    *esv1beta1.AWSProvider
+		store    *esv1.AWSProvider
 		metadata *apiextensionsv1.JSON
 		client   fakeps.Client
 	}
@@ -771,7 +771,7 @@ func TestGetSecret(t *testing.T) {
 	// bad case: parameter.Value not found
 	setParameterValueNotFound := func(pstc *parameterstoreTestCase) {
 		pstc.apiOutput.Parameter.Value = aws.String("NONEXISTENT")
-		pstc.apiErr = esv1beta1.NoSecretErr
+		pstc.apiErr = esv1.NoSecretErr
 		pstc.expectError = "Secret does not exist"
 	}
 
@@ -797,7 +797,7 @@ func TestGetSecret(t *testing.T) {
 
 	// good case: metadata returned
 	setMetadataString := func(pstc *parameterstoreTestCase) {
-		pstc.remoteRef.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		pstc.remoteRef.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		output := ssm.ListTagsForResourceOutput{
 			TagList: getTagSlice(),
 		}
@@ -807,7 +807,7 @@ func TestGetSecret(t *testing.T) {
 
 	// good case: metadata property returned
 	setMetadataProperty := func(pstc *parameterstoreTestCase) {
-		pstc.remoteRef.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		pstc.remoteRef.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		output := ssm.ListTagsForResourceOutput{
 			TagList: getTagSlice(),
 		}
@@ -818,7 +818,7 @@ func TestGetSecret(t *testing.T) {
 
 	// bad case: metadata property not found
 	setMetadataMissingProperty := func(pstc *parameterstoreTestCase) {
-		pstc.remoteRef.MetadataPolicy = esv1beta1.ExternalSecretMetadataPolicyFetch
+		pstc.remoteRef.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		output := ssm.ListTagsForResourceOutput{
 			TagList: getTagSlice(),
 		}
@@ -903,16 +903,16 @@ func TestGetSecretMap(t *testing.T) {
 	}
 }
 
-func makeValidParameterStore() *esv1beta1.SecretStore {
-	return &esv1beta1.SecretStore{
+func makeValidParameterStore() *esv1.SecretStore {
+	return &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "aws-parameterstore",
 			Namespace: "default",
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				AWS: &esv1beta1.AWSProvider{
-					Service: esv1beta1.AWSServiceParameterStore,
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				AWS: &esv1.AWSProvider{
+					Service: esv1.AWSServiceParameterStore,
 					Region:  "us-east-1",
 				},
 			},
@@ -962,7 +962,7 @@ func TestSecretExists(t *testing.T) {
 	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: "fake-secret-key", RemoteKey: fakeSecretKey, Property: ""}
 
 	type args struct {
-		store          *esv1beta1.AWSProvider
+		store          *esv1.AWSProvider
 		client         fakeps.Client
 		pushSecretData fake.PushSecretData
 	}

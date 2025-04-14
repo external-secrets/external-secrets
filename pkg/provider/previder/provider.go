@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
@@ -31,19 +31,19 @@ const (
 	errNotImplemented = "not implemented"
 )
 
-var _ esv1beta1.Provider = &SecretManager{}
+var _ esv1.Provider = &SecretManager{}
 
 type SecretManager struct {
 	VaultClient previderclient.PreviderVaultClient
 }
 
 func init() {
-	esv1beta1.Register(&SecretManager{}, &esv1beta1.SecretStoreProvider{
-		Previder: &esv1beta1.PreviderProvider{},
-	})
+	esv1.Register(&SecretManager{}, &esv1.SecretStoreProvider{
+		Previder: &esv1.PreviderProvider{},
+	}, esv1.MaintenanceStatusMaintained)
 }
 
-func (s *SecretManager) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (s *SecretManager) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 	if store == nil {
 		return nil, fmt.Errorf("secret store not found: %v", "nil store")
 	}
@@ -63,7 +63,7 @@ func (s *SecretManager) NewClient(ctx context.Context, store esv1beta1.GenericSt
 	return s, nil
 }
 
-func (s *SecretManager) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (s *SecretManager) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	previderSpec := storeSpec.Provider.Previder
 	if previderSpec == nil {
@@ -84,11 +84,11 @@ func (s *SecretManager) ValidateStore(store esv1beta1.GenericStore) (admission.W
 	return nil, nil
 }
 
-func (s *SecretManager) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadOnly
+func (s *SecretManager) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadOnly
 }
 
-func (s *SecretManager) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (s *SecretManager) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	secret, err := s.VaultClient.DecryptSecret(ref.Key)
 	if err != nil {
 		return nil, err
@@ -96,28 +96,28 @@ func (s *SecretManager) GetSecret(ctx context.Context, ref esv1beta1.ExternalSec
 	return []byte(secret.Secret), nil
 }
 
-func (s *SecretManager) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+func (s *SecretManager) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	return errors.New(errNotImplemented)
 }
 
-func (s *SecretManager) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
+func (s *SecretManager) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	return errors.New(errNotImplemented)
 }
 
-func (s *SecretManager) SecretExists(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (s *SecretManager) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New(errNotImplemented)
 }
 
-func (s *SecretManager) Validate() (esv1beta1.ValidationResult, error) {
+func (s *SecretManager) Validate() (esv1.ValidationResult, error) {
 	_, err := s.VaultClient.GetSecrets()
 	if err != nil {
-		return esv1beta1.ValidationResultError, err
+		return esv1.ValidationResultError, err
 	}
 
-	return esv1beta1.ValidationResultReady, nil
+	return esv1.ValidationResultReady, nil
 }
 
-func (s *SecretManager) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (s *SecretManager) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	secrets, err := s.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -127,7 +127,7 @@ func (s *SecretManager) GetSecretMap(ctx context.Context, ref esv1beta1.External
 	return secretData, nil
 }
 
-func (s *SecretManager) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (s *SecretManager) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, errors.New(errNotImplemented)
 }
 

@@ -23,14 +23,14 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 type Provider struct{}
 
-var _ esv1beta1.Provider = &Provider{}
+var _ esv1.Provider = &Provider{}
 
 const (
 	errClusterStoreRequiresNamespace = "cluster store requires namespace"
@@ -44,13 +44,13 @@ const (
 	errSecretRefKeyIsRequired        = "secretRef.key is required"
 )
 
-func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	cfg, err := getConfig(store)
 	if err != nil {
 		return nil, err
 	}
 	storeKind := store.GetKind()
-	if storeKind == esv1beta1.ClusterSecretStoreKind && doesConfigDependOnNamespace(cfg) {
+	if storeKind == esv1.ClusterSecretStoreKind && doesConfigDependOnNamespace(cfg) {
 		return nil, errors.New(errClusterStoreRequiresNamespace)
 	}
 	accessToken, err := loadAccessTokenSecret(ctx, cfg.AccessToken, kube, storeKind, namespace)
@@ -75,7 +75,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	}, nil
 }
 
-func loadAccessTokenSecret(ctx context.Context, ref *esv1beta1.PulumiProviderSecretRef, kube kclient.Client, storeKind, namespace string) (string, error) {
+func loadAccessTokenSecret(ctx context.Context, ref *esv1.PulumiProviderSecretRef, kube kclient.Client, storeKind, namespace string) (string, error) {
 	acctoken, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, ref.SecretRef)
 	if err != nil {
 		return "", fmt.Errorf(errCannotResolveSecretKeyRef, err)
@@ -83,14 +83,14 @@ func loadAccessTokenSecret(ctx context.Context, ref *esv1beta1.PulumiProviderSec
 	return acctoken, nil
 }
 
-func doesConfigDependOnNamespace(cfg *esv1beta1.PulumiProvider) bool {
+func doesConfigDependOnNamespace(cfg *esv1.PulumiProvider) bool {
 	if cfg.AccessToken.SecretRef != nil && cfg.AccessToken.SecretRef.Namespace == nil {
 		return true
 	}
 	return false
 }
 
-func getConfig(store esv1beta1.GenericStore) (*esv1beta1.PulumiProvider, error) {
+func getConfig(store esv1.GenericStore) (*esv1.PulumiProvider, error) {
 	if store == nil {
 		return nil, errors.New(errStoreIsNil)
 	}
@@ -120,7 +120,7 @@ func getConfig(store esv1beta1.GenericStore) (*esv1beta1.PulumiProvider, error) 
 	return cfg, nil
 }
 
-func validateStoreSecretRef(store esv1beta1.GenericStore, ref *esv1beta1.PulumiProviderSecretRef) error {
+func validateStoreSecretRef(store esv1.GenericStore, ref *esv1.PulumiProviderSecretRef) error {
 	if ref != nil {
 		if err := utils.ValidateReferentSecretSelector(store, *ref.SecretRef); err != nil {
 			return err
@@ -129,7 +129,7 @@ func validateStoreSecretRef(store esv1beta1.GenericStore, ref *esv1beta1.PulumiP
 	return validateSecretRef(ref)
 }
 
-func validateSecretRef(ref *esv1beta1.PulumiProviderSecretRef) error {
+func validateSecretRef(ref *esv1.PulumiProviderSecretRef) error {
 	if ref.SecretRef != nil {
 		if ref.SecretRef.Name == "" {
 			return errors.New(errSecretRefNameIsRequired)
@@ -141,17 +141,17 @@ func validateSecretRef(ref *esv1beta1.PulumiProviderSecretRef) error {
 	return nil
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	_, err := getConfig(store)
 	return nil, err
 }
 
-func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadOnly
+func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadOnly
 }
 
 func init() {
-	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
-		Pulumi: &esv1beta1.PulumiProvider{},
-	})
+	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
+		Pulumi: &esv1.PulumiProvider{},
+	}, esv1.MaintenanceStatusMaintained)
 }

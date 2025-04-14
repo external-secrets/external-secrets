@@ -22,12 +22,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1meta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/infisical/api"
 )
 
-type storeModifier func(*esv1beta1.SecretStore) *esv1beta1.SecretStore
+type storeModifier func(*esv1.SecretStore) *esv1.SecretStore
 
 var apiScope = InfisicalClientScope{
 	SecretPath:      "/",
@@ -79,7 +79,7 @@ func TestGetSecret(t *testing.T) {
 				Err:        "Not Found",
 				Message:    "Secret not found",
 			},
-			Error:  esv1beta1.NoSecretError{},
+			Error:  esv1.NoSecretError{},
 			Output: "",
 		},
 	}
@@ -93,7 +93,7 @@ func TestGetSecret(t *testing.T) {
 				apiScope:  &apiScope,
 			}
 
-			output, err := p.GetSecret(context.Background(), esv1beta1.ExternalSecretDataRemoteRef{
+			output, err := p.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
 				Key:      key,
 				Property: tc.Property,
 			})
@@ -140,7 +140,7 @@ func TestGetSecretMap(t *testing.T) {
 				apiClient: apiClient,
 				apiScope:  &apiScope,
 			}
-			output, err := p.GetSecretMap(context.Background(), esv1beta1.ExternalSecretDataRemoteRef{
+			output, err := p.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{
 				Key: key,
 			})
 			if tc.Error == nil {
@@ -153,15 +153,15 @@ func TestGetSecretMap(t *testing.T) {
 	}
 }
 
-func makeSecretStore(projectSlug, environment, secretPath string, fn ...storeModifier) *esv1beta1.SecretStore {
-	store := &esv1beta1.SecretStore{
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Infisical: &esv1beta1.InfisicalProvider{
-					Auth: esv1beta1.InfisicalAuth{
-						UniversalAuthCredentials: &esv1beta1.UniversalAuthCredentials{},
+func makeSecretStore(projectSlug, environment, secretPath string, fn ...storeModifier) *esv1.SecretStore {
+	store := &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Infisical: &esv1.InfisicalProvider{
+					Auth: esv1.InfisicalAuth{
+						UniversalAuthCredentials: &esv1.UniversalAuthCredentials{},
 					},
-					SecretsScope: esv1beta1.MachineIdentityScopeInWorkspace{
+					SecretsScope: esv1.MachineIdentityScopeInWorkspace{
 						SecretsPath:     secretPath,
 						EnvironmentSlug: environment,
 						ProjectSlug:     projectSlug,
@@ -177,7 +177,7 @@ func makeSecretStore(projectSlug, environment, secretPath string, fn ...storeMod
 }
 
 func withClientID(name, key string, namespace *string) storeModifier {
-	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
+	return func(store *esv1.SecretStore) *esv1.SecretStore {
 		store.Spec.Provider.Infisical.Auth.UniversalAuthCredentials.ClientID = esv1meta.SecretKeySelector{
 			Name:      name,
 			Key:       key,
@@ -188,7 +188,7 @@ func withClientID(name, key string, namespace *string) storeModifier {
 }
 
 func withClientSecret(name, key string, namespace *string) storeModifier {
-	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
+	return func(store *esv1.SecretStore) *esv1.SecretStore {
 		store.Spec.Provider.Infisical.Auth.UniversalAuthCredentials.ClientSecret = esv1meta.SecretKeySelector{
 			Name:      name,
 			Key:       key,
@@ -199,7 +199,7 @@ func withClientSecret(name, key string, namespace *string) storeModifier {
 }
 
 type ValidateStoreTestCase struct {
-	store       *esv1beta1.SecretStore
+	store       *esv1.SecretStore
 	assertError func(t *testing.T, err error)
 }
 

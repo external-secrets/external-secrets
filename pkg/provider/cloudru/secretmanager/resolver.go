@@ -20,14 +20,14 @@ import (
 
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/cloudru/secretmanager/adapter"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 // KubeCredentialsResolver resolves the credentials from the Kubernetes secret.
 type KubeCredentialsResolver struct {
-	ref  *v1beta1.CSMAuthSecretRef
+	ref  *esv1.CSMAuthSecretRef
 	kube kclient.Client
 
 	namespace string
@@ -35,7 +35,7 @@ type KubeCredentialsResolver struct {
 }
 
 // NewKubeCredentialsResolver creates a new KubeCredentialsResolver.
-func NewKubeCredentialsResolver(kube kclient.Client, namespace, storeKind string, ref *v1beta1.CSMAuthSecretRef) *KubeCredentialsResolver {
+func NewKubeCredentialsResolver(kube kclient.Client, namespace, storeKind string, ref *esv1.CSMAuthSecretRef) *KubeCredentialsResolver {
 	return &KubeCredentialsResolver{
 		ref:       ref,
 		kube:      kube,

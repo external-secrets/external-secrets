@@ -33,17 +33,17 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/cloudru/secretmanager/adapter"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 func init() {
-	esv1beta1.Register(NewProvider(), &esv1beta1.SecretStoreProvider{CloudruSM: &esv1beta1.CloudruSMProvider{}})
+	esv1.Register(NewProvider(), &esv1.SecretStoreProvider{CloudruSM: &esv1.CloudruSMProvider{}}, esv1.MaintenanceStatusMaintained)
 }
 
-var _ esv1beta1.Provider = &Provider{}
-var _ esv1beta1.SecretsClient = &Client{}
+var _ esv1.Provider = &Provider{}
+var _ esv1.SecretsClient = &Client{}
 
 // Provider is a secrets provider for Cloud.ru Secret Manager.
 type Provider struct {
@@ -65,10 +65,10 @@ func NewProvider() *Provider {
 // NewClient constructs a Cloud.ru Secret Manager Provider.
 func (p *Provider) NewClient(
 	ctx context.Context,
-	store esv1beta1.GenericStore,
+	store esv1.GenericStore,
 	kube kclient.Client,
 	namespace string,
-) (esv1beta1.SecretsClient, error) {
+) (esv1.SecretsClient, error) {
 	if _, err := p.ValidateStore(store); err != nil {
 		return nil, fmt.Errorf("invalid store: %w", err)
 	}
@@ -140,7 +140,7 @@ func (p *Provider) getClient(ctx context.Context, cr adapter.CredentialsResolver
 }
 
 // ValidateStore validates the store specification.
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
 		return nil, errors.New("store is not provided")
 	}
@@ -175,8 +175,8 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 }
 
 // Capabilities returns the provider Capabilities (ReadOnly).
-func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadOnly
+func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadOnly
 }
 
 func provideEndpoints() (discoveryURL, tokenURL, smURL string, err error) {

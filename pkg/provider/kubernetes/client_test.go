@@ -29,8 +29,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
 
@@ -112,7 +112,7 @@ func TestGetSecret(t *testing.T) {
 		desc      string
 		secrets   map[string]*v1.Secret
 		clientErr error
-		ref       esv1beta1.ExternalSecretDataRemoteRef
+		ref       esv1.ExternalSecretDataRemoteRef
 		want      []byte
 		wantErr   string
 	}{
@@ -125,7 +125,7 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "mysec",
 				Property: "token",
 			},
@@ -140,7 +140,7 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "mysec",
 				Property: "foo.huga.bar",
 			},
@@ -156,7 +156,7 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "mysec",
 				Property: "foo.png",
 			},
@@ -171,7 +171,7 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "mysec",
 			},
 			want: []byte(`{"html":"<foobar>"}`),
@@ -186,8 +186,8 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
-				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+			ref: esv1.ExternalSecretDataRemoteRef{
+				MetadataPolicy: esv1.ExternalSecretMetadataPolicyFetch,
 				Key:            "mysec",
 			},
 			want: []byte(`{"annotations":{"date":"today"},"labels":{"dev":"<seb>"}}`),
@@ -201,7 +201,7 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "mysec",
 				Property: "bindata",
 			},
@@ -216,7 +216,7 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "mysec",
 			},
 			want: []byte(`{"token":"foobar"}`),
@@ -231,8 +231,8 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
-				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+			ref: esv1.ExternalSecretDataRemoteRef{
+				MetadataPolicy: esv1.ExternalSecretMetadataPolicyFetch,
 				Key:            "mysec",
 			},
 			want: []byte(`{"annotations":{"date":"today"},"labels":{"dev":"seb"}}`),
@@ -247,8 +247,8 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
-				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+			ref: esv1.ExternalSecretDataRemoteRef{
+				MetadataPolicy: esv1.ExternalSecretMetadataPolicyFetch,
 				Key:            "mysec",
 				Property:       "labels",
 			},
@@ -264,8 +264,8 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
-				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+			ref: esv1.ExternalSecretDataRemoteRef{
+				MetadataPolicy: esv1.ExternalSecretMetadataPolicyFetch,
 				Key:            "mysec",
 				Property:       "labels.dev",
 			},
@@ -274,7 +274,7 @@ func TestGetSecret(t *testing.T) {
 		{
 			desc:      "secret is not found",
 			clientErr: apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, "secret"),
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "mysec",
 				Property: "token",
 			},
@@ -289,7 +289,7 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "mysec",
 				Property: "not-the-token",
 			},
@@ -305,8 +305,8 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
-				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+			ref: esv1.ExternalSecretDataRemoteRef{
+				MetadataPolicy: esv1.ExternalSecretMetadataPolicyFetch,
 				Key:            "mysec",
 				Property:       "foo",
 			},
@@ -352,7 +352,7 @@ func TestGetSecretMap(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		ref    esv1beta1.ExternalSecretDataRemoteRef
+		ref    esv1.ExternalSecretDataRemoteRef
 
 		want    map[string][]byte
 		wantErr bool
@@ -373,8 +373,8 @@ func TestGetSecretMap(t *testing.T) {
 				},
 				Namespace: "default",
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
-				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+			ref: esv1.ExternalSecretDataRemoteRef{
+				MetadataPolicy: esv1.ExternalSecretMetadataPolicyFetch,
 				Key:            "mysec",
 			},
 			want: map[string][]byte{"annotations": []byte("{\"date\":\"today\"}"), "labels": []byte("{\"dev\":\"seb\"}")},
@@ -395,8 +395,8 @@ func TestGetSecretMap(t *testing.T) {
 				},
 				Namespace: "default",
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
-				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+			ref: esv1.ExternalSecretDataRemoteRef{
+				MetadataPolicy: esv1.ExternalSecretMetadataPolicyFetch,
 				Key:            "mysec",
 				Property:       "labels",
 			},
@@ -418,8 +418,8 @@ func TestGetSecretMap(t *testing.T) {
 				},
 				Namespace: "default",
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
-				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+			ref: esv1.ExternalSecretDataRemoteRef{
+				MetadataPolicy: esv1.ExternalSecretMetadataPolicyFetch,
 				Key:            "mysec",
 				Property:       "foo",
 			},
@@ -453,7 +453,7 @@ func TestGetAllSecrets(t *testing.T) {
 	}
 	type args struct {
 		ctx context.Context
-		ref esv1beta1.ExternalSecretFind
+		ref esv1.ExternalSecretFind
 	}
 	tests := []struct {
 		name    string
@@ -488,8 +488,8 @@ func TestGetAllSecrets(t *testing.T) {
 				},
 			},
 			args: args{
-				ref: esv1beta1.ExternalSecretFind{
-					Name: &esv1beta1.FindName{
+				ref: esv1.ExternalSecretFind{
+					Name: &esv1.FindName{
 						RegExp: "other",
 					},
 				},
@@ -527,7 +527,7 @@ func TestGetAllSecrets(t *testing.T) {
 				},
 			},
 			args: args{
-				ref: esv1beta1.ExternalSecretFind{
+				ref: esv1.ExternalSecretFind{
 					Tags: map[string]string{
 						"app": "foobar",
 					},
@@ -565,7 +565,7 @@ func TestDeleteSecret(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		ref    esv1beta1.PushSecretRemoteRef
+		ref    esv1.PushSecretRemoteRef
 
 		wantSecretMap map[string]*v1.Secret
 		wantErr       bool
@@ -1358,7 +1358,7 @@ func TestPushSecret(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &Client{
 				userSecretClient: tt.fields.Client,
-				store:            &esv1beta1.KubernetesProvider{},
+				store:            &esv1.KubernetesProvider{},
 			}
 			err := p.PushSecret(context.Background(), tt.secret, tt.data)
 			if (err != nil) != tt.wantErr {

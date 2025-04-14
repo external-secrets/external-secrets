@@ -24,7 +24,7 @@ import (
 	"github.com/DelineaXPM/tss-sdk-go/v2/server"
 	"github.com/stretchr/testify/assert"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 var (
@@ -93,7 +93,7 @@ func createTestSecretFromCode(id int) *server.Secret {
 	return s
 }
 
-func newTestClient() esv1beta1.SecretsClient {
+func newTestClient() esv1.SecretsClient {
 	return &client{
 		api: &fakeAPI{
 			secrets: []*server.Secret{
@@ -114,73 +114,73 @@ func TestGetSecretSecretServer(t *testing.T) {
 	jsonStr2, _ := json.Marshal(createTestSecretFromCode(4000))
 
 	testCases := map[string]struct {
-		ref  esv1beta1.ExternalSecretDataRemoteRef
+		ref  esv1.ExternalSecretDataRemoteRef
 		want []byte
 		err  error
 	}{
 		"incorrect key returns nil and error": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "0",
 			},
 			want: []byte(nil),
 			err:  errNotFound,
 		},
 		"key = 'secret name' and user property returns a single value": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "ESO-test-secret",
 				Property: "user",
 			},
 			want: []byte(`robertOppenheimer`),
 		},
 		"Secret from JSON: key and password property returns a single value": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "1000",
 				Property: "password",
 			},
 			want: []byte(`badPassword`),
 		},
 		"Secret from JSON: key and nested property returns a single value": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "2000",
 				Property: "server.1",
 			},
 			want: []byte(`192.168.1.51`),
 		},
 		"Secret from JSON: existent key with non-existing propery": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "3000",
 				Property: "foo.bar",
 			},
-			err: esv1beta1.NoSecretError{},
+			err: esv1.NoSecretError{},
 		},
 		"Secret from JSON: existent 'name' key with no propery": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "1000",
 			},
 			want: jsonStr,
 		},
 		"Secret from code: existent key with no property": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "4000",
 			},
 			want: jsonStr2,
 		},
 		"Secret from code: key and username fieldnamereturns a single value": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "4000",
 				Property: "Username",
 			},
 			want: []byte(`usernamevalue`),
 		},
 		"Secret from code: 'name' and password slug returns a single value": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "Secretname",
 				Property: "password",
 			},
 			want: []byte(`passwordvalue`),
 		},
 		"Secret from code: 'name' not found and password slug returns error": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "Secretnameerror",
 				Property: "password",
 			},
@@ -188,12 +188,12 @@ func TestGetSecretSecretServer(t *testing.T) {
 			err:  errNotFound,
 		},
 		"Secret from code: 'name' found and non-existent attribute slug returns noSecretError": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "Secretname",
 				Property: "passwordkey",
 			},
 			want: []byte(nil),
-			err:  esv1beta1.NoSecretError{},
+			err:  esv1.NoSecretError{},
 		},
 	}
 

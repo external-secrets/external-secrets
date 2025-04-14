@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	awsauth "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager"
@@ -37,7 +37,7 @@ import (
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1beta1.Provider = &Provider{}
+var _ esv1.Provider = &Provider{}
 
 // Provider satisfies the provider interface.
 type Provider struct{}
@@ -51,16 +51,16 @@ const (
 )
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadWrite
+func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadWrite
 }
 
 // NewClient constructs a new secrets client based on the provided store.
-func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 	return newClient(ctx, store, kube, namespace, awsauth.DefaultSTSProvider)
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	prov, err := util.GetAWSProvider(store)
 	if err != nil {
 		return nil, err
@@ -99,15 +99,15 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 	return nil, nil
 }
 
-func validateRegion(prov *esv1beta1.AWSProvider) error {
+func validateRegion(prov *esv1.AWSProvider) error {
 	resolver := endpoints.DefaultResolver()
 	partitions := resolver.(endpoints.EnumPartitions).Partitions()
 	found := false
 	for _, p := range partitions {
 		var serviceskey string
-		if prov.Service == esv1beta1.AWSServiceSecretsManager {
+		if prov.Service == esv1.AWSServiceSecretsManager {
 			serviceskey = "secretsmanager"
-		} else if prov.Service == esv1beta1.AWSServiceParameterStore {
+		} else if prov.Service == esv1.AWSServiceParameterStore {
 			serviceskey = "ssm"
 		}
 		service, ok := p.Services()[serviceskey]
@@ -125,7 +125,7 @@ func validateRegion(prov *esv1beta1.AWSProvider) error {
 	return nil
 }
 
-func validateSecretsManagerConfig(prov *esv1beta1.AWSProvider) error {
+func validateSecretsManagerConfig(prov *esv1.AWSProvider) error {
 	if prov.SecretsManager == nil {
 		return nil
 	}
@@ -135,7 +135,7 @@ func validateSecretsManagerConfig(prov *esv1beta1.AWSProvider) error {
 	})
 }
 
-func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string, assumeRoler awsauth.STSProvider) (esv1beta1.SecretsClient, error) {
+func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string, assumeRoler awsauth.STSProvider) (esv1.SecretsClient, error) {
 	prov, err := util.GetAWSProvider(store)
 	if err != nil {
 		return nil, err
@@ -149,13 +149,13 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 	// allow SecretStore controller validation to pass
 	// when using referent namespace.
 	if util.IsReferentSpec(prov.Auth) && namespace == "" &&
-		store.GetObjectKind().GroupVersionKind().Kind == esv1beta1.ClusterSecretStoreKind {
+		store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind {
 		cfg = aws.NewConfig().WithRegion("eu-west-1").WithEndpointResolver(awsauth.ResolveEndpoint())
 		sess := &session.Session{Config: cfg}
 		switch prov.Service {
-		case esv1beta1.AWSServiceSecretsManager:
-			return secretsmanager.New(sess, cfg, prov.SecretsManager, true)
-		case esv1beta1.AWSServiceParameterStore:
+		case esv1.AWSServiceSecretsManager:
+			return secretsmanager.New(sess, cfg, prov.SecretsManager, storeSpec.Provider.AWS.Prefix, true)
+		case esv1.AWSServiceParameterStore:
 			return parameterstore.New(sess, cfg, storeSpec.Provider.AWS.Prefix, true)
 		}
 		return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
@@ -192,16 +192,16 @@ func newClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Cl
 	}
 
 	switch prov.Service {
-	case esv1beta1.AWSServiceSecretsManager:
-		return secretsmanager.New(sess, cfg, prov.SecretsManager, false)
-	case esv1beta1.AWSServiceParameterStore:
+	case esv1.AWSServiceSecretsManager:
+		return secretsmanager.New(sess, cfg, prov.SecretsManager, storeSpec.Provider.AWS.Prefix, false)
+	case esv1.AWSServiceParameterStore:
 		return parameterstore.New(sess, cfg, storeSpec.Provider.AWS.Prefix, false)
 	}
 	return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 }
 
 func init() {
-	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
-		AWS: &esv1beta1.AWSProvider{},
-	})
+	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
+		AWS: &esv1.AWSProvider{},
+	}, esv1.MaintenanceStatusMaintained)
 }

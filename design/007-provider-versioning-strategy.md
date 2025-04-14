@@ -64,7 +64,7 @@ An example of how this implementation would look like is available on [here](htt
 ### Example Implementations
 Fake Provider Basic Convert function (very similar to other ):
 ```go
-func (p *Provider) Convert(in esv1beta1.GenericStore) (client.Object, error) {
+func (p *Provider) Convert(in esv1.GenericStore) (client.Object, error) {
 	out := &prov.Fake{}
 	tmp := map[string]any{
 		"spec": in.GetSpec().Provider.Fake,
@@ -134,7 +134,7 @@ func (g *gitlabBase) getAuth(ctx context.Context) ([]byte, error) {
 
 Gitlab Provider NewClient implementations:
 ```go
-func (g *Provider) NewClient(ctx context.Context, obj kclient.Object, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (g *Provider) NewClient(ctx context.Context, obj kclient.Object, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	prov, ok := obj.(*prov.Gitlab)
 	if !ok {
 		return nil, fmt.Errorf("could not convert spec %v onto a Gitlab Provider type: current type: %T", obj.GetName(), obj)
@@ -162,29 +162,29 @@ func (g *Provider) NewClient(ctx context.Context, obj kclient.Object, kube kclie
 Client Manager reconciler changes:
 
 ```go
-func (m *Manager) GetProviderRefFromStore(store esv1beta1.GenericStore) (esv1beta1.ProviderRef, error) {
+func (m *Manager) GetProviderRefFromStore(store esv1.GenericStore) (esv1.ProviderRef, error) {
   providerRef := store.GetSpec().ProviderRef
   if providerRef != nil {
     return *providerRef, nil
   }
-provider, err := esv1beta1.GetProvider(store)
+provider, err := esv1.GetProvider(store)
   if err != nil {
-    return esv1beta1.ProviderRef{}, err
+    return esv1.ProviderRef{}, err
   }
-  providerRef := esv1beta1.GetProviderRefByProvider(provider)
+  providerRef := esv1.GetProviderRefByProvider(provider)
   providerRef.Name = store.GetName()
   return *providerRef, nil
 }
 
-func (m *Manager) GetFromStore(ctx context.Context, store esv1beta1.GenericStore, namespace string) (esv1beta1.SecretsClient, error) {
-	var storeProvider esv1beta1.Provider
+func (m *Manager) GetFromStore(ctx context.Context, store esv1.GenericStore, namespace string) (esv1.SecretsClient, error) {
+	var storeProvider esv1.Provider
 	var err error
 	var spec client.Object
   prov, err := GetProviderRefFromStore(store)
   if err != nil {
     return nil, err
   }
-		storeProvider, _ = esv1beta1.GetProviderByRef(*prov)
+		storeProvider, _ = esv1.GetProviderByRef(*prov)
 		spec, err = m.getProviderSpec(ctx, prov, namespace)
 		if err != nil {
 			return nil, err
@@ -198,7 +198,7 @@ func (m *Manager) GetFromStore(ctx context.Context, store esv1beta1.GenericStore
 		"store", fmt.Sprintf("%s/%s", store.GetNamespace(), store.GetName()))
 	caller := esmetav1.ReferentCallSecretStore
 	storeKind := store.GetObjectKind().GroupVersionKind().Kind
-	if storeKind == esv1beta1.ClusterSecretStoreKind {
+	if storeKind == esv1.ClusterSecretStoreKind {
 		caller = esmetav1.ReferentCallClusterSecretStore
 	}
 	referredSpec, err := storeProvider.ApplyReferent(spec, caller, namespace)

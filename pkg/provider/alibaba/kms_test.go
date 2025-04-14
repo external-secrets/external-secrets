@@ -23,7 +23,7 @@ import (
 
 	kmssdk "github.com/alibabacloud-go/kms-20160120/v3/client"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakesm "github.com/external-secrets/external-secrets/pkg/provider/alibaba/fake"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -38,7 +38,7 @@ type keyManagementServiceTestCase struct {
 	mockClient     *fakesm.AlibabaMockClient
 	apiInput       *kmssdk.GetSecretValueRequest
 	apiOutput      *kmssdk.GetSecretValueResponseBody
-	ref            *esv1beta1.ExternalSecretDataRemoteRef
+	ref            *esv1.ExternalSecretDataRemoteRef
 	apiErr         error
 	expectError    string
 	expectedSecret string
@@ -61,8 +61,8 @@ func makeValidKMSTestCase() *keyManagementServiceTestCase {
 	return &kmstc
 }
 
-func makeValidRef() *esv1beta1.ExternalSecretDataRemoteRef {
-	return &esv1beta1.ExternalSecretDataRemoteRef{
+func makeValidRef() *esv1.ExternalSecretDataRemoteRef {
+	return &esv1.ExternalSecretDataRemoteRef{
 		Key: secretName,
 	}
 }
@@ -179,13 +179,13 @@ func TestGetSecretMap(t *testing.T) {
 func TestValidateAccessKeyStore(t *testing.T) {
 	kms := KeyManagementService{}
 
-	store := &esv1beta1.SecretStore{
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Alibaba: &esv1beta1.AlibabaProvider{
+	store := &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Alibaba: &esv1.AlibabaProvider{
 					RegionID: "region-1",
-					Auth: esv1beta1.AlibabaAuth{
-						SecretRef: &esv1beta1.AlibabaAuthSecretRef{
+					Auth: esv1.AlibabaAuth{
+						SecretRef: &esv1.AlibabaAuthSecretRef{
 							AccessKeyID: esmeta.SecretKeySelector{
 								Name: "accessKeyID",
 								Key:  "key-1",
@@ -210,13 +210,13 @@ func TestValidateAccessKeyStore(t *testing.T) {
 func TestValidateRRSAStore(t *testing.T) {
 	kms := KeyManagementService{}
 
-	store := &esv1beta1.SecretStore{
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Alibaba: &esv1beta1.AlibabaProvider{
+	store := &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Alibaba: &esv1.AlibabaProvider{
 					RegionID: "region-1",
-					Auth: esv1beta1.AlibabaAuth{
-						RRSAAuth: &esv1beta1.AlibabaRRSAAuth{
+					Auth: esv1.AlibabaAuth{
+						RRSAAuth: &esv1.AlibabaRRSAAuth{
 							OIDCProviderARN:   "acs:ram::1234:oidc-provider/ack-rrsa-ce123456",
 							OIDCTokenFilePath: "/var/run/secrets/tokens/oidc-token",
 							RoleARN:           "acs:ram::1234:role/test-role",

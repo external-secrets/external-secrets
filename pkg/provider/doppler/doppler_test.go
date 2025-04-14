@@ -23,8 +23,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/doppler/client"
 	"github.com/external-secrets/external-secrets/pkg/provider/doppler/fake"
@@ -49,7 +49,7 @@ type dopplerTestCase struct {
 	fakeClient     *fake.DopplerClient
 	request        client.SecretRequest
 	response       *client.SecretResponse
-	remoteRef      *esv1beta1.ExternalSecretDataRemoteRef
+	remoteRef      *esv1.ExternalSecretDataRemoteRef
 	apiErr         error
 	expectError    string
 	expectedSecret string
@@ -62,7 +62,7 @@ type updateSecretCase struct {
 	request     client.UpdateSecretsRequest
 	remoteRef   *esv1alpha1.PushSecretRemoteRef
 	secret      corev1.Secret
-	secretData  esv1beta1.PushSecretData
+	secretData  esv1.PushSecretData
 	apiErr      error
 	expectError string
 }
@@ -100,8 +100,8 @@ func makeValidAPIOutput() *client.SecretResponse {
 	}
 }
 
-func makeValidRemoteRef() *esv1beta1.ExternalSecretDataRemoteRef {
-	return &esv1beta1.ExternalSecretDataRemoteRef{
+func makeValidRemoteRef() *esv1.ExternalSecretDataRemoteRef {
+	return &esv1.ExternalSecretDataRemoteRef{
 		Key: validSecretName,
 	}
 }
@@ -376,14 +376,14 @@ func TestPushSecret(t *testing.T) {
 	}
 }
 
-type storeModifier func(*esv1beta1.SecretStore) *esv1beta1.SecretStore
+type storeModifier func(*esv1.SecretStore) *esv1.SecretStore
 
-func makeSecretStore(fn ...storeModifier) *esv1beta1.SecretStore {
-	store := &esv1beta1.SecretStore{
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Doppler: &esv1beta1.DopplerProvider{
-					Auth: &esv1beta1.DopplerAuth{},
+func makeSecretStore(fn ...storeModifier) *esv1.SecretStore {
+	store := &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Doppler: &esv1.DopplerProvider{
+					Auth: &esv1.DopplerAuth{},
 				},
 			},
 		},
@@ -395,7 +395,7 @@ func makeSecretStore(fn ...storeModifier) *esv1beta1.SecretStore {
 }
 
 func withAuth(name, key string, namespace *string) storeModifier {
-	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
+	return func(store *esv1.SecretStore) *esv1.SecretStore {
 		store.Spec.Provider.Doppler.Auth.SecretRef.DopplerToken = v1.SecretKeySelector{
 			Name:      name,
 			Key:       key,
@@ -407,7 +407,7 @@ func withAuth(name, key string, namespace *string) storeModifier {
 
 type ValidateStoreTestCase struct {
 	label string
-	store *esv1beta1.SecretStore
+	store *esv1.SecretStore
 	err   error
 }
 

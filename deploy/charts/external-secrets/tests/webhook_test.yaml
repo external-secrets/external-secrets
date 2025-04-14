@@ -141,6 +141,7 @@ tests:
   - it: should add annotations to the webhook
     set:
       webhook.create: true
+      crds.conversion.enabled: true
       webhook.certManager.enabled: true
       webhook.certManager.addInjectorAnnotations: true
     asserts:

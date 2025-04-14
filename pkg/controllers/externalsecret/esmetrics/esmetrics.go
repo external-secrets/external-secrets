@@ -19,7 +19,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 )
 
@@ -76,7 +76,7 @@ func SetUpMetrics() {
 	}
 }
 
-func UpdateExternalSecretCondition(es *esv1beta1.ExternalSecret, condition *esv1beta1.ExternalSecretStatusCondition, value float64) {
+func UpdateExternalSecretCondition(es *esv1.ExternalSecret, condition *esv1.ExternalSecretStatusCondition, value float64) {
 	esInfo := make(map[string]string)
 	esInfo["name"] = es.Name
 	esInfo["namespace"] = es.Namespace
@@ -87,31 +87,31 @@ func UpdateExternalSecretCondition(es *esv1beta1.ExternalSecret, condition *esv1
 	externalSecretCondition := GetGaugeVec(ExternalSecretStatusConditionKey)
 
 	switch condition.Type {
-	case esv1beta1.ExternalSecretDeleted:
+	case esv1.ExternalSecretDeleted:
 		// Remove condition=Ready metrics when the object gets deleted.
 		externalSecretCondition.Delete(ctrlmetrics.RefineLabels(conditionLabels,
 			map[string]string{
-				"condition": string(esv1beta1.ExternalSecretReady),
+				"condition": string(esv1.ExternalSecretReady),
 				"status":    string(v1.ConditionFalse),
 			}))
 
 		externalSecretCondition.Delete(ctrlmetrics.RefineLabels(conditionLabels,
 			map[string]string{
-				"condition": string(esv1beta1.ExternalSecretReady),
+				"condition": string(esv1.ExternalSecretReady),
 				"status":    string(v1.ConditionTrue),
 			}))
 
-	case esv1beta1.ExternalSecretReady:
+	case esv1.ExternalSecretReady:
 		// Remove condition=Deleted metrics when the object gets ready.
 		externalSecretCondition.Delete(ctrlmetrics.RefineLabels(conditionLabels,
 			map[string]string{
-				"condition": string(esv1beta1.ExternalSecretDeleted),
+				"condition": string(esv1.ExternalSecretDeleted),
 				"status":    string(v1.ConditionFalse),
 			}))
 
 		externalSecretCondition.Delete(ctrlmetrics.RefineLabels(conditionLabels,
 			map[string]string{
-				"condition": string(esv1beta1.ExternalSecretDeleted),
+				"condition": string(esv1.ExternalSecretDeleted),
 				"status":    string(v1.ConditionTrue),
 			}))
 
@@ -120,13 +120,13 @@ func UpdateExternalSecretCondition(es *esv1beta1.ExternalSecret, condition *esv1
 		case v1.ConditionFalse:
 			externalSecretCondition.With(ctrlmetrics.RefineLabels(conditionLabels,
 				map[string]string{
-					"condition": string(esv1beta1.ExternalSecretReady),
+					"condition": string(esv1.ExternalSecretReady),
 					"status":    string(v1.ConditionTrue),
 				})).Set(0)
 		case v1.ConditionTrue:
 			externalSecretCondition.With(ctrlmetrics.RefineLabels(conditionLabels,
 				map[string]string{
-					"condition": string(esv1beta1.ExternalSecretReady),
+					"condition": string(esv1.ExternalSecretReady),
 					"status":    string(v1.ConditionFalse),
 				})).Set(0)
 		case v1.ConditionUnknown:
