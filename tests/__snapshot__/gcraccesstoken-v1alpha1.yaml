@@ -16,4 +16,10 @@ spec:
         audiences: [] # minItems 0 of type string
         name: string
         namespace: string
+    workloadIdentityFederation:
+      audience: string
+      credConfig:
+        key: string
+        name: string
+        namespace: string
   projectID: string

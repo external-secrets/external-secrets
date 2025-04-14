@@ -23,6 +23,8 @@ type GCPSMAuth struct {
 	SecretRef *GCPSMAuthSecretRef `json:"secretRef,omitempty"`
 	// +optional
 	WorkloadIdentity *GCPWorkloadIdentity `json:"workloadIdentity,omitempty"`
+	// +optional
+	WorkloadIdentityFederation *GCPWorkloadIdentityFederation `json:"workloadIdentityFederation,omitempty"`
 }
 
 type GCPSMAuthSecretRef struct {
@@ -49,4 +51,30 @@ type GCPSMProvider struct {
 
 	// Location optionally defines a location for a secret
 	Location string `json:"location,omitempty"`
+}
+
+// GCPWorkloadIdentityFederation holds the configurations required for setting up GCP workload identity federation.
+type GCPWorkloadIdentityFederation struct {
+	// credConfig holds the configmap containing the GCP external account credential configuration in JSON format and the key name containing the json data.
+	// +required
+	CredConfig *ConfigMapReference `json:"credConfig,omitempty"`
+
+	// audience to be used for obtaining the token. Audience found in the external account credential config will be overridden with the configured value.
+	// +optional
+	Audience string `json:"audience,omitempty"`
+}
+
+// ConfigMapReference holds the details of a configmap.
+type ConfigMapReference struct {
+	// name of the configmap.
+	// +required
+	Name string `json:"name"`
+
+	// namespace in which the configmap exists. If empty, configmap will looked up in local namespace.
+	// +optional
+	Namespace string `json:"namespace"`
+
+	// key name holding the external account credential config. If empty, a key in the configmap will be used.
+	// +optional
+	Key string `json:"key"`
 }
