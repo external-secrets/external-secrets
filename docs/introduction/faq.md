@@ -10,14 +10,17 @@ kubectl annotate es my-es force-sync=$(date +%s) --overwrite
 ## How do I know when my secret was last synced?
 
 
-The last synchronization timestamp of an ExternalSecret can be retrieved from the field `refreshTime`. 
+The last synchronization timestamp of an ExternalSecret can be retrieved from the field `refreshTime`.
 
 ```
 kubectl get es my-external-secret -o yaml | grep refreshTime
   refreshTime: "2022-05-21T23:02:47Z"
 ```
 
-The interval can be changed by the `spec.refreshInterval` in the ExternalSecret.
+The interval can be changed by the `spec.refreshInterval` in the ExternalSecret. You can also control the refresh behavior by setting `spec.refreshPolicy` to one of the following options:
+- `Periodic` (default): Update regularly based on refreshInterval
+- `CreatedOnce`: Create the Secret only once and never update it afterward
+- `OnChange`: Only update when the ExternalSecret's metadata or specification changes
 
 ## How do I know when the status of my secret changed the last time?
 
