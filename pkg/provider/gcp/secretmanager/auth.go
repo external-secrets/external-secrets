@@ -42,6 +42,14 @@ func NewTokenSource(ctx context.Context, auth esv1beta1.GCPSMAuth, projectID, st
 	if ts != nil || err != nil {
 		return ts, err
 	}
+	wif, err := newWorkloadIdentityFederation(ctx, auth.WorkloadIdentityFederation, kube)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize workload identity federation: %w", err)
+	}
+	ts, err = wif.TokenSource(ctx)
+	if ts != nil || err != nil {
+		return ts, err
+	}
 	return google.DefaultTokenSource(ctx, CloudPlatformRole)
 }
 
