@@ -34,5 +34,5 @@ done
 
 shopt -s extglob
 yq e \
-    '.spec.conversion.strategy = "Webhook" | .spec.conversion.webhook.conversionReviewVersions = ["v1"] | .spec.conversion.webhook.clientConfig.service.name = "kubernetes" | .spec.conversion.webhook.clientConfig.service.namespace = "default" |	.spec.conversion.webhook.clientConfig.service.path = "/convert"' \
+    '.spec.conversion.strategy = "None"' \
     "${CRD_DIR}"/bases/!(kustomization).yaml > "${BUNDLE_YAML}"

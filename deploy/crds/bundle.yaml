@@ -1454,15 +1454,7 @@ spec:
       subresources:
         status: {}
   conversion:
-    strategy: Webhook
-    webhook:
-      conversionReviewVersions:
-        - v1
-      clientConfig:
-        service:
-          name: kubernetes
-          namespace: default
-          path: /convert
+    strategy: None
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -1980,15 +1972,7 @@ spec:
       subresources:
         status: {}
   conversion:
-    strategy: Webhook
-    webhook:
-      conversionReviewVersions:
-        - v1
-      clientConfig:
-        service:
-          name: kubernetes
-          namespace: default
-          path: /convert
+    strategy: None
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -10156,15 +10140,7 @@ spec:
       subresources:
         status: {}
   conversion:
-    strategy: Webhook
-    webhook:
-      conversionReviewVersions:
-        - v1
-      clientConfig:
-        service:
-          name: kubernetes
-          namespace: default
-          path: /convert
+    strategy: None
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -11374,15 +11350,7 @@ spec:
       subresources:
         status: {}
   conversion:
-    strategy: Webhook
-    webhook:
-      conversionReviewVersions:
-        - v1
-      clientConfig:
-        service:
-          name: kubernetes
-          namespace: default
-          path: /convert
+    strategy: None
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -11858,15 +11826,7 @@ spec:
       subresources:
         status: {}
   conversion:
-    strategy: Webhook
-    webhook:
-      conversionReviewVersions:
-        - v1
-      clientConfig:
-        service:
-          name: kubernetes
-          namespace: default
-          path: /convert
+    strategy: None
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -20034,15 +19994,7 @@ spec:
       subresources:
         status: {}
   conversion:
-    strategy: Webhook
-    webhook:
-      conversionReviewVersions:
-        - v1
-      clientConfig:
-        service:
-          name: kubernetes
-          namespace: default
-          path: /convert
+    strategy: None
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -20251,15 +20203,7 @@ spec:
       subresources:
         status: {}
   conversion:
-    strategy: Webhook
-    webhook:
-      conversionReviewVersions:
-        - v1
-      clientConfig:
-        service:
-          name: kubernetes
-          namespace: default
-          path: /convert
+    strategy: None
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -22022,15 +21966,7 @@ spec:
       subresources:
         status: {}
   conversion:
-    strategy: Webhook
-    webhook:
-      conversionReviewVersions:
-        - v1
-      clientConfig:
-        service:
-          name: kubernetes
-          namespace: default
-          path: /convert
+    strategy: None
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -22227,15 +22163,7 @@ spec:
       subresources:
         status: {}
   conversion:
-    strategy: Webhook
-    webhook:
-      conversionReviewVersions:
-        - v1
-      clientConfig:
-        service:
-          name: kubernetes
-          namespace: default
-          path: /convert
+    strategy: None
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -22303,15 +22231,7 @@ spec:
       subresources:
         status: {}
   conversion:
-    strategy: Webhook
-    webhook:
-      conversionReviewVersions:
-        - v1
-      clientConfig:
-        service:
-          name: kubernetes
-          namespace: default
-          path: /convert
+    strategy: None
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -22446,15 +22366,7 @@ spec:
       subresources:
         status: {}
   conversion:
-    strategy: Webhook
-    webhook:
-      conversionReviewVersions:
-        - v1
-      clientConfig:
-        service:
-          name: kubernetes
-          namespace: default
-          path: /convert
+    strategy: None
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -22559,15 +22471,7 @@ spec:
       storage: true
       subresources: {}
   conversion:
-    strategy: Webhook
-    webhook:
-      conversionReviewVersions:
-        - v1
-      clientConfig:
-        service:
-          name: kubernetes
-          namespace: default
-          path: /convert
+    strategy: None
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -22682,15 +22586,7 @@ spec:
       subresources:
         status: {}
   conversion:
-    strategy: Webhook
-    webhook:
-      conversionReviewVersions:
-        - v1
-      clientConfig:
-        service:
-          name: kubernetes
-          namespace: default
-          path: /convert
+    strategy: None
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -22824,15 +22720,7 @@ spec:
       subresources:
         status: {}
   conversion:
-    strategy: Webhook
-    webhook:
-      conversionReviewVersions:
-        - v1
-      clientConfig:
-        service:
-          name: kubernetes
-          namespace: default
-          path: /convert
+    strategy: None
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -22922,15 +22810,7 @@ spec:
       subresources:
         status: {}
   conversion:
-    strategy: Webhook
-    webhook:
-      conversionReviewVersions:
-        - v1
-      clientConfig:
-        service:
-          name: kubernetes
-          namespace: default
-          path: /convert
+    strategy: None
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -23020,15 +22900,7 @@ spec:
       subresources:
         status: {}
   conversion:
-    strategy: Webhook
-    webhook:
-      conversionReviewVersions:
-        - v1
-      clientConfig:
-        service:
-          name: kubernetes
-          namespace: default
-          path: /convert
+    strategy: None
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -23239,15 +23111,7 @@ spec:
       subresources:
         status: {}
   conversion:
-    strategy: Webhook
-    webhook:
-      conversionReviewVersions:
-        - v1
-      clientConfig:
-        service:
-          name: kubernetes
-          namespace: default
-          path: /convert
+    strategy: None
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -23300,15 +23164,7 @@ spec:
       subresources:
         status: {}
   conversion:
-    strategy: Webhook
-    webhook:
-      conversionReviewVersions:
-        - v1
-      clientConfig:
-        service:
-          name: kubernetes
-          namespace: default
-          path: /convert
+    strategy: None
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -24164,15 +24020,7 @@ spec:
       subresources:
         status: {}
   conversion:
-    strategy: Webhook
-    webhook:
-      conversionReviewVersions:
-        - v1
-      clientConfig:
-        service:
-          name: kubernetes
-          namespace: default
-          path: /convert
+    strategy: None
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
@@ -24326,12 +24174,4 @@ spec:
       subresources:
         status: {}
   conversion:
-    strategy: Webhook
-    webhook:
-      conversionReviewVersions:
-        - v1
-      clientConfig:
-        service:
-          name: kubernetes
-          namespace: default
-          path: /convert
+    strategy: None
