@@ -103,6 +103,36 @@ spec:
                                   - Base64URL
                                   - None
                                 type: string
+                              decryptingStrategy:
+                                default:
+                                  scheme: None
+                                description: Used to define a decrypting Strategy
+                                properties:
+                                  hash:
+                                    default: SHA1
+                                    description: Used to define a decrypting Hash
+                                    enum:
+                                      - None
+                                      - SHA1
+                                      - SHA256
+                                      - SHA512
+                                    type: string
+                                  privateKeyType:
+                                    default: PKCS8
+                                    description: Used to define a decrypting Private Key type
+                                    enum:
+                                      - None
+                                      - PKCS8
+                                      - PKCS1
+                                    type: string
+                                  scheme:
+                                    default: None
+                                    description: Used to define a decrypting Scheme
+                                    enum:
+                                      - None
+                                      - RSA-OAEP
+                                    type: string
+                                type: object
                               key:
                                 description: Key is the key used in the Provider, mandatory
                                 type: string
@@ -224,6 +254,36 @@ spec:
                                   - Base64URL
                                   - None
                                 type: string
+                              decryptingStrategy:
+                                default:
+                                  scheme: None
+                                description: Used to define a decrypting Strategy
+                                properties:
+                                  hash:
+                                    default: SHA1
+                                    description: Used to define a decrypting Hash
+                                    enum:
+                                      - None
+                                      - SHA1
+                                      - SHA256
+                                      - SHA512
+                                    type: string
+                                  privateKeyType:
+                                    default: PKCS8
+                                    description: Used to define a decrypting Private Key type
+                                    enum:
+                                      - None
+                                      - PKCS8
+                                      - PKCS1
+                                    type: string
+                                  scheme:
+                                    default: None
+                                    description: Used to define a decrypting Scheme
+                                    enum:
+                                      - None
+                                      - RSA-OAEP
+                                    type: string
+                                type: object
                               key:
                                 description: Key is the key used in the Provider, mandatory
                                 type: string
@@ -6134,6 +6194,32 @@ spec:
                         module:
                           description: Module defines which senhasegura module should be used to get secrets
                           type: string
+                        privateKeySecretRef:
+                          description: Usage for cases in which the authorization by application encrypts sensitive data
+                          properties:
+                            key:
+                              description: |-
+                                A key in the referenced Secret.
+                                Some instances of this field may be defaulted, in others it may be required.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace of the Secret resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          type: object
                         url:
                           description: URL of senhasegura
                           type: string
@@ -7602,6 +7688,36 @@ spec:
                               - Base64URL
                               - None
                             type: string
+                          decryptingStrategy:
+                            default:
+                              scheme: None
+                            description: Used to define a decrypting Strategy
+                            properties:
+                              hash:
+                                default: SHA1
+                                description: Used to define a decrypting Hash
+                                enum:
+                                  - None
+                                  - SHA1
+                                  - SHA256
+                                  - SHA512
+                                type: string
+                              privateKeyType:
+                                default: PKCS8
+                                description: Used to define a decrypting Private Key type
+                                enum:
+                                  - None
+                                  - PKCS8
+                                  - PKCS1
+                                type: string
+                              scheme:
+                                default: None
+                                description: Used to define a decrypting Scheme
+                                enum:
+                                  - None
+                                  - RSA-OAEP
+                                type: string
+                            type: object
                           key:
                             description: Key is the key used in the Provider, mandatory
                             type: string
@@ -7723,6 +7839,36 @@ spec:
                               - Base64URL
                               - None
                             type: string
+                          decryptingStrategy:
+                            default:
+                              scheme: None
+                            description: Used to define a decrypting Strategy
+                            properties:
+                              hash:
+                                default: SHA1
+                                description: Used to define a decrypting Hash
+                                enum:
+                                  - None
+                                  - SHA1
+                                  - SHA256
+                                  - SHA512
+                                type: string
+                              privateKeyType:
+                                default: PKCS8
+                                description: Used to define a decrypting Private Key type
+                                enum:
+                                  - None
+                                  - PKCS8
+                                  - PKCS1
+                                type: string
+                              scheme:
+                                default: None
+                                description: Used to define a decrypting Scheme
+                                enum:
+                                  - None
+                                  - RSA-OAEP
+                                type: string
+                            type: object
                           key:
                             description: Key is the key used in the Provider, mandatory
                             type: string
@@ -13484,6 +13630,32 @@ spec:
                         module:
                           description: Module defines which senhasegura module should be used to get secrets
                           type: string
+                        privateKeySecretRef:
+                          description: Usage for cases in which the authorization by application encrypts sensitive data
+                          properties:
+                            key:
+                              description: |-
+                                A key in the referenced Secret.
+                                Some instances of this field may be defaulted, in others it may be required.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace of the Secret resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          type: object
                         url:
                           description: URL of senhasegura
                           type: string
