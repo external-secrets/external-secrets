@@ -2444,6 +2444,60 @@ Kubernetes meta/v1.LabelSelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.ConfigMapReference">ConfigMapReference
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.GCPWorkloadIdentityFederation">GCPWorkloadIdentityFederation</a>)
+</p>
+<p>
+<p>ConfigMapReference holds the details of a configmap.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>name of the configmap.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>namespace in which the configmap exists. If empty, configmap will looked up in local namespace.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>key</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>key name holding the external account credential config. If empty, a key in the configmap will be used.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.ConjurAPIKey">ConjurAPIKey
 </h3>
 <p>
@@ -4543,6 +4597,19 @@ GCPWorkloadIdentity
 <em>(Optional)</em>
 </td>
 </tr>
+<tr>
+<td>
+<code>workloadIdentityFederation</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.GCPWorkloadIdentityFederation">
+GCPWorkloadIdentityFederation
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.GCPSMAuthSecretRef">GCPSMAuthSecretRef
@@ -4697,6 +4764,50 @@ string
 <em>(Optional)</em>
 <p>ClusterProjectID is the project ID of the cluster
 If not specified, it fetches information from the metadata server</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1beta1.GCPWorkloadIdentityFederation">GCPWorkloadIdentityFederation
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.GCPSMAuth">GCPSMAuth</a>)
+</p>
+<p>
+<p>GCPWorkloadIdentityFederation holds the configurations required for setting up GCP workload identity federation.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>credConfig</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.ConfigMapReference">
+ConfigMapReference
+</a>
+</em>
+</td>
+<td>
+<p>credConfig holds the configmap containing the GCP external account credential configuration in JSON format and the key name containing the json data.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>audience</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>audience to be used for obtaining the token. Audience found in the external account credential config will be overridden with the configured value.</p>
 </td>
 </tr>
 </tbody>

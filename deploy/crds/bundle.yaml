@@ -4874,6 +4874,30 @@ spec:
                               required:
                                 - serviceAccountRef
                               type: object
+                            workloadIdentityFederation:
+                              description: GCPWorkloadIdentityFederation holds the configurations required for setting up GCP workload identity federation.
+                              properties:
+                                audience:
+                                  description: audience to be used for obtaining the token. Audience found in the external account credential config will be overridden with the configured value.
+                                  type: string
+                                credConfig:
+                                  description: credConfig holds the configmap containing the GCP external account credential configuration in JSON format and the key name containing the json data.
+                                  properties:
+                                    key:
+                                      description: key name holding the external account credential config. If empty, a key in the configmap will be used.
+                                      type: string
+                                    name:
+                                      description: name of the configmap.
+                                      type: string
+                                    namespace:
+                                      description: namespace in which the configmap exists. If empty, configmap will looked up in local namespace.
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - credConfig
+                              type: object
                           type: object
                         location:
                           description: Location optionally defines a location for a secret
@@ -12212,6 +12236,30 @@ spec:
                               required:
                                 - serviceAccountRef
                               type: object
+                            workloadIdentityFederation:
+                              description: GCPWorkloadIdentityFederation holds the configurations required for setting up GCP workload identity federation.
+                              properties:
+                                audience:
+                                  description: audience to be used for obtaining the token. Audience found in the external account credential config will be overridden with the configured value.
+                                  type: string
+                                credConfig:
+                                  description: credConfig holds the configmap containing the GCP external account credential configuration in JSON format and the key name containing the json data.
+                                  properties:
+                                    key:
+                                      description: key name holding the external account credential config. If empty, a key in the configmap will be used.
+                                      type: string
+                                    name:
+                                      description: name of the configmap.
+                                      type: string
+                                    namespace:
+                                      description: namespace in which the configmap exists. If empty, configmap will looked up in local namespace.
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - credConfig
+                              type: object
                           type: object
                         location:
                           description: Location optionally defines a location for a secret
@@ -15187,6 +15235,30 @@ spec:
                                 - clusterName
                                 - serviceAccountRef
                               type: object
+                            workloadIdentityFederation:
+                              description: GCPWorkloadIdentityFederation holds the configurations required for setting up GCP workload identity federation.
+                              properties:
+                                audience:
+                                  description: audience to be used for obtaining the token. Audience found in the external account credential config will be overridden with the configured value.
+                                  type: string
+                                credConfig:
+                                  description: credConfig holds the configmap containing the GCP external account credential configuration in JSON format and the key name containing the json data.
+                                  properties:
+                                    key:
+                                      description: key name holding the external account credential config. If empty, a key in the configmap will be used.
+                                      type: string
+                                    name:
+                                      description: name of the configmap.
+                                      type: string
+                                    namespace:
+                                      description: namespace in which the configmap exists. If empty, configmap will looked up in local namespace.
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - credConfig
+                              type: object
                           type: object
                         projectID:
                           description: ProjectID defines which project to use to authenticate with
@@ -16925,6 +16997,30 @@ spec:
                         - clusterLocation
                         - clusterName
                         - serviceAccountRef
+                      type: object
+                    workloadIdentityFederation:
+                      description: GCPWorkloadIdentityFederation holds the configurations required for setting up GCP workload identity federation.
+                      properties:
+                        audience:
+                          description: audience to be used for obtaining the token. Audience found in the external account credential config will be overridden with the configured value.
+                          type: string
+                        credConfig:
+                          description: credConfig holds the configmap containing the GCP external account credential configuration in JSON format and the key name containing the json data.
+                          properties:
+                            key:
+                              description: key name holding the external account credential config. If empty, a key in the configmap will be used.
+                              type: string
+                            name:
+                              description: name of the configmap.
+                              type: string
+                            namespace:
+                              description: namespace in which the configmap exists. If empty, configmap will looked up in local namespace.
+                              type: string
+                          required:
+                            - name
+                          type: object
+                      required:
+                        - credConfig
                       type: object
                   type: object
                 projectID:
