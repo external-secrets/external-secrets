@@ -66,6 +66,6 @@ jobs:
       ref: ${{ github.event.inputs.ref }}
       image-tag: ${{ github.event.inputs.ref }}
       username: ${{ github.actor }}
-      is-fork: ${{ secrets.GHCR_USERNAME == '' && 'true' || 'false' }}
     secrets:
       GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      IS_FORK: ${{ secrets.GHCR_USERNAME }}
