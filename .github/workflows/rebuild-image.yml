@@ -36,7 +36,8 @@ jobs:
     needs: checkout
     permissions:
       contents: read
-      packages: write
+      id-token: write #for keyless sign
+      packages: write #for updating packages
     strategy:
       matrix:
         include:

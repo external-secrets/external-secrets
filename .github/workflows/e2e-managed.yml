@@ -55,9 +55,9 @@ jobs:
   run-e2e-managed:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
-      checks: write
-      contents: read
+      id-token: write #for oidc auth with aws/gcp/azure
+      checks: write   #publish the commit status
+      contents: read  #for checkout
     if: github.event_name == 'repository_dispatch'
 
     steps:
