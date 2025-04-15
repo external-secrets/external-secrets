@@ -28,9 +28,10 @@ on:
       build-platform:
         required: true
         type: string
-    secrets:
-      GHCR_USERNAME:
+      username:
         required: true
+        type: string
+    secrets:
       GHCR_TOKEN:
         required: true
 
@@ -48,6 +49,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
     outputs:
       image-tag: ${{ steps.container_info.outputs.image-tag }}
     steps:
@@ -87,8 +89,8 @@ jobs:
         if: env.IS_FORK == 'false'
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ inputs.username }}
+          password: ${{ secrets.GHCR_TOKEN }}
 
       - name: Get docker image tag
         id: container_info
@@ -154,6 +156,6 @@ jobs:
         with:
           image-name: ${{ inputs.image-name }}
           image-tag: ${{ needs.build-publish.outputs.image-tag }}
-          GHCR_USERNAME: ${{ github.actor }}
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USERNAME: ${{ inputs.username }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GHCR_TOKEN }}

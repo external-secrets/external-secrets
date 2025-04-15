@@ -65,7 +65,6 @@ jobs:
       build-arch: ${{ matrix.build-arch }}
       ref: ${{ github.event.inputs.ref }}
       image-tag: ${{ github.event.inputs.ref }}
+      username: ${{ github.actor }}
     secrets:
-      GHCR_USERNAME: ${{ github.actor }}
       GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
