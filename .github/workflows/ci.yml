@@ -167,7 +167,7 @@ jobs:
       build-args: ${{ matrix.build-args }}
       build-arch: ${{ matrix.build-arch }}
       ref: ${{ github.ref }}
+      username: ${{ github.actor }}
     secrets:
-      GHCR_USERNAME: ${{ github.actor }}
       GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
