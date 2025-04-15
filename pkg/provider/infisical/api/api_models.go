@@ -66,14 +66,16 @@ type GetSecretsV3Response struct {
 }
 
 type SecretsV3 struct {
-	ID            string `json:"id"`
-	Workspace     string `json:"workspace"`
-	Environment   string `json:"environment"`
-	Version       int    `json:"version"`
-	Type          string `json:"string"`
-	SecretKey     string `json:"secretKey"`
-	SecretValue   string `json:"secretValue"`
-	SecretComment string `json:"secretComment"`
+	ID             string           `json:"id"`
+	Workspace      string           `json:"workspace"`
+	Environment    string           `json:"environment"`
+	Version        int              `json:"version"`
+	Type           string           `json:"string"`
+	SecretKey      string           `json:"secretKey"`
+	SecretValue    string           `json:"secretValue"`
+	SecretComment  string           `json:"secretComment"`
+	SecretPath     string           `json:"secretPath,omitempty"`
+	SecretMetadata []SecretMetadata `json:"secretMetadata"`
 }
 
 type ImportedSecretV3 struct {
@@ -89,4 +91,9 @@ type InfisicalAPIErrorResponse struct {
 	Error      string `json:"error"`
 	// According to Infisical's API docs, `details` are only returned for 403 errors.
 	Details any `json:"details,omitempty"`
+}
+
+type SecretMetadata struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }

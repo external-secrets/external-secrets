@@ -203,7 +203,8 @@ func TestGetSecretsV3(t *testing.T) {
 	t.Run("Works with secrets", func(t *testing.T) {
 		apiClient, closeFunc := NewMockClient(200, GetSecretsV3Response{
 			Secrets: []SecretsV3{
-				{SecretKey: "foo", SecretValue: "bar"},
+				{ID: "1", SecretKey: "foo", SecretValue: "bar", SecretPath: "/Folder1/Folder2"},
+				{ID: "2", SecretKey: "foo2", SecretValue: "bar2", SecretPath: "/Folder1"},
 			},
 		})
 		defer closeFunc()
@@ -215,13 +216,22 @@ func TestGetSecretsV3(t *testing.T) {
 			Recursive:       true,
 		})
 		assert.NoError(t, err)
-		assert.Equal(t, secrets, map[string]string{"foo": "bar"})
+		assert.Equal(t, secrets, map[string]SecretsV3{
+			"1": {ID: "1", SecretKey: "foo", SecretValue: "bar", SecretPath: "/Folder1/Folder2"},
+			"2": {ID: "2", SecretKey: "foo2", SecretValue: "bar2", SecretPath: "/Folder1"},
+		})
 	})
 
 	t.Run("Works with imported secrets", func(t *testing.T) {
 		apiClient, closeFunc := NewMockClient(200, GetSecretsV3Response{
 			ImportedSecrets: []ImportedSecretV3{{
-				Secrets: []SecretsV3{{SecretKey: "foo", SecretValue: "bar"}},
+				SecretPath:  "/Folder1",
+				Environment: "Dev",
+				FolderID:    "folderId",
+				Secrets: []SecretsV3{
+					{ID: "1", SecretKey: "foo", SecretValue: "bar"},
+					{ID: "2", SecretKey: "foo2", SecretValue: "bar2"},
+				},
 			}},
 		})
 		defer closeFunc()
@@ -233,7 +243,10 @@ func TestGetSecretsV3(t *testing.T) {
 			Recursive:       true,
 		})
 		assert.NoError(t, err)
-		assert.Equal(t, secrets, map[string]string{"foo": "bar"})
+		assert.Equal(t, secrets, map[string]SecretsV3{
+			"1": {SecretKey: "foo", SecretValue: "bar"},
+			"2": {SecretKey: "foo2", SecretValue: "bar2"},
+		})
 	})
 
 	t.Run("GetSecretsV3: Error when non-200 response received", func(t *testing.T) {

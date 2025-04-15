@@ -229,7 +229,7 @@ func (a *InfisicalClient) do(endpoint, method string, params map[string]string, 
 	return nil
 }
 
-func (a *InfisicalClient) GetSecretsV3(data GetSecretsV3Request) (map[string]string, error) {
+func (a *InfisicalClient) GetSecretsV3(data GetSecretsV3Request) (map[string]SecretsV3, error) {
 	params := map[string]string{
 		"workspaceSlug":          data.ProjectSlug,
 		"environment":            data.EnvironmentSlug,
@@ -252,20 +252,21 @@ func (a *InfisicalClient) GetSecretsV3(data GetSecretsV3Request) (map[string]str
 		return nil, err
 	}
 
-	secrets := make(map[string]string)
+	secrets := make(map[string]SecretsV3)
 	for _, s := range res.ImportedSecrets {
 		for _, el := range s.Secrets {
-			secrets[el.SecretKey] = el.SecretValue
+			//To ensure IMPORT secrets are not overriden by the secret if the path filter applies.
+			secrets["IMPORT:"+el.ID] = el
 		}
 	}
 	for _, el := range res.Secrets {
-		secrets[el.SecretKey] = el.SecretValue
+		secrets[el.ID] = el
 	}
 
 	return secrets, nil
 }
 
-func (a *InfisicalClient) GetSecretByKeyV3(data GetSecretByKeyV3Request) (string, error) {
+func (a *InfisicalClient) GetSecretByKeyV3(data GetSecretByKeyV3Request) (SecretsV3, error) {
 	params := map[string]string{
 		"workspaceSlug":          data.ProjectSlug,
 		"environment":            data.EnvironmentSlug,
@@ -288,12 +289,11 @@ func (a *InfisicalClient) GetSecretByKeyV3(data GetSecretByKeyV3Request) (string
 	if err != nil {
 		var apiErr *InfisicalAPIError
 		if errors.As(err, &apiErr) && apiErr.StatusCode == 404 {
-			return "", esv1beta1.NoSecretError{}
+			return SecretsV3{}, esv1beta1.NoSecretError{}
 		}
-		return "", err
+		return SecretsV3{}, err
 	}
-
-	return res.Secret.SecretValue, nil
+	return res.Secret, nil
 }
 
 func MarshalReqBody(data any) (*bytes.Reader, error) {

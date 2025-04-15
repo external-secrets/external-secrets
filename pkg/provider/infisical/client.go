@@ -30,9 +30,8 @@ import (
 )
 
 var (
-	errNotImplemented     = errors.New("not implemented")
-	errPropertyNotFound   = "property %s does not exist in secret %s"
-	errTagsNotImplemented = errors.New("find by tags not supported")
+	errNotImplemented   = errors.New("not implemented")
+	errPropertyNotFound = "property %s does not exist in secret %s"
 )
 
 func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
@@ -43,14 +42,81 @@ func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
 	return []byte(result.Str), nil
 }
 
+// split key in path and key
+func splitKey(key string) (path string, name string) {
+	key = strings.TrimSuffix(key, "/")
+
+	// Handle empty or root
+	if key == "" || key == "/" {
+		return "", ""
+	}
+
+	// Split path
+	lastSlash := strings.LastIndex(key, "/")
+
+	if lastSlash == -1 {
+		// No slashes → just a key
+		return "", key
+	}
+
+	pathPart := key[:lastSlash]
+	keyPart := key[lastSlash+1:]
+
+	// Special case: root folder "/"
+	if pathPart == "" && strings.HasPrefix(key, "/") {
+		return "/", keyPart
+	}
+
+	return pathPart, keyPart
+}
+
+// Check if all tag filters are included in the metadata.
+func tagFilter(secretTags []api.SecretMetadata, tagFilter map[string]string) bool {
+	for k, v := range tagFilter {
+		tagKeyFound := false
+		tagKeyValueValid := false
+		for _, sTag := range secretTags {
+			if sTag.Key == k {
+				tagKeyFound = true
+			}
+			if sTag.Key == k && sTag.Value == v {
+				tagKeyValueValid = true
+				break
+			}
+		}
+		// All tags filters should be in the secret
+		if !tagKeyFound || (tagKeyFound && !tagKeyValueValid) {
+			return false
+		}
+
+	}
+	return true
+}
+
 // if GetSecret returns an error with type NoSecretError.
 // then the secret entry will be deleted depending on the deletionPolicy.
 func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+
+	path, key := splitKey(ref.Key)
+
+	secretPath := p.apiScope.SecretPath
+	// For absolute paths we check that the path is a subpath of the Secret Store Path
+	if strings.HasPrefix(path, "/") && strings.HasPrefix(path, p.apiScope.SecretPath) {
+		secretPath = path
+	}
+	// For relative paths, we concat it to the the Secret Store Path
+	if !strings.HasPrefix(path, "/") {
+		if !strings.HasSuffix(p.apiScope.SecretPath, "/") {
+			secretPath = p.apiScope.SecretPath + "/"
+		}
+		secretPath += path
+	}
+
 	secret, err := p.apiClient.GetSecretByKeyV3(api.GetSecretByKeyV3Request{
 		EnvironmentSlug:        p.apiScope.EnvironmentSlug,
 		ProjectSlug:            p.apiScope.ProjectSlug,
-		SecretKey:              ref.Key,
-		SecretPath:             p.apiScope.SecretPath,
+		SecretKey:              key,
+		SecretPath:             secretPath,
 		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 	})
 
@@ -59,7 +125,7 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 	}
 
 	if ref.Property != "" {
-		propertyValue, err := getPropertyValue(secret, ref.Property, ref.Key)
+		propertyValue, err := getPropertyValue(secret.SecretValue, ref.Property, ref.Key)
 		if err != nil {
 			return nil, err
 		}
@@ -67,7 +133,7 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 		return propertyValue, nil
 	}
 
-	return []byte(secret), nil
+	return []byte(secret.SecretValue), nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
@@ -97,14 +163,27 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 
 // GetAllSecrets returns multiple k/v pairs from the provider.
 func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
-	if ref.Tags != nil {
-		return nil, errTagsNotImplemented
+
+	secretPath := p.apiScope.SecretPath
+	if ref.Path != nil {
+
+		// For absolute paths we check that the path is a subpath of the Secret Store Path
+		if strings.HasPrefix(*ref.Path, "/") && strings.HasPrefix(*ref.Path, p.apiScope.SecretPath) {
+			secretPath = *ref.Path
+		}
+		// For relative paths, we concat it to the the Secret Store Path
+		if !strings.HasPrefix(*ref.Path, "/") {
+			if !strings.HasSuffix(p.apiScope.SecretPath, "/") {
+				secretPath = p.apiScope.SecretPath + "/"
+			}
+			secretPath += *ref.Path
+		}
 	}
 
 	secrets, err := p.apiClient.GetSecretsV3(api.GetSecretsV3Request{
 		EnvironmentSlug:        p.apiScope.EnvironmentSlug,
 		ProjectSlug:            p.apiScope.ProjectSlug,
-		SecretPath:             p.apiScope.SecretPath,
+		SecretPath:             secretPath,
 		Recursive:              p.apiScope.Recursive,
 		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 	})
@@ -112,11 +191,19 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 		return nil, err
 	}
 
-	secretMap := make(map[string][]byte)
-	for key, value := range secrets {
-		secretMap[key] = []byte(value)
-	}
-	if ref.Name == nil && ref.Path == nil {
+	//Without filter
+	if ref.Name == nil && ref.Path == nil && ref.Tags == nil {
+		secretMap := make(map[string][]byte)
+		var i string = "0"
+		for _, value := range secrets {
+			if secretMap[value.SecretKey] != nil {
+				Logger.Info("Duplicate Secret Key:" + value.SecretKey + " in Project " + p.apiScope.ProjectSlug + " with path " + p.apiScope.SecretPath + ". Override value")
+				secretMap[value.SecretKey+i] = []byte(value.SecretValue)
+				i += "0"
+			}
+			secretMap[value.SecretKey] = []byte(value.SecretValue)
+		}
+
 		return secretMap, nil
 	}
 
@@ -130,11 +217,24 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 	}
 
 	selected := map[string][]byte{}
-	for key, value := range secrets {
-		if (matcher != nil && !matcher.MatchName(key)) || (ref.Path != nil && !strings.HasPrefix(key, *ref.Path)) {
-			continue
+
+	for _, value := range secrets {
+		// if import secrets, their secretPath is empty
+		if value.SecretPath == "" {
+			if (matcher != nil && !matcher.MatchName(value.SecretKey)) || (ref.Tags != nil && !tagFilter(value.SecretMetadata, ref.Tags)) {
+				continue
+
+			}
+		} else {
+			// we check the SecretPath against the secretPath we use to filter
+			if (matcher != nil && !matcher.MatchName(value.SecretKey)) || (ref.Path != nil && !strings.HasPrefix(value.SecretPath, secretPath)) || (ref.Tags != nil && !tagFilter(value.SecretMetadata, ref.Tags)) {
+				continue
+			}
 		}
-		selected[key] = []byte(value)
+		if selected[value.SecretKey] != nil {
+			Logger.Info("Duplicate Secret Key:" + value.SecretKey + " in Project " + p.apiScope.ProjectSlug + " with path " + p.apiScope.SecretPath + ". Override value")
+		}
+		selected[value.SecretKey] = []byte(value.SecretValue)
 	}
 	return selected, nil
 }
