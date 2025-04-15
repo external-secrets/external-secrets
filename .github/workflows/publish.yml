@@ -31,6 +31,9 @@ on:
       username:
         required: true
         type: string
+      is-fork:
+        required: true
+        type: boolean
     secrets:
       GHCR_TOKEN:
         required: true
@@ -40,7 +43,7 @@ env:
   TAG_SUFFIX: ${{ inputs.tag-suffix }}
   ARCH: ${{ inputs.build-arch }}
   DOCKERFILE: ${{ inputs.dockerfile }}
-  IS_FORK: ${{ secrets.GHCR_USERNAME == '' && 'true' || 'false' }}
+  IS_FORK: ${{ inputs.is-fork }}
 
 jobs:
   build-publish:
