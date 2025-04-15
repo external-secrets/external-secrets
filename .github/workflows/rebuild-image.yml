@@ -65,6 +65,6 @@ jobs:
       ref: ${{ github.event.inputs.ref }}
       image-tag: ${{ github.event.inputs.ref }}
     secrets:
-      GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
-      GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+      GHCR_USERNAME: ${{ github.actor }}
+      GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
