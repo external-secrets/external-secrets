@@ -20,7 +20,7 @@ import (
 
 	authuserpass "github.com/hashicorp/vault/api/auth/userpass"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
@@ -38,7 +38,7 @@ func setUserPassAuthToken(ctx context.Context, v *client) (bool, error) {
 	return false, nil
 }
 
-func (c *client) requestTokenWithUserPassAuth(ctx context.Context, userPassAuth *esv1beta1.VaultUserPassAuth) error {
+func (c *client) requestTokenWithUserPassAuth(ctx context.Context, userPassAuth *esv1.VaultUserPassAuth) error {
 	username := strings.TrimSpace(userPassAuth.Username)
 	password, err := resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, &userPassAuth.SecretRef)
 	if err != nil {

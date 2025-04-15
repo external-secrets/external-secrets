@@ -28,8 +28,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
@@ -46,11 +46,11 @@ var (
 )
 
 type testCase struct {
-	store           v1beta1.GenericStore
-	managedStore1   v1beta1.GenericStore
-	managedStore2   v1beta1.GenericStore
-	unmanagedStore1 v1beta1.GenericStore
-	unmanagedStore2 v1beta1.GenericStore
+	store           esv1.GenericStore
+	managedStore1   esv1.GenericStore
+	managedStore2   esv1.GenericStore
+	unmanagedStore1 esv1.GenericStore
+	unmanagedStore2 esv1.GenericStore
 	pushsecret      *v1alpha1.PushSecret
 	secret          *v1.Secret
 	assert          func(pushsecret *v1alpha1.PushSecret, secret *v1.Secret) bool
@@ -58,9 +58,9 @@ type testCase struct {
 
 func init() {
 	fakeProvider = fake.New()
-	v1beta1.ForceRegister(fakeProvider, &v1beta1.SecretStoreProvider{
-		Fake: &v1beta1.FakeProvider{},
-	})
+	esv1.ForceRegister(fakeProvider, &esv1.SecretStoreProvider{
+		Fake: &esv1.FakeProvider{},
+	}, esv1.MaintenanceStatusMaintained)
 	psmetrics.SetUpMetrics()
 }
 
@@ -126,13 +126,13 @@ var _ = Describe("PushSecret controller", func() {
 		})
 		// give a time for reconciler to remove finalizers before removing SecretStores
 		time.Sleep(2 * time.Second)
-		k8sClient.Delete(context.Background(), &v1beta1.SecretStore{
+		k8sClient.Delete(context.Background(), &esv1.SecretStore{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      PushSecretStore,
 				Namespace: PushSecretNamespace,
 			},
 		})
-		k8sClient.Delete(context.Background(), &v1beta1.ClusterSecretStore{
+		k8sClient.Delete(context.Background(), &esv1.ClusterSecretStore{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: PushSecretStore,
 			},
@@ -202,7 +202,7 @@ var _ = Describe("PushSecret controller", func() {
 					defaultKey: []byte(defaultVal),
 				},
 			},
-			store: &v1beta1.SecretStore{
+			store: &esv1.SecretStore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      PushSecretStore,
 					Namespace: PushSecretNamespace,
@@ -210,10 +210,10 @@ var _ = Describe("PushSecret controller", func() {
 				TypeMeta: metav1.TypeMeta{
 					Kind: "SecretStore",
 				},
-				Spec: v1beta1.SecretStoreSpec{
-					Provider: &v1beta1.SecretStoreProvider{
-						Fake: &v1beta1.FakeProvider{
-							Data: []v1beta1.FakeProviderData{},
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Fake: &esv1.FakeProvider{
+							Data: []esv1.FakeProviderData{},
 						},
 					},
 				},
@@ -245,7 +245,7 @@ var _ = Describe("PushSecret controller", func() {
 		fakeProvider.SetSecretFn = func() error {
 			return nil
 		}
-		fakeProvider.SecretExistsFn = func(ctx context.Context, ref v1beta1.PushSecretRemoteRef) (bool, error) {
+		fakeProvider.SecretExistsFn = func(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 			_, ok := fakeProvider.SetSecretArgs[ref.GetRemoteKey()]
 			return ok, nil
 		}
@@ -272,7 +272,7 @@ var _ = Describe("PushSecret controller", func() {
 		fakeProvider.SetSecretFn = func() error {
 			return nil
 		}
-		fakeProvider.SecretExistsFn = func(ctx context.Context, ref v1beta1.PushSecretRemoteRef) (bool, error) {
+		fakeProvider.SecretExistsFn = func(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 			_, ok := fakeProvider.SetSecretArgs[ref.GetRemoteKey()]
 			return ok, nil
 		}
@@ -315,7 +315,7 @@ var _ = Describe("PushSecret controller", func() {
 		fakeProvider.SetSecretFn = func() error {
 			return nil
 		}
-		fakeProvider.SecretExistsFn = func(ctx context.Context, ref v1beta1.PushSecretRemoteRef) (bool, error) {
+		fakeProvider.SecretExistsFn = func(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 			_, ok := fakeProvider.SetSecretArgs[ref.GetRemoteKey()]
 			return ok, nil
 		}
@@ -365,7 +365,7 @@ var _ = Describe("PushSecret controller", func() {
 		fakeProvider.SetSecretFn = func() error {
 			return nil
 		}
-		fakeProvider.SecretExistsFn = func(ctx context.Context, ref v1beta1.PushSecretRemoteRef) (bool, error) {
+		fakeProvider.SecretExistsFn = func(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 			return false, errors.New("don't know")
 		}
 		tc.pushsecret.Spec.UpdatePolicy = v1alpha1.PushSecretUpdatePolicyIfNotExists
@@ -424,8 +424,8 @@ var _ = Describe("PushSecret controller", func() {
 						},
 					},
 				},
-				Template: &v1beta1.ExternalSecretTemplate{
-					Metadata: v1beta1.ExternalSecretTemplateMetadata{
+				Template: &esv1.ExternalSecretTemplate{
+					Metadata: esv1.ExternalSecretTemplateMetadata{
 						Labels: map[string]string{
 							"foos": "ball",
 						},
@@ -434,7 +434,7 @@ var _ = Describe("PushSecret controller", func() {
 						},
 					},
 					Type:          v1.SecretTypeOpaque,
-					EngineVersion: v1beta1.TemplateEngineV2,
+					EngineVersion: esv1.TemplateEngineV2,
 					Data: map[string]string{
 						defaultKey: "{{ .key | toString | upper }} was templated",
 					},
@@ -631,7 +631,7 @@ var _ = Describe("PushSecret controller", func() {
 		}
 		tc.pushsecret.Spec.DeletionPolicy = v1alpha1.PushSecretDeletionPolicyDelete
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
-			secondStore := &v1beta1.SecretStore{
+			secondStore := &esv1.SecretStore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "new-store",
 					Namespace: PushSecretNamespace,
@@ -639,10 +639,10 @@ var _ = Describe("PushSecret controller", func() {
 				TypeMeta: metav1.TypeMeta{
 					Kind: "SecretStore",
 				},
-				Spec: v1beta1.SecretStoreSpec{
-					Provider: &v1beta1.SecretStoreProvider{
-						Fake: &v1beta1.FakeProvider{
-							Data: []v1beta1.FakeProviderData{},
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Fake: &esv1.FakeProvider{
+							Data: []esv1.FakeProviderData{},
 						},
 					},
 				},
@@ -673,7 +673,7 @@ var _ = Describe("PushSecret controller", func() {
 		}
 		tc.pushsecret.Spec.DeletionPolicy = v1alpha1.PushSecretDeletionPolicyDelete
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
-			secondStore := &v1beta1.SecretStore{
+			secondStore := &esv1.SecretStore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "new-store",
 					Namespace: PushSecretNamespace,
@@ -681,10 +681,10 @@ var _ = Describe("PushSecret controller", func() {
 				TypeMeta: metav1.TypeMeta{
 					Kind: "SecretStore",
 				},
-				Spec: v1beta1.SecretStoreSpec{
-					Provider: &v1beta1.SecretStoreProvider{
-						Fake: &v1beta1.FakeProvider{
-							Data: []v1beta1.FakeProviderData{},
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Fake: &esv1.FakeProvider{
+							Data: []esv1.FakeProviderData{},
 						},
 					},
 				},
@@ -813,7 +813,7 @@ var _ = Describe("PushSecret controller", func() {
 				},
 			},
 		}
-		tc.store = &v1beta1.SecretStore{
+		tc.store = &esv1.SecretStore{
 			TypeMeta: metav1.TypeMeta{
 				Kind: "SecretStore",
 			},
@@ -824,10 +824,10 @@ var _ = Describe("PushSecret controller", func() {
 					"foo": "bar",
 				},
 			},
-			Spec: v1beta1.SecretStoreSpec{
-				Provider: &v1beta1.SecretStoreProvider{
-					Fake: &v1beta1.FakeProvider{
-						Data: []v1beta1.FakeProviderData{},
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Fake: &esv1.FakeProvider{
+						Data: []esv1.FakeProviderData{},
 					},
 				},
 			},
@@ -848,17 +848,17 @@ var _ = Describe("PushSecret controller", func() {
 		fakeProvider.SetSecretFn = func() error {
 			return nil
 		}
-		tc.store = &v1beta1.ClusterSecretStore{
+		tc.store = &esv1.ClusterSecretStore{
 			TypeMeta: metav1.TypeMeta{
 				Kind: "ClusterSecretStore",
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: PushSecretStore,
 			},
-			Spec: v1beta1.SecretStoreSpec{
-				Provider: &v1beta1.SecretStoreProvider{
-					Fake: &v1beta1.FakeProvider{
-						Data: []v1beta1.FakeProviderData{},
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Fake: &esv1.FakeProvider{
+						Data: []esv1.FakeProviderData{},
 					},
 				},
 			},
@@ -882,7 +882,7 @@ var _ = Describe("PushSecret controller", func() {
 			return nil
 		}
 		tc.pushsecret.Spec.Selector.Secret = nil
-		tc.pushsecret.Spec.Selector.GeneratorRef = &v1beta1.GeneratorRef{
+		tc.pushsecret.Spec.Selector.GeneratorRef = &esv1.GeneratorRef{
 			APIVersion: "generators.external-secrets.io/v1alpha1",
 			Kind:       "Fake",
 			Name:       "test",
@@ -937,17 +937,17 @@ var _ = Describe("PushSecret controller", func() {
 				},
 			},
 		}
-		tc.store = &v1beta1.ClusterSecretStore{
+		tc.store = &esv1.ClusterSecretStore{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: PushSecretStore,
 				Labels: map[string]string{
 					"foo": "bar",
 				},
 			},
-			Spec: v1beta1.SecretStoreSpec{
-				Provider: &v1beta1.SecretStoreProvider{
-					Fake: &v1beta1.FakeProvider{
-						Data: []v1beta1.FakeProviderData{},
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Fake: &esv1.FakeProvider{
+						Data: []esv1.FakeProviderData{},
 					},
 				},
 			},
@@ -1047,7 +1047,7 @@ var _ = Describe("PushSecret controller", func() {
 	}
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	newClientFail := func(tc *testCase) {
-		fakeProvider.NewFn = func(context.Context, v1beta1.GenericStore, client.Client, string) (v1beta1.SecretsClient, error) {
+		fakeProvider.NewFn = func(context.Context, esv1.GenericStore, client.Client, string) (esv1.SecretsClient, error) {
 			return nil, errors.New("boom")
 		}
 		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
@@ -1154,13 +1154,13 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 		// TODO: Secret Stores should have finalizers bound to PushSecrets if DeletionPolicy == Delete
 		time.Sleep(2 * time.Second)
 		for _, psstore := range PushSecretStores {
-			k8sClient.Delete(context.Background(), &v1beta1.SecretStore{
+			k8sClient.Delete(context.Background(), &esv1.SecretStore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      psstore,
 					Namespace: PushSecretNamespace,
 				},
 			})
-			k8sClient.Delete(context.Background(), &v1beta1.ClusterSecretStore{
+			k8sClient.Delete(context.Background(), &esv1.ClusterSecretStore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: psstore,
 				},
@@ -1225,7 +1225,7 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 					defaultKey: []byte(defaultVal),
 				},
 			},
-			managedStore1: &v1beta1.SecretStore{
+			managedStore1: &esv1.SecretStore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ManagedPushSecretStore1,
 					Namespace: PushSecretNamespace,
@@ -1233,15 +1233,15 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 				TypeMeta: metav1.TypeMeta{
 					Kind: "SecretStore",
 				},
-				Spec: v1beta1.SecretStoreSpec{
-					Provider: &v1beta1.SecretStoreProvider{
-						Fake: &v1beta1.FakeProvider{
-							Data: []v1beta1.FakeProviderData{},
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Fake: &esv1.FakeProvider{
+							Data: []esv1.FakeProviderData{},
 						},
 					},
 				},
 			},
-			managedStore2: &v1beta1.SecretStore{
+			managedStore2: &esv1.SecretStore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      ManagedPushSecretStore2,
 					Namespace: PushSecretNamespace,
@@ -1249,15 +1249,15 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 				TypeMeta: metav1.TypeMeta{
 					Kind: "SecretStore",
 				},
-				Spec: v1beta1.SecretStoreSpec{
-					Provider: &v1beta1.SecretStoreProvider{
-						Fake: &v1beta1.FakeProvider{
-							Data: []v1beta1.FakeProviderData{},
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Fake: &esv1.FakeProvider{
+							Data: []esv1.FakeProviderData{},
 						},
 					},
 				},
 			},
-			unmanagedStore1: &v1beta1.SecretStore{
+			unmanagedStore1: &esv1.SecretStore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      UnmanagedPushSecretStore1,
 					Namespace: PushSecretNamespace,
@@ -1265,16 +1265,16 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 				TypeMeta: metav1.TypeMeta{
 					Kind: "SecretStore",
 				},
-				Spec: v1beta1.SecretStoreSpec{
-					Provider: &v1beta1.SecretStoreProvider{
-						Fake: &v1beta1.FakeProvider{
-							Data: []v1beta1.FakeProviderData{},
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Fake: &esv1.FakeProvider{
+							Data: []esv1.FakeProviderData{},
 						},
 					},
 					Controller: "not-managed",
 				},
 			},
-			unmanagedStore2: &v1beta1.SecretStore{
+			unmanagedStore2: &esv1.SecretStore{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      UnmanagedPushSecretStore2,
 					Namespace: PushSecretNamespace,
@@ -1282,10 +1282,10 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 				TypeMeta: metav1.TypeMeta{
 					Kind: "SecretStore",
 				},
-				Spec: v1beta1.SecretStoreSpec{
-					Provider: &v1beta1.SecretStoreProvider{
-						Fake: &v1beta1.FakeProvider{
-							Data: []v1beta1.FakeProviderData{},
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Fake: &esv1.FakeProvider{
+							Data: []esv1.FakeProviderData{},
 						},
 					},
 					Controller: "not-managed",

@@ -19,7 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	externalsecretsv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	metav1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apismetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1563,12 +1563,12 @@ func (in *VaultDynamicSecretSpec) DeepCopyInto(out *VaultDynamicSecretSpec) {
 	}
 	if in.RetrySettings != nil {
 		in, out := &in.RetrySettings, &out.RetrySettings
-		*out = new(v1beta1.SecretStoreRetrySettings)
+		*out = new(externalsecretsv1.SecretStoreRetrySettings)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.Provider != nil {
 		in, out := &in.Provider, &out.Provider
-		*out = new(v1beta1.VaultProvider)
+		*out = new(externalsecretsv1.VaultProvider)
 		(*in).DeepCopyInto(*out)
 	}
 }

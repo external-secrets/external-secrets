@@ -23,7 +23,7 @@ import (
 
 	vault "github.com/hashicorp/vault/api"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
@@ -45,7 +45,7 @@ func setCertAuthToken(ctx context.Context, v *client, cfg *vault.Config) (bool, 
 	return false, nil
 }
 
-func (c *client) requestTokenWithCertAuth(ctx context.Context, certAuth *esv1beta1.VaultCertAuth, cfg *vault.Config) error {
+func (c *client) requestTokenWithCertAuth(ctx context.Context, certAuth *esv1.VaultCertAuth, cfg *vault.Config) error {
 	clientKey, err := resolvers.SecretKeyRef(ctx, c.kube, c.storeKind, c.namespace, &certAuth.SecretRef)
 	if err != nil {
 		return err

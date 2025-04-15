@@ -22,7 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
@@ -97,7 +97,7 @@ var db = buildDB(&fakeSecretAPI{
 	},
 })
 
-func newTestClient() esv1beta1.SecretsClient {
+func newTestClient() esv1.SecretsClient {
 	return &client{
 		api:   db,
 		cache: newCache(),
@@ -111,47 +111,47 @@ func TestGetSecret(t *testing.T) {
 	secret := db.secrets[0]
 
 	testCases := map[string]struct {
-		ref      esv1beta1.ExternalSecretDataRemoteRef
+		ref      esv1.ExternalSecretDataRemoteRef
 		response []byte
 		err      error
 	}{
 		"empty version should mean latest_enabled": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:     "id:" + secret.id,
 				Version: "",
 			},
 			response: secret.versions[1].data,
 		},
 		"asking for latest version": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:     "id:" + secret.id,
 				Version: "latest",
 			},
 			response: secret.versions[2].data,
 		},
 		"asking for latest version by name": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:     "name:" + secret.name,
 				Version: "latest",
 			},
 			response: secret.versions[2].data,
 		},
 		"asking for version by revision number": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:     "id:" + secret.id,
 				Version: "1",
 			},
 			response: secret.versions[0].data,
 		},
 		"asking for version by revision number and name": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:     "name:" + secret.name,
 				Version: "1",
 			},
 			response: secret.versions[0].data,
 		},
 		"asking for nested json property": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "id:" + db.secret("json-nested").id,
 				Property: "root.intermediate.leaf",
 				Version:  "latest",
@@ -159,38 +159,38 @@ func TestGetSecret(t *testing.T) {
 			response: []byte("9"),
 		},
 		"secret in path": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:     "path:/subpath/nested-secret",
 				Version: "latest",
 			},
 			response: []byte("secret data"),
 		},
 		"non existing secret id should yield NoSecretErr": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "id:730aa98d-ec0c-4426-8202-b11aeec8ea1e",
 			},
-			err: esv1beta1.NoSecretErr,
+			err: esv1.NoSecretErr,
 		},
 		"non existing secret name should yield NoSecretErr": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "name:not-a-secret",
 			},
-			err: esv1beta1.NoSecretErr,
+			err: esv1.NoSecretErr,
 		},
 		"non existing revision should yield NoSecretErr": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:     "id:" + secret.id,
 				Version: "9999",
 			},
-			err: esv1beta1.NoSecretErr,
+			err: esv1.NoSecretErr,
 		},
 		"non existing json property should yield not found": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "id:" + db.secret("json-nested").id,
 				Property: "root.intermediate.missing",
 				Version:  "latest",
 			},
-			err: esv1beta1.NoSecretErr,
+			err: esv1.NoSecretErr,
 		},
 	}
 
@@ -322,7 +322,7 @@ func TestGetSecretMap(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient()
 
-	values, getErr := c.GetSecretMap(ctx, esv1beta1.ExternalSecretDataRemoteRef{
+	values, getErr := c.GetSecretMap(ctx, esv1.ExternalSecretDataRemoteRef{
 		Key:     "id:" + db.secret("json-data").id,
 		Version: "latest",
 	})
@@ -339,7 +339,7 @@ func TestGetSecretMapNested(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient()
 
-	values, getErr := c.GetSecretMap(ctx, esv1beta1.ExternalSecretDataRemoteRef{
+	values, getErr := c.GetSecretMap(ctx, esv1.ExternalSecretDataRemoteRef{
 		Key:      "id:" + db.secret("json-nested").id,
 		Property: "root.intermediate",
 		Version:  "latest",
@@ -356,13 +356,13 @@ func TestGetAllSecrets(t *testing.T) {
 	c := newTestClient()
 
 	testCases := map[string]struct {
-		ref      esv1beta1.ExternalSecretFind
+		ref      esv1.ExternalSecretFind
 		response map[string][]byte
 		err      error
 	}{
 		"find secrets by name": {
-			ref: esv1beta1.ExternalSecretFind{
-				Name: &esv1beta1.FindName{RegExp: "secret-.*"},
+			ref: esv1.ExternalSecretFind{
+				Name: &esv1.FindName{RegExp: "secret-.*"},
 			},
 			response: map[string][]byte{
 				db.secret("secret-1").name: db.secret("secret-1").mustGetVersion("latest_enabled").data,
@@ -370,7 +370,7 @@ func TestGetAllSecrets(t *testing.T) {
 			},
 		},
 		"find secrets by tags": {
-			ref: esv1beta1.ExternalSecretFind{
+			ref: esv1.ExternalSecretFind{
 				Tags: map[string]string{"secret-2-tag-1": "ignored-value"},
 			},
 			response: map[string][]byte{
@@ -378,7 +378,7 @@ func TestGetAllSecrets(t *testing.T) {
 			},
 		},
 		"find secrets by path": {
-			ref: esv1beta1.ExternalSecretFind{
+			ref: esv1.ExternalSecretFind{
 				Path: utils.Ptr("/subpath"),
 			},
 			response: map[string][]byte{

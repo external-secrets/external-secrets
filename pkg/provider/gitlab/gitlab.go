@@ -29,7 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/find"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
@@ -51,8 +51,8 @@ const (
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1beta1.SecretsClient = &gitlabBase{}
-var _ esv1beta1.Provider = &Provider{}
+var _ esv1.SecretsClient = &gitlabBase{}
+var _ esv1.Provider = &Provider{}
 
 type ProjectsClient interface {
 	ListProjectsGroups(pid any, opt *gitlab.ListProjectGroupOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.ProjectGroup, *gitlab.Response, error)
@@ -86,20 +86,20 @@ func (g *gitlabBase) getAuth(ctx context.Context) (string, error) {
 		&g.store.Auth.SecretRef.AccessToken)
 }
 
-func (g *gitlabBase) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
+func (g *gitlabBase) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	return errors.New(errNotImplemented)
 }
 
-func (g *gitlabBase) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (g *gitlabBase) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New(errNotImplemented)
 }
 
-func (g *gitlabBase) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
+func (g *gitlabBase) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
 	return errors.New(errNotImplemented)
 }
 
 // GetAllSecrets syncs all gitlab project and group variables into a single Kubernetes Secret.
-func (g *gitlabBase) GetAllSecrets(_ context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (g *gitlabBase) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	if utils.IsNil(g.projectVariablesClient) {
 		return nil, errors.New(errUninitializedGitlabProvider)
 	}
@@ -239,7 +239,7 @@ func ExtractTag(tags map[string]string) (string, error) {
 	return environmentScope, nil
 }
 
-func (g *gitlabBase) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (g *gitlabBase) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if utils.IsNil(g.projectVariablesClient) || utils.IsNil(g.groupVariablesClient) {
 		return nil, errors.New(errUninitializedGitlabProvider)
 	}
@@ -298,7 +298,7 @@ func (g *gitlabBase) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDa
 	return nil, err
 }
 
-func extractVariable(ref esv1beta1.ExternalSecretDataRemoteRef, value string) ([]byte, error) {
+func extractVariable(ref esv1.ExternalSecretDataRemoteRef, value string) ([]byte, error) {
 	if ref.Property == "" {
 		if value != "" {
 			return []byte(value), nil
@@ -318,7 +318,7 @@ func extractVariable(ref esv1beta1.ExternalSecretDataRemoteRef, value string) ([
 	return []byte(val.String()), nil
 }
 
-func (g *gitlabBase) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (g *gitlabBase) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	// Gets a secret as normal, expecting secret value to be a json object
 	data, err := g.GetSecret(ctx, ref)
 	if err != nil {
@@ -382,19 +382,19 @@ func (g *gitlabBase) ResolveGroupIds() error {
 }
 
 // Validate will use the gitlab projectVariablesClient/groupVariablesClient to validate the gitlab provider using the ListVariable call to ensure get permissions without needing a specific key.
-func (g *gitlabBase) Validate() (esv1beta1.ValidationResult, error) {
+func (g *gitlabBase) Validate() (esv1.ValidationResult, error) {
 	if g.store.ProjectID != "" {
 		_, resp, err := g.projectVariablesClient.ListVariables(g.store.ProjectID, nil)
 		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectListVariables, err)
 		if err != nil {
-			return esv1beta1.ValidationResultError, fmt.Errorf(errList, err)
+			return esv1.ValidationResultError, fmt.Errorf(errList, err)
 		} else if resp == nil || resp.StatusCode != http.StatusOK {
-			return esv1beta1.ValidationResultError, fmt.Errorf(errProjectAuth, g.store.ProjectID)
+			return esv1.ValidationResultError, fmt.Errorf(errProjectAuth, g.store.ProjectID)
 		}
 
 		err = g.ResolveGroupIds()
 		if err != nil {
-			return esv1beta1.ValidationResultError, fmt.Errorf(errList, err)
+			return esv1.ValidationResultError, fmt.Errorf(errList, err)
 		}
 		log.V(1).Info("discovered project groups", "name", g.store.GroupIDs)
 	}
@@ -404,12 +404,12 @@ func (g *gitlabBase) Validate() (esv1beta1.ValidationResult, error) {
 			_, resp, err := g.groupVariablesClient.ListVariables(groupID, nil)
 			metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupListVariables, err)
 			if err != nil {
-				return esv1beta1.ValidationResultError, fmt.Errorf(errList, err)
+				return esv1.ValidationResultError, fmt.Errorf(errList, err)
 			} else if resp == nil || resp.StatusCode != http.StatusOK {
-				return esv1beta1.ValidationResultError, fmt.Errorf(errGroupAuth, groupID)
+				return esv1.ValidationResultError, fmt.Errorf(errGroupAuth, groupID)
 			}
 		}
 	}
 
-	return esv1beta1.ValidationResultReady, nil
+	return esv1.ValidationResultReady, nil
 }

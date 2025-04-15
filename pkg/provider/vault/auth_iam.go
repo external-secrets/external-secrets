@@ -26,7 +26,7 @@ import (
 	authaws "github.com/hashicorp/vault/api/auth/aws"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	vaultiamauth "github.com/external-secrets/external-secrets/pkg/provider/vault/iamauth"
@@ -45,7 +45,7 @@ const (
 
 func setIamAuthToken(ctx context.Context, v *client, jwtProvider util.JwtProviderFactory, assumeRoler vaultiamauth.STSProvider) (bool, error) {
 	iamAuth := v.store.Auth.Iam
-	isClusterKind := v.storeKind == esv1beta1.ClusterSecretStoreKind
+	isClusterKind := v.storeKind == esv1.ClusterSecretStoreKind
 	if iamAuth != nil {
 		err := v.requestTokenWithIamAuth(ctx, iamAuth, isClusterKind, v.kube, v.namespace, jwtProvider, assumeRoler)
 		if err != nil {
@@ -56,7 +56,7 @@ func setIamAuthToken(ctx context.Context, v *client, jwtProvider util.JwtProvide
 	return false, nil
 }
 
-func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1beta1.VaultIamAuth, isClusterKind bool, k kclient.Client, n string, jwtProvider util.JwtProviderFactory, assumeRoler vaultiamauth.STSProvider) error {
+func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1.VaultIamAuth, isClusterKind bool, k kclient.Client, n string, jwtProvider util.JwtProviderFactory, assumeRoler vaultiamauth.STSProvider) error {
 	jwtAuth := iamAuth.JWTAuth
 	secretRefAuth := iamAuth.SecretRef
 	regionAWS := defaultAWSRegion

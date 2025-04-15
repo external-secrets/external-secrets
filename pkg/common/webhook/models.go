@@ -17,7 +17,7 @@ package webhook
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 type Spec struct {
@@ -57,7 +57,7 @@ type Spec struct {
 
 	// The provider for the CA bundle to use to validate webhook server certificate.
 	// +optional
-	CAProvider *esv1beta1.CAProvider `json:"caProvider,omitempty"`
+	CAProvider *esv1.CAProvider `json:"caProvider,omitempty"`
 }
 
 type Result struct {

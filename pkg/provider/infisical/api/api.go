@@ -24,7 +24,7 @@ import (
 	"net/url"
 	"strconv"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/provider/infisical/constants"
 )
@@ -289,7 +289,7 @@ func (a *InfisicalClient) GetSecretByKeyV3(data GetSecretByKeyV3Request) (Secret
 	if err != nil {
 		var apiErr *InfisicalAPIError
 		if errors.As(err, &apiErr) && apiErr.StatusCode == 404 {
-			return SecretsV3{}, esv1beta1.NoSecretError{}
+			return SecretsV3{}, esv1.NoSecretError{}
 		}
 		return SecretsV3{}, err
 	}

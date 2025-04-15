@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
@@ -34,16 +34,16 @@ import (
 type Provider struct {
 	kube               client.Client
 	namespace          string
-	store              esv1beta1.GenericStore
+	store              esv1.GenericStore
 	bitwardenSdkClient Client
 }
 
 func init() {
-	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{BitwardenSecretsManager: &esv1beta1.BitwardenSecretsManagerProvider{}})
+	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{BitwardenSecretsManager: &esv1.BitwardenSecretsManagerProvider{}}, esv1.MaintenanceStatusMaintained)
 }
 
 // NewClient creates a new Bitwarden Secret Manager client.
-func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.BitwardenSecretsManager == nil {
 		return nil, errors.New("no store type or wrong store type")
@@ -80,12 +80,12 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 }
 
 // Capabilities returns the provider Capabilities (Read, Write, ReadWrite).
-func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadWrite
+func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadWrite
 }
 
 // ValidateStore validates the store.
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil {
 		return admission.Warnings{}, errors.New("no store type or wrong store type")
@@ -110,7 +110,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 }
 
 // newHTTPSClient creates a new HTTPS client with the given cert.
-func newHTTPSClient(ctx context.Context, c client.Client, storeKind, namespace string, provider *esv1beta1.BitwardenSecretsManagerProvider) (*http.Client, error) {
+func newHTTPSClient(ctx context.Context, c client.Client, storeKind, namespace string, provider *esv1.BitwardenSecretsManagerProvider) (*http.Client, error) {
 	cert, err := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
 		CABundle:   []byte(provider.CABundle),
 		CAProvider: provider.CAProvider,
