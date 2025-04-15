@@ -34,5 +34,5 @@ done
 
 shopt -s extglob
 yq e \
-    '.spec.conversion.strategy = "None"' \
+    '.spec.conversion = {}' \
     "${CRD_DIR}"/bases/!(kustomization).yaml > "${BUNDLE_YAML}"
