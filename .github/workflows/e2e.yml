@@ -24,7 +24,7 @@ env:
   # a step 'if env.GHCR_USERNAME' != ""', so we copy these to succinctly test whether
   # credentials have been provided before trying to run steps that need them.
   TARGET_SHA: ${{ github.event.client_payload.slash_command.args.named.sha }}
-  GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+  GHCR_USERNAME: ${{ github.actor }}
   GCP_SM_SA_JSON: ${{ secrets.GCP_SM_SA_JSON}}
   GCP_GKE_ZONE: ${{ secrets.GCP_GKE_ZONE}}
   GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME}} # Goolge Service Account
