@@ -1,0 +1,20 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: example
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: backend
+  target:
+    name: secret-to-be-created
+  dataFrom:
+  - find:
+      path: path/to/my
+      name: 
+        regexp: secrets
+    rewrite:
+    - regexp:
+        source: "path/to/my/secrets/(.*)"
+        target: "$1"
