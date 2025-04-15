@@ -6,10 +6,6 @@ on:
 
 permissions:
   contents: read
-  issues: read
-  pull-requests: read
-  checks: read
-  statuses: read
 name: e2e tests
 
 env:
@@ -64,9 +60,8 @@ jobs:
   integration-trusted:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
-      checks: write
-      contents: read
+      id-token: write #for oidc auth with aws/gcp/azure
+      contents: read  #for checkout
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor !='dependabot[bot]'
     steps:
 
@@ -82,10 +77,9 @@ jobs:
   integration-fork:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
-      checks: write
-      contents: read
-      pull-requests: write
+      id-token: write      #for oidc auth with aws/gcp/azure
+      contents: read       #for checkout
+      pull-requests: write # to publish the status as comments
     if: github.event_name == 'repository_dispatch'
     steps:
 

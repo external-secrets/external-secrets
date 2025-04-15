@@ -138,8 +138,9 @@ jobs:
     if: needs.detect-noop.outputs.noop != 'true'
     uses: ./.github/workflows/publish.yml
     permissions:
-      id-token: write
-      contents: read
+      contents: read  #actions/checkout
+      packages: write #for publishing artifacts
+      id-token: write #for keyless sign
     strategy:
       matrix:
         include:
