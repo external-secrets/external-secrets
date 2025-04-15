@@ -138,8 +138,8 @@ jobs:
     if: needs.detect-noop.outputs.noop != 'true'
     uses: ./.github/workflows/publish.yml
     permissions:
-      id-token: write
       contents: read
+      packages: write
     strategy:
       matrix:
         include:

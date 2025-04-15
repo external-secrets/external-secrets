@@ -35,8 +35,8 @@ jobs:
     uses: ./.github/workflows/publish.yml
     needs: checkout
     permissions:
-      id-token: write
       contents: read
+      packages: write
     strategy:
       matrix:
         include:

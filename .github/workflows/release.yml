@@ -62,8 +62,8 @@ jobs:
         - tag_suffix: "-ubi-boringssl" # ubi image
 
     permissions:
-      id-token: write
-      contents: write
+      contents: read
+      packages: write
 
     env:
       SOURCE_TAG: ${{ github.event.inputs.source_ref }}${{ matrix.tag_suffix }}
