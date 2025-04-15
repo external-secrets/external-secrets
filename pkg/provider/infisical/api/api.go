@@ -255,7 +255,7 @@ func (a *InfisicalClient) GetSecretsV3(data GetSecretsV3Request) (map[string]Sec
 	secrets := make(map[string]SecretsV3)
 	for _, s := range res.ImportedSecrets {
 		for _, el := range s.Secrets {
-			//To ensure IMPORT secrets are not overriden by the secret if the path filter applies.
+			// To ensure IMPORT secrets are not overridden by the secret if the path filter applies.
 			secrets["IMPORT:"+el.ID] = el
 		}
 	}
