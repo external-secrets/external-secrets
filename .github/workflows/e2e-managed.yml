@@ -61,6 +61,9 @@ jobs:
     if: github.event_name == 'repository_dispatch'
 
     steps:
+    - uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
+      with:
+        egress-policy: audit
 
     # Check out merge commit
     - name: Fork based /ok-to-test-managed checkout

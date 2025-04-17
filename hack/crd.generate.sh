@@ -33,6 +33,4 @@ for f in "${CRD_DIR}"/bases/*.yaml; do
 done
 
 shopt -s extglob
-yq e \
-    '.spec.conversion = {}' \
-    "${CRD_DIR}"/bases/!(kustomization).yaml > "${BUNDLE_YAML}"
+yq e "${CRD_DIR}"/bases/!(kustomization).yaml > "${BUNDLE_YAML}"
