@@ -55,6 +55,9 @@ jobs:
     outputs:
       image-tag: ${{ steps.container_info.outputs.image-tag }}
     steps:
+      - uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
+        with:
+          egress-policy: audit
 
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -150,6 +153,9 @@ jobs:
       id-token: write #for keyless sign
       packages: write #to update packages with added SBOMs.
     steps:
+      - uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
+        with:
+          egress-policy: audit
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Sign image
