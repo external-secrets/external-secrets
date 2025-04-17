@@ -44,6 +44,9 @@ env:
   DOCKERFILE: ${{ inputs.dockerfile }}
   IS_FORK: ${{ secrets.IS_FORK }}
 
+permissions:
+  contents: read
+
 jobs:
   build-publish:
     name: Build and Publish
