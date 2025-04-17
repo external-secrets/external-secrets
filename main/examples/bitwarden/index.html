@@ -3976,7 +3976,14 @@ To integrate with Bitwarden <strong>Secrets Manager</strong>, reference the <a h
 
 bw<span class="w"> </span>config<span class="w"> </span>server<span class="w"> </span><span class="si">${</span><span class="nv">BW_HOST</span><span class="si">}</span>
 
-<span class="nb">export</span><span class="w"> </span><span class="nv">BW_SESSION</span><span class="o">=</span><span class="k">$(</span>bw<span class="w"> </span>login<span class="w"> </span><span class="si">${</span><span class="nv">BW_USER</span><span class="si">}</span><span class="w"> </span>--passwordenv<span class="w"> </span>BW_PASSWORD<span class="w"> </span>--raw<span class="k">)</span>
+<span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$BW_CLIENTID</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$BW_CLIENTSECRET</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Using apikey to log in&quot;</span>
+<span class="w">    </span>bw<span class="w"> </span>login<span class="w"> </span>--apikey<span class="w"> </span>--raw
+<span class="w">    </span><span class="nb">export</span><span class="w"> </span><span class="nv">BW_SESSION</span><span class="o">=</span><span class="k">$(</span>bw<span class="w"> </span>unlock<span class="w"> </span>--passwordenv<span class="w"> </span>BW_PASSWORD<span class="w"> </span>--raw<span class="k">)</span>
+<span class="k">else</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Using username and password to log in&quot;</span>
+<span class="w">    </span><span class="nb">export</span><span class="w"> </span><span class="nv">BW_SESSION</span><span class="o">=</span><span class="k">$(</span>bw<span class="w"> </span>login<span class="w"> </span><span class="si">${</span><span class="nv">BW_USER</span><span class="si">}</span><span class="w"> </span>--passwordenv<span class="w"> </span>BW_PASSWORD<span class="w"> </span>--raw<span class="k">)</span>
+<span class="k">fi</span>
 
 bw<span class="w"> </span>unlock<span class="w"> </span>--check
 
