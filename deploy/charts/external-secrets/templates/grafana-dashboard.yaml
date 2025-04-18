@@ -12,6 +12,5 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 data:
-    external-secrets.json: |-
-{{ .Files.Get "monitoring/grafana-dashboard.json.tpl" | indent 6 }}
+  external-secrets.json: {{ .Files.Get "files/monitoring/grafana-dashboard.json" | toJson }}
 {{- end }}
