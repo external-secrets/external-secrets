@@ -843,7 +843,7 @@
           },
           "editorMode": "code",
           "expr": "increase(externalsecret_provider_api_calls_count{service=~\".*external-secrets.*\", status=\"error\"}[15m])",
-          "legendFormat": "{{provider}}/{{call}}",
+          "legendFormat": "{{`{{provider}}/{{call}}`}}",
           "range": true,
           "refId": "A"
         }
@@ -942,7 +942,7 @@
           "expr": "sum(externalsecret_status_condition{condition=\"Ready\",status=\"False\"}) by (namespace, name) == 1",
           "format": "table",
           "instant": true,
-          "legendFormat": "{{provider}}/{{call}}",
+          "legendFormat": "{{`{{provider}}/{{call}}`}}",
           "range": false,
           "refId": "A"
         }
@@ -1035,7 +1035,7 @@
           },
           "editorMode": "code",
           "expr": "sum(increase(externalsecret_sync_calls_error[15m])) by (name, namespace)",
-          "legendFormat": "{{namespace}}/{{name}}",
+          "legendFormat": "{{`{{namespace}}/{{name}}`}}",
           "range": true,
           "refId": "A"
         }
@@ -1374,7 +1374,7 @@
               "datasource": "$datasource",
               "editorMode": "code",
               "expr": "sum(rate(controller_runtime_webhook_latency_seconds_bucket{service=~\".*external-secrets.*\"}[$__rate_interval])) by (le)",
-              "legendFormat": "{{le}}",
+              "legendFormat": "{{`{{le}}`}}",
               "range": true,
               "refId": "A"
             }
@@ -1649,7 +1649,7 @@
               "datasource": "$datasource",
               "editorMode": "code",
               "expr": "sum(increase(externalsecret_provider_api_calls_count{service=~\".*external-secrets.*\"}[1m])) by(provider, call, status)",
-              "legendFormat": "{{provider}}/{{call}}={{status}}",
+              "legendFormat": "{{`{{provider}}/{{call}}={{status}}`}}",
               "range": true,
               "refId": "A"
             }
@@ -1881,7 +1881,7 @@
               "datasource": "$datasource",
               "editorMode": "code",
               "expr": "rate(controller_runtime_reconcile_time_seconds_bucket{service=~\".*external-secrets.*\",controller=~\"$controller\"}[$__rate_interval])",
-              "legendFormat": "{{le}}",
+              "legendFormat": "{{`{{le}}`}}",
               "range": true,
               "refId": "A"
             }
