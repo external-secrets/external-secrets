@@ -13,5 +13,5 @@ metadata:
   {{- end }}
 data:
     external-secrets.json: |-
-{{ .Files.Get "monitoring/grafana-dashboard.json" | indent 6 }}
+{{ .Files.Get "monitoring/grafana-dashboard.json.tpl" | indent 6 }}
 {{- end }}
