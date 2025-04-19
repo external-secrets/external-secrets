@@ -229,6 +229,21 @@ metrics:
     # -- Additional service annotations
     annotations: {}
 
+grafanaDashboard:
+  # -- If true creates a Grafana dashboard.
+  enabled: false
+
+  # -- Label that ConfigMaps should have to be loaded as dashboards.
+  sidecarLabel: "grafana_dashboard"
+
+  # -- Label value that ConfigMaps should have to be loaded as dashboards.
+  sidecarLabelValue: "1"
+
+  # -- Annotations that ConfigMaps can have to get configured in Grafana,
+  # See: sidecar.dashboards.folderAnnotation for specifying the dashboard folder.
+  # https://github.com/grafana/helm-charts/tree/main/charts/grafana
+  annotations: {}
+
 nodeSelector: {}
 
 tolerations: []
