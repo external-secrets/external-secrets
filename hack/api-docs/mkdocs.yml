@@ -131,6 +131,7 @@ nav:
       - Github Actions Secrets: provider/github.md
       - Oracle Vault: provider/oracle-vault.md
       - 1Password Secrets Automation: provider/1password-automation.md
+      - 1Password SDK: provider/1password-sdk.md
       - Webhook: provider/webhook.md
       - Fake: provider/fake.md
       - senhasegura DevOps Secrets Management (DSM): provider/senhasegura-dsm.md
