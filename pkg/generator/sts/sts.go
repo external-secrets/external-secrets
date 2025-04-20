@@ -20,9 +20,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/aws/aws-sdk-go/service/sts/stsiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
@@ -31,6 +30,11 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	awsauth "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
 )
+
+// stsApi defines the methods needed for the STS generator
+type stsApi interface {
+	GetSessionToken(ctx context.Context, params *sts.GetSessionTokenInput, optFns ...func(*sts.Options)) (*sts.GetSessionTokenOutput, error)
+}
 
 type Generator struct{}
 
@@ -59,7 +63,7 @@ func (g *Generator) generate(
 	if err != nil {
 		return nil, nil, fmt.Errorf(errParseSpec, err)
 	}
-	sess, err := awsauth.NewGeneratorSession(
+	cfg, err := awsauth.NewGeneratorSession(
 		ctx,
 		esv1beta1.AWSAuth{
 			SecretRef: (*esv1beta1.AWSAuthSecretRef)(res.Spec.Auth.SecretRef),
@@ -74,14 +78,14 @@ func (g *Generator) generate(
 	if err != nil {
 		return nil, nil, fmt.Errorf(errCreateSess, err)
 	}
-	client := stsFunc(sess)
+	client := stsFunc(cfg)
 	input := &sts.GetSessionTokenInput{}
 	if res.Spec.RequestParameters != nil {
 		input.DurationSeconds = res.Spec.RequestParameters.SessionDuration
 		input.TokenCode = res.Spec.RequestParameters.TokenCode
 		input.SerialNumber = res.Spec.RequestParameters.SerialNumber
 	}
-	out, err := client.GetSessionToken(input)
+	out, err := client.GetSessionToken(ctx, input)
 	if err != nil {
 		return nil, nil, fmt.Errorf(errGetToken, err)
 	}
@@ -101,10 +105,12 @@ func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, sta
 	return nil
 }
 
-type stsFactoryFunc func(aws *session.Session) stsiface.STSAPI
+// Use v2 aws.Config and the local stsApi interface
+type stsFactoryFunc func(cfg *aws.Config) stsApi
 
-func stsFactory(aws *session.Session) stsiface.STSAPI {
-	return sts.New(aws)
+// Create v2 client from v2 config
+func stsFactory(cfg *aws.Config) stsApi {
+	return sts.NewFromConfig(*cfg)
 }
 
 func parseSpec(data []byte) (*genv1alpha1.STSSessionToken, error) {

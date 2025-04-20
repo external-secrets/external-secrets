@@ -1303,7 +1303,7 @@ func (in *RequestParameters) DeepCopyInto(out *RequestParameters) {
 	*out = *in
 	if in.SessionDuration != nil {
 		in, out := &in.SessionDuration, &out.SessionDuration
-		*out = new(int64)
+		*out = new(int32)
 		**out = **in
 	}
 	if in.SerialNumber != nil {

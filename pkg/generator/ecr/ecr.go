@@ -75,7 +75,7 @@ func (g *Generator) generate(
 	if err != nil {
 		return nil, nil, fmt.Errorf(errParseSpec, err)
 	}
-	sess, err := awsauth.NewGeneratorSession(
+	cfg, err := awsauth.NewGeneratorSession(
 		ctx,
 		esv1beta1.AWSAuth{
 			SecretRef: (*esv1beta1.AWSAuthSecretRef)(res.Spec.Auth.SecretRef),
@@ -92,14 +92,14 @@ func (g *Generator) generate(
 	}
 
 	if res.Spec.Scope == "public" {
-		return fetchECRPublicToken(ctx, sess, ecrPublicFunc)
+		return fetchECRPublicToken(ctx, cfg, ecrPublicFunc)
 	}
 
-	return fetchECRPrivateToken(ctx, sess, ecrPrivateFunc)
+	return fetchECRPrivateToken(ctx, cfg, ecrPrivateFunc)
 }
 
-func fetchECRPrivateToken(ctx context.Context, sess *aws.Config, ecrPrivateFunc ecrPrivateFactoryFunc) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
-	client := ecrPrivateFunc(sess)
+func fetchECRPrivateToken(ctx context.Context, cfg *aws.Config, ecrPrivateFunc ecrPrivateFactoryFunc) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+	client := ecrPrivateFunc(cfg)
 	out, err := client.GetAuthorizationToken(ctx, &ecr.GetAuthorizationTokenInput{})
 	if err != nil {
 		return nil, nil, fmt.Errorf(errGetPrivateToken, err)
@@ -127,8 +127,8 @@ func fetchECRPrivateToken(ctx context.Context, sess *aws.Config, ecrPrivateFunc 
 	}, nil, nil
 }
 
-func fetchECRPublicToken(ctx context.Context, sess *aws.Config, ecrPublicFunc ecrPublicFactoryFunc) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
-	client := ecrPublicFunc(sess)
+func fetchECRPublicToken(ctx context.Context, cfg *aws.Config, ecrPublicFunc ecrPublicFactoryFunc) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+	client := ecrPublicFunc(cfg)
 	out, err := client.GetAuthorizationToken(ctx, &ecrpublic.GetAuthorizationTokenInput{})
 	if err != nil {
 		return nil, nil, fmt.Errorf(errGetPublicToken, err)
