@@ -17,7 +17,7 @@ package utils
 import (
 	"bytes"
 	"context"
-	"crypto/md5" //nolint:gosec
+	"crypto/sha3"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
@@ -358,12 +358,10 @@ func IsNil(i any) bool {
 	return false
 }
 
-// ObjectHash calculates md5 sum of the data contained in the secret.
-//
-//nolint:gosec
+// ObjectHash calculates sha3 sum of the data contained in the secret.
 func ObjectHash(object any) string {
 	textualVersion := fmt.Sprintf("%+v", object)
-	return fmt.Sprintf("%x", md5.Sum([]byte(textualVersion)))
+	return fmt.Sprintf("%x", sha3.Sum224([]byte(textualVersion)))
 }
 
 func ErrorContains(out error, want string) bool {
