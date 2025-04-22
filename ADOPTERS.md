@@ -26,6 +26,7 @@
 - [PHOENIX MEDIA](https://www.phoenix-media.eu/)
 - [Polarpoint](https://www.polarpoint.io/)
 - [Radio France](https://www.radiofrance.fr/)
+- [Skeeled](https://www.skeeled.com/)
 - [Made People](https://madepeople.se/)
 - [Voiceflow](https://www.voiceflow.com/)
 - [VMware Tanzu](https://tanzu.vmware.com/)
