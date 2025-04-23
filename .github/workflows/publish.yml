@@ -28,12 +28,7 @@ on:
       build-platform:
         required: true
         type: string
-      username:
-        required: true
-        type: string
     secrets:
-      GHCR_TOKEN:
-        required: true
       IS_FORK:
         required: false
 
@@ -97,8 +92,8 @@ jobs:
         if: env.IS_FORK != ''
         with:
           registry: ghcr.io
-          username: ${{ inputs.username }}
-          password: ${{ secrets.GHCR_TOKEN }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
       - name: Get docker image tag
         id: container_info
@@ -167,6 +162,3 @@ jobs:
         with:
           image-name: ${{ inputs.image-name }}
           image-tag: ${{ needs.build-publish.outputs.image-tag }}
-          GHCR_USERNAME: ${{ inputs.username }}
-          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GHCR_TOKEN }}

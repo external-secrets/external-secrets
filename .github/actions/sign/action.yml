@@ -11,15 +11,6 @@ inputs:
     description: "image tag"
     required: true
     default: ""
-  GHCR_USERNAME:
-    description: "ghcr username"
-    required: true
-  GHCR_TOKEN:
-    description: "ghcr token"
-    required: true
-  GITHUB_TOKEN:
-    description: "gh token"
-    required: true
 
 runs:
   using: "composite"
@@ -42,8 +33,8 @@ runs:
       uses: docker/login-action@v1.14.1
       with:
         registry: ghcr.io
-        username: ${{ inputs.GHCR_USERNAME }}
-        password: ${{ inputs.GHCR_TOKEN }}
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
 
     - name: Setup Go
       uses: actions/setup-go@v3
@@ -83,7 +74,7 @@ runs:
         arguments: --repository "${{ inputs.image-name }}" --output-path provenance.${{ inputs.image-tag }}.intoto.jsonl --digest "${{ steps.container_info.outputs.digest }}" --tags "${{ inputs.image-tag }}"
       env:
         COSIGN_EXPERIMENTAL: "0"
-        GITHUB_TOKEN: "${{ inputs.GITHUB_TOKEN }}"
+        GITHUB_TOKEN: "${{ github.token }}"
 
     - name: Attach provenance
       shell: bash
