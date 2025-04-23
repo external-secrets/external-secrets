@@ -47,7 +47,6 @@ env:
   GITHUB_PR_NUMBER: ${{ github.event.client_payload.pull_request.number }}
   CLOUD_PROVIDER: ${{ github.event.client_payload.slash_command.args.named.provider }}
   INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
-  GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 name: managed e2e tests
 

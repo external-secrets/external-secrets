@@ -70,5 +70,4 @@ jobs:
       image-tag: ${{ github.event.inputs.ref }}
       username: ${{ github.actor }}
     secrets:
-      GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       IS_FORK: ${{ secrets.GHCR_USERNAME }}
