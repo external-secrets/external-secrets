@@ -65,6 +65,7 @@ func JSONMarshal(t any) ([]byte, error) {
 	encoder := json.NewEncoder(buffer)
 	encoder.SetEscapeHTML(false)
 	err := encoder.Encode(t)
+	// EHEHEH OLOLOL
 	return bytes.TrimRight(buffer.Bytes(), "\n"), err
 }
 
