@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'version to release, e.g. v1.5.13'
+        description: 'version to release, format `v1.5.13`'
+        required: true
+        default: 'v0.1.1'
+      source_ref:
+        description: 'previous version that was released, format `v1.5.12`'
         required: true
         default: 'v0.1.0'
-      source_ref:
-        description: 'source ref to publish from. E.g.: main or release-x.y'
-        required: true
-        default: 'main'
 
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository }}
