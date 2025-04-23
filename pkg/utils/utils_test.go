@@ -51,19 +51,19 @@ func TestObjectHash(t *testing.T) {
 		{
 			name:  "A nil should be still working",
 			input: nil,
-			want:  "60046f14c917c18a9a0f923e191ba0dc",
+			want:  "c461202a18e99215f121936fb2452e03843828e448a00a53f285a6fc",
 		},
 		{
 			name:  "We accept a simple scalar value, i.e. string",
 			input: "hello there",
-			want:  "161bc25962da8fed6d2f59922fb642aa",
+			want:  "f78681ec611ebaeea0689bff6c7812a83ff98a7faba986d9af76c999",
 		},
 		{
 			name: "A complex object like a secret is not an issue",
 			input: v1.Secret{Data: map[string][]byte{
 				"xx": []byte("yyy"),
 			}},
-			want: "85eabdeb376371ffc5a658d7a162eba8",
+			want: "9c717e13e4281db3cdad3f56c6e7faab1d7029c4b4fbbf12fbec9b1e",
 		},
 		{
 			name: "map also works",
@@ -71,7 +71,7 @@ func TestObjectHash(t *testing.T) {
 				"foo": []byte("value1"),
 				"bar": []byte("value2"),
 			},
-			want: "caa0155759a6a9b3b6ada5a6883ee2bb",
+			want: "1bed8bcbcb4547ffe19a19cd47d9078e84aa6598266d86b99f992d64",
 		},
 	}
 	for _, tt := range tests {
