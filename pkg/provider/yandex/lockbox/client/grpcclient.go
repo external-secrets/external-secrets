@@ -21,6 +21,7 @@ import (
 	api "github.com/yandex-cloud/go-genproto/yandex/cloud/lockbox/v1"
 	"github.com/yandex-cloud/go-sdk/iamkey"
 	"google.golang.org/grpc"
+	"time"
 
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common"
 )
@@ -66,6 +67,8 @@ func (c *grpcLockboxClient) GetPayloadEntries(ctx context.Context, iamToken, fol
 		payloadEntry, err := c.GetSecretByName(ctx, iamToken, folderID, secretIDOrName, versionID)
 		if err != nil {
 			logger.Error(fmt.Sprintf("Method done with error - %s. Properties are :method is %s, folderId: %s, versionId: %s, secretIdOrName: %s", err.Error(), "GetSecretByName", folderID, versionID, secretIDOrName))
+			time.Sleep(10 * time.Second)
+			logger.Error(fmt.Sprintf("Method sleep for 10 second. Properties are :method is %s, folderId: %s, versionId: %s, secretIdOrName: %s", "GetSecretByName", folderID, versionID, secretIDOrName))
 			return nil, err
 		}
 		logger.Debug(fmt.Sprintf("Method done with success. Properties are: method: %s, folderId: %s, versionId: %s, secretIdOrName: %s", "GetSecretByName", folderID, versionID, secretIDOrName))
