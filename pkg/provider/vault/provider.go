@@ -134,7 +134,7 @@ func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, err
 	}
 
-	client, err := getVaultClient(p, store, cfg)
+	client, err := getVaultClient(p, store, cfg, namespace)
 	if err != nil {
 		return nil, fmt.Errorf(errVaultClient, err)
 	}
@@ -211,14 +211,21 @@ func (p *Provider) prepareConfig(ctx context.Context, kube kclient.Client, corev
 	return c, cfg, nil
 }
 
-func getVaultClient(p *Provider, store esv1.GenericStore, cfg *vault.Config) (util.Client, error) {
-	auth := store.GetSpec().Provider.Vault.Auth
+func getVaultClient(p *Provider, store esv1.GenericStore, cfg *vault.Config, namespace string) (util.Client, error) {
+	vaultProvider := store.GetSpec().Provider.Vault
+	auth := vaultProvider.Auth
 	isStaticToken := auth != nil && auth.TokenSecretRef != nil
 	useCache := enableCache && !isStaticToken
 
+	keyNamespace := store.GetObjectMeta().Namespace
+	// A single ClusterSecretStore may need to spawn separate vault clients for each namespace.
+	if store.GetTypeMeta().Kind == esv1.ClusterSecretStoreKind && namespace != "" && isReferentSpec(vaultProvider) {
+		keyNamespace = namespace
+	}
+
 	key := cache.Key{
 		Name:      store.GetObjectMeta().Name,
-		Namespace: store.GetObjectMeta().Namespace,
+		Namespace: keyNamespace,
 		Kind:      store.GetTypeMeta().Kind,
 	}
 	if useCache {
