@@ -25,13 +25,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	ssmTypes "github.com/aws/aws-sdk-go-v2/service/ssm/types"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"github.com/aws/smithy-go"
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/find"
@@ -83,8 +83,9 @@ type PMInterface interface {
 }
 
 const (
-	errUnexpectedFindOperator = "unexpected find operator"
-	errAccessDeniedException  = "AccessDeniedException"
+	errUnexpectedFindOperator    = "unexpected find operator"
+	errAccessDeniedException     = "AccessDeniedException"
+	errCodeAccessDeniedException = "AccessDeniedException"
 )
 
 // New constructs a ParameterStore Provider that is specific to a store.
@@ -343,18 +344,13 @@ func (pm *ParameterStore) findByName(ctx context.Context, ref esv1beta1.External
 			})
 		metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSGetParametersByPath, err)
 		if err != nil {
-			/*
-				Check for AccessDeniedException when calling `GetParametersByPath`. If so,
-				use fallbackFindByName and `DescribeParameters`.
-				https://github.com/external-secrets/external-secrets/issues/1839#issuecomment-1489023522
-			*/
-			var awsError awserr.Error
-			if errors.As(err, &awsError) && awsError.Code() == errAccessDeniedException {
+			var apiErr smithy.APIError
+			if errors.As(err, &apiErr) && apiErr.ErrorCode() == errCodeAccessDeniedException {
 				logger.Info("GetParametersByPath: access denied. using fallback to describe parameters. It is recommended to add ssm:GetParametersByPath permissions", "path", ref.Path)
 				return pm.fallbackFindByName(ctx, ref)
 			}
 
-			return nil, err
+			return nil, fmt.Errorf("fetching parameters by path %s: %w", ref.Path, err)
 		}
 
 		for _, param := range it.Parameters {
