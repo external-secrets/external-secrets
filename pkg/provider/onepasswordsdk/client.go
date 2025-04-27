@@ -21,12 +21,24 @@ import (
 	"fmt"
 	"strings"
 
-	v1 "k8s.io/api/core/v1"
+	"github.com/1password/onepassword-sdk-go"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/kube-openapi/pkg/validation/strfmt"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
+// ErrKeyNotFound is returned when a key is not found in the 1Password Vaults.
+var ErrKeyNotFound = errors.New("key not found")
+
+type PushSecretMetadataSpec struct {
+	Tags  []string `json:"tags,omitempty"`
+	Vault string   `json:"vault,omitempty"`
+}
+
 // GetSecret returns a single secret from the provider.
+// Follows syntax is used for the ref key: https://developer.1password.com/docs/cli/secret-reference-syntax/
 func (p *Provider) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if ref.Version != "" {
 		return nil, errors.New(errVersionNotImplemented)
@@ -82,14 +94,188 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretData
 	return secretData, nil
 }
 
-// PushSecret Not Implemented.
-func (p *Provider) PushSecret(_ context.Context, _ *v1.Secret, _ esv1.PushSecretData) error {
-	return fmt.Errorf(errOnePasswordSdkStore, errors.New(errNotImplemented))
+// createItem creates a new item in the first vault. If no vaults exist, it returns an error.
+func (p *Provider) createItem(ctx context.Context, val []byte, ref esv1.PushSecretData) error {
+	// Get the metadata
+	mdata, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](ref.GetMetadata())
+	if err != nil {
+		return fmt.Errorf("failed to parse push secret metadata: %w", err)
+	}
+
+	// Get the label
+	label := ref.GetProperty()
+	if label == "" {
+		label = "password"
+	}
+
+	var tags []string
+	if mdata != nil && mdata.Spec.Tags != nil {
+		tags = mdata.Spec.Tags
+	}
+
+	// Create the item
+	_, err = p.client.Items().Create(ctx, onepassword.ItemCreateParams{
+		Category: onepassword.ItemCategoryServer,
+		VaultID:  p.vaultID,
+		Title:    ref.GetRemoteKey(),
+		Fields: []onepassword.ItemField{
+			generateNewItemField(label, string(val)),
+		},
+		Tags: tags,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create item: %w", err)
+	}
+
+	return nil
+}
+
+// updateFieldValue updates the fields value of an item with the given label.
+// If the label does not exist, a new field is created. If the label exists but
+// the value is different, the value is updated. If the label exists and the
+// value is the same, nothing is done.
+func updateFieldValue(fields []onepassword.ItemField, title, newVal string) ([]onepassword.ItemField, error) {
+	// This will always iterate over all items.
+	// This is done to ensure that two fields with the same label
+	// exist resulting in undefined behavior.
+	var (
+		found bool
+		index int
+	)
+	for i, item := range fields {
+		if item.Title == title {
+			if found {
+				return nil, fmt.Errorf("found multiple labels with the same key")
+			}
+			found = true
+			index = i
+		}
+	}
+	if !found {
+		return append(fields, generateNewItemField(title, newVal)), nil
+	}
+
+	if fields[index].Value != newVal {
+		fields[index].Value = newVal
+	}
+
+	return fields, nil
+}
+
+// generateNewItemField generates a new item field with the given label and value.
+func generateNewItemField(title, newVal string) onepassword.ItemField {
+	field := onepassword.ItemField{
+		Title:     title,
+		Value:     newVal,
+		FieldType: onepassword.ItemFieldTypeConcealed,
+	}
+
+	return field
+}
+
+func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, ref esv1.PushSecretData) error {
+	val, ok := secret.Data[ref.GetSecretKey()]
+	if !ok {
+		return fmt.Errorf("secret %s/%s does not contain a key", secret.Namespace, secret.Name)
+	}
+
+	title := ref.GetRemoteKey()
+	providerItem, err := p.findItem(ctx, title)
+	if errors.Is(err, ErrKeyNotFound) {
+		if err = p.createItem(ctx, val, ref); err != nil {
+			return fmt.Errorf("failed to create item: %w", err)
+		}
+
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	label := ref.GetProperty()
+	if label == "" {
+		label = "password"
+	}
+
+	mdata, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](ref.GetMetadata())
+	if err != nil {
+		return fmt.Errorf("failed to parse push secret metadata: %w", err)
+	}
+	if mdata != nil && mdata.Spec.Tags != nil {
+		providerItem.Tags = mdata.Spec.Tags
+	}
+
+	providerItem.Fields, err = updateFieldValue(providerItem.Fields, label, string(val))
+	if err != nil {
+		return fmt.Errorf("failed to update field with value %s: %w", string(val), err)
+	}
+
+	if _, err = p.client.Items().Put(ctx, providerItem); err != nil {
+		return fmt.Errorf("failed to update item: %w", err)
+	}
+
+	return nil
+}
+
+func (p *Provider) GetVault(ctx context.Context, name string) (string, error) {
+	vaults, err := p.client.VaultsAPI.ListAll(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to list vaults: %w", err)
+	}
+
+	for {
+		v, err := vaults.Next()
+		if err != nil {
+			// the only time the iterator returns an error is when it's done.
+			break
+		}
+
+		if v.Title == name {
+			// cache the ID so we don't have to repeat this lookup.
+			p.vaultID = v.ID
+			return v.ID, nil
+		}
+	}
+
+	return "", fmt.Errorf("vault %s not found", name)
+}
+
+func (p *Provider) findItem(ctx context.Context, name string) (onepassword.Item, error) {
+	if strfmt.IsUUID(name) {
+		return p.client.Items().Get(ctx, p.vaultID, name)
+	}
+
+	items, err := p.client.Items().ListAll(ctx, p.vaultID)
+	if err != nil {
+		return onepassword.Item{}, fmt.Errorf("failed to list items: %w", err)
+	}
+
+	// We don't stop
+	var itemUUID string
+	for {
+		v, err := items.Next()
+		// the only time the iterator returns an error is when it's done.
+		if err != nil {
+			break
+		}
+
+		if v.Title == name {
+			if itemUUID != "" {
+				return onepassword.Item{}, fmt.Errorf("found multiple items with name %s", name)
+			}
+			itemUUID = v.ID
+		}
+	}
+
+	return p.client.Items().Get(ctx, p.vaultID, itemUUID)
 }
 
 // SecretExists Not Implemented.
 func (p *Provider) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf(errOnePasswordSdkStore, errors.New(errNotImplemented))
+	_, err := p.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{
+		Key: ref.GetRemoteKey(),
+	})
+
+	return err == nil, nil
 }
 
 // Validate checks if the client is configured correctly

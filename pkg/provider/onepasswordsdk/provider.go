@@ -43,6 +43,7 @@ const (
 type Provider struct {
 	client      *onepassword.Client
 	vaultPrefix string
+	vaultID     string
 }
 
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
@@ -73,8 +74,15 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	if err != nil {
 		return nil, err
 	}
+
 	p.client = c
 	p.vaultPrefix = "op://" + config.Vault + "/"
+
+	vaultID, err := p.GetVault(ctx, config.Vault)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get store ID: %w", err)
+	}
+	p.vaultID = vaultID
 
 	return p, nil
 }
