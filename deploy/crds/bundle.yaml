@@ -4463,12 +4463,12 @@ spec:
                             If you don't know which name and version to use, use `DefaultIntegrationName` and `DefaultIntegrationVersion`, respectively.
                           properties:
                             name:
-                              default: DefaultIntegrationName
-                              description: Name defaults to DefaultIntegrationName.
+                              default: 1Password SDK
+                              description: Name defaults to "1Password SDK".
                               type: string
                             version:
-                              default: DefaultIntegrationVersion
-                              description: Version defaults to DefaultIntegrationVersion.
+                              default: v1.0.0
+                              description: Version defaults to "v1.0.0".
                               type: string
                           type: object
                         vault:
@@ -14367,12 +14367,12 @@ spec:
                             If you don't know which name and version to use, use `DefaultIntegrationName` and `DefaultIntegrationVersion`, respectively.
                           properties:
                             name:
-                              default: DefaultIntegrationName
-                              description: Name defaults to DefaultIntegrationName.
+                              default: 1Password SDK
+                              description: Name defaults to "1Password SDK".
                               type: string
                             version:
-                              default: DefaultIntegrationVersion
-                              description: Version defaults to DefaultIntegrationVersion.
+                              default: v1.0.0
+                              description: Version defaults to "v1.0.0".
                               type: string
                           type: object
                         vault:

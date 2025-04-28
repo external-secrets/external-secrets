@@ -5383,7 +5383,7 @@ string
 </em>
 </td>
 <td>
-<p>Name defaults to DefaultIntegrationName.</p>
+<p>Name defaults to &ldquo;1Password SDK&rdquo;.</p>
 </td>
 </tr>
 <tr>
@@ -5394,7 +5394,7 @@ string
 </em>
 </td>
 <td>
-<p>Version defaults to DefaultIntegrationVersion.</p>
+<p>Version defaults to &ldquo;v1.0.0&rdquo;.</p>
 </td>
 </tr>
 </tbody>

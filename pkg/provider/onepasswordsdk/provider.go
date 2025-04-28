@@ -61,8 +61,8 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 
 	if config.IntegrationInfo == nil {
 		config.IntegrationInfo = &esv1.IntegrationInfo{
-			Name:    "DefaultIntegrationName",
-			Version: "DefaultIntegrationVersion",
+			Name:    "1Password SDK",
+			Version: "v1.0.0",
 		}
 	}
 

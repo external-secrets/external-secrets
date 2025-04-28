@@ -26,11 +26,11 @@ type OnePasswordSDKAuth struct {
 
 // IntegrationInfo specifies the name and version of the integration built using the 1Password Go SDK.
 type IntegrationInfo struct {
-	// Name defaults to DefaultIntegrationName.
-	// +kubebuilder:default="DefaultIntegrationName"
+	// Name defaults to "1Password SDK".
+	// +kubebuilder:default="1Password SDK"
 	Name string `json:"name,omitempty"`
-	// Version defaults to DefaultIntegrationVersion.
-	// +kubebuilder:default="DefaultIntegrationVersion"
+	// Version defaults to "v1.0.0".
+	// +kubebuilder:default="v1.0.0"
 	Version string `json:"version,omitempty"`
 }
 
