@@ -798,4 +798,5 @@ func TestCacheWithReferentSpec(t *testing.T) {
 
 func resetCache() {
 	enableCache = false
+	clientCache = nil
 }
