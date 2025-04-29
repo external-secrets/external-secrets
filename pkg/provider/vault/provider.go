@@ -217,9 +217,7 @@ func (p *Provider) prepareConfig(ctx context.Context, kube kclient.Client, corev
 
 func getVaultClient(p *Provider, store esv1.GenericStore, cfg *vault.Config, namespace string) (util.Client, error) {
 	vaultProvider := store.GetSpec().Provider.Vault
-	auth := vaultProvider.Auth
-	isStaticToken := auth != nil && auth.TokenSecretRef != nil
-	useCache := enableCache && !isStaticToken
+	useCache := enableCache
 
 	keyNamespace := store.GetObjectMeta().Namespace
 	// A single ClusterSecretStore may need to spawn separate vault clients for each namespace.
