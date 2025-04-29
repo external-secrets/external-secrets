@@ -1,5 +1,5 @@
 Babel==2.17.0
-certifi==2025.1.31
+certifi==2025.4.26
 charset-normalizer==3.4.1
 click==8.1.8
 colorama==0.4.6
@@ -7,7 +7,7 @@ csscompressor==0.9.5
 ghp-import==2.1.0
 htmlmin==0.1.12
 idna==3.10
-importlib-metadata==8.6.1
+importlib-metadata==8.7.0
 importlib-resources==6.5.2
 Jinja2==3.1.6
 jsmin==3.0.1
@@ -27,7 +27,7 @@ pathspec==0.12.1
 pep562==1.1
 platformdirs==4.3.7
 Pygments==2.19.1
-pymdown-extensions==10.14.3
+pymdown-extensions==10.15
 python-dateutil==2.9.0.post0
 PyYAML==6.0.2
 pyyaml_env_tag==0.1
