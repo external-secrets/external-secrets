@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -278,7 +279,7 @@ func (r *Reconciler) deleteOutdatedExternalSecrets(ctx context.Context, namespac
 
 func isExternalSecretOwnedBy(es *esv1.ExternalSecret, cesName string) bool {
 	owner := metav1.GetControllerOf(es)
-	return owner != nil && owner.APIVersion == esv1.SchemeGroupVersion.String() && owner.Kind == esv1.ClusterExtSecretKind && owner.Name == cesName
+	return owner != nil && schema.FromAPIVersionAndKind(owner.APIVersion, owner.Kind).GroupKind().String() == esv1.ClusterExtSecretGroupKind && owner.Name == cesName
 }
 
 func getRemovedNamespaces(currentNSs []v1.Namespace, provisionedNSs []string) []string {
