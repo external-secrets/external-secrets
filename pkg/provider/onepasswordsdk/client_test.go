@@ -20,9 +20,13 @@ import (
 	"testing"
 
 	"github.com/1password/onepassword-sdk-go"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 )
 
 func TestProviderGetSecret(t *testing.T) {
@@ -232,6 +236,294 @@ func TestProviderValidate(t *testing.T) {
 	}
 }
 
+func TestPushSecret(t *testing.T) {
+	fc := &fakeClient{
+		listAllResult: onepassword.NewIterator[onepassword.VaultOverview](
+			[]onepassword.VaultOverview{
+				{
+					ID:    "test",
+					Title: "test",
+				},
+			},
+		),
+	}
+
+	tests := []struct {
+		name         string
+		ref          v1alpha1.PushSecretData
+		secret       *corev1.Secret
+		assertError  func(t *testing.T, err error)
+		lister       func() *fakeLister
+		assertLister func(t *testing.T, lister *fakeLister)
+	}{
+		{
+			name: "create is called",
+			lister: func() *fakeLister {
+				return &fakeLister{
+					listAllResult: onepassword.NewIterator[onepassword.ItemOverview](
+						[]onepassword.ItemOverview{},
+					),
+				}
+			},
+			secret: &corev1.Secret{
+				Data: map[string][]byte{
+					"foo": []byte("bar"),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "secret",
+					Namespace: "default",
+				},
+			},
+			ref: v1alpha1.PushSecretData{
+				Match: v1alpha1.PushSecretMatch{
+					SecretKey: "foo",
+					RemoteRef: v1alpha1.PushSecretRemoteRef{
+						RemoteKey: "key",
+					},
+				},
+			},
+			assertError: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+			assertLister: func(t *testing.T, lister *fakeLister) {
+				assert.True(t, lister.createCalled)
+			},
+		},
+		{
+			name: "update is called",
+			lister: func() *fakeLister {
+				return &fakeLister{
+					listAllResult: onepassword.NewIterator[onepassword.ItemOverview](
+						[]onepassword.ItemOverview{
+							{
+								ID:       "test-item-id",
+								Title:    "key",
+								Category: "login",
+								VaultID:  "vault-id",
+							},
+						},
+					),
+				}
+			},
+			secret: &corev1.Secret{
+				Data: map[string][]byte{
+					"foo": []byte("bar"),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "secret",
+					Namespace: "default",
+				},
+			},
+			ref: v1alpha1.PushSecretData{
+				Match: v1alpha1.PushSecretMatch{
+					SecretKey: "foo",
+					RemoteRef: v1alpha1.PushSecretRemoteRef{
+						RemoteKey: "key",
+					},
+				},
+			},
+			assertError: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+			assertLister: func(t *testing.T, lister *fakeLister) {
+				assert.True(t, lister.putCalled)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			lister := tt.lister()
+			p := &Provider{
+				client: &onepassword.Client{
+					SecretsAPI: fc,
+					VaultsAPI:  fc,
+					ItemsAPI:   lister,
+				},
+			}
+
+			err := p.PushSecret(ctx, tt.secret, tt.ref)
+			tt.assertError(t, err)
+			tt.assertLister(t, lister)
+		})
+	}
+}
+
+func TestDeleteItemField(t *testing.T) {
+	fc := &fakeClient{
+		listAllResult: onepassword.NewIterator[onepassword.VaultOverview](
+			[]onepassword.VaultOverview{
+				{
+					ID:    "test",
+					Title: "test",
+				},
+			},
+		),
+	}
+
+	testCases := []struct {
+		name         string
+		lister       func() *fakeLister
+		ref          *v1alpha1.PushSecretRemoteRef
+		assertError  func(t *testing.T, err error)
+		assertLister func(t *testing.T, lister *fakeLister)
+	}{
+		{
+			name: "update is called",
+			ref: &v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "key",
+				Property:  "password",
+			},
+			assertLister: func(t *testing.T, lister *fakeLister) {
+				require.True(t, lister.putCalled)
+			},
+			lister: func() *fakeLister {
+				fl := &fakeLister{
+					listAllResult: onepassword.NewIterator[onepassword.ItemOverview](
+						[]onepassword.ItemOverview{
+							{
+								ID:       "test-item-id",
+								Title:    "key",
+								Category: "login",
+								VaultID:  "vault-id",
+							},
+						},
+					),
+					getResult: onepassword.Item{
+						ID:       "test-item-id",
+						Title:    "key",
+						Category: "login",
+						VaultID:  "vault-id",
+						Fields: []onepassword.ItemField{
+							{
+								ID:        "field-1",
+								Title:     "password",
+								FieldType: onepassword.ItemFieldTypeConcealed,
+								Value:     "password",
+							},
+							{
+								ID:        "field-2",
+								Title:     "other-field",
+								FieldType: onepassword.ItemFieldTypeConcealed,
+								Value:     "username",
+							},
+						},
+					},
+				}
+
+				return fl
+			},
+			assertError: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+		{
+			name: "delete is called",
+			ref: &v1alpha1.PushSecretRemoteRef{
+				RemoteKey: "key",
+				Property:  "password",
+			},
+			assertLister: func(t *testing.T, lister *fakeLister) {
+				require.True(t, lister.deleteCalled, "delete should have been called as the item should have existed")
+			},
+			lister: func() *fakeLister {
+				fl := &fakeLister{
+					listAllResult: onepassword.NewIterator[onepassword.ItemOverview](
+						[]onepassword.ItemOverview{
+							{
+								ID:       "test-item-id",
+								Title:    "key",
+								Category: "login",
+								VaultID:  "vault-id",
+							},
+						},
+					),
+					getResult: onepassword.Item{
+						ID:       "test-item-id",
+						Title:    "key",
+						Category: "login",
+						VaultID:  "vault-id",
+						Fields: []onepassword.ItemField{
+							{
+								ID:        "field-1",
+								Title:     "password",
+								FieldType: onepassword.ItemFieldTypeConcealed,
+								Value:     "password",
+							},
+						},
+					},
+				}
+
+				return fl
+			},
+			assertError: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			ctx := context.Background()
+			lister := testCase.lister()
+			p := &Provider{
+				client: &onepassword.Client{
+					SecretsAPI: fc,
+					VaultsAPI:  fc,
+					ItemsAPI:   lister,
+				},
+			}
+
+			testCase.assertError(t, p.DeleteSecret(ctx, testCase.ref))
+			testCase.assertLister(t, lister)
+		})
+	}
+}
+
+type fakeLister struct {
+	listAllResult *onepassword.Iterator[onepassword.ItemOverview]
+	createCalled  bool
+	putCalled     bool
+	deleteCalled  bool
+	getResult     onepassword.Item
+}
+
+func (f *fakeLister) Create(ctx context.Context, params onepassword.ItemCreateParams) (onepassword.Item, error) {
+	f.createCalled = true
+	return onepassword.Item{}, nil
+}
+
+func (f *fakeLister) Get(ctx context.Context, vaultID, itemID string) (onepassword.Item, error) {
+	return f.getResult, nil
+}
+
+func (f *fakeLister) Put(ctx context.Context, item onepassword.Item) (onepassword.Item, error) {
+	f.putCalled = true
+	return onepassword.Item{}, nil
+}
+
+func (f *fakeLister) Delete(ctx context.Context, vaultID, itemID string) error {
+	f.deleteCalled = true
+	return nil
+}
+
+func (f *fakeLister) Archive(ctx context.Context, vaultID, itemID string) error {
+	return nil
+}
+
+func (f *fakeLister) ListAll(ctx context.Context, vaultID string) (*onepassword.Iterator[onepassword.ItemOverview], error) {
+	return f.listAllResult, nil
+}
+
+func (f *fakeLister) Shares() onepassword.ItemsSharesAPI {
+	return nil
+}
+
+func (f *fakeLister) Files() onepassword.ItemsFilesAPI {
+	return nil
+}
+
 type fakeClient struct {
 	resolveResult   string
 	resolveError    error
@@ -255,3 +547,4 @@ func (f *fakeClient) ResolveAll(ctx context.Context, secretReferences []string) 
 
 var _ onepassword.SecretsAPI = &fakeClient{}
 var _ onepassword.VaultsAPI = &fakeClient{}
+var _ onepassword.ItemsAPI = &fakeLister{}

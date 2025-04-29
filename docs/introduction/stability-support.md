@@ -17,7 +17,8 @@ We do not do test coverage for any other kubernetes version than the ones runnin
 As of version 0.14.x , this is the only kubernetes version that we will guarantee support for.
 
 | ESO Version | Kubernetes Version | Release Date | End of Life     |
-| ----------- | ------------------ | ------------ | --------------- |
+|-------------|--------------------|--------------|-----------------|
+| 0.16.x      | 1.32               | Apr 14, 2025 | Release of 0.16 |
 | 0.14.x      | 1.32               | Feb 4, 2025  | Release of 0.14 |
 | 0.13.x      | 1.19 → 1.31        | Jan 21, 2025 | Feb 4, 2025     |
 | 0.12.x      | 1.19 → 1.31        | Dec 24, 2024 | Jan 21, 2025    |
@@ -74,7 +75,7 @@ The following table describes the stability level of each provider and who's res
 The following table show the support for features across different providers.
 
 | Provider                  | find by name | find by tags | metadataPolicy Fetch | referent authentication | store validation | push secret | DeletionPolicy Merge/Delete |
-|---------------------------|:------------:|:------------:| :------------------: | :---------------------: | :--------------: |:-----------:|:---------------------------:|
+|---------------------------|:------------:|:------------:|:--------------------:|:-----------------------:|:----------------:|:-----------:|:---------------------------:|
 | AWS Secrets Manager       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | AWS Parameter Store       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Hashicorp Vault           |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
@@ -88,7 +89,7 @@ The following table show the support for features across different providers.
 | Oracle Vault              |              |              |                      |                         |        x         |             |                             |
 | Akeyless                  |      x       |      x       |                      |            x            |        x         |      x      |              x              |
 | 1Password                 |      x       |      x       |                      |                         |        x         |      x      |              x              |
-| 1Password SDK             |              |              |                      |                         |        x         |             |                             |
+| 1Password SDK             |              |              |                      |                         |        x         |      x      |              x              |
 | Generic Webhook           |              |              |                      |                         |                  |             |              x              |
 | senhasegura DSM           |              |              |                      |                         |        x         |             |                             |
 | Doppler                   |      x       |              |                      |                         |        x         |             |                             |

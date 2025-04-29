@@ -57,8 +57,55 @@ func (p *Provider) Close(_ context.Context) error {
 }
 
 // DeleteSecret Not Implemented.
-func (p *Provider) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
-	return fmt.Errorf(errOnePasswordSdkStore, errors.New(errNotImplemented))
+func (p *Provider) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
+	providerItem, err := p.findItem(ctx, ref.GetRemoteKey())
+	if err != nil {
+		return err
+	}
+
+	providerItem.Fields, err = deleteField(providerItem.Fields, ref.GetProperty())
+	if err != nil {
+		return fmt.Errorf("failed to delete fields: %w", err)
+	}
+
+	// There is a chance that there is an empty item left in the section like this: [{ID: Title:}].
+	if len(providerItem.Sections) == 1 && providerItem.Sections[0].ID == "" && providerItem.Sections[0].Title == "" {
+		providerItem.Sections = nil
+	}
+
+	if len(providerItem.Fields) == 0 && len(providerItem.Files) == 0 && len(providerItem.Sections) == 0 {
+		// Delete the item if there are no fields, files or sections
+		if err = p.client.Items().Delete(ctx, providerItem.VaultID, providerItem.ID); err != nil {
+			return fmt.Errorf("failed to delete item: %w", err)
+		}
+		return nil
+	}
+
+	if _, err = p.client.Items().Put(ctx, providerItem); err != nil {
+		return fmt.Errorf("failed to update item: %w", err)
+	}
+	return nil
+}
+
+func deleteField(fields []onepassword.ItemField, title string) ([]onepassword.ItemField, error) {
+	// This will always iterate over all items,
+	// but it's done to ensure that two fields with the same label
+	// exist resulting in undefined behavior
+	var (
+		found   bool
+		fieldsF = make([]onepassword.ItemField, 0, len(fields))
+	)
+	for _, item := range fields {
+		if item.Title == title {
+			if found {
+				return nil, fmt.Errorf("found multiple labels on item %q", title)
+			}
+			found = true
+			continue
+		}
+		fieldsF = append(fieldsF, item)
+	}
+	return fieldsF, nil
 }
 
 // GetAllSecrets Not Implemented.
@@ -188,7 +235,7 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, ref es
 
 		return nil
 	} else if err != nil {
-		return err
+		return fmt.Errorf("failed to find item: %w", err)
 	}
 
 	label := ref.GetProperty()
@@ -264,6 +311,10 @@ func (p *Provider) findItem(ctx context.Context, name string) (onepassword.Item,
 			}
 			itemUUID = v.ID
 		}
+	}
+
+	if itemUUID == "" {
+		return onepassword.Item{}, ErrKeyNotFound
 	}
 
 	return p.client.Items().Get(ctx, p.vaultID, itemUUID)

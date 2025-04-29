@@ -14,18 +14,40 @@ A sample store configuration looks like this:
 {% include '1passwordsdk-secret-store.yaml' %}
 ```
 
-### Valid Requests
+### GetSecret
 
 Valid secret references should use the following key format: `<item>/[section/]<field>`.
 
+This is described here: [Secret Reference Syntax](https://developer.1password.com/docs/cli/secret-reference-syntax/).
+
 For a one-time password use the following key format: `<item>/[section/]one-time password?attribute=otp`.
-
-### Supported Functionality
-
-Please check the documentation on 1password for [Supported Functionality](https://developer.1password.com/docs/sdks/functionality).
-
-### Sample External Secret
 
 ```yaml
 {% include '1passwordsdk-external-secret.yaml' %}
 ```
+
+### PushSecret
+
+Pushing a secret is also supported. For example a push operation with the following secret:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: source-secret
+stringData:
+  source-key: "my-secret"
+```
+
+Looks like this:
+
+```yaml
+{% include '1passwordsdk-push-secret.yaml' %}
+```
+
+Once all fields of a secret are deleted, the entire secret is deleted if the PushSecret object is removed and
+policy is set to `delete`.
+
+### Supported Functionality
+
+Please check the documentation on 1password for [Supported Functionality](https://developer.1password.com/docs/sdks/functionality).
