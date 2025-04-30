@@ -552,7 +552,7 @@ func testRow(t *testing.T, row TestSessionRow) {
 		t.Errorf("expected provider object, found nil")
 		return
 	}
-	creds, err := s.Config.Credentials.Get()
+	creds, _ := s.Config.Credentials.Get()
 	assert.Equal(t, row.expectedKeyID, creds.AccessKeyID)
 	assert.Equal(t, row.expectedSecretKey, creds.SecretAccessKey)
 }
