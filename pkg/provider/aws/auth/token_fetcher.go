@@ -16,9 +16,12 @@ package auth
 
 import (
 	"fmt"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	authv1 "k8s.io/api/authentication/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
@@ -49,4 +52,36 @@ func (p authTokenFetcher) FetchToken(ctx credentials.Context) ([]byte, error) {
 		return nil, fmt.Errorf("error creating service account token: %w", err)
 	}
 	return []byte(tokRsp.Status.Token), nil
+}
+
+type secretKeyTokenFetcher struct {
+	Namespace string
+	SecretKey esmeta.SecretKeySelector
+	k8sClient client.Client
+}
+
+// FetchToken satisfies the stscreds.TokenFetcher interface
+// it is used to generate service account tokens which are consumed by the aws sdk.
+func (p secretKeyTokenFetcher) FetchToken(ctx credentials.Context) ([]byte, error) {
+	namespace := p.Namespace
+	if p.SecretKey.Namespace != nil && *p.SecretKey.Namespace != "" {
+		namespace = *p.SecretKey.Namespace
+	}
+
+	log.V(1).Info("fetching token", "ns", namespace, "secret", p.SecretKey.Name, "key", p.SecretKey.Key)
+	secret := v1.Secret{}
+	err := p.k8sClient.Get(ctx, client.ObjectKey{
+		Namespace: namespace,
+		Name:      p.SecretKey.Name,
+	}, &secret)
+	if err != nil {
+		return nil, fmt.Errorf("error finding secret %s: %w", p.SecretKey.Name, err)
+	}
+
+	token := secret.Data[p.SecretKey.Key]
+	if token == nil {
+		return nil, fmt.Errorf("error getting token from secret: no token found in secret %s with key %s", p.SecretKey.Name, p.SecretKey.Key)
+	}
+
+	return token, nil
 }

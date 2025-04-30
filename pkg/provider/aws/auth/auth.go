@@ -62,6 +62,7 @@ const (
 	errFetchAKIDSecret = "could not fetch accessKeyID secret: %w"
 	errFetchSAKSecret  = "could not fetch SecretAccessKey secret: %w"
 	errFetchSTSecret   = "could not fetch SessionToken secret: %w"
+	errFetchJWTSecret  = "could not fetch JWT secret: %w"
 )
 
 func init() {
@@ -78,7 +79,7 @@ func init() {
 // * service-account token authentication via AssumeRoleWithWebIdentity
 // * static credentials from a Kind=Secret, optionally with doing a AssumeRole.
 // * sdk default provider chain, see: https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default
-func New(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string, assumeRoler STSProvider, jwtProvider jwtProviderFactory) (*session.Session, error) {
+func New(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string, assumeRoler STSProvider, jwtCredentialFactory jwtCredentialFactory) (*session.Session, error) {
 	prov, err := util.GetAWSProvider(store)
 	if err != nil {
 		return nil, err
@@ -88,8 +89,13 @@ func New(ctx context.Context, store esv1.GenericStore, kube client.Client, names
 
 	// use credentials via service account token
 	jwtAuth := prov.Auth.JWTAuth
-	if jwtAuth != nil {
-		creds, err = credsFromServiceAccount(ctx, prov.Auth, prov.Region, isClusterKind, kube, namespace, jwtProvider)
+	if jwtAuth != nil && jwtAuth.ServiceAccountRef != nil {
+		creds, err = credsFromServiceAccount(ctx, prov.Auth, prov.Region, isClusterKind, kube, namespace, jwtCredentialFactory)
+		if err != nil {
+			return nil, err
+		}
+	} else if jwtAuth != nil && jwtAuth.SecretRef != nil {
+		creds, err = credsFromJwtSecretRef(ctx, prov.Auth, prov.Region, prov.Role, store.GetObjectKind().GroupVersionKind().Kind, kube, namespace, jwtCredentialFactory)
 		if err != nil {
 			return nil, err
 		}
@@ -132,7 +138,7 @@ func New(ctx context.Context, store esv1.GenericStore, kube client.Client, names
 			Value: aws.String(tag.Value),
 		}
 	}
-	if prov.Role != "" {
+	if prov.Role != "" && (jwtAuth == nil || jwtAuth.SecretRef == nil) {
 		stsclient := assumeRoler(sess)
 		if sessExtID != "" || sessTags != nil {
 			var setAssumeRoleOptions = func(p *stscreds.AssumeRoleProvider) {
@@ -160,14 +166,19 @@ func New(ctx context.Context, store esv1.GenericStore, kube client.Client, names
 // * service-account token authentication via AssumeRoleWithWebIdentity
 // * static credentials from a Kind=Secret, optionally with doing a AssumeRole.
 // * sdk default provider chain, see: https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default
-func NewGeneratorSession(ctx context.Context, auth esv1.AWSAuth, role, region string, kube client.Client, namespace string, assumeRoler STSProvider, jwtProvider jwtProviderFactory) (*session.Session, error) {
+func NewGeneratorSession(ctx context.Context, auth esv1.AWSAuth, role, region string, kube client.Client, namespace string, assumeRoler STSProvider, jwtCredentialFactory jwtCredentialFactory) (*session.Session, error) {
 	var creds *credentials.Credentials
 	var err error
 
 	// use credentials via service account token
 	jwtAuth := auth.JWTAuth
-	if jwtAuth != nil {
-		creds, err = credsFromServiceAccount(ctx, auth, region, false, kube, namespace, jwtProvider)
+	if jwtAuth != nil && jwtAuth.ServiceAccountRef != nil {
+		creds, err = credsFromServiceAccount(ctx, auth, region, false, kube, namespace, jwtCredentialFactory)
+		if err != nil {
+			return nil, err
+		}
+	} else if jwtAuth != nil && jwtAuth.SecretRef != nil {
+		creds, err = credsFromJwtSecretRef(ctx, auth, region, role, "", kube, namespace, jwtCredentialFactory)
 		if err != nil {
 			return nil, err
 		}
@@ -196,7 +207,7 @@ func NewGeneratorSession(ctx context.Context, auth esv1.AWSAuth, role, region st
 		return nil, err
 	}
 
-	if role != "" {
+	if role != "" && (jwtAuth == nil || jwtAuth.SecretRef == nil) {
 		stsclient := assumeRoler(sess)
 		sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, role))
 	}
@@ -229,12 +240,28 @@ func credsFromSecretRef(ctx context.Context, auth esv1.AWSAuth, storeKind string
 	return credentials.NewStaticCredentials(aks, sak, sessionToken), err
 }
 
+// credsFromJwtSecretRef pulls access-key / secret-access-key from a secretRef to
+// construct a aws.Credentials object
+// The namespace of the external secret is used if the ClusterSecretStore does not specify a namespace (referentAuth)
+// If the ClusterSecretStore defines a namespace it will take precedence.
+func credsFromJwtSecretRef(ctx context.Context, auth esv1.AWSAuth, region, roleArn, storeKind string, kube client.Client, namespace string, jwtCredentialFactory jwtCredentialFactory) (*credentials.Credentials, error) {
+	log.V(1).Info("using jwt credentials via secret", "role", roleArn, "region", region)
+
+	tokenFetcher := &secretKeyTokenFetcher{
+		Namespace: namespace,
+		SecretKey: *auth.JWTAuth.SecretRef,
+		k8sClient: kube,
+	}
+
+	return jwtCredentialFactory(roleArn, region, tokenFetcher)
+}
+
 // credsFromServiceAccount uses a Kubernetes Service Account to acquire temporary
 // credentials using aws.AssumeRoleWithWebIdentity. It will assume the role defined
 // in the ServiceAccount annotation.
 // If the ClusterSecretStore does not define a namespace it will use the namespace from the ExternalSecret (referentAuth).
 // If the ClusterSecretStore defines the namespace it will take precedence.
-func credsFromServiceAccount(ctx context.Context, auth esv1.AWSAuth, region string, isClusterKind bool, kube client.Client, namespace string, jwtProvider jwtProviderFactory) (*credentials.Credentials, error) {
+func credsFromServiceAccount(ctx context.Context, auth esv1.AWSAuth, region string, isClusterKind bool, kube client.Client, namespace string, jwtCredentialFactory jwtCredentialFactory) (*credentials.Credentials, error) {
 	name := auth.JWTAuth.ServiceAccountRef.Name
 	if isClusterKind && auth.JWTAuth.ServiceAccountRef.Namespace != nil {
 		namespace = *auth.JWTAuth.ServiceAccountRef.Namespace
@@ -263,21 +290,6 @@ func credsFromServiceAccount(ctx context.Context, auth esv1.AWSAuth, region stri
 		audiences = append(audiences, auth.JWTAuth.ServiceAccountRef.Audiences...)
 	}
 
-	jwtProv, err := jwtProvider(name, namespace, roleArn, audiences, region)
-	if err != nil {
-		return nil, err
-	}
-
-	log.V(1).Info("using credentials via service account", "role", roleArn, "region", region)
-	return credentials.NewCredentials(jwtProv), nil
-}
-
-type jwtProviderFactory func(name, namespace, roleArn string, aud []string, region string) (credentials.Provider, error)
-
-// DefaultJWTProvider returns a credentials.Provider that calls the AssumeRoleWithWebidentity
-// controller-runtime/client does not support TokenRequest or other subresource APIs
-// so we need to construct our own client and use it to fetch tokens.
-func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region string) (credentials.Provider, error) {
 	cfg, err := ctrlcfg.GetConfig()
 	if err != nil {
 		return nil, err
@@ -286,6 +298,20 @@ func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region st
 	if err != nil {
 		return nil, err
 	}
+
+	tokenFetcher := &authTokenFetcher{
+		Namespace:      namespace,
+		Audiences:      audiences,
+		ServiceAccount: name,
+		k8sClient:      clientset.CoreV1(),
+	}
+
+	return jwtCredentialFactory(roleArn, region, tokenFetcher)
+}
+
+type jwtCredentialFactory func(region, roleArn string, tokenFetcher stscreds.TokenFetcher) (*credentials.Credentials, error)
+
+func DefaultJWTCredentialFactory(region, roleArn string, tokenFetcher stscreds.TokenFetcher) (*credentials.Credentials, error) {
 	handlers := defaults.Handlers()
 	handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))
 	awscfg := aws.NewConfig().WithEndpointResolver(ResolveEndpoint())
@@ -300,15 +326,10 @@ func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region st
 	if err != nil {
 		return nil, err
 	}
-	tokenFetcher := &authTokenFetcher{
-		Namespace:      namespace,
-		Audiences:      aud,
-		ServiceAccount: name,
-		k8sClient:      clientset.CoreV1(),
-	}
 
-	return stscreds.NewWebIdentityRoleProviderWithOptions(
-		sts.New(sess), roleArn, "external-secrets-provider-aws", tokenFetcher), nil
+	jwtProv := stscreds.NewWebIdentityRoleProviderWithOptions(
+		sts.New(sess), roleArn, "external-secrets-provider-aws", tokenFetcher)
+	return credentials.NewCredentials(jwtProv), nil
 }
 
 type STSProvider func(*session.Session) stsiface.STSAPI

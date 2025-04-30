@@ -70,7 +70,7 @@ func (g *Generator) generate(
 		kube,
 		namespace,
 		awsauth.DefaultSTSProvider,
-		awsauth.DefaultJWTProvider)
+		awsauth.DefaultJWTCredentialFactory)
 	if err != nil {
 		return nil, nil, fmt.Errorf(errCreateSess, err)
 	}
