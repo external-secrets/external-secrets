@@ -16,6 +16,7 @@ package auth
 
 import (
 	"context"
+	"github.com/stretchr/testify/require"
 	"strings"
 	"testing"
 	"time"
@@ -368,6 +369,15 @@ func TestNewSession(t *testing.T) {
 			},
 			jwtProvider: func(roleArn, region string, tokenFetcher stscreds.TokenFetcher) (*credentials.Credentials, error) {
 				assert.Equal(t, "my-sa-role", roleArn)
+
+				// We can't actually run the authTokenFetcher so instead let's just
+				// confirm it is configured as expected
+				authFetcher, ok := tokenFetcher.(*authTokenFetcher)
+				require.True(t, ok)
+				assert.NotNil(t, authFetcher)
+				assert.Equal(t, myServiceAccountKey, authFetcher.ServiceAccount)
+				assert.Equal(t, otherNsName, authFetcher.Namespace)
+
 				return credentials.NewCredentials(fakesess.CredentialsProvider{
 					RetrieveFunc: func() (credentials.Value, error) {
 						return credentials.Value{
@@ -409,6 +419,9 @@ func TestNewSession(t *testing.T) {
 			namespace: esNamespaceKey,
 			jwtProvider: func(roleArn, region string, tokenFetcher stscreds.TokenFetcher) (*credentials.Credentials, error) {
 				assert.Equal(t, "arn:aws:iam::111122223333:role/s3-reader", roleArn)
+				tokenBytes, err := tokenFetcher.FetchToken(context.Background())
+				assert.NoError(t, err)
+				assert.Equal(t, "jwt-secret-token", string(tokenBytes))
 				return credentials.NewCredentials(fakesess.CredentialsProvider{
 					RetrieveFunc: func() (credentials.Value, error) {
 						return credentials.Value{
