@@ -95,7 +95,7 @@ func New(ctx context.Context, store esv1.GenericStore, kube client.Client, names
 			return nil, err
 		}
 	} else if jwtAuth != nil && jwtAuth.SecretRef != nil {
-		creds, err = credsFromJwtSecretRef(ctx, prov.Auth, prov.Region, prov.Role, store.GetObjectKind().GroupVersionKind().Kind, kube, namespace, jwtCredentialFactory)
+		creds, err = credsFromJwtSecretRef(prov.Auth, prov.Region, prov.Role, isClusterKind, kube, namespace, jwtCredentialFactory)
 		if err != nil {
 			return nil, err
 		}
@@ -178,7 +178,7 @@ func NewGeneratorSession(ctx context.Context, auth esv1.AWSAuth, role, region st
 			return nil, err
 		}
 	} else if jwtAuth != nil && jwtAuth.SecretRef != nil {
-		creds, err = credsFromJwtSecretRef(ctx, auth, region, role, "", kube, namespace, jwtCredentialFactory)
+		creds, err = credsFromJwtSecretRef(auth, region, role, false, kube, namespace, jwtCredentialFactory)
 		if err != nil {
 			return nil, err
 		}
@@ -240,16 +240,26 @@ func credsFromSecretRef(ctx context.Context, auth esv1.AWSAuth, storeKind string
 	return credentials.NewStaticCredentials(aks, sak, sessionToken), err
 }
 
-// credsFromJwtSecretRef pulls access-key / secret-access-key from a secretRef to
-// construct a aws.Credentials object
+// credsFromJwtSecretRef pulls a JWT from a secretRef to acquire
+// temporary credentials using aws.AssumeRoleWithWebIdentity.
+//
 // The namespace of the external secret is used if the ClusterSecretStore does not specify a namespace (referentAuth)
 // If the ClusterSecretStore defines a namespace it will take precedence.
-func credsFromJwtSecretRef(ctx context.Context, auth esv1.AWSAuth, region, roleArn, storeKind string, kube client.Client, namespace string, jwtCredentialFactory jwtCredentialFactory) (*credentials.Credentials, error) {
+func credsFromJwtSecretRef(auth esv1.AWSAuth, region, roleArn string, isClusterKind bool, kube client.Client, namespace string, jwtCredentialFactory jwtCredentialFactory) (*credentials.Credentials, error) {
 	log.V(1).Info("using jwt credentials via secret", "role", roleArn, "region", region)
 
+	if roleArn == "" {
+		return nil, fmt.Errorf(".spec.provider.aws.role is required when using jwt credentials via secret")
+	}
+
+	if isClusterKind && auth.JWTAuth.SecretRef.Namespace != nil && *auth.JWTAuth.SecretRef.Namespace != "" {
+		namespace = *auth.JWTAuth.SecretRef.Namespace
+	}
+
 	tokenFetcher := &secretKeyTokenFetcher{
+		Name:      auth.JWTAuth.SecretRef.Name,
 		Namespace: namespace,
-		SecretKey: *auth.JWTAuth.SecretRef,
+		Key:       auth.JWTAuth.SecretRef.Key,
 		k8sClient: kube,
 	}
 

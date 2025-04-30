@@ -16,7 +16,6 @@ package auth
 
 import (
 	"context"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -49,11 +48,9 @@ func TestSecretKeyTokenFetcher(t *testing.T) {
 		Build()
 
 	tf := &secretKeyTokenFetcher{
-		SecretKey: esmeta.SecretKeySelector{
-			Name: "foobar",
-			Key:  "fookey",
-		},
+		Name:      "foobar",
 		Namespace: "example",
+		Key:       "fookey",
 		k8sClient: client,
 	}
 	token, err := tf.FetchToken(context.Background())
