@@ -510,7 +510,7 @@ type TestSessionRow struct {
 	store             esv1.GenericStore
 	secrets           []v1.Secret
 	sa                *v1.ServiceAccount
-	jwtProvider       jwtCredentialFactory
+	jwtProvider       jwtProviderFactory
 	namespace         string
 	stsProvider       STSProvider
 	expectProvider    bool
