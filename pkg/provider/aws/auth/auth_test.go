@@ -16,7 +16,6 @@ package auth
 
 import (
 	"context"
-	"github.com/stretchr/testify/require"
 	"strings"
 	"testing"
 	"time"
@@ -28,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	authv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
