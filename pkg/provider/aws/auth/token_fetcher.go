@@ -21,8 +21,10 @@ import (
 	authv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 // mostly taken from:
@@ -42,6 +44,22 @@ type authTokenFetcher struct {
 // it is used to generate service account tokens which are consumed by the aws sdk.
 func (p authTokenFetcher) FetchToken(ctx credentials.Context) ([]byte, error) {
 	log.V(1).Info("fetching token", "ns", p.Namespace, "sa", p.ServiceAccount)
+
+	if p.k8sClient == nil {
+		// controller-runtime/client does not support TokenRequest or other subresource APIs
+		// so we need to construct our own client and use it to fetch tokens.
+		cfg, err := ctrlcfg.GetConfig()
+		if err != nil {
+			return nil, err
+		}
+		clientset, err := kubernetes.NewForConfig(cfg)
+		if err != nil {
+			return nil, err
+		}
+
+		p.k8sClient = clientset.CoreV1()
+	}
+
 	tokRsp, err := p.k8sClient.ServiceAccounts(p.Namespace).CreateToken(ctx, p.ServiceAccount, &authv1.TokenRequest{
 		Spec: authv1.TokenRequestSpec{
 			Audiences: p.Audiences,
@@ -64,6 +82,7 @@ type secretKeyTokenFetcher struct {
 // it is used to generate service account tokens which are consumed by the aws sdk.
 func (p secretKeyTokenFetcher) FetchToken(ctx credentials.Context) ([]byte, error) {
 	log.V(1).Info("fetching token", "ns", p.Namespace, "secret", p.Name, "key", p.Key)
+
 	secret := v1.Secret{}
 	err := p.k8sClient.Get(ctx, client.ObjectKey{
 		Namespace: p.Namespace,

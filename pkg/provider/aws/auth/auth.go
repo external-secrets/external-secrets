@@ -29,10 +29,8 @@ import (
 	"github.com/spf13/pflag"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/cache"
@@ -305,22 +303,10 @@ func credsFromServiceAccount(ctx context.Context, auth esv1.AWSAuth, region stri
 		audiences = append(audiences, auth.JWTAuth.ServiceAccountRef.Audiences...)
 	}
 
-	// controller-runtime/client does not support TokenRequest or other subresource APIs
-	// so we need to construct our own client and use it to fetch tokens.
-	cfg, err := ctrlcfg.GetConfig()
-	if err != nil {
-		return nil, err
-	}
-	clientset, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		return nil, err
-	}
-
 	tokenFetcher := &authTokenFetcher{
 		Namespace:      namespace,
 		Audiences:      audiences,
 		ServiceAccount: name,
-		k8sClient:      clientset.CoreV1(),
 	}
 
 	return jwtProvider(roleArn, region, tokenFetcher)
