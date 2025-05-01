@@ -102,8 +102,14 @@ func (in *AWSProvider) DeepCopyInto(out *AWSProvider) {
 	}
 	if in.SessionTags != nil {
 		in, out := &in.SessionTags, &out.SessionTags
-		*out = make([]Tag, len(*in))
-		copy(*out, *in)
+		*out = make([]*Tag, len(*in))
+		for i := range *in {
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(Tag)
+				**out = **in
+			}
+		}
 	}
 	if in.SecretsManager != nil {
 		in, out := &in.SecretsManager, &out.SecretsManager
@@ -112,8 +118,14 @@ func (in *AWSProvider) DeepCopyInto(out *AWSProvider) {
 	}
 	if in.TransitiveTagKeys != nil {
 		in, out := &in.TransitiveTagKeys, &out.TransitiveTagKeys
-		*out = make([]string, len(*in))
-		copy(*out, *in)
+		*out = make([]*string, len(*in))
+		for i := range *in {
+			if (*in)[i] != nil {
+				in, out := &(*in)[i], &(*out)[i]
+				*out = new(string)
+				**out = **in
+			}
+		}
 	}
 }
 
