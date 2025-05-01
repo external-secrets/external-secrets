@@ -22,7 +22,7 @@ import (
 	"github.com/yandex-cloud/go-sdk/iamkey"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/certificatemanager/client"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common"
@@ -31,7 +31,7 @@ import (
 
 var log = ctrl.Log.WithName("provider").WithName("yandex").WithName("certificatemanager")
 
-func adaptInput(store esv1beta1.GenericStore) (*common.SecretsClientInput, error) {
+func adaptInput(store esv1.GenericStore) (*common.SecretsClientInput, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.YandexCertificateManager == nil {
 		return nil, errors.New("received invalid Yandex Certificate Manager SecretStore resource")
@@ -72,10 +72,11 @@ func init() {
 		time.Hour,
 	)
 
-	esv1beta1.Register(
+	esv1.Register(
 		provider,
-		&esv1beta1.SecretStoreProvider{
-			YandexCertificateManager: &esv1beta1.YandexCertificateManagerProvider{},
+		&esv1.SecretStoreProvider{
+			YandexCertificateManager: &esv1.YandexCertificateManagerProvider{},
 		},
+		esv1.MaintenanceStatusMaintained,
 	)
 }

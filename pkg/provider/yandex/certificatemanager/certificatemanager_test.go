@@ -31,7 +31,7 @@ import (
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/certificatemanager/client"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common"
@@ -48,17 +48,17 @@ func TestNewClient(t *testing.T) {
 	ctx := context.Background()
 	const namespace = "namespace"
 
-	store := &esv1beta1.SecretStore{
+	store := &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				YandexCertificateManager: &esv1beta1.YandexCertificateManagerProvider{},
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				YandexCertificateManager: &esv1.YandexCertificateManagerProvider{},
 			},
 		},
 	}
-	provider, err := esv1beta1.GetProvider(store)
+	provider, err := esv1.GetProvider(store)
 	tassert.Nil(t, err)
 
 	k8sClient := clientfake.NewClientBuilder().Build()
@@ -66,7 +66,7 @@ func TestNewClient(t *testing.T) {
 	tassert.EqualError(t, err, errMissingKey)
 	tassert.Nil(t, secretClient)
 
-	store.Spec.Provider.YandexCertificateManager.Auth = esv1beta1.YandexCertificateManagerAuth{}
+	store.Spec.Provider.YandexCertificateManager.Auth = esv1.YandexCertificateManagerAuth{}
 	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
 	tassert.EqualError(t, err, errMissingKey)
 	tassert.Nil(t, secretClient)
@@ -89,7 +89,7 @@ func TestNewClient(t *testing.T) {
 
 	const caCertificateSecretName = "caCertificateSecretName"
 	const caCertificateSecretKey = "caCertificateSecretKey"
-	store.Spec.Provider.YandexCertificateManager.CAProvider = &esv1beta1.YandexCertificateManagerCAProvider{
+	store.Spec.Provider.YandexCertificateManager.CAProvider = &esv1.YandexCertificateManagerCAProvider{
 		Certificate: esmeta.SecretKeySelector{
 			Key:  caCertificateSecretKey,
 			Name: caCertificateSecretName,
@@ -131,7 +131,7 @@ func TestGetSecretWithoutProperty(t *testing.T) {
 	provider := newCertificateManagerProvider(fakeClock, fakeCertificateManagerServer)
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
-	data, err := secretsClient.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID})
+	data, err := secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID})
 	tassert.Nil(t, err)
 
 	tassert.Equal(
@@ -167,7 +167,7 @@ func TestGetSecretWithProperty(t *testing.T) {
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
 
-	chainData, err := secretsClient.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID, Property: chainProperty})
+	chainData, err := secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID, Property: chainProperty})
 	tassert.Nil(t, err)
 	tassert.Equal(
 		t,
@@ -175,7 +175,7 @@ func TestGetSecretWithProperty(t *testing.T) {
 		strings.TrimSpace(string(chainData)),
 	)
 
-	privateKeyData, err := secretsClient.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID, Property: privateKeyProperty})
+	privateKeyData, err := secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID, Property: privateKeyProperty})
 	tassert.Nil(t, err)
 	tassert.Equal(
 		t,
@@ -183,7 +183,7 @@ func TestGetSecretWithProperty(t *testing.T) {
 		strings.TrimSpace(string(privateKeyData)),
 	)
 
-	chainAndPrivateKeyData, err := secretsClient.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID, Property: chainAndPrivateKeyProperty})
+	chainAndPrivateKeyData, err := secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID, Property: chainAndPrivateKeyProperty})
 	tassert.Nil(t, err)
 	tassert.Equal(
 		t,
@@ -217,7 +217,7 @@ func TestGetSecretByVersionID(t *testing.T) {
 	provider := newCertificateManagerProvider(fakeClock, fakeCertificateManagerServer)
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
-	data, err := secretsClient.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID, Version: oldVersionID})
+	data, err := secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID, Version: oldVersionID})
 	tassert.Nil(t, err)
 
 	tassert.Equal(
@@ -234,7 +234,7 @@ func TestGetSecretByVersionID(t *testing.T) {
 		PrivateKey:       newPrivateKey,
 	})
 
-	data, err = secretsClient.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID, Version: oldVersionID})
+	data, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID, Version: oldVersionID})
 	tassert.Nil(t, err)
 	tassert.Equal(
 		t,
@@ -242,7 +242,7 @@ func TestGetSecretByVersionID(t *testing.T) {
 		strings.TrimSpace(string(data)),
 	)
 
-	data, err = secretsClient.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID, Version: newVersionID})
+	data, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID, Version: newVersionID})
 	tassert.Nil(t, err)
 	tassert.Equal(
 		t,
@@ -274,7 +274,7 @@ func TestGetSecretUnauthorized(t *testing.T) {
 	provider := newCertificateManagerProvider(fakeClock, fakeCertificateManagerServer)
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
-	_, err = secretsClient.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID})
+	_, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID})
 	tassert.EqualError(t, err, errSecretPayloadPermissionDenied)
 }
 
@@ -296,14 +296,14 @@ func TestGetSecretNotFound(t *testing.T) {
 	provider := newCertificateManagerProvider(fakeClock, fakeCertificateManagerServer)
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
-	_, err = secretsClient.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: "no-secret-with-this-id"})
+	_, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: "no-secret-with-this-id"})
 	tassert.EqualError(t, err, errSecretPayloadNotFound)
 
 	certificateID, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey, &certificatemanager.GetCertificateContentResponse{
 		CertificateChain: []string{uuid.NewString()},
 		PrivateKey:       uuid.NewString(),
 	})
-	_, err = secretsClient.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID, Version: "no-version-with-this-id"})
+	_, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID, Version: "no-version-with-this-id"})
 	tassert.EqualError(t, err, "unable to request certificate content to get secret: version not found")
 }
 
@@ -345,17 +345,17 @@ func TestGetSecretWithTwoNamespaces(t *testing.T) {
 	secretsClient2, err := provider.NewClient(ctx, store2, k8sClient, namespace2)
 	tassert.Nil(t, err)
 
-	data, err := secretsClient1.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID1, Property: privateKeyProperty})
+	data, err := secretsClient1.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID1, Property: privateKeyProperty})
 	tassert.Equal(t, privateKey1, strings.TrimSpace(string(data)))
 	tassert.Nil(t, err)
-	data, err = secretsClient1.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID2, Property: privateKeyProperty})
+	data, err = secretsClient1.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID2, Property: privateKeyProperty})
 	tassert.Nil(t, data)
 	tassert.EqualError(t, err, errSecretPayloadPermissionDenied)
 
-	data, err = secretsClient2.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID1, Property: privateKeyProperty})
+	data, err = secretsClient2.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID1, Property: privateKeyProperty})
 	tassert.Nil(t, data)
 	tassert.EqualError(t, err, errSecretPayloadPermissionDenied)
-	data, err = secretsClient2.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID2, Property: privateKeyProperty})
+	data, err = secretsClient2.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID2, Property: privateKeyProperty})
 	tassert.Equal(t, privateKey2, strings.TrimSpace(string(data)))
 	tassert.Nil(t, err)
 }
@@ -407,17 +407,17 @@ func TestGetSecretWithTwoApiEndpoints(t *testing.T) {
 
 	var data []byte
 
-	data, err = secretsClient1.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID1, Property: chainProperty})
+	data, err = secretsClient1.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID1, Property: chainProperty})
 	tassert.Equal(t, certificate1, strings.TrimSpace(string(data)))
 	tassert.Nil(t, err)
-	data, err = secretsClient1.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID2, Property: chainProperty})
+	data, err = secretsClient1.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID2, Property: chainProperty})
 	tassert.Nil(t, data)
 	tassert.EqualError(t, err, errSecretPayloadNotFound)
 
-	data, err = secretsClient2.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID1, Property: chainProperty})
+	data, err = secretsClient2.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID1, Property: chainProperty})
 	tassert.Nil(t, data)
 	tassert.EqualError(t, err, errSecretPayloadNotFound)
-	data, err = secretsClient2.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID2, Property: chainProperty})
+	data, err = secretsClient2.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID2, Property: chainProperty})
 	tassert.Equal(t, certificate2, strings.TrimSpace(string(data)))
 	tassert.Nil(t, err)
 }
@@ -450,19 +450,19 @@ func TestGetSecretWithIamTokenExpiration(t *testing.T) {
 
 	oldSecretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
-	data, err = oldSecretsClient.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID, Property: privateKeyProperty})
+	data, err = oldSecretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID, Property: privateKeyProperty})
 	tassert.Equal(t, privateKey, strings.TrimSpace(string(data)))
 	tassert.Nil(t, err)
 
 	fakeClock.AddDuration(2 * tokenExpirationTime)
 
-	data, err = oldSecretsClient.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID, Property: privateKeyProperty})
+	data, err = oldSecretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID, Property: privateKeyProperty})
 	tassert.Nil(t, data)
 	tassert.EqualError(t, err, "unable to request certificate content to get secret: iam token expired")
 
 	newSecretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
-	data, err = newSecretsClient.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID, Property: privateKeyProperty})
+	data, err = newSecretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID, Property: privateKeyProperty})
 	tassert.Equal(t, privateKey, strings.TrimSpace(string(data)))
 	tassert.Nil(t, err)
 }
@@ -508,7 +508,7 @@ func TestGetSecretWithIamTokenCleanup(t *testing.T) {
 	// Access secretID1 with authorizedKey1, IAM token for authorizedKey1 should be cached
 	secretsClient, err := provider.NewClient(ctx, store1, k8sClient, namespace)
 	tassert.Nil(t, err)
-	_, err = secretsClient.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID1})
+	_, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID1})
 	tassert.Nil(t, err)
 
 	tassert.True(t, provider.IsIamTokenCached(authorizedKey1))
@@ -519,7 +519,7 @@ func TestGetSecretWithIamTokenCleanup(t *testing.T) {
 	// Access secretID2 with authorizedKey2, IAM token for authorizedKey2 should be cached
 	secretsClient, err = provider.NewClient(ctx, store2, k8sClient, namespace)
 	tassert.Nil(t, err)
-	_, err = secretsClient.GetSecret(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID2})
+	_, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID2})
 	tassert.Nil(t, err)
 
 	tassert.True(t, provider.IsIamTokenCached(authorizedKey1))
@@ -571,7 +571,7 @@ func TestGetSecretMap(t *testing.T) {
 	provider := newCertificateManagerProvider(fakeClock, fakeCertificateManagerServer)
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
-	data, err := secretsClient.GetSecretMap(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID})
+	data, err := secretsClient.GetSecretMap(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID})
 	tassert.Nil(t, err)
 
 	tassert.Equal(
@@ -608,7 +608,7 @@ func TestGetSecretMapByVersionID(t *testing.T) {
 	provider := newCertificateManagerProvider(fakeClock, fakeCertificateManagerServer)
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
-	data, err := secretsClient.GetSecretMap(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID, Version: oldVersionID})
+	data, err := secretsClient.GetSecretMap(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID, Version: oldVersionID})
 	tassert.Nil(t, err)
 
 	tassert.Equal(
@@ -627,7 +627,7 @@ func TestGetSecretMapByVersionID(t *testing.T) {
 		PrivateKey:       newPrivateKey,
 	})
 
-	data, err = secretsClient.GetSecretMap(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID, Version: oldVersionID})
+	data, err = secretsClient.GetSecretMap(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID, Version: oldVersionID})
 	tassert.Nil(t, err)
 	tassert.Equal(
 		t,
@@ -638,7 +638,7 @@ func TestGetSecretMapByVersionID(t *testing.T) {
 		data,
 	)
 
-	data, err = secretsClient.GetSecretMap(ctx, esv1beta1.ExternalSecretDataRemoteRef{Key: certificateID, Version: newVersionID})
+	data, err = secretsClient.GetSecretMap(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID, Version: newVersionID})
 	tassert.Nil(t, err)
 	tassert.Equal(
 		t,
@@ -667,16 +667,16 @@ func newCertificateManagerProvider(clock clock.Clock, fakeCertificateManagerServ
 	)
 }
 
-func newYandexCertificateManagerSecretStore(apiEndpoint, namespace, authorizedKeySecretName, authorizedKeySecretKey string) esv1beta1.GenericStore {
-	return &esv1beta1.SecretStore{
+func newYandexCertificateManagerSecretStore(apiEndpoint, namespace, authorizedKeySecretName, authorizedKeySecretKey string) esv1.GenericStore {
+	return &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				YandexCertificateManager: &esv1beta1.YandexCertificateManagerProvider{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				YandexCertificateManager: &esv1.YandexCertificateManagerProvider{
 					APIEndpoint: apiEndpoint,
-					Auth: esv1beta1.YandexCertificateManagerAuth{
+					Auth: esv1.YandexCertificateManagerAuth{
 						AuthorizedKey: esmeta.SecretKeySelector{
 							Name: authorizedKeySecretName,
 							Key:  authorizedKeySecretKey,

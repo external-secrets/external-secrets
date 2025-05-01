@@ -14,7 +14,7 @@ env:
   # Common users. We can't run a step 'if secrets.GHCR_USERNAME != ""' but we can run
   # a step 'if env.GHCR_USERNAME' != ""', so we copy these to succinctly test whether
   # credentials have been provided before trying to run steps that need them.
-  GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+  GHCR_USERNAME: ${{ github.actor }}
   GCP_SM_SA_JSON: ${{ secrets.GCP_SM_SA_JSON}}
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID}}
   USE_GKE_GCLOUD_AUTH_PLUGIN: true
@@ -47,7 +47,6 @@ env:
   GITHUB_PR_NUMBER: ${{ github.event.client_payload.pull_request.number }}
   CLOUD_PROVIDER: ${{ github.event.client_payload.slash_command.args.named.provider }}
   INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
-  GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
 
 name: managed e2e tests
 
@@ -55,12 +54,15 @@ jobs:
   run-e2e-managed:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
-      checks: write
-      contents: read
+      id-token: write #for oidc auth with aws/gcp/azure
+      checks: write   #publish the commit status
+      contents: read  #for checkout
     if: github.event_name == 'repository_dispatch'
 
     steps:
+    - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+      with:
+        egress-policy: audit
 
     # Check out merge commit
     - name: Fork based /ok-to-test-managed checkout

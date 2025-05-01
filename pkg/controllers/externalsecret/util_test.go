@@ -22,18 +22,18 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 func TestGetExternalSecretCondition(t *testing.T) {
-	status := esv1beta1.ExternalSecretStatus{
-		Conditions: []esv1beta1.ExternalSecretStatusCondition{
+	status := esv1.ExternalSecretStatus{
+		Conditions: []esv1.ExternalSecretStatusCondition{
 			{
-				Type:   esv1beta1.ExternalSecretReady,
+				Type:   esv1.ExternalSecretReady,
 				Status: corev1.ConditionFalse,
 			},
 			{
-				Type:   esv1beta1.ExternalSecretReady,
+				Type:   esv1.ExternalSecretReady,
 				Status: corev1.ConditionTrue,
 			},
 		},
@@ -41,20 +41,20 @@ func TestGetExternalSecretCondition(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		condType esv1beta1.ExternalSecretConditionType
-		expected *esv1beta1.ExternalSecretStatusCondition
+		condType esv1.ExternalSecretConditionType
+		expected *esv1.ExternalSecretStatusCondition
 	}{
 		{
 			name:     "Status has a condition of the specified type",
-			condType: esv1beta1.ExternalSecretReady,
-			expected: &esv1beta1.ExternalSecretStatusCondition{
-				Type:   esv1beta1.ExternalSecretReady,
+			condType: esv1.ExternalSecretReady,
+			expected: &esv1.ExternalSecretStatusCondition{
+				Type:   esv1.ExternalSecretReady,
 				Status: corev1.ConditionFalse,
 			},
 		},
 		{
 			name:     "Status does not have a condition of the specified type",
-			condType: esv1beta1.ExternalSecretDeleted,
+			condType: esv1.ExternalSecretDeleted,
 			expected: nil,
 		},
 	}
@@ -75,26 +75,26 @@ func TestSetExternalSecretCondition(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		current        *esv1beta1.ExternalSecret
-		new            esv1beta1.ExternalSecretStatusCondition
-		expectedStatus esv1beta1.ExternalSecretStatus
+		current        *esv1.ExternalSecret
+		new            esv1.ExternalSecretStatusCondition
+		expectedStatus esv1.ExternalSecretStatus
 	}{
 		{
 			name: "ExternalSecret has no conditions",
-			current: &esv1beta1.ExternalSecret{
-				Status: esv1beta1.ExternalSecretStatus{},
+			current: &esv1.ExternalSecret{
+				Status: esv1.ExternalSecretStatus{},
 			},
-			new: esv1beta1.ExternalSecretStatusCondition{
-				Type:               esv1beta1.ExternalSecretReady,
+			new: esv1.ExternalSecretStatusCondition{
+				Type:               esv1.ExternalSecretReady,
 				Status:             corev1.ConditionTrue,
 				Reason:             "TestReason",
 				Message:            "TestMessage",
 				LastTransitionTime: metav1.NewTime(now),
 			},
-			expectedStatus: esv1beta1.ExternalSecretStatus{
-				Conditions: []esv1beta1.ExternalSecretStatusCondition{
+			expectedStatus: esv1.ExternalSecretStatus{
+				Conditions: []esv1.ExternalSecretStatusCondition{
 					{
-						Type:               esv1beta1.ExternalSecretReady,
+						Type:               esv1.ExternalSecretReady,
 						Status:             corev1.ConditionTrue,
 						Reason:             "TestReason",
 						Message:            "TestMessage",
@@ -105,11 +105,11 @@ func TestSetExternalSecretCondition(t *testing.T) {
 		},
 		{
 			name: "ExternalSecret already has the same condition",
-			current: &esv1beta1.ExternalSecret{
-				Status: esv1beta1.ExternalSecretStatus{
-					Conditions: []esv1beta1.ExternalSecretStatusCondition{
+			current: &esv1.ExternalSecret{
+				Status: esv1.ExternalSecretStatus{
+					Conditions: []esv1.ExternalSecretStatusCondition{
 						{
-							Type:               esv1beta1.ExternalSecretReady,
+							Type:               esv1.ExternalSecretReady,
 							Status:             corev1.ConditionTrue,
 							Reason:             "TestReason",
 							Message:            "TestMessage",
@@ -118,16 +118,16 @@ func TestSetExternalSecretCondition(t *testing.T) {
 					},
 				},
 			},
-			new: esv1beta1.ExternalSecretStatusCondition{
-				Type:    esv1beta1.ExternalSecretReady,
+			new: esv1.ExternalSecretStatusCondition{
+				Type:    esv1.ExternalSecretReady,
 				Status:  corev1.ConditionTrue,
 				Reason:  "TestReason",
 				Message: "TestMessage",
 			},
-			expectedStatus: esv1beta1.ExternalSecretStatus{
-				Conditions: []esv1beta1.ExternalSecretStatusCondition{
+			expectedStatus: esv1.ExternalSecretStatus{
+				Conditions: []esv1.ExternalSecretStatusCondition{
 					{
-						Type:               esv1beta1.ExternalSecretReady,
+						Type:               esv1.ExternalSecretReady,
 						Status:             corev1.ConditionTrue,
 						Reason:             "TestReason",
 						Message:            "TestMessage",
@@ -138,11 +138,11 @@ func TestSetExternalSecretCondition(t *testing.T) {
 		},
 		{
 			name: "ExternalSecret has a different condition with the same type and status",
-			current: &esv1beta1.ExternalSecret{
-				Status: esv1beta1.ExternalSecretStatus{
-					Conditions: []esv1beta1.ExternalSecretStatusCondition{
+			current: &esv1.ExternalSecret{
+				Status: esv1.ExternalSecretStatus{
+					Conditions: []esv1.ExternalSecretStatusCondition{
 						{
-							Type:               esv1beta1.ExternalSecretReady,
+							Type:               esv1.ExternalSecretReady,
 							Status:             corev1.ConditionTrue,
 							Reason:             "TestReason",
 							Message:            "TestMessage",
@@ -151,17 +151,17 @@ func TestSetExternalSecretCondition(t *testing.T) {
 					},
 				},
 			},
-			new: esv1beta1.ExternalSecretStatusCondition{
-				Type:               esv1beta1.ExternalSecretReady,
+			new: esv1.ExternalSecretStatusCondition{
+				Type:               esv1.ExternalSecretReady,
 				Status:             corev1.ConditionTrue,
 				Reason:             "NewReason",
 				Message:            "NewMessage",
 				LastTransitionTime: metav1.NewTime(now),
 			},
-			expectedStatus: esv1beta1.ExternalSecretStatus{
-				Conditions: []esv1beta1.ExternalSecretStatusCondition{
+			expectedStatus: esv1.ExternalSecretStatus{
+				Conditions: []esv1.ExternalSecretStatusCondition{
 					{
-						Type:               esv1beta1.ExternalSecretReady,
+						Type:               esv1.ExternalSecretReady,
 						Status:             corev1.ConditionTrue,
 						Reason:             "NewReason",
 						Message:            "NewMessage",
@@ -172,11 +172,11 @@ func TestSetExternalSecretCondition(t *testing.T) {
 		},
 		{
 			name: "ExternalSecret has a different condition",
-			current: &esv1beta1.ExternalSecret{
-				Status: esv1beta1.ExternalSecretStatus{
-					Conditions: []esv1beta1.ExternalSecretStatusCondition{
+			current: &esv1.ExternalSecret{
+				Status: esv1.ExternalSecretStatus{
+					Conditions: []esv1.ExternalSecretStatusCondition{
 						{
-							Type:               esv1beta1.ExternalSecretReady,
+							Type:               esv1.ExternalSecretReady,
 							Status:             corev1.ConditionTrue,
 							Reason:             "TestReason",
 							Message:            "TestMessage",
@@ -185,24 +185,24 @@ func TestSetExternalSecretCondition(t *testing.T) {
 					},
 				},
 			},
-			new: esv1beta1.ExternalSecretStatusCondition{
-				Type:               esv1beta1.ExternalSecretDeleted,
+			new: esv1.ExternalSecretStatusCondition{
+				Type:               esv1.ExternalSecretDeleted,
 				Status:             corev1.ConditionTrue,
 				Reason:             "NewReason",
 				Message:            "NewMessage",
 				LastTransitionTime: metav1.NewTime(now),
 			},
-			expectedStatus: esv1beta1.ExternalSecretStatus{
-				Conditions: []esv1beta1.ExternalSecretStatusCondition{
+			expectedStatus: esv1.ExternalSecretStatus{
+				Conditions: []esv1.ExternalSecretStatusCondition{
 					{
-						Type:               esv1beta1.ExternalSecretReady,
+						Type:               esv1.ExternalSecretReady,
 						Status:             corev1.ConditionTrue,
 						Reason:             "TestReason",
 						Message:            "TestMessage",
 						LastTransitionTime: metav1.NewTime(now),
 					},
 					{
-						Type:               esv1beta1.ExternalSecretDeleted,
+						Type:               esv1.ExternalSecretDeleted,
 						Status:             corev1.ConditionTrue,
 						Reason:             "NewReason",
 						Message:            "NewMessage",

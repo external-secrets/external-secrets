@@ -20,6 +20,9 @@ jobs:
     # To create a new GitHub App:
     #   https://developer.github.com/apps/building-github-apps/creating-a-github-app/
     # See app.yml for an example app manifest
+    - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+      with:
+        egress-policy: audit
     - name: Generate token
       id: generate_token
       uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a # v2.1.0

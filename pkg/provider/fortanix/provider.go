@@ -23,7 +23,7 @@ import (
 	kubeclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
@@ -40,19 +40,19 @@ const (
 	errAPIKeySecretRefKeyIsRequired  = "apiKey.secretRef.key is required"
 )
 
-var _ esv1beta1.Provider = &Provider{}
+var _ esv1.Provider = &Provider{}
 
 func init() {
-	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
-		Fortanix: &esv1beta1.FortanixProvider{},
-	})
+	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
+		Fortanix: &esv1.FortanixProvider{},
+	}, esv1.MaintenanceStatusMaintained)
 }
 
-func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadOnly
+func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadOnly
 }
 
-func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kubeclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kubeclient.Client, namespace string) (esv1.SecretsClient, error) {
 	config, err := getConfig(store)
 	if err != nil {
 		return nil, err
@@ -74,12 +74,12 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	}, nil
 }
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	_, err := getConfig(store)
 	return nil, err
 }
 
-func getConfig(store esv1beta1.GenericStore) (*esv1beta1.FortanixProvider, error) {
+func getConfig(store esv1.GenericStore) (*esv1.FortanixProvider, error) {
 	if store == nil {
 		return nil, errors.New(errStoreIsNil)
 	}
@@ -103,7 +103,7 @@ func getConfig(store esv1beta1.GenericStore) (*esv1beta1.FortanixProvider, error
 	return config, nil
 }
 
-func validateSecretStoreRef(store esv1beta1.GenericStore, ref *esv1beta1.FortanixProviderSecretRef) error {
+func validateSecretStoreRef(store esv1.GenericStore, ref *esv1.FortanixProviderSecretRef) error {
 	if ref == nil {
 		return errors.New(errAPIKeyIsRequired)
 	}

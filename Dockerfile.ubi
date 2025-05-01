@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/ubi@sha256:5993454fa14164449539110099944e04cc76912cfc2220f1e8762ffcb19b5289 AS minimal-ubi
+FROM registry.access.redhat.com/ubi8/ubi@sha256:244e9858f9d8a2792a3dceb850b4fa8fdbd67babebfde42587bfa919d5d1ecef AS minimal-ubi
 
 ARG TARGETOS
 ARG TARGETARCH

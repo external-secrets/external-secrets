@@ -9,7 +9,7 @@ ARCH ?= amd64 arm64 ppc64le
 BUILD_ARGS ?= CGO_ENABLED=0
 DOCKER_BUILD_ARGS ?=
 DOCKERFILE ?= Dockerfile
-
+DOCKER ?= docker
 # default target is build
 .DEFAULT_GOAL := all
 .PHONY: all
@@ -179,7 +179,7 @@ tilt-up: tilt manifests ## Generates the local manifests that tilt will use to d
 
 helm.docs: ## Generate helm docs
 	@cd $(HELM_DIR); \
-	docker run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) jnorwood/helm-docs:v1.7.0
+	$(DOCKER) run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) docker.io/jnorwood/helm-docs:v1.7.0
 
 HELM_VERSION ?= $(shell helm show chart $(HELM_DIR) | grep 'version:' | sed 's/version: //g')
 
@@ -253,16 +253,16 @@ docker.tag:  ## Emit IMAGE_TAG
 
 .PHONY: docker.build
 docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
-	@$(INFO) docker build
-	echo docker build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
-	DOCKER_BUILDKIT=1 docker build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
-	@$(OK) docker build
+	@$(INFO) $(DOCKER) build
+	echo $(DOCKER) build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
+	DOCKER_BUILDKIT=1 $(DOCKER) build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
+	@$(OK) $(DOCKER) build
 
 .PHONY: docker.push
 docker.push: ## Push the docker image to the registry
-	@$(INFO) docker push
-	@docker push $(IMAGE_NAME):$(IMAGE_TAG)
-	@$(OK) docker push
+	@$(INFO) $(DOCKER) push
+	@$(DOCKER) push $(IMAGE_NAME):$(IMAGE_TAG)
+	@$(OK) $(DOCKER) push
 
 # RELEASE_TAG is tag to promote. Default is promoting to main branch, but can be overriden
 # to promote a tag to a specific version.
@@ -272,14 +272,14 @@ SOURCE_TAG ?= $(VERSION)$(TAG_SUFFIX)
 .PHONY: docker.promote
 docker.promote: ## Promote the docker image to the registry
 	@$(INFO) promoting $(SOURCE_TAG) to $(RELEASE_TAG)
-	docker manifest inspect --verbose $(IMAGE_NAME):$(SOURCE_TAG) > .tagmanifest
+	$(DOCKER) manifest inspect --verbose $(IMAGE_NAME):$(SOURCE_TAG) > .tagmanifest
 	for digest in $$(jq -r 'if type=="array" then .[].Descriptor.digest else .Descriptor.digest end' < .tagmanifest); do \
-		docker pull $(IMAGE_NAME)@$$digest; \
+		$(DOCKER) pull $(IMAGE_NAME)@$$digest; \
 	done
-	docker manifest create $(IMAGE_NAME):$(RELEASE_TAG) \
+	$(DOCKER) manifest create $(IMAGE_NAME):$(RELEASE_TAG) \
 		$$(jq -j '"--amend $(IMAGE_NAME)@" + if type=="array" then .[].Descriptor.digest else .Descriptor.digest end + " "' < .tagmanifest)
-	docker manifest push $(IMAGE_NAME):$(RELEASE_TAG)
-	@$(OK) docker push $(RELEASE_TAG) \
+	$(DOCKER) manifest push $(IMAGE_NAME):$(RELEASE_TAG)
+	@$(OK) $(DOCKER) push $(RELEASE_TAG) \
 
 # ====================================================================================
 # Terraform

@@ -33,6 +33,4 @@ for f in "${CRD_DIR}"/bases/*.yaml; do
 done
 
 shopt -s extglob
-yq e \
-    '.spec.conversion.strategy = "Webhook" | .spec.conversion.webhook.conversionReviewVersions = ["v1"] | .spec.conversion.webhook.clientConfig.service.name = "kubernetes" | .spec.conversion.webhook.clientConfig.service.namespace = "default" |	.spec.conversion.webhook.clientConfig.service.path = "/convert"' \
-    "${CRD_DIR}"/bases/!(kustomization).yaml > "${BUNDLE_YAML}"
+yq e "${CRD_DIR}"/bases/!(kustomization).yaml > "${BUNDLE_YAML}"

@@ -30,7 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/external-secrets/external-secrets-e2e/framework/log"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 // WaitForSecretValue waits until a secret comes into existence and compares the secret.Data
@@ -52,7 +52,7 @@ func (f *Framework) WaitForSecretValue(namespace, name string, expected *v1.Secr
 
 func (f *Framework) printESDebugLogs(esName, esNamespace string) {
 	// fetch es and print status condition
-	var es esv1beta1.ExternalSecret
+	var es esv1.ExternalSecret
 	err := f.CRClient.Get(context.Background(), types.NamespacedName{
 		Name:      esName,
 		Namespace: esNamespace,
@@ -106,8 +106,8 @@ func equalSecrets(exp, ts *v1.Secret) bool {
 	}
 
 	// secret contains labels which must be ignored
-	delete(ts.ObjectMeta.Labels, esv1beta1.LabelOwner)
-	delete(ts.ObjectMeta.Labels, esv1beta1.LabelManaged)
+	delete(ts.ObjectMeta.Labels, esv1.LabelOwner)
+	delete(ts.ObjectMeta.Labels, esv1.LabelManaged)
 	if len(ts.ObjectMeta.Labels) == 0 {
 		ts.ObjectMeta.Labels = nil
 	}
@@ -119,7 +119,7 @@ func equalSecrets(exp, ts *v1.Secret) bool {
 	}
 
 	// secret contains data hash property which must be ignored
-	delete(ts.ObjectMeta.Annotations, esv1beta1.AnnotationDataHash)
+	delete(ts.ObjectMeta.Annotations, esv1.AnnotationDataHash)
 	if len(ts.ObjectMeta.Annotations) == 0 {
 		ts.ObjectMeta.Annotations = nil
 	}

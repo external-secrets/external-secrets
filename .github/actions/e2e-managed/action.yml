@@ -147,8 +147,8 @@ runs:
       if: env.GHCR_USERNAME != ''
       with:
         registry: ghcr.io
-        username: ${{ env.GHCR_USERNAME }}
-        password: ${{ env.GHCR_TOKEN }}
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
 
     - name: Run managed e2e Tests
       shell: bash

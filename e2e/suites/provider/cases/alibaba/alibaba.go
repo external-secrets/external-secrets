@@ -40,6 +40,5 @@ var _ = Describe("[alibaba]", Label("alibaba"), func() {
 		Entry(common.SSHKeySyncDataProperty(f)),
 		Entry(common.SyncWithoutTargetName(f)),
 		Entry(common.JSONDataWithoutTargetName(f)),
-		Entry(common.SyncV1Alpha1(f)),
 	)
 })

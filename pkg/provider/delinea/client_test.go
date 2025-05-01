@@ -22,7 +22,7 @@ import (
 	"github.com/DelineaXPM/dsv-sdk-go/v2/vault"
 	"github.com/stretchr/testify/assert"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 type fakeAPI struct {
@@ -49,7 +49,7 @@ func (f *fakeAPI) Secret(path string) (*vault.Secret, error) {
 	return nil, errors.New("not found")
 }
 
-func newTestClient() esv1beta1.SecretsClient {
+func newTestClient() esv1.SecretsClient {
 	return &client{
 		api: &fakeAPI{
 			secrets: []*vault.Secret{
@@ -70,36 +70,36 @@ func TestGetSecret(t *testing.T) {
 	c := newTestClient()
 
 	testCases := map[string]struct {
-		ref  esv1beta1.ExternalSecretDataRemoteRef
+		ref  esv1.ExternalSecretDataRemoteRef
 		want []byte
 		err  error
 	}{
 		"querying for the key returns the map": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "b",
 			},
 			want: []byte(`{"hello":"world"}`),
 		},
 		"querying for the key and property returns a single value": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "b",
 				Property: "hello",
 			},
 			want: []byte(`world`),
 		},
 		"querying for the key and nested property returns a single value": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "c",
 				Property: "foo.bar",
 			},
 			want: []byte(`baz`),
 		},
 		"querying for existent key and non-existing propery": {
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "c",
 				Property: "foo.bar.x",
 			},
-			err: esv1beta1.NoSecretErr,
+			err: esv1.NoSecretErr,
 		},
 	}
 	for name, tc := range testCases {

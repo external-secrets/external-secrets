@@ -10,7 +10,7 @@
 
 ## Authentication
 
-To configure Robot Account federation, your cluster must have a publicly available [OIDC service account issuer](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#service-account-issuer-discovery) endpoint for Quay to validate tokens against against. You can determine the issuer and subject fields by creating and decoding a service account token for the service account you wish to federate with (this is the service account you will use in `spec.serviceAccountRef`). For example, if federating with the `default` service account in the `default` namespace:
+To configure Robot Account federation, your cluster must have a publicly available [OIDC service account issuer](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#service-account-issuer-discovery) endpoint for Quay to validate tokens against. You can determine the issuer and subject fields by creating and decoding a service account token for the service account you wish to federate with (this is the service account you will use in `spec.serviceAccountRef`). For example, if federating with the `default` service account in the `default` namespace:
 
 Obtain issuer:
 
