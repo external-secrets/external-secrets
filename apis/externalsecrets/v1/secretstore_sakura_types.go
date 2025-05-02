@@ -18,10 +18,6 @@ import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 
 // Configures a store to sync secrets with a Sakura Cloud Secret Manager.
 type SakuraProvider struct {
-	// Zone is the zone where the target vault is located.
-	// +kubebuilder:default=is1a
-	Zone SakuraZone `json:"zone,omitempty"`
-
 	// VaultResourceID is the resource ID of the target vault.
 	// +required
 	VaultResourceID string `json:"vaultResourceID,omitempty"`
@@ -30,21 +26,6 @@ type SakuraProvider struct {
 	// +required
 	Auth SakuraAuth `json:"auth,omitempty"`
 }
-
-// SakuraZone is a enum that defines the zone where the target vault is located.
-// +kubebuilder:validation:Enum=is1a;is1b;tk1a;tk1b
-type SakuraZone string
-
-const (
-	// SakuraZoneIs1a is the zone is1a.
-	SakuraZoneIs1a SakuraZone = "is1a"
-	// SakuraZoneIs1b is the zone is1b.
-	SakuraZoneIs1b SakuraZone = "is1b"
-	// SakuraZoneTk1a is the zone tk1a.
-	SakuraZoneTk1a SakuraZone = "tk1a"
-	// SakuraZoneTk1b is the zone tk1b.
-	SakuraZoneTk1b SakuraZone = "tk1b"
-)
 
 // SakuraAuth defines the information necessary to authenticate against Sakura Cloud.
 type SakuraAuth struct {
