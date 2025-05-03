@@ -530,6 +530,7 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 		Tags:               tags,
 		Description:        utilpointer.To(mdata.Spec.Description),
 		ClientRequestToken: utilpointer.To(initialVersion),
+		KmsKeyId:           utilpointer.To(mdata.Spec.KMSKeyID),
 	}
 	if mdata.Spec.SecretPushFormat == SecretPushFormatString {
 		input.SecretBinary = nil
