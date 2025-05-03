@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	awsauth "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore"
@@ -98,15 +99,28 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 }
 
 func validateRegion(prov *esv1.AWSProvider) error {
-	resolver := awssm.NewDefaultEndpointResolverV2()
-	_, err := resolver.ResolveEndpoint(context.TODO(), awssm.EndpointParameters{
-		Region: &prov.Region,
-	})
 
-	if err != nil {
-		return fmt.Errorf(errRegionNotFound, prov.Region)
+	switch prov.Service {
+	case esv1.AWSServiceSecretsManager:
+		resolver := awssm.NewDefaultEndpointResolverV2()
+		_, err := resolver.ResolveEndpoint(context.TODO(), awssm.EndpointParameters{
+			Region: &prov.Region,
+		})
+		if err != nil {
+			return fmt.Errorf(errRegionNotFound, prov.Region)
+		}
+		return nil
+	case esv1.AWSServiceParameterStore:
+		resolver := ssm.NewDefaultEndpointResolverV2()
+		_, err := resolver.ResolveEndpoint(context.TODO(), ssm.EndpointParameters{
+			Region: &prov.Region,
+		})
+		if err != nil {
+			return fmt.Errorf(errRegionNotFound, prov.Region)
+		}
+		return nil
 	}
-	return nil
+	return fmt.Errorf(errUnknownProviderService, prov.Service)
 }
 
 func validateSecretsManagerConfig(prov *esv1.AWSProvider) error {

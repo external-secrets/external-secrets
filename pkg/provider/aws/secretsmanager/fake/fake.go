@@ -23,6 +23,7 @@ import (
 
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"k8s.io/utils/ptr"
 )
 
@@ -178,7 +179,7 @@ func (sm *Client) cacheKeyForInput(in *awssm.GetSecretValueInput) string {
 
 func (sm *Client) WithValue(in *awssm.GetSecretValueInput, val *awssm.GetSecretValueOutput, err error) {
 	sm.valFn[sm.cacheKeyForInput(in)] = func(paramIn *awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error) {
-		if !cmp.Equal(paramIn, in) {
+		if !cmp.Equal(paramIn, in, cmpopts.IgnoreUnexported(awssm.GetSecretValueInput{}, awssm.GetSecretValueOutput{})) {
 			return nil, errors.New("unexpected test argument")
 		}
 		return val, err
