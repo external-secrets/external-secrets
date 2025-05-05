@@ -101,6 +101,8 @@ func newTestClient() esv1.SecretsClient {
 				createSecret(2000, "{ \"user\": \"helloWorld\", \"password\": \"badPassword\",\"server\":[ \"192.168.1.50\",\"192.168.1.51\"] }"),
 				createSecret(3000, "{ \"user\": \"chuckTesta\", \"password\": \"badPassword\",\"server\":\"192.168.1.50\"}"),
 				createTestSecretFromCode(4000),
+				createSecret(5000, "non-json-value"),
+				createSecret(6000, "{ malformed: true, "),
 			},
 		},
 	}
@@ -159,6 +161,12 @@ func TestGetSecretSecretServer(t *testing.T) {
 			},
 			want: jsonStr,
 		},
+		"Secret with non-JSON value, no property requested, returns raw string": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key: "5000",
+			},
+			want: []byte(`non-json-value`),
+		},
 		"Secret from code: existent key with no property": {
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "4000",
@@ -193,6 +201,14 @@ func TestGetSecretSecretServer(t *testing.T) {
 				Property: "passwordkey",
 			},
 			want: []byte(nil),
+			err:  esv1.NoSecretError{},
+		},
+		"Secret with malformed JSON: property access fails with NoSecretError": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key:      "6000",
+				Property: "foo",
+			},
+			want: nil,
 			err:  esv1.NoSecretError{},
 		},
 	}
