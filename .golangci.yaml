@@ -1,54 +1,11 @@
+version: "2"
+
 run:
   timeout: 10m
-
-linters-settings:
-  gci:
-    sections:
-      - "standard"
-      - "default"
-      - "prefix(github.com/external-secrets/external-secrets)"
-      - "blank"
-      - "dot"
-  goconst:
-    min-len: 3
-    min-occurrences: 3
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
-    disabled-checks:
-      - dupImport
-      - ifElseChain
-      - octalLiteral
-      - whyNoLint
-      - wrapperFunc
-      - importShadow
-      - unnamedResult
-      - unnecessaryBlock
-    settings:
-      rangeValCopy:
-        sizeThreshold: 512
-      hugeParam:
-        sizeThreshold: 512
-  gocyclo:
-    min-complexity: 16
-  goheader:
-    template-path: ./hack/boilerplate.go.txt
-  dupl:
-    threshold: 200
-  govet:
-    disable:
-      - shadow
-  lll:
-    line-length: 300
-  misspell:
-    locale: US
+  allow-parallel-runners: true
 
 linters:
-  disable-all: true
+  default: none
   enable:
     - asciicheck
     - bodyclose
@@ -58,65 +15,112 @@ linters:
     - errorlint
     - exhaustive
     - copyloopvar
-    - gci
     - goheader
     - goconst
     - gocritic
     - godot
-    - gofmt
     - goprintffuncname
     - gosec
-    - gosimple
     - govet
     - ineffassign
-    - lll
     - misspell
     - nakedret
     - nolintlint
     - prealloc
-    - staticcheck
-    - stylecheck
-    - typecheck
+    - lll
     - unconvert
     - unparam
     - unused
     - whitespace
+  settings:
+    goconst:
+      min-len: 3
+      min-occurrences: 3
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - experimental
+        - opinionated
+        - performance
+        - style
+      disabled-checks:
+        - dupImport
+        - ifElseChain
+        - octalLiteral
+        - whyNoLint
+        - wrapperFunc
+        - importShadow
+        - unnamedResult
+        - unnecessaryBlock
+      settings:
+        rangeValCopy:
+          sizeThreshold: 512
+        hugeParam:
+          sizeThreshold: 512
+    gocyclo:
+      min-complexity: 16
+    goheader:
+      template-path: ./hack/boilerplate.go.txt
+    dupl:
+      threshold: 200
+    govet:
+      disable:
+        - shadow
+    lll:
+      line-length: 300
+#    staticcheck:
+#      checks:
+#        - QF1008
+    misspell:
+      locale: US
+  exclusions:
+    rules:
+      # Exclude some linters from running on tests files.
+      - path: _test(ing)?\.go
+        linters:
+          - gocyclo
+          - errcheck
+          - dupl
+          - gosec
+          - unparam
+          - lll
 
+      # Ease some gocritic warnings on test files.
+      - path: _test\.go
+        text: "(unnamedResult|exitAfterDefer)"
+        linters:
+          - gocritic
+
+      # This is a "potential hardcoded credentials" warning. It's triggered by
+      # any variable with 'secret' in the same, and thus hits a lot of false
+      # positives in Kubernetes land where a Secret is an object type.
+      - text: "G101:"
+        linters:
+          - gosec
+
+      # The header check doesn't correctly parse the header as a code comment and is
+      # triggered by the perceived diff. The header check still correctly detects missing
+      # license headers and is useful for some cases.
+      - text: "Actual:"
+        linters:
+          - goheader
 issues:
-  # Excluding configuration per-path and per-linter
-  exclude-rules:
-    # Exclude some linters from running on tests files.
-    - path: _test(ing)?\.go
-      linters:
-        - gocyclo
-        - errcheck
-        - dupl
-        - gosec
-        - unparam
-        - lll
-
-    # Ease some gocritic warnings on test files.
-    - path: _test\.go
-      text: "(unnamedResult|exitAfterDefer)"
-      linters:
-        - gocritic
-
-    # This is a "potential hardcoded credentials" warning. It's triggered by
-    # any variable with 'secret' in the same, and thus hits a lot of false
-    # positives in Kubernetes land where a Secret is an object type.
-    - text: "G101:"
-      linters:
-        - gosec
-
-    # The header check doesn't correctly parse the header as a code comment and is
-    # triggered by the perceived diff. The header check still correctly detects missing
-    # license headers and is useful for some cases.
-    - text: "Actual:"
-      linters:
-        - goheader
-
   # Maximum issues count per one linter. Set to 0 to disable. Default is 50.
   max-issues-per-linter: 0
 
   # Maximum count of issues with the same text. Set to 0 to disable. Default is 3.
   max-same-issues: 0
+
+formatters:
+  settings:
+    golines:
+      # Target maximum line length.
+      # Default: 100
+      max-len: 200
+    gci:
+      sections:
+        - "standard"
+        - "default"
+        - "prefix(github.com/external-secrets/external-secrets)"
+        - "blank"
+        - "dot"
