@@ -133,7 +133,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install cosign
-        uses: sigstore/cosign-installer@d7d6bc7722e3daa8354c50bcb52f4837da5e9b6a # v3.8.1
+        uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3.8.2
         with:
           cosign-release: 'v2.4.1'
 
@@ -165,7 +165,7 @@ jobs:
           done
 
       - name: Generate provenance attestation and push to OCI registry
-        uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2 # v2.2.3
+        uses: actions/attest-build-provenance@db473fddc028af60658334401dc6fa3ffd8669fd # v2.3.0
         with:
           push-to-registry: true
           subject-name: ${{ steps.push_chart.outputs.registry }}/${{ steps.push_chart.outputs.chart_name }}

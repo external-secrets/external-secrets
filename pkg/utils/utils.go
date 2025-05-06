@@ -450,7 +450,9 @@ func NetworkValidate(endpoint string, timeout time.Duration) error {
 	if err != nil {
 		return fmt.Errorf("error accessing external store: %w", err)
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 	return nil
 }
 

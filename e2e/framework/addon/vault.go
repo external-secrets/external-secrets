@@ -275,7 +275,9 @@ func (l *Vault) configureVault() error {
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 	sec, err := vault.ParseSecret(res.Body)
 	if err != nil {
 		return err
@@ -289,7 +291,9 @@ func (l *Vault) configureVault() error {
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 	sec, err = vault.ParseSecret(res.Body)
 	if err != nil {
 		return err

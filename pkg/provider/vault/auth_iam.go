@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -97,7 +98,7 @@ func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1.Vaul
 		}
 
 		// everything looks good so far, let's fetch the jwt token from AWS_WEB_IDENTITY_TOKEN_FILE
-		jwtByte, err := os.ReadFile(tokenFile)
+		jwtByte, err := os.ReadFile(filepath.Clean(tokenFile))
 		if err != nil {
 			return fmt.Errorf(errIrsaTokenFileNotReadable, tokenFile, err)
 		}
@@ -157,9 +158,9 @@ func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1.Vaul
 		return err
 	}
 	// Set environment variables. These would be fetched by Login
-	os.Setenv("AWS_ACCESS_KEY_ID", getCreds.AccessKeyID)
-	os.Setenv("AWS_SECRET_ACCESS_KEY", getCreds.SecretAccessKey)
-	os.Setenv("AWS_SESSION_TOKEN", getCreds.SessionToken)
+	_ = os.Setenv("AWS_ACCESS_KEY_ID", getCreds.AccessKeyID)
+	_ = os.Setenv("AWS_SECRET_ACCESS_KEY", getCreds.SecretAccessKey)
+	_ = os.Setenv("AWS_SESSION_TOKEN", getCreds.SessionToken)
 
 	var awsAuthClient *authaws.AWSAuth
 

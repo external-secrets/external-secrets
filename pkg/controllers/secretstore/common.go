@@ -112,7 +112,9 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 func validateStore(ctx context.Context, namespace, controllerClass string, store esapi.GenericStore,
 	client client.Client, gaugeVecGetter metrics.GaugeVevGetter, recorder record.EventRecorder) error {
 	mgr := NewManager(client, controllerClass, false)
-	defer mgr.Close(ctx)
+	defer func() {
+		_ = mgr.Close(ctx)
+	}()
 	cl, err := mgr.GetFromStore(ctx, store, namespace)
 	if err != nil {
 		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonInvalidProviderConfig, errUnableCreateClient)
