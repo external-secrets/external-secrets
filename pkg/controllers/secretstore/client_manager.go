@@ -160,7 +160,7 @@ func (m *Manager) getStoredClient(ctx context.Context, storeProvider esv1.Provid
 		"store", storeName)
 	// if we have a client, but it points to a different store
 	// we must clean it up
-	val.client.Close(ctx)
+	_ = val.client.Close(ctx)
 	delete(m.clientMap, idx)
 	return nil
 }

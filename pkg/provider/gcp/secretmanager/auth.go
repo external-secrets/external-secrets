@@ -36,7 +36,9 @@ func NewTokenSource(ctx context.Context, auth esv1.GCPSMAuth, projectID, storeKi
 	if err != nil {
 		return nil, errors.New("unable to initialize workload identity")
 	}
-	defer wi.Close()
+	defer func() {
+		_ = wi.Close()
+	}()
 	isClusterKind := storeKind == esv1.ClusterSecretStoreKind
 	ts, err = wi.TokenSource(ctx, auth, isClusterKind, kube, namespace)
 	if ts != nil || err != nil {

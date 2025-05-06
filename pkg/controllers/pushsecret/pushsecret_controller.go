@@ -91,7 +91,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	var ps esapi.PushSecret
 	mgr := secretstore.NewManager(r.Client, r.ControllerClass, false)
-	defer mgr.Close(ctx)
+	defer func() {
+		_ = mgr.Close(ctx)
+	}()
 
 	if err := r.Get(ctx, req.NamespacedName, &ps); err != nil {
 		if apierrors.IsNotFound(err) {

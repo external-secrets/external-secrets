@@ -388,7 +388,9 @@ func (c *OnboardbaseClient) performRequest(config *performRequestConfig) (*apiRe
 	if err != nil {
 		return nil, &APIError{Err: err, Message: "unable to load response"}
 	}
-	defer r.Body.Close()
+	defer func() {
+		_ = r.Body.Close()
+	}()
 
 	bodyResponse, err := io.ReadAll(r.Body)
 	if err != nil {

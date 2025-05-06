@@ -147,7 +147,9 @@ func (s *secretsManagerClient) doAPICall(ctx context.Context,
 	if err != nil {
 		return nil, fmt.Errorf("error invoking http request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	return s.parseResponse(resp)
 }

@@ -244,7 +244,9 @@ func WaitForURL(url string) error {
 		if err != nil {
 			return false, nil
 		}
-		defer res.Body.Close()
+		defer func() {
+			_ = res.Body.Close()
+		}()
 		if res.StatusCode == http.StatusOK {
 			return true, nil
 		}
