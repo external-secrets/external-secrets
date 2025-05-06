@@ -150,7 +150,9 @@ func (c *ArgoCDApplication) Install() error {
 		if err != nil {
 			return false, nil
 		}
-		defer res.Body.Close()
+		defer func() {
+			_ = res.Body.Close()
+		}()
 		ginkgo.GinkgoWriter.Printf("webhook res: %d", res.StatusCode)
 		return res.StatusCode == http.StatusOK, nil
 	})

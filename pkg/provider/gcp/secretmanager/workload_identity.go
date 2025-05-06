@@ -302,7 +302,9 @@ func (g *gcpIDBindTokenGenerator) Generate(ctx context.Context, client *http.Cli
 		return nil, fmt.Errorf("could not get idbindtoken token, status: %v", resp.StatusCode)
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err

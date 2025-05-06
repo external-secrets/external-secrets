@@ -310,7 +310,9 @@ func (c *DopplerClient) performRequest(path, method string, headers headers, par
 	if err != nil {
 		return nil, &APIError{Err: err, Message: "unable to load response"}
 	}
-	defer r.Body.Close()
+	defer func() {
+		_ = r.Body.Close()
+	}()
 
 	bodyResponse, err := io.ReadAll(r.Body)
 	if err != nil {
