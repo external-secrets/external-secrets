@@ -503,6 +503,12 @@
         },
         "rbac": {
             "properties": {
+                "aggregateToEdit": {
+                    "type": "boolean"
+                },
+                "aggregateToView": {
+                    "type": "boolean"
+                },
                 "create": {
                     "type": "boolean"
                 },

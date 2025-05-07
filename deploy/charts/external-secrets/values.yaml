@@ -130,6 +130,12 @@ rbac:
     # -- Specifies whether a clusterrole to give servicebindings read access should be created.
     create: true
 
+  # -- Specifies whether permissions are aggregated to the view ClusterRole
+  aggregateToView: true
+
+  # -- Specifies whether permissions are aggregated to the edit ClusterRole
+  aggregateToEdit: true
+
 ## -- Extra environment variables to add to container.
 extraEnv: []
 
