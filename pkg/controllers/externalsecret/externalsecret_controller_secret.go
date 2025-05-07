@@ -43,7 +43,9 @@ func (r *Reconciler) getProviderSecretData(ctx context.Context, externalSecret *
 	// that are created during the fetching process and closes clients
 	// if needed.
 	mgr := secretstore.NewManager(r.Client, r.ControllerClass, r.EnableFloodGate)
-	defer mgr.Close(ctx)
+	defer func() {
+		_ = mgr.Close(ctx)
+	}()
 
 	// statemanager takes care of managing the state of the generators.
 	// Since ExternalSecrets can have multiple generators, we need to keep track of the state of each generator

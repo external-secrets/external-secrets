@@ -119,7 +119,9 @@ func (g *Generator) generate(
 	if err != nil {
 		return nil, nil, fmt.Errorf("error performing request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// git access token
 	var gat map[string]any

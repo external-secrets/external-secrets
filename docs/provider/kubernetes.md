@@ -263,7 +263,7 @@ rules:
       - list
       - watch
   # This will allow the role `eso-store-role` to perform **permission reviews** for itself within the defined namespace:
-  - apiGroups: 
+  - apiGroups:
       - authorization.k8s.io
     resources:
       - selfsubjectrulesreviews # used to review or fetch the list of permissions a user or service account currently has.
@@ -405,6 +405,31 @@ rules:
   - create
 ```
 
+It is possible to override the target secret type with the `.template.type` property. By default the secret type is copied from the source secret. If none is specified, the default type `Opaque` will be used. The type can be set to any valid Kubernetes secret type, such as `kubernetes.io/dockerconfigjson`, `kubernetes.io/tls`, etc.
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: example
+spec:
+  refreshInterval: 1h
+  secretStoreRefs:
+    - name: k8s-store-remote-ns
+      kind: SecretStore
+  selector:
+    secret:
+      name: pokedex-credentials
+  template:
+    type: kubernetes.io/dockerconfigjson
+  data:
+    - match:
+        secretKey: dockerconfigjson
+        remoteRef:
+          remoteKey: remote-dockerconfigjson
+          property: ".dockerconfigjson"
+```
+
 #### PushSecret Metadata
 
 The Kubernetes provider is able to manage both `metadata.labels` and `metadata.annotations` of the secret on the target cluster.
@@ -451,7 +476,7 @@ spec:
       remoteRef:
         remoteKey: example-remote-secret
         property: url
-        
+
     metadata:
       apiVersion: kubernetes.external-secrets.io/v1alpha1
       kind: PushSecretMetadata

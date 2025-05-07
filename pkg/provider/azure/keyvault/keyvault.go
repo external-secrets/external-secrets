@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -888,7 +889,7 @@ func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider
 		if clientID == "" || tenantID == "" || tokenFilePath == "" {
 			return nil, errors.New(errMissingWorkloadEnvVars)
 		}
-		token, err := os.ReadFile(tokenFilePath)
+		token, err := os.ReadFile(filepath.Clean(tokenFilePath))
 		if err != nil {
 			return nil, fmt.Errorf(errReadTokenFile, tokenFilePath, err)
 		}

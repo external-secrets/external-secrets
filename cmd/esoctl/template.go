@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
@@ -75,7 +76,7 @@ func templateRun(_ *cobra.Command, _ []string) error {
 
 	ctx := context.Background()
 	obj := &unstructured.Unstructured{}
-	content, err := os.ReadFile(templateFile)
+	content, err := os.ReadFile(filepath.Clean(templateFile))
 	if err != nil {
 		return fmt.Errorf("could not read template file: %w", err)
 	}
@@ -90,7 +91,7 @@ func templateRun(_ *cobra.Command, _ []string) error {
 	}
 
 	data := map[string][]byte{}
-	sourceDataContent, err := os.ReadFile(secretDataFile)
+	sourceDataContent, err := os.ReadFile(filepath.Clean(secretDataFile))
 	if err != nil {
 		return fmt.Errorf("could not read source secret file: %w", err)
 	}
@@ -121,7 +122,7 @@ func templateRun(_ *cobra.Command, _ []string) error {
 
 	out := os.Stdout
 	if outputFile != "" {
-		f, err := os.Create(outputFile)
+		f, err := os.Create(filepath.Clean(outputFile))
 		if err != nil {
 			return fmt.Errorf("could not create output file: %w", err)
 		}
@@ -201,7 +202,7 @@ func executeTemplate(p *templating.Parser, ctx context.Context, tmpl *esv1.Exter
 func setupFromConfigAndFromSecret(p *templating.Parser) error {
 	if templateFromConfigMapFile != "" {
 		var configMap corev1.ConfigMap
-		configMapContent, err := os.ReadFile(templateFromConfigMapFile)
+		configMapContent, err := os.ReadFile(filepath.Clean(templateFromConfigMapFile))
 		if err != nil {
 			return err
 		}
@@ -215,7 +216,7 @@ func setupFromConfigAndFromSecret(p *templating.Parser) error {
 
 	if templateFromSecretFile != "" {
 		var secret corev1.Secret
-		secretContent, err := os.ReadFile(templateFromSecretFile)
+		secretContent, err := os.ReadFile(filepath.Clean(templateFromSecretFile))
 		if err != nil {
 			return err
 		}
