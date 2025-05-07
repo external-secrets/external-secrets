@@ -186,8 +186,12 @@ metadata:
   {{- end }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
+    {{- if .Values.rbac.aggregateToView }}
     rbac.authorization.k8s.io/aggregate-to-view: "true"
+    {{- end }}
+    {{- if .Values.rbac.aggregateToEdit }}
     rbac.authorization.k8s.io/aggregate-to-edit: "true"
+    {{- end }}
     rbac.authorization.k8s.io/aggregate-to-admin: "true"
 rules:
   - apiGroups:
@@ -241,7 +245,9 @@ metadata:
   {{- end }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
+    {{- if .Values.rbac.aggregateToEdit }}
     rbac.authorization.k8s.io/aggregate-to-edit: "true"
+    {{- end }}
     rbac.authorization.k8s.io/aggregate-to-admin: "true"
 rules:
   - apiGroups:
