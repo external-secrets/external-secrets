@@ -374,10 +374,7 @@ func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Clie
 	}
 	// add authentication method if it s there
 	if provider.Auth != nil {
-		//nolint:gocritic // singleCaseSwitch: we prefer to keep it as a switch for clarity
-		switch {
-		case provider.Auth.NTLM != nil:
-
+		if provider.Auth.NTLM != nil {
 			client.Transport =
 				&ntlmssp.Negotiator{
 					RoundTripper: &http.Transport{
@@ -385,9 +382,8 @@ func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Clie
 
 					},
 				}
-
-			// add additional auth methods here
 		}
+		// add additional auth methods here
 	}
 
 	// return client with all add-ons

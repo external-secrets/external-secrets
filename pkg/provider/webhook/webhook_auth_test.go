@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -126,7 +126,7 @@ func ntlmRequest(url string, creds mockCreds, t *testing.T) string {
 	}).Build()
 
 	// create clusteSecretStore
-	ntlmAuthStore := &esv1beta1.ClusterSecretStore{
+	ntlmAuthStore := &esv1.ClusterSecretStore{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "ClusterSecretStore",
 		},
@@ -134,12 +134,12 @@ func ntlmRequest(url string, creds mockCreds, t *testing.T) string {
 			Name:      "webhook-store",
 			Namespace: secretNamespace,
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Webhook: &esv1beta1.WebhookProvider{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Webhook: &esv1.WebhookProvider{
 					URL: url,
-					Auth: &esv1beta1.AuthorizationProtocol{
-						NTLM: &esv1beta1.NTLMProtocol{
+					Auth: &esv1.AuthorizationProtocol{
+						NTLM: &esv1.NTLMProtocol{
 							UserName: esmeta.SecretKeySelector{
 								Name:      secretName,
 								Namespace: &secretNamespace,
@@ -178,7 +178,7 @@ func basicAuthRequest(url string, creds mockCreds, t *testing.T) string {
 	reqAuthString := "Basic " + b64.StdEncoding.EncodeToString([]byte(creds.UserName+":"+creds.Password))
 
 	// create ClusterSecretStore
-	basicAuthStore := &esv1beta1.ClusterSecretStore{
+	basicAuthStore := &esv1.ClusterSecretStore{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "ClusterSecretStore",
 		},
@@ -186,9 +186,9 @@ func basicAuthRequest(url string, creds mockCreds, t *testing.T) string {
 			Name:      "webhook-store",
 			Namespace: "default",
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Webhook: &esv1beta1.WebhookProvider{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Webhook: &esv1.WebhookProvider{
 					URL: url,
 					Headers: map[string]string{
 						"Authorization": reqAuthString,
@@ -201,7 +201,7 @@ func basicAuthRequest(url string, creds mockCreds, t *testing.T) string {
 	return result
 }
 
-func exerciseGetSecret(mockStore esv1beta1.GenericStore, mockKubeClient client.Client, t *testing.T) string {
+func exerciseGetSecret(mockStore esv1.GenericStore, mockKubeClient client.Client, t *testing.T) string {
 	mockProvider := &Provider{}
 	client, err := mockProvider.NewClient(context.Background(), mockStore, mockKubeClient, "default")
 	if err != nil {
@@ -210,7 +210,7 @@ func exerciseGetSecret(mockStore esv1beta1.GenericStore, mockKubeClient client.C
 	}
 
 	// perform request, exercising GetSecret
-	resp, err := client.GetSecret(context.Background(), esv1beta1.ExternalSecretDataRemoteRef{Key: "dummy"})
+	resp, err := client.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "dummy"})
 	if err != nil {
 		t.Errorf("Error retrieving secret:%s", err)
 	}
