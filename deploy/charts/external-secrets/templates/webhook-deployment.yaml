@@ -99,6 +99,10 @@ spec:
           {{- if .Values.webhook.extraVolumeMounts }}
           {{- toYaml .Values.webhook.extraVolumeMounts | nindent 12 }}
           {{- end }}
+      {{- with .Values.webhook.extraInitContainers }}
+      initContainers:
+        {{- tpl (toYaml . | nindent 8) $ }}
+      {{- end }}
       volumes:
         - name: certs
           secret:

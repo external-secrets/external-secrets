@@ -33,6 +33,9 @@
                 "extraEnv": {
                     "type": "array"
                 },
+                "extraInitContainers": {
+                    "type": "array"
+                },
                 "extraVolumeMounts": {
                     "type": "array"
                 },
@@ -310,6 +313,9 @@
             "type": "array"
         },
         "extraEnv": {
+            "type": "array"
+        },
+        "extraInitContainers": {
             "type": "array"
         },
         "extraObjects": {
@@ -715,6 +721,9 @@
                     "type": "object"
                 },
                 "extraEnv": {
+                    "type": "array"
+                },
+                "extraInitContainers": {
                     "type": "array"
                 },
                 "extraVolumeMounts": {
