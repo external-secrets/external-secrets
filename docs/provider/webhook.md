@@ -68,6 +68,7 @@ metadata:
 data:
   foobar: c2VjcmV0
 ```
+#### Push secret
 
 To push a secret, create the following store:
 
@@ -118,9 +119,46 @@ If `secretKey` is not provided, the whole secret is provided JSON encoded.
 
 The secret will be added to the `remoteRef` object so that it is retrievable in the templating engine. The secret will be sent in the body when the body field of the provider is empty. In the rare case that the body should be empty, the provider can be configured to use `{% raw %}'{{ "" }}'{% endraw %}` for the body value.
 
-#### Limitations
+#### Authentication
 
-Webhook does not support authorization, other than what can be sent by generating http headers
+Webhook also supports using NTLM for authorization:
+
+```yaml
+{% raw %}
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: webhook-backend
+spec:
+  provider:
+    webhook:
+      url: "http://httpbin.org/get?parameter={{ .remoteRef.key }}"
+      result:
+        jsonPath: "$.args.parameter"
+      auth:
+        ntlm:
+            usernameSecret:
+              name: webhook-credentials
+              key: username
+              namespace: externalsecrets
+            passwordSecret:
+              name: webhook-credentials
+              key: password
+              namespace: externalsecrets
+{%- endraw %}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: webhook-credentials
+  namespace: externalsecrets
+data:
+  username: dGVzdA== # "test"
+  password: dGVzdA== # "test"
+```
+
+
+
 
 !!! note
       If a webhook endpoint for a given `ExternalSecret` returns a 404 status code, the secret is considered to have been deleted.  This will trigger the `deletionPolicy` set on the `ExternalSecret`.

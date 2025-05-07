@@ -763,6 +763,39 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.AuthorizationProtocol">AuthorizationProtocol
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.WebhookProvider">WebhookProvider</a>)
+</p>
+<p>
+<p>AuthorizationProtocol contains the protocol-specific configuration</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>ntlm</code></br>
+<em>
+<a href="#external-secrets.io/v1.NTLMProtocol">
+NTLMProtocol
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NTLMProtocol configures the store to use NTLM for auth</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.AzureAuthType">AzureAuthType
 (<code>string</code> alias)</p></h3>
 <p>
@@ -5681,6 +5714,49 @@ bool
 <td></td>
 </tr></tbody>
 </table>
+<h3 id="external-secrets.io/v1.NTLMProtocol">NTLMProtocol
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.AuthorizationProtocol">AuthorizationProtocol</a>)
+</p>
+<p>
+<p>NTLMProtocol contains the NTLM-specific configuration.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>usernameSecret</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>passwordSecret</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.NoSecretError">NoSecretError
 </h3>
 <p>
@@ -9653,7 +9729,7 @@ string
 <a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
-<p>AkeylessProvider Configures an store to sync secrets using Akeyless KV.</p>
+<p>WebHookProvider Configures an store to sync secrets from simple web apis.</p>
 </p>
 <table>
 <thead>
@@ -9695,6 +9771,20 @@ map[string]string
 <td>
 <em>(Optional)</em>
 <p>Headers</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.AuthorizationProtocol">
+AuthorizationProtocol
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth specifies a authorization protocol. Only one protocol may be set.</p>
 </td>
 </tr>
 <tr>
