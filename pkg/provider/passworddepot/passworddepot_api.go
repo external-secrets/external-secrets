@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package passworddepot
 
 import (
@@ -229,9 +230,7 @@ func (api *API) ListSecrets(dbFingerprint, folder string) (DatabaseEntries, erro
 func ReadAndUnmarshal(resp *http.Response, target any) error {
 	var buf bytes.Buffer
 	defer func() {
-		if resp.Body != nil {
-			resp.Body.Close()
-		}
+		_ = resp.Body.Close()
 	}()
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		return fmt.Errorf("failed to authenticate with the given credentials: %d %s", resp.StatusCode, buf.String())

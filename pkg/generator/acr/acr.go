@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
@@ -176,7 +177,9 @@ func fetchACRAccessToken(acrRefreshToken, _, registryURL, scope string) (string,
 	if err != nil {
 		return "", err
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 	if res.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("could not generate access token, unexpected status code: %d", res.StatusCode)
 	}
@@ -211,7 +214,9 @@ func fetchACRRefreshToken(aadAccessToken, tenantID, registryURL string) (string,
 	if err != nil {
 		return "", err
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 	if res.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("count not generate refresh token, unexpected status code %d, expected %d", res.StatusCode, http.StatusOK)
 	}
@@ -244,7 +249,7 @@ func accessTokenForWorkloadIdentity(ctx context.Context, crClient client.Client,
 		if clientID == "" || tenantID == "" || tokenFilePath == "" {
 			return "", errors.New("missing environment variables")
 		}
-		token, err := os.ReadFile(tokenFilePath)
+		token, err := os.ReadFile(filepath.Clean(tokenFilePath))
 		if err != nil {
 			return "", fmt.Errorf("unable to read token file %s: %w", tokenFilePath, err)
 		}

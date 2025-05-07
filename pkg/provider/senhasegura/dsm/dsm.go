@@ -199,7 +199,9 @@ func (dsm *DSM) FetchSecrets() (respObj IsoDappResponse, err error) {
 	if err != nil {
 		return respObj, errCannotDoRequest
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != 200 {
 		return respObj, errInvalidHTTPCode

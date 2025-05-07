@@ -221,7 +221,9 @@ func readK8SServiceAccountJWT() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer data.Close()
+	defer func() {
+		_ = data.Close()
+	}()
 
 	contentBytes, err := io.ReadAll(data)
 	if err != nil {
