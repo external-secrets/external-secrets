@@ -124,6 +124,7 @@ func TestGetSecretSecretServer(t *testing.T) {
 	s, _ := getJSONData()
 	jsonStr, _ := json.Marshal(s)
 	jsonStr2, _ := json.Marshal(createTestSecretFromCode(4000))
+	jsonStr3, _ := json.Marshal(createPlainTextSecret(5000))
 
 	testCases := map[string]struct {
 		ref  esv1.ExternalSecretDataRemoteRef
@@ -188,7 +189,7 @@ func TestGetSecretSecretServer(t *testing.T) {
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "5000",
 			},
-			want: jsonStr2,
+			want: jsonStr3,
 		},
 		"Plain text secret: key with property returns noSecretError": {
 			ref: esv1.ExternalSecretDataRemoteRef{
