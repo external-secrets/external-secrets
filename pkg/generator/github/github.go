@@ -133,7 +133,7 @@ func (g *Generator) generate(
 		if message, ok := gat["message"]; ok {
 			return nil, nil, fmt.Errorf("error generating token: response code: %d, response: %v", resp.StatusCode, message)
 		}
-		return nil, nil, fmt.Errorf("error generating token: response code: %d, response: %v", resp.StatusCode, gat)
+		return nil, nil, fmt.Errorf("error generating token, failed to extract error message from github request: response code: %d", resp.StatusCode)
 	}
 
 	accessToken, ok := gat["token"].(string)
