@@ -259,6 +259,16 @@ spec:
         maxRetries: 1
         retryInterval: string
     webhookSpec:
+      auth:
+        ntlm:
+          passwordSecret:
+            key: string
+            name: string
+            namespace: string
+          usernameSecret:
+            key: string
+            name: string
+            namespace: string
       body: string
       caBundle: c3RyaW5n
       caProvider:
