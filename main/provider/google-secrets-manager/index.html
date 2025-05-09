@@ -2692,35 +2692,11 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#migration-guide-pushsecret-metadata-format-v011x-to-v0120" class="md-nav__link">
+  <a href="#regional-secrets" class="md-nav__link">
     <span class="md-ellipsis">
-      Migration Guide: PushSecret Metadata Format (v0.11.x to v0.12.0)
+      Regional Secrets
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Migration Guide: PushSecret Metadata Format (v0.11.x to v0.12.0)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#old-format-v011x" class="md-nav__link">
-    <span class="md-ellipsis">
-      Old Format (v0.11.x)
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#new-format-v0120" class="md-nav__link">
-    <span class="md-ellipsis">
-      New Format (v0.12.0+)
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -4090,35 +4066,11 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#migration-guide-pushsecret-metadata-format-v011x-to-v0120" class="md-nav__link">
+  <a href="#regional-secrets" class="md-nav__link">
     <span class="md-ellipsis">
-      Migration Guide: PushSecret Metadata Format (v0.11.x to v0.12.0)
+      Regional Secrets
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Migration Guide: PushSecret Metadata Format (v0.11.x to v0.12.0)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#old-format-v011x" class="md-nav__link">
-    <span class="md-ellipsis">
-      Old Format (v0.11.x)
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#new-format-v0120" class="md-nav__link">
-    <span class="md-ellipsis">
-      New Format (v0.12.0+)
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -4300,7 +4252,7 @@ For example, the following CLI call grants it access to a secret <code>demo-secr
 </code></pre></div>
 <p>In the case of a <code>ClusterSecretStore</code>, you additionally have to define the service account's <code>namespace</code> under <code>auth.workloadIdentity.serviceAccountRef</code>.</p>
 <h4 id="authorizing-the-core-controller-pod">Authorizing the Core Controller Pod</h4>
-<p>Instead of managing authentication at the <code>SecretStore</code> and <code>ClusterSecretStore</code> level, you can give the <a href="/api/components/">Core Controller</a> Pod's service account access to Secret Manager secrets using one of the two WIF approaches described in the previous sections.</p>
+<p>Instead of managing authentication at the <code>SecretStore</code> and <code>ClusterSecretStore</code> level, you can give the <a href="../api/components/">Core Controller</a> Pod's service account access to Secret Manager secrets using one of the two WIF approaches described in the previous sections.</p>
 <p>To demonstrate this approach, we'll assume you installed ESO using Helm into the <code>external-secrets</code> namespace, with <code>external-secrets</code> as the release name:</p>
 <div class="highlight"><pre><span></span><code>helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>external-secrets<span class="w"> </span>https://charts.external-secrets.io
 helm<span class="w"> </span>install<span class="w"> </span>external-secrets<span class="w"> </span>external-secrets/external-secrets<span class="w"> </span><span class="se">\</span>
@@ -4415,16 +4367,23 @@ This approach can be used on any Kubernetes cluster.</p>
 </code></pre></div>
 <h2 id="secret-replication-and-encryption-configuration">Secret Replication and Encryption Configuration</h2>
 <h3 id="location-and-replication">Location and Replication</h3>
-<p>By default, secrets are automatically replicated across multiple regions. You can specify a single location for your secrets by setting the <code>location</code> field:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<p>By default, secrets are automatically replicated across multiple regions. You can specify a single location for your secrets by setting the <code>replicationLocation</code> field:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcp-secret-store</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pushsecret-example</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">gcpsm</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-project</span>
-<span class="w">      </span><span class="nt">location</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east1</span><span class="w">  </span><span class="c1"># Specify a single location</span>
+<span class="w">  </span><span class="c1"># ... other fields ...</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mykey</span>
+<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-secret</span>
+<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.external-secrets.io/v1alpha1</span>
+<span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecretMetadata`</span>
+<span class="w">        </span><span class="nt">spec</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">replicationLocation</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;us-east1&quot;</span>
 </code></pre></div>
 <h3 id="customer-managed-encryption-keys-cmek">Customer-Managed Encryption Keys (CMEK)</h3>
 <p>You can use your own encryption keys to encrypt secrets at rest. To use Customer-Managed Encryption Keys (CMEK), you need to:</p>
@@ -4461,47 +4420,18 @@ This approach can be used on any Kubernetes cluster.</p>
 <span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-project</span>
 <span class="w">      </span><span class="nt">location</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east1</span><span class="w">  </span><span class="c1"># Required when using CMEK</span>
 </code></pre></div>
-<h2 id="migration-guide-pushsecret-metadata-format-v011x-to-v0120">Migration Guide: PushSecret Metadata Format (v0.11.x to v0.12.0)</h2>
-<p>In version 0.12.0, the metadata format for PushSecrets has been standardized to use a structured format. If you're upgrading from v0.11.x, you'll need to update your PushSecret specifications.</p>
-<h3 id="old-format-v011x">Old Format (v0.11.x)</h3>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
+<h2 id="regional-secrets">Regional Secrets</h2>
+<p>GCP Secret Manager Regional Secrets are available to be used with both ExternalSecrets and PushSecrets.</p>
+<p>In order to achieve so, add a <code>location</code> to your SecretStore definition:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcp-secret-store</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mykey</span>
-<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-secret</span>
-<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">annotations</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">key1</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;value1&quot;</span>
-<span class="w">        </span><span class="nt">labels</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">key2</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;value2&quot;</span>
-<span class="w">        </span><span class="nt">topics</span><span class="p">:</span>
-<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;topic1&quot;</span>
-<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;topic2&quot;</span>
-</code></pre></div>
-<h3 id="new-format-v0120">New Format (v0.12.0+)</h3>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mykey</span>
-<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-secret</span>
-<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.external-secrets.io/v1alpha1</span>
-<span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecretMetadata</span>
-<span class="w">        </span><span class="nt">spec</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">annotations</span><span class="p">:</span>
-<span class="w">            </span><span class="nt">key1</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;value1&quot;</span>
-<span class="w">          </span><span class="nt">labels</span><span class="p">:</span>
-<span class="w">            </span><span class="nt">key2</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;value2&quot;</span>
-<span class="w">          </span><span class="nt">topics</span><span class="p">:</span>
-<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;topic1&quot;</span>
-<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;topic2&quot;</span>
-<span class="w">          </span><span class="nt">cmekKeyName</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;projects/my-project/locations/us-east1/keyRings/my-keyring/cryptoKeys/my-key&quot;</span><span class="w">  </span><span class="c1"># Optional: for CMEK</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">gcpsm</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-project</span>
+<span class="w">      </span><span class="nt">location</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east1</span><span class="w"> </span><span class="c1"># uses regional secrets on us-east1</span>
 </code></pre></div>
 
 
