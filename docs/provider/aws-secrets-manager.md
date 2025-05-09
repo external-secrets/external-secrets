@@ -165,7 +165,7 @@ The `version` field on the `remoteRef` of the ExternalSecret will normally consi
 So in this example, the operator will request the same secret with different versions: `AWSCURRENT` and `AWSPREVIOUS`:
 
 ``` yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: versioned-api-key
@@ -191,7 +191,7 @@ spec:
 While in this example, the operator will request the secret with `VersionId` as `abcd-1234`
 
 ``` yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: versioned-api-key

@@ -12,7 +12,7 @@ Both client ID and client secret can be specified either directly in the config,
 To acquire client ID and client secret, refer to the  [policy management](https://docs.delinea.com/dsv/current/tutorials/policy.md) and [client management](https://docs.delinea.com/dsv/current/usage/cli-ref/client.md) documentation.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: secret-store
@@ -42,7 +42,7 @@ Secrets can be referenced by path. Getting a specific version of a secret is not
 Note that because all DSV secrets are JSON objects, you must specify `remoteRef.property`. You can access nested values or arrays using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md).
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
     name: secret

@@ -14,7 +14,7 @@ Since the [AAD Pod Identity](https://azure.github.io/aad-pod-identity/docs/) is 
 We support connecting to different cloud flavours azure supports: `PublicCloud`, `USGovernmentCloud`, `ChinaCloud` and `GermanCloud`. You have to specify the `environmentType` and point to the correct cloud flavour. This defaults to `PublicCloud`.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: azure-backend

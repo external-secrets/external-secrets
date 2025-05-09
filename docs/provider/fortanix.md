@@ -9,7 +9,7 @@ SDKMS [Application API Key](https://support.fortanix.com/hc/en-us/articles/36001
 ### Creating a SecretStore
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: secret-store
@@ -27,7 +27,7 @@ spec:
 
 ```yaml
 # Raw stored value
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: secret
@@ -42,7 +42,7 @@ spec:
       key: <SDKMS_SECURITY_OBJECT_NAME>
 ---
 # From stored key-value JSON
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: secret-from-property
@@ -58,7 +58,7 @@ spec:
       property: <SECURITY_OBJECT_VALUE_INNER_PROPERTY>
 ---
 # Extract all keys from stored key-value JSON
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: secret-from-extract

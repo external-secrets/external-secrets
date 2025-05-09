@@ -24,7 +24,7 @@ data:
 ```
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: secretstore-sample
@@ -64,7 +64,7 @@ extraVolumeMounts:
 
 and provide the RAM role ARN and OIDC volume path to the secret store
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: secretstore-sample
@@ -85,7 +85,7 @@ spec:
 To create a kubernetes secret from the Alibaba Cloud Key Management Service secret a `Kind=ExternalSecret` is needed.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: example

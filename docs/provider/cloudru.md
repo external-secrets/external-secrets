@@ -89,7 +89,7 @@ curl --location 'https://secretmanager.api.cloud.ru/v1/secrets' \
     * `key_secret` is the AccessKey key_secret
 * Create a [SecretStore](../api/secretstore.md) pointing to `csm-secret` k8s Secret:
     ```yaml
-    apiVersion: external-secrets.io/v1beta1
+    apiVersion: external-secrets.io/v1
     kind: SecretStore
     metadata:
       name: csm
@@ -113,7 +113,7 @@ curl --location 'https://secretmanager.api.cloud.ru/v1/secrets' \
 #### Create an [ExternalSecret](../api/externalsecret.md) pointing to SecretStore.
   * Classic, non-json:
     ```yaml
-    apiVersion: external-secrets.io/v1beta1
+    apiVersion: external-secrets.io/v1
     kind: ExternalSecret
     metadata:
       name: csm-ext-secret
@@ -133,7 +133,7 @@ curl --location 'https://secretmanager.api.cloud.ru/v1/secrets' \
   * From Multi KeyValue, value MUST be in **json format**:
   NOTE: You can use *either* `name` or `tags` to filter the secrets. Here are basic examples of both:
     ```yaml
-    apiVersion: external-secrets.io/v1beta1
+    apiVersion: external-secrets.io/v1
     kind: ExternalSecret
     metadata:
       name: csm-ext-secret
@@ -154,7 +154,7 @@ curl --location 'https://secretmanager.api.cloud.ru/v1/secrets' \
 
   * With all fields, value MUST be in **json format**:
     ```yaml
-    apiVersion: external-secrets.io/v1beta1
+    apiVersion: external-secrets.io/v1
     kind: ExternalSecret
     metadata:
       name: csm-ext-secret
@@ -172,7 +172,7 @@ curl --location 'https://secretmanager.api.cloud.ru/v1/secrets' \
     ```
   * Search the secrets by the Name or Labels (tags):
     ```yaml
-    apiVersion: external-secrets.io/v1beta1
+    apiVersion: external-secrets.io/v1
     kind: ExternalSecret
     metadata:
       name: csm-ext-secret

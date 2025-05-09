@@ -9,7 +9,7 @@ These values can be used with the other features like `rewrite` or `template`. I
 Generators can be defined as a custom resource and re-used across different ExternalSecrets. **Every invocation creates a new set of values**. I.e. you can not share the same value produced by a generator across different `ExternalSecrets` or `spec.dataFrom[]` entries.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: "ecr-token"

@@ -9,7 +9,7 @@ Both access and secret keys can be specified either directly in the config, or b
 a kubernetes secret.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: secret-store
@@ -33,7 +33,7 @@ Secrets can be referenced by name, id or path, using the prefixes `"name:"`, `"i
 A PushSecret resource can only use a name reference.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
     name: secret

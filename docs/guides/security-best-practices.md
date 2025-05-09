@@ -18,7 +18,7 @@ For cluster-wide resources like `ClusterSecretStore` and `ClusterExternalSecret`
 Utilize the ClusterSecretStore resource to define specific match conditions using `namespaceSelector` or an explicit namespaces list. This restricts the usage of the `ClusterSecretStore` to a predetermined list of namespaces or a namespace that matches a predefined label. Here's an example:
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ClusterSecretStore
 metadata:
   name: fake

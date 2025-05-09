@@ -18,7 +18,7 @@ data:
 ### Creating a SecretStore
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: device42-secret-store
@@ -40,7 +40,7 @@ Secrets can be referenced by defining the `key` containing the Id of the secret.
 The `password` field is return from device42
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: device42-external-secret

@@ -8,7 +8,7 @@ First, create a SecretStore with a webhook backend.  We'll use a static user/pas
 
 ```yaml
 {% raw %}
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: webhook-backend
@@ -45,7 +45,7 @@ NB: This is obviously not practical because it just returns the key as the resul
 Now create an ExternalSecret that uses the above SecretStore:
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: webhook-example
@@ -74,7 +74,7 @@ To push a secret, create the following store:
 
 ```yaml
 {% raw %}
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: webhook-backend
@@ -125,7 +125,7 @@ Webhook also supports using NTLM for authorization:
 
 ```yaml
 {% raw %}
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: webhook-backend
@@ -175,7 +175,7 @@ Each secret has a `name` property which determines the name of the object in the
 ### All Parameters
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ClusterSecretStore
 metadata:
   name: statervault
