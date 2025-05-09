@@ -57,7 +57,8 @@ func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	if err != nil {
 		return nil, err
 	}
-	// If no property is defined return the full secret as raw json
+	// Intentionally fetch and return the full secret as raw JSON when no specific property is provided.
+	// This requires calling the API to retrieve the entire secret object.
 	if ref.Property == "" {
 		return jsonStr, nil
 	}
