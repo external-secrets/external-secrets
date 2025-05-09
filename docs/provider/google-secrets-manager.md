@@ -294,7 +294,7 @@ spec:
 By default, secrets are automatically replicated across multiple regions. You can specify a single location for your secrets by setting the `location` field:
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: gcp-secret-store
@@ -335,7 +335,7 @@ spec:
 Note: When using CMEK, you must specify a location in the SecretStore as customer-managed encryption keys are region-specific.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: gcp-secret-store
