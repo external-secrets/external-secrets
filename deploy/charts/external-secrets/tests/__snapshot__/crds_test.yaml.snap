@@ -4175,6 +4175,7 @@ should match snapshot of default values:
             - jsonPath: .status.conditions[?(@.type=="Ready")].status
               name: Ready
               type: string
+          deprecated: true
           name: v1beta1
           schema:
             openAPIV3Schema:
@@ -8299,7 +8300,7 @@ should match snapshot of default values:
                       type: array
                   type: object
               type: object
-          served: true
+          served: false
           storage: false
           subresources:
             status: {}
