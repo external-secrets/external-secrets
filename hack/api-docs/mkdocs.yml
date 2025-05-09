@@ -59,32 +59,32 @@ nav:
       - Stability and Support: introduction/stability-support.md
       - Deprecation Policy: introduction/deprecation-policy.md
   - API:
-    - Components: api/components.md
-    - Core Resources:
-      - ExternalSecret: api/externalsecret.md
-      - SecretStore: api/secretstore.md
-      - ClusterSecretStore: api/clustersecretstore.md
-      - ClusterExternalSecret: api/clusterexternalsecret.md
-      - ClusterPushSecret: api/clusterpushsecret.md
-      - PushSecret: api/pushsecret.md
-    - Generators:
-      - "api/generator/index.md"
-      - Azure Container Registry: api/generator/acr.md
-      - AWS Elastic Container Registry: api/generator/ecr.md
-      - AWS STS Session Token: api/generator/sts.md
-      - Cluster Generator: api/generator/cluster.md
-      - Google Container Registry: api/generator/gcr.md
-      - Quay: api/generator/quay.md
-      - Vault Dynamic Secret: api/generator/vault.md
-      - Password: api/generator/password.md
-      - Fake: api/generator/fake.md
-      - Webhook: api/generator/webhook.md
-      - Github: api/generator/github.md
-      - UUID: api/generator/uuid.md
-    - Reference Docs:
-      - API specification: api/spec.md
-      - Controller Options: api/controller-options.md
-      - Metrics: api/metrics.md
+      - Components: api/components.md
+      - Core Resources:
+          - ExternalSecret: api/externalsecret.md
+          - SecretStore: api/secretstore.md
+          - ClusterSecretStore: api/clustersecretstore.md
+          - ClusterExternalSecret: api/clusterexternalsecret.md
+          - ClusterPushSecret: api/clusterpushsecret.md
+          - PushSecret: api/pushsecret.md
+      - Generators:
+          - "api/generator/index.md"
+          - Azure Container Registry: api/generator/acr.md
+          - AWS Elastic Container Registry: api/generator/ecr.md
+          - AWS STS Session Token: api/generator/sts.md
+          - Cluster Generator: api/generator/cluster.md
+          - Google Container Registry: api/generator/gcr.md
+          - Quay: api/generator/quay.md
+          - Vault Dynamic Secret: api/generator/vault.md
+          - Password: api/generator/password.md
+          - Fake: api/generator/fake.md
+          - Webhook: api/generator/webhook.md
+          - Github: api/generator/github.md
+          - UUID: api/generator/uuid.md
+      - Reference Docs:
+          - API specification: api/spec.md
+          - Controller Options: api/controller-options.md
+          - Metrics: api/metrics.md
   - Guides:
       - Introduction: guides/introduction.md
       - External Secrets:
@@ -147,6 +147,7 @@ nav:
       - Fortanix: provider/fortanix.md
       - Infisical: provider/infisical.md
       - Previder: provider/previder.md
+      - OpenBao: provider/openbao.md
   - Examples:
       - FluxCD: examples/gitops-using-fluxcd.md
       - Anchore Engine: examples/anchore-engine-credentials.md
