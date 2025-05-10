@@ -707,3 +707,96 @@ func vaultTest(t *testing.T, _ string, tc testCase) {
 		t.Errorf("\n%s\nvault.New(...): -want error, +got error:\n%s", tc.reason, diff)
 	}
 }
+
+func TestCache(t *testing.T) {
+	t.Cleanup(resetCache)
+	enableCache = true
+	initCache(defaultCacheSize)
+
+	prov := &Provider{
+		NewVaultClient: fake.ClientWithLoginMock,
+	}
+
+	namespace := "default"
+
+	store := makeClusterSecretStore(func(s *esv1.SecretStore) {
+		s.Spec.Provider.Vault.Auth.Kubernetes.ServiceAccountRef = &esmeta.ServiceAccountSelector{
+			Name:      "vault-sa",
+			Namespace: &namespace, // fixed namespace!
+		}
+	})
+
+	// first request creates a new client:
+	c1, err := getVaultClient(prov, store, nil, namespace)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// seconds request should retrieve cached client instance:
+	c2, err := getVaultClient(prov, store, nil, namespace)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if c1 != c2 {
+		t.Fatal("Expected a cached client instance")
+	}
+
+	// third request should retrieve cached client instance even when using a different namespace,
+	// because the ClusterSecretStore references a ServiceAccount of a specific namespace:
+	c3, err := getVaultClient(prov, store, nil, "another-namespace")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c3 != c1 {
+		t.Fatal("Expected a cached client instance")
+	}
+}
+
+func TestCacheWithReferentSpec(t *testing.T) {
+	t.Cleanup(resetCache)
+	enableCache = true
+	initCache(defaultCacheSize)
+
+	prov := &Provider{
+		NewVaultClient: fake.ClientWithLoginMock,
+	}
+
+	store := makeClusterSecretStore(func(s *esv1.SecretStore) {
+		s.Spec.Provider.Vault.Auth.Kubernetes.ServiceAccountRef = &esmeta.ServiceAccountSelector{
+			Name: "vault-sa",
+			// No fixed namespace!
+		}
+	})
+
+	// first request creates a new client:
+	c1, err := getVaultClient(prov, store, nil, "default")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// seconds request should retrieve cached client instance:
+	c2, err := getVaultClient(prov, store, nil, "default")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if c1 != c2 {
+		t.Fatal("Expected a cached client instance")
+	}
+
+	// third request should retrieve a new client instance,
+	// because the ServiceAccount namespace depends on the namespace of the referent:
+	c3, err := getVaultClient(prov, store, nil, "another-namespace")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c3 == c1 {
+		t.Fatal("Expected a new client instance")
+	}
+}
+
+func resetCache() {
+	enableCache = false
+	clientCache = nil
+}
