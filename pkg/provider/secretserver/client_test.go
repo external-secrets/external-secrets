@@ -93,6 +93,17 @@ func createTestSecretFromCode(id int) *server.Secret {
 	return s
 }
 
+func createPlainTextSecret(id int) *server.Secret {
+	s := new(server.Secret)
+	s.ID = id
+	s.Name = "PlainTextSecret"
+	s.Fields = make([]server.SecretField, 1)
+	s.Fields[0].FieldName = "Content"
+	s.Fields[0].Slug = "content"
+	s.Fields[0].ItemValue = `non-json-secret-value`
+	return s
+}
+
 func newTestClient() esv1.SecretsClient {
 	return &client{
 		api: &fakeAPI{
@@ -101,6 +112,7 @@ func newTestClient() esv1.SecretsClient {
 				createSecret(2000, "{ \"user\": \"helloWorld\", \"password\": \"badPassword\",\"server\":[ \"192.168.1.50\",\"192.168.1.51\"] }"),
 				createSecret(3000, "{ \"user\": \"chuckTesta\", \"password\": \"badPassword\",\"server\":\"192.168.1.50\"}"),
 				createTestSecretFromCode(4000),
+				createPlainTextSecret(5000),
 			},
 		},
 	}
@@ -112,6 +124,7 @@ func TestGetSecretSecretServer(t *testing.T) {
 	s, _ := getJSONData()
 	jsonStr, _ := json.Marshal(s)
 	jsonStr2, _ := json.Marshal(createTestSecretFromCode(4000))
+	jsonStr3, _ := json.Marshal(createPlainTextSecret(5000))
 
 	testCases := map[string]struct {
 		ref  esv1.ExternalSecretDataRemoteRef
@@ -171,6 +184,19 @@ func TestGetSecretSecretServer(t *testing.T) {
 				Property: "Username",
 			},
 			want: []byte(`usernamevalue`),
+		},
+		"Plain text secret: existent key with no property": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key: "5000",
+			},
+			want: jsonStr3,
+		},
+		"Plain text secret: key with property returns noSecretError": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key:      "5000",
+				Property: "Content",
+			},
+			want: []byte(`non-json-secret-value`),
 		},
 		"Secret from code: 'name' and password slug returns a single value": {
 			ref: esv1.ExternalSecretDataRemoteRef{
