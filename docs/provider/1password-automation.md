@@ -2,6 +2,11 @@
 
 External Secrets Operator integrates with [1Password Secrets Automation](https://1password.com/products/secrets/) for secret management.
 
+## Deprecation
+
+Consider using [1Password SDK provider](1password-sdk.md) instead. It uses an official [SDK for 1Password](https://developer.1password.com/docs/sdks) created
+by 1Password. It's feature complete and has parity with this provider's capabilities.
+
 ### Important note about this documentation
 
 _**The 1Password API calls the entries in vaults 'Items'. These docs use the same term.**_
