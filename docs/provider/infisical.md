@@ -44,7 +44,7 @@ You will then need to create a generic `SecretStore`. An sample `SecretStore` ha
 
 ## Fetch Individual Secret(s)
 
-To sync one or more secrets individually, use the following YAML:
+To sync one or more secrets individually or to create a TLS Secret, use the following YAML:
 
 ```yaml
 {% include 'infisical-fetch-secret.yaml' %}
@@ -58,9 +58,9 @@ To sync all secrets from an Infisical , use the following YAML:
 {% include 'infisical-fetch-all-secrets.yaml' %}
 ```
 
-## Filter By Prefix/Name
+## Filter By Path/Tags/Name
 
-To filter secrets by `path` (path prefix) and `name` (regular expression).
+To filter secrets by `path` (path folder), `tags` (metadata values) and `name` (regular expression).
 
 ``` yaml
 {% include 'infisical-filtered-secrets.yaml' %}
