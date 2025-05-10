@@ -7,7 +7,7 @@ You may obtain a copy of the License at
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or impliec.
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
@@ -16,7 +16,11 @@ package infisical
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -39,6 +43,7 @@ type TestCases struct {
 	Name           string
 	MockStatusCode int
 	MockResponse   any
+	Key            string
 	Property       string
 	Error          error
 	Output         any
@@ -57,6 +62,7 @@ func TestGetSecret(t *testing.T) {
 					SecretValue: "bar",
 				},
 			},
+			Key:    key,
 			Output: []byte("bar"),
 		},
 		{
@@ -68,6 +74,7 @@ func TestGetSecret(t *testing.T) {
 					SecretValue: `{"bar": "value"}`,
 				},
 			},
+			Key:      key,
 			Property: "bar",
 			Output:   []byte("value"),
 		},
@@ -79,8 +86,21 @@ func TestGetSecret(t *testing.T) {
 				Err:        "Not Found",
 				Message:    "Secret not found",
 			},
-			Error:  esv1.NoSecretError{},
+			Key:    "key",
+			Error:  esv1.NoSecretErr,
 			Output: "",
+		},
+		{
+			Name:           "Key_with_slash",
+			MockStatusCode: 200,
+			MockResponse: api.GetSecretByKeyV3Response{
+				Secret: api.SecretsV3{
+					SecretKey:   "bar",
+					SecretValue: "value",
+				},
+			},
+			Key:    "/foo/bar",
+			Output: []byte("value"),
 		},
 	}
 
@@ -94,7 +114,7 @@ func TestGetSecret(t *testing.T) {
 			}
 
 			output, err := p.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
-				Key:      key,
+				Key:      tc.Key,
 				Property: tc.Property,
 			})
 
@@ -106,6 +126,54 @@ func TestGetSecret(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestGetSecretWithPath verifies that request is translated from a key
+// `/foo/bar` to a secret `bar` with `secretPath` of `/foo`.
+func TestGetSecretWithPath(t *testing.T) {
+	requestedKey := "/foo/bar"
+	expectedSecretPath := "/foo"
+	expectedSecretKey := "bar"
+
+	// Prepare the mock response.
+	data := api.GetSecretByKeyV3Response{
+		Secret: api.SecretsV3{
+			SecretKey:   expectedSecretKey,
+			SecretValue: `value`,
+		},
+	}
+	body, err := json.Marshal(data)
+	if err != nil {
+		panic(err)
+	}
+
+	// Prepare the mock server, which asserts the request translation is correct.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, fmt.Sprintf("/api/v3/secrets/raw/%s", expectedSecretKey), r.URL.Path)
+		assert.Equal(t, expectedSecretPath, r.URL.Query().Get("secretPath"))
+		w.WriteHeader(200)
+		_, err := w.Write(body)
+		if err != nil {
+			panic(err)
+		}
+	}))
+	defer server.Close()
+
+	client, err := api.NewAPIClient(server.URL, server.Client())
+	require.NoError(t, err)
+	p := &Provider{
+		apiClient: client,
+		apiScope:  &apiScope,
+	}
+
+	// Retrieve the secret.
+	output, err := p.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
+		Key:      requestedKey,
+		Property: "",
+	})
+	// And, we should get back the expected secret value.
+	require.NoError(t, err)
+	assert.Equal(t, []byte("value"), output)
 }
 
 func TestGetSecretMap(t *testing.T) {
@@ -120,6 +188,7 @@ func TestGetSecretMap(t *testing.T) {
 					SecretValue: `{"bar": "value"}`,
 				},
 			},
+			Key: key,
 			Output: map[string][]byte{
 				"bar": []byte("value"),
 			},
@@ -128,6 +197,7 @@ func TestGetSecretMap(t *testing.T) {
 			Name:           "Get_invalid_map",
 			MockStatusCode: 200,
 			MockResponse:   []byte(``),
+			Key:            key,
 			Error:          errors.New("unable to unmarshal secret foo"),
 		},
 	}
@@ -141,7 +211,8 @@ func TestGetSecretMap(t *testing.T) {
 				apiScope:  &apiScope,
 			}
 			output, err := p.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{
-				Key: key,
+				Key:      tc.Key,
+				Property: tc.Property,
 			})
 			if tc.Error == nil {
 				assert.NoError(t, err)
@@ -153,7 +224,7 @@ func TestGetSecretMap(t *testing.T) {
 	}
 }
 
-func makeSecretStore(projectSlug, environment, secretPath string, fn ...storeModifier) *esv1.SecretStore {
+func makeSecretStore(projectSlug, environment, secretsPath string, fn ...storeModifier) *esv1.SecretStore {
 	store := &esv1.SecretStore{
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
@@ -162,7 +233,7 @@ func makeSecretStore(projectSlug, environment, secretPath string, fn ...storeMod
 						UniversalAuthCredentials: &esv1.UniversalAuthCredentials{},
 					},
 					SecretsScope: esv1.MachineIdentityScopeInWorkspace{
-						SecretsPath:     secretPath,
+						SecretsPath:     secretsPath,
 						EnvironmentSlug: environment,
 						ProjectSlug:     projectSlug,
 					},
@@ -199,6 +270,7 @@ func withClientSecret(name, key string, namespace *string) storeModifier {
 }
 
 type ValidateStoreTestCase struct {
+	name        string
 	store       *esv1.SecretStore
 	assertError func(t *testing.T, err error)
 }
@@ -211,31 +283,37 @@ func TestValidateStore(t *testing.T) {
 
 	testCases := []ValidateStoreTestCase{
 		{
+			name:  "Missing projectSlug",
 			store: makeSecretStore("", "", ""),
 			assertError: func(t *testing.T, err error) {
 				require.ErrorAs(t, err, &authScopeMissingErr)
 			},
 		},
 		{
+			name:  "Missing clientID",
 			store: makeSecretStore(apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath, withClientID(authType, randomID, nil)),
 			assertError: func(t *testing.T, err error) {
 				require.ErrorAs(t, err, &authCredMissingErr)
 			},
 		},
 		{
+			name:  "Missing clientSecret",
 			store: makeSecretStore(apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath, withClientSecret(authType, randomID, nil)),
 			assertError: func(t *testing.T, err error) {
 				require.ErrorAs(t, err, &authCredMissingErr)
 			},
 		},
 		{
+			name:        "Success",
 			store:       makeSecretStore(apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath, withClientID(authType, randomID, nil), withClientSecret(authType, randomID, nil)),
 			assertError: func(t *testing.T, err error) { require.NoError(t, err) },
 		},
 	}
 	p := Provider{}
 	for _, tc := range testCases {
-		_, err := p.ValidateStore(tc.store)
-		tc.assertError(t, err)
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := p.ValidateStore(tc.store)
+			tc.assertError(t, err)
+		})
 	}
 }
