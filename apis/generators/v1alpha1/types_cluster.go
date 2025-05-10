@@ -24,6 +24,10 @@ type ClusterGeneratorSpec struct {
 
 	// Generator the spec for this generator, must match the kind.
 	Generator GeneratorSpec `json:"generator"`
+
+	// Namespace defines the namespace of the created virtual generator. This can be used to access secrets
+	// that the generator needs like, serviceAccountRefs.
+	Namespace string `json:"namespace,omitempty"`
 }
 
 // GeneratorKind represents a kind of generator.

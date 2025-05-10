@@ -440,7 +440,7 @@ func (r *Reconciler) resolveSecrets(ctx context.Context, ps *esapi.PushSecret) (
 }
 
 func (r *Reconciler) resolveSecretFromGenerator(ctx context.Context, namespace string, generatorRef *esv1.GeneratorRef, generatorState *statemanager.Manager) (*v1.Secret, error) {
-	gen, genResource, err := resolvers.GeneratorRef(ctx, r.Client, r.Scheme, namespace, generatorRef)
+	gen, genResource, destinationNamespace, err := resolvers.GeneratorRef(ctx, r.Client, r.Scheme, namespace, generatorRef)
 	if err != nil {
 		return nil, fmt.Errorf("unable to resolve generator: %w", err)
 	}
@@ -448,12 +448,12 @@ func (r *Reconciler) resolveSecretFromGenerator(ctx context.Context, namespace s
 	if err != nil {
 		return nil, fmt.Errorf("unable to get latest state: %w", err)
 	}
-	secretMap, newState, err := gen.Generate(ctx, genResource, r.Client, namespace)
+	secretMap, newState, err := gen.Generate(ctx, genResource, r.Client, destinationNamespace)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate: %w", err)
 	}
 	if prevState != nil {
-		generatorState.EnqueueSetLatest(ctx, defaultGeneratorStateKey, namespace, genResource, gen, newState)
+		generatorState.EnqueueSetLatest(ctx, defaultGeneratorStateKey, destinationNamespace, genResource, gen, newState)
 	}
 	return &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
