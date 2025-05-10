@@ -19,6 +19,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/external-secrets/external-secrets/pkg/provider/util/fake"
 )
@@ -28,6 +31,27 @@ func TestTokenFetcher(t *testing.T) {
 		ServiceAccount: "foobar",
 		Namespace:      "example",
 		k8sClient:      fake.NewCreateTokenMock().WithToken("FAKETOKEN"),
+	}
+	token, err := tf.FetchToken(context.Background())
+	assert.Nil(t, err)
+	assert.Equal(t, []byte("FAKETOKEN"), token)
+}
+
+func TestSecretKeyTokenFetcher(t *testing.T) {
+	client := clientfake.NewClientBuilder().
+		WithObjects(&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foobar", Namespace: "example"},
+			Data: map[string][]byte{
+				"fookey": []byte("FAKETOKEN"),
+			},
+		}).
+		Build()
+
+	tf := &secretKeyTokenFetcher{
+		Name:      "foobar",
+		Namespace: "example",
+		Key:       "fookey",
+		k8sClient: client,
 	}
 	token, err := tf.FetchToken(context.Background())
 	assert.Nil(t, err)
