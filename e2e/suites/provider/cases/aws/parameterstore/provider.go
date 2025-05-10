@@ -19,10 +19,11 @@ import (
 	"errors"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	ssmtypes "github.com/aws/aws-sdk-go-v2/service/ssm/types"
 
 	//nolint
 	. "github.com/onsi/ginkgo/v2"
@@ -44,21 +45,18 @@ type Provider struct {
 	ServiceAccountNamespace string
 
 	region    string
-	client    *ssm.SSM
+	client    *ssm.Client
 	framework *framework.Framework
 }
 
 func NewProvider(f *framework.Framework, kid, sak, st, region, saName, saNamespace string) *Provider {
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{
-			Credentials: credentials.NewStaticCredentials(kid, sak, st),
-			Region:      aws.String(region),
-		},
-	})
+
+	config, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region), config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(kid, sak, st)))
+
 	if err != nil {
 		Fail(err.Error())
 	}
-	sm := ssm.New(sess)
+	sm := ssm.NewFromConfig(config)
 	prov := &Provider{
 		ServiceAccountName:      saName,
 		ServiceAccountNamespace: saNamespace,
@@ -94,9 +92,9 @@ func NewFromEnv(f *framework.Framework) *Provider {
 
 // CreateSecret creates a secret at the provider.
 func (s *Provider) CreateSecret(key string, val framework.SecretEntry) {
-	pmTags := make([]*ssm.Tag, 0)
+	pmTags := make([]ssmtypes.Tag, 0)
 	for k, v := range val.Tags {
-		pmTags = append(pmTags, &ssm.Tag{
+		pmTags = append(pmTags, ssmtypes.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v),
 		})
@@ -107,11 +105,11 @@ func (s *Provider) CreateSecret(key string, val framework.SecretEntry) {
 	if len(val.Tags) == 0 {
 		overwrite = true
 	}
-	_, err := s.client.PutParameter(&ssm.PutParameterInput{
+	_, err := s.client.PutParameter(context.Background(), &ssm.PutParameterInput{
 		Name:      aws.String(key),
 		Value:     aws.String(val.Value),
 		DataType:  aws.String("text"),
-		Type:      aws.String("String"),
+		Type:      ssmtypes.ParameterTypeString,
 		Overwrite: aws.Bool(overwrite),
 		Tags:      pmTags,
 	})
@@ -120,10 +118,10 @@ func (s *Provider) CreateSecret(key string, val framework.SecretEntry) {
 
 // DeleteSecret deletes a secret at the provider.
 func (s *Provider) DeleteSecret(key string) {
-	_, err := s.client.DeleteParameter(&ssm.DeleteParameterInput{
+	_, err := s.client.DeleteParameter(context.Background(), &ssm.DeleteParameterInput{
 		Name: aws.String(key),
 	})
-	var nf *ssm.ParameterNotFound
+	var nf *ssmtypes.ParameterNotFound
 	if errors.As(err, &nf) {
 		return
 	}
