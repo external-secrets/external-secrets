@@ -38,5 +38,5 @@ func (g *Client) repoListSecretsFn(ctx context.Context) (*github.Secrets, *githu
 }
 
 func (g *Client) repoDeleteSecretsFn(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (*github.Response, error) {
-	return g.baseClient.DeleteRepoSecret(ctx, g.provider.Organization, g.provider.Environment, remoteRef.GetRemoteKey())
+	return g.baseClient.DeleteRepoSecret(ctx, g.provider.Organization, g.provider.Repository, remoteRef.GetRemoteKey())
 }
