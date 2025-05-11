@@ -56,7 +56,7 @@ func (p *Provider) Close(_ context.Context) error {
 	return nil
 }
 
-// DeleteSecret Not Implemented.
+// DeleteSecret implements Secret Deletion on the provider when PushSecret.spec.DeletionPolicy=Delete
 func (p *Provider) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
 	providerItem, err := p.findItem(ctx, ref.GetRemoteKey())
 	if err != nil {
@@ -113,7 +113,7 @@ func (p *Provider) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (
 	return nil, fmt.Errorf(errOnePasswordSdkStore, errors.New(errNotImplemented))
 }
 
-// GetSecretMap implements v1beta1.SecretsClient.
+// GetSecretMap implements v1.SecretsClient.
 func (p *Provider) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if ref.Version != "" {
 		return nil, errors.New(errVersionNotImplemented)
@@ -238,6 +238,8 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, ref es
 		return fmt.Errorf("failed to find item: %w", err)
 	}
 
+       //TODO: we are only sending info to a specific label on a 1password item.
+       //We should change this logic eventually to allow pushing whole kubernetes Secrets to 1password as multiple labels OOTB.
 	label := ref.GetProperty()
 	if label == "" {
 		label = "password"
