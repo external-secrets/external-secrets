@@ -151,6 +151,10 @@ func NewClient() *Client {
 }
 
 func (sm *Client) GetSecretValue(ctx context.Context, in *awssm.GetSecretValueInput, options ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error) {
+	// check if there's a direct fake function for this input
+	if sm.GetSecretValueFn != nil {
+		return sm.GetSecretValueFn(ctx, in, options...)
+	}
 	sm.ExecutionCounter++
 	if entry, found := sm.valFn[sm.cacheKeyForInput(in)]; found {
 		return entry(in)

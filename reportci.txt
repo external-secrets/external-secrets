@@ -1,0 +1,3012 @@
+for some reason in github actions ci i get a different test report
+
+
+Run make test
+18:34:43 [ OK ] Finished generating deepcopy and crds
+test -s /home/runner/work/external-secrets/external-secrets/bin/setup-envtest || GOBIN=/home/runner/work/external-secrets/external-secrets/bin go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+go: downloading sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20250407161039-6ad5c1dd4418
+go: downloading github.com/spf13/afero v1.12.0
+go: downloading go.uber.org/multierr v1.10.0
+go: downloading golang.org/x/text v0.22.0
+18:34:46 [ .. ] go test unit-tests
+KUBEBUILDER_ASSETS="/home/runner/work/external-secrets/external-secrets/bin/k8s/1.30.3-linux-amd64" go test -race -v github.com/external-secrets/external-secrets github.com/external-secrets/external-secrets/apis github.com/external-secrets/external-secrets/apis/externalsecrets github.com/external-secrets/external-secrets/apis/externalsecrets/v1 github.com/external-secrets/external-secrets/apis/externalsecrets/v1/fakes github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1 github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1 github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1/fakes github.com/external-secrets/external-secrets/apis/generators/v1alpha1 github.com/external-secrets/external-secrets/apis/meta github.com/external-secrets/external-secrets/apis/meta/v1 github.com/external-secrets/external-secrets/cmd/controller github.com/external-secrets/external-secrets/cmd/esoctl github.com/external-secrets/external-secrets/pkg/cache github.com/external-secrets/external-secrets/pkg/common/webhook github.com/external-secrets/external-secrets/pkg/constants github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret/cpsmetrics github.com/external-secrets/external-secrets/pkg/controllers/common github.com/external-secrets/external-secrets/pkg/controllers/commontest github.com/external-secrets/external-secrets/pkg/controllers/crds github.com/external-secrets/external-secrets/pkg/controllers/externalsecret github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics github.com/external-secrets/external-secrets/pkg/controllers/generatorstate github.com/external-secrets/external-secrets/pkg/controllers/metrics github.com/external-secrets/external-secrets/pkg/controllers/pushsecret github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics github.com/external-secrets/external-secrets/pkg/controllers/secretstore github.com/external-secrets/external-secrets/pkg/controllers/secretstore/cssmetrics github.com/external-secrets/external-secrets/pkg/controllers/secretstore/metrics github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics github.com/external-secrets/external-secrets/pkg/controllers/templating github.com/external-secrets/external-secrets/pkg/controllers/util github.com/external-secrets/external-secrets/pkg/controllers/webhookconfig github.com/external-secrets/external-secrets/pkg/feature github.com/external-secrets/external-secrets/pkg/find github.com/external-secrets/external-secrets/pkg/generator/acr github.com/external-secrets/external-secrets/pkg/generator/ecr github.com/external-secrets/external-secrets/pkg/generator/fake github.com/external-secrets/external-secrets/pkg/generator/gcr github.com/external-secrets/external-secrets/pkg/generator/github github.com/external-secrets/external-secrets/pkg/generator/grafana github.com/external-secrets/external-secrets/pkg/generator/password github.com/external-secrets/external-secrets/pkg/generator/quay github.com/external-secrets/external-secrets/pkg/generator/register github.com/external-secrets/external-secrets/pkg/generator/statemanager github.com/external-secrets/external-secrets/pkg/generator/sts github.com/external-secrets/external-secrets/pkg/generator/uuid github.com/external-secrets/external-secrets/pkg/generator/vault github.com/external-secrets/external-secrets/pkg/generator/webhook github.com/external-secrets/external-secrets/pkg/metrics github.com/external-secrets/external-secrets/pkg/provider/akeyless github.com/external-secrets/external-secrets/pkg/provider/akeyless/fake github.com/external-secrets/external-secrets/pkg/provider/alibaba github.com/external-secrets/external-secrets/pkg/provider/alibaba/fake github.com/external-secrets/external-secrets/pkg/provider/aws github.com/external-secrets/external-secrets/pkg/provider/aws/auth github.com/external-secrets/external-secrets/pkg/provider/aws/auth/fake github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore/fake github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager/fake github.com/external-secrets/external-secrets/pkg/provider/aws/util github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault/fake github.com/external-secrets/external-secrets/pkg/provider/beyondtrust github.com/external-secrets/external-secrets/pkg/provider/bitwarden github.com/external-secrets/external-secrets/pkg/provider/chef github.com/external-secrets/external-secrets/pkg/provider/chef/fake github.com/external-secrets/external-secrets/pkg/provider/cloudru/secretmanager github.com/external-secrets/external-secrets/pkg/provider/cloudru/secretmanager/adapter github.com/external-secrets/external-secrets/pkg/provider/cloudru/secretmanager/fake github.com/external-secrets/external-secrets/pkg/provider/conjur github.com/external-secrets/external-secrets/pkg/provider/conjur/fake github.com/external-secrets/external-secrets/pkg/provider/conjur/util github.com/external-secrets/external-secrets/pkg/provider/delinea github.com/external-secrets/external-secrets/pkg/provider/device42 github.com/external-secrets/external-secrets/pkg/provider/device42/fake github.com/external-secrets/external-secrets/pkg/provider/doppler github.com/external-secrets/external-secrets/pkg/provider/doppler/client github.com/external-secrets/external-secrets/pkg/provider/doppler/fake github.com/external-secrets/external-secrets/pkg/provider/fake github.com/external-secrets/external-secrets/pkg/provider/fortanix github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager/fake github.com/external-secrets/external-secrets/pkg/provider/github github.com/external-secrets/external-secrets/pkg/provider/gitlab github.com/external-secrets/external-secrets/pkg/provider/gitlab/fake github.com/external-secrets/external-secrets/pkg/provider/ibm github.com/external-secrets/external-secrets/pkg/provider/ibm/fake github.com/external-secrets/external-secrets/pkg/provider/infisical github.com/external-secrets/external-secrets/pkg/provider/infisical/api github.com/external-secrets/external-secrets/pkg/provider/infisical/constants github.com/external-secrets/external-secrets/pkg/provider/keepersecurity github.com/external-secrets/external-secrets/pkg/provider/keepersecurity/fake github.com/external-secrets/external-secrets/pkg/provider/kubernetes github.com/external-secrets/external-secrets/pkg/provider/onboardbase github.com/external-secrets/external-secrets/pkg/provider/onboardbase/client github.com/external-secrets/external-secrets/pkg/provider/onboardbase/fake github.com/external-secrets/external-secrets/pkg/provider/onepassword github.com/external-secrets/external-secrets/pkg/provider/onepassword/fake github.com/external-secrets/external-secrets/pkg/provider/oracle github.com/external-secrets/external-secrets/pkg/provider/oracle/fake github.com/external-secrets/external-secrets/pkg/provider/passbolt github.com/external-secrets/external-secrets/pkg/provider/passworddepot github.com/external-secrets/external-secrets/pkg/provider/passworddepot/fake github.com/external-secrets/external-secrets/pkg/provider/previder github.com/external-secrets/external-secrets/pkg/provider/pulumi github.com/external-secrets/external-secrets/pkg/provider/register github.com/external-secrets/external-secrets/pkg/provider/scaleway github.com/external-secrets/external-secrets/pkg/provider/secretserver github.com/external-secrets/external-secrets/pkg/provider/senhasegura github.com/external-secrets/external-secrets/pkg/provider/senhasegura/auth github.com/external-secrets/external-secrets/pkg/provider/senhasegura/dsm github.com/external-secrets/external-secrets/pkg/provider/testing/fake github.com/external-secrets/external-secrets/pkg/provider/util/fake github.com/external-secrets/external-secrets/pkg/provider/util/locks github.com/external-secrets/external-secrets/pkg/provider/vault github.com/external-secrets/external-secrets/pkg/provider/vault/fake github.com/external-secrets/external-secrets/pkg/provider/vault/iamauth github.com/external-secrets/external-secrets/pkg/provider/vault/util github.com/external-secrets/external-secrets/pkg/provider/webhook github.com/external-secrets/external-secrets/pkg/provider/yandex/certificatemanager github.com/external-secrets/external-secrets/pkg/provider/yandex/certificatemanager/client github.com/external-secrets/external-secrets/pkg/provider/yandex/common github.com/external-secrets/external-secrets/pkg/provider/yandex/common/clock github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client github.com/external-secrets/external-secrets/pkg/template github.com/external-secrets/external-secrets/pkg/template/v2 github.com/external-secrets/external-secrets/pkg/utils github.com/external-secrets/external-secrets/pkg/utils/metadata github.com/external-secrets/external-secrets/pkg/utils/resolvers -coverprofile cover.out
+	github.com/external-secrets/external-secrets		coverage: 0.0% of statements
+?   	github.com/external-secrets/external-secrets/apis	[no test files]
+?   	github.com/external-secrets/external-secrets/apis/externalsecrets	[no test files]
+=== RUN   TestValidateExternalSecret
+=== RUN   TestValidateExternalSecret/nil
+=== RUN   TestValidateExternalSecret/deletion_policy_delete
+=== RUN   TestValidateExternalSecret/deletion_policy_merge
+=== RUN   TestValidateExternalSecret/both_data_and_data_from_are_empty
+=== RUN   TestValidateExternalSecret/find_with_extract
+=== RUN   TestValidateExternalSecret/generator_with_find
+=== RUN   TestValidateExternalSecret/generator_with_extract
+=== RUN   TestValidateExternalSecret/empty_dataFrom
+=== RUN   TestValidateExternalSecret/empty_sourceRef
+=== RUN   TestValidateExternalSecret/multiple_errors
+=== RUN   TestValidateExternalSecret/valid
+=== RUN   TestValidateExternalSecret/duplicate_secretKeys
+=== RUN   TestValidateExternalSecret/duplicate_secretKey
+--- PASS: TestValidateExternalSecret (0.00s)
+    --- PASS: TestValidateExternalSecret/nil (0.00s)
+    --- PASS: TestValidateExternalSecret/deletion_policy_delete (0.00s)
+    --- PASS: TestValidateExternalSecret/deletion_policy_merge (0.00s)
+    --- PASS: TestValidateExternalSecret/both_data_and_data_from_are_empty (0.00s)
+    --- PASS: TestValidateExternalSecret/find_with_extract (0.00s)
+    --- PASS: TestValidateExternalSecret/generator_with_find (0.00s)
+    --- PASS: TestValidateExternalSecret/generator_with_extract (0.00s)
+    --- PASS: TestValidateExternalSecret/empty_dataFrom (0.00s)
+    --- PASS: TestValidateExternalSecret/empty_sourceRef (0.00s)
+    --- PASS: TestValidateExternalSecret/multiple_errors (0.00s)
+    --- PASS: TestValidateExternalSecret/valid (0.00s)
+    --- PASS: TestValidateExternalSecret/duplicate_secretKeys (0.00s)
+    --- PASS: TestValidateExternalSecret/duplicate_secretKey (0.00s)
+=== RUN   TestRegister
+=== RUN   TestRegister/should_panic_when_given_an_invalid_provider
+=== RUN   TestRegister/should_register_an_correct_provider
+=== RUN   TestRegister/should_panic_if_already_exists
+--- PASS: TestRegister (0.01s)
+    --- PASS: TestRegister/should_panic_when_given_an_invalid_provider (0.01s)
+    --- PASS: TestRegister/should_register_an_correct_provider (0.00s)
+    --- PASS: TestRegister/should_panic_if_already_exists (0.00s)
+=== RUN   TestForceRegister
+--- PASS: TestForceRegister (0.00s)
+=== RUN   TestRegisterGCP
+--- PASS: TestRegisterGCP (0.00s)
+=== RUN   TestValidateSecretStore
+=== RUN   TestValidateSecretStore/valid_regex
+=== RUN   TestValidateSecretStore/invalid_regex
+=== RUN   TestValidateSecretStore/multiple_errors
+=== RUN   TestValidateSecretStore/secret_store_must_have_only_a_single_backend
+=== RUN   TestValidateSecretStore/no_registered_store_backend
+=== RUN   TestValidateSecretStore/unmaintained_warning
+--- PASS: TestValidateSecretStore (0.00s)
+    --- PASS: TestValidateSecretStore/valid_regex (0.00s)
+    --- PASS: TestValidateSecretStore/invalid_regex (0.00s)
+    --- PASS: TestValidateSecretStore/multiple_errors (0.00s)
+    --- PASS: TestValidateSecretStore/secret_store_must_have_only_a_single_backend (0.00s)
+    --- PASS: TestValidateSecretStore/no_registered_store_backend (0.00s)
+    --- PASS: TestValidateSecretStore/unmaintained_warning (0.00s)
+PASS
+coverage: 6.0% of statements
+ok  	github.com/external-secrets/external-secrets/apis/externalsecrets/v1	1.098s	coverage: 6.0% of statements
+	github.com/external-secrets/external-secrets/apis/externalsecrets/v1/fakes		coverage: 0.0% of statements
+	github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1		coverage: 0.0% of statements
+=== RUN   TestValidateExternalSecret
+=== RUN   TestValidateExternalSecret/nil
+=== RUN   TestValidateExternalSecret/deletion_policy_delete
+=== RUN   TestValidateExternalSecret/deletion_policy_merge
+=== RUN   TestValidateExternalSecret/both_data_and_data_from_are_empty
+=== RUN   TestValidateExternalSecret/find_with_extract
+=== RUN   TestValidateExternalSecret/generator_with_find
+=== RUN   TestValidateExternalSecret/generator_with_extract
+=== RUN   TestValidateExternalSecret/empty_dataFrom
+=== RUN   TestValidateExternalSecret/empty_sourceRef
+=== RUN   TestValidateExternalSecret/multiple_errors
+=== RUN   TestValidateExternalSecret/valid
+=== RUN   TestValidateExternalSecret/duplicate_secretKeys
+=== RUN   TestValidateExternalSecret/duplicate_secretKey
+--- PASS: TestValidateExternalSecret (0.00s)
+    --- PASS: TestValidateExternalSecret/nil (0.00s)
+    --- PASS: TestValidateExternalSecret/deletion_policy_delete (0.00s)
+    --- PASS: TestValidateExternalSecret/deletion_policy_merge (0.00s)
+    --- PASS: TestValidateExternalSecret/both_data_and_data_from_are_empty (0.00s)
+    --- PASS: TestValidateExternalSecret/find_with_extract (0.00s)
+    --- PASS: TestValidateExternalSecret/generator_with_find (0.00s)
+    --- PASS: TestValidateExternalSecret/generator_with_extract (0.00s)
+    --- PASS: TestValidateExternalSecret/empty_dataFrom (0.00s)
+    --- PASS: TestValidateExternalSecret/empty_sourceRef (0.00s)
+    --- PASS: TestValidateExternalSecret/multiple_errors (0.00s)
+    --- PASS: TestValidateExternalSecret/valid (0.00s)
+    --- PASS: TestValidateExternalSecret/duplicate_secretKeys (0.00s)
+    --- PASS: TestValidateExternalSecret/duplicate_secretKey (0.00s)
+=== RUN   TestRegister
+=== RUN   TestRegister/should_panic_when_given_an_invalid_provider
+=== RUN   TestRegister/should_register_an_correct_provider
+=== RUN   TestRegister/should_panic_if_already_exists
+--- PASS: TestRegister (0.01s)
+    --- PASS: TestRegister/should_panic_when_given_an_invalid_provider (0.01s)
+    --- PASS: TestRegister/should_register_an_correct_provider (0.00s)
+    --- PASS: TestRegister/should_panic_if_already_exists (0.00s)
+=== RUN   TestForceRegister
+--- PASS: TestForceRegister (0.00s)
+=== RUN   TestRegisterGCP
+--- PASS: TestRegisterGCP (0.00s)
+=== RUN   TestValidateSecretStore
+=== RUN   TestValidateSecretStore/valid_regex
+=== RUN   TestValidateSecretStore/invalid_regex
+=== RUN   TestValidateSecretStore/multiple_errors
+=== RUN   TestValidateSecretStore/secret_store_must_have_only_a_single_backend
+=== RUN   TestValidateSecretStore/no_registered_store_backend
+--- PASS: TestValidateSecretStore (0.00s)
+    --- PASS: TestValidateSecretStore/valid_regex (0.00s)
+    --- PASS: TestValidateSecretStore/invalid_regex (0.00s)
+    --- PASS: TestValidateSecretStore/multiple_errors (0.00s)
+    --- PASS: TestValidateSecretStore/secret_store_must_have_only_a_single_backend (0.00s)
+    --- PASS: TestValidateSecretStore/no_registered_store_backend (0.00s)
+PASS
+coverage: 4.6% of statements
+ok  	github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1	1.102s	coverage: 4.6% of statements
+	github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1/fakes		coverage: 0.0% of statements
+	github.com/external-secrets/external-secrets/apis/generators/v1alpha1		coverage: 0.0% of statements
+?   	github.com/external-secrets/external-secrets/apis/meta	[no test files]
+	github.com/external-secrets/external-secrets/apis/meta/v1		coverage: 0.0% of statements
+	github.com/external-secrets/external-secrets/cmd/controller		coverage: 0.0% of statements
+	github.com/external-secrets/external-secrets/cmd/esoctl		coverage: 0.0% of statements
+=== RUN   TestCacheAdd
+--- PASS: TestCacheAdd (0.00s)
+=== RUN   TestCacheContains
+--- PASS: TestCacheContains (0.00s)
+=== RUN   TestCacheGet
+--- PASS: TestCacheGet (0.00s)
+=== RUN   TestCacheGetInvalidVersion
+--- PASS: TestCacheGetInvalidVersion (0.00s)
+=== RUN   TestCacheEvict
+--- PASS: TestCacheEvict (0.00s)
+PASS
+coverage: 70.0% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/cache	1.018s	coverage: 70.0% of statements
+	github.com/external-secrets/external-secrets/pkg/common/webhook		coverage: 0.0% of statements
+?   	github.com/external-secrets/external-secrets/pkg/constants	[no test files]
+=== RUN   TestAPIs
+Running Suite: Controller Suite - /home/runner/work/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret
+===========================================================================================================================
+Random Seed: 1746297495
+
+Will run 11 of 11 specs
+•••••••••••W0503 18:38:27.221787   26620 reflector.go:492] pkg/mod/k8s.io/client-go@v0.32.3/tools/cache/reflector.go:251: watch of *v1.ClusterExternalSecret ended with: an error on the server ("unable to decode an event from the watch stream: context canceled") has prevented the request from succeeding
+
+
+Ran 11 of 11 Specs in 12.312 seconds
+SUCCESS! -- 11 Passed | 0 Failed | 0 Pending | 0 Skipped
+--- PASS: TestAPIs (12.31s)
+PASS
+coverage: 74.0% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret	13.408s	coverage: 74.0% of statements
+=== RUN   TestUpdateClusterExternalSecretCondition
+=== RUN   TestUpdateClusterExternalSecretCondition/ConditionTrue
+=== RUN   TestUpdateClusterExternalSecretCondition/ConditionFalse
+--- PASS: TestUpdateClusterExternalSecretCondition (0.00s)
+    --- PASS: TestUpdateClusterExternalSecretCondition/ConditionTrue (0.00s)
+    --- PASS: TestUpdateClusterExternalSecretCondition/ConditionFalse (0.00s)
+PASS
+coverage: 60.0% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics	1.062s	coverage: 60.0% of statements
+=== RUN   TestAPIs
+Running Suite: Controller Suite - /home/runner/work/external-secrets/external-secrets/pkg/controllers/clusterpushsecret
+=======================================================================================================================
+Random Seed: 1746297501
+
+Will run 10 of 10 specs
+••••••••••W0503 18:38:34.100226   26681 reflector.go:492] pkg/mod/k8s.io/client-go@v0.32.3/tools/cache/reflector.go:251: watch of *v1alpha1.PushSecret ended with: an error on the server ("unable to decode an event from the watch stream: context canceled") has prevented the request from succeeding
+W0503 18:38:34.100355   26681 reflector.go:492] pkg/mod/k8s.io/client-go@v0.32.3/tools/cache/reflector.go:251: watch of *v1.Namespace ended with: an error on the server ("unable to decode an event from the watch stream: context canceled") has prevented the request from succeeding
+
+
+Ran 10 of 10 Specs in 13.341 seconds
+SUCCESS! -- 10 Passed | 0 Failed | 0 Pending | 0 Skipped
+--- PASS: TestAPIs (13.34s)
+PASS
+coverage: 68.8% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret	14.553s	coverage: 68.8% of statements
+=== RUN   TestUpdateClusterPushSecretCondition
+=== RUN   TestUpdateClusterPushSecretCondition/ConditionTrue
+=== RUN   TestUpdateClusterPushSecretCondition/ConditionFalse
+--- PASS: TestUpdateClusterPushSecretCondition (0.00s)
+    --- PASS: TestUpdateClusterPushSecretCondition/ConditionTrue (0.00s)
+    --- PASS: TestUpdateClusterPushSecretCondition/ConditionFalse (0.00s)
+PASS
+coverage: 60.0% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/controllers/clusterpushsecret/cpsmetrics	1.088s	coverage: 60.0% of statements
+	github.com/external-secrets/external-secrets/pkg/controllers/common		coverage: 0.0% of statements
+	github.com/external-secrets/external-secrets/pkg/controllers/commontest		coverage: 0.0% of statements
+=== RUN   TestUpdateCRD
+--- PASS: TestUpdateCRD (1.75s)
+=== RUN   TestInjectSvcToConversionWebhook
+--- PASS: TestInjectSvcToConversionWebhook (0.00s)
+=== RUN   TestInjectCertToConversionWebhook
+--- PASS: TestInjectCertToConversionWebhook (0.00s)
+=== RUN   TestPopulateSecret
+--- PASS: TestPopulateSecret (0.00s)
+=== RUN   TestCreateCACert
+--- PASS: TestCreateCACert (0.98s)
+=== RUN   TestCreateCertPEM
+--- PASS: TestCreateCertPEM (1.09s)
+=== RUN   TestValidCert
+--- PASS: TestValidCert (0.91s)
+=== RUN   TestRefreshCertIfNeeded
+--- PASS: TestRefreshCertIfNeeded (2.01s)
+=== RUN   TestCheckCerts
+--- PASS: TestCheckCerts (1.81s)
+=== RUN   TestCheckCertChain
+--- PASS: TestCheckCertChain (2.13s)
+=== RUN   TestAPIs
+Running Suite: Controller Suite - /home/runner/work/external-secrets/external-secrets/pkg/controllers/crds
+==========================================================================================================
+Random Seed: 1746297505
+
+Will run 2 of 2 specs
+••
+
+Ran 2 of 2 Specs in 15.121 seconds
+SUCCESS! -- 2 Passed | 0 Failed | 0 Pending | 0 Skipped
+--- PASS: TestAPIs (15.12s)
+PASS
+coverage: 68.9% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/controllers/crds	26.934s	coverage: 68.9% of statements
+=== RUN   TestAPIs
+Running Suite: Controller Suite - /home/runner/work/external-secrets/external-secrets/pkg/controllers/externalsecret
+====================================================================================================================
+Random Seed: 1746297512
+
+Will run 96 of 96 specs
+••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••
+
+Ran 96 of 96 Specs in 67.898 seconds
+SUCCESS! -- 96 Passed | 0 Failed | 0 Pending | 0 Skipped
+--- PASS: TestAPIs (67.91s)
+=== RUN   TestGetExternalSecretCondition
+=== RUN   TestGetExternalSecretCondition/Status_has_a_condition_of_the_specified_type
+=== RUN   TestGetExternalSecretCondition/Status_does_not_have_a_condition_of_the_specified_type
+--- PASS: TestGetExternalSecretCondition (0.00s)
+    --- PASS: TestGetExternalSecretCondition/Status_has_a_condition_of_the_specified_type (0.00s)
+    --- PASS: TestGetExternalSecretCondition/Status_does_not_have_a_condition_of_the_specified_type (0.00s)
+=== RUN   TestSetExternalSecretCondition
+=== RUN   TestSetExternalSecretCondition/ExternalSecret_has_no_conditions
+=== RUN   TestSetExternalSecretCondition/ExternalSecret_already_has_the_same_condition
+=== RUN   TestSetExternalSecretCondition/ExternalSecret_has_a_different_condition_with_the_same_type_and_status
+=== RUN   TestSetExternalSecretCondition/ExternalSecret_has_a_different_condition
+--- PASS: TestSetExternalSecretCondition (0.00s)
+    --- PASS: TestSetExternalSecretCondition/ExternalSecret_has_no_conditions (0.00s)
+    --- PASS: TestSetExternalSecretCondition/ExternalSecret_already_has_the_same_condition (0.00s)
+    --- PASS: TestSetExternalSecretCondition/ExternalSecret_has_a_different_condition_with_the_same_type_and_status (0.00s)
+    --- PASS: TestSetExternalSecretCondition/ExternalSecret_has_a_different_condition (0.00s)
+PASS
+coverage: 78.7% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/controllers/externalsecret	69.234s	coverage: 78.7% of statements
+	github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics		coverage: 0.0% of statements
+	github.com/external-secrets/external-secrets/pkg/controllers/generatorstate		coverage: 0.0% of statements
+=== RUN   TestSetUpLabelNames
+=== RUN   TestSetUpLabelNames/Add_standard_labels_disabled
+=== RUN   TestSetUpLabelNames/Add_standard_labels_enabled
+--- PASS: TestSetUpLabelNames (0.00s)
+    --- PASS: TestSetUpLabelNames/Add_standard_labels_disabled (0.00s)
+    --- PASS: TestSetUpLabelNames/Add_standard_labels_enabled (0.00s)
+=== RUN   TestRefineLabels
+=== RUN   TestRefineLabels/No_new_labels
+=== RUN   TestRefineLabels/Add_unregistered_labels
+=== RUN   TestRefineLabels/Overwrite_existing_labels
+=== RUN   TestRefineLabels/Clean_non-alphanumeric_characters_in_new_labels
+--- PASS: TestRefineLabels (0.00s)
+    --- PASS: TestRefineLabels/No_new_labels (0.00s)
+    --- PASS: TestRefineLabels/Add_unregistered_labels (0.00s)
+    --- PASS: TestRefineLabels/Overwrite_existing_labels (0.00s)
+    --- PASS: TestRefineLabels/Clean_non-alphanumeric_characters_in_new_labels (0.00s)
+PASS
+coverage: 90.0% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/controllers/metrics	1.019s	coverage: 90.0% of statements
+# github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore
+# [github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore]
+Error: pkg/provider/aws/parameterstore/parameterstore.go:353:75: fmt.Errorf format %s has arg ref.Path of wrong type *string
+=== RUN   TestAPIs
+Running Suite: Controller Suite - /home/runner/work/external-secrets/external-secrets/pkg/controllers/pushsecret
+================================================================================================================
+Random Seed: 1746297522
+
+Will run 25 of 25 specs
+••••••status: [{Type:Ready Status:True Reason:Synced Message:PushSecret synced successfully. Existing secrets in providers unchanged. LastTransitionTime:2025-05-03 18:39:14 +0000 UTC}]
+cond: {Type:Ready Status:True Reason:Synced Message:PushSecret synced successfully. Existing secrets in providers unchanged. LastTransitionTime:0001-01-01 00:00:00 +0000 UTC}
+•status: [{Type:Ready Status:False Reason:Errored Message:set secret failed: could not verify if secret exists in store: don't know LastTransitionTime:2025-05-03 18:39:18 +0000 UTC}]
+cond: {Type:Ready Status:False Reason:Errored Message:set secret failed: could not verify if secret exists in store: don't know LastTransitionTime:0001-01-01 00:00:00 +0000 UTC}
+••••••••status: [{Type:Ready Status:True Reason:Synced Message:PushSecret synced successfully LastTransitionTime:2025-05-03 18:39:56 +0000 UTC}]
+cond: {Type:Ready Status:True Reason:Synced Message:PushSecret synced successfully LastTransitionTime:0001-01-01 00:00:00 +0000 UTC}
+•status: [{Type:Ready Status:True Reason:Synced Message:PushSecret synced successfully LastTransitionTime:2025-05-03 18:40:00 +0000 UTC}]
+cond: {Type:Ready Status:True Reason:Synced Message:PushSecret synced successfully LastTransitionTime:0001-01-01 00:00:00 +0000 UTC}
+•status: [{Type:Ready Status:True Reason:Synced Message:PushSecret synced successfully LastTransitionTime:2025-05-03 18:40:04 +0000 UTC}]
+cond: {Type:Ready Status:True Reason:Synced Message:PushSecret synced successfully LastTransitionTime:0001-01-01 00:00:00 +0000 UTC}
+•status: [{Type:Ready Status:True Reason:Synced Message:PushSecret synced successfully LastTransitionTime:2025-05-03 18:40:08 +0000 UTC}]
+cond: {Type:Ready Status:True Reason:Synced Message:PushSecret synced successfully LastTransitionTime:0001-01-01 00:00:00 +0000 UTC}
+•status: [{Type:Ready Status:False Reason:Errored Message:could not get source secret LastTransitionTime:2025-05-03 18:40:12 +0000 UTC}]
+cond: {Type:Ready Status:False Reason:Errored Message:could not get source secret LastTransitionTime:0001-01-01 00:00:00 +0000 UTC}
+•status: [{Type:Ready Status:False Reason:Errored Message:set secret failed: secret key unexisting does not exist LastTransitionTime:2025-05-03 18:40:16 +0000 UTC}]
+cond: {Type:Ready Status:False Reason:Errored Message:set secret failed: secret key unexisting does not exist LastTransitionTime:0001-01-01 00:00:00 +0000 UTC}
+•status: [{Type:Ready Status:False Reason:Errored Message:set secret failed: could not write remote ref key to target secretstore test-store: boom LastTransitionTime:2025-05-03 18:40:20 +0000 UTC}]
+cond: {Type:Ready Status:False Reason:Errored Message:set secret failed: could not write remote ref key to target secretstore test-store: boom LastTransitionTime:0001-01-01 00:00:00 +0000 UTC}
+•status: [{Type:Ready Status:False Reason:Errored Message:could not get SecretStore "test-store", secretstores.external-secrets.io "test-store" not found LastTransitionTime:2025-05-03 18:40:24 +0000 UTC}]
+cond: {Type:Ready Status:False Reason:Errored Message:could not get SecretStore "test-store", secretstores.external-secrets.io "test-store" not found LastTransitionTime:0001-01-01 00:00:00 +0000 UTC}
+•status: [{Type:Ready Status:False Reason:Errored Message:could not get ClusterSecretStore "unexisting", clustersecretstores.external-secrets.io "unexisting" not found LastTransitionTime:2025-05-03 18:40:28 +0000 UTC}]
+cond: {Type:Ready Status:False Reason:Errored Message:could not get ClusterSecretStore "unexisting", clustersecretstores.external-secrets.io "unexisting" not found LastTransitionTime:0001-01-01 00:00:00 +0000 UTC}
+•status: [{Type:Ready Status:False Reason:Errored Message:set secret failed: could not get secrets client for store test-store: boom LastTransitionTime:2025-05-03 18:40:32 +0000 UTC}]
+cond: {Type:Ready Status:False Reason:Errored Message:set secret failed: could not get secrets client for store test-store: boom LastTransitionTime:0001-01-01 00:00:00 +0000 UTC}
+•
+
+Ran 25 of 25 Specs in 115.094 seconds
+SUCCESS! -- 25 Passed | 0 Failed | 0 Pending | 0 Skipped
+--- PASS: TestAPIs (115.10s)
+PASS
+coverage: 86.0% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/controllers/pushsecret	116.381s	coverage: 86.0% of statements
+	github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics		coverage: 0.0% of statements
+=== RUN   TestManagerGet
+=== RUN   TestManagerGet/creates_a_new_client_from_storeRef_and_stores_it
+=== RUN   TestManagerGet/creates_a_new_client_using_both_storeRef_and_sourceRef
+=== RUN   TestManagerGet/retrieve_cached_client_when_store_matches
+=== RUN   TestManagerGet/create_new_client_when_store_doesn't_match
+--- PASS: TestManagerGet (0.01s)
+    --- PASS: TestManagerGet/creates_a_new_client_from_storeRef_and_stores_it (0.00s)
+    --- PASS: TestManagerGet/creates_a_new_client_using_both_storeRef_and_sourceRef (0.00s)
+    --- PASS: TestManagerGet/retrieve_cached_client_when_store_matches (0.00s)
+    --- PASS: TestManagerGet/create_new_client_when_store_doesn't_match (0.00s)
+=== RUN   TestShouldProcessSecret
+=== RUN   TestShouldProcessSecret/processes_a_regex_condition
+=== RUN   TestShouldProcessSecret/process_multiple_regexes
+=== RUN   TestShouldProcessSecret/shouldn't_process_if_nothing_matches
+--- PASS: TestShouldProcessSecret (0.01s)
+    --- PASS: TestShouldProcessSecret/processes_a_regex_condition (0.00s)
+    --- PASS: TestShouldProcessSecret/process_multiple_regexes (0.00s)
+    --- PASS: TestShouldProcessSecret/shouldn't_process_if_nothing_matches (0.00s)
+=== RUN   TestAPIs
+Running Suite: Controller Suite - /home/runner/work/external-secrets/external-secrets/pkg/controllers/secretstore
+=================================================================================================================
+Random Seed: 1746297530
+
+Will run 8 of 8 specs
+••••••••
+
+Ran 8 of 8 Specs in 19.507 seconds
+SUCCESS! -- 8 Passed | 0 Failed | 0 Pending | 0 Skipped
+--- PASS: TestAPIs (19.51s)
+PASS
+coverage: 79.5% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/controllers/secretstore	20.702s	coverage: 79.5% of statements
+	github.com/external-secrets/external-secrets/pkg/controllers/secretstore/cssmetrics		coverage: 0.0% of statements
+=== RUN   TestUpdateStatusCondition
+=== RUN   TestUpdateStatusCondition/ConditionTrue
+=== RUN   TestUpdateStatusCondition/ConditionFalse
+--- PASS: TestUpdateStatusCondition (0.00s)
+    --- PASS: TestUpdateStatusCondition/ConditionTrue (0.00s)
+    --- PASS: TestUpdateStatusCondition/ConditionFalse (0.00s)
+PASS
+coverage: 84.6% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/controllers/secretstore/metrics	1.059s	coverage: 84.6% of statements
+	github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics		coverage: 0.0% of statements
+	github.com/external-secrets/external-secrets/pkg/controllers/templating		coverage: 0.0% of statements
+	github.com/external-secrets/external-secrets/pkg/controllers/util		coverage: 0.0% of statements
+=== RUN   TestAPIs
+Running Suite: Controller Suite - /home/runner/work/external-secrets/external-secrets/pkg/controllers/webhookconfig
+===================================================================================================================
+Random Seed: 1746297538
+
+Will run 3 of 3 specs
+•••
+
+Ran 3 of 3 Specs in 34.658 seconds
+SUCCESS! -- 3 Passed | 0 Failed | 0 Pending | 0 Skipped
+--- PASS: TestAPIs (34.66s)
+PASS
+coverage: 80.6% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/controllers/webhookconfig	35.723s	coverage: 80.6% of statements
+	github.com/external-secrets/external-secrets/pkg/feature		coverage: 0.0% of statements
+	github.com/external-secrets/external-secrets/pkg/find		coverage: 0.0% of statements
+=== RUN   TestGenerate
+=== RUN   TestGenerate/no_spec
+=== RUN   TestGenerate/empty_spec
+=== RUN   TestGenerate/return_acr_access_token_if_scope_is_defined
+=== RUN   TestGenerate/return_acr_refresh_token_if_scope_is_not_defined
+--- PASS: TestGenerate (0.00s)
+    --- PASS: TestGenerate/no_spec (0.00s)
+    --- PASS: TestGenerate/empty_spec (0.00s)
+    --- PASS: TestGenerate/return_acr_access_token_if_scope_is_defined (0.00s)
+    --- PASS: TestGenerate/return_acr_refresh_token_if_scope_is_not_defined (0.00s)
+PASS
+coverage: 29.7% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/generator/acr	1.073s	coverage: 29.7% of statements
+=== RUN   TestGenerate
+=== RUN   TestGenerate/nil_spec
+=== RUN   TestGenerate/invalid_json
+=== RUN   TestGenerate/private_ECR_full_spec
+=== RUN   TestGenerate/public_ECR_full_spec
+--- PASS: TestGenerate (0.00s)
+    --- PASS: TestGenerate/nil_spec (0.00s)
+    --- PASS: TestGenerate/invalid_json (0.00s)
+    --- PASS: TestGenerate/private_ECR_full_spec (0.00s)
+    --- PASS: TestGenerate/public_ECR_full_spec (0.00s)
+PASS
+coverage: 73.3% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/generator/ecr	1.066s	coverage: 73.3% of statements
+=== RUN   TestGenerate
+=== RUN   TestGenerate/no_spec
+=== RUN   TestGenerate/invalid_json
+=== RUN   TestGenerate/empty_json_produces_empty_map
+=== RUN   TestGenerate/spec_with_values_produces_valus
+--- PASS: TestGenerate (0.00s)
+    --- PASS: TestGenerate/no_spec (0.00s)
+    --- PASS: TestGenerate/invalid_json (0.00s)
+    --- PASS: TestGenerate/empty_json_produces_empty_map (0.00s)
+    --- PASS: TestGenerate/spec_with_values_produces_valus (0.00s)
+PASS
+coverage: 92.9% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/generator/fake	1.060s	coverage: 92.9% of statements
+=== RUN   TestGenerate
+=== RUN   TestGenerate/nil_spec
+=== RUN   TestGenerate/full_spec
+--- PASS: TestGenerate (0.00s)
+    --- PASS: TestGenerate/nil_spec (0.00s)
+    --- PASS: TestGenerate/full_spec (0.00s)
+PASS
+coverage: 73.7% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/generator/gcr	1.075s	coverage: 73.7% of statements
+=== RUN   TestGenerate
+=== RUN   TestGenerate/nil_spec
+=== RUN   TestGenerate/full_spec
+--- PASS: TestGenerate (0.01s)
+    --- PASS: TestGenerate/nil_spec (0.00s)
+    --- PASS: TestGenerate/full_spec (0.01s)
+PASS
+coverage: 78.5% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/generator/github	1.075s	coverage: 78.5% of statements
+	github.com/external-secrets/external-secrets/pkg/generator/grafana		coverage: 0.0% of statements
+=== RUN   TestGenerate
+=== RUN   TestGenerate/no_json_spec_should_result_in_error
+=== RUN   TestGenerate/invalid_json_spec_should_result_in_error
+=== RUN   TestGenerate/empty_spec_should_return_defaults
+=== RUN   TestGenerate/spec_should_override_defaults
+=== RUN   TestGenerate/generator_error_should_be_returned
+--- PASS: TestGenerate (0.00s)
+    --- PASS: TestGenerate/no_json_spec_should_result_in_error (0.00s)
+    --- PASS: TestGenerate/invalid_json_spec_should_result_in_error (0.00s)
+    --- PASS: TestGenerate/empty_spec_should_return_defaults (0.00s)
+    --- PASS: TestGenerate/spec_should_override_defaults (0.00s)
+    --- PASS: TestGenerate/generator_error_should_be_returned (0.00s)
+PASS
+coverage: 80.6% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/generator/password	1.059s	coverage: 80.6% of statements
+	github.com/external-secrets/external-secrets/pkg/generator/quay		coverage: 0.0% of statements
+?   	github.com/external-secrets/external-secrets/pkg/generator/register	[no test files]
+	github.com/external-secrets/external-secrets/pkg/generator/statemanager		coverage: 0.0% of statements
+=== RUN   TestGenerate
+=== RUN   TestGenerate/nil_spec
+=== RUN   TestGenerate/invalid_json
+=== RUN   TestGenerate/full_spec
+--- PASS: TestGenerate (0.00s)
+    --- PASS: TestGenerate/nil_spec (0.00s)
+    --- PASS: TestGenerate/invalid_json (0.00s)
+    --- PASS: TestGenerate/full_spec (0.00s)
+PASS
+coverage: 66.7% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/generator/sts	1.066s	coverage: 66.7% of statements
+=== RUN   TestGenerate
+=== RUN   TestGenerate/generate_UUID_successfully
+=== RUN   TestGenerate/no_json_spec_should_not_result_in_error
+--- PASS: TestGenerate (0.00s)
+    --- PASS: TestGenerate/generate_UUID_successfully (0.00s)
+    --- PASS: TestGenerate/no_json_spec_should_not_result_in_error (0.00s)
+PASS
+coverage: 66.7% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/generator/uuid	1.057s	coverage: 66.7% of statements
+=== RUN   TestVaultDynamicSecretGenerator
+=== RUN   TestVaultDynamicSecretGenerator/AuthResultType
+=== RUN   TestVaultDynamicSecretGenerator/RawResultType
+=== RUN   TestVaultDynamicSecretGenerator/MissingRoleName
+=== RUN   TestVaultDynamicSecretGenerator/EmptyVaultResponse
+=== RUN   TestVaultDynamicSecretGenerator/AllowEmptyVaultPOST
+=== RUN   TestVaultDynamicSecretGenerator/AllowEmptyVaultGET
+=== RUN   TestVaultDynamicSecretGenerator/NilSpec
+=== RUN   TestVaultDynamicSecretGenerator/InvalidSpec
+=== RUN   TestVaultDynamicSecretGenerator/EmptyVaultPOST
+=== RUN   TestVaultDynamicSecretGenerator/DataResultType
+--- PASS: TestVaultDynamicSecretGenerator (0.01s)
+    --- PASS: TestVaultDynamicSecretGenerator/AuthResultType (0.00s)
+    --- PASS: TestVaultDynamicSecretGenerator/RawResultType (0.00s)
+    --- PASS: TestVaultDynamicSecretGenerator/MissingRoleName (0.00s)
+    --- PASS: TestVaultDynamicSecretGenerator/EmptyVaultResponse (0.00s)
+    --- PASS: TestVaultDynamicSecretGenerator/AllowEmptyVaultPOST (0.00s)
+    --- PASS: TestVaultDynamicSecretGenerator/AllowEmptyVaultGET (0.00s)
+    --- PASS: TestVaultDynamicSecretGenerator/NilSpec (0.00s)
+    --- PASS: TestVaultDynamicSecretGenerator/InvalidSpec (0.00s)
+    --- PASS: TestVaultDynamicSecretGenerator/EmptyVaultPOST (0.00s)
+    --- PASS: TestVaultDynamicSecretGenerator/DataResultType (0.00s)
+PASS
+coverage: 71.6% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/generator/vault	1.125s	coverage: 71.6% of statements
+=== RUN   TestWebhookGetSecret
+--- PASS: TestWebhookGetSecret (0.02s)
+PASS
+coverage: 80.8% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/generator/webhook	1.114s	coverage: 80.8% of statements
+	github.com/external-secrets/external-secrets/pkg/metrics		coverage: 0.0% of statements
+=== RUN   TestAkeylessGetSecret
+--- PASS: TestAkeylessGetSecret (0.00s)
+=== RUN   TestValidateStore
+=== RUN   TestValidateStore/secret_auth
+=== RUN   TestValidateStore/k8s_auth
+=== RUN   TestValidateStore/bad_conf_auth
+=== RUN   TestValidateStore/bad_k8s_conf_auth
+--- PASS: TestValidateStore (0.00s)
+    --- PASS: TestValidateStore/secret_auth (0.00s)
+    --- PASS: TestValidateStore/k8s_auth (0.00s)
+    --- PASS: TestValidateStore/bad_conf_auth (0.00s)
+    --- PASS: TestValidateStore/bad_k8s_conf_auth (0.00s)
+=== RUN   TestGetSecretMap
+--- PASS: TestGetSecretMap (0.00s)
+=== RUN   TestSecretExists
+=== PAUSE TestSecretExists
+=== RUN   TestPushSecret
+=== PAUSE TestPushSecret
+=== RUN   TestDeleteSecret
+=== PAUSE TestDeleteSecret
+=== CONT  TestSecretExists
+=== CONT  TestPushSecret
+=== RUN   TestSecretExists/nil_provider
+=== CONT  TestDeleteSecret
+=== RUN   TestDeleteSecret/nil_provider
+=== RUN   TestSecretExists/no_secret
+=== RUN   TestPushSecret/nil_provider
+=== RUN   TestSecretExists/fail_GetSecret
+=== RUN   TestDeleteSecret/fail_describe
+=== RUN   TestPushSecret/fail_GetSecret
+=== RUN   TestSecretExists/success_without_property
+=== RUN   TestDeleteSecret/no_such_item
+=== RUN   TestPushSecret/fail_unmarshal
+=== RUN   TestDeleteSecret/tags_nil
+=== RUN   TestPushSecret/create_new_secret
+=== RUN   TestSecretExists/fail_unmarshal
+=== RUN   TestDeleteSecret/no_external_secret_managed_tags
+=== RUN   TestPushSecret/update_secret
+=== RUN   TestSecretExists/no_property
+=== RUN   TestDeleteSecret/delete_whole_secret
+=== RUN   TestPushSecret/shouldnt_update
+=== RUN   TestDeleteSecret/delete_property_of_secret
+=== RUN   TestSecretExists/success_with_property
+=== RUN   TestPushSecret/merge_secret_maps
+=== RUN   TestDeleteSecret/delete_secret_if_one_property_left
+--- PASS: TestSecretExists (0.00s)
+    --- PASS: TestSecretExists/nil_provider (0.00s)
+    --- PASS: TestSecretExists/no_secret (0.00s)
+    --- PASS: TestSecretExists/fail_GetSecret (0.00s)
+    --- PASS: TestSecretExists/success_without_property (0.00s)
+    --- PASS: TestSecretExists/fail_unmarshal (0.00s)
+    --- PASS: TestSecretExists/no_property (0.00s)
+    --- PASS: TestSecretExists/success_with_property (0.00s)
+--- PASS: TestDeleteSecret (0.00s)
+    --- PASS: TestDeleteSecret/nil_provider (0.00s)
+    --- PASS: TestDeleteSecret/fail_describe (0.00s)
+    --- PASS: TestDeleteSecret/no_such_item (0.00s)
+    --- PASS: TestDeleteSecret/tags_nil (0.00s)
+    --- PASS: TestDeleteSecret/no_external_secret_managed_tags (0.00s)
+    --- PASS: TestDeleteSecret/delete_whole_secret (0.00s)
+    --- PASS: TestDeleteSecret/delete_property_of_secret (0.00s)
+    --- PASS: TestDeleteSecret/delete_secret_if_one_property_left (0.00s)
+--- PASS: TestPushSecret (0.00s)
+    --- PASS: TestPushSecret/nil_provider (0.00s)
+    --- PASS: TestPushSecret/fail_GetSecret (0.00s)
+    --- PASS: TestPushSecret/fail_unmarshal (0.00s)
+    --- PASS: TestPushSecret/create_new_secret (0.00s)
+    --- PASS: TestPushSecret/update_secret (0.00s)
+    --- PASS: TestPushSecret/shouldnt_update (0.00s)
+    --- PASS: TestPushSecret/merge_secret_maps (0.00s)
+PASS
+coverage: 23.9% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/akeyless	1.095s	coverage: 23.9% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/akeyless/fake		coverage: 0.0% of statements
+=== RUN   TestAlibabaKMSGetSecret
+--- PASS: TestAlibabaKMSGetSecret (0.00s)
+=== RUN   TestGetSecretMap
+--- PASS: TestGetSecretMap (0.00s)
+=== RUN   TestValidateAccessKeyStore
+--- PASS: TestValidateAccessKeyStore (0.00s)
+=== RUN   TestValidateRRSAStore
+--- PASS: TestValidateRRSAStore (0.00s)
+PASS
+coverage: 24.6% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/alibaba	1.100s	coverage: 24.6% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/alibaba/fake		coverage: 0.0% of statements
+=== RUN   TestProvider
+=== RUN   TestProvider/should_not_create_provider_due_to_nil_store
+=== RUN   TestProvider/should_not_create_provider_due_to_missing_provider
+=== RUN   TestProvider/should_not_create_provider_due_to_missing_provider_field
+=== RUN   TestProvider/should_create_parameter_store_client
+=== RUN   TestProvider/should_create_secretsmanager_client
+=== RUN   TestProvider/invalid_service_should_return_an_error
+=== RUN   TestProvider/newSession_error_should_be_returned
+--- PASS: TestProvider (0.00s)
+    --- PASS: TestProvider/should_not_create_provider_due_to_nil_store (0.00s)
+    --- PASS: TestProvider/should_not_create_provider_due_to_missing_provider (0.00s)
+    --- PASS: TestProvider/should_not_create_provider_due_to_missing_provider_field (0.00s)
+    --- PASS: TestProvider/should_create_parameter_store_client (0.00s)
+    --- PASS: TestProvider/should_create_secretsmanager_client (0.00s)
+    --- PASS: TestProvider/invalid_service_should_return_an_error (0.00s)
+    --- PASS: TestProvider/newSession_error_should_be_returned (0.00s)
+=== RUN   TestValidateStore
+=== RUN   TestValidateStore/invalid_region
+=== RUN   TestValidateStore/valid_region_secrets_manager
+=== RUN   TestValidateStore/valid_fips_region_secrets_manager
+=== RUN   TestValidateStore/valid_fips_region_parameter_store
+=== RUN   TestValidateStore/valid_secretsmanager_config:_force_delete_without_recovery
+=== RUN   TestValidateStore/valid_secretsmanager_config:_recovery_window
+=== RUN   TestValidateStore/invalid_static_creds_auth_/_AccessKeyID
+=== RUN   TestValidateStore/invalid_static_creds_auth_/_SecretAccessKey
+=== RUN   TestValidateStore/referentAuth_static_creds_/_SecretAccessKey_without_namespace
+=== RUN   TestValidateStore/referentAuth_static_creds_/_AccessKeyID_without_namespace
+=== RUN   TestValidateStore/referentAuth_jwt:_sa_selector_without_namespace
+=== RUN   TestValidateStore/invalid_jwt_auth:_not_allowed_sa_selector_namespace
+=== RUN   TestValidateStore/invalid_SecretsManager_config:_conflicting_settings
+=== RUN   TestValidateStore/invalid_SecretsManager_config:_recovery_window_too_small
+=== RUN   TestValidateStore/invalid_SecretsManager_config:_recovery_window_too_big
+--- PASS: TestValidateStore (0.00s)
+    --- PASS: TestValidateStore/invalid_region (0.00s)
+    --- PASS: TestValidateStore/valid_region_secrets_manager (0.00s)
+    --- PASS: TestValidateStore/valid_fips_region_secrets_manager (0.00s)
+    --- PASS: TestValidateStore/valid_fips_region_parameter_store (0.00s)
+    --- PASS: TestValidateStore/valid_secretsmanager_config:_force_delete_without_recovery (0.00s)
+    --- PASS: TestValidateStore/valid_secretsmanager_config:_recovery_window (0.00s)
+    --- PASS: TestValidateStore/invalid_static_creds_auth_/_AccessKeyID (0.00s)
+    --- PASS: TestValidateStore/invalid_static_creds_auth_/_SecretAccessKey (0.00s)
+    --- PASS: TestValidateStore/referentAuth_static_creds_/_SecretAccessKey_without_namespace (0.00s)
+    --- PASS: TestValidateStore/referentAuth_static_creds_/_AccessKeyID_without_namespace (0.00s)
+    --- PASS: TestValidateStore/referentAuth_jwt:_sa_selector_without_namespace (0.00s)
+    --- PASS: TestValidateStore/invalid_jwt_auth:_not_allowed_sa_selector_namespace (0.00s)
+    --- PASS: TestValidateStore/invalid_SecretsManager_config:_conflicting_settings (0.00s)
+    --- PASS: TestValidateStore/invalid_SecretsManager_config:_recovery_window_too_small (0.00s)
+    --- PASS: TestValidateStore/invalid_SecretsManager_config:_recovery_window_too_big (0.00s)
+=== RUN   TestValidRetryInput
+--- PASS: TestValidRetryInput (0.00s)
+PASS
+coverage: 73.7% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/aws	1.090s	coverage: 73.7% of statements
+=== RUN   TestSTSResolver
+--- PASS: TestSTSResolver (0.00s)
+=== RUN   TestNewSession
+=== RUN   TestNewSession/nil_store
+=== RUN   TestNewSession/not_store_spec
+=== RUN   TestNewSession/store_spec_has_no_provider
+=== RUN   TestNewSession/spec_has_no_awssm_field
+=== RUN   TestNewSession/configure_aws_using_environment_variables
+=== RUN   TestNewSession/configure_aws_using_environment_variables_+_assume_role
+=== RUN   TestNewSession/error_out_when_secret_with_credentials_does_not_exist
+=== RUN   TestNewSession/use_credentials_from_secret_to_configure_aws
+=== RUN   TestNewSession/error_out_when_secret_key_does_not_exist
+=== RUN   TestNewSession/should_not_be_able_to_access_secrets_from_different_namespace
+=== RUN   TestNewSession/ClusterStore_should_use_credentials_from_a_specific_namespace
+=== RUN   TestNewSession/ClusterStore_should_use_credentials_from_a_ExternalSecret_namespace_(referentAuth)
+=== RUN   TestNewSession/jwt_auth_via_cluster_secret_store
+=== RUN   TestNewSession/configure_aws_using_environment_variables_+_assume_role_+_check_external_id
+--- PASS: TestNewSession (0.01s)
+    --- PASS: TestNewSession/nil_store (0.00s)
+    --- PASS: TestNewSession/not_store_spec (0.00s)
+    --- PASS: TestNewSession/store_spec_has_no_provider (0.00s)
+    --- PASS: TestNewSession/spec_has_no_awssm_field (0.00s)
+    --- PASS: TestNewSession/configure_aws_using_environment_variables (0.00s)
+    --- PASS: TestNewSession/configure_aws_using_environment_variables_+_assume_role (0.00s)
+    --- PASS: TestNewSession/error_out_when_secret_with_credentials_does_not_exist (0.00s)
+    --- PASS: TestNewSession/use_credentials_from_secret_to_configure_aws (0.00s)
+    --- PASS: TestNewSession/error_out_when_secret_key_does_not_exist (0.00s)
+    --- PASS: TestNewSession/should_not_be_able_to_access_secrets_from_different_namespace (0.00s)
+    --- PASS: TestNewSession/ClusterStore_should_use_credentials_from_a_specific_namespace (0.00s)
+    --- PASS: TestNewSession/ClusterStore_should_use_credentials_from_a_ExternalSecret_namespace_(referentAuth) (0.00s)
+    --- PASS: TestNewSession/jwt_auth_via_cluster_secret_store (0.00s)
+    --- PASS: TestNewSession/configure_aws_using_environment_variables_+_assume_role_+_check_external_id (0.00s)
+=== RUN   TestSMEnvCredentials
+--- PASS: TestSMEnvCredentials (0.00s)
+=== RUN   TestSMAssumeRole
+--- PASS: TestSMAssumeRole (0.00s)
+=== RUN   TestResolver
+--- PASS: TestResolver (0.00s)
+=== RUN   TestTokenFetcher
+--- PASS: TestTokenFetcher (0.00s)
+PASS
+coverage: 58.0% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/aws/auth	1.077s	coverage: 58.0% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/aws/auth/fake		coverage: 0.0% of statements
+FAIL	github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore [build failed]
+	github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore/fake		coverage: 0.0% of statements
+=== RUN   TestSecretsManagerResolver
+--- PASS: TestSecretsManagerResolver (0.00s)
+=== RUN   TestSecretsManagerGetSecret
+--- PASS: TestSecretsManagerGetSecret (0.00s)
+=== RUN   TestCaching
+--- PASS: TestCaching (0.00s)
+=== RUN   TestGetSecretMap
+--- PASS: TestGetSecretMap (0.00s)
+=== RUN   TestSetSecret
+=== RUN   TestSetSecret/SetSecretWithPropertySucceedsWithExistingSecretAndVersionThatCantBeParsed
+--- FAIL: TestSetSecret (0.00s)
+    --- FAIL: TestSetSecret/SetSecretWithPropertySucceedsWithExistingSecretAndVersionThatCantBeParsed (0.00s)
+panic: runtime error: invalid memory address or nil pointer dereference [recovered]
+	panic: runtime error: invalid memory address or nil pointer dereference
+[signal SIGSEGV: segmentation violation code=0x1 addr=0x0 pc=0x24a3d50]
+
+goroutine 50 [running]:
+testing.tRunner.func1.2({0x26ef9c0, 0x3b4e190})
+	/opt/hostedtoolcache/go/1.24.2/x64/src/testing/testing.go:1734 +0x3eb
+testing.tRunner.func1()
+	/opt/hostedtoolcache/go/1.24.2/x64/src/testing/testing.go:1737 +0x696
+panic({0x26ef9c0?, 0x3b4e190?})
+	/opt/hostedtoolcache/go/1.24.2/x64/src/runtime/panic.go:792 +0x132
+github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager.(*SecretsManager).retrievePayload(...)
+	/home/runner/work/external-secrets/external-secrets/pkg/provider/aws/secretsmanager/secretsmanager.go:437
+github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager.(*SecretsManager).PushSecret(0xc0002f9d78, {0x2c9dc10, 0x3ba8540}, 0xc0001b4140, {0x2c9dc80, 0xc000350c00})
+	/home/runner/work/external-secrets/external-secrets/pkg/provider/aws/secretsmanager/secretsmanager.go:229 +0x430
+github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager.TestSetSecret.func3(0xc00018cfc0)
+	/home/runner/work/external-secrets/external-secrets/pkg/provider/aws/secretsmanager/secretsmanager_test.go:906 +0x191
+testing.tRunner(0xc00018cfc0, 0xc0004c1830)
+	/opt/hostedtoolcache/go/1.24.2/x64/src/testing/testing.go:1792 +0x226
+created by testing.(*T).Run in goroutine 33
+	/opt/hostedtoolcache/go/1.24.2/x64/src/testing/testing.go:1851 +0x8f3
+FAIL	github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager	0.092s
+	github.com/external-secrets/external-secrets/pkg/provider/aws/secretsmanager/fake		coverage: 0.0% of statements
+=== RUN   TestSanitize
+--- PASS: TestSanitize (0.00s)
+PASS
+coverage: 10.3% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/aws/util	1.073s	coverage: 10.3% of statements
+=== RUN   TestNewClientManagedIdentityNoNeedForCredentials
+--- PASS: TestNewClientManagedIdentityNoNeedForCredentials (0.00s)
+=== RUN   TestGetAuthorizorForWorkloadIdentity
+=== RUN   TestGetAuthorizorForWorkloadIdentity/missing_service_account
+=== RUN   TestGetAuthorizorForWorkloadIdentity/missing_webhook_env_vars
+=== RUN   TestGetAuthorizorForWorkloadIdentity/missing_workload_identity_token_file
+=== RUN   TestGetAuthorizorForWorkloadIdentity/correct_workload_identity
+=== RUN   TestGetAuthorizorForWorkloadIdentity/missing_sa_annotations,_tenantID,_and_clientId/tenantId_AuthSecretRef
+=== RUN   TestGetAuthorizorForWorkloadIdentity/duplicated_clientId
+=== RUN   TestGetAuthorizorForWorkloadIdentity/duplicated_tenantId
+=== RUN   TestGetAuthorizorForWorkloadIdentity/successful_case_#1:_ClientID,_TenantID_from_ServiceAccountRef
+=== RUN   TestGetAuthorizorForWorkloadIdentity/successful_case_#2:_ClientID,_TenantID_from_AuthSecretRef
+=== RUN   TestGetAuthorizorForWorkloadIdentity/successful_case_#3:_ClientID_from_AuthSecretRef,_TenantID_from_provider
+--- PASS: TestGetAuthorizorForWorkloadIdentity (0.00s)
+    --- PASS: TestGetAuthorizorForWorkloadIdentity/missing_service_account (0.00s)
+    --- PASS: TestGetAuthorizorForWorkloadIdentity/missing_webhook_env_vars (0.00s)
+    --- PASS: TestGetAuthorizorForWorkloadIdentity/missing_workload_identity_token_file (0.00s)
+    --- PASS: TestGetAuthorizorForWorkloadIdentity/correct_workload_identity (0.00s)
+    --- PASS: TestGetAuthorizorForWorkloadIdentity/missing_sa_annotations,_tenantID,_and_clientId/tenantId_AuthSecretRef (0.00s)
+    --- PASS: TestGetAuthorizorForWorkloadIdentity/duplicated_clientId (0.00s)
+    --- PASS: TestGetAuthorizorForWorkloadIdentity/duplicated_tenantId (0.00s)
+    --- PASS: TestGetAuthorizorForWorkloadIdentity/successful_case_#1:_ClientID,_TenantID_from_ServiceAccountRef (0.00s)
+    --- PASS: TestGetAuthorizorForWorkloadIdentity/successful_case_#2:_ClientID,_TenantID_from_AuthSecretRef (0.00s)
+    --- PASS: TestGetAuthorizorForWorkloadIdentity/successful_case_#3:_ClientID_from_AuthSecretRef,_TenantID_from_provider (0.00s)
+=== RUN   TestAuth
+=== RUN   TestAuth/bad_config
+=== RUN   TestAuth/bad_config#01
+=== RUN   TestAuth/bad_config:_missing_secret
+=== RUN   TestAuth/cluster_secret_store
+=== RUN   TestAuth/correct_cluster_secret_store_with_ClientSecret
+=== RUN   TestAuth/bad_config:_both_clientSecret_and_clientCredentials_are_configured
+=== RUN   TestAuth/bad_config:_no_valid_client_certificate_in_pem_file
+=== RUN   TestAuth/correct_configuration_with_certificate_authentication
+--- PASS: TestAuth (0.01s)
+    --- PASS: TestAuth/bad_config (0.00s)
+    --- PASS: TestAuth/bad_config#01 (0.00s)
+    --- PASS: TestAuth/bad_config:_missing_secret (0.00s)
+    --- PASS: TestAuth/cluster_secret_store (0.00s)
+    --- PASS: TestAuth/correct_cluster_secret_store_with_ClientSecret (0.00s)
+    --- PASS: TestAuth/bad_config:_both_clientSecret_and_clientCredentials_are_configured (0.00s)
+    --- PASS: TestAuth/bad_config:_no_valid_client_certificate_in_pem_file (0.00s)
+    --- PASS: TestAuth/correct_configuration_with_certificate_authentication (0.00s)
+=== RUN   TestAzureKeyVaultDeleteSecret
+--- PASS: TestAzureKeyVaultDeleteSecret (0.00s)
+=== RUN   TestAzureKeyVaultPushSecret
+--- PASS: TestAzureKeyVaultPushSecret (0.25s)
+=== RUN   TestAzureKeyVaultSecretManagerGetSecret
+--- PASS: TestAzureKeyVaultSecretManagerGetSecret (0.00s)
+=== RUN   TestAzureKeyVaultSecretManagerGetSecretMap
+--- PASS: TestAzureKeyVaultSecretManagerGetSecretMap (0.00s)
+=== RUN   TestAzureKeyVaultSecretManagerGetAllSecrets
+--- PASS: TestAzureKeyVaultSecretManagerGetAllSecrets (0.00s)
+=== RUN   TestValidateStore
+=== RUN   TestValidateStore/storeIsNil
+=== RUN   TestValidateStore/specIsNil
+=== RUN   TestValidateStore/providerIsNil
+=== RUN   TestValidateStore/azureKVIsNil
+=== RUN   TestValidateStore/empty_auth
+=== RUN   TestValidateStore/empty_client_id
+=== RUN   TestValidateStore/invalid_client_id
+=== RUN   TestValidateStore/invalid_client_secret
+--- PASS: TestValidateStore (0.00s)
+    --- PASS: TestValidateStore/storeIsNil (0.00s)
+    --- PASS: TestValidateStore/specIsNil (0.00s)
+    --- PASS: TestValidateStore/providerIsNil (0.00s)
+    --- PASS: TestValidateStore/azureKVIsNil (0.00s)
+    --- PASS: TestValidateStore/empty_auth (0.00s)
+    --- PASS: TestValidateStore/empty_client_id (0.00s)
+    --- PASS: TestValidateStore/invalid_client_id (0.00s)
+    --- PASS: TestValidateStore/invalid_client_secret (0.00s)
+=== RUN   TestAzureKeyVaultSecretExists
+--- PASS: TestAzureKeyVaultSecretExists (0.00s)
+PASS
+coverage: 80.9% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault	1.376s	coverage: 80.9% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault/fake		coverage: 0.0% of statements
+=== RUN   TestNewClient
+=== RUN   TestNewClient/Client_ok
+=== RUN   TestNewClient/Bad_Client_Id
+=== RUN   TestNewClient/Bad_Client_Secret
+=== RUN   TestNewClient/Bad_Separator
+=== RUN   TestNewClient/Time_Out
+=== RUN   TestNewClient/ApiKey_ok
+=== RUN   TestNewClient/Bad_ApiKey
+--- PASS: TestNewClient (0.01s)
+    --- PASS: TestNewClient/Client_ok (0.00s)
+    --- PASS: TestNewClient/Bad_Client_Id (0.00s)
+    --- PASS: TestNewClient/Bad_Client_Secret (0.00s)
+    --- PASS: TestNewClient/Bad_Separator (0.00s)
+    --- PASS: TestNewClient/Time_Out (0.00s)
+    --- PASS: TestNewClient/ApiKey_ok (0.00s)
+    --- PASS: TestNewClient/Bad_ApiKey (0.00s)
+PASS
+coverage: 37.1% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/beyondtrust	1.080s	coverage: 37.1% of statements
+=== RUN   TestSdkClientCreateSecret
+=== RUN   TestSdkClientCreateSecret/create_secret_is_successful
+=== RUN   TestSdkClientCreateSecret/create_secret_fails
+--- PASS: TestSdkClientCreateSecret (0.00s)
+    --- PASS: TestSdkClientCreateSecret/create_secret_is_successful (0.00s)
+    --- PASS: TestSdkClientCreateSecret/create_secret_fails (0.00s)
+=== RUN   TestProviderDeleteSecret
+=== RUN   TestProviderDeleteSecret/delete_secret_is_successfully_with_UUID
+=== RUN   TestProviderDeleteSecret/delete_secret_by_name
+=== RUN   TestProviderDeleteSecret/delete_secret_by_name_will_not_delete_if_something_doesn't_match
+--- PASS: TestProviderDeleteSecret (0.00s)
+    --- PASS: TestProviderDeleteSecret/delete_secret_is_successfully_with_UUID (0.00s)
+    --- PASS: TestProviderDeleteSecret/delete_secret_by_name (0.00s)
+    --- PASS: TestProviderDeleteSecret/delete_secret_by_name_will_not_delete_if_something_doesn't_match (0.00s)
+=== RUN   TestProviderGetAllSecrets
+=== RUN   TestProviderGetAllSecrets/get_all_secrets
+--- PASS: TestProviderGetAllSecrets (0.00s)
+    --- PASS: TestProviderGetAllSecrets/get_all_secrets (0.00s)
+=== RUN   TestProviderGetSecret
+=== RUN   TestProviderGetSecret/get_secret_with_UUID
+=== RUN   TestProviderGetSecret/get_secret_by_name
+--- PASS: TestProviderGetSecret (0.00s)
+    --- PASS: TestProviderGetSecret/get_secret_with_UUID (0.00s)
+    --- PASS: TestProviderGetSecret/get_secret_by_name (0.00s)
+=== RUN   TestProviderPushSecret
+=== RUN   TestProviderPushSecret/push_secret_is_successful_for_a_none_existent_remote_secret
+=== RUN   TestProviderPushSecret/push_entire_secret_succeeds
+=== RUN   TestProviderPushSecret/push_secret_is_successful_for_an_existing_remote_secret_but_only_the_value_differs_will_call_update
+=== RUN   TestProviderPushSecret/push_secret_will_not_push_if_the_same_secret_already_exists
+--- PASS: TestProviderPushSecret (0.00s)
+    --- PASS: TestProviderPushSecret/push_secret_is_successful_for_a_none_existent_remote_secret (0.00s)
+    --- PASS: TestProviderPushSecret/push_entire_secret_succeeds (0.00s)
+    --- PASS: TestProviderPushSecret/push_secret_is_successful_for_an_existing_remote_secret_but_only_the_value_differs_will_call_update (0.00s)
+    --- PASS: TestProviderPushSecret/push_secret_will_not_push_if_the_same_secret_already_exists (0.00s)
+=== RUN   TestProviderSecretExists
+=== RUN   TestProviderSecretExists/secret_exists
+=== RUN   TestProviderSecretExists/secret_exists_by_name
+=== RUN   TestProviderSecretExists/secret_not_found_by_name
+=== RUN   TestProviderSecretExists/invalid_name_format_should_error
+--- PASS: TestProviderSecretExists (0.00s)
+    --- PASS: TestProviderSecretExists/secret_exists (0.00s)
+    --- PASS: TestProviderSecretExists/secret_exists_by_name (0.00s)
+    --- PASS: TestProviderSecretExists/secret_not_found_by_name (0.00s)
+    --- PASS: TestProviderSecretExists/invalid_name_format_should_error (0.00s)
+=== RUN   TestProviderGetSecretMap
+=== RUN   TestProviderGetSecretMap/get_secret_map
+=== RUN   TestProviderGetSecretMap/get_secret_map_with_yaml
+=== RUN   TestProviderGetSecretMap/get_secret_map_with_nested_yaml
+=== RUN   TestProviderGetSecretMap/get_secret_map_with_binary_yaml_data
+=== RUN   TestProviderGetSecretMap/get_secret_map_-_missing_key
+--- PASS: TestProviderGetSecretMap (0.00s)
+    --- PASS: TestProviderGetSecretMap/get_secret_map (0.00s)
+    --- PASS: TestProviderGetSecretMap/get_secret_map_with_yaml (0.00s)
+    --- PASS: TestProviderGetSecretMap/get_secret_map_with_nested_yaml (0.00s)
+    --- PASS: TestProviderGetSecretMap/get_secret_map_with_binary_yaml_data (0.00s)
+    --- PASS: TestProviderGetSecretMap/get_secret_map_-_missing_key (0.00s)
+PASS
+coverage: 59.9% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/bitwarden	1.089s	coverage: 59.9% of statements
+=== RUN   TestChefGetSecret
+--- PASS: TestChefGetSecret (0.00s)
+=== RUN   TestChefGetSecretMap
+--- PASS: TestChefGetSecretMap (0.00s)
+=== RUN   TestValidateStore
+--- PASS: TestValidateStore (0.00s)
+=== RUN   TestNewClient
+--- PASS: TestNewClient (0.00s)
+=== RUN   TestValidate
+    chef_test.go:394: Error:  <nil>
+    chef_test.go:397: Error:  unable to validate provided store. Check if username, serverUrl and privateKey are correct
+--- PASS: TestValidate (0.00s)
+=== RUN   TestCapabilities
+    chef_test.go:403: ReadOnly
+--- PASS: TestCapabilities (0.00s)
+=== RUN   TestClose
+--- PASS: TestClose (0.00s)
+=== RUN   TestGetAllSecrets
+--- PASS: TestGetAllSecrets (0.00s)
+=== RUN   TestDeleteSecret
+--- PASS: TestDeleteSecret (0.00s)
+=== RUN   TestPushSecret
+--- PASS: TestPushSecret (0.00s)
+PASS
+coverage: 86.6% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/chef	1.085s	coverage: 86.6% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/chef/fake		coverage: 0.0% of statements
+=== RUN   TestClientGetSecret
+=== RUN   TestClientGetSecret/success
+=== RUN   TestClientGetSecret/success_named_secret
+=== RUN   TestClientGetSecret/success_multikv
+=== RUN   TestClientGetSecret/error_access_secret
+=== RUN   TestClientGetSecret/error_access_named_secret
+=== RUN   TestClientGetSecret/error_access_named_secret:invalid_version
+=== RUN   TestClientGetSecret/error_multikv:invalid_json
+=== RUN   TestClientGetSecret/error_multikv:not_found
+--- PASS: TestClientGetSecret (0.00s)
+    --- PASS: TestClientGetSecret/success (0.00s)
+    --- PASS: TestClientGetSecret/success_named_secret (0.00s)
+    --- PASS: TestClientGetSecret/success_multikv (0.00s)
+    --- PASS: TestClientGetSecret/error_access_secret (0.00s)
+    --- PASS: TestClientGetSecret/error_access_named_secret (0.00s)
+    --- PASS: TestClientGetSecret/error_access_named_secret:invalid_version (0.00s)
+    --- PASS: TestClientGetSecret/error_multikv:invalid_json (0.00s)
+    --- PASS: TestClientGetSecret/error_multikv:not_found (0.00s)
+=== RUN   TestClientGetSecretMap
+=== RUN   TestClientGetSecretMap/success
+=== RUN   TestClientGetSecretMap/error_access_secret
+=== RUN   TestClientGetSecretMap/error_not_json
+--- PASS: TestClientGetSecretMap (0.00s)
+    --- PASS: TestClientGetSecretMap/success (0.00s)
+    --- PASS: TestClientGetSecretMap/error_access_secret (0.00s)
+    --- PASS: TestClientGetSecretMap/error_not_json (0.00s)
+=== RUN   TestClientGetAllSecrets
+=== RUN   TestClientGetAllSecrets/success
+=== RUN   TestClientGetAllSecrets/success_not_json
+=== RUN   TestClientGetAllSecrets/error_no_filters
+=== RUN   TestClientGetAllSecrets/error_list_secrets
+--- PASS: TestClientGetAllSecrets (0.00s)
+    --- PASS: TestClientGetAllSecrets/success (0.00s)
+    --- PASS: TestClientGetAllSecrets/success_not_json (0.00s)
+    --- PASS: TestClientGetAllSecrets/error_no_filters (0.00s)
+    --- PASS: TestClientGetAllSecrets/error_list_secrets (0.00s)
+PASS
+coverage: 30.6% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/cloudru/secretmanager	1.088s	coverage: 30.6% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/cloudru/secretmanager/adapter		coverage: 0.0% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/cloudru/secretmanager/fake		coverage: 0.0% of statements
+=== RUN   TestGetSecret
+=== RUN   TestGetSecret/JwtWithCABundleSuccess
+=== RUN   TestGetSecret/ApiKeyReadSecretSuccess
+=== RUN   TestGetSecret/ApiKeyReadSecretFailure
+=== RUN   TestGetSecret/JwtWithServiceAccountRefReadSecretSuccess
+=== RUN   TestGetSecret/JwtWithServiceAccountRefWithHostIdReadSecretSuccess
+=== RUN   TestGetSecret/JwtWithSecretRefReadSecretSuccess
+--- PASS: TestGetSecret (0.00s)
+    --- PASS: TestGetSecret/JwtWithCABundleSuccess (0.00s)
+    --- PASS: TestGetSecret/ApiKeyReadSecretSuccess (0.00s)
+    --- PASS: TestGetSecret/ApiKeyReadSecretFailure (0.00s)
+    --- PASS: TestGetSecret/JwtWithServiceAccountRefReadSecretSuccess (0.00s)
+    --- PASS: TestGetSecret/JwtWithServiceAccountRefWithHostIdReadSecretSuccess (0.00s)
+    --- PASS: TestGetSecret/JwtWithSecretRefReadSecretSuccess (0.00s)
+=== RUN   TestGetAllSecrets
+=== RUN   TestGetAllSecrets/SimpleSearchSingleResultSuccess
+=== RUN   TestGetAllSecrets/RegexSearchMultipleResultsSuccess
+=== RUN   TestGetAllSecrets/RegexSearchInvalidRegexFailure
+=== RUN   TestGetAllSecrets/SimpleSearchNoResultsSuccess
+=== RUN   TestGetAllSecrets/TagSearchSingleResultSuccess
+--- PASS: TestGetAllSecrets (0.02s)
+    --- PASS: TestGetAllSecrets/SimpleSearchSingleResultSuccess (0.01s)
+    --- PASS: TestGetAllSecrets/RegexSearchMultipleResultsSuccess (0.00s)
+    --- PASS: TestGetAllSecrets/RegexSearchInvalidRegexFailure (0.00s)
+    --- PASS: TestGetAllSecrets/SimpleSearchNoResultsSuccess (0.01s)
+    --- PASS: TestGetAllSecrets/TagSearchSingleResultSuccess (0.00s)
+=== RUN   TestGetSecretMap
+=== RUN   TestGetSecretMap/ReadJsonSecretSpecificKey
+=== RUN   TestGetSecretMap/ReadJsonSecretSpecificKeyNotFound
+=== RUN   TestGetSecretMap/ReadJsonSecret
+=== RUN   TestGetSecretMap/ReadJsonSecretFailure
+--- PASS: TestGetSecretMap (0.00s)
+    --- PASS: TestGetSecretMap/ReadJsonSecretSpecificKey (0.00s)
+    --- PASS: TestGetSecretMap/ReadJsonSecretSpecificKeyNotFound (0.00s)
+    --- PASS: TestGetSecretMap/ReadJsonSecret (0.00s)
+    --- PASS: TestGetSecretMap/ReadJsonSecretFailure (0.00s)
+=== RUN   TestGetCA
+=== RUN   TestGetCA/UseCAProviderConfigMapSuccess
+=== RUN   TestGetCA/UseCAProviderSecretSuccess
+=== RUN   TestGetCA/UseCABundleSuccess
+--- PASS: TestGetCA (0.00s)
+    --- PASS: TestGetCA/UseCAProviderConfigMapSuccess (0.00s)
+    --- PASS: TestGetCA/UseCAProviderSecretSuccess (0.00s)
+    --- PASS: TestGetCA/UseCABundleSuccess (0.00s)
+=== RUN   TestValidateStore
+--- PASS: TestValidateStore (0.00s)
+PASS
+coverage: 78.7% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/conjur	1.141s	coverage: 78.7% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/conjur/fake		coverage: 0.0% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/conjur/util		coverage: 0.0% of statements
+=== RUN   TestGetSecret
+=== RUN   TestGetSecret/querying_for_the_key_returns_the_map
+=== RUN   TestGetSecret/querying_for_the_key_and_property_returns_a_single_value
+=== RUN   TestGetSecret/querying_for_the_key_and_nested_property_returns_a_single_value
+=== RUN   TestGetSecret/querying_for_existent_key_and_non-existing_propery
+--- PASS: TestGetSecret (0.00s)
+    --- PASS: TestGetSecret/querying_for_the_key_returns_the_map (0.00s)
+    --- PASS: TestGetSecret/querying_for_the_key_and_property_returns_a_single_value (0.00s)
+    --- PASS: TestGetSecret/querying_for_the_key_and_nested_property_returns_a_single_value (0.00s)
+    --- PASS: TestGetSecret/querying_for_existent_key_and_non-existing_propery (0.00s)
+=== RUN   TestDoesConfigDependOnNamespace
+=== RUN   TestDoesConfigDependOnNamespace/true_when_client_ID_references_a_secret_without_explicit_namespace
+=== RUN   TestDoesConfigDependOnNamespace/true_when_client_secret_references_a_secret_without_explicit_namespace
+=== RUN   TestDoesConfigDependOnNamespace/false_when_neither_client_ID_nor_secret_reference_a_secret
+--- PASS: TestDoesConfigDependOnNamespace (0.00s)
+    --- PASS: TestDoesConfigDependOnNamespace/true_when_client_ID_references_a_secret_without_explicit_namespace (0.00s)
+    --- PASS: TestDoesConfigDependOnNamespace/true_when_client_secret_references_a_secret_without_explicit_namespace (0.00s)
+    --- PASS: TestDoesConfigDependOnNamespace/false_when_neither_client_ID_nor_secret_reference_a_secret (0.00s)
+=== RUN   TestValidateStore
+=== RUN   TestValidateStore/invalid_with_ambiguous_clientSecret
+=== RUN   TestValidateStore/invalid_with_invalid_clientID
+=== RUN   TestValidateStore/invalid_with_invalid_clientSecret
+=== RUN   TestValidateStore/valid_with_tenant/clientID/clientSecret
+=== RUN   TestValidateStore/invalid_without_tenant
+=== RUN   TestValidateStore/invalid_without_clientID
+=== RUN   TestValidateStore/invalid_without_clientSecret
+=== RUN   TestValidateStore/invalid_with_ambiguous_clientID
+--- PASS: TestValidateStore (0.00s)
+    --- PASS: TestValidateStore/invalid_with_ambiguous_clientSecret (0.00s)
+    --- PASS: TestValidateStore/invalid_with_invalid_clientID (0.00s)
+    --- PASS: TestValidateStore/invalid_with_invalid_clientSecret (0.00s)
+    --- PASS: TestValidateStore/valid_with_tenant/clientID/clientSecret (0.00s)
+    --- PASS: TestValidateStore/invalid_without_tenant (0.00s)
+    --- PASS: TestValidateStore/invalid_without_clientID (0.00s)
+    --- PASS: TestValidateStore/invalid_without_clientSecret (0.00s)
+    --- PASS: TestValidateStore/invalid_with_ambiguous_clientID (0.00s)
+=== RUN   TestValidateStoreBailsOnUnexpectedStore
+=== RUN   TestValidateStoreBailsOnUnexpectedStore/missing_store
+=== RUN   TestValidateStoreBailsOnUnexpectedStore/missing_spec
+=== RUN   TestValidateStoreBailsOnUnexpectedStore/missing_provider
+=== RUN   TestValidateStoreBailsOnUnexpectedStore/missing_delinea
+--- PASS: TestValidateStoreBailsOnUnexpectedStore (0.00s)
+    --- PASS: TestValidateStoreBailsOnUnexpectedStore/missing_store (0.00s)
+    --- PASS: TestValidateStoreBailsOnUnexpectedStore/missing_spec (0.00s)
+    --- PASS: TestValidateStoreBailsOnUnexpectedStore/missing_provider (0.00s)
+    --- PASS: TestValidateStoreBailsOnUnexpectedStore/missing_delinea (0.00s)
+=== RUN   TestNewClient
+=== RUN   TestNewClient/dangling_client_ID_ref
+=== RUN   TestNewClient/dangling_client_secret_ref
+=== RUN   TestNewClient/secret_ref_without_name
+=== RUN   TestNewClient/secret_ref_without_key
+=== RUN   TestNewClient/secret_ref_with_non-existent_keys
+=== RUN   TestNewClient/secret_values
+=== RUN   TestNewClient/valid_secret_refs
+=== RUN   TestNewClient/cluster_secret_store
+=== RUN   TestNewClient/missing_provider_config
+=== RUN   TestNewClient/namespace-dependent_cluster_secret_store
+--- PASS: TestNewClient (0.00s)
+    --- PASS: TestNewClient/dangling_client_ID_ref (0.00s)
+    --- PASS: TestNewClient/dangling_client_secret_ref (0.00s)
+    --- PASS: TestNewClient/secret_ref_without_name (0.00s)
+    --- PASS: TestNewClient/secret_ref_without_key (0.00s)
+    --- PASS: TestNewClient/secret_ref_with_non-existent_keys (0.00s)
+    --- PASS: TestNewClient/secret_values (0.00s)
+    --- PASS: TestNewClient/valid_secret_refs (0.00s)
+    --- PASS: TestNewClient/cluster_secret_store (0.00s)
+    --- PASS: TestNewClient/missing_provider_config (0.00s)
+    --- PASS: TestNewClient/namespace-dependent_cluster_secret_store (0.00s)
+PASS
+coverage: 75.5% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/delinea	1.116s	coverage: 75.5% of statements
+=== RUN   TestDevice42ApiGetSecret
+=== RUN   TestDevice42ApiGetSecret/get_secret
+=== RUN   TestDevice42ApiGetSecret/bad_response_on_secret_entry
+--- PASS: TestDevice42ApiGetSecret (0.00s)
+    --- PASS: TestDevice42ApiGetSecret/get_secret (0.00s)
+    --- PASS: TestDevice42ApiGetSecret/bad_response_on_secret_entry (0.00s)
+PASS
+coverage: 27.0% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/device42	1.085s	coverage: 27.0% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/device42/fake		coverage: 0.0% of statements
+=== RUN   TestGetSecret
+--- PASS: TestGetSecret (0.00s)
+=== RUN   TestGetSecretMap
+=== RUN   TestGetSecretMap/valid_unmarshalling
+=== RUN   TestGetSecretMap/valid_unmarshalling_for_nested_json
+=== RUN   TestGetSecretMap/invalid_json
+=== RUN   TestGetSecretMap/client_error
+--- PASS: TestGetSecretMap (0.00s)
+    --- PASS: TestGetSecretMap/valid_unmarshalling (0.00s)
+    --- PASS: TestGetSecretMap/valid_unmarshalling_for_nested_json (0.00s)
+    --- PASS: TestGetSecretMap/invalid_json (0.00s)
+    --- PASS: TestGetSecretMap/client_error (0.00s)
+=== RUN   TestDeleteSecret
+--- PASS: TestDeleteSecret (0.00s)
+=== RUN   TestPushSecret
+--- PASS: TestPushSecret (0.00s)
+=== RUN   TestValidateStore
+=== RUN   TestValidateStore/invalid_store_missing_dopplerToken.name
+=== RUN   TestValidateStore/invalid_store_namespace_not_allowed
+=== RUN   TestValidateStore/valid_provide_optional_dopplerToken.key
+=== RUN   TestValidateStore/valid_namespace_not_set
+--- PASS: TestValidateStore (0.00s)
+    --- PASS: TestValidateStore/invalid_store_missing_dopplerToken.name (0.00s)
+    --- PASS: TestValidateStore/invalid_store_namespace_not_allowed (0.00s)
+    --- PASS: TestValidateStore/valid_provide_optional_dopplerToken.key (0.00s)
+    --- PASS: TestValidateStore/valid_namespace_not_set (0.00s)
+PASS
+coverage: 37.0% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/doppler	1.112s	coverage: 37.0% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/doppler/client		coverage: 0.0% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/doppler/fake		coverage: 0.0% of statements
+=== RUN   TestNewClient
+--- PASS: TestNewClient (0.00s)
+=== RUN   TestValidateStore
+--- PASS: TestValidateStore (0.00s)
+=== RUN   TestClose
+--- PASS: TestClose (0.00s)
+=== RUN   TestGetAllSecrets
+=== RUN   TestGetAllSecrets/no_matches
+=== RUN   TestGetAllSecrets/matches
+=== RUN   TestGetAllSecrets/matches_with_version
+=== RUN   TestGetAllSecrets/unsupported_operator
+--- PASS: TestGetAllSecrets (0.00s)
+    --- PASS: TestGetAllSecrets/no_matches (0.00s)
+    --- PASS: TestGetAllSecrets/matches (0.00s)
+    --- PASS: TestGetAllSecrets/matches_with_version (0.00s)
+    --- PASS: TestGetAllSecrets/unsupported_operator (0.00s)
+=== RUN   TestGetSecret
+=== RUN   TestGetSecret/return_err_when_not_found
+=== RUN   TestGetSecret/get_correct_value_from_multiple_versions
+=== RUN   TestGetSecret/get_correct_value_from_multiple_properties
+--- PASS: TestGetSecret (0.00s)
+    --- PASS: TestGetSecret/return_err_when_not_found (0.00s)
+    --- PASS: TestGetSecret/get_correct_value_from_multiple_versions (0.00s)
+    --- PASS: TestGetSecret/get_correct_value_from_multiple_properties (0.00s)
+=== RUN   TestSetSecret
+=== RUN   TestSetSecret/return_nil_if_no_existing_secret
+=== RUN   TestSetSecret/return_err_if_existing_secret
+--- PASS: TestSetSecret (0.00s)
+    --- PASS: TestSetSecret/return_nil_if_no_existing_secret (0.00s)
+    --- PASS: TestSetSecret/return_err_if_existing_secret (0.00s)
+=== RUN   TestSecretExists
+=== RUN   TestSecretExists/return_false,_nil_if_no_existing_secret
+=== RUN   TestSecretExists/return_true,_nil_if_existing_secret
+--- PASS: TestSecretExists (0.00s)
+    --- PASS: TestSecretExists/return_false,_nil_if_no_existing_secret (0.00s)
+    --- PASS: TestSecretExists/return_true,_nil_if_existing_secret (0.00s)
+=== RUN   TestGetSecretMap
+=== RUN   TestGetSecretMap/return_err_when_not_found
+=== RUN   TestGetSecretMap/get_correct_map_from_multiple_versions_by_using_Value_only
+=== RUN   TestGetSecretMap/get_correct_maps_from_multiple_versions_by_using_Value_only
+=== RUN   TestGetSecretMap/invalid_marshal
+=== RUN   TestGetSecretMap/get_correct_value_from_multiple_versions
+--- PASS: TestGetSecretMap (0.00s)
+    --- PASS: TestGetSecretMap/return_err_when_not_found (0.00s)
+    --- PASS: TestGetSecretMap/get_correct_map_from_multiple_versions_by_using_Value_only (0.00s)
+    --- PASS: TestGetSecretMap/get_correct_maps_from_multiple_versions_by_using_Value_only (0.00s)
+    --- PASS: TestGetSecretMap/invalid_marshal (0.00s)
+    --- PASS: TestGetSecretMap/get_correct_value_from_multiple_versions (0.00s)
+PASS
+coverage: 87.1% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/fake	1.088s	coverage: 87.1% of statements
+=== RUN   TestGetOpaqueSecurityObject
+=== RUN   TestGetOpaqueSecurityObject/get_raw_secret_value_from_opaque_security_object
+=== RUN   TestGetOpaqueSecurityObject/get_inner_property_value_from_opaque_security_object
+--- PASS: TestGetOpaqueSecurityObject (0.01s)
+    --- PASS: TestGetOpaqueSecurityObject/get_raw_secret_value_from_opaque_security_object (0.00s)
+    --- PASS: TestGetOpaqueSecurityObject/get_inner_property_value_from_opaque_security_object (0.00s)
+=== RUN   TestGetSecretSecurityObject
+=== RUN   TestGetSecretSecurityObject/get_raw_secret_value_from_secret_security_object
+=== RUN   TestGetSecretSecurityObject/get_inner_property_value_from_secret_security_object
+--- PASS: TestGetSecretSecurityObject (0.00s)
+    --- PASS: TestGetSecretSecurityObject/get_raw_secret_value_from_secret_security_object (0.00s)
+    --- PASS: TestGetSecretSecurityObject/get_inner_property_value_from_secret_security_object (0.00s)
+=== RUN   TestDataFromExtract
+=== RUN   TestDataFromExtract/extract_data_from_secret_security_object
+--- PASS: TestDataFromExtract (0.00s)
+    --- PASS: TestDataFromExtract/extract_data_from_secret_security_object (0.00s)
+=== RUN   TestNewClient
+=== RUN   TestNewClient/should_create_new_client
+=== RUN   TestNewClient/should_fail_to_create_new_client_if_secret_is_missing
+--- PASS: TestNewClient (0.00s)
+    --- PASS: TestNewClient/should_create_new_client (0.00s)
+    --- PASS: TestNewClient/should_fail_to_create_new_client_if_secret_is_missing (0.00s)
+=== RUN   TestValidateStore
+=== RUN   TestValidateStore/missing_api_key
+=== RUN   TestValidateStore/missing_api_key_secret_ref
+=== RUN   TestValidateStore/missing_api_key_secret_ref_name
+=== RUN   TestValidateStore/missing_api_key_secret_ref_key
+=== RUN   TestValidateStore/disallowed_namespace_in_store_ref
+--- PASS: TestValidateStore (0.00s)
+    --- PASS: TestValidateStore/missing_api_key (0.00s)
+    --- PASS: TestValidateStore/missing_api_key_secret_ref (0.00s)
+    --- PASS: TestValidateStore/missing_api_key_secret_ref_name (0.00s)
+    --- PASS: TestValidateStore/missing_api_key_secret_ref_key (0.00s)
+    --- PASS: TestValidateStore/disallowed_namespace_in_store_ref (0.00s)
+PASS
+coverage: 76.1% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/fortanix	1.108s	coverage: 76.1% of statements
+=== RUN   TestSecretManagerGetSecret
+--- PASS: TestSecretManagerGetSecret (0.00s)
+=== RUN   TestGetSecretMetadataPolicyFetch
+=== RUN   TestGetSecretMetadataPolicyFetch/annotation_is_specified
+=== RUN   TestGetSecretMetadataPolicyFetch/label_is_specified
+=== RUN   TestGetSecretMetadataPolicyFetch/annotations_is_specified
+=== RUN   TestGetSecretMetadataPolicyFetch/labels_is_specified
+=== RUN   TestGetSecretMetadataPolicyFetch/no_property_is_specified
+=== RUN   TestGetSecretMetadataPolicyFetch/annotation_does_not_exist
+=== RUN   TestGetSecretMetadataPolicyFetch/label_does_not_exist
+=== RUN   TestGetSecretMetadataPolicyFetch/invalid_property
+--- PASS: TestGetSecretMetadataPolicyFetch (0.00s)
+    --- PASS: TestGetSecretMetadataPolicyFetch/annotation_is_specified (0.00s)
+    --- PASS: TestGetSecretMetadataPolicyFetch/label_is_specified (0.00s)
+    --- PASS: TestGetSecretMetadataPolicyFetch/annotations_is_specified (0.00s)
+    --- PASS: TestGetSecretMetadataPolicyFetch/labels_is_specified (0.00s)
+    --- PASS: TestGetSecretMetadataPolicyFetch/no_property_is_specified (0.00s)
+    --- PASS: TestGetSecretMetadataPolicyFetch/annotation_does_not_exist (0.00s)
+    --- PASS: TestGetSecretMetadataPolicyFetch/label_does_not_exist (0.00s)
+    --- PASS: TestGetSecretMetadataPolicyFetch/invalid_property (0.00s)
+=== RUN   TestDeleteSecret
+=== RUN   TestDeleteSecret/Not_Managed_by_ESO
+=== RUN   TestDeleteSecret/Secret_Not_Found
+=== RUN   TestDeleteSecret/Random_Error
+=== RUN   TestDeleteSecret/Random_GError
+=== RUN   TestDeleteSecret/Deletes_Successfully
+--- PASS: TestDeleteSecret (0.00s)
+    --- PASS: TestDeleteSecret/Not_Managed_by_ESO (0.00s)
+    --- PASS: TestDeleteSecret/Secret_Not_Found (0.00s)
+    --- PASS: TestDeleteSecret/Random_Error (0.00s)
+    --- PASS: TestDeleteSecret/Random_GError (0.00s)
+    --- PASS: TestDeleteSecret/Deletes_Successfully (0.00s)
+=== RUN   TestPushSecret
+=== RUN   TestPushSecret/SetSecret_successfully_pushes_a_secret
+=== RUN   TestPushSecret/successfully_pushes_a_secret_with_metadata
+=== RUN   TestPushSecret/successfully_pushes_a_secret_with_defined_region
+=== RUN   TestPushSecret/SetSecret_successfully_pushes_a_secret_with_topics
+=== RUN   TestPushSecret/secret_not_pushed_if_AddSecretVersion_errors
+=== RUN   TestPushSecret/secret_not_pushed_if_AccessSecretVersion_errors
+=== RUN   TestPushSecret/secret_not_pushed_if_not_managed-by_external-secrets
+=== RUN   TestPushSecret/don't_push_a_secret_with_the_same_key_and_value
+=== RUN   TestPushSecret/secret_is_created_if_one_doesn't_already_exist
+=== RUN   TestPushSecret/secret_not_created_if_CreateSecret_returns_not_found_error
+=== RUN   TestPushSecret/secret_not_created_if_CreateSecret_returns_error
+=== RUN   TestPushSecret/access_secret_version_for_an_existing_secret_returns_error
+=== RUN   TestPushSecret/Whole_secret_is_set_with_no_existing_GCPSM_secret
+--- PASS: TestPushSecret (0.01s)
+    --- PASS: TestPushSecret/SetSecret_successfully_pushes_a_secret (0.00s)
+    --- PASS: TestPushSecret/successfully_pushes_a_secret_with_metadata (0.00s)
+    --- PASS: TestPushSecret/successfully_pushes_a_secret_with_defined_region (0.00s)
+    --- PASS: TestPushSecret/SetSecret_successfully_pushes_a_secret_with_topics (0.00s)
+    --- PASS: TestPushSecret/secret_not_pushed_if_AddSecretVersion_errors (0.00s)
+    --- PASS: TestPushSecret/secret_not_pushed_if_AccessSecretVersion_errors (0.00s)
+    --- PASS: TestPushSecret/secret_not_pushed_if_not_managed-by_external-secrets (0.00s)
+    --- PASS: TestPushSecret/don't_push_a_secret_with_the_same_key_and_value (0.00s)
+    --- PASS: TestPushSecret/secret_is_created_if_one_doesn't_already_exist (0.00s)
+    --- PASS: TestPushSecret/secret_not_created_if_CreateSecret_returns_not_found_error (0.00s)
+    --- PASS: TestPushSecret/secret_not_created_if_CreateSecret_returns_error (0.00s)
+    --- PASS: TestPushSecret/access_secret_version_for_an_existing_secret_returns_error (0.00s)
+    --- PASS: TestPushSecret/Whole_secret_is_set_with_no_existing_GCPSM_secret (0.00s)
+=== RUN   TestSecretExists
+=== RUN   TestSecretExists/secret_exists
+=== RUN   TestSecretExists/secret_does_not_exists
+=== RUN   TestSecretExists/unexpected_error_occurs
+--- PASS: TestSecretExists (0.00s)
+    --- PASS: TestSecretExists/secret_exists (0.00s)
+    --- PASS: TestSecretExists/secret_does_not_exists (0.00s)
+    --- PASS: TestSecretExists/unexpected_error_occurs (0.00s)
+=== RUN   TestPushSecretProperty
+=== RUN   TestPushSecretProperty/Add_new_key_value_paris
+=== RUN   TestPushSecretProperty/Update_existing_value
+=== RUN   TestPushSecretProperty/Secret_not_found
+=== RUN   TestPushSecretProperty/Secret_version_is_not_found
+=== RUN   TestPushSecretProperty/Secret_is_not_managed_by_the_controller
+=== RUN   TestPushSecretProperty/Payload_is_the_same_with_the_existing_one
+--- PASS: TestPushSecretProperty (0.00s)
+    --- PASS: TestPushSecretProperty/Add_new_key_value_paris (0.00s)
+    --- PASS: TestPushSecretProperty/Update_existing_value (0.00s)
+    --- PASS: TestPushSecretProperty/Secret_not_found (0.00s)
+    --- PASS: TestPushSecretProperty/Secret_version_is_not_found (0.00s)
+    --- PASS: TestPushSecretProperty/Secret_is_not_managed_by_the_controller (0.00s)
+    --- PASS: TestPushSecretProperty/Payload_is_the_same_with_the_existing_one (0.00s)
+=== RUN   TestGetSecretMap
+--- PASS: TestGetSecretMap (0.00s)
+=== RUN   TestValidateStore
+=== RUN   TestValidateStore/empty_auth
+=== RUN   TestValidateStore/invalid_secret_data
+=== RUN   TestValidateStore/invalid_wi_sa_data
+--- PASS: TestValidateStore (0.00s)
+    --- PASS: TestValidateStore/empty_auth (0.00s)
+    --- PASS: TestValidateStore/invalid_secret_data (0.00s)
+    --- PASS: TestValidateStore/invalid_wi_sa_data (0.00s)
+=== RUN   TestBuildMetadata
+=== RUN   TestBuildMetadata/secret_not_managed_by_external_secrets
+=== RUN   TestBuildMetadata/metadata_with_default_MergePolicy_of_Replace
+=== RUN   TestBuildMetadata/metadata_with_merge_policy
+=== RUN   TestBuildMetadata/metadata_with_CMEK_key_name
+--- PASS: TestBuildMetadata (0.00s)
+    --- PASS: TestBuildMetadata/secret_not_managed_by_external_secrets (0.00s)
+    --- PASS: TestBuildMetadata/metadata_with_default_MergePolicy_of_Replace (0.00s)
+    --- PASS: TestBuildMetadata/metadata_with_merge_policy (0.00s)
+    --- PASS: TestBuildMetadata/metadata_with_CMEK_key_name (0.00s)
+=== RUN   TestWorkloadIdentity
+=== RUN   TestWorkloadIdentity/should_skip_when_no_workload_identity_is_configured:_TokenSource_and_error_must_be_nil
+=== RUN   TestWorkloadIdentity/return_access_token_from_GenerateAccessTokenRequest_with_SecretStore
+=== RUN   TestWorkloadIdentity/return_idBindToken_when_no_annotation_is_set_with_SecretStore
+=== RUN   TestWorkloadIdentity/ClusterSecretStore:_referent_auth_/_service_account_without_namespace
+=== RUN   TestWorkloadIdentity/ClusterSecretStore:_invalid_service_account
+=== RUN   TestWorkloadIdentity/return_access_token_from_GenerateAccessTokenRequest_with_ClusterSecretStore
+=== RUN   TestWorkloadIdentity/lookup_cluster_id_from_instance_metadata
+--- PASS: TestWorkloadIdentity (0.00s)
+    --- PASS: TestWorkloadIdentity/should_skip_when_no_workload_identity_is_configured:_TokenSource_and_error_must_be_nil (0.00s)
+    --- PASS: TestWorkloadIdentity/return_access_token_from_GenerateAccessTokenRequest_with_SecretStore (0.00s)
+    --- PASS: TestWorkloadIdentity/return_idBindToken_when_no_annotation_is_set_with_SecretStore (0.00s)
+    --- PASS: TestWorkloadIdentity/ClusterSecretStore:_referent_auth_/_service_account_without_namespace (0.00s)
+    --- PASS: TestWorkloadIdentity/ClusterSecretStore:_invalid_service_account (0.00s)
+    --- PASS: TestWorkloadIdentity/return_access_token_from_GenerateAccessTokenRequest_with_ClusterSecretStore (0.00s)
+    --- PASS: TestWorkloadIdentity/lookup_cluster_id_from_instance_metadata (0.00s)
+=== RUN   TestClusterProjectID
+--- PASS: TestClusterProjectID (0.00s)
+=== RUN   TestSATokenGen
+--- PASS: TestSATokenGen (0.00s)
+=== RUN   TestIDBTokenGen
+--- PASS: TestIDBTokenGen (0.00s)
+PASS
+coverage: 56.2% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager	1.126s	coverage: 56.2% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/gcp/secretmanager/fake		coverage: 0.0% of statements
+=== RUN   TestSecretExists
+=== RUN   TestSecretExists/getSecret_fail
+=== RUN   TestSecretExists/no_secret
+=== RUN   TestSecretExists/with_secret
+--- PASS: TestSecretExists (0.00s)
+    --- PASS: TestSecretExists/getSecret_fail (0.00s)
+    --- PASS: TestSecretExists/no_secret (0.00s)
+    --- PASS: TestSecretExists/with_secret (0.00s)
+=== RUN   TestPushSecret
+=== RUN   TestPushSecret/failGetSecretFn
+=== RUN   TestPushSecret/failGetPublicKey
+=== RUN   TestPushSecret/failDecodeKey
+=== RUN   TestPushSecret/failSecretData
+=== RUN   TestPushSecret/failSecretData#01
+=== RUN   TestPushSecret/Success
+--- PASS: TestPushSecret (0.01s)
+    --- PASS: TestPushSecret/failGetSecretFn (0.00s)
+    --- PASS: TestPushSecret/failGetPublicKey (0.00s)
+    --- PASS: TestPushSecret/failDecodeKey (0.00s)
+    --- PASS: TestPushSecret/failSecretData (0.00s)
+    --- PASS: TestPushSecret/failSecretData#01 (0.00s)
+    --- PASS: TestPushSecret/Success (0.00s)
+PASS
+coverage: 28.8% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/github	1.097s	coverage: 28.8% of statements
+=== RUN   TestNewClient
+--- PASS: TestNewClient (0.00s)
+=== RUN   TestGetSecret
+--- PASS: TestGetSecret (0.00s)
+=== RUN   TestResolveGroupIds
+--- PASS: TestResolveGroupIds (0.00s)
+=== RUN   TestGetAllSecrets
+--- PASS: TestGetAllSecrets (0.00s)
+=== RUN   TestGetAllSecretsWithGroups
+--- PASS: TestGetAllSecretsWithGroups (0.00s)
+=== RUN   TestValidate
+    gitlab_test.go:753: &{mockProjectsClient:0xc0004c52e8 mockProjectVarClient:0xc0001afc80 mockGroupVarClient:0xc0001afc90 apiInputProjectID:testID apiInputKey:testKey apiInputEnv:prod projectAPIOutput:0xc0003c13e0 projectAPIResponse:0xc000349b80 projectAPIOutputs:[] projectGroupsAPIOutput:[0xc0003c1440 0xc0003c14a0 0xc0003c1500] projectGroupsAPIResponse:0xc000349c00 groupAPIOutputs:[] groupAPIOutput:0xc0003c1560 groupAPIResponse:0xc000349c80 ref:0xc0003c1380 refFind:0xc000424780 projectID:projectId groupIDs:[] inheritFromGroups:false apiErr:<nil> expectError: expectedSecret: expectedValidationResult:0 expectedData:map[]}
+    gitlab_test.go:753: &{mockProjectsClient:0xc0004c5310 mockProjectVarClient:0xc0001afca0 mockGroupVarClient:0xc0001afcb0 apiInputProjectID:testID apiInputKey:testKey apiInputEnv:prod projectAPIOutput:0xc0003c1620 projectAPIResponse:0xc000349d00 projectAPIOutputs:[] projectGroupsAPIOutput:[0xc0003c1680 0xc0003c16e0 0xc0003c1740] projectGroupsAPIResponse:0xc000349d80 groupAPIOutputs:[] groupAPIOutput:0xc0003c17a0 groupAPIResponse:0xc000349e00 ref:0xc0003c15c0 refFind:0xc000424900 projectID:projectId groupIDs:[] inheritFromGroups:true apiErr:<nil> expectError: expectedSecret: expectedValidationResult:0 expectedData:map[]}
+    gitlab_test.go:753: &{mockProjectsClient:0xc0004c5338 mockProjectVarClient:0xc0001afcc0 mockGroupVarClient:0xc0001afcd0 apiInputProjectID:testID apiInputKey:testKey apiInputEnv:prod projectAPIOutput:0xc0003c1860 projectAPIResponse:0xc000349e80 projectAPIOutputs:[] projectGroupsAPIOutput:[0xc0003c18c0 0xc0003c1920 0xc0003c1980] projectGroupsAPIResponse:0xc000349f00 groupAPIOutputs:[] groupAPIOutput:0xc0003c19e0 groupAPIResponse:0xc000194000 ref:0xc0003c1800 refFind:0xc000424a80 projectID:projectId groupIDs:[groupId] inheritFromGroups:false apiErr:<nil> expectError: expectedSecret: expectedValidationResult:0 expectedData:map[]}
+    gitlab_test.go:753: &{mockProjectsClient:0xc0004c5360 mockProjectVarClient:0xc0001afcf0 mockGroupVarClient:0xc0001afd00 apiInputProjectID:testID apiInputKey:testKey apiInputEnv:prod projectAPIOutput:0xc0003c1aa0 projectAPIResponse:0xc000194c80 projectAPIOutputs:[] projectGroupsAPIOutput:[0xc0003c1b00 0xc0003c1b60 0xc0003c1bc0] projectGroupsAPIResponse:0xc000194d00 groupAPIOutputs:[] groupAPIOutput:0xc0003c1c20 groupAPIResponse:0xc000194d80 ref:0xc0003c1a40 refFind:0xc000424c00 projectID:projectId groupIDs:[] inheritFromGroups:false apiErr:0xc0001afd10 expectError:could not verify whether the gitlabClient is valid: oh no expectedSecret: expectedValidationResult:2 expectedData:map[]}
+    gitlab_test.go:753: &{mockProjectsClient:0xc0004c5388 mockProjectVarClient:0xc0001afd40 mockGroupVarClient:0xc0001afd50 apiInputProjectID:testID apiInputKey:testKey apiInputEnv:prod projectAPIOutput:0xc0003c1ce0 projectAPIResponse:<nil> projectAPIOutputs:[] projectGroupsAPIOutput:[0xc0003c1d40 0xc0003c1da0 0xc0003c1e00] projectGroupsAPIResponse:0xc000194e80 groupAPIOutputs:[] groupAPIOutput:0xc0003c1e60 groupAPIResponse:0xc000194f00 ref:0xc0003c1c80 refFind:0xc000424d80 projectID:projectId groupIDs:[] inheritFromGroups:false apiErr:<nil> expectError:gitlabClient is not allowed to get secrets for project id [projectId] expectedSecret: expectedValidationResult:2 expectedData:map[]}
+    gitlab_test.go:753: &{mockProjectsClient:0xc0004c53b0 mockProjectVarClient:0xc0001afd90 mockGroupVarClient:0xc0001afda0 apiInputProjectID:testID apiInputKey:testKey apiInputEnv:prod projectAPIOutput:0xc0003c1f20 projectAPIResponse:0xc000194f80 projectAPIOutputs:[] projectGroupsAPIOutput:[0xc0004ea000 0xc0004ea060 0xc0004ea0c0] projectGroupsAPIResponse:0xc000195000 groupAPIOutputs:[] groupAPIOutput:0xc0004ea120 groupAPIResponse:0xc000195080 ref:0xc0003c1ec0 refFind:0xc000424f00 projectID:projectId groupIDs:[] inheritFromGroups:false apiErr:<nil> expectError:gitlabClient is not allowed to get secrets for project id [projectId] expectedSecret: expectedValidationResult:2 expectedData:map[]}
+    gitlab_test.go:753: &{mockProjectsClient:0xc0004c53d8 mockProjectVarClient:0xc0001afdd0 mockGroupVarClient:0xc0001afde0 apiInputProjectID:testID apiInputKey:testKey apiInputEnv:prod projectAPIOutput:0xc0004ea1e0 projectAPIResponse:0xc000195100 projectAPIOutputs:[] projectGroupsAPIOutput:[0xc0004ea240 0xc0004ea2a0 0xc0004ea300] projectGroupsAPIResponse:0xc000195180 groupAPIOutputs:[] groupAPIOutput:0xc0004ea360 groupAPIResponse:<nil> ref:0xc0004ea180 refFind:0xc000425080 projectID:projectId groupIDs:[groupId] inheritFromGroups:false apiErr:<nil> expectError:gitlabClient is not allowed to get secrets for group id [groupId] expectedSecret: expectedValidationResult:2 expectedData:map[]}
+    gitlab_test.go:753: &{mockProjectsClient:0xc0004c5400 mockProjectVarClient:0xc0001afe10 mockGroupVarClient:0xc0001afe20 apiInputProjectID:testID apiInputKey:testKey apiInputEnv:prod projectAPIOutput:0xc0004ea420 projectAPIResponse:0xc000195280 projectAPIOutputs:[] projectGroupsAPIOutput:[0xc0004ea480 0xc0004ea4e0 0xc0004ea540] projectGroupsAPIResponse:0xc000195300 groupAPIOutputs:[] groupAPIOutput:0xc0004ea5a0 groupAPIResponse:0xc000195380 ref:0xc0004ea3c0 refFind:0xc000425200 projectID:projectId groupIDs:[groupId] inheritFromGroups:false apiErr:<nil> expectError:gitlabClient is not allowed to get secrets for group id [groupId] expectedSecret: expectedValidationResult:2 expectedData:map[]}
+--- PASS: TestValidate (0.00s)
+=== RUN   TestGetSecretMap
+--- PASS: TestGetSecretMap (0.00s)
+=== RUN   TestValidateStore
+--- PASS: TestValidateStore (0.00s)
+PASS
+coverage: 85.1% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/gitlab	1.091s	coverage: 85.1% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/gitlab/fake		coverage: 0.0% of statements
+=== RUN   TestValidateStore
+--- PASS: TestValidateStore (0.00s)
+=== RUN   TestIBMSecretManagerGetSecret
+=== RUN   TestIBMSecretManagerGetSecret/good_case:_default_version_is_set
+=== RUN   TestIBMSecretManagerGetSecret/good_case:_custom_version_set
+=== RUN   TestIBMSecretManagerGetSecret/bad_case:_arbitrary_type_without_property
+=== RUN   TestIBMSecretManagerGetSecret/#00
+=== RUN   TestIBMSecretManagerGetSecret/#01
+=== RUN   TestIBMSecretManagerGetSecret/bad_case:_username_password_type_without_property
+=== RUN   TestIBMSecretManagerGetSecret/good_case:_username_password_type_-_get_username_by_ID
+=== RUN   TestIBMSecretManagerGetSecret/good_case:_iam_credenatials_type_-_get_API_Key_by_ID
+=== RUN   TestIBMSecretManagerGetSecret/good_case:_imported_cert_type_with_property
+=== RUN   TestIBMSecretManagerGetSecret/good_case:_kv_type_with_property
+=== RUN   TestIBMSecretManagerGetSecret/good_case:_kv_type_with_property,_returns_specific_value
+=== RUN   TestIBMSecretManagerGetSecret/good_case:_kv_type_with_property_and_path,_returns_specific_value
+=== RUN   TestIBMSecretManagerGetSecret/good_case:_kv_type_with_property_and_dot,_returns_specific_value
+=== RUN   TestIBMSecretManagerGetSecret/good_case:_kv_type_without_property,_returns_all
+=== RUN   TestIBMSecretManagerGetSecret/bad_case:_kv_type_with_key_which_is_not_in_payload
+=== RUN   TestIBMSecretManagerGetSecret/bad_case:_imported_cert_type_without_property
+=== RUN   TestIBMSecretManagerGetSecret/good_case:_imported_cert_without_private_key
+warn: private_key is empty for secret d5deb37a-7883-4fe2-a5e7-3c15420adc76
+=== RUN   TestIBMSecretManagerGetSecret/good_case:_public_cert_type_with_property
+=== RUN   TestIBMSecretManagerGetSecret/bad_case:_public_cert_type_without_property
+=== RUN   TestIBMSecretManagerGetSecret/good_case:_private_cert_type_with_property
+=== RUN   TestIBMSecretManagerGetSecret/bad_case:_private_cert_type_without_property
+=== RUN   TestIBMSecretManagerGetSecret/good_case:_iam_credenatials_type_-_get_API_Key_by_name_-_new_mechanism
+=== RUN   TestIBMSecretManagerGetSecret/good_case:_service_credentials_type_-_get_creds_by_ID
+--- PASS: TestIBMSecretManagerGetSecret (0.01s)
+    --- PASS: TestIBMSecretManagerGetSecret/good_case:_default_version_is_set (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/good_case:_custom_version_set (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/bad_case:_arbitrary_type_without_property (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/#00 (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/#01 (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/bad_case:_username_password_type_without_property (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/good_case:_username_password_type_-_get_username_by_ID (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/good_case:_iam_credenatials_type_-_get_API_Key_by_ID (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/good_case:_imported_cert_type_with_property (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/good_case:_kv_type_with_property (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/good_case:_kv_type_with_property,_returns_specific_value (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/good_case:_kv_type_with_property_and_path,_returns_specific_value (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/good_case:_kv_type_with_property_and_dot,_returns_specific_value (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/good_case:_kv_type_without_property,_returns_all (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/bad_case:_kv_type_with_key_which_is_not_in_payload (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/bad_case:_imported_cert_type_without_property (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/good_case:_imported_cert_without_private_key (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/good_case:_public_cert_type_with_property (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/bad_case:_public_cert_type_without_property (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/good_case:_private_cert_type_with_property (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/bad_case:_private_cert_type_without_property (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/good_case:_iam_credenatials_type_-_get_API_Key_by_name_-_new_mechanism (0.00s)
+    --- PASS: TestIBMSecretManagerGetSecret/good_case:_service_credentials_type_-_get_creds_by_ID (0.00s)
+=== RUN   TestGetSecretMap
+=== RUN   TestGetSecretMap/bad_case:_iam_credentials_of_a_destroyed_secret
+=== RUN   TestGetSecretMap/good_case:_service_credentials
+=== RUN   TestGetSecretMap/good_case:_arbitrary
+=== RUN   TestGetSecretMap/#00
+=== RUN   TestGetSecretMap/#01
+=== RUN   TestGetSecretMap/good_case:_username_password
+=== RUN   TestGetSecretMap/good_case:_iam_credentials
+=== RUN   TestGetSecretMap/good_case:_imported_cert
+=== RUN   TestGetSecretMap/good_case:_kv,_no_property,_return_entire_payload_as_key:value_pairs
+=== RUN   TestGetSecretMap/good_case:_kv,_with_property
+=== RUN   TestGetSecretMap/good_case:_kv,_with_property_and_path
+=== RUN   TestGetSecretMap/bad_case:_kv,_with_property_and_path
+=== RUN   TestGetSecretMap/good_case:_public_cert
+=== RUN   TestGetSecretMap/good_case:_private_cert
+=== RUN   TestGetSecretMap/good_case:_imported_cert_without_private_key
+warn: private_key is empty for secret d5deb37a-7883-4fe2-a5e7-3c15420adc76
+=== RUN   TestGetSecretMap/good_case:_iam_credentials_with_metadata
+=== RUN   TestGetSecretMap/good_case:_arbitrary_with_metadata
+=== RUN   TestGetSecretMap/good_case:_username_password_with_metadata
+=== RUN   TestGetSecretMap/good_case:_imported_cert_with_metadata
+=== RUN   TestGetSecretMap/good_case:_public_cert_with_metadata
+=== RUN   TestGetSecretMap/good_case:_private_cert_with_metadata
+=== RUN   TestGetSecretMap/good_case:_kv,_with_property_and_with_metadata
+=== RUN   TestGetSecretMap/good_case:_iam_credentials_without_metadata
+=== RUN   TestGetSecretMap/good_case:_iam_credentials_by_name_using_new_mechanism
+--- PASS: TestGetSecretMap (0.01s)
+    --- PASS: TestGetSecretMap/bad_case:_iam_credentials_of_a_destroyed_secret (0.00s)
+    --- PASS: TestGetSecretMap/good_case:_service_credentials (0.00s)
+    --- PASS: TestGetSecretMap/good_case:_arbitrary (0.00s)
+    --- PASS: TestGetSecretMap/#00 (0.00s)
+    --- PASS: TestGetSecretMap/#01 (0.00s)
+    --- PASS: TestGetSecretMap/good_case:_username_password (0.00s)
+    --- PASS: TestGetSecretMap/good_case:_iam_credentials (0.00s)
+    --- PASS: TestGetSecretMap/good_case:_imported_cert (0.00s)
+    --- PASS: TestGetSecretMap/good_case:_kv,_no_property,_return_entire_payload_as_key:value_pairs (0.00s)
+    --- PASS: TestGetSecretMap/good_case:_kv,_with_property (0.00s)
+    --- PASS: TestGetSecretMap/good_case:_kv,_with_property_and_path (0.00s)
+    --- PASS: TestGetSecretMap/bad_case:_kv,_with_property_and_path (0.00s)
+    --- PASS: TestGetSecretMap/good_case:_public_cert (0.00s)
+    --- PASS: TestGetSecretMap/good_case:_private_cert (0.00s)
+    --- PASS: TestGetSecretMap/good_case:_imported_cert_without_private_key (0.00s)
+    --- PASS: TestGetSecretMap/good_case:_iam_credentials_with_metadata (0.00s)
+    --- PASS: TestGetSecretMap/good_case:_arbitrary_with_metadata (0.00s)
+    --- PASS: TestGetSecretMap/good_case:_username_password_with_metadata (0.00s)
+    --- PASS: TestGetSecretMap/good_case:_imported_cert_with_metadata (0.00s)
+    --- PASS: TestGetSecretMap/good_case:_public_cert_with_metadata (0.00s)
+    --- PASS: TestGetSecretMap/good_case:_private_cert_with_metadata (0.00s)
+    --- PASS: TestGetSecretMap/good_case:_kv,_with_property_and_with_metadata (0.00s)
+    --- PASS: TestGetSecretMap/good_case:_iam_credentials_without_metadata (0.00s)
+    --- PASS: TestGetSecretMap/good_case:_iam_credentials_by_name_using_new_mechanism (0.00s)
+=== RUN   TestValidRetryInput
+--- PASS: TestValidRetryInput (0.00s)
+PASS
+coverage: 76.1% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/ibm	1.136s	coverage: 76.1% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/ibm/fake		coverage: 0.0% of statements
+=== RUN   TestGetSecret
+=== RUN   TestGetSecret/Get_valid_key
+=== RUN   TestGetSecret/Get_property_key
+=== RUN   TestGetSecret/Key_not_found
+--- PASS: TestGetSecret (0.00s)
+    --- PASS: TestGetSecret/Get_valid_key (0.00s)
+    --- PASS: TestGetSecret/Get_property_key (0.00s)
+    --- PASS: TestGetSecret/Key_not_found (0.00s)
+=== RUN   TestGetSecretMap
+=== RUN   TestGetSecretMap/Get_valid_key_map
+=== RUN   TestGetSecretMap/Get_invalid_map
+--- PASS: TestGetSecretMap (0.00s)
+    --- PASS: TestGetSecretMap/Get_valid_key_map (0.00s)
+    --- PASS: TestGetSecretMap/Get_invalid_map (0.00s)
+=== RUN   TestValidateStore
+--- PASS: TestValidateStore (0.00s)
+PASS
+coverage: 37.1% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/infisical	1.084s	coverage: 37.1% of statements
+=== RUN   TestAPIClientDo
+=== RUN   TestAPIClientDo/Success
+=== RUN   TestAPIClientDo/Error_when_response_cannot_be_unmarshalled
+=== RUN   TestAPIClientDo/Error_when_non-Infisical_error_response_received
+=== RUN   TestAPIClientDo/Do:_Error_when_non-200_response_received
+=== RUN   TestAPIClientDo/Error_when_arbitrary_details_are_returned
+--- PASS: TestAPIClientDo (0.01s)
+    --- PASS: TestAPIClientDo/Success (0.00s)
+    --- PASS: TestAPIClientDo/Error_when_response_cannot_be_unmarshalled (0.00s)
+    --- PASS: TestAPIClientDo/Error_when_non-Infisical_error_response_received (0.00s)
+    --- PASS: TestAPIClientDo/Do:_Error_when_non-200_response_received (0.00s)
+    --- PASS: TestAPIClientDo/Error_when_arbitrary_details_are_returned (0.00s)
+=== RUN   TestAPIClientDoInvalidResponse
+--- PASS: TestAPIClientDoInvalidResponse (0.00s)
+=== RUN   TestSetTokenViaMachineIdentity
+=== RUN   TestSetTokenViaMachineIdentity/Success
+=== RUN   TestSetTokenViaMachineIdentity/SetTokenViaMachineIdentity:_Error_when_non-200_response_received
+=== RUN   TestSetTokenViaMachineIdentity/Error_when_token_already_set
+--- PASS: TestSetTokenViaMachineIdentity (0.00s)
+    --- PASS: TestSetTokenViaMachineIdentity/Success (0.00s)
+    --- PASS: TestSetTokenViaMachineIdentity/SetTokenViaMachineIdentity:_Error_when_non-200_response_received (0.00s)
+    --- PASS: TestSetTokenViaMachineIdentity/Error_when_token_already_set (0.00s)
+=== RUN   TestRevokeAccessToken
+=== RUN   TestRevokeAccessToken/Success
+=== RUN   TestRevokeAccessToken/RevokeAccessToken:_Error_when_non-200_response_received
+=== RUN   TestRevokeAccessToken/Error_when_no_access_token_is_set
+--- PASS: TestRevokeAccessToken (0.00s)
+    --- PASS: TestRevokeAccessToken/Success (0.00s)
+    --- PASS: TestRevokeAccessToken/RevokeAccessToken:_Error_when_non-200_response_received (0.00s)
+    --- PASS: TestRevokeAccessToken/Error_when_no_access_token_is_set (0.00s)
+=== RUN   TestGetSecretsV3
+=== RUN   TestGetSecretsV3/Works_with_secrets
+=== RUN   TestGetSecretsV3/Works_with_imported_secrets
+=== RUN   TestGetSecretsV3/GetSecretsV3:_Error_when_non-200_response_received
+--- PASS: TestGetSecretsV3 (0.00s)
+    --- PASS: TestGetSecretsV3/Works_with_secrets (0.00s)
+    --- PASS: TestGetSecretsV3/Works_with_imported_secrets (0.00s)
+    --- PASS: TestGetSecretsV3/GetSecretsV3:_Error_when_non-200_response_received (0.00s)
+=== RUN   TestGetSecretByKeyV3
+=== RUN   TestGetSecretByKeyV3/Works
+=== RUN   TestGetSecretByKeyV3/Error_when_secret_is_not_found
+=== RUN   TestGetSecretByKeyV3/ErrorHandlingUnauthorized
+--- PASS: TestGetSecretByKeyV3 (0.00s)
+    --- PASS: TestGetSecretByKeyV3/Works (0.00s)
+    --- PASS: TestGetSecretByKeyV3/Error_when_secret_is_not_found (0.00s)
+    --- PASS: TestGetSecretByKeyV3/ErrorHandlingUnauthorized (0.00s)
+PASS
+coverage: 91.0% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/infisical/api	1.093s	coverage: 91.0% of statements
+?   	github.com/external-secrets/external-secrets/pkg/provider/infisical/constants	[no test files]
+=== RUN   TestClientDeleteSecret
+=== RUN   TestClientDeleteSecret/Delete_valid_secret
+=== RUN   TestClientDeleteSecret/Delete_secret_with_multiple_matches_by_Name
+=== RUN   TestClientDeleteSecret/Delete_non_existing_secret
+--- PASS: TestClientDeleteSecret (0.00s)
+    --- PASS: TestClientDeleteSecret/Delete_valid_secret (0.00s)
+    --- PASS: TestClientDeleteSecret/Delete_secret_with_multiple_matches_by_Name (0.00s)
+    --- PASS: TestClientDeleteSecret/Delete_non_existing_secret (0.00s)
+=== RUN   TestClientGetAllSecrets
+=== RUN   TestClientGetAllSecrets/Tags_not_Implemented
+=== RUN   TestClientGetAllSecrets/Path_not_Implemented
+=== RUN   TestClientGetAllSecrets/Get_secrets_with_matching_regex
+=== RUN   TestClientGetAllSecrets/Get_1_secret_with_matching_regex
+--- PASS: TestClientGetAllSecrets (0.00s)
+    --- PASS: TestClientGetAllSecrets/Tags_not_Implemented (0.00s)
+    --- PASS: TestClientGetAllSecrets/Path_not_Implemented (0.00s)
+    --- PASS: TestClientGetAllSecrets/Get_secrets_with_matching_regex (0.00s)
+    --- PASS: TestClientGetAllSecrets/Get_1_secret_with_matching_regex (0.00s)
+=== RUN   TestClientGetSecret
+=== RUN   TestClientGetSecret/Get_Secret_with_a_property
+=== RUN   TestClientGetSecret/Get_Secret_without_property
+=== RUN   TestClientGetSecret/Get_secret_with_multiple_matches_by_ID
+=== RUN   TestClientGetSecret/Get_non_existing_secret
+=== RUN   TestClientGetSecret/Get_valid_secret_with_non_existing_property
+--- PASS: TestClientGetSecret (0.00s)
+    --- PASS: TestClientGetSecret/Get_Secret_with_a_property (0.00s)
+    --- PASS: TestClientGetSecret/Get_Secret_without_property (0.00s)
+    --- PASS: TestClientGetSecret/Get_secret_with_multiple_matches_by_ID (0.00s)
+    --- PASS: TestClientGetSecret/Get_non_existing_secret (0.00s)
+    --- PASS: TestClientGetSecret/Get_valid_secret_with_non_existing_property (0.00s)
+=== RUN   TestClientGetSecretMap
+=== RUN   TestClientGetSecretMap/Get_Secret_with_valid_property
+=== RUN   TestClientGetSecretMap/Get_Secret_without_property
+=== RUN   TestClientGetSecretMap/Get_non_existing_secret
+=== RUN   TestClientGetSecretMap/Get_Secret_with_invalid_property
+--- PASS: TestClientGetSecretMap (0.00s)
+    --- PASS: TestClientGetSecretMap/Get_Secret_with_valid_property (0.00s)
+    --- PASS: TestClientGetSecretMap/Get_Secret_without_property (0.00s)
+    --- PASS: TestClientGetSecretMap/Get_non_existing_secret (0.00s)
+    --- PASS: TestClientGetSecretMap/Get_Secret_with_invalid_property (0.00s)
+=== RUN   TestClientPushSecret
+=== RUN   TestClientPushSecret/Invalid_remote_ref
+=== RUN   TestClientPushSecret/Push_new_valid_secret
+=== RUN   TestClientPushSecret/Push_existing_valid_secret
+2025/05/03 18:40:15.338539 ERROR:  field not found for UID: record0
+=== RUN   TestClientPushSecret/Unable_to_push_new_valid_secret_with_multiple_matches_by_Name
+=== RUN   TestClientPushSecret/Unable_to_push_new_valid_secret
+=== RUN   TestClientPushSecret/Unable_to_save_existing_valid_secret
+2025/05/03 18:40:15.339274 ERROR:  field not found for UID: record0
+--- PASS: TestClientPushSecret (0.00s)
+    --- PASS: TestClientPushSecret/Invalid_remote_ref (0.00s)
+    --- PASS: TestClientPushSecret/Push_new_valid_secret (0.00s)
+    --- PASS: TestClientPushSecret/Push_existing_valid_secret (0.00s)
+    --- PASS: TestClientPushSecret/Unable_to_push_new_valid_secret_with_multiple_matches_by_Name (0.00s)
+    --- PASS: TestClientPushSecret/Unable_to_push_new_valid_secret (0.00s)
+    --- PASS: TestClientPushSecret/Unable_to_save_existing_valid_secret (0.00s)
+PASS
+coverage: 70.7% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/keepersecurity	1.086s	coverage: 70.7% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/keepersecurity/fake		coverage: 0.0% of statements
+=== RUN   TestSetAuth
+=== RUN   TestSetAuth/should_return_err_if_no_ca_provided
+=== RUN   TestSetAuth/should_return_err_if_no_auth_provided
+=== RUN   TestSetAuth/should_fetch_ca_from_Secret
+=== RUN   TestSetAuth/should_fetch_ca_from_ConfigMap
+=== RUN   TestSetAuth/should_set_token_from_secret
+=== RUN   TestSetAuth/should_set_client_cert_from_secret
+=== RUN   TestSetAuth/should_set_token_from_service_account
+=== RUN   TestSetAuth/should_fail_with_missing_URL
+=== RUN   TestSetAuth/should_read_config_from_secret
+--- PASS: TestSetAuth (0.01s)
+    --- PASS: TestSetAuth/should_return_err_if_no_ca_provided (0.00s)
+    --- PASS: TestSetAuth/should_return_err_if_no_auth_provided (0.00s)
+    --- PASS: TestSetAuth/should_fetch_ca_from_Secret (0.00s)
+    --- PASS: TestSetAuth/should_fetch_ca_from_ConfigMap (0.00s)
+    --- PASS: TestSetAuth/should_set_token_from_secret (0.00s)
+    --- PASS: TestSetAuth/should_set_client_cert_from_secret (0.00s)
+    --- PASS: TestSetAuth/should_set_token_from_service_account (0.00s)
+    --- PASS: TestSetAuth/should_fail_with_missing_URL (0.00s)
+    --- PASS: TestSetAuth/should_read_config_from_secret (0.00s)
+=== RUN   TestGetSecret
+=== RUN   TestGetSecret/secret_data_with_correct_property
+=== RUN   TestGetSecret/secret_data_with_multi_level_property
+=== RUN   TestGetSecret/secret_data_with_property_containing_.
+=== RUN   TestGetSecret/secret_data_contains_html_characters
+=== RUN   TestGetSecret/secret_metadata_contains_html_characters
+=== RUN   TestGetSecret/secret_data_contains_binary
+=== RUN   TestGetSecret/secret_data_without_property
+=== RUN   TestGetSecret/secret_metadata_without_property
+=== RUN   TestGetSecret/secret_metadata_with_single_level_property
+=== RUN   TestGetSecret/secret_metadata_with_multiple_level_property
+=== RUN   TestGetSecret/secret_is_not_found
+=== RUN   TestGetSecret/secret_data_with_wrong_property
+=== RUN   TestGetSecret/secret_metadata_with_wrong_property
+--- PASS: TestGetSecret (0.00s)
+    --- PASS: TestGetSecret/secret_data_with_correct_property (0.00s)
+    --- PASS: TestGetSecret/secret_data_with_multi_level_property (0.00s)
+    --- PASS: TestGetSecret/secret_data_with_property_containing_. (0.00s)
+    --- PASS: TestGetSecret/secret_data_contains_html_characters (0.00s)
+    --- PASS: TestGetSecret/secret_metadata_contains_html_characters (0.00s)
+    --- PASS: TestGetSecret/secret_data_contains_binary (0.00s)
+    --- PASS: TestGetSecret/secret_data_without_property (0.00s)
+    --- PASS: TestGetSecret/secret_metadata_without_property (0.00s)
+    --- PASS: TestGetSecret/secret_metadata_with_single_level_property (0.00s)
+    --- PASS: TestGetSecret/secret_metadata_with_multiple_level_property (0.00s)
+    --- PASS: TestGetSecret/secret_is_not_found (0.00s)
+    --- PASS: TestGetSecret/secret_data_with_wrong_property (0.00s)
+    --- PASS: TestGetSecret/secret_metadata_with_wrong_property (0.00s)
+=== RUN   TestGetSecretMap
+=== RUN   TestGetSecretMap/successful_case_metadata_without_property
+=== RUN   TestGetSecretMap/successful_case_metadata_with_single_property
+=== RUN   TestGetSecretMap/error_case_metadata_with_wrong_property
+--- PASS: TestGetSecretMap (0.00s)
+    --- PASS: TestGetSecretMap/successful_case_metadata_without_property (0.00s)
+    --- PASS: TestGetSecretMap/successful_case_metadata_with_single_property (0.00s)
+    --- PASS: TestGetSecretMap/error_case_metadata_with_wrong_property (0.00s)
+=== RUN   TestGetAllSecrets
+=== RUN   TestGetAllSecrets/use_regex
+=== RUN   TestGetAllSecrets/use_tags/labels
+--- PASS: TestGetAllSecrets (0.00s)
+    --- PASS: TestGetAllSecrets/use_regex (0.00s)
+    --- PASS: TestGetAllSecrets/use_tags/labels (0.00s)
+=== RUN   TestDeleteSecret
+=== RUN   TestDeleteSecret/refuse_to_delete_without_property
+=== RUN   TestDeleteSecret/gracefully_ignore_not_found_secret
+=== RUN   TestDeleteSecret/gracefully_ignore_not_found_property
+=== RUN   TestDeleteSecret/unexpected_lookup_error
+=== RUN   TestDeleteSecret/delete_whole_secret_if_only_property_should_be_removed
+=== RUN   TestDeleteSecret/multiple_properties,_just_remove_that_one
+--- PASS: TestDeleteSecret (0.00s)
+    --- PASS: TestDeleteSecret/refuse_to_delete_without_property (0.00s)
+    --- PASS: TestDeleteSecret/gracefully_ignore_not_found_secret (0.00s)
+    --- PASS: TestDeleteSecret/gracefully_ignore_not_found_property (0.00s)
+    --- PASS: TestDeleteSecret/unexpected_lookup_error (0.00s)
+    --- PASS: TestDeleteSecret/delete_whole_secret_if_only_property_should_be_removed (0.00s)
+    --- PASS: TestDeleteSecret/multiple_properties,_just_remove_that_one (0.00s)
+=== RUN   TestPushSecret
+=== RUN   TestPushSecret/refuse_to_work_without_property_if_secret_key_is_provided
+=== RUN   TestPushSecret/push_the_whole_secret_if_neither_remote_property_or_secretKey_is_defined_but_keep_existing_keys
+=== RUN   TestPushSecret/push_the_whole_secret_while_secret_exists_into_a_single_property
+=== RUN   TestPushSecret/push_the_whole_secret_while_secret_exists_but_new_property_is_defined_should_update_the_secret_and_keep_existing_key
+=== RUN   TestPushSecret/push_the_whole_secret_as_json_if_remote_property_is_defined_but_secret_key_is_not_given
+=== RUN   TestPushSecret/add_missing_property_to_existing_secret
+=== RUN   TestPushSecret/replace_existing_property_in_existing_secret
+=== RUN   TestPushSecret/replace_existing_property_in_existing_secret_with_targetMergePolicy_set_to_Ignore
+=== RUN   TestPushSecret/replace_existing_property_in_existing_secret_with_targetMergePolicy_set_to_Replace
+=== RUN   TestPushSecret/create_new_secret,_merging_existing_metadata
+=== RUN   TestPushSecret/create_new_secret_with_metadata_from_secret_metadata_and_remoteRef.metadata
+=== RUN   TestPushSecret/invalid_secret_metadata_structure_results_in_error
+=== RUN   TestPushSecret/non-json_secret_metadata_results_in_error
+=== RUN   TestPushSecret/create_new_secret_with_whole_secret
+=== RUN   TestPushSecret/create_new_dockerconfigjson_secret
+--- PASS: TestPushSecret (0.01s)
+    --- PASS: TestPushSecret/refuse_to_work_without_property_if_secret_key_is_provided (0.00s)
+    --- PASS: TestPushSecret/push_the_whole_secret_if_neither_remote_property_or_secretKey_is_defined_but_keep_existing_keys (0.00s)
+    --- PASS: TestPushSecret/push_the_whole_secret_while_secret_exists_into_a_single_property (0.00s)
+    --- PASS: TestPushSecret/push_the_whole_secret_while_secret_exists_but_new_property_is_defined_should_update_the_secret_and_keep_existing_key (0.00s)
+    --- PASS: TestPushSecret/push_the_whole_secret_as_json_if_remote_property_is_defined_but_secret_key_is_not_given (0.00s)
+    --- PASS: TestPushSecret/add_missing_property_to_existing_secret (0.00s)
+    --- PASS: TestPushSecret/replace_existing_property_in_existing_secret (0.00s)
+    --- PASS: TestPushSecret/replace_existing_property_in_existing_secret_with_targetMergePolicy_set_to_Ignore (0.00s)
+    --- PASS: TestPushSecret/replace_existing_property_in_existing_secret_with_targetMergePolicy_set_to_Replace (0.00s)
+    --- PASS: TestPushSecret/create_new_secret,_merging_existing_metadata (0.00s)
+    --- PASS: TestPushSecret/create_new_secret_with_metadata_from_secret_metadata_and_remoteRef.metadata (0.00s)
+    --- PASS: TestPushSecret/invalid_secret_metadata_structure_results_in_error (0.00s)
+    --- PASS: TestPushSecret/non-json_secret_metadata_results_in_error (0.00s)
+    --- PASS: TestPushSecret/create_new_secret_with_whole_secret (0.00s)
+    --- PASS: TestPushSecret/create_new_dockerconfigjson_secret (0.00s)
+=== RUN   TestNewClient
+=== RUN   TestNewClient/invalid_store
+=== RUN   TestNewClient/test_auth_ref
+=== RUN   TestNewClient/test_referent_auth_return
+=== RUN   TestNewClient/auth_fail_results_in_error
+=== RUN   TestNewClient/test_auth
+--- PASS: TestNewClient (0.00s)
+    --- PASS: TestNewClient/invalid_store (0.00s)
+    --- PASS: TestNewClient/test_auth_ref (0.00s)
+    --- PASS: TestNewClient/test_referent_auth_return (0.00s)
+    --- PASS: TestNewClient/auth_fail_results_in_error (0.00s)
+    --- PASS: TestNewClient/test_auth (0.00s)
+=== RUN   TestValidateStore
+=== RUN   TestValidateStore/empty_ca
+=== RUN   TestValidateStore/invalid_client_cert_name
+=== RUN   TestValidateStore/caprovider_with_empty_namespace_for_cluster_secret_store
+=== RUN   TestValidateStore/caprovider_with_non_empty_namespace_for_secret_store
+=== RUN   TestValidateStore/invalid_client_cert_key
+=== RUN   TestValidateStore/invalid_client_cert_secretRef
+=== RUN   TestValidateStore/invalid_client_token_auth_name
+=== RUN   TestValidateStore/invalid_client_token_auth_key
+=== RUN   TestValidateStore/invalid_client_token_auth_namespace
+=== RUN   TestValidateStore/invalid_service_account_auth_name
+=== RUN   TestValidateStore/valid_auth
+--- PASS: TestValidateStore (0.00s)
+    --- PASS: TestValidateStore/empty_ca (0.00s)
+    --- PASS: TestValidateStore/invalid_client_cert_name (0.00s)
+    --- PASS: TestValidateStore/caprovider_with_empty_namespace_for_cluster_secret_store (0.00s)
+    --- PASS: TestValidateStore/caprovider_with_non_empty_namespace_for_secret_store (0.00s)
+    --- PASS: TestValidateStore/invalid_client_cert_key (0.00s)
+    --- PASS: TestValidateStore/invalid_client_cert_secretRef (0.00s)
+    --- PASS: TestValidateStore/invalid_client_token_auth_name (0.00s)
+    --- PASS: TestValidateStore/invalid_client_token_auth_key (0.00s)
+    --- PASS: TestValidateStore/invalid_client_token_auth_namespace (0.00s)
+    --- PASS: TestValidateStore/invalid_service_account_auth_name (0.00s)
+    --- PASS: TestValidateStore/valid_auth (0.00s)
+=== RUN   TestValidate
+=== RUN   TestValidate/empty_ns_should_return_unknown_for_referent_auth
+=== RUN   TestValidate/review_results_in_unknown
+=== RUN   TestValidate/not_allowed_results_in_error
+=== RUN   TestValidate/allowed_results_in_no_error
+=== RUN   TestValidate/allowed_results_in_no_error#01
+--- PASS: TestValidate (0.00s)
+    --- PASS: TestValidate/empty_ns_should_return_unknown_for_referent_auth (0.00s)
+    --- PASS: TestValidate/review_results_in_unknown (0.00s)
+    --- PASS: TestValidate/not_allowed_results_in_error (0.00s)
+    --- PASS: TestValidate/allowed_results_in_no_error (0.00s)
+    --- PASS: TestValidate/allowed_results_in_no_error#01 (0.00s)
+PASS
+coverage: 81.8% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/kubernetes	1.152s	coverage: 81.8% of statements
+=== RUN   TestGetSecret
+--- PASS: TestGetSecret (0.00s)
+=== RUN   TestDeleteSecret
+--- PASS: TestDeleteSecret (0.00s)
+=== RUN   TestGetSecretMap
+=== RUN   TestGetSecretMap/valid_unmarshalling
+=== RUN   TestGetSecretMap/valid_unmarshalling_for_nested_json
+=== RUN   TestGetSecretMap/invalid_json
+=== RUN   TestGetSecretMap/client_error
+--- PASS: TestGetSecretMap (0.00s)
+    --- PASS: TestGetSecretMap/valid_unmarshalling (0.00s)
+    --- PASS: TestGetSecretMap/valid_unmarshalling_for_nested_json (0.00s)
+    --- PASS: TestGetSecretMap/invalid_json (0.00s)
+    --- PASS: TestGetSecretMap/client_error (0.00s)
+=== RUN   TestValidateStore
+=== RUN   TestValidateStore/invalid_store_missing_onboardbaseAPIKey.name
+=== RUN   TestValidateStore/invalid_store_missing_onboardbasePasscode.name
+=== RUN   TestValidateStore/invalid_store_namespace_not_allowed
+=== RUN   TestValidateStore/valid_provide_optional_onboardbaseAPIKey.key
+=== RUN   TestValidateStore/valid_namespace_not_set
+--- PASS: TestValidateStore (0.00s)
+    --- PASS: TestValidateStore/invalid_store_missing_onboardbaseAPIKey.name (0.00s)
+    --- PASS: TestValidateStore/invalid_store_missing_onboardbasePasscode.name (0.00s)
+    --- PASS: TestValidateStore/invalid_store_namespace_not_allowed (0.00s)
+    --- PASS: TestValidateStore/valid_provide_optional_onboardbaseAPIKey.key (0.00s)
+    --- PASS: TestValidateStore/valid_namespace_not_set (0.00s)
+PASS
+coverage: 31.3% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/onboardbase	1.105s	coverage: 31.3% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/onboardbase/client		coverage: 0.0% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/onboardbase/fake		coverage: 0.0% of statements
+=== RUN   TestFindItem
+=== RUN   TestFindItem/test-0
+=== RUN   TestFindItem/test-1
+=== RUN   TestFindItem/test-2
+=== RUN   TestFindItem/test-3
+=== RUN   TestFindItem/test-4
+=== RUN   TestFindItem/test-5
+=== RUN   TestFindItem/test-6
+--- PASS: TestFindItem (0.00s)
+    --- PASS: TestFindItem/test-0 (0.00s)
+    --- PASS: TestFindItem/test-1 (0.00s)
+    --- PASS: TestFindItem/test-2 (0.00s)
+    --- PASS: TestFindItem/test-3 (0.00s)
+    --- PASS: TestFindItem/test-4 (0.00s)
+    --- PASS: TestFindItem/test-5 (0.00s)
+    --- PASS: TestFindItem/test-6 (0.00s)
+=== RUN   TestValidateStore
+--- PASS: TestValidateStore (0.00s)
+=== RUN   TestGetSecret
+--- PASS: TestGetSecret (0.00s)
+=== RUN   TestGetSecretMap
+--- PASS: TestGetSecretMap (0.00s)
+=== RUN   TestGetAllSecrets
+--- PASS: TestGetAllSecrets (0.00s)
+=== RUN   TestSortVaults
+--- PASS: TestSortVaults (0.00s)
+=== RUN   TestHasUniqueVaultNumbers
+--- PASS: TestHasUniqueVaultNumbers (0.00s)
+=== RUN   TestProviderOnePasswordCreateItem
+--- PASS: TestProviderOnePasswordCreateItem (0.00s)
+=== RUN   TestProviderOnePasswordDeleteItem
+--- PASS: TestProviderOnePasswordDeleteItem (0.00s)
+=== RUN   TestUpdateFields
+--- PASS: TestUpdateFields (0.00s)
+=== RUN   TestGenerateNewItemField
+--- PASS: TestGenerateNewItemField (0.00s)
+=== RUN   TestProviderOnePasswordPushSecret
+=== RUN   TestProviderOnePasswordPushSecret/find_item_error
+=== RUN   TestProviderOnePasswordPushSecret/create_item_error
+=== RUN   TestProviderOnePasswordPushSecret/key_not_in_data
+=== RUN   TestProviderOnePasswordPushSecret/create_item_success
+=== RUN   TestProviderOnePasswordPushSecret/update_fields_error
+=== RUN   TestProviderOnePasswordPushSecret/standard_update
+=== RUN   TestProviderOnePasswordPushSecret/create_item_with_metadata_overwrites_success
+--- PASS: TestProviderOnePasswordPushSecret (1.50s)
+    --- PASS: TestProviderOnePasswordPushSecret/find_item_error (0.00s)
+    --- PASS: TestProviderOnePasswordPushSecret/create_item_error (0.00s)
+    --- PASS: TestProviderOnePasswordPushSecret/key_not_in_data (0.00s)
+    --- PASS: TestProviderOnePasswordPushSecret/create_item_success (0.50s)
+    --- PASS: TestProviderOnePasswordPushSecret/update_fields_error (0.00s)
+    --- PASS: TestProviderOnePasswordPushSecret/standard_update (0.50s)
+    --- PASS: TestProviderOnePasswordPushSecret/create_item_with_metadata_overwrites_success (0.50s)
+PASS
+coverage: 81.4% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/onepassword	2.617s	coverage: 81.4% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/onepassword/fake		coverage: 0.0% of statements
+=== RUN   TestOracleVaultGetSecret
+--- PASS: TestOracleVaultGetSecret (0.00s)
+=== RUN   TestGetSecretMap
+--- PASS: TestGetSecretMap (0.00s)
+=== RUN   TestValidateStore
+--- PASS: TestValidateStore (0.00s)
+=== RUN   TestVaultManagementServiceNewClient
+=== PAUSE TestVaultManagementServiceNewClient
+=== RUN   TestOracleVaultGetAllSecrets
+=== RUN   TestOracleVaultGetAllSecrets/filters_secrets_that_don't_match_the_pattern
+=== RUN   TestOracleVaultGetAllSecrets/filters_secrets_that_are_deleting
+--- PASS: TestOracleVaultGetAllSecrets (0.00s)
+    --- PASS: TestOracleVaultGetAllSecrets/filters_secrets_that_don't_match_the_pattern (0.00s)
+    --- PASS: TestOracleVaultGetAllSecrets/filters_secrets_that_are_deleting (0.00s)
+=== RUN   TestOracleVaultPushSecret
+=== RUN   TestOracleVaultPushSecret/create_a_secret_if_not_exists
+=== RUN   TestOracleVaultPushSecret/create_a_json_secret_if_not_exists
+=== RUN   TestOracleVaultPushSecret/update_a_secret_if_exists
+=== RUN   TestOracleVaultPushSecret/neither_create_nor_update_if_secret_content_is_unchanged
+--- PASS: TestOracleVaultPushSecret (0.00s)
+    --- PASS: TestOracleVaultPushSecret/create_a_secret_if_not_exists (0.00s)
+    --- PASS: TestOracleVaultPushSecret/create_a_json_secret_if_not_exists (0.00s)
+    --- PASS: TestOracleVaultPushSecret/update_a_secret_if_exists (0.00s)
+    --- PASS: TestOracleVaultPushSecret/neither_create_nor_update_if_secret_content_is_unchanged (0.00s)
+=== RUN   TestOracleVaultDeleteSecret
+=== RUN   TestOracleVaultDeleteSecret/delete_existing_secret
+=== RUN   TestOracleVaultDeleteSecret/do_not_delete_if_secret_not_found
+=== RUN   TestOracleVaultDeleteSecret/do_not_delete_if_secret_os_already_deleting
+--- PASS: TestOracleVaultDeleteSecret (0.00s)
+    --- PASS: TestOracleVaultDeleteSecret/delete_existing_secret (0.00s)
+    --- PASS: TestOracleVaultDeleteSecret/do_not_delete_if_secret_not_found (0.00s)
+    --- PASS: TestOracleVaultDeleteSecret/do_not_delete_if_secret_os_already_deleting (0.00s)
+=== CONT  TestVaultManagementServiceNewClient
+=== RUN   TestVaultManagementServiceNewClient/no_retry_settings
+=== RUN   TestVaultManagementServiceNewClient/fill_all_the_retry_settings
+=== RUN   TestVaultManagementServiceNewClient/partially_configure_the_retry_settings_-_retry_interval
+=== RUN   TestVaultManagementServiceNewClient/partially_configure_the_retry_settings_-_max_retries
+=== RUN   TestVaultManagementServiceNewClient/auth_secret_does_not_exist
+=== RUN   TestVaultManagementServiceNewClient/invalid_retry_interval
+--- PASS: TestVaultManagementServiceNewClient (3.61s)
+    --- PASS: TestVaultManagementServiceNewClient/no_retry_settings (0.34s)
+    --- PASS: TestVaultManagementServiceNewClient/fill_all_the_retry_settings (0.25s)
+    --- PASS: TestVaultManagementServiceNewClient/partially_configure_the_retry_settings_-_retry_interval (0.50s)
+    --- PASS: TestVaultManagementServiceNewClient/partially_configure_the_retry_settings_-_max_retries (1.15s)
+    --- PASS: TestVaultManagementServiceNewClient/auth_secret_does_not_exist (0.62s)
+    --- PASS: TestVaultManagementServiceNewClient/invalid_retry_interval (0.74s)
+PASS
+coverage: 65.4% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/oracle	4.697s	coverage: 65.4% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/oracle/fake		coverage: 0.0% of statements
+=== RUN   TestValidateStore
+--- PASS: TestValidateStore (0.00s)
+=== RUN   TestClose
+--- PASS: TestClose (0.00s)
+=== RUN   TestGetAllSecrets
+=== RUN   TestGetAllSecrets/no_matches
+=== RUN   TestGetAllSecrets/matches
+=== RUN   TestGetAllSecrets/missing_find.name
+=== RUN   TestGetAllSecrets/empty_find.name.regexp
+--- PASS: TestGetAllSecrets (0.00s)
+    --- PASS: TestGetAllSecrets/no_matches (0.00s)
+    --- PASS: TestGetAllSecrets/matches (0.00s)
+    --- PASS: TestGetAllSecrets/missing_find.name (0.00s)
+    --- PASS: TestGetAllSecrets/empty_find.name.regexp (0.00s)
+=== RUN   TestGetSecret
+=== RUN   TestGetSecret/return_err_when_not_found
+=== RUN   TestGetSecret/get_property_from_secret
+=== RUN   TestGetSecret/get_full_secret
+=== RUN   TestGetSecret/return_err_when_using_invalid_property
+--- PASS: TestGetSecret (0.00s)
+    --- PASS: TestGetSecret/return_err_when_not_found (0.00s)
+    --- PASS: TestGetSecret/get_property_from_secret (0.00s)
+    --- PASS: TestGetSecret/get_full_secret (0.00s)
+    --- PASS: TestGetSecret/return_err_when_using_invalid_property (0.00s)
+=== RUN   TestSecretExists
+--- PASS: TestSecretExists (0.00s)
+=== RUN   TestPushSecret
+--- PASS: TestPushSecret (0.00s)
+=== RUN   TestDeleteSecret
+--- PASS: TestDeleteSecret (0.00s)
+=== RUN   TestGetSecretMap
+--- PASS: TestGetSecretMap (0.00s)
+PASS
+coverage: 66.7% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/passbolt	1.098s	coverage: 66.7% of statements
+=== RUN   TestPasswortDepotApiListDatabases
+=== RUN   TestPasswortDepotApiListDatabases/list_databases
+=== RUN   TestPasswortDepotApiListDatabases/bad_response_body
+--- PASS: TestPasswortDepotApiListDatabases (0.00s)
+    --- PASS: TestPasswortDepotApiListDatabases/list_databases (0.00s)
+    --- PASS: TestPasswortDepotApiListDatabases/bad_response_body (0.00s)
+=== RUN   TestPasswortDepotApiGetSecret
+=== RUN   TestPasswortDepotApiGetSecret/get_secret
+=== RUN   TestPasswortDepotApiGetSecret/get_nested_secret
+=== RUN   TestPasswortDepotApiGetSecret/bad_response_body_on_database_entries
+=== RUN   TestPasswortDepotApiGetSecret/bad_response_on_secret_entry
+=== RUN   TestPasswortDepotApiGetSecret/no_secret_with_name
+--- PASS: TestPasswortDepotApiGetSecret (0.00s)
+    --- PASS: TestPasswortDepotApiGetSecret/get_secret (0.00s)
+    --- PASS: TestPasswortDepotApiGetSecret/get_nested_secret (0.00s)
+    --- PASS: TestPasswortDepotApiGetSecret/bad_response_body_on_database_entries (0.00s)
+    --- PASS: TestPasswortDepotApiGetSecret/bad_response_on_secret_entry (0.00s)
+    --- PASS: TestPasswortDepotApiGetSecret/no_secret_with_name (0.00s)
+PASS
+coverage: 35.3% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/passworddepot	1.105s	coverage: 35.3% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/passworddepot/fake		coverage: 0.0% of statements
+=== RUN   TestSecretManagerCapabilities
+--- PASS: TestSecretManagerCapabilities (0.00s)
+=== RUN   TestSecretManagerClose
+--- PASS: TestSecretManagerClose (0.00s)
+=== RUN   TestSecretManagerGetAllSecrets
+--- PASS: TestSecretManagerGetAllSecrets (0.00s)
+=== RUN   TestSecretManagerGetSecret
+--- PASS: TestSecretManagerGetSecret (0.00s)
+=== RUN   TestSecretManagerGetSecretNotExisting
+--- PASS: TestSecretManagerGetSecretNotExisting (0.00s)
+=== RUN   TestSecretManagerGetSecretMap
+--- PASS: TestSecretManagerGetSecretMap (0.00s)
+=== RUN   TestSecretManagerValidate
+--- PASS: TestSecretManagerValidate (0.00s)
+=== RUN   TestSecretManagerValidateStore
+--- PASS: TestSecretManagerValidateStore (0.00s)
+PASS
+coverage: 59.1% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/previder	1.084s	coverage: 59.1% of statements
+=== RUN   TestValidateStore
+=== RUN   TestValidateStore/invalid_without_organization
+=== RUN   TestValidateStore/invalid_without_environment
+--- PASS: TestValidateStore (0.00s)
+    --- PASS: TestValidateStore/invalid_without_organization (0.00s)
+    --- PASS: TestValidateStore/invalid_without_environment (0.00s)
+=== RUN   TestGetSecret
+=== RUN   TestGetSecret/querying_for_the_key_returns_the_value
+--- PASS: TestGetSecret (0.01s)
+    --- PASS: TestGetSecret/querying_for_the_key_returns_the_value (0.00s)
+=== RUN   TestGetSecretMap
+=== RUN   TestGetSecretMap/successful_case_(basic_types)
+map[bar:[116 114 117 101] foo:[98 97 114] foobar:[52 50]]=== RUN   TestGetSecretMap/successful_case_(nested)
+map[test22:[123 34 109 121 34 58 123 34 116 114 97 99 101 34 58 123 34 100 101 102 34 58 123 34 98 101 103 105 110 34 58 123 34 98 121 116 101 34 58 55 50 44 34 99 111 108 117 109 110 34 58 49 49 44 34 108 105 110 101 34 58 54 125 44 34 101 110 100 34 58 123 34 98 121 116 101 34 58 55 55 44 34 99 111 108 117 109 110 34 58 49 54 44 34 108 105 110 101 34 58 54 125 44 34 101 110 118 105 114 111 110 109 101 110 116 34 58 34 98 97 114 34 125 125 44 34 118 97 108 117 101 34 58 34 104 101 108 108 111 34 125 125] test33:[123 34 119 111 114 108 100 34 58 123 34 116 114 97 99 101 34 58 123 34 100 101 102 34 58 123 34 98 101 103 105 110 34 58 123 34 98 121 116 101 34 58 49 48 51 44 34 99 111 108 117 109 110 34 58 49 52 44 34 108 105 110 101 34 58 56 125 44 34 101 110 100 34 58 123 34 98 121 116 101 34 58 49 48 56 44 34 99 111 108 117 109 110 34 58 49 57 44 34 108 105 110 101 34 58 56 125 44 34 101 110 118 105 114 111 110 109 101 110 116 34 58 34 98 97 114 34 125 125 44 34 118 97 108 117 101 34 58 34 104 101 108 108 111 34 125 125]]=== RUN   TestGetSecretMap/successful_case_(basic_+_nested)
+map[foo:[98 97 114] test22:[123 34 109 121 34 58 123 34 116 114 97 99 101 34 58 123 34 100 101 102 34 58 123 34 98 101 103 105 110 34 58 123 34 98 121 116 101 34 58 55 50 44 34 99 111 108 117 109 110 34 58 49 49 44 34 108 105 110 101 34 58 54 125 44 34 101 110 100 34 58 123 34 98 121 116 101 34 58 55 55 44 34 99 111 108 117 109 110 34 58 49 54 44 34 108 105 110 101 34 58 54 125 44 34 101 110 118 105 114 111 110 109 101 110 116 34 58 34 98 97 114 34 125 125 44 34 118 97 108 117 101 34 58 34 104 101 108 108 111 34 125 125]]--- PASS: TestGetSecretMap (0.02s)
+    --- PASS: TestGetSecretMap/successful_case_(basic_types) (0.01s)
+    --- PASS: TestGetSecretMap/successful_case_(nested) (0.00s)
+    --- PASS: TestGetSecretMap/successful_case_(basic_+_nested) (0.01s)
+=== RUN   TestCreateSubmaps
+--- PASS: TestCreateSubmaps (0.00s)
+PASS
+coverage: 42.0% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/pulumi	1.160s	coverage: 42.0% of statements
+?   	github.com/external-secrets/external-secrets/pkg/provider/register	[no test files]
+=== RUN   TestCacheMissReturnsFalse
+--- PASS: TestCacheMissReturnsFalse (0.00s)
+=== RUN   TestCachePutThenGet
+--- PASS: TestCachePutThenGet (0.00s)
+=== RUN   TestCacheLeastRecentlyUsedIsRemovedFirst
+--- PASS: TestCacheLeastRecentlyUsedIsRemovedFirst (0.01s)
+=== RUN   TestGetSecret
+=== RUN   TestGetSecret/empty_version_should_mean_latest_enabled
+=== RUN   TestGetSecret/asking_for_latest_version
+=== RUN   TestGetSecret/asking_for_latest_version_by_name
+=== RUN   TestGetSecret/secret_in_path
+=== RUN   TestGetSecret/non_existing_secret_id_should_yield_NoSecretErr
+=== RUN   TestGetSecret/non_existing_secret_name_should_yield_NoSecretErr
+=== RUN   TestGetSecret/non_existing_revision_should_yield_NoSecretErr
+=== RUN   TestGetSecret/non_existing_json_property_should_yield_not_found
+=== RUN   TestGetSecret/asking_for_version_by_revision_number
+=== RUN   TestGetSecret/asking_for_version_by_revision_number_and_name
+=== RUN   TestGetSecret/asking_for_nested_json_property
+--- PASS: TestGetSecret (0.00s)
+    --- PASS: TestGetSecret/empty_version_should_mean_latest_enabled (0.00s)
+    --- PASS: TestGetSecret/asking_for_latest_version (0.00s)
+    --- PASS: TestGetSecret/asking_for_latest_version_by_name (0.00s)
+    --- PASS: TestGetSecret/secret_in_path (0.00s)
+    --- PASS: TestGetSecret/non_existing_secret_id_should_yield_NoSecretErr (0.00s)
+    --- PASS: TestGetSecret/non_existing_secret_name_should_yield_NoSecretErr (0.00s)
+    --- PASS: TestGetSecret/non_existing_revision_should_yield_NoSecretErr (0.00s)
+    --- PASS: TestGetSecret/non_existing_json_property_should_yield_not_found (0.00s)
+    --- PASS: TestGetSecret/asking_for_version_by_revision_number (0.00s)
+    --- PASS: TestGetSecret/asking_for_version_by_revision_number_and_name (0.00s)
+    --- PASS: TestGetSecret/asking_for_nested_json_property (0.00s)
+=== RUN   TestPushSecret
+=== RUN   TestPushSecret/to_new_secret
+=== RUN   TestPushSecret/to_secret_created_by_us
+=== RUN   TestPushSecret/to_secret_partially_created_by_us_with_no_version
+=== RUN   TestPushSecret/secret_created_in_path
+=== RUN   TestPushSecret/by_invalid_secret_ref_is_an_error
+=== RUN   TestPushSecret/by_id_is_an_error
+=== RUN   TestPushSecret/without_change_does_not_create_a_version
+=== RUN   TestPushSecret/previous_version_is_disabled
+--- PASS: TestPushSecret (0.00s)
+    --- PASS: TestPushSecret/to_new_secret (0.00s)
+    --- PASS: TestPushSecret/to_secret_created_by_us (0.00s)
+    --- PASS: TestPushSecret/to_secret_partially_created_by_us_with_no_version (0.00s)
+    --- PASS: TestPushSecret/secret_created_in_path (0.00s)
+    --- PASS: TestPushSecret/by_invalid_secret_ref_is_an_error (0.00s)
+    --- PASS: TestPushSecret/by_id_is_an_error (0.00s)
+    --- PASS: TestPushSecret/without_change_does_not_create_a_version (0.00s)
+    --- PASS: TestPushSecret/previous_version_is_disabled (0.00s)
+=== RUN   TestGetSecretMap
+--- PASS: TestGetSecretMap (0.00s)
+=== RUN   TestGetSecretMapNested
+--- PASS: TestGetSecretMapNested (0.00s)
+=== RUN   TestGetAllSecrets
+=== RUN   TestGetAllSecrets/find_secrets_by_name
+=== RUN   TestGetAllSecrets/find_secrets_by_tags
+=== RUN   TestGetAllSecrets/find_secrets_by_path
+--- PASS: TestGetAllSecrets (0.00s)
+    --- PASS: TestGetAllSecrets/find_secrets_by_name (0.00s)
+    --- PASS: TestGetAllSecrets/find_secrets_by_tags (0.00s)
+    --- PASS: TestGetAllSecrets/find_secrets_by_path (0.00s)
+=== RUN   TestDeleteSecret
+=== RUN   TestDeleteSecret/Secret_Not_Found
+=== RUN   TestDeleteSecret/Delete_Successfully
+=== RUN   TestDeleteSecret/Delete_by_path
+--- PASS: TestDeleteSecret (0.00s)
+    --- PASS: TestDeleteSecret/Secret_Not_Found (0.00s)
+    --- PASS: TestDeleteSecret/Delete_Successfully (0.00s)
+    --- PASS: TestDeleteSecret/Delete_by_path (0.00s)
+=== RUN   TestSplitNameAndPath
+=== RUN   TestSplitNameAndPath//foo
+=== RUN   TestSplitNameAndPath/#00
+=== RUN   TestSplitNameAndPath//foo/bar
+--- PASS: TestSplitNameAndPath (0.00s)
+    --- PASS: TestSplitNameAndPath//foo (0.00s)
+    --- PASS: TestSplitNameAndPath/#00 (0.00s)
+    --- PASS: TestSplitNameAndPath//foo/bar (0.00s)
+PASS
+coverage: 67.7% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/scaleway	1.107s	coverage: 67.7% of statements
+=== RUN   TestGetSecretSecretServer
+=== RUN   TestGetSecretSecretServer/key_=_'secret_name'_and_user_property_returns_a_single_value
+=== RUN   TestGetSecretSecretServer/Secret_from_JSON:_key_and_nested_property_returns_a_single_value
+=== RUN   TestGetSecretSecretServer/Secret_from_JSON:_existent_key_with_non-existing_propery
+=== RUN   TestGetSecretSecretServer/Secret_from_code:_existent_key_with_no_property
+=== RUN   TestGetSecretSecretServer/Secret_from_code:_key_and_username_fieldnamereturns_a_single_value
+=== RUN   TestGetSecretSecretServer/Secret_from_code:_'name'_not_found_and_password_slug_returns_error
+=== RUN   TestGetSecretSecretServer/incorrect_key_returns_nil_and_error
+=== RUN   TestGetSecretSecretServer/Secret_from_JSON:_key_and_password_property_returns_a_single_value
+=== RUN   TestGetSecretSecretServer/Secret_from_JSON:_existent_'name'_key_with_no_propery
+=== RUN   TestGetSecretSecretServer/Secret_from_code:_'name'_and_password_slug_returns_a_single_value
+=== RUN   TestGetSecretSecretServer/Secret_from_code:_'name'_found_and_non-existent_attribute_slug_returns_noSecretError
+--- PASS: TestGetSecretSecretServer (0.00s)
+    --- PASS: TestGetSecretSecretServer/key_=_'secret_name'_and_user_property_returns_a_single_value (0.00s)
+    --- PASS: TestGetSecretSecretServer/Secret_from_JSON:_key_and_nested_property_returns_a_single_value (0.00s)
+    --- PASS: TestGetSecretSecretServer/Secret_from_JSON:_existent_key_with_non-existing_propery (0.00s)
+    --- PASS: TestGetSecretSecretServer/Secret_from_code:_existent_key_with_no_property (0.00s)
+    --- PASS: TestGetSecretSecretServer/Secret_from_code:_key_and_username_fieldnamereturns_a_single_value (0.00s)
+    --- PASS: TestGetSecretSecretServer/Secret_from_code:_'name'_not_found_and_password_slug_returns_error (0.00s)
+    --- PASS: TestGetSecretSecretServer/incorrect_key_returns_nil_and_error (0.00s)
+    --- PASS: TestGetSecretSecretServer/Secret_from_JSON:_key_and_password_property_returns_a_single_value (0.00s)
+    --- PASS: TestGetSecretSecretServer/Secret_from_JSON:_existent_'name'_key_with_no_propery (0.00s)
+    --- PASS: TestGetSecretSecretServer/Secret_from_code:_'name'_and_password_slug_returns_a_single_value (0.00s)
+    --- PASS: TestGetSecretSecretServer/Secret_from_code:_'name'_found_and_non-existent_attribute_slug_returns_noSecretError (0.00s)
+=== RUN   TestDoesConfigDependOnNamespace
+=== RUN   TestDoesConfigDependOnNamespace/true_when_password_references_a_secret_without_explicit_namespace
+=== RUN   TestDoesConfigDependOnNamespace/false_when_neither_Username_or_Password_reference_a_secret
+=== RUN   TestDoesConfigDependOnNamespace/true_when_Username_references_a_secret_without_explicit_namespace
+--- PASS: TestDoesConfigDependOnNamespace (0.00s)
+    --- PASS: TestDoesConfigDependOnNamespace/true_when_password_references_a_secret_without_explicit_namespace (0.00s)
+    --- PASS: TestDoesConfigDependOnNamespace/false_when_neither_Username_or_Password_reference_a_secret (0.00s)
+    --- PASS: TestDoesConfigDependOnNamespace/true_when_Username_references_a_secret_without_explicit_namespace (0.00s)
+=== RUN   TestValidateStore
+=== RUN   TestValidateStore/invalid_without_username
+=== RUN   TestValidateStore/invalid_without_password
+=== RUN   TestValidateStore/invalid_without_serverURL
+=== RUN   TestValidateStore/invalid_with_ambiguous_Username
+=== RUN   TestValidateStore/invalid_with_ambiguous_Password
+=== RUN   TestValidateStore/invalid_with_invalid_Username
+=== RUN   TestValidateStore/invalid_with_invalid_Password
+=== RUN   TestValidateStore/valid_with_tenant/clientID/clientSecret
+--- PASS: TestValidateStore (0.00s)
+    --- PASS: TestValidateStore/invalid_without_username (0.00s)
+    --- PASS: TestValidateStore/invalid_without_password (0.00s)
+    --- PASS: TestValidateStore/invalid_without_serverURL (0.00s)
+    --- PASS: TestValidateStore/invalid_with_ambiguous_Username (0.00s)
+    --- PASS: TestValidateStore/invalid_with_ambiguous_Password (0.00s)
+    --- PASS: TestValidateStore/invalid_with_invalid_Username (0.00s)
+    --- PASS: TestValidateStore/invalid_with_invalid_Password (0.00s)
+    --- PASS: TestValidateStore/valid_with_tenant/clientID/clientSecret (0.00s)
+=== RUN   TestNewClient
+=== RUN   TestNewClient/missing_provider_config
+=== RUN   TestNewClient/namespace-dependent_cluster_secret_store
+=== RUN   TestNewClient/dangling_username_ref
+=== RUN   TestNewClient/secret_ref_without_key
+=== RUN   TestNewClient/secret_ref_with_non-existent_keys
+=== RUN   TestNewClient/valid_secret_refs
+=== RUN   TestNewClient/dangling_password_ref
+=== RUN   TestNewClient/secret_ref_without_name
+=== RUN   TestNewClient/secret_values
+=== RUN   TestNewClient/cluster_secret_store
+--- PASS: TestNewClient (0.00s)
+    --- PASS: TestNewClient/missing_provider_config (0.00s)
+    --- PASS: TestNewClient/namespace-dependent_cluster_secret_store (0.00s)
+    --- PASS: TestNewClient/dangling_username_ref (0.00s)
+    --- PASS: TestNewClient/secret_ref_without_key (0.00s)
+    --- PASS: TestNewClient/secret_ref_with_non-existent_keys (0.00s)
+    --- PASS: TestNewClient/valid_secret_refs (0.00s)
+    --- PASS: TestNewClient/dangling_password_ref (0.00s)
+    --- PASS: TestNewClient/secret_ref_without_name (0.00s)
+    --- PASS: TestNewClient/secret_values (0.00s)
+    --- PASS: TestNewClient/cluster_secret_store (0.00s)
+PASS
+coverage: 75.4% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/secretserver	1.085s	coverage: 75.4% of statements
+=== RUN   TestValidateStore
+=== RUN   TestValidateStore/should_not_create_provider_due_to_nil_store
+=== RUN   TestValidateStore/should_not_create_provider_due_to_missing_provider
+=== RUN   TestValidateStore/should_not_create_provider_due_to_missing_provider_field
+=== RUN   TestValidateStore/should_not_create_provider_due_to_missing_provider_module
+=== RUN   TestValidateStore/should_not_create_provider_due_to_missing_provider_auth_client_ID
+=== RUN   TestValidateStore/invalid_module_should_return_an_error
+=== RUN   TestValidateStore/should_not_create_provider_due_senhasegura_URL_without_https_scheme
+=== RUN   TestValidateStore/should_not_create_provider_due_senhasegura_URL_without_valid_name
+=== RUN   TestValidateStore/should_create_provider
+--- PASS: TestValidateStore (0.00s)
+    --- PASS: TestValidateStore/should_not_create_provider_due_to_nil_store (0.00s)
+    --- PASS: TestValidateStore/should_not_create_provider_due_to_missing_provider (0.00s)
+    --- PASS: TestValidateStore/should_not_create_provider_due_to_missing_provider_field (0.00s)
+    --- PASS: TestValidateStore/should_not_create_provider_due_to_missing_provider_module (0.00s)
+    --- PASS: TestValidateStore/should_not_create_provider_due_to_missing_provider_auth_client_ID (0.00s)
+    --- PASS: TestValidateStore/invalid_module_should_return_an_error (0.00s)
+    --- PASS: TestValidateStore/should_not_create_provider_due_senhasegura_URL_without_https_scheme (0.00s)
+    --- PASS: TestValidateStore/should_not_create_provider_due_senhasegura_URL_without_valid_name (0.00s)
+    --- PASS: TestValidateStore/should_create_provider (0.00s)
+PASS
+coverage: 58.1% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/senhasegura	1.074s	coverage: 58.1% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/senhasegura/auth		coverage: 0.0% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/senhasegura/dsm		coverage: 0.0% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/testing/fake		coverage: 0.0% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/util/fake		coverage: 0.0% of statements
+=== RUN   TestTryLock
+=== PAUSE TestTryLock
+=== CONT  TestTryLock
+=== RUN   TestTryLock/No_conflict_occurs_and_hold_lock_successfully
+=== RUN   TestTryLock/Conflict_occurs_and_cannot_hold_lock
+--- PASS: TestTryLock (0.00s)
+    --- PASS: TestTryLock/No_conflict_occurs_and_hold_lock_successfully (0.00s)
+    --- PASS: TestTryLock/Conflict_occurs_and_cannot_hold_lock (0.00s)
+PASS
+coverage: 100.0% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/util/locks	1.011s	coverage: 100.0% of statements
+=== RUN   TestSetAuthNamespace
+=== RUN   TestSetAuthNamespace/StoreWithDistinctNamespace
+=== RUN   TestSetAuthNamespace/StoreNoNamespace
+=== RUN   TestSetAuthNamespace/StoreWithNamespace
+=== RUN   TestSetAuthNamespace/StoreWithAuthNamespace
+=== RUN   TestSetAuthNamespace/StoreWithSameNamespace
+--- PASS: TestSetAuthNamespace (0.00s)
+    --- PASS: TestSetAuthNamespace/StoreWithDistinctNamespace (0.00s)
+    --- PASS: TestSetAuthNamespace/StoreNoNamespace (0.00s)
+    --- PASS: TestSetAuthNamespace/StoreWithNamespace (0.00s)
+    --- PASS: TestSetAuthNamespace/StoreWithAuthNamespace (0.00s)
+    --- PASS: TestSetAuthNamespace/StoreWithSameNamespace (0.00s)
+=== RUN   TestCheckTokenErrors
+=== RUN   TestCheckTokenErrors/SuccessWithNoData
+=== RUN   TestCheckTokenErrors/Error
+=== RUN   TestCheckTokenErrors/NoDataNorError
+--- PASS: TestCheckTokenErrors (0.00s)
+    --- PASS: TestCheckTokenErrors/SuccessWithNoData (0.00s)
+    --- PASS: TestCheckTokenErrors/Error (0.00s)
+    --- PASS: TestCheckTokenErrors/NoDataNorError (0.00s)
+=== RUN   TestCheckTokenTtl
+=== RUN   TestCheckTokenTtl/LongTTLExpirable
+=== RUN   TestCheckTokenTtl/ShortTTLExpirable
+=== RUN   TestCheckTokenTtl/ZeroTTLExpirable
+=== RUN   TestCheckTokenTtl/NonExpirable
+--- PASS: TestCheckTokenTtl (0.00s)
+    --- PASS: TestCheckTokenTtl/LongTTLExpirable (0.00s)
+    --- PASS: TestCheckTokenTtl/ShortTTLExpirable (0.00s)
+    --- PASS: TestCheckTokenTtl/ZeroTTLExpirable (0.00s)
+    --- PASS: TestCheckTokenTtl/NonExpirable (0.00s)
+=== RUN   TestGetAllSecrets
+=== RUN   TestGetAllSecrets/FindByTagKv1
+=== RUN   TestGetAllSecrets/FilterByPathReturnsNotFound
+=== RUN   TestGetAllSecrets/MetadataNotFound
+=== RUN   TestGetAllSecrets/FindByNameKv2
+=== RUN   TestGetAllSecrets/FilterByPathKv2WithTags
+=== RUN   TestGetAllSecrets/FilterByPathKv2WithoutTags
+=== RUN   TestGetAllSecrets/FilterByPathKv1
+=== RUN   TestGetAllSecrets/FindByNameKv1
+=== RUN   TestGetAllSecrets/FindByTagKv2
+--- PASS: TestGetAllSecrets (0.01s)
+    --- PASS: TestGetAllSecrets/FindByTagKv1 (0.00s)
+    --- PASS: TestGetAllSecrets/FilterByPathReturnsNotFound (0.00s)
+    --- PASS: TestGetAllSecrets/MetadataNotFound (0.00s)
+    --- PASS: TestGetAllSecrets/FindByNameKv2 (0.00s)
+    --- PASS: TestGetAllSecrets/FilterByPathKv2WithTags (0.00s)
+    --- PASS: TestGetAllSecrets/FilterByPathKv2WithoutTags (0.00s)
+    --- PASS: TestGetAllSecrets/FilterByPathKv1 (0.00s)
+    --- PASS: TestGetAllSecrets/FindByNameKv1 (0.00s)
+    --- PASS: TestGetAllSecrets/FindByTagKv2 (0.00s)
+=== RUN   TestGetSecret
+=== RUN   TestGetSecret/ReadSecret
+=== RUN   TestGetSecret/ReadSecretWithNestedValue
+=== RUN   TestGetSecret/ReadSecretWithNestedValueFromData
+=== RUN   TestGetSecret/FailReadSecretMetadataWrongVersion
+=== RUN   TestGetSecret/ReadSecretWithoutProperty
+=== RUN   TestGetSecret/ReadSecretWithMissingValueFromData
+=== RUN   TestGetSecret/ReadSecretWithJsonNumber
+=== RUN   TestGetSecret/ReadSecretError
+=== RUN   TestGetSecret/ReadSecretMetadataWithProperty
+=== RUN   TestGetSecret/ReadSecretWithNil
+=== RUN   TestGetSecret/NonexistentProperty
+=== RUN   TestGetSecret/ReadSecretNotFound
+=== RUN   TestGetSecret/ReadSecretMetadataWithoutProperty
+=== RUN   TestGetSecret/FailReadSecretMetadataNoMetadata
+=== RUN   TestGetSecret/ReadSecretWithSliceValue
+=== RUN   TestGetSecret/FailReadSecretMetadataInvalidProperty
+--- PASS: TestGetSecret (0.00s)
+    --- PASS: TestGetSecret/ReadSecret (0.00s)
+    --- PASS: TestGetSecret/ReadSecretWithNestedValue (0.00s)
+    --- PASS: TestGetSecret/ReadSecretWithNestedValueFromData (0.00s)
+    --- PASS: TestGetSecret/FailReadSecretMetadataWrongVersion (0.00s)
+    --- PASS: TestGetSecret/ReadSecretWithoutProperty (0.00s)
+    --- PASS: TestGetSecret/ReadSecretWithMissingValueFromData (0.00s)
+    --- PASS: TestGetSecret/ReadSecretWithJsonNumber (0.00s)
+    --- PASS: TestGetSecret/ReadSecretError (0.00s)
+    --- PASS: TestGetSecret/ReadSecretMetadataWithProperty (0.00s)
+    --- PASS: TestGetSecret/ReadSecretWithNil (0.00s)
+    --- PASS: TestGetSecret/NonexistentProperty (0.00s)
+    --- PASS: TestGetSecret/ReadSecretNotFound (0.00s)
+    --- PASS: TestGetSecret/ReadSecretMetadataWithoutProperty (0.00s)
+    --- PASS: TestGetSecret/FailReadSecretMetadataNoMetadata (0.00s)
+    --- PASS: TestGetSecret/ReadSecretWithSliceValue (0.00s)
+    --- PASS: TestGetSecret/FailReadSecretMetadataInvalidProperty (0.00s)
+=== RUN   TestGetSecretMap
+=== RUN   TestGetSecretMap/ReadSecretKV1
+=== RUN   TestGetSecretMap/ReadSecretKV2
+=== RUN   TestGetSecretMap/ReadSecretWithNilValueKV1
+=== RUN   TestGetSecretMap/ReadSecretWithTypesKV2
+=== RUN   TestGetSecretMap/ReadDeeplyNestedSecret
+=== RUN   TestGetSecretMap/ReadSecretWithSpecialCharactersKV1
+=== RUN   TestGetSecretMap/ReadSecretWithSpecialCharactersKV2
+=== RUN   TestGetSecretMap/ReadSecretWithNilValueKV2
+=== RUN   TestGetSecretMap/ReadNestedSecret
+=== RUN   TestGetSecretMap/ReadSecretError
+--- PASS: TestGetSecretMap (0.01s)
+    --- PASS: TestGetSecretMap/ReadSecretKV1 (0.00s)
+    --- PASS: TestGetSecretMap/ReadSecretKV2 (0.00s)
+    --- PASS: TestGetSecretMap/ReadSecretWithNilValueKV1 (0.00s)
+    --- PASS: TestGetSecretMap/ReadSecretWithTypesKV2 (0.00s)
+    --- PASS: TestGetSecretMap/ReadDeeplyNestedSecret (0.00s)
+    --- PASS: TestGetSecretMap/ReadSecretWithSpecialCharactersKV1 (0.00s)
+    --- PASS: TestGetSecretMap/ReadSecretWithSpecialCharactersKV2 (0.00s)
+    --- PASS: TestGetSecretMap/ReadSecretWithNilValueKV2 (0.00s)
+    --- PASS: TestGetSecretMap/ReadNestedSecret (0.00s)
+    --- PASS: TestGetSecretMap/ReadSecretError (0.00s)
+=== RUN   TestGetSecretPath
+=== RUN   TestGetSecretPath/PathWithoutFormatV2_NoData
+=== RUN   TestGetSecretPath/PathWithoutFormatV2_NoPath
+=== RUN   TestGetSecretPath/PathWithoutFormatV2_NoPathWithData
+=== RUN   TestGetSecretPath/PathWithoutFormatV1
+=== RUN   TestGetSecretPath/PathWithoutFormatV1_NoPath
+=== RUN   TestGetSecretPath/WithoutPathButMountpointV2
+=== RUN   TestGetSecretPath/WithoutPathButMountpointV1
+=== RUN   TestGetSecretPath/PathWithoutFormatV2
+--- PASS: TestGetSecretPath (0.00s)
+    --- PASS: TestGetSecretPath/PathWithoutFormatV2_NoData (0.00s)
+    --- PASS: TestGetSecretPath/PathWithoutFormatV2_NoPath (0.00s)
+    --- PASS: TestGetSecretPath/PathWithoutFormatV2_NoPathWithData (0.00s)
+    --- PASS: TestGetSecretPath/PathWithoutFormatV1 (0.00s)
+    --- PASS: TestGetSecretPath/PathWithoutFormatV1_NoPath (0.00s)
+    --- PASS: TestGetSecretPath/WithoutPathButMountpointV2 (0.00s)
+    --- PASS: TestGetSecretPath/WithoutPathButMountpointV1 (0.00s)
+    --- PASS: TestGetSecretPath/PathWithoutFormatV2 (0.00s)
+=== RUN   TestGetSecretMetadataPath
+=== RUN   TestGetSecretMetadataPath/PathForV1
+=== RUN   TestGetSecretMetadataPath/PathForV2
+=== RUN   TestGetSecretMetadataPath/PathForV2WithData
+--- PASS: TestGetSecretMetadataPath (0.00s)
+    --- PASS: TestGetSecretMetadataPath/PathForV1 (0.00s)
+    --- PASS: TestGetSecretMetadataPath/PathForV2 (0.00s)
+    --- PASS: TestGetSecretMetadataPath/PathForV2WithData (0.00s)
+=== RUN   TestSecretExists
+=== RUN   TestSecretExists/NoExistingSecretV1
+=== RUN   TestSecretExists/NoExistingSecretWithPropertyV1
+=== RUN   TestSecretExists/ExistingSecretV2
+=== RUN   TestSecretExists/ErrorReadingSecretV1
+=== RUN   TestSecretExists/NoExistingSecretV2
+=== RUN   TestSecretExists/NoExistingSecretWithPropertyV2
+=== RUN   TestSecretExists/ExistingSecretV1
+=== RUN   TestSecretExists/ExistingSecretWithNilV1
+=== RUN   TestSecretExists/ExistingSecretWithNilV2
+=== RUN   TestSecretExists/ErrorReadingSecretV2
+--- PASS: TestSecretExists (0.00s)
+    --- PASS: TestSecretExists/NoExistingSecretV1 (0.00s)
+    --- PASS: TestSecretExists/NoExistingSecretWithPropertyV1 (0.00s)
+    --- PASS: TestSecretExists/ExistingSecretV2 (0.00s)
+    --- PASS: TestSecretExists/ErrorReadingSecretV1 (0.00s)
+    --- PASS: TestSecretExists/NoExistingSecretV2 (0.00s)
+    --- PASS: TestSecretExists/NoExistingSecretWithPropertyV2 (0.00s)
+    --- PASS: TestSecretExists/ExistingSecretV1 (0.00s)
+    --- PASS: TestSecretExists/ExistingSecretWithNilV1 (0.00s)
+    --- PASS: TestSecretExists/ExistingSecretWithNilV2 (0.00s)
+    --- PASS: TestSecretExists/ErrorReadingSecretV2 (0.00s)
+=== RUN   TestDeleteSecret
+=== RUN   TestDeleteSecret/DeleteSecretNotManagedKV2
+=== RUN   TestDeleteSecret/DeleteSecretErrorKV1
+=== RUN   TestDeleteSecret/DeleteSecretErrorKV2
+=== RUN   TestDeleteSecret/DeleteSecretFailIfErrorKV2
+=== RUN   TestDeleteSecret/DeleteSecretSuccessKV1
+=== RUN   TestDeleteSecret/DeleteSecretSuccessKV2
+=== RUN   TestDeleteSecret/DeleteSecretUpdatePropertyKV1
+=== RUN   TestDeleteSecret/DeleteSecretUpdatePropertyKV2
+=== RUN   TestDeleteSecret/DeleteSecretIfNoOtherPropertiesKV1
+=== RUN   TestDeleteSecret/DeleteSecretIfNoOtherPropertiesKV2
+=== RUN   TestDeleteSecret/DeleteSecretNoOpKV1
+=== RUN   TestDeleteSecret/DeleteSecretNoOpKV2
+=== RUN   TestDeleteSecret/DeleteSecretFailIfErrorKV1
+=== RUN   TestDeleteSecret/DeleteSecretNotManagedKV1
+--- PASS: TestDeleteSecret (0.00s)
+    --- PASS: TestDeleteSecret/DeleteSecretNotManagedKV2 (0.00s)
+    --- PASS: TestDeleteSecret/DeleteSecretErrorKV1 (0.00s)
+    --- PASS: TestDeleteSecret/DeleteSecretErrorKV2 (0.00s)
+    --- PASS: TestDeleteSecret/DeleteSecretFailIfErrorKV2 (0.00s)
+    --- PASS: TestDeleteSecret/DeleteSecretSuccessKV1 (0.00s)
+    --- PASS: TestDeleteSecret/DeleteSecretSuccessKV2 (0.00s)
+    --- PASS: TestDeleteSecret/DeleteSecretUpdatePropertyKV1 (0.00s)
+    --- PASS: TestDeleteSecret/DeleteSecretUpdatePropertyKV2 (0.00s)
+    --- PASS: TestDeleteSecret/DeleteSecretIfNoOtherPropertiesKV1 (0.00s)
+    --- PASS: TestDeleteSecret/DeleteSecretIfNoOtherPropertiesKV2 (0.00s)
+    --- PASS: TestDeleteSecret/DeleteSecretNoOpKV1 (0.00s)
+    --- PASS: TestDeleteSecret/DeleteSecretNoOpKV2 (0.00s)
+    --- PASS: TestDeleteSecret/DeleteSecretFailIfErrorKV1 (0.00s)
+    --- PASS: TestDeleteSecret/DeleteSecretNotManagedKV1 (0.00s)
+=== RUN   TestPushSecret
+=== RUN   TestPushSecret/PushSecretPropertyKV2
+=== RUN   TestPushSecret/PushSecretUpdatePropertyKV1
+=== RUN   TestPushSecret/SetSecretNotManagedByESOV1
+=== RUN   TestPushSecret/WholeSecretKV2
+=== RUN   TestPushSecret/SetSecretKV1
+=== RUN   TestPushSecret/SetSecretNotManagedByESOV2
+=== RUN   TestPushSecret/SetSecretWithWriteErrorKV1
+=== RUN   TestPushSecret/PushSecretPropertyKV1
+=== RUN   TestPushSecret/PushSecretUpdatePropertyKV2
+=== RUN   TestPushSecret/PushSecretPropertyNoUpdateKV1
+=== RUN   TestPushSecret/PushSecretPropertyNoUpdateKV2
+=== RUN   TestPushSecret/SetSecretKV2
+=== RUN   TestPushSecret/SetSecretEqualsPushSecretV1
+=== RUN   TestPushSecret/SetSecretEqualsPushSecretV2
+=== RUN   TestPushSecret/SetSecretErrorReadingSecretKV1
+=== RUN   TestPushSecret/SetSecretErrorReadingSecretKV2
+=== RUN   TestPushSecret/SetSecretWithWriteErrorKV2
+--- PASS: TestPushSecret (0.00s)
+    --- PASS: TestPushSecret/PushSecretPropertyKV2 (0.00s)
+    --- PASS: TestPushSecret/PushSecretUpdatePropertyKV1 (0.00s)
+    --- PASS: TestPushSecret/SetSecretNotManagedByESOV1 (0.00s)
+    --- PASS: TestPushSecret/WholeSecretKV2 (0.00s)
+    --- PASS: TestPushSecret/SetSecretKV1 (0.00s)
+    --- PASS: TestPushSecret/SetSecretNotManagedByESOV2 (0.00s)
+    --- PASS: TestPushSecret/SetSecretWithWriteErrorKV1 (0.00s)
+    --- PASS: TestPushSecret/PushSecretPropertyKV1 (0.00s)
+    --- PASS: TestPushSecret/PushSecretUpdatePropertyKV2 (0.00s)
+    --- PASS: TestPushSecret/PushSecretPropertyNoUpdateKV1 (0.00s)
+    --- PASS: TestPushSecret/PushSecretPropertyNoUpdateKV2 (0.00s)
+    --- PASS: TestPushSecret/SetSecretKV2 (0.00s)
+    --- PASS: TestPushSecret/SetSecretEqualsPushSecretV1 (0.00s)
+    --- PASS: TestPushSecret/SetSecretEqualsPushSecretV2 (0.00s)
+    --- PASS: TestPushSecret/SetSecretErrorReadingSecretKV1 (0.00s)
+    --- PASS: TestPushSecret/SetSecretErrorReadingSecretKV2 (0.00s)
+    --- PASS: TestPushSecret/SetSecretWithWriteErrorKV2 (0.00s)
+=== RUN   TestNewVault
+=== RUN   TestNewVault/GetCertNamespaceMissingError
+=== RUN   TestNewVault/GetKeyFormatError
+=== RUN   TestNewVault/SuccessfulVaultStoreWithSecretRef
+=== RUN   TestNewVault/SuccessfulVaultStoreWithJwtAuthAndReferentSpec
+=== RUN   TestNewVault/ValidRetrySettings
+=== RUN   TestNewVault/SuccessfulVaultStoreWithIamAuthSecret
+=== RUN   TestNewVault/GetCertConfigMapMissingError
+=== RUN   TestNewVault/ClientTlsInvalidCertificatesError
+=== RUN   TestNewVault/SuccessfulVaultStoreValidClientTls
+=== RUN   TestNewVault/SuccessfulVaultStoreWithApproleRef
+=== RUN   TestNewVault/AddVaultStoreCertsError
+=== RUN   TestNewVault/SuccessfulVaultStoreWithCertAuth
+=== RUN   TestNewVault/SuccessfulVaultStoreWithK8sCertSecret
+=== RUN   TestNewVault/GetCertSecretKeyMissingError
+=== RUN   TestNewVault/SuccessfulVaultStoreWithK8sCertConfigMap
+=== RUN   TestNewVault/GetCertificateFormatError
+=== RUN   TestNewVault/SuccessfulVaultStoreWithSecretRefAndReferentSpec
+=== RUN   TestNewVault/InvalidVaultStore
+=== RUN   TestNewVault/InvalidRetrySettings
+=== RUN   TestNewVault/VaultAuthFormatError
+=== RUN   TestNewVault/GetKubeServiceAccountError
+=== RUN   TestNewVault/GetKubeSecretError
+--- PASS: TestNewVault (0.04s)
+    --- PASS: TestNewVault/GetCertNamespaceMissingError (0.00s)
+    --- PASS: TestNewVault/GetKeyFormatError (0.00s)
+    --- PASS: TestNewVault/SuccessfulVaultStoreWithSecretRef (0.00s)
+    --- PASS: TestNewVault/SuccessfulVaultStoreWithJwtAuthAndReferentSpec (0.00s)
+    --- PASS: TestNewVault/ValidRetrySettings (0.00s)
+    --- PASS: TestNewVault/SuccessfulVaultStoreWithIamAuthSecret (0.00s)
+    --- PASS: TestNewVault/GetCertConfigMapMissingError (0.00s)
+    --- PASS: TestNewVault/ClientTlsInvalidCertificatesError (0.00s)
+    --- PASS: TestNewVault/SuccessfulVaultStoreValidClientTls (0.01s)
+    --- PASS: TestNewVault/SuccessfulVaultStoreWithApproleRef (0.00s)
+    --- PASS: TestNewVault/AddVaultStoreCertsError (0.00s)
+    --- PASS: TestNewVault/SuccessfulVaultStoreWithCertAuth (0.01s)
+    --- PASS: TestNewVault/SuccessfulVaultStoreWithK8sCertSecret (0.00s)
+    --- PASS: TestNewVault/GetCertSecretKeyMissingError (0.00s)
+    --- PASS: TestNewVault/SuccessfulVaultStoreWithK8sCertConfigMap (0.00s)
+    --- PASS: TestNewVault/GetCertificateFormatError (0.00s)
+    --- PASS: TestNewVault/SuccessfulVaultStoreWithSecretRefAndReferentSpec (0.00s)
+    --- PASS: TestNewVault/InvalidVaultStore (0.00s)
+    --- PASS: TestNewVault/InvalidRetrySettings (0.00s)
+    --- PASS: TestNewVault/VaultAuthFormatError (0.00s)
+    --- PASS: TestNewVault/GetKubeServiceAccountError (0.00s)
+    --- PASS: TestNewVault/GetKubeSecretError (0.00s)
+=== RUN   TestValidateStore
+=== RUN   TestValidateStore/empty_auth
+=== RUN   TestValidateStore/invalid_approle_with_namespace
+=== RUN   TestValidateStore/invalid_approle_with_roleId_and_no_roleRef
+=== RUN   TestValidateStore/valid_approle_with_roleId_and_no_roleRef
+=== RUN   TestValidateStore/valid_approle_with_roleId_and_no_roleRef#01
+=== RUN   TestValidateStore/invalid_clientcert
+=== RUN   TestValidateStore/invalid_cert_secret
+=== RUN   TestValidateStore/invalid_jwt_secret
+=== RUN   TestValidateStore/invalid_kubernetes_sa
+=== RUN   TestValidateStore/invalid_kubernetes_secret
+=== RUN   TestValidateStore/invalid_ldap_secret
+=== RUN   TestValidateStore/invalid_userpass_secret
+=== RUN   TestValidateStore/invalid_token_secret
+=== RUN   TestValidateStore/valid_clientTls_config
+=== RUN   TestValidateStore/invalid_clientTls_config,_missing_SecretRef
+=== RUN   TestValidateStore/invalid_clientTls_config,_missing_ClientCert
+--- PASS: TestValidateStore (0.00s)
+    --- PASS: TestValidateStore/empty_auth (0.00s)
+    --- PASS: TestValidateStore/invalid_approle_with_namespace (0.00s)
+    --- PASS: TestValidateStore/invalid_approle_with_roleId_and_no_roleRef (0.00s)
+    --- PASS: TestValidateStore/valid_approle_with_roleId_and_no_roleRef (0.00s)
+    --- PASS: TestValidateStore/valid_approle_with_roleId_and_no_roleRef#01 (0.00s)
+    --- PASS: TestValidateStore/invalid_clientcert (0.00s)
+    --- PASS: TestValidateStore/invalid_cert_secret (0.00s)
+    --- PASS: TestValidateStore/invalid_jwt_secret (0.00s)
+    --- PASS: TestValidateStore/invalid_kubernetes_sa (0.00s)
+    --- PASS: TestValidateStore/invalid_kubernetes_secret (0.00s)
+    --- PASS: TestValidateStore/invalid_ldap_secret (0.00s)
+    --- PASS: TestValidateStore/invalid_userpass_secret (0.00s)
+    --- PASS: TestValidateStore/invalid_token_secret (0.00s)
+    --- PASS: TestValidateStore/valid_clientTls_config (0.00s)
+    --- PASS: TestValidateStore/invalid_clientTls_config,_missing_SecretRef (0.00s)
+    --- PASS: TestValidateStore/invalid_clientTls_config,_missing_ClientCert (0.00s)
+PASS
+coverage: 69.7% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/vault	1.203s	coverage: 69.7% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/vault/fake		coverage: 0.0% of statements
+=== RUN   TestTokenFetcher
+--- PASS: TestTokenFetcher (0.00s)
+=== RUN   TestResolver
+--- PASS: TestResolver (0.00s)
+PASS
+coverage: 14.3% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/vault/iamauth	1.118s	coverage: 14.3% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/vault/util		coverage: 0.0% of statements
+=== RUN   TestWebhookGetSecret
+=== RUN   TestWebhookGetSecret/error_url
+=== RUN   TestWebhookGetSecret/error_body
+=== RUN   TestWebhookGetSecret/error_connection
+=== RUN   TestWebhookGetSecret/error_no_secret_err
+=== RUN   TestWebhookGetSecret/error_server_error
+=== RUN   TestWebhookGetSecret/error_bad_json
+=== RUN   TestWebhookGetSecret/error_bad_jsonpath
+=== RUN   TestWebhookGetSecret/pull_data_out_of_map
+=== RUN   TestWebhookGetSecret/error_timeout
+=== RUN   TestWebhookGetSecret/good_plaintext
+=== RUN   TestWebhookGetSecret/good_json
+=== RUN   TestWebhookGetSecret/good_json_map
+=== RUN   TestWebhookGetSecret/good_json_map_string
+=== RUN   TestWebhookGetSecret/error_json_map_string
+=== RUN   TestWebhookGetSecret/error_json_map
+=== RUN   TestWebhookGetSecret/good_json_with_good_templated_jsonpath
+=== RUN   TestWebhookGetSecret/good_json_with_jsonpath_filter
+=== RUN   TestWebhookGetSecret/good_json_with_bad_templated_jsonpath
+=== RUN   TestWebhookGetSecret/error_with_jsonpath_filter_empty_results
+=== RUN   TestWebhookGetSecret/success_with_jsonpath_filter_and_result_array
+=== RUN   TestWebhookGetSecret/success_with_jsonpath_filter_and_result_array_of_ints
+=== RUN   TestWebhookGetSecret/support_backslash
+=== RUN   TestWebhookGetSecret/good_json_with_mixed_fields_and_jsonpath_filter
+=== RUN   TestWebhookGetSecret/good_json_with_mixed_fields_to_map
+=== RUN   TestWebhookGetSecret/only_url_encoding_for_url_templates
+--- PASS: TestWebhookGetSecret (0.06s)
+    --- PASS: TestWebhookGetSecret/error_url (0.00s)
+    --- PASS: TestWebhookGetSecret/error_body (0.00s)
+    --- PASS: TestWebhookGetSecret/error_connection (0.00s)
+    --- PASS: TestWebhookGetSecret/error_no_secret_err (0.00s)
+    --- PASS: TestWebhookGetSecret/error_server_error (0.00s)
+    --- PASS: TestWebhookGetSecret/error_bad_json (0.00s)
+    --- PASS: TestWebhookGetSecret/error_bad_jsonpath (0.00s)
+    --- PASS: TestWebhookGetSecret/pull_data_out_of_map (0.00s)
+    --- PASS: TestWebhookGetSecret/error_timeout (0.00s)
+    --- PASS: TestWebhookGetSecret/good_plaintext (0.00s)
+    --- PASS: TestWebhookGetSecret/good_json (0.00s)
+    --- PASS: TestWebhookGetSecret/good_json_map (0.00s)
+    --- PASS: TestWebhookGetSecret/good_json_map_string (0.00s)
+    --- PASS: TestWebhookGetSecret/error_json_map_string (0.00s)
+    --- PASS: TestWebhookGetSecret/error_json_map (0.00s)
+    --- PASS: TestWebhookGetSecret/good_json_with_good_templated_jsonpath (0.00s)
+    --- PASS: TestWebhookGetSecret/good_json_with_jsonpath_filter (0.00s)
+    --- PASS: TestWebhookGetSecret/good_json_with_bad_templated_jsonpath (0.00s)
+    --- PASS: TestWebhookGetSecret/error_with_jsonpath_filter_empty_results (0.00s)
+    --- PASS: TestWebhookGetSecret/success_with_jsonpath_filter_and_result_array (0.00s)
+    --- PASS: TestWebhookGetSecret/success_with_jsonpath_filter_and_result_array_of_ints (0.00s)
+    --- PASS: TestWebhookGetSecret/support_backslash (0.00s)
+    --- PASS: TestWebhookGetSecret/good_json_with_mixed_fields_and_jsonpath_filter (0.00s)
+    --- PASS: TestWebhookGetSecret/good_json_with_mixed_fields_to_map (0.00s)
+    --- PASS: TestWebhookGetSecret/only_url_encoding_for_url_templates (0.00s)
+=== RUN   TestWebhookPushSecret
+=== RUN   TestWebhookPushSecret/secret_key_not_found
+=== RUN   TestWebhookPushSecret/default_body_good_json
+=== RUN   TestWebhookPushSecret/good_json
+=== RUN   TestWebhookPushSecret/empty_body
+=== RUN   TestWebhookPushSecret/default_body_pushing_without_secret_key
+=== RUN   TestWebhookPushSecret/pushing_without_secret_key
+=== RUN   TestWebhookPushSecret/pushing_without_secret_key_with_dynamic_resolution
+--- PASS: TestWebhookPushSecret (0.02s)
+    --- PASS: TestWebhookPushSecret/secret_key_not_found (0.00s)
+    --- PASS: TestWebhookPushSecret/default_body_good_json (0.00s)
+    --- PASS: TestWebhookPushSecret/good_json (0.00s)
+    --- PASS: TestWebhookPushSecret/empty_body (0.00s)
+    --- PASS: TestWebhookPushSecret/default_body_pushing_without_secret_key (0.00s)
+    --- PASS: TestWebhookPushSecret/pushing_without_secret_key (0.00s)
+    --- PASS: TestWebhookPushSecret/pushing_without_secret_key_with_dynamic_resolution (0.00s)
+PASS
+coverage: 68.3% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/webhook	1.158s	coverage: 68.3% of statements
+=== RUN   TestNewClient
+--- PASS: TestNewClient (0.00s)
+=== RUN   TestGetSecretWithoutProperty
+--- PASS: TestGetSecretWithoutProperty (0.00s)
+=== RUN   TestGetSecretWithProperty
+--- PASS: TestGetSecretWithProperty (0.00s)
+=== RUN   TestGetSecretByVersionID
+--- PASS: TestGetSecretByVersionID (0.00s)
+=== RUN   TestGetSecretUnauthorized
+--- PASS: TestGetSecretUnauthorized (0.00s)
+=== RUN   TestGetSecretNotFound
+--- PASS: TestGetSecretNotFound (0.00s)
+=== RUN   TestGetSecretWithTwoNamespaces
+--- PASS: TestGetSecretWithTwoNamespaces (0.00s)
+=== RUN   TestGetSecretWithTwoApiEndpoints
+--- PASS: TestGetSecretWithTwoApiEndpoints (0.00s)
+=== RUN   TestGetSecretWithIamTokenExpiration
+--- PASS: TestGetSecretWithIamTokenExpiration (0.00s)
+=== RUN   TestGetSecretWithIamTokenCleanup
+--- PASS: TestGetSecretWithIamTokenCleanup (0.00s)
+=== RUN   TestGetSecretMap
+--- PASS: TestGetSecretMap (0.00s)
+=== RUN   TestGetSecretMapByVersionID
+--- PASS: TestGetSecretMapByVersionID (0.00s)
+PASS
+coverage: 89.5% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/yandex/certificatemanager	1.119s	coverage: 89.5% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/yandex/certificatemanager/client		coverage: 0.0% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/yandex/common		coverage: 0.0% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/yandex/common/clock		coverage: 0.0% of statements
+=== RUN   TestNewClient
+--- PASS: TestNewClient (0.00s)
+=== RUN   TestGetSecretForAllEntries
+--- PASS: TestGetSecretForAllEntries (0.00s)
+=== RUN   TestGetSecretForTextEntry
+--- PASS: TestGetSecretForTextEntry (0.00s)
+=== RUN   TestGetSecretForBinaryEntry
+--- PASS: TestGetSecretForBinaryEntry (0.00s)
+=== RUN   TestGetSecretByVersionID
+--- PASS: TestGetSecretByVersionID (0.00s)
+=== RUN   TestGetSecretUnauthorized
+--- PASS: TestGetSecretUnauthorized (0.00s)
+=== RUN   TestGetSecretNotFound
+--- PASS: TestGetSecretNotFound (0.00s)
+=== RUN   TestGetSecretWithTwoNamespaces
+--- PASS: TestGetSecretWithTwoNamespaces (0.00s)
+=== RUN   TestGetSecretWithTwoApiEndpoints
+--- PASS: TestGetSecretWithTwoApiEndpoints (0.00s)
+=== RUN   TestGetSecretWithIamTokenExpiration
+--- PASS: TestGetSecretWithIamTokenExpiration (0.00s)
+=== RUN   TestGetSecretWithIamTokenCleanup
+--- PASS: TestGetSecretWithIamTokenCleanup (0.00s)
+=== RUN   TestGetSecretMap
+--- PASS: TestGetSecretMap (0.00s)
+=== RUN   TestGetSecretMapByVersionID
+--- PASS: TestGetSecretMapByVersionID (0.00s)
+PASS
+coverage: 82.5% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox	1.161s	coverage: 82.5% of statements
+	github.com/external-secrets/external-secrets/pkg/provider/yandex/lockbox/client		coverage: 0.0% of statements
+	github.com/external-secrets/external-secrets/pkg/template		coverage: 0.0% of statements
+=== RUN   TestFilterPEM
+=== RUN   TestFilterPEM/extract_cert_/_cert_first
+=== RUN   TestFilterPEM/extract_cert_/_key_first
+=== RUN   TestFilterPEM/extract_multiple_certs
+=== RUN   TestFilterPEM/extract_key
+=== RUN   TestFilterPEM/key_with_junk
+=== RUN   TestFilterPEM/begin/end_with_junk
+=== RUN   TestFilterPEM/interleaved_junk
+=== RUN   TestFilterPEM/err_when_junk
+--- PASS: TestFilterPEM (0.00s)
+    --- PASS: TestFilterPEM/extract_cert_/_cert_first (0.00s)
+    --- PASS: TestFilterPEM/extract_cert_/_key_first (0.00s)
+    --- PASS: TestFilterPEM/extract_multiple_certs (0.00s)
+    --- PASS: TestFilterPEM/extract_key (0.00s)
+    --- PASS: TestFilterPEM/key_with_junk (0.00s)
+    --- PASS: TestFilterPEM/begin/end_with_junk (0.00s)
+    --- PASS: TestFilterPEM/interleaved_junk (0.00s)
+    --- PASS: TestFilterPEM/err_when_junk (0.00s)
+=== RUN   TestFilterCertChain
+=== RUN   TestFilterCertChain/extract_leaf_cert_/_empty_cert_chain
+=== RUN   TestFilterCertChain/extract_leaf_cert_/_cert_chain_with_pkey
+=== RUN   TestFilterCertChain/extract_leaf_cert_/_leaf_cert_only
+=== RUN   TestFilterCertChain/extract_leaf_cert_/_cert_chain_without_root
+=== RUN   TestFilterCertChain/extract_leaf_cert_/_root_cert_only
+=== RUN   TestFilterCertChain/extract_leaf_cert_/_full_cert_chain
+=== RUN   TestFilterCertChain/extract_intermediate_cert_/_leaf_cert_only
+=== RUN   TestFilterCertChain/extract_intermediate_cert_/_cert_chain_without_root
+=== RUN   TestFilterCertChain/extract_intermediate_cert_/_full_cert_chain
+=== RUN   TestFilterCertChain/extract_root_cert_/_leaf_cert_only
+=== RUN   TestFilterCertChain/extract_root_cert_/_root_cert_only
+=== RUN   TestFilterCertChain/extract_root_cert_/_full_cert_chain
+--- PASS: TestFilterCertChain (0.01s)
+    --- PASS: TestFilterCertChain/extract_leaf_cert_/_empty_cert_chain (0.00s)
+    --- PASS: TestFilterCertChain/extract_leaf_cert_/_cert_chain_with_pkey (0.00s)
+    --- PASS: TestFilterCertChain/extract_leaf_cert_/_leaf_cert_only (0.00s)
+    --- PASS: TestFilterCertChain/extract_leaf_cert_/_cert_chain_without_root (0.00s)
+    --- PASS: TestFilterCertChain/extract_leaf_cert_/_root_cert_only (0.00s)
+    --- PASS: TestFilterCertChain/extract_leaf_cert_/_full_cert_chain (0.00s)
+    --- PASS: TestFilterCertChain/extract_intermediate_cert_/_leaf_cert_only (0.00s)
+    --- PASS: TestFilterCertChain/extract_intermediate_cert_/_cert_chain_without_root (0.00s)
+    --- PASS: TestFilterCertChain/extract_intermediate_cert_/_full_cert_chain (0.00s)
+    --- PASS: TestFilterCertChain/extract_root_cert_/_leaf_cert_only (0.00s)
+    --- PASS: TestFilterCertChain/extract_root_cert_/_root_cert_only (0.00s)
+    --- PASS: TestFilterCertChain/extract_root_cert_/_full_cert_chain (0.00s)
+=== RUN   TestPemToPkcs12
+--- PASS: TestPemToPkcs12 (0.01s)
+=== RUN   TestFullPemToPkcs12
+--- PASS: TestFullPemToPkcs12 (0.01s)
+=== RUN   TestExecute
+=== RUN   TestExecute/test_empty
+=== RUN   TestExecute/b64dec_func
+=== RUN   TestExecute/fromJson_func
+=== RUN   TestExecute/from_&_toJson_func
+=== RUN   TestExecute/fromJson_&_toYaml_func
+=== RUN   TestExecute/fromYaml_&_toJson_func
+=== RUN   TestExecute/use_sprig_functions
+=== RUN   TestExecute/use_replace_function
+=== RUN   TestExecute/use_upper_function
+=== RUN   TestExecute/multiline_template
+=== RUN   TestExecute/base64_pipeline
+=== RUN   TestExecute/base64_pkcs12_extract
+=== RUN   TestExecute/base64_pkcs12_extract_with_password
+=== RUN   TestExecute/base64_decode_error
+=== RUN   TestExecute/pkcs12_key_wrong_password
+=== RUN   TestExecute/pkcs12_cert_wrong_password
+=== RUN   TestExecute/fromJson_error
+=== RUN   TestExecute/template_syntax_error
+=== RUN   TestExecute/unknown_key_error
+=== RUN   TestExecute/jwk_rsa_pub_pem
+=== RUN   TestExecute/jwk_rsa_priv_pem
+=== RUN   TestExecute/jwk_ecdsa_pub_pem
+=== RUN   TestExecute/jwk_ecdsa_priv_pem
+=== RUN   TestExecute/filter_pem_certificate
+=== RUN   TestExecute/labels
+=== RUN   TestExecute/annotations
+=== RUN   TestExecute/stringData
+=== RUN   TestExecute/NonStandardDelimiters
+--- PASS: TestExecute (0.05s)
+    --- PASS: TestExecute/test_empty (0.00s)
+    --- PASS: TestExecute/b64dec_func (0.00s)
+    --- PASS: TestExecute/fromJson_func (0.00s)
+    --- PASS: TestExecute/from_&_toJson_func (0.00s)
+    --- PASS: TestExecute/fromJson_&_toYaml_func (0.00s)
+    --- PASS: TestExecute/fromYaml_&_toJson_func (0.00s)
+    --- PASS: TestExecute/use_sprig_functions (0.00s)
+    --- PASS: TestExecute/use_replace_function (0.00s)
+    --- PASS: TestExecute/use_upper_function (0.00s)
+    --- PASS: TestExecute/multiline_template (0.00s)
+    --- PASS: TestExecute/base64_pipeline (0.00s)
+    --- PASS: TestExecute/base64_pkcs12_extract (0.02s)
+    --- PASS: TestExecute/base64_pkcs12_extract_with_password (0.02s)
+    --- PASS: TestExecute/base64_decode_error (0.00s)
+    --- PASS: TestExecute/pkcs12_key_wrong_password (0.00s)
+    --- PASS: TestExecute/pkcs12_cert_wrong_password (0.00s)
+    --- PASS: TestExecute/fromJson_error (0.00s)
+    --- PASS: TestExecute/template_syntax_error (0.00s)
+    --- PASS: TestExecute/unknown_key_error (0.00s)
+    --- PASS: TestExecute/jwk_rsa_pub_pem (0.00s)
+    --- PASS: TestExecute/jwk_rsa_priv_pem (0.00s)
+    --- PASS: TestExecute/jwk_ecdsa_pub_pem (0.00s)
+    --- PASS: TestExecute/jwk_ecdsa_priv_pem (0.00s)
+    --- PASS: TestExecute/filter_pem_certificate (0.00s)
+    --- PASS: TestExecute/labels (0.00s)
+    --- PASS: TestExecute/annotations (0.00s)
+    --- PASS: TestExecute/stringData (0.00s)
+    --- PASS: TestExecute/NonStandardDelimiters (0.00s)
+=== RUN   TestScopeValuesWithSecretFieldsNil
+=== RUN   TestScopeValuesWithSecretFieldsNil/test_empty
+=== RUN   TestScopeValuesWithSecretFieldsNil/test_byte
+=== RUN   TestScopeValuesWithSecretFieldsNil/test_Annotations
+=== RUN   TestScopeValuesWithSecretFieldsNil/test_Labels
+--- PASS: TestScopeValuesWithSecretFieldsNil (0.00s)
+    --- PASS: TestScopeValuesWithSecretFieldsNil/test_empty (0.00s)
+    --- PASS: TestScopeValuesWithSecretFieldsNil/test_byte (0.00s)
+    --- PASS: TestScopeValuesWithSecretFieldsNil/test_Annotations (0.00s)
+    --- PASS: TestScopeValuesWithSecretFieldsNil/test_Labels (0.00s)
+=== RUN   TestExecuteInvalidTemplateScope
+--- PASS: TestExecuteInvalidTemplateScope (0.00s)
+=== RUN   TestScopeKeysAndValues
+=== RUN   TestScopeKeysAndValues/test_empty
+=== RUN   TestScopeKeysAndValues/test_base64
+=== RUN   TestScopeKeysAndValues/test_Annotations
+=== RUN   TestScopeKeysAndValues/test_Labels
+--- PASS: TestScopeKeysAndValues (0.00s)
+    --- PASS: TestScopeKeysAndValues/test_empty (0.00s)
+    --- PASS: TestScopeKeysAndValues/test_base64 (0.00s)
+    --- PASS: TestScopeKeysAndValues/test_Annotations (0.00s)
+    --- PASS: TestScopeKeysAndValues/test_Labels (0.00s)
+=== RUN   TestPkcs12certPass
+=== RUN   TestPkcs12certPass/read_file_without_password
+=== RUN   TestPkcs12certPass/read_file_with_password
+=== RUN   TestPkcs12certPass/read_multibag_cert_chain
+=== RUN   TestPkcs12certPass/read_disjunct_cert_chain
+=== RUN   TestPkcs12certPass/read_file_wrong_password
+--- PASS: TestPkcs12certPass (0.03s)
+    --- PASS: TestPkcs12certPass/read_file_without_password (0.01s)
+    --- PASS: TestPkcs12certPass/read_file_with_password (0.01s)
+    --- PASS: TestPkcs12certPass/read_multibag_cert_chain (0.01s)
+    --- PASS: TestPkcs12certPass/read_disjunct_cert_chain (0.01s)
+    --- PASS: TestPkcs12certPass/read_file_wrong_password (0.00s)
+PASS
+coverage: 87.9% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/template/v2	1.205s	coverage: 87.9% of statements
+=== RUN   TestObjectHash
+=== RUN   TestObjectHash/A_nil_should_be_still_working
+=== RUN   TestObjectHash/We_accept_a_simple_scalar_value,_i.e._string
+=== RUN   TestObjectHash/A_complex_object_like_a_secret_is_not_an_issue
+=== RUN   TestObjectHash/map_also_works
+--- PASS: TestObjectHash (0.00s)
+    --- PASS: TestObjectHash/A_nil_should_be_still_working (0.00s)
+    --- PASS: TestObjectHash/We_accept_a_simple_scalar_value,_i.e._string (0.00s)
+    --- PASS: TestObjectHash/A_complex_object_like_a_secret_is_not_an_issue (0.00s)
+    --- PASS: TestObjectHash/map_also_works (0.00s)
+=== RUN   TestIsNil
+=== RUN   TestIsNil/simple_nil_val
+=== RUN   TestIsNil/nil_slice
+=== RUN   TestIsNil/struct_pointer
+=== RUN   TestIsNil/struct
+=== RUN   TestIsNil/slice_of_struct
+=== RUN   TestIsNil/slice_of_ptr
+=== RUN   TestIsNil/slice
+=== RUN   TestIsNil/int_default_value
+=== RUN   TestIsNil/empty_str
+=== RUN   TestIsNil/oracle_vault
+=== RUN   TestIsNil/func
+=== RUN   TestIsNil/channel
+=== RUN   TestIsNil/map
+--- PASS: TestIsNil (0.00s)
+    --- PASS: TestIsNil/simple_nil_val (0.00s)
+    --- PASS: TestIsNil/nil_slice (0.00s)
+    --- PASS: TestIsNil/struct_pointer (0.00s)
+    --- PASS: TestIsNil/struct (0.00s)
+    --- PASS: TestIsNil/slice_of_struct (0.00s)
+    --- PASS: TestIsNil/slice_of_ptr (0.00s)
+    --- PASS: TestIsNil/slice (0.00s)
+    --- PASS: TestIsNil/int_default_value (0.00s)
+    --- PASS: TestIsNil/empty_str (0.00s)
+    --- PASS: TestIsNil/oracle_vault (0.00s)
+    --- PASS: TestIsNil/func (0.00s)
+    --- PASS: TestIsNil/channel (0.00s)
+    --- PASS: TestIsNil/map (0.00s)
+=== RUN   TestConvertKeys
+=== RUN   TestConvertKeys/convert_with_special_chars
+=== RUN   TestConvertKeys/error_on_collision
+=== RUN   TestConvertKeys/convert_path
+=== RUN   TestConvertKeys/convert_unicode
+--- PASS: TestConvertKeys (0.00s)
+    --- PASS: TestConvertKeys/convert_with_special_chars (0.00s)
+    --- PASS: TestConvertKeys/error_on_collision (0.00s)
+    --- PASS: TestConvertKeys/convert_path (0.00s)
+    --- PASS: TestConvertKeys/convert_unicode (0.00s)
+=== RUN   TestReverseKeys
+=== RUN   TestReverseKeys/encoding_and_decoding_strategy_are_selecting_Unicode_conversion_and_reverse_unicode,_so_the_in_and_want_should_match,_this_test_covers_Unicode_characters_beyond_the_Basic_Multilingual_Plane_(BMP)
+=== RUN   TestReverseKeys/encoding_and_decoding_strategy_are_selecting_Unicode_conversion_and_reverse_unicode,_so_the_in_and_want_should_match,_this_test_covers_Unicode_characters_in_the_Basic_Multilingual_Plane_(BMP)
+=== RUN   TestReverseKeys/the_encoding_strategy_is_selecting_Unicode_conversion,_but_the_decoding_strategy_is_none,_so_we_want_an_encoded_representation_of_the_content
+--- PASS: TestReverseKeys (0.00s)
+    --- PASS: TestReverseKeys/encoding_and_decoding_strategy_are_selecting_Unicode_conversion_and_reverse_unicode,_so_the_in_and_want_should_match,_this_test_covers_Unicode_characters_beyond_the_Basic_Multilingual_Plane_(BMP) (0.00s)
+    --- PASS: TestReverseKeys/encoding_and_decoding_strategy_are_selecting_Unicode_conversion_and_reverse_unicode,_so_the_in_and_want_should_match,_this_test_covers_Unicode_characters_in_the_Basic_Multilingual_Plane_(BMP) (0.00s)
+    --- PASS: TestReverseKeys/the_encoding_strategy_is_selecting_Unicode_conversion,_but_the_decoding_strategy_is_none,_so_we_want_an_encoded_representation_of_the_content (0.00s)
+=== RUN   TestDecode
+=== RUN   TestDecode/base64_decoded
+=== RUN   TestDecode/invalid_base64
+=== RUN   TestDecode/base64url_decoded
+=== RUN   TestDecode/invalid_base64url
+=== RUN   TestDecode/none
+=== RUN   TestDecode/auto
+--- PASS: TestDecode (0.00s)
+    --- PASS: TestDecode/base64_decoded (0.00s)
+    --- PASS: TestDecode/invalid_base64 (0.00s)
+    --- PASS: TestDecode/base64url_decoded (0.00s)
+    --- PASS: TestDecode/invalid_base64url (0.00s)
+    --- PASS: TestDecode/none (0.00s)
+    --- PASS: TestDecode/auto (0.00s)
+=== RUN   TestValidate
+--- PASS: TestValidate (0.02s)
+=== RUN   TestRewrite
+=== RUN   TestRewrite/replace_of_a_single_key
+=== RUN   TestRewrite/no_operation
+=== RUN   TestRewrite/removing_prefix_from_keys
+=== RUN   TestRewrite/using_un-named_capture_groups
+=== RUN   TestRewrite/using_named_and_numbered_capture_groups
+=== RUN   TestRewrite/using_sequenced_rewrite_operations
+=== RUN   TestRewrite/using_transform_rewrite_operation_to_create_env_var_format_keys
+=== RUN   TestRewrite/using_transform_rewrite_operation_to_lower_case
+--- PASS: TestRewrite (0.00s)
+    --- PASS: TestRewrite/replace_of_a_single_key (0.00s)
+    --- PASS: TestRewrite/no_operation (0.00s)
+    --- PASS: TestRewrite/removing_prefix_from_keys (0.00s)
+    --- PASS: TestRewrite/using_un-named_capture_groups (0.00s)
+    --- PASS: TestRewrite/using_named_and_numbered_capture_groups (0.00s)
+    --- PASS: TestRewrite/using_sequenced_rewrite_operations (0.00s)
+    --- PASS: TestRewrite/using_transform_rewrite_operation_to_create_env_var_format_keys (0.00s)
+    --- PASS: TestRewrite/using_transform_rewrite_operation_to_lower_case (0.00s)
+=== RUN   TestReverse
+=== RUN   TestReverse/do_not_change_the_key_when_using_the_None_strategy
+=== RUN   TestReverse/reverse_an_unicode_encoded_key
+=== RUN   TestReverse/do_not_attempt_to_decode_an_invalid_unicode_representation
+--- PASS: TestReverse (0.00s)
+    --- PASS: TestReverse/do_not_change_the_key_when_using_the_None_strategy (0.00s)
+    --- PASS: TestReverse/reverse_an_unicode_encoded_key (0.00s)
+    --- PASS: TestReverse/do_not_attempt_to_decode_an_invalid_unicode_representation (0.00s)
+=== RUN   TestFetchValueFromMetadata
+=== RUN   TestFetchValueFromMetadata/plain_dig_for_an_existing_key
+=== RUN   TestFetchValueFromMetadata/return_default_if_key_not_found
+=== RUN   TestFetchValueFromMetadata/use_a_different_type
+=== RUN   TestFetchValueFromMetadata/digging_deeper
+=== RUN   TestFetchValueFromMetadata/digging_for_a_slice
+--- PASS: TestFetchValueFromMetadata (0.00s)
+    --- PASS: TestFetchValueFromMetadata/plain_dig_for_an_existing_key (0.00s)
+    --- PASS: TestFetchValueFromMetadata/return_default_if_key_not_found (0.00s)
+    --- PASS: TestFetchValueFromMetadata/use_a_different_type (0.00s)
+    --- PASS: TestFetchValueFromMetadata/digging_deeper (0.00s)
+    --- PASS: TestFetchValueFromMetadata/digging_for_a_slice (0.00s)
+=== RUN   TestGetByteValue
+=== RUN   TestGetByteValue/string
+=== RUN   TestGetByteValue/map_of_any
+=== RUN   TestGetByteValue/slice_of_string
+=== RUN   TestGetByteValue/json.RawMessage
+=== RUN   TestGetByteValue/float64
+=== RUN   TestGetByteValue/json.Number
+=== RUN   TestGetByteValue/slice_of_any
+=== RUN   TestGetByteValue/boolean
+=== RUN   TestGetByteValue/nil
+--- PASS: TestGetByteValue (0.00s)
+    --- PASS: TestGetByteValue/string (0.00s)
+    --- PASS: TestGetByteValue/map_of_any (0.00s)
+    --- PASS: TestGetByteValue/slice_of_string (0.00s)
+    --- PASS: TestGetByteValue/json.RawMessage (0.00s)
+    --- PASS: TestGetByteValue/float64 (0.00s)
+    --- PASS: TestGetByteValue/json.Number (0.00s)
+    --- PASS: TestGetByteValue/slice_of_any (0.00s)
+    --- PASS: TestGetByteValue/boolean (0.00s)
+    --- PASS: TestGetByteValue/nil (0.00s)
+=== RUN   TestCompareStringAndByteSlices
+=== RUN   TestCompareStringAndByteSlices/same_contents
+=== RUN   TestCompareStringAndByteSlices/different_contents
+=== RUN   TestCompareStringAndByteSlices/same_contents_with_random
+=== RUN   TestCompareStringAndByteSlices/check_Nil
+--- PASS: TestCompareStringAndByteSlices (0.00s)
+    --- PASS: TestCompareStringAndByteSlices/same_contents (0.00s)
+    --- PASS: TestCompareStringAndByteSlices/different_contents (0.00s)
+    --- PASS: TestCompareStringAndByteSlices/same_contents_with_random (0.00s)
+    --- PASS: TestCompareStringAndByteSlices/check_Nil (0.00s)
+=== RUN   TestValidateSecretSelector
+=== RUN   TestValidateSecretSelector/cluster_secret_store_with_namespace_reference
+=== RUN   TestValidateSecretSelector/secret_store_without_namespace_reference
+=== RUN   TestValidateSecretSelector/secret_store_with_the_same_namespace_reference
+=== RUN   TestValidateSecretSelector/cluster_secret_store_without_namespace_reference
+=== RUN   TestValidateSecretSelector/secret_store_with_the_different_namespace_reference
+--- PASS: TestValidateSecretSelector (0.00s)
+    --- PASS: TestValidateSecretSelector/cluster_secret_store_with_namespace_reference (0.00s)
+    --- PASS: TestValidateSecretSelector/secret_store_without_namespace_reference (0.00s)
+    --- PASS: TestValidateSecretSelector/secret_store_with_the_same_namespace_reference (0.00s)
+    --- PASS: TestValidateSecretSelector/cluster_secret_store_without_namespace_reference (0.00s)
+    --- PASS: TestValidateSecretSelector/secret_store_with_the_different_namespace_reference (0.00s)
+=== RUN   TestValidateReferentSecretSelector
+=== RUN   TestValidateReferentSecretSelector/cluster_secret_store_with_namespace_reference
+=== RUN   TestValidateReferentSecretSelector/secret_store_without_namespace_reference
+=== RUN   TestValidateReferentSecretSelector/secret_store_with_the_same_namespace_reference
+=== RUN   TestValidateReferentSecretSelector/secret_store_with_the_different_namespace_reference
+--- PASS: TestValidateReferentSecretSelector (0.00s)
+    --- PASS: TestValidateReferentSecretSelector/cluster_secret_store_with_namespace_reference (0.00s)
+    --- PASS: TestValidateReferentSecretSelector/secret_store_without_namespace_reference (0.00s)
+    --- PASS: TestValidateReferentSecretSelector/secret_store_with_the_same_namespace_reference (0.00s)
+    --- PASS: TestValidateReferentSecretSelector/secret_store_with_the_different_namespace_reference (0.00s)
+=== RUN   TestValidateServiceAccountSelector
+=== RUN   TestValidateServiceAccountSelector/cluster_secret_store_with_namespace_reference
+=== RUN   TestValidateServiceAccountSelector/secret_store_without_namespace_reference
+=== RUN   TestValidateServiceAccountSelector/secret_store_with_the_same_namespace_reference
+=== RUN   TestValidateServiceAccountSelector/cluster_secret_store_without_namespace_reference
+=== RUN   TestValidateServiceAccountSelector/secret_store_with_the_different_namespace_reference
+--- PASS: TestValidateServiceAccountSelector (0.00s)
+    --- PASS: TestValidateServiceAccountSelector/cluster_secret_store_with_namespace_reference (0.00s)
+    --- PASS: TestValidateServiceAccountSelector/secret_store_without_namespace_reference (0.00s)
+    --- PASS: TestValidateServiceAccountSelector/secret_store_with_the_same_namespace_reference (0.00s)
+    --- PASS: TestValidateServiceAccountSelector/cluster_secret_store_without_namespace_reference (0.00s)
+    --- PASS: TestValidateServiceAccountSelector/secret_store_with_the_different_namespace_reference (0.00s)
+=== RUN   TestValidateReferentServiceAccountSelector
+=== RUN   TestValidateReferentServiceAccountSelector/cluster_secret_store_with_namespace_reference
+=== RUN   TestValidateReferentServiceAccountSelector/secret_store_without_namespace_reference
+=== RUN   TestValidateReferentServiceAccountSelector/secret_store_with_the_same_namespace_reference
+=== RUN   TestValidateReferentServiceAccountSelector/secret_store_with_the_different_namespace_reference
+--- PASS: TestValidateReferentServiceAccountSelector (0.00s)
+    --- PASS: TestValidateReferentServiceAccountSelector/cluster_secret_store_with_namespace_reference (0.00s)
+    --- PASS: TestValidateReferentServiceAccountSelector/secret_store_without_namespace_reference (0.00s)
+    --- PASS: TestValidateReferentServiceAccountSelector/secret_store_with_the_same_namespace_reference (0.00s)
+    --- PASS: TestValidateReferentServiceAccountSelector/secret_store_with_the_different_namespace_reference (0.00s)
+PASS
+coverage: 52.3% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/utils	1.103s	coverage: 52.3% of statements
+	github.com/external-secrets/external-secrets/pkg/utils/metadata		coverage: 0.0% of statements
+=== RUN   TestResolveSecretKeyRef
+=== RUN   TestResolveSecretKeyRef/namespaced_secret_store_can_access_secret_in_same_namespace
+=== RUN   TestResolveSecretKeyRef/omitting_namespace_in_secret_store_defaults_to_same_namespace
+=== RUN   TestResolveSecretKeyRef/namespaced_secret_store_can_not_access_secret_in_different_namespace
+=== RUN   TestResolveSecretKeyRef/cluster_secret_store_may_access_all_namespaces
+=== RUN   TestResolveSecretKeyRef/key_not_found_in_secret
+--- PASS: TestResolveSecretKeyRef (0.00s)
+    --- PASS: TestResolveSecretKeyRef/namespaced_secret_store_can_access_secret_in_same_namespace (0.00s)
+    --- PASS: TestResolveSecretKeyRef/omitting_namespace_in_secret_store_defaults_to_same_namespace (0.00s)
+    --- PASS: TestResolveSecretKeyRef/namespaced_secret_store_can_not_access_secret_in_different_namespace (0.00s)
+    --- PASS: TestResolveSecretKeyRef/cluster_secret_store_may_access_all_namespaces (0.00s)
+    --- PASS: TestResolveSecretKeyRef/key_not_found_in_secret (0.00s)
+PASS
+coverage: 12.1% of statements
+ok  	github.com/external-secrets/external-secrets/pkg/utils/resolvers	1.058s	coverage: 12.1% of statements
+FAIL
+make: *** [Makefile:96: test] Error 1
