@@ -245,8 +245,8 @@ string
 <td>
 <code>sessionTags</code></br>
 <em>
-<a href="#external-secrets.io/v1.*github.com/external-secrets/external-secrets/apis/externalsecrets/v1.Tag">
-[]*github.com/external-secrets/external-secrets/apis/externalsecrets/v1.Tag
+<a href="#external-secrets.io/v1.Tag">
+[]Tag
 </a>
 </em>
 </td>
@@ -273,7 +273,7 @@ SecretsManager
 <td>
 <code>transitiveTagKeys</code></br>
 <em>
-[]*string
+[]string
 </em>
 </td>
 <td>
@@ -8070,6 +8070,10 @@ this will be removed with v1.</p>
 </table>
 <h3 id="external-secrets.io/v1.Tag">Tag
 </h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.AWSProvider">AWSProvider</a>)
+</p>
 <p>
 </p>
 <table>
