@@ -324,11 +324,7 @@ func (p *Provider) findItem(ctx context.Context, name string) (onepassword.Item,
 
 // SecretExists Not Implemented.
 func (p *Provider) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
-	_, err := p.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{
-		Key: ref.GetRemoteKey(),
-	})
-
-	return err == nil, nil
+	return false, fmt.Errorf("not implemented")
 }
 
 // Validate checks if the client is configured correctly
