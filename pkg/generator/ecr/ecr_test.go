@@ -157,12 +157,12 @@ spec:
 				tt.args.jsonSpec,
 				tt.args.kube,
 				tt.args.namespace,
-				func(cfg *aws.Config) ecrApi {
+				func(cfg *aws.Config) ecrAPI {
 					return &FakeECRPrivate{
 						authTokenFunc: tt.args.authTokenPrivateFunc,
 					}
 				},
-				func(cfg *aws.Config) ecrPublicApi {
+				func(cfg *aws.Config) ecrPublicAPI {
 					return &FakeECRPublic{
 						authTokenFunc: tt.args.authTokenPublicFunc,
 					}
@@ -180,7 +180,6 @@ spec:
 }
 
 type FakeECRPrivate struct {
-	ecrApi
 	authTokenFunc func(*ecr.GetAuthorizationTokenInput) (*ecr.GetAuthorizationTokenOutput, error)
 }
 
@@ -189,7 +188,6 @@ func (e *FakeECRPrivate) GetAuthorizationToken(ctx context.Context, params *ecr.
 }
 
 type FakeECRPublic struct {
-	ecrPublicApi
 	authTokenFunc func(*ecrpublic.GetAuthorizationTokenInput) (*ecrpublic.GetAuthorizationTokenOutput, error)
 }
 

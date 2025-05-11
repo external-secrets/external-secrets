@@ -350,7 +350,7 @@ func (pm *ParameterStore) findByName(ctx context.Context, ref esv1.ExternalSecre
 				return pm.fallbackFindByName(ctx, ref)
 			}
 
-			return nil, fmt.Errorf("fetching parameters by path %s: %w", ref.Path, err)
+			return nil, fmt.Errorf("fetching parameters by path %s: %w", *ref.Path, err)
 		}
 
 		for _, param := range it.Parameters {

@@ -34,11 +34,11 @@ import (
 	awsauth "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
 )
 
-type ecrApi interface {
+type ecrAPI interface {
 	GetAuthorizationToken(ctx context.Context, params *ecr.GetAuthorizationTokenInput, optFuncs ...func(*ecr.Options)) (*ecr.GetAuthorizationTokenOutput, error)
 }
 
-type ecrPublicApi interface {
+type ecrPublicAPI interface {
 	GetAuthorizationToken(ctx context.Context, params *ecrpublic.GetAuthorizationTokenInput, optFuncs ...func(*ecrpublic.Options)) (*ecrpublic.GetAuthorizationTokenOutput, error)
 }
 
@@ -151,14 +151,14 @@ func fetchECRPublicToken(ctx context.Context, cfg *aws.Config, ecrPublicFunc ecr
 	}, nil, nil
 }
 
-type ecrPrivateFactoryFunc func(aws *aws.Config) ecrApi
-type ecrPublicFactoryFunc func(aws *aws.Config) ecrPublicApi
+type ecrPrivateFactoryFunc func(aws *aws.Config) ecrAPI
+type ecrPublicFactoryFunc func(aws *aws.Config) ecrPublicAPI
 
-func ecrPrivateFactory(cfg *aws.Config) ecrApi {
+func ecrPrivateFactory(cfg *aws.Config) ecrAPI {
 	return ecr.NewFromConfig(*cfg)
 }
 
-func ecrPublicFactory(cfg *aws.Config) ecrPublicApi {
+func ecrPublicFactory(cfg *aws.Config) ecrPublicAPI {
 	return ecrpublic.NewFromConfig(*cfg)
 }
 
