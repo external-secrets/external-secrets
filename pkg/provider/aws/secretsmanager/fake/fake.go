@@ -179,7 +179,7 @@ func (sm *Client) cacheKeyForInput(in *awssm.GetSecretValueInput) string {
 
 func (sm *Client) WithValue(in *awssm.GetSecretValueInput, val *awssm.GetSecretValueOutput, err error) {
 	sm.valFn[sm.cacheKeyForInput(in)] = func(paramIn *awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error) {
-		if !cmp.Equal(paramIn, in, cmpopts.IgnoreUnexported(awssm.GetSecretValueInput{}, awssm.GetSecretValueOutput{})) {
+		if !cmp.Equal(paramIn, in, cmpopts.IgnoreUnexported(awssm.GetSecretValueInput{})) {
 			return nil, errors.New("unexpected test argument")
 		}
 		return val, err

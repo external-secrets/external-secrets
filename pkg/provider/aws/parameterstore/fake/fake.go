@@ -20,6 +20,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 // Client implements the aws parameterstore interface.
@@ -99,7 +100,7 @@ func NewPutParameterFn(output *ssm.PutParameterOutput, err error) PutParameterFn
 
 func (sm *Client) WithValue(in *ssm.GetParameterInput, val *ssm.GetParameterOutput, err error) {
 	sm.GetParameterFn = func(ctx context.Context, paramIn *ssm.GetParameterInput, options ...func(*ssm.Options)) (*ssm.GetParameterOutput, error) {
-		if !cmp.Equal(paramIn, in) {
+		if !cmp.Equal(paramIn, in, cmpopts.IgnoreUnexported(ssm.GetParameterInput{})) {
 			return nil, errors.New("unexpected test argument")
 		}
 		return val, err

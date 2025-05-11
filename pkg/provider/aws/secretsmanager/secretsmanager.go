@@ -433,6 +433,10 @@ func (sm *SecretsManager) mapSecretToGjson(secretOut *awssm.GetSecretValueOutput
 }
 
 func (sm *SecretsManager) retrievePayload(secretOut *awssm.GetSecretValueOutput) string {
+	if secretOut == nil {
+		return ""
+	}
+
 	var payload string
 	if secretOut.SecretString != nil {
 		payload = *secretOut.SecretString
