@@ -124,7 +124,7 @@ spec:
 				tt.args.jsonSpec,
 				tt.args.kube,
 				tt.args.namespace,
-				func(cfg *aws.Config) stsApi {
+				func(cfg *aws.Config) stsAPI {
 					return &FakeSTS{
 						getSessionToken: tt.args.tokenFunc,
 					}
