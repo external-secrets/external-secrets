@@ -103,15 +103,15 @@ func makeValidParameterStoreTestCaseCustom(tweaks ...func(pstc *parameterstoreTe
 }
 
 func TestSSMResolver(t *testing.T) {
-	endpoint_env_key := SSMEndpointEnv
-	endpoint_url := "http://ssm.foo"
+	endpointEnvKey := SSMEndpointEnv
+	endpointURL := "http://ssm.foo"
 
-	t.Setenv(endpoint_env_key, endpoint_url)
+	t.Setenv(endpointEnvKey, endpointURL)
 
 	f, err := customEndpointResolver{}.ResolveEndpoint(context.Background(), ssm.EndpointParameters{})
 
 	assert.Nil(t, err)
-	assert.Equal(t, endpoint_url, f.URI.String())
+	assert.Equal(t, endpointURL, f.URI.String())
 }
 
 func TestDeleteSecret(t *testing.T) {

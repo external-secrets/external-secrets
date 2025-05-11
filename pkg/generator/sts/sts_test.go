@@ -142,7 +142,6 @@ spec:
 }
 
 type FakeSTS struct {
-	stsApi
 	getSessionToken func(context.Context, *sts.GetSessionTokenInput, ...func(*sts.Options)) (*sts.GetSessionTokenOutput, error)
 }
 

@@ -207,10 +207,7 @@ func credsFromSecretRef(ctx context.Context, auth esv1.AWSAuth, storeKind string
 		}
 	}
 	var credsProvider aws.CredentialsProvider = credentials.NewStaticCredentialsProvider(aks, sak, sessionToken)
-	// creds, err := credsProvider.Retrieve(ctx)
-	// if err != nil {
-	// 	return nil, fmt.Errorf(errFetchSTSecret, err)
-	// }
+
 	return credsProvider, nil
 }
 
@@ -254,11 +251,7 @@ func credsFromServiceAccount(ctx context.Context, auth esv1.AWSAuth, region stri
 	}
 
 	log.V(1).Info("using credentials via service account", "role", roleArn, "region", region)
-	// credsCache := aws.NewCredentialsCache(jwtProv)
-	// creds, err := credsCache.Retrieve(ctx)
-	// if err != nil {
-	// 	return nil, err
-	// }
+
 	return jwtProv, nil
 }
 
@@ -277,32 +270,14 @@ func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region st
 		return nil, err
 	}
 
-	// TODO: use aws sdk v2
-	// handlers := defaults.Handlers()
-	// handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))
-	// awscfg := aws.NewConfig().WithEndpointResolver(ResolveEndpoint())
-	// if region != "" {
-	// 	awscfg.WithRegion(region)
-	// }
-
-	awscfg, err := config.LoadDefaultConfig(context.TODO(), config.WithAppID("external-secrets"))
+	awscfg, err := config.LoadDefaultConfig(context.TODO(), config.WithAppID("external-secrets"), // Disable shared config files:
+		config.WithSharedConfigFiles([]string{}),
+		config.WithSharedCredentialsFiles([]string{}))
 
 	if err != nil {
 		return nil, err
 	}
 
-	//TODO: should the below be done in aws sdk v2?
-
-	// we set session.sharedconfigstate to disable to avoid loading credentials from ~/.aws/credentials
-
-	// sess, err := session.NewSessionWithOptions(session.Options{
-	// 	Config:            *awscfg,
-	// 	SharedConfigState: session.SharedConfigDisable,
-	// 	Handlers:          handlers,
-	// })
-	// if err != nil {
-	// 	return nil, err
-	// }
 	tokenFetcher := authTokenFetcher{
 		Namespace:      namespace,
 		Audiences:      aud,

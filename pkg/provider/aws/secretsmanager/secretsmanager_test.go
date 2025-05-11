@@ -116,15 +116,15 @@ var setAPIErr = func(smtc *secretsManagerTestCase) {
 }
 
 func TestSecretsManagerResolver(t *testing.T) {
-	endpoint_env_key := SecretsManagerEndpointEnv
-	endpoint_url := "http://sm.foo"
+	endpointEnvKey := SecretsManagerEndpointEnv
+	endpointURL := "http://sm.foo"
 
-	t.Setenv(endpoint_env_key, endpoint_url)
+	t.Setenv(endpointEnvKey, endpointURL)
 
 	f, err := customEndpointResolver{}.ResolveEndpoint(context.Background(), awssm.EndpointParameters{})
 
 	assert.Nil(t, err)
-	assert.Equal(t, endpoint_url, f.URI.String())
+	assert.Equal(t, endpointURL, f.URI.String())
 }
 
 // test the sm<->aws interface

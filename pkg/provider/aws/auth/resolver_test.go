@@ -25,13 +25,13 @@ import (
 // do we need this file now that resolving logic is isolated to each service?
 
 func TestResolver(t *testing.T) {
-	endpoint_env_key := STSEndpointEnv
-	endpoint_url := "http://sts.foo"
+	endpointEnvKey := STSEndpointEnv
+	endpointURL := "http://sts.foo"
 
-	t.Setenv(endpoint_env_key, endpoint_url)
+	t.Setenv(endpointEnvKey, endpointURL)
 
 	f, err := customEndpointResolver{}.ResolveEndpoint(context.Background(), sts.EndpointParameters{})
 
 	assert.Nil(t, err)
-	assert.Equal(t, endpoint_url, f.URI.String())
+	assert.Equal(t, endpointURL, f.URI.String())
 }
