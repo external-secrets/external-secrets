@@ -56,9 +56,10 @@ type PushSecretMetadataSpec struct {
 
 // Declares metadata information for pushing secrets to AWS Secret Store.
 const (
-	SecretPushFormatKey    = "secretPushFormat"
-	SecretPushFormatString = "string"
-	SecretPushFormatBinary = "binary"
+	SecretPushFormatKey       = "secretPushFormat"
+	SecretPushFormatString    = "string"
+	SecretPushFormatBinary    = "binary"
+	ResourceNotFoundException = "ResourceNotFoundException"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -153,7 +154,7 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1.PushS
 		if ok := errors.As(err, &aerr); !ok {
 			return err
 		}
-		if aerr.ErrorCode() == "ResourceNotFoundException" {
+		if aerr.ErrorCode() == ResourceNotFoundException {
 			return nil
 		}
 		return err
@@ -201,7 +202,7 @@ func (sm *SecretsManager) handleSecretError(err error) (bool, error) {
 	if ok := errors.As(err, &aerr); !ok {
 		return false, err
 	}
-	if aerr.ErrorCode() == "ResourceNotFoundException" {
+	if aerr.ErrorCode() == ResourceNotFoundException {
 		return false, nil
 	}
 	return false, err
@@ -239,7 +240,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 			return err
 		}
 
-		if aerr.ErrorCode() == "ResourceNotFoundException" {
+		if aerr.ErrorCode() == ResourceNotFoundException {
 			return sm.createSecretWithContext(ctx, secretName, psd, value)
 		}
 
