@@ -24,7 +24,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	stsTypes "github.com/aws/aws-sdk-go-v2/service/sts/types"
-	"github.com/spf13/pflag"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -33,8 +32,6 @@ import (
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/cache"
-	"github.com/external-secrets/external-secrets/pkg/feature"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
@@ -48,9 +45,6 @@ type Config struct {
 
 var (
 	log = ctrl.Log.WithName("provider").WithName("aws")
-	// do we need session cache?
-	enableSessionCache bool
-	sessionCache       *cache.Cache[*aws.Config]
 )
 
 const (
@@ -62,15 +56,6 @@ const (
 	errFetchSAKSecret  = "could not fetch SecretAccessKey secret: %w"
 	errFetchSTSecret   = "could not fetch SessionToken secret: %w"
 )
-
-func init() {
-	fs := pflag.NewFlagSet("aws-auth", pflag.ExitOnError)
-	fs.BoolVar(&enableSessionCache, "experimental-enable-aws-session-cache", false, "Enable experimental AWS session cache. External secret will reuse the AWS session without creating a new one on each request.")
-	feature.Register(feature.Feature{
-		Flags: fs,
-	})
-	sessionCache = cache.Must[*aws.Config](1024, nil)
-}
 
 // New creates a new aws config based on the provided store
 // it uses the following authentication mechanisms in order:
