@@ -53,8 +53,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.60
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.35.2
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.56.13
-	github.com/cyberark/conjur-api-go v0.12.12
-	github.com/aws/aws-sdk-go v1.55.6
 	github.com/cyberark/conjur-api-go v0.12.14
 	github.com/external-secrets/external-secrets v0.0.0
 	github.com/fluxcd/helm-controller/api v0.37.2

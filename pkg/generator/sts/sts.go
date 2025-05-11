@@ -31,7 +31,7 @@ import (
 	awsauth "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
 )
 
-// stsApi defines the methods needed for the STS generator
+// stsApi defines the methods needed for the STS generator.
 type stsApi interface {
 	GetSessionToken(ctx context.Context, params *sts.GetSessionTokenInput, optFns ...func(*sts.Options)) (*sts.GetSessionTokenOutput, error)
 }
@@ -105,10 +105,10 @@ func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, sta
 	return nil
 }
 
-// Use v2 aws.Config and the local stsApi interface
+// Use v2 aws.Config and the local stsApi interface.
 type stsFactoryFunc func(cfg *aws.Config) stsApi
 
-// Create v2 client from v2 config
+// Create v2 client from v2 config.
 func stsFactory(cfg *aws.Config) stsApi {
 	return sts.NewFromConfig(*cfg)
 }

@@ -23,10 +23,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	awsauth "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/parameterstore"
@@ -99,7 +99,6 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 }
 
 func validateRegion(prov *esv1.AWSProvider) error {
-
 	switch prov.Service {
 	case esv1.AWSServiceSecretsManager:
 		resolver := awssm.NewDefaultEndpointResolverV2()
@@ -210,7 +209,7 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 	return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 }
 
-// Add this type at package level
+// Add this type at package level.
 type fixedDelayer struct {
 	delay time.Duration
 }
