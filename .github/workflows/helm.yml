@@ -87,7 +87,6 @@ jobs:
       - name: Check if release already exists
         id: check_release
         run: |
-          // query github for releases
           release_version=$(yq .version deploy/charts/external-secrets/Chart.yaml)
           release_status=$(curl --silent -w "%{http_code}" --output /dev/null "https://api.github.com/repos/external-secrets/external-secrets/releases/tags/helm-chart-${release_version}")
           if [ $release_status -eq 200 ]; then
