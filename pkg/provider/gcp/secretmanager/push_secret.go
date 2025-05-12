@@ -35,11 +35,12 @@ const (
 )
 
 type PushSecretMetadataSpec struct {
-	Annotations map[string]string             `json:"annotations,omitempty"`
-	Labels      map[string]string             `json:"labels,omitempty"`
-	Topics      []string                      `json:"topics,omitempty"`
-	MergePolicy PushSecretMetadataMergePolicy `json:"mergePolicy,omitempty"`
-	CMEKKeyName string                        `json:"cmekKeyName,omitempty"`
+	Annotations         map[string]string             `json:"annotations,omitempty"`
+	Labels              map[string]string             `json:"labels,omitempty"`
+	Topics              []string                      `json:"topics,omitempty"`
+	MergePolicy         PushSecretMetadataMergePolicy `json:"mergePolicy,omitempty"`
+	CMEKKeyName         string                        `json:"cmekKeyName,omitempty"`
+	ReplicationLocation string                        `json:"replicationLocation,omitempty"`
 }
 
 func newPushSecretBuilder(payload []byte, data esv1.PushSecretData) (pushSecretBuilder, error) {

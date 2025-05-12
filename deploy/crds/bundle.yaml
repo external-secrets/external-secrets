@@ -746,6 +746,7 @@ spec:
         - jsonPath: .status.conditions[?(@.type=="Ready")].status
           name: Ready
           type: string
+      deprecated: true
       name: v1beta1
       schema:
         openAPIV3Schema:
@@ -1449,7 +1450,7 @@ spec:
                   type: array
               type: object
           type: object
-      served: true
+      served: false
       storage: false
       subresources:
         status: {}
@@ -6145,6 +6146,7 @@ spec:
         - jsonPath: .status.conditions[?(@.type=="Ready")].status
           name: Ready
           type: string
+      deprecated: true
       name: v1beta1
       schema:
         openAPIV3Schema:
@@ -10269,7 +10271,7 @@ spec:
                   type: array
               type: object
           type: object
-      served: true
+      served: false
       storage: false
       subresources:
         status: {}
@@ -10904,6 +10906,7 @@ spec:
         - jsonPath: .status.conditions[?(@.type=="Ready")].status
           name: Ready
           type: string
+      deprecated: true
       name: v1beta1
       schema:
         openAPIV3Schema:
@@ -11477,7 +11480,7 @@ spec:
                   type: string
               type: object
           type: object
-      served: true
+      served: false
       storage: false
       subresources:
         status: {}
@@ -16131,6 +16134,7 @@ spec:
         - jsonPath: .status.conditions[?(@.type=="Ready")].status
           name: Ready
           type: string
+      deprecated: true
       name: v1beta1
       schema:
         openAPIV3Schema:
@@ -20255,7 +20259,7 @@ spec:
                   type: array
               type: object
           type: object
-      served: true
+      served: false
       storage: false
       subresources:
         status: {}
