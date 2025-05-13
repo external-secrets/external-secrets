@@ -24,13 +24,13 @@ func TestGetSecretAddress(t *testing.T) {
 	t.Run("when the key is not addressing a path and uses the default path", func(t *testing.T) {
 		path, key, err := getSecretAddress("/", "foo")
 		assert.NoError(t, err)
-		assert.Equal(t, path, "/")
-		assert.Equal(t, key, "foo")
+		assert.Equal(t, "/", path)
+		assert.Equal(t, "foo", key)
 
 		path, key, err = getSecretAddress("/foo", "bar")
 		assert.NoError(t, err)
-		assert.Equal(t, path, "/foo")
-		assert.Equal(t, key, "bar")
+		assert.Equal(t, "/foo", path)
+		assert.Equal(t, "bar", key)
 	})
 
 	t.Run("when the key is addressing a path", func(t *testing.T) {
@@ -43,15 +43,15 @@ func TestGetSecretAddress(t *testing.T) {
 	t.Run("when the key is addressing a path and ignores the default path", func(t *testing.T) {
 		path, key, err := getSecretAddress("/foo", "/bar/baz")
 		assert.NoError(t, err)
-		assert.Equal(t, path, "/bar")
-		assert.Equal(t, key, "baz")
+		assert.Equal(t, "/bar", path)
+		assert.Equal(t, "baz", key)
 	})
 
 	t.Run("works with a nested directory", func(t *testing.T) {
 		path, key, err := getSecretAddress("/", "/foo/bar/baz")
 		assert.NoError(t, err)
-		assert.Equal(t, path, "/foo/bar")
-		assert.Equal(t, key, "baz")
+		assert.Equal(t, "/foo/bar", path)
+		assert.Equal(t, "baz", key, "baz")
 	})
 
 	t.Run("fails when the key is a folder but does not begin with a slash", func(t *testing.T) {

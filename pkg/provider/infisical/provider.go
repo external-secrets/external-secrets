@@ -21,20 +21,14 @@ import (
 	"net/http"
 	"time"
 
-	ctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/infisical/api"
-	"github.com/external-secrets/external-secrets/pkg/provider/infisical/constants"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
-)
-
-var (
-	Logger = ctrl.Log.WithName("provider").WithName(constants.ProviderName)
 )
 
 type Provider struct {

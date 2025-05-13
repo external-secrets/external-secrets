@@ -45,8 +45,8 @@ func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
 
 // getSecretAddress returns the path and key from the given key.
 //
-// Users can configure a root path, and when a SecretKey is provided with a slash we assume that it
-// within a path appended the root path.
+// Users can configure a root path, and when a SecretKey is provided with a slash we assume that it is
+// within a path appended to the root path.
 //
 // If the key is not addressing a path at all (i.e. has no `/`), simply return the original
 // path and key.
@@ -63,11 +63,11 @@ func getSecretAddress(defaultPath, key string) (string, string, error) {
 	// Otherwise, take the prefix from `key` and use that as the path. We intentionally discard
 	// `defaultPath`.
 	lastIndex := strings.LastIndex(key, "/")
-	return key[lastIndex+1:], key[:lastIndex], nil
+	return key[:lastIndex], key[lastIndex+1:], nil
 }
 
-// if GetSecret returns an error with type NoSecretError.
-// then the secret entry will be deleted depending on the deletionPolicy.
+// GetSecret if this returns an error with type NoSecretError then the secret entry will be deleted depending on the
+// deletionPolicy.
 func (p *Provider) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	path, key, err := getSecretAddress(p.apiScope.SecretPath, ref.Key)
 	if err != nil {
