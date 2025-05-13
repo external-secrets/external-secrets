@@ -104,6 +104,22 @@ func createPlainTextSecret(id int) *server.Secret {
 	return s
 }
 
+func createNilFieldsSecret(id int) *server.Secret {
+	s := new(server.Secret)
+	s.ID = id
+	s.Name = "NilFieldsSecret"
+	s.Fields = nil
+	return s
+}
+
+func createEmptyFieldsSecret(id int) *server.Secret {
+	s := new(server.Secret)
+	s.ID = id
+	s.Name = "EmptyFieldsSecret"
+	s.Fields = []server.SecretField{}
+	return s
+}
+
 func newTestClient() esv1.SecretsClient {
 	return &client{
 		api: &fakeAPI{
@@ -114,6 +130,8 @@ func newTestClient() esv1.SecretsClient {
 				createTestSecretFromCode(4000),
 				createPlainTextSecret(5000),
 				createSecret(6000, "{ \"user\": \"betaTest\", \"password\": \"badPassword\" }"),
+				createNilFieldsSecret(7000),
+				createEmptyFieldsSecret(8000),
 			},
 		},
 	}
@@ -202,7 +220,21 @@ func TestGetSecretSecretServer(t *testing.T) {
 		"Secret from code: valid ItemValue but incorrect property returns noSecretError": {
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "6000",
-				Property: "missingKey",
+				Property: "missing",
+			},
+			want: []byte(nil),
+			err:  esv1.NoSecretError{},
+		},
+		"Secret from code: valid ItemValue but nil Fields returns nil": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key: "7000",
+			},
+			want: []byte(nil),
+		},
+		"Secret from code: empty Fields returns noSecretError": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key:      "8000",
+				Property: "missing",
 			},
 			want: []byte(nil),
 			err:  esv1.NoSecretError{},
