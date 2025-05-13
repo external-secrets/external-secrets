@@ -113,6 +113,7 @@ func newTestClient() esv1.SecretsClient {
 				createSecret(3000, "{ \"user\": \"chuckTesta\", \"password\": \"badPassword\",\"server\":\"192.168.1.50\"}"),
 				createTestSecretFromCode(4000),
 				createPlainTextSecret(5000),
+				createSecret(6000, "{ \"user\": \"betaTest\", \"password\": \"badPassword\" }"),
 			},
 		},
 	}
@@ -159,14 +160,14 @@ func TestGetSecretSecretServer(t *testing.T) {
 			},
 			want: []byte(`192.168.1.51`),
 		},
-		"Secret from JSON: existent key with non-existing propery": {
+		"Secret from JSON: existent key with non-existing property": {
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "3000",
 				Property: "foo.bar",
 			},
 			err: esv1.NoSecretError{},
 		},
-		"Secret from JSON: existent 'name' key with no propery": {
+		"Secret from JSON: existent 'name' key with no property": {
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "1000",
 			},
@@ -191,12 +192,20 @@ func TestGetSecretSecretServer(t *testing.T) {
 			},
 			want: jsonStr3,
 		},
-		"Plain text secret: key with property returns noSecretError": {
+		"Plain text secret: key with property returns expected value": {
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "5000",
 				Property: "Content",
 			},
 			want: []byte(`non-json-secret-value`),
+		},
+		"Secret from code: valid ItemValue but incorrect property returns noSecretError": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key:      "6000",
+				Property: "missingKey",
+			},
+			want: []byte(nil),
+			err:  esv1.NoSecretError{},
 		},
 		"Secret from code: 'name' and password slug returns a single value": {
 			ref: esv1.ExternalSecretDataRemoteRef{
