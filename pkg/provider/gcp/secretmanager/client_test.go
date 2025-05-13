@@ -679,8 +679,17 @@ func TestPushSecret(t *testing.T) {
 		{
 			desc: "successfully pushes a secret with defined region",
 			args: args{
-				store:               &esv1.GCPSMProvider{ProjectID: smtc.projectID, Location: usEast1},
-				mock:                smtc.mockClient,
+				store: &esv1.GCPSMProvider{ProjectID: smtc.projectID},
+				mock:  smtc.mockClient,
+				Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{
+						"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+						"kind": "PushSecretMetadata",
+						"spec": {
+							"replicationLocation": "us-east1"
+						}
+					}`),
+				},
 				GetSecretMockReturn: fakesm.SecretMockReturn{Secret: nil, Err: notFoundError},
 				CreateSecretMockReturn: fakesm.SecretMockReturn{Secret: &secretmanagerpb.Secret{
 					Name: "projects/default/secrets/baz",
