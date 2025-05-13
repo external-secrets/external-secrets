@@ -3206,6 +3206,16 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#fetching-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fetching secrets
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Fetching secrets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#fetch-individual-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       Fetch Individual Secret(s)
@@ -3213,8 +3223,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#fetch-all-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       Fetch All Secrets
@@ -3222,13 +3232,18 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#filter-by-prefixname" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#filtering-secrets" class="md-nav__link">
     <span class="md-ellipsis">
-      Filter By Prefix/Name
+      Filtering secrets
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -3916,6 +3931,16 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#fetching-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Fetching secrets
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Fetching secrets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#fetch-individual-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       Fetch Individual Secret(s)
@@ -3923,8 +3948,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#fetch-all-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       Fetch All Secrets
@@ -3932,13 +3957,18 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#filter-by-prefixname" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#filtering-secrets" class="md-nav__link">
     <span class="md-ellipsis">
-      Filter By Prefix/Name
+      Filtering secrets
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -3998,6 +4028,10 @@
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">infisical</span><span class="p">:</span>
+<span class="w">      </span><span class="c1"># Optional (default: https://app.infisical.com).</span>
+<span class="w">      </span><span class="c1">#</span>
+<span class="w">      </span><span class="c1"># Override this if you are using a different Infisical instance.</span>
+<span class="w">      </span><span class="nt">hostAPI</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://app.infisical.com</span>
 <span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">universalAuthCredentials</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">clientId</span><span class="p">:</span>
@@ -4008,24 +4042,41 @@
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">clientSecret</span>
 <span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">universal-auth-credentials</span>
-<span class="w">      </span><span class="c1"># Details to pull secrets from</span>
 <span class="w">      </span><span class="nt">secretsScope</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">projectSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">first-project-fujo</span>
-<span class="w">        </span><span class="nt">environmentSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span><span class="w"> </span><span class="c1"># &quot;dev&quot;, &quot;staging&quot;, &quot;prod&quot;, etc..</span>
-<span class="w">        </span><span class="c1"># optional</span>
-<span class="w">        </span><span class="nt">secretsPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/</span><span class="w"> </span><span class="c1"># Root is &quot;/&quot;</span>
-<span class="w">        </span><span class="c1"># optional</span>
-<span class="w">        </span><span class="nt">recursive</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w"> </span><span class="c1"># Default is false</span>
+<span class="w">        </span><span class="c1"># &quot;dev&quot;, &quot;staging&quot;, &quot;prod&quot;, etc.</span>
+<span class="w">        </span><span class="nt">environmentSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span>
+<span class="w">        </span><span class="c1"># Optional (default: `/`).</span>
+<span class="w">        </span><span class="c1">#</span>
+<span class="w">        </span><span class="c1"># Secrets will only be retrieved from this path for `data` and `dataFrom` rules. When a</span>
+<span class="w">        </span><span class="c1"># `data` `remoteRef` uses a path (e.g. `/foo/bar`), that reference will use an absolute</span>
+<span class="w">        </span><span class="c1"># reference and disregard this default.</span>
+<span class="w">        </span><span class="c1">#</span>
+<span class="w">        </span><span class="c1"># If you need to prevent access to secrets outside of this path, rely on instead setting</span>
+<span class="w">        </span><span class="c1"># Access Controls in Infisical.</span>
+<span class="w">        </span><span class="nt">secretsPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/</span>
+<span class="w">        </span><span class="c1"># Optional (default: false).</span>
+<span class="w">        </span><span class="c1">#</span>
+<span class="w">        </span><span class="c1"># When recursive is enabled, secrets retrieved using `dataFrom` patterns will fetch all secrets recursive.</span>
+<span class="w">        </span><span class="nt">recursive</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 <span class="w">        </span><span class="c1"># optional</span>
 <span class="w">        </span><span class="nt">expandSecretReferences</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w"> </span><span class="c1"># Default is true</span>
-<span class="w">      </span><span class="c1"># optional</span>
-<span class="w">      </span><span class="nt">hostAPI</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://app.infisical.com</span>
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>For <code>ClusterSecretStore</code>, be sure to set <code>namespace</code> in <code>universalAuthCredentials.clientId</code> and <code>universalAuthCredentials.clientSecret</code>.</p>
 </div>
-<h2 id="fetch-individual-secrets">Fetch Individual Secret(s)</h2>
+<h2 id="fetching-secrets">Fetching secrets</h2>
+<p>For the following examples, it assumes we have a secret structure in an Infisical project with the following structure:</p>
+<div class="highlight"><pre><span></span><code>/API_KEY
+/DB_PASSWORD
+/JSON_BLOB
+/my-app
+  /SERVICE_PASSWORD
+  /ADMIN_PASSWORD
+</code></pre></div>
+<p>Where <code>JSON_BLOB</code> is a JSON string like <code>{"key": "value"}</code>.</p>
+<h3 id="fetch-individual-secrets">Fetch Individual Secret(s)</h3>
 <p>To sync one or more secrets individually, use the following YAML:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -4040,11 +4091,23 @@
 <span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auth-api</span>
 
 <span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="c1"># When referencing a secret within the `secretsPath`, the `key` can just be a secret</span>
+<span class="w">    </span><span class="c1"># name.</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">API_KEY</span>
 <span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">API_KEY</span>
+<span class="w">    </span><span class="c1"># Properties can be extracted from secrets that are JSON strings.</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">JSON_KEY</span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">JSON_BLOB</span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">key</span>
+<span class="w">    </span><span class="c1"># When referencing secrets in paths (other than `secretsPath`), the `key` must be an</span>
+<span class="w">    </span><span class="c1"># absolute path to the secret.</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PASSWORD</span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/my-app/SERVICE_PASSWORD</span>
 </code></pre></div>
-<h2 id="fetch-all-secrets">Fetch All Secrets</h2>
+<h3 id="fetch-all-secrets">Fetch All Secrets</h3>
 <p>To sync all secrets from an Infisical , use the following YAML:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -4058,12 +4121,14 @@
 <span class="w">  </span><span class="nt">target</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auth-api</span>
 
+<span class="w">  </span><span class="c1"># dataFrom will fetch all secrets that are inside the `secretsPath`. When `recursive` is</span>
+<span class="w">  </span><span class="c1"># enabled, it will also fetch all secrets recursively in sub-directories.</span>
 <span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">name</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.*</span>
 </code></pre></div>
-<h2 id="filter-by-prefixname">Filter By Prefix/Name</h2>
+<h3 id="filtering-secrets">Filtering secrets</h3>
 <p>To filter secrets by <code>path</code> (path prefix) and <code>name</code> (regular expression).</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
