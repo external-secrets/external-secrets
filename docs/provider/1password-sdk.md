@@ -4,6 +4,10 @@
 without the need for any external devices. This provides a much better user experience for automated processes without
 the need of the connect server.
 
+_Note_: In order to use ESO with 1Password SDK, documents must have unique label names. Meaning, if there is a label
+that has the same title as another label we won't know which one to update and an error is thrown:
+`found multiple labels with the same key`.
+
 ### Store Configuration
 
 A store is per vault. This is to prevent a single ExternalSecret potentially accessing ALL vaults.
