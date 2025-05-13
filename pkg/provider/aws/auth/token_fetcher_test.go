@@ -15,7 +15,6 @@ limitations under the License.
 package auth
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -29,7 +28,7 @@ func TestTokenFetcher(t *testing.T) {
 		Namespace:      "example",
 		k8sClient:      fake.NewCreateTokenMock().WithToken("FAKETOKEN"),
 	}
-	token, err := tf.FetchToken(context.Background())
+	token, err := tf.GetIdentityToken()
 	assert.Nil(t, err)
 	assert.Equal(t, []byte("FAKETOKEN"), token)
 }

@@ -15,43 +15,23 @@ limitations under the License.
 package auth
 
 import (
+	"context"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/stretchr/testify/assert"
 )
 
+// do we need this file now that resolving logic is isolated to each service?
+
 func TestResolver(t *testing.T) {
-	tbl := []struct {
-		env     string
-		service string
-		url     string
-	}{
-		{
-			env:     SecretsManagerEndpointEnv,
-			service: "secretsmanager",
-			url:     "http://sm.foo",
-		},
-		{
-			env:     SSMEndpointEnv,
-			service: "ssm",
-			url:     "http://ssm.foo",
-		},
-		{
-			env:     STSEndpointEnv,
-			service: "sts",
-			url:     "http://sts.foo",
-		},
-	}
+	endpointEnvKey := STSEndpointEnv
+	endpointURL := "http://sts.foo"
 
-	for _, item := range tbl {
-		t.Setenv(item.env, item.url)
-	}
+	t.Setenv(endpointEnvKey, endpointURL)
 
-	f := ResolveEndpoint()
+	f, err := customEndpointResolver{}.ResolveEndpoint(context.Background(), sts.EndpointParameters{})
 
-	for _, item := range tbl {
-		ep, err := f.EndpointFor(item.service, "")
-		assert.Nil(t, err)
-		assert.Equal(t, item.url, ep.URL)
-	}
+	assert.Nil(t, err)
+	assert.Equal(t, endpointURL, f.URI.String())
 }
