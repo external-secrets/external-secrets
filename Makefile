@@ -237,6 +237,11 @@ DOCS_VERSION ?= $(VERSION)
 .PHONY: docs.check
 docs.check: ## Check docs
 	$(MAKE) -C ./hack/api-docs check DOCS_VERSION=$(DOCS_VERSION)
+
+.PHONY: docs.update
+docs.update: ## Update docs
+	$(MAKE) -C ./hack/api-docs stability-support.update DOCS_VERSION=$(DOCS_VERSION)
+
 # ====================================================================================
 # Build Artifacts
 
