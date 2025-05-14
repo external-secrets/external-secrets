@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../kubernetes/">
+        <link rel="prev" href="../1password-automation/">
       
       
-        <link rel="next" href="../akeyless/">
+        <link rel="next" href="../webhook/">
       
       
       <link rel="icon" href="../../pictures/eso-round-logo.svg">
@@ -20,7 +20,7 @@
     
     
       
-        <title>IBM Secrets Manager - External Secrets Operator</title>
+        <title>1Password SDK - External Secrets Operator</title>
       
     
     
@@ -82,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#ibm-cloud-secret-manager" class="md-skip">
+        <a href="#1password-secrets-with-sdk" class="md-skip">
           Skip to content
         </a>
       
@@ -131,7 +131,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              IBM Secrets Manager
+              1Password SDK
             
           </span>
         </div>
@@ -2597,30 +2597,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    IBM Secrets Manager
-    
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../ibm-secrets-manager/" class="md-nav__link">
         
   
   
@@ -2631,177 +2611,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#ibm-cloud-secret-manager" class="md-nav__link">
-    <span class="md-ellipsis">
-      IBM Cloud Secret Manager
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="IBM Cloud Secret Manager">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
-    <span class="md-ellipsis">
-      Authentication
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Authentication">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#api-key-secret" class="md-nav__link">
-    <span class="md-ellipsis">
-      API key secret
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#trusted-profile-container-auth" class="md-nav__link">
-    <span class="md-ellipsis">
-      Trusted Profile Container Auth
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#update-secret-store" class="md-nav__link">
-    <span class="md-ellipsis">
-      Update secret store
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#secret-types" class="md-nav__link">
-    <span class="md-ellipsis">
-      Secret Types
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Secret Types">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#arbitrary" class="md-nav__link">
-    <span class="md-ellipsis">
-      arbitrary
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#username_password" class="md-nav__link">
-    <span class="md-ellipsis">
-      username_password
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#iam_credentials" class="md-nav__link">
-    <span class="md-ellipsis">
-      iam_credentials
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#service_credentials" class="md-nav__link">
-    <span class="md-ellipsis">
-      service_credentials
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#imported_cert-public_cert-and-private_cert" class="md-nav__link">
-    <span class="md-ellipsis">
-      imported_cert, public_cert, and private_cert
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#kv" class="md-nav__link">
-    <span class="md-ellipsis">
-      kv
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#creating-external-secret" class="md-nav__link">
-    <span class="md-ellipsis">
-      Creating external secret
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#getting-the-kubernetes-secret" class="md-nav__link">
-    <span class="md-ellipsis">
-      Getting the Kubernetes secret
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#populating-the-kubernetes-secret-with-metadata-from-ibm-secrets-manager-provider" class="md-nav__link">
-    <span class="md-ellipsis">
-      Populating the Kubernetes secret with metadata from IBM Secrets Manager Provider
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -2995,10 +2804,30 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../1password-sdk/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    1Password SDK
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -3009,6 +2838,75 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1password-secrets-with-sdk" class="md-nav__link">
+    <span class="md-ellipsis">
+      1Password Secrets with SDK
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1Password Secrets with SDK">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#store-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Store Configuration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getsecret" class="md-nav__link">
+    <span class="md-ellipsis">
+      GetSecret
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pushsecret" class="md-nav__link">
+    <span class="md-ellipsis">
+      PushSecret
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supported-functionality" class="md-nav__link">
+    <span class="md-ellipsis">
+      Supported Functionality
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -4001,148 +3899,46 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#ibm-cloud-secret-manager" class="md-nav__link">
+  <a href="#1password-secrets-with-sdk" class="md-nav__link">
     <span class="md-ellipsis">
-      IBM Cloud Secret Manager
+      1Password Secrets with SDK
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="IBM Cloud Secret Manager">
+    <nav class="md-nav" aria-label="1Password Secrets with SDK">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
+  <a href="#store-configuration" class="md-nav__link">
     <span class="md-ellipsis">
-      Authentication
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Authentication">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#api-key-secret" class="md-nav__link">
-    <span class="md-ellipsis">
-      API key secret
+      Store Configuration
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#trusted-profile-container-auth" class="md-nav__link">
+  <a href="#getsecret" class="md-nav__link">
     <span class="md-ellipsis">
-      Trusted Profile Container Auth
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#update-secret-store" class="md-nav__link">
-    <span class="md-ellipsis">
-      Update secret store
+      GetSecret
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#secret-types" class="md-nav__link">
+  <a href="#pushsecret" class="md-nav__link">
     <span class="md-ellipsis">
-      Secret Types
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Secret Types">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#arbitrary" class="md-nav__link">
-    <span class="md-ellipsis">
-      arbitrary
+      PushSecret
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#username_password" class="md-nav__link">
+  <a href="#supported-functionality" class="md-nav__link">
     <span class="md-ellipsis">
-      username_password
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#iam_credentials" class="md-nav__link">
-    <span class="md-ellipsis">
-      iam_credentials
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#service_credentials" class="md-nav__link">
-    <span class="md-ellipsis">
-      service_credentials
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#imported_cert-public_cert-and-private_cert" class="md-nav__link">
-    <span class="md-ellipsis">
-      imported_cert, public_cert, and private_cert
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#kv" class="md-nav__link">
-    <span class="md-ellipsis">
-      kv
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#creating-external-secret" class="md-nav__link">
-    <span class="md-ellipsis">
-      Creating external secret
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#getting-the-kubernetes-secret" class="md-nav__link">
-    <span class="md-ellipsis">
-      Getting the Kubernetes secret
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#populating-the-kubernetes-secret-with-metadata-from-ibm-secrets-manager-provider" class="md-nav__link">
-    <span class="md-ellipsis">
-      Populating the Kubernetes secret with metadata from IBM Secrets Manager Provider
+      Supported Functionality
     </span>
   </a>
   
@@ -4172,358 +3968,95 @@
   
 
 
-  <h1>IBM Secrets Manager</h1>
+  <h1>1Password SDK</h1>
 
-<h2 id="ibm-cloud-secret-manager">IBM Cloud Secret Manager</h2>
-<p>External Secrets Operator integrates with <a href="https://www.ibm.com/cloud/secrets-manager">IBM Cloud Secret Manager</a> for secret management.</p>
-<h3 id="authentication">Authentication</h3>
-<p>We support API key and trusted profile container authentication for this provider.</p>
-<h4 id="api-key-secret">API key secret</h4>
-<p>To generate your key (for test purposes we are going to generate from your user), first got to your (Access IAM) page:</p>
-<p><img alt="iam" src="../../pictures/screenshot_api_keys_iam.png" /></p>
-<p>On the left, click "API Keys", then click on "Create"</p>
-<p><img alt="iam-left" src="../../pictures/screenshot_api_keys_iam_left.png" /></p>
-<p>Pick a name and description for your key:</p>
-<p><img alt="iam-create-key" src="../../pictures/screenshot_api_keys_create.png" /></p>
-<p>You have created a key. Press the eyeball to show the key. Copy or save it because keys can't be displayed or downloaded twice.</p>
-<p><img alt="iam-create-success" src="../../pictures/screenshot_api_keys_create_successful.png" /></p>
-<p>Create a secret containing your apiKey:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>ibm-secret<span class="w"> </span>--from-literal<span class="o">=</span><span class="nv">apiKey</span><span class="o">=</span><span class="s1">&#39;API_KEY_VALUE&#39;</span>
-</code></pre></div>
-<h4 id="trusted-profile-container-auth">Trusted Profile Container Auth</h4>
-<p>To create the trusted profile, first got to your (Access IAM) page:</p>
-<p><img alt="iam" src="../../pictures/screenshot_api_keys_iam.png" /></p>
-<p>On the left, click "Access groups":</p>
-<p><img alt="iam-left" src="../../pictures/screenshot_container_auth_create_group.png" /></p>
-<p>Pick a name and description for your group:</p>
-<p><img alt="iam-left" src="../../pictures/screenshot_container_auth_create_group_1.png" /></p>
-<p>Click on "Access", and then on "Assign":</p>
-<p><img alt="iam-left" src="../../pictures/screenshot_container_auth_create_group_2.png" /></p>
-<p>Click on "Assign Access", select "IAM services", and pick "Secrets Manager" from the pick-list:</p>
-<p><img alt="iam-left" src="../../pictures/screenshot_container_auth_create_group_3.png" /></p>
-<p>Scope to "All resources" or "Resources based on selected attributes":</p>
-<p><img alt="iam-left" src="../../pictures/screenshot_container_auth_create_group_4.png" /></p>
-<p>Select the "SecretsReader" service access policy:</p>
-<p><img alt="iam-left" src="../../pictures/screenshot_container_auth_create_group_5.png" /></p>
-<p>Click "Add" and "Assign" to save the access group.</p>
-<p>Next, on the left, click "Trusted profiles":</p>
-<p><img alt="iam-left" src="../../pictures/screenshot_container_auth_iam_left.png" /></p>
-<p>Press "Create" and pick a name and description for your profile:</p>
-<p><img alt="iam-create-key" src="../../pictures/screenshot_container_auth_create_1.png" /></p>
-<p>Scope the profile's access.</p>
-<p>The compute service type will be "Red Hat OpenShift on IBM Cloud".  Additional restriction can be configured based on cloud or cluster metadata, or if "Specific resources" is selected, restriction to a specific cluster.</p>
-<p><img alt="iam-create-key" src="../../pictures/screenshot_container_auth_create_2.png" /></p>
-<p>Click "Add" next to the previously created access group and then "Create", to associate the necessary service permissions.</p>
-<p><img alt="iam-create-key" src="../../pictures/screenshot_container_auth_create_3.png" /></p>
-<p>To use the container-based authentication, it is necessary to map the API server <code>serviceAccountToken</code> auth token to the "external-secrets" and "external-secrets-webhook" deployment descriptors. Example below:</p>
-<div class="highlight"><pre><span></span><code><span class="nn">...</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">...</span>
-<span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">template</span><span class="p p-Indicator">:</span>
-<span class="w">    </span><span class="l l-Scalar l-Scalar-Plain">...</span>
-<span class="w">    </span><span class="l l-Scalar l-Scalar-Plain">spec</span><span class="p p-Indicator">:</span>
-<span class="w">      </span><span class="nt">containers</span><span class="p">:</span>
-<span class="w">        </span><span class="l l-Scalar l-Scalar-Plain">...</span>
-<span class="w">        </span><span class="l l-Scalar l-Scalar-Plain">volumeMounts</span><span class="p p-Indicator">:</span>
-<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/var/run/secrets/tokens</span>
-<span class="w">           </span><span class="l l-Scalar l-Scalar-Plain">name</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sa-token</span>
-<span class="w">      </span><span class="l l-Scalar l-Scalar-Plain">...</span>
-<span class="w">      </span><span class="nt">volumes</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sa-token</span>
-<span class="w">        </span><span class="nt">projected</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">defaultMode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">420</span>
-<span class="w">          </span><span class="nt">sources</span><span class="p">:</span>
-<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">serviceAccountToken</span><span class="p">:</span>
-<span class="w">              </span><span class="nt">audience</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">iam</span>
-<span class="w">              </span><span class="nt">expirationSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3600</span>
-<span class="w">              </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sa-token</span>
-<span class="nn">...</span>
-</code></pre></div>
-<h3 id="update-secret-store">Update secret store</h3>
-<p>Be sure the <code>ibm</code> provider is listed in the <code>Kind=SecretStore</code></p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<h2 id="1password-secrets-with-sdk">1Password Secrets with SDK</h2>
+<p>1Password released <a href="https://developer.1password.com/docs/sdks/">developer SDKs</a> to ease the usage of the secret provider
+without the need for any external devices. This provides a much better user experience for automated processes without
+the need of the connect server.</p>
+<p><em>Note</em>: In order to use ESO with 1Password SDK, documents must have unique label names. Meaning, if there is a label
+that has the same title as another label we won't know which one to update and an error is thrown:
+<code>found multiple labels with the same key</code>.</p>
+<h3 id="store-configuration">Store Configuration</h3>
+<p>A store is per vault. This is to prevent a single ExternalSecret potentially accessing ALL vaults.</p>
+<p>A sample store configuration looks like this:</p>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ibm-store</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1password-sdk</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">ibm</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">serviceUrl</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://&lt;SECRETS_MANAGER_ID&gt;.&lt;REGION&gt;.secrets-manager.appdomain.cloud&quot;</span>
+<span class="w">    </span><span class="nt">onepasswordSDK</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">vault</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">staging</span>
 <span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">containerAuth</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">profile</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;test</span><span class="nv"> </span><span class="s">container</span><span class="nv"> </span><span class="s">auth</span><span class="nv"> </span><span class="s">profile&quot;</span>
-<span class="w">          </span><span class="nt">tokenLocation</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/var/run/secrets/tokens/sa-token&quot;</span>
-<span class="w">          </span><span class="nt">iamEndpoint</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://iam.cloud.ibm.com&quot;</span>
-<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">secretApiKeySecretRef</span><span class="p">:</span>
-<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ibm-secret</span>
-<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">apiKey</span>
+<span class="w">        </span><span class="nt">serviceAccountSecretRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onepassword-connect-token-staging</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span>
+<span class="w">      </span><span class="nt">integrationInfo</span><span class="p">:</span><span class="w"> </span><span class="c1"># this is optional and defaulted</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">integration-info</span>
+<span class="w">        </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
 </code></pre></div>
-<strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>secretApiKeySecretRef</code> with the namespace where the secret resides.</p>
-<p><strong>NOTE:</strong> Only <code>secretApiKeySecretRef</code> or <code>containerAuth</code> should be specified, depending on authentication method being used.</p>
-<p>To find your <code>serviceURL</code>, under your Secrets Manager resource, go to "Endpoints" on the left.</p>
-<p>See here for a list of <a href="https://cloud.ibm.com/apidocs/secrets-manager#getting-started-endpoints">publicly available endpoints</a>.</p>
-<p><img alt="iam-create-success" src="../../pictures/screenshot_service_url.png" /></p>
-<h3 id="secret-types">Secret Types</h3>
-<p>We support the following secret types of <a href="https://cloud.ibm.com/apidocs/secrets-manager">IBM Secrets Manager</a>:</p>
-<ul>
-<li><code>arbitrary</code></li>
-<li><code>username_password</code></li>
-<li><code>iam_credentials</code></li>
-<li><code>service_credentials</code></li>
-<li><code>imported_cert</code></li>
-<li><code>public_cert</code></li>
-<li><code>private_cert</code></li>
-<li><code>kv</code></li>
-</ul>
-<p>To define the type of secret you would like to sync you need to prefix the secret id with the desired type. If the secret type is not specified it is defaulted to <code>arbitrary</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<h3 id="getsecret">GetSecret</h3>
+<p>Valid secret references should use the following key format: <code>&lt;item&gt;/[section/]&lt;field&gt;</code>.</p>
+<p>This is described here: <a href="https://developer.1password.com/docs/cli/secret-reference-syntax/">Secret Reference Syntax</a>.</p>
+<p>For a one-time password use the following key format: <code>&lt;item&gt;/[section/]one-time password?attribute=otp</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ibm-sample</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">fetch-from-onepassword</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="c1"># [...]</span>
-<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">test</span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">      </span><span class="c1"># defaults to type=arbitrary</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">xxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">usr_pass</span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username_password/yyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy</span>
-<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">iam_cred</span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">iam_credentials/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">srv_cred</span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">service_credentials/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">imp_cert</span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">imported_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span>
-<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">certificate</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pub_cert</span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">public_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span>
-<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">certificate</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">prvt_cert</span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">private_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span>
-<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">certificate</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kv_without_key</span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kv_key</span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span>
-<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;keyid&#39;</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kv_key_with_path</span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span>
-<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;key.path&#39;</span>
-</code></pre></div>
-<p>The behavior for the different secret types is as following:</p>
-<h4 id="arbitrary">arbitrary</h4>
-<ul>
-<li><code>remoteRef</code> retrieves a string from secrets manager and sets it for specified <code>secretKey</code></li>
-<li><code>dataFrom</code> retrieves a string from secrets manager and tries to parse it as JSON object setting the key:values pairs in resulting Kubernetes secret if successful</li>
-</ul>
-<h4 id="username_password">username_password</h4>
-<ul>
-<li><code>remoteRef</code> requires a <code>property</code> to be set for either <code>username</code> or <code>password</code> to retrieve respective fields from the secrets manager secret and set in specified <code>secretKey</code></li>
-<li><code>dataFrom</code> retrieves both <code>username</code> and <code>password</code> fields from the secrets manager secret and sets appropriate key:value pairs in the resulting Kubernetes secret</li>
-</ul>
-<h4 id="iam_credentials">iam_credentials</h4>
-<ul>
-<li><code>remoteRef</code> retrieves an apikey from secrets manager and sets it for specified <code>secretKey</code></li>
-<li><code>dataFrom</code> retrieves an apikey from secrets manager and sets it for the <code>apikey</code> Kubernetes secret key</li>
-</ul>
-<h4 id="service_credentials">service_credentials</h4>
-<ul>
-<li><code>remoteRef</code> retrieves the credentials object from secrets manager and sets it for specified <code>secretKey</code></li>
-<li><code>dataFrom</code> retrieves the credential object as a map from secrets manager and sets appropriate key:value pairs in the resulting Kubernetes secret</li>
-</ul>
-<h4 id="imported_cert-public_cert-and-private_cert">imported_cert, public_cert, and private_cert</h4>
-<ul>
-<li><code>remoteRef</code> requires a <code>property</code> to be set for either <code>certificate</code>, <code>private_key</code> or <code>intermediate</code> to retrieve respective fields from the secrets manager secret and set in specified <code>secretKey</code></li>
-<li><code>dataFrom</code> retrieves all <code>certificate</code>, <code>private_key</code> and <code>intermediate</code> fields from the secrets manager secret and sets appropriate key:value pairs in the resulting Kubernetes secret</li>
-</ul>
-<h4 id="kv">kv</h4>
-<ul>
-<li>An optional <code>property</code> field can be set to <code>remoteRef</code> to select requested key from the KV secret. If not set, the entire secret will be returned</li>
-<li><code>dataFrom</code> retrieves a string from secrets manager and tries to parse it as JSON object setting the key:values pairs in resulting Kubernetes secret if successful. It could be either used with the methods</li>
-<li><code>Extract</code> to extract multiple key/value pairs from one secret (with optional <code>property</code> field being supported as well)</li>
-<li><code>Find</code> to find secrets based on tags or regular expressions and allows finding multiple external secrets and map them into a single Kubernetes secret</li>
-</ul>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-<span class="w">  </span><span class="nt">&quot;key1&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;val1&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;key2&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;val2&quot;</span><span class="p">,</span>
-<span class="w">  </span><span class="nt">&quot;key3&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;keyA&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;valA&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nt">&quot;keyB&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;valB&quot;</span>
-<span class="w">  </span><span class="p">},</span>
-<span class="w">  </span><span class="nt">&quot;special.key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;special-content&quot;</span>
-<span class="p">}</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="nt">data</span><span class="p">:</span>
-<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">key3_keyB</span>
-<span class="w">  </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;kv/aaaaa-bbbb-cccc-dddd-eeeeee&#39;</span>
-<span class="w">    </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;key3.keyB&#39;</span>
-<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">special_key</span>
-<span class="w">  </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;kv/aaaaa-bbbb-cccc-dddd-eeeeee&#39;</span>
-<span class="w">    </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;special.key&#39;</span>
-<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">key_all</span>
-<span class="w">  </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;kv/aaaaa-bbbb-cccc-dddd-eeeeee&#39;</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="nt">dataFrom</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;kv/fffff-gggg-iiii-dddd-eeeeee&#39;</span><span class="w"> </span><span class="c1">#mandatory</span>
-<span class="w">    </span><span class="nt">decodingStrategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Base64</span><span class="w"> </span><span class="c1">#optional</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="nt">dataFrom</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w">  </span><span class="c1">#matches any secret name ending in foo-bar</span>
-<span class="w">        </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;key&quot;</span><span class="w"> </span><span class="c1">#assumption that secrets are stored like /comp/key1, key2/trigger, and comp/trigger/keygen within the secret manager</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="c1">#matches any secrets with the following metadata labels</span>
-<span class="w">        </span><span class="nt">environment</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;dev&quot;</span>
-<span class="w">        </span><span class="nt">application</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;BFF&quot;</span>
-</code></pre></div>
-<p>results in</p>
-<div class="highlight"><pre><span></span><code><span class="nt">data</span><span class="p">:</span>
-<span class="w">  </span><span class="c1"># secrets from data</span>
-<span class="w">  </span><span class="nt">key3_keyB</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#valB</span>
-<span class="w">  </span><span class="nt">special_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#special-content</span>
-<span class="w">  </span><span class="nt">key_all</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#{&quot;key1&quot;:&quot;val1&quot;,&quot;key2&quot;:&quot;val2&quot;, ...&quot;special.key&quot;:&quot;special-content&quot;}</span>
-
-<span class="w">  </span><span class="c1"># secrets from dataFrom with extract method</span>
-<span class="w">  </span><span class="nt">keyA</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#1st key-value pair from JSON object</span>
-<span class="w">  </span><span class="nt">keyB</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#2nd key-value pair from JSON object</span>
-<span class="w">  </span><span class="nt">keyC</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#3rd key-value pair from JSON object</span>
-
-<span class="w">  </span><span class="c1"># secrets from dataFrom with find regex method</span>
-<span class="w">  </span><span class="nt">_comp_key1</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#secret value for /comp/key1</span>
-<span class="w">  </span><span class="nt">key2_trigger</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#secret value for key2/trigger</span>
-<span class="w">  </span><span class="nt">_comp_trigger_keygen</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w"> </span><span class="c1">#secret value for comp/trigger/keygen</span>
-
-<span class="w">  </span><span class="c1"># secrets from dataFrom with find tags method</span>
-<span class="w">  </span><span class="nt">bffA</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span>
-<span class="w">  </span><span class="nt">bffB</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span>
-<span class="w">  </span><span class="nt">bffC</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span>
-</code></pre></div>
-<h3 id="creating-external-secret">Creating external secret</h3>
-<p>To create a kubernetes secret from the IBM Secrets Manager, a <code>Kind=ExternalSecret</code> is needed.
-Below example creates a kubernetes secret based on ID of the secret in Secrets Manager.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
 <span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ibm-store</span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onepassword</span>
 <span class="w">  </span><span class="nt">target</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span>
 <span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
 <span class="w">  </span><span class="nt">data</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username_password/&lt;SECRET_ID&gt;</span>
-<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username_password/&lt;SECRET_ID&gt;</span>
-<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">test-login-1</span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">test-login-1/username</span>
 </code></pre></div>
-<p>Alternatively, the secret name along with its secret group name can be specified instead of secret ID to fetch the secret.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
-<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ibm-store</span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span>
-<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
-<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;SECRET_GROUP_NAME&gt;/username_password/&lt;SECRET_NAME&gt;</span>
-<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
-<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;SECRET_GROUP_NAME&gt;/username_password/&lt;SECRET_NAME&gt;</span>
-<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
-</code></pre></div>
-<h3 id="getting-the-kubernetes-secret">Getting the Kubernetes secret</h3>
-<p>The operator will fetch the IBM Secret Manager secret and inject it as a <code>Kind=Secret</code>
-<div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; | -o jsonpath=&#39;{.data.test}&#39; | base64 -d
-</code></pre></div></p>
-<h3 id="populating-the-kubernetes-secret-with-metadata-from-ibm-secrets-manager-provider">Populating the Kubernetes secret with metadata from IBM Secrets Manager Provider</h3>
-<p>ESO can add metadata while creating or updating a Kubernetes secret to be reflected in its labels or annotations. The metadata could be any of the fields that are supported and returned in the response by IBM Secrets Manager.</p>
-<p>In order for the user to opt in to adding metadata to secret, an existing optional field <code>spec.dataFrom.extract.metadataPolicy</code> can be set to <code>Fetch</code>, its default value being <code>None</code>. In addition to this, templating provided be ESO can be leveraged to specify the key-value pairs of the resultant secrets' labels and annotation.</p>
-<p>In order for the required metadata to be populated in the Kubernetes secret, combination of below should be provided in the External Secrets resource:
-1. The required metadata should be specified under <code>template.metadata.labels</code> or <code>template.metadata.annotations</code>.
-2. The required secret data should be specified under <code>template.data</code>.
-3. The spec.dataFrom.extract should be specified with details of the Secrets Manager secret with <code>spec.dataFrom.extract.metadataPolicy</code> set to <code>Fetch</code>.
-Below is an example, where <code>secret_id</code> and <code>updated_at</code> are the metadata of a secret in IBM Secrets Manager:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span>
-<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username_password/&lt;SECRET_ID&gt;</span>
-<span class="w">      </span><span class="nt">metadataPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Fetch</span><span class="w">           </span><span class="c1"># leveraging optional parameter, defaults to None</span>
-<span class="w">    </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span>
-<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ibm-store</span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span>
-<span class="w">    </span><span class="nt">template</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">engineVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v2</span>
-<span class="w">      </span><span class="nt">data</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">secret</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.password</span><span class="nv"> </span><span class="s">}}&quot;</span>
-<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">annotations</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">secret_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.id</span><span class="nv"> </span><span class="s">}}&quot;</span><span class="w">     </span><span class="c1"># adding metadata key whose value would be added to the secret as a label</span>
-<span class="w">          </span><span class="nt">updated_at</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.updated_at</span><span class="nv"> </span><span class="s">}}&quot;</span>
-</code></pre></div>
-<p>While the secret is being reconciled, it will have the secret data along with the required annotations. Below is the example of the secret after reconciliation:</p>
+<h3 id="pushsecret">PushSecret</h3>
+<p>Pushing a secret is also supported. For example a push operation with the following secret:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
-<span class="nt">data</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">secret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OHE0MFV5MGhQb2FmRjZTOGVva3dPQjRMeVZXeXpWSDlrSWgyR1BiVDZTMyc=</span>
-<span class="nt">immutable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">annotations</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">reconcile.external-secrets.io/data-hash</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">02217008d13ed228e75cf6d26fe74324</span>
-<span class="w">    </span><span class="nt">creationTimestamp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2023-05-04T08:41:24Z&quot;</span>
-<span class="w">    </span><span class="nt">secret_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1234&quot;</span>
-<span class="w">    </span><span class="nt">updated_at</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2023-05-04T08:57:19Z</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span>
-<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
-<span class="w">  </span><span class="nt">ownerReferences</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
-<span class="w">    </span><span class="nt">blockOwnerDeletion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">    </span><span class="nt">controller</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span>
-<span class="w">    </span><span class="nt">uid</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">c2a018e7-1ac3-421b-bd3b-d9497204f843</span>
-<span class="w">  </span><span class="c1">#resourceVersion: &quot;1803567&quot; #immutable for a user</span>
-<span class="w">  </span><span class="c1">#uid: f5dff604-611b-4d41-9d65-b860c61a0b8d #immutable for a user</span>
-<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source-secret</span>
+<span class="nt">stringData</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">source-key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret&quot;</span>
 </code></pre></div>
+<p>Looks like this:</p>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pushsecret-example</span><span class="w"> </span><span class="c1"># Customisable</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">deletionPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Delete</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
+<span class="w">  </span><span class="nt">secretStoreRefs</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onepassword</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">secret</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source-secret</span><span class="w"> </span><span class="c1"># Source Kubernetes secret</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source-key</span><span class="w"> </span><span class="c1"># Source Kubernetes secret key to be pushed</span>
+<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1pw-secret-name</span><span class="w"> </span><span class="c1"># 1Password item/secret name</span>
+<span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span><span class="w">         </span><span class="c1"># (Optional) 1Password field type, default password</span>
+<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.external-secrets.io/v1alpha1</span>
+<span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecretMetadata</span>
+<span class="w">        </span><span class="nt">spec</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;tag1&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;tag2&quot;</span><span class="p p-Indicator">]</span><span class="w">    </span><span class="c1"># Optional metadata to be pushed with the secret</span>
+</code></pre></div>
+<p>Once all fields of a secret are deleted, the entire secret is deleted if the PushSecret object is removed and
+policy is set to <code>delete</code>.</p>
+<h3 id="supported-functionality">Supported Functionality</h3>
+<p>Please check the documentation on 1password for <a href="https://developer.1password.com/docs/sdks/functionality">Supported Functionality</a>.</p>
 
 
 
