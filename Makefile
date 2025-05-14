@@ -233,6 +233,10 @@ docs.publish: generate ## Generate and deploys docs
 docs.serve: ## Serve docs
 	$(MAKE) -C ./hack/api-docs serve
 
+DOCS_VERSION ?= $(VERSION)
+.PHONY: docs.check
+docs.check: ## Check docs
+	$(MAKE) -C ./hack/api-docs check DOCS_VERSION=$(DOCS_VERSION)
 # ====================================================================================
 # Build Artifacts
 

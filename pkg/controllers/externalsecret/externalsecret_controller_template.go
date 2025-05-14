@@ -34,7 +34,7 @@ import (
 // * template.TemplateFrom
 // * secret via es.data or es.dataFrom (if template.MergePolicy is Merge, or there is no template)
 // * existing secret keys (if CreationPolicy is Merge).
-func (r *Reconciler) applyTemplate(ctx context.Context, es *esv1.ExternalSecret, secret *v1.Secret, dataMap map[string][]byte) error {
+func (r *Reconciler) ApplyTemplate(ctx context.Context, es *esv1.ExternalSecret, secret *v1.Secret, dataMap map[string][]byte) error {
 	// update metadata (labels, annotations) of the secret
 	if err := setMetadata(secret, es); err != nil {
 		return err
