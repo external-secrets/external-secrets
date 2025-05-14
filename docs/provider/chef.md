@@ -4,7 +4,7 @@
 
 In many enterprises, legacy applications and infrastructure are still tightly integrated with the Chef/Chef Infra Server/Chef Server Cluster for configuration and secrets management. Teams often rely on [Chef data bags](https://docs.chef.io/data_bags/) to securely store sensitive information such as application secrets and infrastructure configurations. These data bags serve as a centralized repository for managing and distributing sensitive data across the Chef ecosystem.
 
-**NOTE:** `Chef External Secrets provider` is designed only to fetch data from the Chef data bags into Kubernetes secrets, it won't update/delete any item in the data bags. 
+**NOTE:** `Chef External Secrets provider` is designed only to fetch data from the Chef data bags into Kubernetes secrets, it won't update/delete any item in the data bags.
 
 ### Authentication
 
@@ -30,7 +30,7 @@ kubectl create secret generic chef-user-secret -n vivid --from-literal=user-priv
 The Chef `ClusterSecretStore` is a cluster-scoped SecretStore that can be referenced by all Chef `ExternalSecrets` from all namespaces. You can follow the below example to create a `ClusterSecretStore` resource.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ClusterSecretStore
 metadata:
   name: vivid-clustersecretstore # name of ClusterSecretStore
@@ -54,7 +54,7 @@ Chef `SecretStores` are bound to a namespace and can not reference resources acr
 You can follow the below example to create a `SecretStore` resource.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: vivid-secretstore # name of SecretStore
@@ -86,7 +86,7 @@ When the above `ClusterSecretStore` and `ExternalSecret` resources are created, 
 
 To get all data items inside the data bag, you can use the `dataFrom` directive:
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: vivid-external-secrets # name of ExternalSecret
