@@ -955,14 +955,16 @@ func TestGetSecretMap(t *testing.T) {
 
 	// good case: private_cert with metadata
 	setPrivateCertWithMetadata := func(smtc *secretManagerTestCase) {
+		expirationDate := &strfmt.DateTime{}
 		secret := &sm.PrivateCertificate{
-			CreatedBy:   utilpointer.To("testCreatedBy"),
-			CreatedAt:   &strfmt.DateTime{},
-			Downloaded:  utilpointer.To(false),
-			Labels:      []string{"abc", "def", "xyz"},
-			LocksTotal:  utilpointer.To(int64(20)),
-			Certificate: utilpointer.To(secretCertificate),
-			PrivateKey:  utilpointer.To(secretPrivateKey),
+			CreatedBy:      utilpointer.To("testCreatedBy"),
+			CreatedAt:      &strfmt.DateTime{},
+			Downloaded:     utilpointer.To(false),
+			Labels:         []string{"abc", "def", "xyz"},
+			LocksTotal:     utilpointer.To(int64(20)),
+			Certificate:    utilpointer.To(secretCertificate),
+			PrivateKey:     utilpointer.To(secretPrivateKey),
+			ExpirationDate: expirationDate,
 		}
 		smtc.name = "good case: private_cert with metadata"
 		smtc.apiInput.ID = utilpointer.To(secretUUID)
@@ -977,7 +979,7 @@ func TestGetSecretMap(t *testing.T) {
 			"created_by":           []byte(*secret.CreatedBy),
 			"crn":                  []byte(nilValue),
 			"downloaded":           []byte(strconv.FormatBool(*secret.Downloaded)),
-			"expiration_date":      []byte(nilValue),
+			"expiration_date":      []byte(expirationDate.String()),
 			"id":                   []byte(nilValue),
 			"issuer":               []byte(nilValue),
 			"labels":               []byte("[" + strings.Join(secret.Labels, " ") + "]"),
