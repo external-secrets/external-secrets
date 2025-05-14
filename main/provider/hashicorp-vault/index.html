@@ -4404,7 +4404,7 @@ one supported by this provider. For other secrets engines, please refer to the
 <a href="../../api/generator/vault/">Vault Generator</a>.</p>
 <h3 id="example">Example</h3>
 <p>First, create a SecretStore with a vault backend. For the sake of simplicity we'll use a static token <code>root</code>:</p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
@@ -4439,7 +4439,7 @@ one supported by this provider. For other secrets engines, please refer to the
 </code></pre></div>
 <p>If you are using version: 1, just remember to update your SecretStore manifest appropriately</p>
 <p>Now create a ExternalSecret that uses the above SecretStore:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-example</span>
@@ -4481,7 +4481,7 @@ one supported by this provider. For other secrets engines, please refer to the
 <p>Keep in mind that fetching the labels with <code>metadataPolicy: Fetch</code> only works with KV sercrets engine version v2.</p>
 <h4 id="fetching-raw-values">Fetching Raw Values</h4>
 <p>You can fetch all key/value pairs for a given path If you leave the <code>remoteRef.property</code> empty. This returns the json-encoded secret value for that path.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-example</span>
@@ -4504,7 +4504,7 @@ one supported by this provider. For other secrets engines, please refer to the
 <span class="p">}</span>
 </code></pre></div></p>
 <p>You can set the <code>remoteRef.property</code> to point to the nested key using a <a href="https://github.com/tidwall/gjson">gjson</a> expression.
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-example</span>
@@ -4533,7 +4533,7 @@ one supported by this provider. For other secrets engines, please refer to the
 <span class="p">}</span>
 </code></pre></div></p>
 <p>You can set the <code>remoteRef.property</code> to point to the nested key using a <a href="https://github.com/tidwall/gjson">gjson</a> expression.
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-example</span>
@@ -4572,7 +4572,7 @@ baz=bang
 <span class="p">}</span>
 </code></pre></div></p>
 <p>It is possible to find this secret by all the following possibilities:
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-example</span>
@@ -4592,7 +4592,7 @@ will generate a secret with:
 <span class="p">}</span>
 </code></pre></div></p>
 <p>Currently, <code>Find</code> operations are recursive throughout a given vault folder, starting on <code>provider.Path</code> definition. It is recommended to narrow down the scope of search by setting a <code>find.path</code> variable. This is also useful to automatically reduce the resulting secret key names:
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-example</span>
@@ -4627,7 +4627,7 @@ trade-offs. Depending on the authentication method you need to adapt your enviro
 <p>If you're using Vault namespaces, you can authenticate into one namespace and use the vault token against a different namespace, if desired.</p>
 <h4 id="token-based-authentication">Token-based authentication</h4>
 <p>A static token is stored in a <code>Kind=Secret</code> and is used to authenticate with vault.</p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
@@ -4649,7 +4649,7 @@ trade-offs. Depending on the authentication method you need to adapt your enviro
 <h4 id="approle-authentication-example">AppRole authentication example</h4>
 <p><a href="https://www.vaultproject.io/docs/auth/approle">AppRole authentication</a> reads the secret id from a
 <code>Kind=Secret</code> and uses the specified <code>roleId</code> to aquire a temporary token to fetch secrets.</p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
@@ -4685,7 +4685,7 @@ options of obtaining credentials for vault:</p>
     external-secrets operator</li>
 </ol>
 <p>Vault validates the service account token by using the TokenReview API. ⚠️ You have to bind the <code>system:auth-delegator</code> ClusterRole to the service account that is used for authentication. Please follow the <a href="https://developer.hashicorp.com/vault/docs/auth/kubernetes#configuring-kubernetes">Vault documentation</a>.</p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
@@ -4721,7 +4721,7 @@ options of obtaining credentials for vault:</p>
 username/password pair to get an access token. Username is stored directly in
 a <code>Kind=SecretStore</code> or <code>Kind=ClusterSecretStore</code> resource, password is stored
 in a <code>Kind=Secret</code> referenced by the <code>secretRef</code>.</p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
@@ -4750,7 +4750,7 @@ in a <code>Kind=Secret</code> referenced by the <code>secretRef</code>.</p>
 username/password pair to get an access token. Username is stored directly in
 a <code>Kind=SecretStore</code> or <code>Kind=ClusterSecretStore</code> resource, password is stored
 in a <code>Kind=Secret</code> referenced by the <code>secretRef</code>.</p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
@@ -4778,7 +4778,7 @@ in a <code>Kind=Secret</code> referenced by the <code>secretRef</code>.</p>
 <a href="https://jwt.io/">JWT</a> token stored in a <code>Kind=Secret</code> and referenced by the
 <code>secretRef</code> or a temporary Kubernetes service account token retrieved via the <code>TokenRequest</code> API. Optionally a <code>role</code> field can be defined in a <code>Kind=SecretStore</code>
 or <code>Kind=ClusterSecretStore</code> resource.</p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
@@ -4822,7 +4822,7 @@ set of AWS Programmatic access credentials stored in a <code>Kind=Secret</code> 
 <p><a href="https://developer.hashicorp.com/vault/docs/auth/cert">TLS certificates auth method</a>  allows authentication using SSL/TLS client certificates which are either signed by a CA or self-signed. SSL/TLS client certificates are defined as having an ExtKeyUsage extension with the usage set to either ClientAuth or Any.</p>
 <h3 id="mutual-authentication-mtls">Mutual authentication (mTLS)</h3>
 <p>Under specific compliance requirements, the Vault server can be set up to enforce mutual authentication from clients across all APIs by configuring the server with <code>tls_require_and_verify_client_cert = true</code>. This configuration differs fundamentally from the <a href="#tls-certificates-authentication">TLS certificates auth method</a>. While the TLS certificates auth method allows the issuance of a Vault token through the <code>/v1/auth/cert/login</code> API, the mTLS configuration solely focuses on TLS transport layer authentication and lacks any authorization-related capabilities. It's important to note that the Vault token must still be included in the request, following any of the supported authentication methods mentioned earlier.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
@@ -4850,7 +4850,7 @@ set of AWS Programmatic access credentials stored in a <code>Kind=Secret</code> 
 </code></pre></div>
 <h3 id="access-key-id-secret-access-key">Access Key ID &amp; Secret Access Key</h3>
 <p>You can store Access Key ID &amp; Secret Access Key in a <code>Kind=Secret</code> and reference it from a SecretStore.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend-aws-iam</span>
@@ -4898,7 +4898,7 @@ You must have <a href="https://kubernetes.io/docs/tasks/configure-pod-container/
 <span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>
 </code></pre></div>
 <p>Reference the service account from above in the Secret Store:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend-aws-iam</span>
@@ -4926,7 +4926,7 @@ You must have <a href="https://kubernetes.io/docs/tasks/configure-pod-container/
 <h3 id="controllers-pod-identity">Controller's Pod Identity</h3>
 <p>This is basicially a zero-configuration authentication approach that inherits the credentials from the controller's pod identity</p>
 <p>This approach assumes that appropriate IRSA setup is done controller's pod (i.e. IRSA enabled IAM role is created appropriately and controller's service account is annotated appropriately with the annotation "eks.amazonaws.com/role-arn" to enable IRSA)</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend-aws-iam</span>
@@ -4949,7 +4949,7 @@ You must have <a href="https://kubernetes.io/docs/tasks/configure-pod-container/
 <span class="w">          </span><span class="nt">vaultAwsIamServerID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-vaultAwsIamServerID</span>
 </code></pre></div>
 <p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> for <code>serviceAccountRef</code> with the namespace where the service account resides.</p>
-<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
@@ -5038,7 +5038,7 @@ state.</p>
 and pick the best fit for your environment and Vault configuration.</p>
 <h4 id="vault-namespaces">Vault Namespaces</h4>
 <p><a href="https://www.vaultproject.io/docs/enterprise/namespaces">Vault namespaces</a> are an enterprise feature that support multi-tenancy. You can specify a vault namespace using the <code>namespace</code> property when you define a SecretStore:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
@@ -5055,7 +5055,7 @@ and pick the best fit for your environment and Vault configuration.</p>
 </code></pre></div>
 <h5 id="authenticating-into-a-different-namespace">Authenticating into a different namespace</h5>
 <p>In some situations your authentication backend may be in one namespace, and your secrets in another. You can authenticate into one namespace, and use that token against another, by setting <code>provider.vault.namespace</code> and <code>provider.vault.auth.namespace</code> to different values. If <code>provider.vault.auth.namespace</code> is unset but <code>provider.vault.namespace</code> is, it will default to the <code>provider.vault.namespace</code> value.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span>

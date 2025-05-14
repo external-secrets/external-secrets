@@ -4082,7 +4082,7 @@
 <h2 id="authentication">Authentication</h2>
 <p>External Secrets Operator may authenticate to OCI Vault using User Principal, <a href="https://blogs.oracle.com/developers/post/accessing-the-oracle-cloud-infrastructure-api-using-instance-principals">Instance Principal</a>, or <a href="https://blogs.oracle.com/cloud-infrastructure/post/oke-workload-identity-greater-control-access">Workload Identity</a>.</p>
 <p>To specify the authenticating principal in a secret store, set the <code>spec.provider.oracle.principalType</code> value. Note that the value of <code>principalType</code> defaults <code>InstancePrincipal</code> if not set.</p>
-<p>apiVersion: external-secrets.io/v1beta1
+<p>apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: my-secret-store
@@ -4117,7 +4117,7 @@ The private key and fingerprint must be supplied in a Kubernetes secret, while t
 <span class="w">  </span><span class="nt">fingerprint</span><span class="p">:</span><span class="w"> </span>
 </code></pre></div>
 <p>After creating the credentials secret, the secret store can be configured:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-auth</span>
@@ -4141,7 +4141,7 @@ The private key and fingerprint must be supplied in a Kubernetes secret, while t
 <p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>privatekey</code> and <code>fingerprint</code> with the namespaces where the secrets reside.</p>
 <h3 id="instance-principal-authentication-oci">Instance Principal Authentication (OCI)</h3>
 <p>Instance Principal uses a pod's instance principal to authenticate to OCI Vault. Ensure your cluster instances have the appropriate policies to use <a href="https://blogs.oracle.com/developers/post/accessing-the-oracle-cloud-infrastructure-api-using-instance-principals">Instance Principal</a>.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-secret-store</span>
@@ -4154,7 +4154,7 @@ The private key and fingerprint must be supplied in a Kubernetes secret, while t
 <h3 id="workload-identity-authentication-ocioke">Workload Identity Authentication (OCI/OKE)</h3>
 <p><a href="https://blogs.oracle.com/cloud-infrastructure/post/oke-workload-identity-greater-control-access">Workload Identity</a> can be used to grant the External Secrets Operator pod policy driven access to OCI Vault when running on Oracle Container Engine for Kubernetes (OKE).</p>
 <p>Note that if a service account is not provided in the secret store, the Oracle provider will authenticate using the service account token of the External Secrets Operator.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-secret-store</span>
@@ -4172,7 +4172,7 @@ The private key and fingerprint must be supplied in a Kubernetes secret, while t
 <h2 id="creating-an-external-secret">Creating an External Secret</h2>
 <p>To create a Kubernetes secret from an OCI Vault secret a <code>Kind=ExternalSecret</code> is needed. The External Secret will reference an OCI Vault instance containing secrets with either JSON or plaintext data.</p>
 <h4 id="external-secret-targeting-json-data">External Secret targeting JSON data</h4>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span>
@@ -4189,7 +4189,7 @@ The private key and fingerprint must be supplied in a Kubernetes secret, while t
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">the-secret-name</span>
 </code></pre></div>
 <h4 id="external-secret-targeting-plaintext-data">External Secret targeting plaintext data</h4>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example</span>
@@ -4214,7 +4214,7 @@ The private key and fingerprint must be supplied in a Kubernetes secret, while t
 <p>When using <a href="https://external-secrets.io/latest/guides/pushsecrets/">PushSecrets</a>, the compartment OCID and encryption key OCID must be specified in the
 Oracle SecretStore. You can find your compartment and encrpytion key OCIDs in the OCI console.</p>
 <p>If <a href="https://external-secrets.io/latest/guides/getallsecrets/">retrieving multiple secrets</a> by tag or regex, only the compartment OCID must be specified.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-instance-principal</span>

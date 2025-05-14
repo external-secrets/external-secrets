@@ -3909,7 +3909,7 @@
 <p>These values can be used with the other features like <code>rewrite</code> or <code>template</code>. I.e. you can modify, encode, decode, pack the values as needed.</p>
 <h2 id="reference-custom-resource">Reference Custom Resource</h2>
 <p>Generators can be defined as a custom resource and re-used across different ExternalSecrets. <strong>Every invocation creates a new set of values</strong>. I.e. you can not share the same value produced by a generator across different <code>ExternalSecrets</code> or <code>spec.dataFrom[]</code> entries.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ecr-token&quot;</span>

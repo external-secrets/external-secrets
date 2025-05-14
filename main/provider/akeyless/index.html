@@ -4147,7 +4147,7 @@ If you use a customer fragment, define the value of akeylessGWApiURL as the URL 
 <li>Using transient credentials from the mounted service account token within the external-secrets operator</li>
 </ol>
 <h4 id="create-the-akeyless-secret-store-provider-with-kubernetes-auth-method">Create the Akeyless Secret Store Provider with Kubernetes Auth-Method</h4>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">akeyless-secret-store</span>
@@ -4221,7 +4221,7 @@ To set your SecretStore with an authentication method from Akeyless.</p>
 <span class="w">  </span><span class="nt">accessTypeParam</span><span class="p">:</span><span class="w">  </span><span class="c1"># optional: can be one of the following: gcp-audience/azure-obj-id/access-key/k8s-conf-name</span>
 </code></pre></div>
 <h4 id="create-the-akeyless-secret-store-provider-with-the-credentials-secret">Create the Akeyless Secret Store Provider with the Credentials Secret</h4>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">akeyless-secret-store</span>
@@ -4265,7 +4265,7 @@ To set your SecretStore with an authentication method from Akeyless.</p>
 </code></pre></div>
 <h3 id="creating-an-external-secret">Creating an external secret</h3>
 <p>To get a secret from Akeyless and create it as a secret on the Kubernetes cluster, a <code>Kind=ExternalSecret</code> is needed.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span>
@@ -4290,7 +4290,7 @@ To set your SecretStore with an authentication method from Akeyless.</p>
 </code></pre></div>
 <h4 id="using-datafrom">Using DataFrom</h4>
 <p>DataFrom can be used to get a secret as a JSON string and attempt to parse it.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span>

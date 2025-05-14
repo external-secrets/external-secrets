@@ -4056,7 +4056,7 @@ kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="
 You can also use a <code>ClusterSecretStore</code> allowing you to reference secrets from all namespaces. <a href="https://external-secrets.io/latest/api/clustersecretstore/">ClusterSecretStore</a></p>
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>secret-store.yml
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretstore-beyondtrust</span>
@@ -4069,7 +4069,7 @@ You can also use a <code>ClusterSecretStore</code> allowing you to reference sec
 <span class="w">        </span><span class="nt">verifyCA</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <span class="w">        </span><span class="nt">clientTimeOutSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">45</span>
 <span class="w">        </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;3.0&quot;</span><span class="w"> </span><span class="c1"># The recommended version is 3.1. If no version is specified, the default API version 3.0 will be used.</span>
-<span class="w">      </span><span class="nt">auth</span><span class="p">:</span><span class="w"> </span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">certificate</span><span class="p">:</span><span class="w"> </span><span class="c1"># omit certificates if retrievalType is SECRET</span>
 <span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span>
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bt-certificate</span>
@@ -4096,7 +4096,7 @@ You can also use a <code>ClusterSecretStore</code> allowing you to reference sec
 You can also use a <code>ClusterExternalSecret</code> allowing you to reference secrets from all namespaces.</p>
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>external-secret.yml
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">beyondtrust-external-secret</span>

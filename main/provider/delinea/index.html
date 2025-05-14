@@ -3941,7 +3941,7 @@
 <p>You need client ID, client secret and tenant to authenticate with DSV.
 Both client ID and client secret can be specified either directly in the config, or by referencing a kubernetes secret.</p>
 <p>To acquire client ID and client secret, refer to the  <a href="https://docs.delinea.com/dsv/current/tutorials/policy.md">policy management</a> and <a href="https://docs.delinea.com/dsv/current/usage/cli-ref/client.md">client management</a> documentation.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-store</span>
@@ -3963,7 +3963,7 @@ Both client ID and client secret can be specified either directly in the config,
 <h3 id="referencing-secrets">Referencing Secrets</h3>
 <p>Secrets can be referenced by path. Getting a specific version of a secret is not yet supported.</p>
 <p>Note that because all DSV secrets are JSON objects, you must specify <code>remoteRef.property</code>. You can access nested values or arrays using <a href="https://github.com/tidwall/gjson/blob/master/SYNTAX.md">gjson syntax</a>.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret</span>

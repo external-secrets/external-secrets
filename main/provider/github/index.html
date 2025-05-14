@@ -3959,7 +3959,7 @@
 <h3 id="configuring-the-secret-store">Configuring the secret store</h3>
 <p>Verify that <code>github</code> provider is listed in the <code>Kind=SecretStore</code>. The properties <code>appID</code>, <code>installationID</code>, <code>organization</code> are required to register the provider. In addition, authentication has to be provided.</p>
 <p>Optionally, to target <code>repository</code> and <code>environment</code> secrets, the fields <code>repository</code> and <code>environment</code> need also to be added.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github</span>

@@ -3975,7 +3975,7 @@ for secret management.</p>
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>yc-auth<span class="w"> </span>--from-file<span class="o">=</span>authorized-key<span class="o">=</span>authorized-key.json
 </code></pre></div></li>
 <li>Create a <a href="../../api/secretstore/">SecretStore</a> pointing to <code>yc-auth</code> k8s secret:
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-store</span>
@@ -4005,7 +4005,7 @@ Run the following command to ensure that the correct access binding has been add
 <div class="highlight"><pre><span></span><code>yc<span class="w"> </span>cm<span class="w"> </span>certificate<span class="w"> </span>list-access-bindings<span class="w"> </span>--id<span class="w"> </span>*****
 </code></pre></div></li>
 <li>Create an <a href="../../api/externalsecret/">ExternalSecret</a> pointing to <code>secret-store</code> and the certificate in Certificate Manager:
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secret</span>

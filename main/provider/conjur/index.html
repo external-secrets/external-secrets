@@ -4285,7 +4285,7 @@
 <p class="admonition-title">Tip</p>
 <p>Save as the file as: <code>conjur-secret-store.yaml</code></p>
 </div>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur</span>
@@ -4352,7 +4352,7 @@ kubectl<span class="w"> </span>apply<span class="w"> </span>-n<span class="w"> <
 </ul>
 <p>You can retrieve the JWT token from either a referenced service account or a Kubernetes secret.</p>
 <p>For example, to retrieve a JWT token from a referenced Kubernetes service account, the following secret store definition can be used:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur</span>
@@ -4381,7 +4381,7 @@ kubectl<span class="w"> </span>apply<span class="w"> </span>-n<span class="w"> <
 <p>This method is only supported in Kubernetes 1.22 and above as it uses the <a href="https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-request-v1/">TokenRequest API</a> to get the JWT token from the referenced service account. Audiences can be defined in the <a href="https://docs.conjur.org/Latest/en/Content/Integrations/k8s-ocp/k8s-jwt-authn.htm">Conjur JWT authenticator</a>.</p>
 </div>
 <p>Alternatively, here is an example where a secret containing a valid JWT token is referenced:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur</span>
@@ -4421,7 +4421,7 @@ kubectl<span class="w"> </span>apply<span class="w"> </span>-n<span class="w"> <
 <h3 id="define-an-external-secret">Define an external secret</h3>
 <p>After you have configured the Conjur provider secret store, you can fetch secrets from Conjur.</p>
 <p>Here is an example of how to fetch a single secret from Conjur:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur</span>
@@ -4440,7 +4440,7 @@ kubectl<span class="w"> </span>apply<span class="w"> </span>-n<span class="w"> <
 <h4 id="find-by-name-and-find-by-tag">Find by Name and Find by Tag</h4>
 <p>The Conjur provider also supports the Find by Name and Find by Tag ESO features. This means that
 you can use a regular expression or tags to dynamically fetch multiple secrets from Conjur.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur-find-by-name</span>

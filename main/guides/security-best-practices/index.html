@@ -4358,7 +4358,7 @@
 <p>For cluster-wide resources like <code>ClusterSecretStore</code> and <code>ClusterExternalSecret</code>, exercise caution since they have access to Secret resources across all namespaces. Minimize RBAC permissions for administrators and developers to the necessary minimum. If cluster-wide resources are not required, it is recommended to disable them.</p>
 <h3 id="2-configure-clustersecretstore-match-conditions">2. Configure ClusterSecretStore match conditions</h3>
 <p>Utilize the ClusterSecretStore resource to define specific match conditions using <code>namespaceSelector</code> or an explicit namespaces list. This restricts the usage of the <code>ClusterSecretStore</code> to a predetermined list of namespaces or a namespace that matches a predefined label. Here's an example:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">fake</span>

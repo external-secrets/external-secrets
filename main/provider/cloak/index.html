@@ -4016,7 +4016,7 @@
 <h2 id="create-a-secret-store">Create a secret store</h2>
 <p>You can now place the configuration in any Kubernetes Namespace.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># An External secrets webhookl</span>
-<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-backend</span>
@@ -4032,7 +4032,7 @@
 <h2 id="connect-a-secret-to-the-provider">Connect a secret to the provider</h2>
 <p>Each <code>secretKey</code> reference in the yaml should point to the name of the secret as it is stored in Cloak.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Access a secret</span>
-<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloak-example</span>

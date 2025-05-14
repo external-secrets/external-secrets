@@ -10,7 +10,7 @@ spec:
     managedIdentity:
       identityId: 11111111-2222-3333-4444-111111111111
 ---
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: azurecr-credentials

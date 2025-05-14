@@ -4017,7 +4017,7 @@ i.e. <code>https://yourTenantName.secretservercloud.com</code>.</p>
 spec.provider.secretserver.password.value: "yourpassword" <br /></p>
 </blockquote>
 <p>Or you can reference a kubernetes secret (password example below).</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-server-store</span>
@@ -4043,7 +4043,7 @@ If multiple secrets are found, <em><code>only the first found secret will be ret
 <p>Note that because all Secret Server secrets are JSON objects, you must specify the <code>remoteRef.property</code>
 in your ExternalSecret configuration.<br />
 You can access nested values or arrays using <a href="https://github.com/tidwall/gjson/blob/master/SYNTAX.md">gjson syntax</a>.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-server-external-secret</span>

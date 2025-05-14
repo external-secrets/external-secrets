@@ -3991,7 +3991,7 @@
 <h2 id="chef">Chef</h2>
 <p><code>Chef External Secrets provider</code> will enable users to seamlessly integrate their Chef-based secret management with Kubernetes through the existing External Secrets framework.</p>
 <p>In many enterprises, legacy applications and infrastructure are still tightly integrated with the Chef/Chef Infra Server/Chef Server Cluster for configuration and secrets management. Teams often rely on <a href="https://docs.chef.io/data_bags/">Chef data bags</a> to securely store sensitive information such as application secrets and infrastructure configurations. These data bags serve as a centralized repository for managing and distributing sensitive data across the Chef ecosystem.</p>
-<p><strong>NOTE:</strong> <code>Chef External Secrets provider</code> is designed only to fetch data from the Chef data bags into Kubernetes secrets, it won't update/delete any item in the data bags. </p>
+<p><strong>NOTE:</strong> <code>Chef External Secrets provider</code> is designed only to fetch data from the Chef data bags into Kubernetes secrets, it won't update/delete any item in the data bags.</p>
 <h3 id="authentication">Authentication</h3>
 <p>Every request made to the Chef Infra server needs to be authenticated. <a href="https://docs.chef.io/server/auth/">Authentication</a> is done using the Private keys of the Chef Users.  The User needs to have appropriate <a href="https://docs.chef.io/server/server_orgs/#permissions">Permissions</a> to the data bags containing the data that they want to fetch using the External Secrets Operator.</p>
 <p>The following command can be used to create Chef Users:
@@ -4005,7 +4005,7 @@ Example:
 </code></pre></div></p>
 <h3 id="creating-clustersecretstore">Creating ClusterSecretStore</h3>
 <p>The Chef <code>ClusterSecretStore</code> is a cluster-scoped SecretStore that can be referenced by all Chef <code>ExternalSecrets</code> from all namespaces. You can follow the below example to create a <code>ClusterSecretStore</code> resource.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vivid-clustersecretstore</span><span class="w"> </span><span class="c1"># name of ClusterSecretStore</span>
@@ -4024,7 +4024,7 @@ Example:
 <h3 id="creating-secretstore">Creating SecretStore</h3>
 <p>Chef <code>SecretStores</code> are bound to a namespace and can not reference resources across namespaces. For cross-namespace SecretStores, you must use Chef <code>ClusterSecretStores</code>.</p>
 <p>You can follow the below example to create a <code>SecretStore</code> resource.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vivid-secretstore</span><span class="w"> </span><span class="c1"># name of SecretStore</span>
@@ -4044,7 +4044,7 @@ Example:
 <h3 id="creating-externalsecret">Creating ExternalSecret</h3>
 <p>The Chef <code>ExternalSecret</code> describes what data should be fetched from Chef Data bags, and how the data should be transformed and saved as a Kind=Secret.</p>
 <p>You can follow the below example to create an <code>ExternalSecret</code> resource.
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vivid-external-secrets</span><span class="w"> </span><span class="c1"># name of ExternalSecret</span>
@@ -4092,7 +4092,7 @@ Example:
 </code></pre></div></p>
 <p>When the above <code>ClusterSecretStore</code> and <code>ExternalSecret</code> resources are created, the <code>ExternalSecret</code> will connect to the Chef Server using the private key and will fetch the data bags contained in the <code>vivid-credentials</code> secret resource.</p>
 <p>To get all data items inside the data bag, you can use the <code>dataFrom</code> directive:
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vivid-external-secrets</span><span class="w"> </span><span class="c1"># name of ExternalSecret</span>
