@@ -18,7 +18,7 @@ spec.provider.secretserver.password.value: "yourpassword" <br />
 Or you can reference a kubernetes secret (password example below).
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: secret-server-store
@@ -48,7 +48,7 @@ in your ExternalSecret configuration.<br />
 You can access nested values or arrays using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md).
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
     name: secret-server-external-secret
