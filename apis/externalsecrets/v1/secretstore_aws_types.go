@@ -47,6 +47,7 @@ type AWSAuthSecretRef struct {
 // Authenticate against AWS using service account tokens.
 type AWSJWTAuth struct {
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
+	SecretRef         *esmeta.SecretKeySelector      `json:"secretRef,omitempty"`
 }
 
 // AWSServiceType is a enum that defines the service/API that is used to fetch the secrets.
