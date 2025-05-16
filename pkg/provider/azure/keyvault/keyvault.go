@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -63,6 +62,10 @@ const (
 	defaultObjType       = "secret"
 	objectTypeCert       = "cert"
 	objectTypeKey        = "key"
+	attributeExpired     = "expired"
+	attributeCreated     = "created"
+	attributeUpdated     = "updated"
+	attributeNotBefore   = "notBefore"
 	AzureDefaultAudience = "api://AzureADTokenExchange"
 	AnnotationClientID   = "azure.workload.identity/client-id"
 	AnnotationTenantID   = "azure.workload.identity/tenant-id"
@@ -678,23 +681,17 @@ func getSecretAllMetadata(tags map[string]*string, attributes *keyvault.Attribut
 		metadata[k] = v
 	}
 	if attributes != nil {
-		for _, field := range reflect.VisibleFields(reflect.TypeOf(*attributes)) {
-			// get the value of the field
-			fieldRef := reflect.ValueOf(*attributes).FieldByName(field.Name)
-			if fieldRef.Kind() == reflect.Ptr && !fieldRef.IsNil() {
-				actualElem := fieldRef.Elem()
-				if actualElem.Type() == reflect.TypeOf(date.UnixTime{}) {
-					dt, ok := actualElem.Interface().(date.UnixTime)
-					if ok {
-						timeDur := time.Unix(int64(dt.Duration().Seconds()), 0).String()
-						metadata[strings.ToLower(field.Name)] = &timeDur
-					}
-				} else {
-					val := fmt.Sprint(fieldRef.Elem().String())
-					metadata[strings.ToLower(field.Name)] = &val
-				}
-			}
-		}
+		expiredTimeDur := time.Unix(int64(attributes.Expires.Duration().Seconds()), 0).String()
+		metadata[attributeExpired] = &expiredTimeDur
+
+		createdTimeDur := time.Unix(int64(attributes.Created.Duration().Seconds()), 0).String()
+		metadata[attributeCreated] = &createdTimeDur
+
+		updatedTimeDur := time.Unix(int64(attributes.Updated.Duration().Seconds()), 0).String()
+		metadata[attributeUpdated] = &updatedTimeDur
+
+		notBeforeTimeDur := time.Unix(int64(attributes.NotBefore.Duration().Seconds()), 0).String()
+		metadata[attributeNotBefore] = &notBeforeTimeDur
 	}
 	return metadata
 }
