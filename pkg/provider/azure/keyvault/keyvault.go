@@ -62,7 +62,7 @@ const (
 	defaultObjType       = "secret"
 	objectTypeCert       = "cert"
 	objectTypeKey        = "key"
-	attributeExpired     = "expired"
+	attributeExpires     = "expires"
 	attributeCreated     = "created"
 	attributeUpdated     = "updated"
 	attributeNotBefore   = "notBefore"
@@ -681,17 +681,25 @@ func getSecretAllMetadata(tags map[string]*string, attributes *keyvault.Attribut
 		metadata[k] = v
 	}
 	if attributes != nil {
-		expiredTimeDur := time.Unix(int64(attributes.Expires.Duration().Seconds()), 0).String()
-		metadata[attributeExpired] = &expiredTimeDur
+		if attributes.Expires != nil {
+			expiredTimeDur := time.Unix(int64(attributes.Expires.Duration().Seconds()), 0).String()
+			metadata[attributeExpires] = &expiredTimeDur
+		}
 
-		createdTimeDur := time.Unix(int64(attributes.Created.Duration().Seconds()), 0).String()
-		metadata[attributeCreated] = &createdTimeDur
+		if attributes.Created != nil {
+			createdTimeDur := time.Unix(int64(attributes.Created.Duration().Seconds()), 0).String()
+			metadata[attributeCreated] = &createdTimeDur
+		}
 
-		updatedTimeDur := time.Unix(int64(attributes.Updated.Duration().Seconds()), 0).String()
-		metadata[attributeUpdated] = &updatedTimeDur
+		if attributes.Updated != nil {
+			updatedTimeDur := time.Unix(int64(attributes.Updated.Duration().Seconds()), 0).String()
+			metadata[attributeUpdated] = &updatedTimeDur
+		}
 
-		notBeforeTimeDur := time.Unix(int64(attributes.NotBefore.Duration().Seconds()), 0).String()
-		metadata[attributeNotBefore] = &notBeforeTimeDur
+		if attributes.NotBefore != nil {
+			notBeforeTimeDur := time.Unix(int64(attributes.NotBefore.Duration().Seconds()), 0).String()
+			metadata[attributeNotBefore] = &notBeforeTimeDur
+		}
 	}
 	return metadata
 }
