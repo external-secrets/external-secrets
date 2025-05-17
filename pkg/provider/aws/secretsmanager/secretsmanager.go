@@ -25,7 +25,6 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	"github.com/aws/smithy-go"
@@ -496,11 +495,11 @@ func (sm *SecretsManager) Validate() (esv1.ValidationResult, error) {
 	if sm.referentAuth {
 		return esv1.ValidationResultUnknown, nil
 	}
-	// Load default config to validate credentials
-	_, err := awsconfig.LoadDefaultConfig(context.Background())
+	_, err := sm.cfg.Credentials.Retrieve(context.Background())
 	if err != nil {
 		return esv1.ValidationResultError, util.SanitizeErr(err)
 	}
+	
 	return esv1.ValidationResultReady, nil
 }
 
