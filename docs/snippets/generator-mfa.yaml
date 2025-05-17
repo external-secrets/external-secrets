@@ -1,0 +1,9 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: MFA
+metadata:
+  name: my-mfa-generator
+spec:
+  length: 42
+  secret:
+    key: token
+    name: secret

@@ -43,6 +43,7 @@ const (
 	GeneratorKindVaultDynamicSecret    GeneratorKind = "VaultDynamicSecret"
 	GeneratorKindWebhook               GeneratorKind = "Webhook"
 	GeneratorKindGrafana               GeneratorKind = "Grafana"
+	GeneratorKindMFA                   GeneratorKind = "MFA"
 )
 
 // +kubebuilder:validation:MaxProperties=1
@@ -60,6 +61,7 @@ type GeneratorSpec struct {
 	VaultDynamicSecretSpec    *VaultDynamicSecretSpec    `json:"vaultDynamicSecretSpec,omitempty"`
 	WebhookSpec               *WebhookSpec               `json:"webhookSpec,omitempty"`
 	GrafanaSpec               *GrafanaSpec               `json:"grafanaSpec,omitempty"`
+	MFASpec                   *MFASpec                   `json:"mfaSpec,omitempty"`
 }
 
 // ClusterGenerator represents a cluster-wide generator which can be referenced as part of `generatorRef` fields.
