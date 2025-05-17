@@ -103,7 +103,7 @@ jobs:
           make check-diff
 
   unit-tests:
-    runs-on: ubuntu-latest©
+    runs-on: ubuntu-latest
     needs: detect-noop
     if: needs.detect-noop.outputs.noop != 'true'
 
