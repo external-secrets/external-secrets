@@ -162,6 +162,7 @@ spec:
                                       - VaultDynamicSecret
                                       - Webhook
                                       - Grafana
+                                      - MFA
                                     type: string
                                   name:
                                     description: Specify the name of the generator resource
@@ -350,6 +351,7 @@ spec:
                                       - VaultDynamicSecret
                                       - Webhook
                                       - Grafana
+                                      - MFA
                                     type: string
                                   name:
                                     description: Specify the name of the generator resource
@@ -1719,6 +1721,7 @@ spec:
                                 - VaultDynamicSecret
                                 - Webhook
                                 - Grafana
+                                - MFA
                               type: string
                             name:
                               description: Specify the name of the generator resource
@@ -10479,6 +10482,7 @@ spec:
                                   - VaultDynamicSecret
                                   - Webhook
                                   - Grafana
+                                  - MFA
                                 type: string
                               name:
                                 description: Specify the name of the generator resource
@@ -10667,6 +10671,7 @@ spec:
                                   - VaultDynamicSecret
                                   - Webhook
                                   - Grafana
+                                  - MFA
                                 type: string
                               name:
                                 description: Specify the name of the generator resource
@@ -11735,6 +11740,7 @@ spec:
                             - VaultDynamicSecret
                             - Webhook
                             - Grafana
+                            - MFA
                           type: string
                         name:
                           description: Specify the name of the generator resource
