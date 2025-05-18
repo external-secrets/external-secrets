@@ -49,7 +49,8 @@ We define the following scope that is covered by our deprecation policy. We foll
 ### Non-Scope
 Everything not listed in scope is not subject to this deprecation policy and it is subject to breaking changes, updates at any point in time, and deprecation - **as long as it follows the Deprecation Process listed below**.
 
-This includes, but isn't limited to :
+This includes, but isn't limited to:
+
 * Any feature / specific behavior not in Scope.
 * Source code imports
 * Helm Charts
