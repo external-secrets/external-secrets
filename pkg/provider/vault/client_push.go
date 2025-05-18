@@ -90,9 +90,6 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		return fmt.Errorf("error encoding vault secret: %w", err)
 	}
 	vaultSecretValue := bytes.TrimSpace(buf.Bytes())
-	if err != nil {
-		return fmt.Errorf("error marshaling vault secret: %w", err)
-	}
 	if bytes.Equal(vaultSecretValue, value) {
 		return nil
 	}

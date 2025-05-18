@@ -2,6 +2,16 @@ apiVersion: generators.external-secrets.io/v1alpha1
 kind: Webhook
 metadata: {}
 spec:
+  auth:
+    ntlm:
+      passwordSecret:
+        key: string
+        name: string
+        namespace: string
+      usernameSecret:
+        key: string
+        name: string
+        namespace: string
   body: string
   caBundle: c3RyaW5n
   caProvider:

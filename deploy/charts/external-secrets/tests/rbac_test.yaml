@@ -1,0 +1,32 @@
+suite: test rbac
+templates:
+  - rbac.yaml
+tests:
+  - it: should remove the labels aggregate-to-view to the view ClusterRole
+    set:
+      rbac:
+        aggregateToView: false
+    asserts:
+      - notExists:
+          path: metadata.labels["rbac.authorization.k8s.io/aggregate-to-view"]
+        documentSelector:
+          kind: ClusterRole
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-view
+  - it: should remove the labels aggregate-to-edit to the view and edit ClusterRoles
+    set:
+      rbac:
+        aggregateToEdit: false
+    asserts:
+      - notExists:
+          path: metadata.labels["rbac.authorization.k8s.io/aggregate-to-edit"]
+        documentSelector:
+          kind: ClusterRole
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-view
+      - notExists:
+          path: metadata.labels["rbac.authorization.k8s.io/aggregate-to-edit"]
+        documentSelector:
+          kind: ClusterRole
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-edit

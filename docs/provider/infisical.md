@@ -3,6 +3,7 @@
 Sync secrets from [Infisical](https://www.infisical.com) to your Kubernetes cluster using External Secrets Operator.
 
 ## Authentication
+
 In order for the operator to fetch secrets from Infisical, it needs to first authenticate with Infisical.
 
 To authenticate, you can use [Universal Auth](https://infisical.com/docs/documentation/platform/identities/universal-auth) from [Machine identities](https://infisical.com/docs/documentation/platform/identities/machine-identities).
@@ -42,7 +43,22 @@ You will then need to create a generic `SecretStore`. An sample `SecretStore` ha
 !!! Note
     For `ClusterSecretStore`, be sure to set `namespace` in `universalAuthCredentials.clientId` and `universalAuthCredentials.clientSecret`.
 
-## Fetch Individual Secret(s)
+## Fetching secrets
+
+For the following examples, it assumes we have a secret structure in an Infisical project with the following structure:
+
+```plaintext
+/API_KEY
+/DB_PASSWORD
+/JSON_BLOB
+/my-app
+  /SERVICE_PASSWORD
+  /ADMIN_PASSWORD
+```
+
+Where `JSON_BLOB` is a JSON string like `{"key": "value"}`.
+
+### Fetch Individual Secret(s)
 
 To sync one or more secrets individually, use the following YAML:
 
@@ -50,7 +66,7 @@ To sync one or more secrets individually, use the following YAML:
 {% include 'infisical-fetch-secret.yaml' %}
 ```
 
-## Fetch All Secrets
+### Fetch All Secrets
 
 To sync all secrets from an Infisical , use the following YAML:
 
@@ -58,11 +74,10 @@ To sync all secrets from an Infisical , use the following YAML:
 {% include 'infisical-fetch-all-secrets.yaml' %}
 ```
 
-## Filter By Prefix/Name
+### Filtering secrets
 
 To filter secrets by `path` (path prefix) and `name` (regular expression).
 
 ``` yaml
 {% include 'infisical-filtered-secrets.yaml' %}
 ```
-

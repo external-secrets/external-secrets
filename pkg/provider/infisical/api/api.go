@@ -208,7 +208,9 @@ func (a *InfisicalClient) do(endpoint, method string, params map[string]string, 
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if err := checkError(resp); err != nil {
 		return err

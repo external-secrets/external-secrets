@@ -25,7 +25,7 @@ data:
 ```
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: previder-secretstore-sample
@@ -45,7 +45,7 @@ spec:
 To create a kubernetes secret from the Previder Secret Vault, create an ExternalSecret with a reference to a Vault secret.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: example

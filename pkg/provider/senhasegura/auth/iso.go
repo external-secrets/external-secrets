@@ -132,7 +132,9 @@ func (s *SenhaseguraIsoSession) GetIsoToken(clientID, clientSecret, systemURL st
 	if err != nil {
 		return "", errCannotDoRequest
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != 200 {
 		return "", errInvalidHTTPCode
