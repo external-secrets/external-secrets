@@ -162,14 +162,12 @@ func TestProviderValidate(t *testing.T) {
 			name: "validate successfully",
 			client: func() *onepassword.Client {
 				fc := &fakeClient{
-					listAllResult: onepassword.NewIterator[onepassword.VaultOverview](
-						[]onepassword.VaultOverview{
-							{
-								ID:    "test",
-								Title: "test",
-							},
+					listAllResult: []onepassword.VaultOverview{
+						{
+							ID:    "test",
+							Title: "test",
 						},
-					),
+					},
 				}
 
 				return &onepassword.Client{
@@ -187,9 +185,8 @@ func TestProviderValidate(t *testing.T) {
 			name: "validate error",
 			client: func() *onepassword.Client {
 				fc := &fakeClient{
-					listAllResult: onepassword.NewIterator[onepassword.VaultOverview](
-						[]onepassword.VaultOverview{},
-					),
+					listAllResult: []onepassword.VaultOverview{},
+					listAllError:  errors.New("no vaults found when listing"),
 				}
 
 				return &onepassword.Client{
@@ -207,9 +204,8 @@ func TestProviderValidate(t *testing.T) {
 			name: "validate error missing vault prefix",
 			client: func() *onepassword.Client {
 				fc := &fakeClient{
-					listAllResult: onepassword.NewIterator[onepassword.VaultOverview](
-						[]onepassword.VaultOverview{},
-					),
+					listAllResult: []onepassword.VaultOverview{},
+					listAllError:  errors.New("no vaults found when listing"),
 				}
 
 				return &onepassword.Client{
@@ -238,14 +234,12 @@ func TestProviderValidate(t *testing.T) {
 
 func TestPushSecret(t *testing.T) {
 	fc := &fakeClient{
-		listAllResult: onepassword.NewIterator[onepassword.VaultOverview](
-			[]onepassword.VaultOverview{
-				{
-					ID:    "test",
-					Title: "test",
-				},
+		listAllResult: []onepassword.VaultOverview{
+			{
+				ID:    "test",
+				Title: "test",
 			},
-		),
+		},
 	}
 
 	tests := []struct {
@@ -260,9 +254,7 @@ func TestPushSecret(t *testing.T) {
 			name: "create is called",
 			lister: func() *fakeLister {
 				return &fakeLister{
-					listAllResult: onepassword.NewIterator[onepassword.ItemOverview](
-						[]onepassword.ItemOverview{},
-					),
+					listAllResult: []onepassword.ItemOverview{},
 				}
 			},
 			secret: &corev1.Secret{
@@ -293,16 +285,14 @@ func TestPushSecret(t *testing.T) {
 			name: "update is called",
 			lister: func() *fakeLister {
 				return &fakeLister{
-					listAllResult: onepassword.NewIterator[onepassword.ItemOverview](
-						[]onepassword.ItemOverview{
-							{
-								ID:       "test-item-id",
-								Title:    "key",
-								Category: "login",
-								VaultID:  "vault-id",
-							},
+					listAllResult: []onepassword.ItemOverview{
+						{
+							ID:       "test-item-id",
+							Title:    "key",
+							Category: "login",
+							VaultID:  "vault-id",
 						},
-					),
+					},
 				}
 			},
 			secret: &corev1.Secret{
@@ -352,14 +342,12 @@ func TestPushSecret(t *testing.T) {
 
 func TestDeleteItemField(t *testing.T) {
 	fc := &fakeClient{
-		listAllResult: onepassword.NewIterator[onepassword.VaultOverview](
-			[]onepassword.VaultOverview{
-				{
-					ID:    "test",
-					Title: "test",
-				},
+		listAllResult: []onepassword.VaultOverview{
+			{
+				ID:    "test",
+				Title: "test",
 			},
-		),
+		},
 	}
 
 	testCases := []struct {
@@ -380,16 +368,14 @@ func TestDeleteItemField(t *testing.T) {
 			},
 			lister: func() *fakeLister {
 				fl := &fakeLister{
-					listAllResult: onepassword.NewIterator[onepassword.ItemOverview](
-						[]onepassword.ItemOverview{
-							{
-								ID:       "test-item-id",
-								Title:    "key",
-								Category: "login",
-								VaultID:  "vault-id",
-							},
+					listAllResult: []onepassword.ItemOverview{
+						{
+							ID:       "test-item-id",
+							Title:    "key",
+							Category: "login",
+							VaultID:  "vault-id",
 						},
-					),
+					},
 					getResult: onepassword.Item{
 						ID:       "test-item-id",
 						Title:    "key",
@@ -429,16 +415,14 @@ func TestDeleteItemField(t *testing.T) {
 			},
 			lister: func() *fakeLister {
 				fl := &fakeLister{
-					listAllResult: onepassword.NewIterator[onepassword.ItemOverview](
-						[]onepassword.ItemOverview{
-							{
-								ID:       "test-item-id",
-								Title:    "key",
-								Category: "login",
-								VaultID:  "vault-id",
-							},
+					listAllResult: []onepassword.ItemOverview{
+						{
+							ID:       "test-item-id",
+							Title:    "key",
+							Category: "login",
+							VaultID:  "vault-id",
 						},
-					),
+					},
 					getResult: onepassword.Item{
 						ID:       "test-item-id",
 						Title:    "key",
@@ -482,7 +466,7 @@ func TestDeleteItemField(t *testing.T) {
 }
 
 type fakeLister struct {
-	listAllResult *onepassword.Iterator[onepassword.ItemOverview]
+	listAllResult []onepassword.ItemOverview
 	createCalled  bool
 	putCalled     bool
 	deleteCalled  bool
@@ -512,7 +496,7 @@ func (f *fakeLister) Archive(ctx context.Context, vaultID, itemID string) error 
 	return nil
 }
 
-func (f *fakeLister) ListAll(ctx context.Context, vaultID string) (*onepassword.Iterator[onepassword.ItemOverview], error) {
+func (f *fakeLister) List(ctx context.Context, vaultID string, opts ...onepassword.ItemListFilter) ([]onepassword.ItemOverview, error) {
 	return f.listAllResult, nil
 }
 
@@ -529,11 +513,11 @@ type fakeClient struct {
 	resolveError    error
 	resolveAll      onepassword.ResolveAllResponse
 	resolveAllError error
-	listAllResult   *onepassword.Iterator[onepassword.VaultOverview]
+	listAllResult   []onepassword.VaultOverview
 	listAllError    error
 }
 
-func (f *fakeClient) ListAll(ctx context.Context) (*onepassword.Iterator[onepassword.VaultOverview], error) {
+func (f *fakeClient) List(ctx context.Context) ([]onepassword.VaultOverview, error) {
 	return f.listAllResult, f.listAllError
 }
 
