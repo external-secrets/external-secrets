@@ -3082,6 +3082,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#support-for-non-json-secret-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      Support for Non-JSON Secret Templates
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#preparing-your-secret" class="md-nav__link">
     <span class="md-ellipsis">
       Preparing your secret
@@ -3938,6 +3947,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#support-for-non-json-secret-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      Support for Non-JSON Secret Templates
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#preparing-your-secret" class="md-nav__link">
     <span class="md-ellipsis">
       Preparing your secret
@@ -4058,6 +4076,25 @@ You can access nested values or arrays using <a href="https://github.com/tidwall
 <span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;52622&quot;</span><span class="w"> </span><span class="c1">#&lt;SECRET_ID&gt;</span>
 <span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;array.0.value&quot;</span><span class="w"> </span><span class="c1">#&lt;GJSON_PROPERTY&gt; * an empty property will return the entire secret</span>
 </code></pre></div>
+<h3 id="support-for-non-json-secret-templates">Support for Non-JSON Secret Templates</h3>
+<p>The Secret Server provider now supports secrets that are not formatted as JSON. This enhancement allows users to retrieve and utilize secrets stored in formats such as plain text, XML, or other non-JSON structures without requiring additional parsing or transformation.​</p>
+<p>When working with non-JSON secrets, you can omit the remoteRef.property field in your ExternalSecret configuration. The entire content of the secret will be retrieved and stored as-is in the corresponding Kubernetes Secret.​</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-server-external-secret</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
+<span class="w">    </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-server-store</span>
+<span class="w">    </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretServerValue</span>
+<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;52622&quot;</span><span class="w">  </span><span class="c1"># Secret ID</span>
+</code></pre></div>
+<p>In this example, the secret with ID 52622 is retrieved in its entirety and stored under the key SecretServerValue in the Kubernetes Secret.​</p>
+<p>This feature simplifies the integration process for applications that require secrets in specific formats, eliminating the need for custom parsing logic within your applications.</p>
 <h3 id="preparing-your-secret">Preparing your secret</h3>
 <p>You can either retrieve your entire secret or you can use a JSON formatted string
 stored in your secret located at Items[0].ItemValue to retrieve a specific value.<br />
