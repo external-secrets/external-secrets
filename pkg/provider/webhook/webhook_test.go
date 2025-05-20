@@ -191,6 +191,34 @@ want:
     thesecret: secret-value
     alsosecret: another-value
 ---
+case: templated jsonpath good json map
+args:
+  url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}
+  key: testkey
+  version: 1
+  jsonpath: $.{{printf "result" }}
+  response: '{"result":{"thesecret":"secret-value","alsosecret":"another-value"}}'
+want:
+  path: /api/getsecret?id=testkey&version=1
+  err: ''
+  resultmap:
+    thesecret: secret-value
+    alsosecret: another-value
+---
+case: templated jsonpath invalid template
+args:
+  url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}
+  key: testkey
+  version: 1
+  jsonpath: $.{{printf 'result' }}
+  response: '{"result":{"thesecret":"secret-value","alsosecret":"another-value"}}'
+want:
+  path: /api/getsecret?id=testkey&version=1
+  err: "cannot get templated json path"
+  resultmap:
+    thesecret: secret-value
+    alsosecret: another-value
+---
 case: good json map string
 args:
   url: /api/getsecret?id={{ .remoteRef.key }}&version={{ .remoteRef.version }}

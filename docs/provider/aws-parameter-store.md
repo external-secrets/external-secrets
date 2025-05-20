@@ -79,7 +79,7 @@ Consider the following JSON object that is stored in the Parameter Store key `fr
 This is an example on how you would look up nested keys in the above json object:
 
 ``` yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: extract-data

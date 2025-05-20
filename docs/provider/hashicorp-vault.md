@@ -13,7 +13,7 @@ one supported by this provider. For other secrets engines, please refer to the
 First, create a SecretStore with a vault backend. For the sake of simplicity we'll use a static token `root`:
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: vault-backend
@@ -58,7 +58,7 @@ If you are using version: 1, just remember to update your SecretStore manifest a
 Now create a ExternalSecret that uses the above SecretStore:
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: vault-example
@@ -105,7 +105,7 @@ Keep in mind that fetching the labels with `metadataPolicy: Fetch` only works wi
 You can fetch all key/value pairs for a given path If you leave the `remoteRef.property` empty. This returns the json-encoded secret value for that path.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: vault-example
@@ -134,7 +134,7 @@ Given the following secret - assume its path is `/dev/config`:
 
 You can set the `remoteRef.property` to point to the nested key using a [gjson](https://github.com/tidwall/gjson) expression.
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: vault-example
@@ -170,7 +170,7 @@ Given the following secret - assume its path is `/dev/config`:
 
 You can set the `remoteRef.property` to point to the nested key using a [gjson](https://github.com/tidwall/gjson) expression.
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: vault-example
@@ -220,7 +220,7 @@ Also consider the following secret has the following `custom_metadata`:
 
 It is possible to find this secret by all the following possibilities:
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: vault-example
@@ -243,7 +243,7 @@ will generate a secret with:
 
 Currently, `Find` operations are recursive throughout a given vault folder, starting on `provider.Path` definition. It is recommended to narrow down the scope of search by setting a `find.path` variable. This is also useful to automatically reduce the resulting secret key names:
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: vault-example
@@ -448,7 +448,7 @@ and pick the best fit for your environment and Vault configuration.
 [Vault namespaces](https://www.vaultproject.io/docs/enterprise/namespaces) are an enterprise feature that support multi-tenancy. You can specify a vault namespace using the `namespace` property when you define a SecretStore:
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: vault-backend
@@ -469,7 +469,7 @@ spec:
 In some situations your authentication backend may be in one namespace, and your secrets in another. You can authenticate into one namespace, and use that token against another, by setting `provider.vault.namespace` and `provider.vault.auth.namespace` to different values. If `provider.vault.auth.namespace` is unset but `provider.vault.namespace` is, it will default to the `provider.vault.namespace` value.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: vault-backend

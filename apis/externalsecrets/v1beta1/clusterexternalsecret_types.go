@@ -109,6 +109,8 @@ type ClusterExternalSecretStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:scope=Cluster,categories={external-secrets},shortName=ces
 // +kubebuilder:subresource:status
+// +kubebuilder:unservedversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
 // +kubebuilder:printcolumn:name="Store",type=string,JSONPath=`.spec.externalSecretSpec.secretStoreRef.name`
 // +kubebuilder:printcolumn:name="Refresh Interval",type=string,JSONPath=`.spec.refreshTime`

@@ -67,7 +67,7 @@ There are two ways to fetch secrets from the provider.
 In order to fetch a secret by using its UUID simply provide that as remote key in the external secrets like this:
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: bitwarden
@@ -93,7 +93,7 @@ To find a secret using its name, we need a bit more information. Mainly, these a
 - if more than one name exists for the same projectID within the same organization we error
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: bitwarden

@@ -49,6 +49,7 @@ var (
 	QuayAccessTokenKind       = reflect.TypeOf(QuayAccessToken{}).Name()
 	UUIDKind                  = reflect.TypeOf(UUID{}).Name()
 	GrafanaKind               = reflect.TypeOf(Grafana{}).Name()
+	MFAKind                   = reflect.TypeOf(MFA{}).Name()
 	ClusterGeneratorKind      = reflect.TypeOf(ClusterGenerator{}).Name()
 )
 
@@ -83,4 +84,5 @@ func init() {
 	SchemeBuilder.Register(&VaultDynamicSecret{}, &VaultDynamicSecretList{})
 	SchemeBuilder.Register(&Webhook{}, &WebhookList{})
 	SchemeBuilder.Register(&Grafana{}, &GrafanaList{})
+	SchemeBuilder.Register(&MFA{}, &MFAList{})
 }

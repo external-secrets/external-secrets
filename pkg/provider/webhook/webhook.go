@@ -217,6 +217,15 @@ func (w *WebHook) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataR
 	if err != nil {
 		return nil, fmt.Errorf(errFailedToGetStore, err)
 	}
+	data, err := w.wh.GetTemplateData(ctx, &ref, provider.Secrets, false)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get template data: %w", err)
+	}
+	resultJSONPath, err := webhook.ExecuteTemplateString(provider.Result.JSONPath, data)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get templated json path: %w", err)
+	}
+	provider.Result.JSONPath = resultJSONPath
 	return w.wh.GetSecretMap(ctx, provider, &ref)
 }
 
