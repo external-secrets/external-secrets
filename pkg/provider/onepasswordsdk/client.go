@@ -266,18 +266,12 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, ref es
 }
 
 func (p *Provider) GetVault(ctx context.Context, name string) (string, error) {
-	vaults, err := p.client.VaultsAPI.ListAll(ctx)
+	vaults, err := p.client.VaultsAPI.List(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to list vaults: %w", err)
 	}
 
-	for {
-		v, err := vaults.Next()
-		if err != nil {
-			// the only time the iterator returns an error is when it's done.
-			break
-		}
-
+	for _, v := range vaults {
 		if v.Title == name {
 			// cache the ID so we don't have to repeat this lookup.
 			p.vaultID = v.ID
@@ -293,20 +287,14 @@ func (p *Provider) findItem(ctx context.Context, name string) (onepassword.Item,
 		return p.client.Items().Get(ctx, p.vaultID, name)
 	}
 
-	items, err := p.client.Items().ListAll(ctx, p.vaultID)
+	items, err := p.client.Items().List(ctx, p.vaultID)
 	if err != nil {
 		return onepassword.Item{}, fmt.Errorf("failed to list items: %w", err)
 	}
 
 	// We don't stop
 	var itemUUID string
-	for {
-		v, err := items.Next()
-		// the only time the iterator returns an error is when it's done.
-		if err != nil {
-			break
-		}
-
+	for _, v := range items {
 		if v.Title == name {
 			if itemUUID != "" {
 				return onepassword.Item{}, fmt.Errorf("found multiple items with name %s", name)
@@ -330,14 +318,11 @@ func (p *Provider) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRe
 // Validate checks if the client is configured correctly
 // currently only checks if it is possible to list vaults.
 func (p *Provider) Validate() (esv1.ValidationResult, error) {
-	vaults, err := p.client.Vaults().ListAll(context.Background())
+	_, err := p.client.Vaults().List(context.Background())
 	if err != nil {
 		return esv1.ValidationResultError, fmt.Errorf("error listing vaults: %w", err)
 	}
-	_, err = vaults.Next()
-	if err != nil {
-		return esv1.ValidationResultError, fmt.Errorf("no vaults found when listing: %w", err)
-	}
+
 	return esv1.ValidationResultReady, nil
 }
 
