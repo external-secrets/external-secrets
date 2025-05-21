@@ -94,6 +94,15 @@ spec:
         name: string
         role: string
       url: string
+    mfaSpec:
+      algorithm: string
+      length: 1
+      secret:
+        key: string
+        name: string
+        namespace: string
+      timePeriod: 1
+      when: 2024-10-11T12:48:44Z
     passwordSpec:
       allowRepeat: false
       digits: 1
