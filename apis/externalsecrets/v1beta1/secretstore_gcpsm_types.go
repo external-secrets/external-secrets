@@ -72,6 +72,9 @@ type GCPWorkloadIdentityFederation struct {
 	// audience to be used for obtaining the token. Audience found in the external account credential config will be overridden with the configured value.
 	// +optional
 	Audience string `json:"audience,omitempty"`
+
+	// ServiceAccountRef is for specifying the kubernetes service account to be used for obtaining the federation token.
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"-"`
 }
 
 // ConfigMapReference holds the details of a configmap.

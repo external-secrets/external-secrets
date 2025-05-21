@@ -34,7 +34,7 @@ type GCPSMAuth struct {
 	// +optional
 	WorkloadIdentity *GCPWorkloadIdentity `json:"workloadIdentity,omitempty"`
 	// +optional
-	WorkloadIdentityFederation *esv1beta.GCPWorkloadIdentityFederation `json:"workloadIdentityFederation,omitempty"`
+	WorkloadIdentityFederation *GCPWorkloadIdentityFederation `json:"workloadIdentityFederation,omitempty"`
 }
 
 type GCPSMAuthSecretRef struct {
@@ -71,4 +71,19 @@ type GCRAccessTokenList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []GCRAccessToken `json:"items"`
+}
+
+// GCPWorkloadIdentityFederation holds the configurations required for setting up GCP workload identity federation.
+type GCPWorkloadIdentityFederation struct {
+	// credConfig holds the configmap containing the GCP external account credential configuration in JSON format and the key name containing the json data.
+	// +required
+	CredConfig *esv1beta.ConfigMapReference `json:"credConfig,omitempty"`
+
+	// audience to be used for obtaining the token. Audience found in the external account credential config will be overridden with the configured value.
+	// +optional
+	Audience string `json:"audience,omitempty"`
+
+	// ServiceAccountRef is for specifying the kubernetes service account to be used for obtaining the federation token.
+	// +required
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }
