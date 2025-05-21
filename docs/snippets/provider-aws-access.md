@@ -191,3 +191,5 @@ Use the following environment variables to point the controller to your custom e
 | AWS_SECRETSMANAGER_ENDPOINT | Endpoint for the Secrets Manager Service. The controller uses this endpoint to fetch secrets from AWS Secrets Manager.                                               |
 | AWS_SSM_ENDPOINT            | Endpoint for the AWS Secure Systems Manager. The controller uses this endpoint to fetch secrets from SSM Parameter Store.                                            |
 | AWS_STS_ENDPOINT            | Endpoint for the Security Token Service. The controller uses this endpoint when creating a session and when doing `assumeRole` or `assumeRoleWithWebIdentity` calls. |
+| AWS_ECR_ENDPOINT            | Endpoint for the ECR Service. The controller uses this endpoint to fetch authorization tokens from ECR.                                                              |
+| AWS_ECR_PUBLIC_ENDPOINT     | Endpoint for the Public ECR Service. The controller uses this endpoint to fetch authorization tokens from ECR.                                                       |

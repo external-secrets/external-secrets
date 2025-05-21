@@ -24,6 +24,8 @@ const (
 	SecretsManagerEndpointEnv = "AWS_SECRETSMANAGER_ENDPOINT"
 	STSEndpointEnv            = "AWS_STS_ENDPOINT"
 	SSMEndpointEnv            = "AWS_SSM_ENDPOINT"
+	ECREndpointEnv            = "AWS_ECR_ENDPOINT"
+	ECRPublicEndpointEnv      = "AWS_ECR_PUBLIC_ENDPOINT"
 )
 
 // ResolveEndpoint returns a ResolverFunc with
@@ -38,6 +40,12 @@ func ResolveEndpoint() endpoints.ResolverFunc {
 	}
 	if v := os.Getenv(STSEndpointEnv); v != "" {
 		customEndpoints["sts"] = v
+	}
+	if v := os.Getenv(ECREndpointEnv); v != "" {
+		customEndpoints["api.ecr"] = v
+	}
+	if v := os.Getenv(ECRPublicEndpointEnv); v != "" {
+		customEndpoints["api.ecr-public"] = v
 	}
 	return ResolveEndpointWithServiceMap(customEndpoints)
 }

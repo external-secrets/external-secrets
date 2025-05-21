@@ -41,6 +41,16 @@ func TestResolver(t *testing.T) {
 			service: "sts",
 			url:     "http://sts.foo",
 		},
+		{
+			env:     ECREndpointEnv,
+			service: "api.ecr",
+			url:     "http://ecr.foo",
+		},
+		{
+			env:     ECRPublicEndpointEnv,
+			service: "api.ecr-public",
+			url:     "http://ecr-public.foo",
+		},
 	}
 
 	for _, item := range tbl {
