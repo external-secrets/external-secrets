@@ -155,11 +155,15 @@ type ecrPrivateFactoryFunc func(aws *aws.Config) ecrAPI
 type ecrPublicFactoryFunc func(aws *aws.Config) ecrPublicAPI
 
 func ecrPrivateFactory(cfg *aws.Config) ecrAPI {
-	return ecr.NewFromConfig(*cfg)
+	return ecr.NewFromConfig(*cfg, func(o *ecr.Options) {
+		o.EndpointResolverV2 = ecrCustomEndpointResolver{}
+	})
 }
 
 func ecrPublicFactory(cfg *aws.Config) ecrPublicAPI {
-	return ecrpublic.NewFromConfig(*cfg)
+	return ecrpublic.NewFromConfig(*cfg, func(o *ecrpublic.Options) {
+		o.EndpointResolverV2 = ecrPublicCustomEndpointResolver{}
+	})
 }
 
 func parseSpec(data []byte) (*genv1alpha1.ECRAuthorizationToken, error) {
