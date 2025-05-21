@@ -1,5 +1,7 @@
 name: Dependabot Pull Request Approve and Merge
 on: pull_request_target
+permissions:
+  contents: read
 jobs:
   dependabot:
     permissions:
@@ -10,7 +12,7 @@ jobs:
     # PRs but also ensures that it only does work for Dependabot PRs.
     if: ${{ github.actor == 'dependabot[bot]' }}
     steps:
-      - uses: actions/create-github-app-token@v1
+      - uses: actions/create-github-app-token@3ff1caaa28b64c9cc276ce0a02e2ff584f3900c5 # v2.0.2
         id: app-token
         with:
           app-id: ${{ secrets.APP_ID }}
@@ -19,7 +21,7 @@ jobs:
       # will not occur.
       - name: Dependabot metadata
         id: dependabot-metadata
-        uses: dependabot/fetch-metadata@v1.1.1
+        uses: dependabot/fetch-metadata@d7267f607e9d3fb96fc2fbe83e0af444713e90b7 # v2.3.0
         with:
           github-token: "${{ steps.app-token.outputs.token }}"
       # Here the PR gets approved.
