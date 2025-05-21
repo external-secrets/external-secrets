@@ -99,7 +99,7 @@ jobs:
   release:
     needs:
       - check-release
-    if: ! needs.check-release.outputs.release_exists && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release-'))
+    if: (needs.check-release.outputs.release_exists == 'false') && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release-'))
     permissions:
       contents: write  # for helm/chart-releaser-action to push chart release and create a release
       packages: write  # to push OCI chart package to GitHub Registry

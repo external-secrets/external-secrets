@@ -65,6 +65,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 
 	if generatorState.Spec.GarbageCollectionDeadline != nil {
 		if generatorState.Spec.GarbageCollectionDeadline.Time.Before(time.Now()) {
+			if generatorState.DeletionTimestamp != nil {
+				return ctrl.Result{}, nil
+			}
+
 			if err := r.Client.Delete(ctx, generatorState, &client.DeleteOptions{}); err != nil {
 				r.markAsFailed("could not delete GeneratorState", err, generatorState)
 				return ctrl.Result{}, fmt.Errorf("could not delete GeneratorState: %w", err)
