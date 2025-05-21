@@ -515,12 +515,18 @@ func TestExecute(t *testing.T) {
 				StringData: make(map[string]string),
 				ObjectMeta: v1.ObjectMeta{Labels: make(map[string]string), Annotations: make(map[string]string)},
 			}
+			oldLeftDelim := leftDelim
+			oldRightDelim := rightDelim
 			if row.leftDelimiter != "" {
 				leftDelim = row.leftDelimiter
 			}
 			if row.rightDelimiter != "" {
 				rightDelim = row.rightDelimiter
 			}
+			defer func() {
+				leftDelim = oldLeftDelim
+				rightDelim = oldRightDelim
+			}()
 			err := Execute(row.tpl, row.data, esapi.TemplateScopeValues, esapi.TemplateTargetData, sec)
 			if !ErrorContains(err, row.expErr) {
 				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)

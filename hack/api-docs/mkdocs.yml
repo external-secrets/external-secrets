@@ -81,6 +81,7 @@ nav:
           - Webhook: api/generator/webhook.md
           - Github: api/generator/github.md
           - UUID: api/generator/uuid.md
+          - MFA: api/generator/mfa.md
       - Reference Docs:
           - API specification: api/spec.md
           - Controller Options: api/controller-options.md
