@@ -63,6 +63,10 @@ const (
 	defaultObjType       = "secret"
 	objectTypeCert       = "cert"
 	objectTypeKey        = "key"
+	attributeExpires     = "expires"
+	attributeCreated     = "created"
+	attributeUpdated     = "updated"
+	attributeNotBefore   = "notBefore"
 	AzureDefaultAudience = "api://AzureADTokenExchange"
 	AnnotationClientID   = "azure.workload.identity/client-id"
 	AnnotationTenantID   = "azure.workload.identity/tenant-id"
@@ -672,16 +676,41 @@ func (a *Azure) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) 
 	return secretsMap, nil
 }
 
-// Retrieves a tag value if specified and all tags in JSON format if not.
-func getSecretTag(tags map[string]*string, property string) ([]byte, error) {
-	if property == "" {
-		secretTagsData := make(map[string]string)
-		for k, v := range tags {
-			secretTagsData[k] = *v
-		}
-		return json.Marshal(secretTagsData)
+func getSecretAllMetadata(tags map[string]*string, attributes *keyvault.Attributes) map[string]*string {
+	metadata := make(map[string]*string)
+	for k, v := range tags {
+		metadata[k] = v
 	}
-	if val, exist := tags[property]; exist {
+	if attributes != nil {
+		if attributes.Expires != nil {
+			expiredTimeDur := time.Unix(int64(attributes.Expires.Duration().Seconds()), 0).String()
+			metadata[attributeExpires] = &expiredTimeDur
+		}
+
+		if attributes.Created != nil {
+			createdTimeDur := time.Unix(int64(attributes.Created.Duration().Seconds()), 0).String()
+			metadata[attributeCreated] = &createdTimeDur
+		}
+
+		if attributes.Updated != nil {
+			updatedTimeDur := time.Unix(int64(attributes.Updated.Duration().Seconds()), 0).String()
+			metadata[attributeUpdated] = &updatedTimeDur
+		}
+
+		if attributes.NotBefore != nil {
+			notBeforeTimeDur := time.Unix(int64(attributes.NotBefore.Duration().Seconds()), 0).String()
+			metadata[attributeNotBefore] = &notBeforeTimeDur
+		}
+	}
+	return metadata
+}
+
+// Retrieves a tag value if specified and all tags in JSON format if not.
+func getSecretMetadata(metadata map[string]*string, property string) ([]byte, error) {
+	if property == "" {
+		return json.Marshal(metadata)
+	}
+	if val, exist := metadata[property]; exist {
 		return []byte(*val), nil
 	}
 
@@ -692,7 +721,7 @@ func getSecretTag(tags map[string]*string, property string) ([]byte, error) {
 
 	if idx > 0 {
 		tagName := property[0:idx]
-		if val, exist := tags[tagName]; exist {
+		if val, exist := metadata[tagName]; exist {
 			key := strings.Replace(property, tagName+".", "", 1)
 			return getProperty(*val, key, property)
 		}
@@ -747,7 +776,16 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemote
 			return nil, err
 		}
 		if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
-			return getSecretTag(secretResp.Tags, ref.Property)
+			if secretResp.Attributes != nil {
+				attr := keyvault.Attributes{
+					NotBefore: secretResp.Attributes.NotBefore,
+					Expires:   secretResp.Attributes.Expires,
+					Created:   secretResp.Attributes.Created,
+					Updated:   secretResp.Attributes.Updated,
+				}
+				return getSecretMetadata(getSecretAllMetadata(secretResp.Tags, &attr), ref.Property)
+			}
+			return getSecretMetadata(getSecretAllMetadata(secretResp.Tags, nil), ref.Property)
 		}
 		return getProperty(*secretResp.Value, ref.Property, ref.Key)
 	case objectTypeCert:
@@ -760,7 +798,16 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemote
 			return nil, err
 		}
 		if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
-			return getSecretTag(certResp.Tags, ref.Property)
+			if certResp.Attributes != nil {
+				attr := keyvault.Attributes{
+					NotBefore: certResp.Attributes.NotBefore,
+					Expires:   certResp.Attributes.Expires,
+					Created:   certResp.Attributes.Created,
+					Updated:   certResp.Attributes.Updated,
+				}
+				return getSecretMetadata(getSecretAllMetadata(certResp.Tags, &attr), ref.Property)
+			}
+			return getSecretMetadata(getSecretAllMetadata(certResp.Tags, nil), ref.Property)
 		}
 		return *certResp.Cer, nil
 	case objectTypeKey:
@@ -774,7 +821,16 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemote
 			return nil, err
 		}
 		if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
-			return getSecretTag(keyResp.Tags, ref.Property)
+			if keyResp.Attributes != nil {
+				attr := keyvault.Attributes{
+					NotBefore: keyResp.Attributes.NotBefore,
+					Expires:   keyResp.Attributes.Expires,
+					Created:   keyResp.Attributes.Created,
+					Updated:   keyResp.Attributes.Updated,
+				}
+				return getSecretMetadata(getSecretAllMetadata(keyResp.Tags, &attr), ref.Property)
+			}
+			return getSecretMetadata(getSecretAllMetadata(keyResp.Tags, nil), ref.Property)
 		}
 		return json.Marshal(keyResp.Key)
 	}
@@ -808,6 +864,16 @@ func (a *Azure) getSecretTags(ctx context.Context, ref esv1.ExternalSecretDataRe
 			}
 		}
 	}
+
+	if secretResp.Attributes != nil {
+		secretTagsData = getSecretAllMetadata(secretTagsData, &keyvault.Attributes{
+			NotBefore: secretResp.Attributes.NotBefore,
+			Created:   secretResp.Attributes.Created,
+			Expires:   secretResp.Attributes.Expires,
+			Updated:   secretResp.Attributes.Updated,
+		})
+	}
+
 	return secretTagsData, nil
 }
 
@@ -862,7 +928,7 @@ func getSecretMapProperties(tags map[string]*string, key, property string) map[s
 	tagByteArray := make(map[string][]byte)
 	if property != "" {
 		keyPropertyName := key + "_" + property
-		singleTag, _ := getSecretTag(tags, keyPropertyName)
+		singleTag, _ := getSecretMetadata(tags, keyPropertyName)
 		tagByteArray[keyPropertyName] = singleTag
 
 		return tagByteArray
