@@ -721,6 +721,9 @@ func TestPushSecret(t *testing.T) {
 					if !ok {
 						return errors.New(errCallNotFoundAtIndex0)
 					}
+					if req.Secret.Replication == nil {
+						return errors.New("expected replication - found nil")
+					}
 
 					user, ok := req.Secret.Replication.Replication.(*secretmanagerpb.Replication_UserManaged_)
 					if !ok {
@@ -735,6 +738,48 @@ func TestPushSecret(t *testing.T) {
 						return fmt.Errorf("req.Secret.Replication.Replicas[0].Location was not equal to us-east-1 but was %s", user.UserManaged.Replicas[0].Location)
 					}
 
+					return nil
+				},
+			},
+		},
+		{
+			desc: "dont set replication when pushing regional secrets",
+			args: args{
+				store: &esv1.GCPSMProvider{ProjectID: smtc.projectID, Location: "us-east1"},
+				mock:  smtc.mockClient,
+				Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{
+						"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+						"kind": "PushSecretMetadata",
+						"spec": {
+							"replicationLocation": "us-east1"
+						}
+					}`),
+				},
+				GetSecretMockReturn: fakesm.SecretMockReturn{Secret: nil, Err: notFoundError},
+				CreateSecretMockReturn: fakesm.SecretMockReturn{Secret: &secretmanagerpb.Secret{
+					Name:        "projects/default/secrets/bangg",
+					Replication: nil,
+					Labels: map[string]string{
+						managedBy:    externalSecrets,
+						"label-key1": "label-value1",
+					},
+					Annotations: map[string]string{
+						"annotation-key1": "annotation-value1",
+					},
+				}, Err: nil},
+				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
+				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil}},
+			want: want{
+				err: nil,
+				req: func(m *fakesm.MockSMClient) error {
+					req, ok := m.CreateSecretCalledWithN[0]
+					if !ok {
+						return errors.New(errCallNotFoundAtIndex0)
+					}
+					if req.Secret.Replication != nil {
+						return errors.New("expected no replication - found something")
+					}
 					return nil
 				},
 			},
@@ -902,6 +947,7 @@ func TestPushSecret(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.desc, func(t *testing.T) {
+			tc.args.mock.Cleanup()
 			tc.args.mock.NewGetSecretFn(tc.args.GetSecretMockReturn)
 			tc.args.mock.NewUpdateSecretFn(tc.args.UpdateSecretReturn)
 			tc.args.mock.NewCreateSecretFn(tc.args.CreateSecretMockReturn)

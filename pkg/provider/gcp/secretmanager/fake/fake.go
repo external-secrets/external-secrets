@@ -40,6 +40,12 @@ type MockSMClient struct {
 	DeleteSecretFn          func(ctx context.Context, req *secretmanagerpb.DeleteSecretRequest, opts ...gax.CallOption) error
 }
 
+func (mc *MockSMClient) Cleanup() {
+	mc.CreateSecretCalledWithN = map[int]*secretmanagerpb.CreateSecretRequest{}
+	mc.createSecretCallN = 0
+	mc.UpdateSecretCallN = 0
+}
+
 type AccessSecretVersionMockReturn struct {
 	Res *secretmanagerpb.AccessSecretVersionResponse
 	Err error
