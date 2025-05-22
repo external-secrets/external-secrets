@@ -42,6 +42,10 @@ type Provider struct{}
 var _ esv1.SecretsClient = &Client{}
 var _ esv1.Provider = &Provider{}
 
+// We have to use a global variable for the cache because a new provider client
+// is created for each request in the reconcile loop.
+var globalCache = make(map[string]*dClient.CacheEntry)
+
 func init() {
 	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
 		Doppler: &esv1.DopplerProvider{},
@@ -71,13 +75,14 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		store:     dopplerStoreSpec,
 		namespace: namespace,
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
+		cache:     globalCache,
 	}
 
 	if err := client.setAuth(ctx); err != nil {
 		return nil, err
 	}
 
-	doppler, err := dClient.NewDopplerClient(client.dopplerToken)
+	doppler, err := dClient.NewDopplerClient(client.dopplerToken, client.cache)
 	if err != nil {
 		return nil, fmt.Errorf(errNewClient, err)
 	}
