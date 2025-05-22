@@ -1081,7 +1081,7 @@ func TestDeleteSecret(t *testing.T) {
 				deleteSecretErr:      nil,
 			},
 			want: want{
-				err: nil,
+				err: errors.New("not here, sorry dude"),
 			},
 		},
 		"Not expected AWS error": {
@@ -1258,7 +1258,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			secretValue:   secretValue,
 			batchGetSecretValueFn: func(_ context.Context, input *awssm.BatchGetSecretValueInput, _ ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error) {
 				assert.Len(t, input.Filters, 1)
-				assert.Equal(t, "name", input.Filters[0].Key)
+				assert.Equal(t, "name", string(input.Filters[0].Key))
 				assert.Equal(t, secretPath, input.Filters[0].Values[0])
 				return &awssm.BatchGetSecretValueOutput{
 					SecretValues: []types.SecretValueEntry{
@@ -1360,9 +1360,9 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			secretValue:   secretValue,
 			batchGetSecretValueFn: func(_ context.Context, input *awssm.BatchGetSecretValueInput, _ ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error) {
 				assert.Len(t, input.Filters, 2)
-				assert.Equal(t, "tag-key", input.Filters[0].Key)
+				assert.Equal(t, "tag-key", string(input.Filters[0].Key))
 				assert.Equal(t, "foo", input.Filters[0].Values[0])
-				assert.Equal(t, "tag-value", input.Filters[1].Key)
+				assert.Equal(t, "tag-value", string(input.Filters[1].Key))
 				assert.Equal(t, "bar", input.Filters[1].Values[0])
 				return &awssm.BatchGetSecretValueOutput{
 					SecretValues: []types.SecretValueEntry{
