@@ -66,7 +66,7 @@ const (
 	staticySessionToken   = "st"
 )
 
-func newStaticStoreProvider(serviceType esv1.AWSServiceType, region, secretName, role, externalID string, sessionTags []*esv1.Tag) *esv1.SecretStoreProvider {
+func newStaticStoreProvider(serviceType esv1.AWSServiceType, region, secretName, role, externalID string, sessionTags []esv1.Tag) *esv1.SecretStoreProvider {
 	return &esv1.SecretStoreProvider{
 		AWS: &esv1.AWSProvider{
 			Service:     serviceType,
@@ -104,7 +104,7 @@ type AccessOpts struct {
 
 // SetupSessionTagsStore is namespaced and references
 // static credentials from a secret. It assumes a Role and specifies session tags
-func SetupSessionTagsStore(f *framework.Framework, access AccessOpts, sessionTags []*esv1.Tag, serviceType esv1.AWSServiceType) {
+func SetupSessionTagsStore(f *framework.Framework, access AccessOpts, sessionTags []esv1.Tag, serviceType esv1.AWSServiceType) {
 	credsName := "provider-secret-sess-tags"
 	awsCreds := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -135,7 +135,7 @@ func SetupSessionTagsStore(f *framework.Framework, access AccessOpts, sessionTag
 
 // SetupExternalIDStore is namespaced and references
 // static credentials from a secret. It assumes a role and specifies an externalID
-func SetupExternalIDStore(f *framework.Framework, access AccessOpts, externalID string, sessionTags []*esv1.Tag, serviceType esv1.AWSServiceType) {
+func SetupExternalIDStore(f *framework.Framework, access AccessOpts, externalID string, sessionTags []esv1.Tag, serviceType esv1.AWSServiceType) {
 	credsName := "provider-secret-ext-id"
 	awsCreds := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
