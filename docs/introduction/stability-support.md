@@ -18,7 +18,10 @@ As of version 0.14.x , this is the only kubernetes version that we will guarante
 
 | ESO Version | Kubernetes Version | Release Date | End of Life     |
 | ----------- | ------------------ | ------------ | --------------- |
-| 0.14.x      | 1.32               | Feb 4, 2025  | Release of 0.14 |
+| 0.17.x      | 1.33               | May 14, 2025  | Release of 0.18 |
+| 0.16.x      | 1.32               | Apr 14, 2025  | May 14, 2025    |
+| 0.15.x      | 1.32               | Mar 19, 2025  | Apr 14, 2025    |
+| 0.14.x      | 1.32               | Feb 4, 2025  | Mar 19, 2025    |
 | 0.13.x      | 1.19 → 1.31        | Jan 21, 2025 | Feb 4, 2025     |
 | 0.12.x      | 1.19 → 1.31        | Dec 24, 2024 | Jan 21, 2025    |
 | 0.11.x      | 1.19 → 1.31        | Dec 2, 2024  | Dec 24, 2024    |
@@ -50,6 +53,7 @@ The following table describes the stability level of each provider and who's res
 | [Oracle Vault](https://external-secrets.io/latest/provider/oracle-vault)                                   | alpha     | **UNMAINTAINED**                                                                                    |
 | [Akeyless](https://external-secrets.io/latest/provider/akeyless)                                           | stable    | [external-secrets](https://github.com/external-secrets)                                             |
 | [1Password](https://external-secrets.io/latest/provider/1password-automation)                              | alpha     | [@SimSpaceCorp](https://github.com/Simspace) [@snarlysodboxer](https://github.com/snarlysodboxer)   |
+| [1Password SDK](https://external-secrets.io/latest/provider/1password-sdk)                                 | alpha     | [@Skarlso](https://github.com/Skarlso)                                                              |
 | [Generic Webhook](https://external-secrets.io/latest/provider/webhook)                                     | alpha     | [@willemm](https://github.com/willemm)                                                              |
 | [senhasegura DevOps Secrets Management (DSM)](https://external-secrets.io/latest/provider/senhasegura-dsm) | alpha     | [@lfraga](https://github.com/lfraga)                                                                |
 | [Doppler SecretOps Platform](https://external-secrets.io/latest/provider/doppler)                          | alpha     | [@ryan-blunden](https://github.com/ryan-blunden/) [@nmanoogian](https://github.com/nmanoogian/)     |
@@ -73,7 +77,7 @@ The following table describes the stability level of each provider and who's res
 The following table show the support for features across different providers.
 
 | Provider                  | find by name | find by tags | metadataPolicy Fetch | referent authentication | store validation | push secret | DeletionPolicy Merge/Delete |
-| ------------------------- | :----------: | :----------: | :------------------: | :---------------------: | :--------------: | :---------: | :-------------------------: |
+|---------------------------|:------------:|:------------:|:--------------------:|:-----------------------:|:----------------:|:-----------:|:---------------------------:|
 | AWS Secrets Manager       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | AWS Parameter Store       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Hashicorp Vault           |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
@@ -87,6 +91,7 @@ The following table show the support for features across different providers.
 | Oracle Vault              |              |              |                      |                         |        x         |             |                             |
 | Akeyless                  |      x       |      x       |                      |            x            |        x         |      x      |              x              |
 | 1Password                 |      x       |      x       |                      |                         |        x         |      x      |              x              |
+| 1Password SDK             |              |              |                      |                         |        x         |      x      |              x              |
 | Generic Webhook           |              |              |                      |                         |                  |             |              x              |
 | senhasegura DSM           |              |              |                      |                         |        x         |             |                             |
 | Doppler                   |      x       |              |                      |                         |        x         |             |                             |

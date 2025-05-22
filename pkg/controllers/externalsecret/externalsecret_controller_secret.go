@@ -37,36 +37,41 @@ import (
 )
 
 // getProviderSecretData returns the provider's secret data with the provided ExternalSecret.
-func (r *Reconciler) getProviderSecretData(ctx context.Context, externalSecret *esv1.ExternalSecret) (providerData map[string][]byte, err error) {
+func (r *Reconciler) GetProviderSecretData(ctx context.Context, externalSecret *esv1.ExternalSecret) (providerData map[string][]byte, err error) {
 	// We MUST NOT create multiple instances of a provider client (mostly due to limitations with GCP)
 	// Clientmanager keeps track of the client instances
 	// that are created during the fetching process and closes clients
 	// if needed.
 	mgr := secretstore.NewManager(r.Client, r.ControllerClass, r.EnableFloodGate)
-	defer mgr.Close(ctx)
+	defer func() {
+		_ = mgr.Close(ctx)
+	}()
 
 	// statemanager takes care of managing the state of the generators.
 	// Since ExternalSecrets can have multiple generators, we need to keep track of the state of each generator
 	// and if one fails we need to rollback all generated values from this iteration.
-	genState := statemanager.New(ctx, r.Client, r.Scheme, externalSecret.Namespace, externalSecret)
-	defer func() {
-		// NoSecretErr does not make sense for the generator state.
-		// A generator is expected to always generate a secret.
-		// If it doesn't, it should return an error.
-		// If the error is NoSecretErr, we should commit the generator state.
-		if err != nil && !errors.Is(err, esv1.NoSecretErr) {
-			if rollBackErr := genState.Rollback(); rollBackErr != nil {
-				r.Log.Error(rollBackErr, "error rolling back generator state")
+	var genState *statemanager.Manager
+	if r.EnableGeneratorState {
+		genState = statemanager.New(ctx, r.Client, r.Scheme, externalSecret.Namespace, externalSecret)
+		defer func() {
+			// NoSecretErr does not make sense for the generator state.
+			// A generator is expected to always generate a secret.
+			// If it doesn't, it should return an error.
+			// If the error is NoSecretErr, we should commit the generator state.
+			if err != nil && !errors.Is(err, esv1.NoSecretErr) {
+				if rollBackErr := genState.Rollback(); rollBackErr != nil {
+					r.Log.Error(rollBackErr, "error rolling back generator state")
+				}
+				return
 			}
-			return
-		}
-		if commitErr := genState.Commit(); commitErr != nil {
-			r.Log.Error(commitErr, "error committing generator state")
-			// At this point the original error can only be a NoSecretErr
-			// but we should return the commit error here as it's more important.
-			err = commitErr
-		}
-	}()
+			if commitErr := genState.Commit(); commitErr != nil {
+				r.Log.Error(commitErr, "error committing generator state")
+				// At this point the original error can only be a NoSecretErr
+				// but we should return the commit error here as it's more important.
+				err = commitErr
+			}
+		}()
+	}
 	providerData = make(map[string][]byte)
 	for i, remoteRef := range externalSecret.Spec.DataFrom {
 		var secretMap map[string][]byte
@@ -151,18 +156,25 @@ func (r *Reconciler) handleGenerateSecrets(ctx context.Context, namespace string
 	if err != nil {
 		return nil, err
 	}
-	latestState, err := generatorState.GetLatestState(generatorStateKey(i))
-	if err != nil {
-		return nil, fmt.Errorf("unable to get latest state: %w", err)
+	var latestState *genv1alpha1.GeneratorState
+	if generatorState != nil {
+		latestState, err = generatorState.GetLatestState(generatorStateKey(i))
+		if err != nil {
+			return nil, fmt.Errorf("unable to get latest state: %w", err)
+		}
 	}
 	secretMap, newState, err := impl.Generate(ctx, generatorResource, r.Client, namespace)
 	if err != nil {
 		return nil, fmt.Errorf(errGenerate, err)
 	}
 	if latestState != nil {
-		generatorState.EnqueueMoveStateToGC(generatorStateKey(i))
+		if generatorState != nil {
+			generatorState.EnqueueMoveStateToGC(generatorStateKey(i))
+		}
 	}
-	generatorState.EnqueueSetLatest(ctx, generatorStateKey(i), namespace, generatorResource, impl, newState)
+	if generatorState != nil {
+		generatorState.EnqueueSetLatest(ctx, generatorStateKey(i), namespace, generatorResource, impl, newState)
+	}
 	// rewrite the keys if needed
 	secretMap, err = utils.RewriteMap(remoteRef.Rewrite, secretMap)
 	if err != nil {
@@ -220,8 +232,9 @@ func (r *Reconciler) handleExtractSecrets(ctx context.Context, externalSecret *e
 	if err != nil {
 		return nil, fmt.Errorf(errDecode, remoteRef.Extract.DecodingStrategy, err)
 	}
-
-	genState.EnqueueFlagLatestStateForGC(generatorStateKey(i))
+	if genState != nil {
+		genState.EnqueueFlagLatestStateForGC(generatorStateKey(i))
+	}
 	return secretMap, nil
 }
 
@@ -260,7 +273,9 @@ func (r *Reconciler) handleFindAllSecrets(ctx context.Context, externalSecret *e
 	if err != nil {
 		return nil, fmt.Errorf(errDecode, remoteRef.Find.DecodingStrategy, err)
 	}
-	genState.EnqueueFlagLatestStateForGC(generatorStateKey(i))
+	if genState != nil {
+		genState.EnqueueFlagLatestStateForGC(generatorStateKey(i))
+	}
 	return secretMap, nil
 }
 

@@ -85,7 +85,9 @@ func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeP
 	if err != nil {
 		return "", fmt.Errorf("authentication failed: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 	token := authOut.GetToken()
 	return token, nil
 }
@@ -145,7 +147,9 @@ func (a *akeylessBase) DescribeItem(ctx context.Context, itemName string) (*akey
 	if err != nil {
 		return nil, fmt.Errorf("can't describe item: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 
 	return &gsvOut, nil
 }
@@ -166,7 +170,9 @@ func (a *akeylessBase) GetCertificate(ctx context.Context, certificateName strin
 	if err != nil {
 		return "", fmt.Errorf("can't get certificate value: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 
 	out, err := json.Marshal(gcvOut)
 	if err != nil {
@@ -192,7 +198,9 @@ func (a *akeylessBase) GetRotatedSecrets(ctx context.Context, secretName string,
 	if err != nil {
 		return "", fmt.Errorf("can't get rotated secret value: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 	valI, ok := gsvOut["value"]
 	var out []byte
 	if ok {
@@ -231,7 +239,9 @@ func (a *akeylessBase) GetDynamicSecrets(ctx context.Context, secretName string)
 	if err != nil {
 		return "", fmt.Errorf("can't get dynamic secret value: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 	out, err := json.Marshal(gsvOut)
 	if err != nil {
 		return "", fmt.Errorf("can't marshal dynamic secret value: %w", err)
@@ -255,7 +265,9 @@ func (a *akeylessBase) GetStaticSecret(ctx context.Context, secretName string, v
 	if err != nil {
 		return "", fmt.Errorf("can't get secret value: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 	val, ok := gsvOut[secretName]
 	if !ok {
 		return "", fmt.Errorf("can't get secret: %v", secretName)
@@ -303,7 +315,9 @@ func (a *akeylessBase) ListSecrets(ctx context.Context, path, tag string) ([]str
 	if err != nil {
 		return nil, fmt.Errorf("error on get secrets list: %w", err)
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 	if lipOut.Items == nil {
 		return nil, nil
 	}
@@ -327,7 +341,9 @@ func (a *akeylessBase) CreateSecret(ctx context.Context, remoteKey, data string)
 		return err
 	}
 	_, res, err := a.RestAPI.CreateSecret(ctx).Body(body).Execute()
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMCreateSecret, err)
 	return err
 }
@@ -341,7 +357,9 @@ func (a *akeylessBase) UpdateSecret(ctx context.Context, remoteKey, data string)
 		return err
 	}
 	_, res, err := a.RestAPI.UpdateSecretVal(ctx).Body(body).Execute()
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMUpdateSecretVal, err)
 	return err
 }
@@ -354,7 +372,9 @@ func (a *akeylessBase) DeleteSecret(ctx context.Context, remoteKey string) error
 		return err
 	}
 	_, res, err := a.RestAPI.DeleteItem(ctx).Body(body).Execute()
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMDeleteItem, err)
 	return err
 }
@@ -455,7 +475,9 @@ func readK8SServiceAccountJWT() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer data.Close()
+	defer func() {
+		_ = data.Close()
+	}()
 
 	contentBytes, err := io.ReadAll(data)
 	if err != nil {

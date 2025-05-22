@@ -267,6 +267,17 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 			},
 			Spec: *gen.Spec.Generator.GrafanaSpec,
 		}, nil
+	case genv1alpha1.GeneratorKindMFA:
+		if gen.Spec.Generator.MFASpec == nil {
+			return nil, fmt.Errorf("when kind is %s, MFASpec must be set", gen.Spec.Kind)
+		}
+		return &genv1alpha1.MFA{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.MFAKind,
+			},
+			Spec: *gen.Spec.Generator.MFASpec,
+		}, nil
 	default:
 		return nil, fmt.Errorf("unknown kind %s", gen.Spec.Kind)
 	}

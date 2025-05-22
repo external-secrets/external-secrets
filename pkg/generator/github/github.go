@@ -119,12 +119,21 @@ func (g *Generator) generate(
 	if err != nil {
 		return nil, nil, fmt.Errorf("error performing request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// git access token
 	var gat map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&gat); err != nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return nil, nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	if resp.StatusCode >= 300 {
+		if message, ok := gat["message"]; ok {
+			return nil, nil, fmt.Errorf("error generating token: response code: %d, response: %v", resp.StatusCode, message)
+		}
+		return nil, nil, fmt.Errorf("error generating token, failed to extract error message from github request: response code: %d", resp.StatusCode)
 	}
 
 	accessToken, ok := gat["token"].(string)

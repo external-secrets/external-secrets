@@ -244,7 +244,9 @@ func (s *SdkClient) performHTTPRequestOperation(ctx context.Context, params para
 	if err != nil {
 		return fmt.Errorf("failed to do request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		content, _ := io.ReadAll(resp.Body)

@@ -18,7 +18,7 @@ Secret](https://kubernetes.io/docs/concepts/configuration/secret/).
 
 We follow the [Kubernetes Deprecation Policy](https://kubernetes.io/docs/reference/using-api/deprecation-policy/) and [API Versioning Scheme](https://kubernetes.io/docs/reference/using-api/#api-versioning): alpha, beta, GA.
 
-The project is currently in `beta` state. Please try the `beta` features and provide feedback. After the features exits beta, it may not be practical to make more changes.
+The project is currently in `beta` state. Please try the `beta` features and provide feedback. After the features exit beta, it may not be practical to make more changes.
 
 * alpha
     * The support for a feature may be dropped at any time without notice.
@@ -49,7 +49,8 @@ We define the following scope that is covered by our deprecation policy. We foll
 ### Non-Scope
 Everything not listed in scope is not subject to this deprecation policy and it is subject to breaking changes, updates at any point in time, and deprecation - **as long as it follows the Deprecation Process listed below**.
 
-This includes, but isn't limited to :
+This includes, but isn't limited to:
+
 * Any feature / specific behavior not in Scope.
 * Source code imports
 * Helm Charts

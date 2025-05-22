@@ -16,6 +16,8 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 // WebhookSpec controls the behavior of the external generator. Any body parameters should be passed to the server through the parameters field.
@@ -30,6 +32,10 @@ type WebhookSpec struct {
 	// Headers
 	// +optional
 	Headers map[string]string `json:"headers,omitempty"`
+
+	// Auth specifies a authorization protocol. Only one protocol may be set.
+	// +optional
+	Auth *AuthorizationProtocol `json:"auth,omitempty"`
 
 	// Body
 	// +optional
@@ -57,6 +63,23 @@ type WebhookSpec struct {
 	// The provider for the CA bundle to use to validate webhook server certificate.
 	// +optional
 	CAProvider *WebhookCAProvider `json:"caProvider,omitempty"`
+}
+
+// AuthorizationProtocol contains the protocol-specific configuration
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
+type AuthorizationProtocol struct {
+	// NTLMProtocol configures the store to use NTLM for auth
+	// +optional
+	NTLM *NTLMProtocol `json:"ntlm,omitempty"`
+
+	// Define other protocols here
+}
+
+// NTLMProtocol contains the NTLM-specific configuration.
+type NTLMProtocol struct {
+	UserName esmeta.SecretKeySelector `json:"usernameSecret"`
+	Password esmeta.SecretKeySelector `json:"passwordSecret"`
 }
 
 type WebhookCAProviderType string

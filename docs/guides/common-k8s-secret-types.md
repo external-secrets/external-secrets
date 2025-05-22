@@ -39,7 +39,7 @@ Alternately, if you only have the container registry name and password value, yo
 
 ```yaml
 {% raw %}
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: dk-cfg-example

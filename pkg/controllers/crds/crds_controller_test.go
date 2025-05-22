@@ -340,14 +340,16 @@ func TestCheckCertChain(t *testing.T) {
 	if err != nil {
 		t.Errorf(failedCreateServerCerts, err)
 	}
-	os.WriteFile(cacrt, caArtifacts.CertPEM, 0644)
-	os.WriteFile(tlscrt, certPEM, 0644)
+	_ = os.WriteFile(cacrt, caArtifacts.CertPEM, 0644)
+	_ = os.WriteFile(tlscrt, certPEM, 0644)
 	f, _ := os.OpenFile(tlscrt, os.O_APPEND|os.O_WRONLY, 0644)
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 	if _, err = f.Write(chainArtifacts.CertPEM); err != nil {
 		t.Errorf(failedCreateCaChain, err)
 	}
-	os.WriteFile(tlskey, keyPEM, 0644)
+	_ = os.WriteFile(tlskey, keyPEM, 0644)
 	cert := CertInfo{
 		CertDir:  "/tmp",
 		CertName: "tls",

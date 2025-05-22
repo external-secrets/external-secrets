@@ -148,7 +148,7 @@ runs:
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
-        password: ${{ env.GITHUB_TOKEN }}
+        password: ${{ github.token }}
 
     - name: Run managed e2e Tests
       shell: bash

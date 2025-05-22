@@ -27,11 +27,13 @@ import (
 	"net/url"
 	tpl "text/template"
 
+	"github.com/Azure/go-ntlmssp"
 	"github.com/PaesslerAG/jsonpath"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	"github.com/external-secrets/external-secrets/pkg/template/v2"
@@ -47,7 +49,7 @@ type Webhook struct {
 	ClusterScoped bool
 }
 
-func (w *Webhook) getStoreSecret(ctx context.Context, ref SecretKeySelector) (*corev1.Secret, error) {
+func (w *Webhook) getStoreSecret(ctx context.Context, ref esmeta.SecretKeySelector) (*corev1.Secret, error) {
 	ke := client.ObjectKey{
 		Name:      ref.Name,
 		Namespace: w.Namespace,
@@ -189,6 +191,7 @@ func (w *Webhook) GetWebhookData(ctx context.Context, provider *Spec, ref *esv1.
 		return nil, errors.New("http client not initialized")
 	}
 
+	// Parse store secrets
 	escapedData, err := w.GetTemplateData(ctx, ref, provider.Secrets, true)
 	if err != nil {
 		return nil, err
@@ -198,14 +201,19 @@ func (w *Webhook) GetWebhookData(ctx context.Context, provider *Spec, ref *esv1.
 		return nil, err
 	}
 
+	// set method
 	method := provider.Method
 	if method == "" {
 		method = http.MethodGet
 	}
+
+	// set url
 	url, err := ExecuteTemplateString(provider.URL, escapedData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse url: %w", err)
 	}
+
+	// set body
 	body, err := ExecuteTemplate(provider.Body, rawData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse body: %w", err)
@@ -263,12 +271,18 @@ func (w *Webhook) executeRequest(ctx context.Context, provider *Spec, data []byt
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	for hKey, hValueTpl := range provider.Headers {
-		hValue, err := ExecuteTemplateString(hValueTpl, rawData)
+	if provider.Headers != nil {
+		req, err = w.ReqAddHeaders(req, provider, rawData)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse header %s: %w", hKey, err)
+			return nil, err
 		}
-		req.Header.Add(hKey, hValue)
+	}
+
+	if provider.Auth != nil {
+		req, err = w.ReqAddAuth(req, provider, ctx)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	resp, err := w.HTTP.Do(req)
@@ -276,7 +290,9 @@ func (w *Webhook) executeRequest(ctx context.Context, provider *Spec, data []byt
 	if err != nil {
 		return nil, fmt.Errorf("failed to call endpoint: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	if resp.StatusCode == 404 {
 		return nil, esv1.NoSecretError{}
 	}
@@ -288,29 +304,89 @@ func (w *Webhook) executeRequest(ctx context.Context, provider *Spec, data []byt
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("endpoint gave error %s", resp.Status)
 	}
+
+	// return response body
 	return io.ReadAll(resp.Body)
+}
+
+func (w *Webhook) ReqAddHeaders(r *http.Request, provider *Spec, rawData map[string]map[string]string) (*http.Request, error) {
+	reqWithHeaders := r
+
+	for hKey, hValueTpl := range provider.Headers {
+		hValue, err := ExecuteTemplateString(hValueTpl, rawData)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse header %s: %w", hKey, err)
+		}
+		reqWithHeaders.Header.Add(hKey, hValue)
+	}
+
+	return reqWithHeaders, nil
+}
+
+func (w *Webhook) ReqAddAuth(r *http.Request, provider *Spec, ctx context.Context) (*http.Request, error) {
+	reqWithAuth := r
+
+	//nolint:gocritic // singleCaseSwitch: we prefer to keep it as a switch for clarity
+	switch {
+	case provider.Auth.NTLM != nil:
+		userSecretRef := provider.Auth.NTLM.UserName
+		userSecret, err := w.getStoreSecret(ctx, userSecretRef)
+		if err != nil {
+			return nil, err
+		}
+		username := string(userSecret.Data[userSecretRef.Key])
+
+		PasswordSecretRef := provider.Auth.NTLM.Password
+		PasswordSecret, err := w.getStoreSecret(ctx, PasswordSecretRef)
+		if err != nil {
+			return nil, err
+		}
+		password := string(PasswordSecret.Data[PasswordSecretRef.Key])
+
+		// This overwrites auth headers set by providers.headers
+		reqWithAuth.SetBasicAuth(username, password)
+	}
+	return reqWithAuth, nil
 }
 
 func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Client, error) {
 	client := &http.Client{}
+
+	// add timeout to client if it is there
 	if provider.Timeout != nil {
 		client.Timeout = provider.Timeout.Duration
 	}
-	if len(provider.CABundle) == 0 && provider.CAProvider == nil {
-		// No need to process ca stuff if it is not there
-		return client, nil
+
+	// add CA to client if it is there
+	if len(provider.CABundle) > 0 || provider.CAProvider != nil {
+		caCertPool, err := w.GetCACertPool(ctx, provider)
+		if err != nil {
+			return nil, err
+		}
+
+		tlsConf := &tls.Config{
+			RootCAs:       caCertPool,
+			MinVersion:    tls.VersionTLS12,
+			Renegotiation: tls.RenegotiateOnceAsClient,
+		}
+
+		client.Transport = &http.Transport{TLSClientConfig: tlsConf}
 	}
-	caCertPool, err := w.GetCACertPool(ctx, provider)
-	if err != nil {
-		return nil, err
+	// add authentication method if it s there
+	if provider.Auth != nil {
+		if provider.Auth.NTLM != nil {
+			client.Transport =
+				&ntlmssp.Negotiator{
+					RoundTripper: &http.Transport{
+						TLSNextProto: map[string]func(authority string, c *tls.Conn) http.RoundTripper{}, // Needed to disable HTTP/2
+
+					},
+				}
+		}
+		// add additional auth methods here
 	}
 
-	tlsConf := &tls.Config{
-		RootCAs:       caCertPool,
-		MinVersion:    tls.VersionTLS12,
-		Renegotiation: tls.RenegotiateOnceAsClient,
-	}
-	client.Transport = &http.Transport{TLSClientConfig: tlsConf}
+	// return client with all add-ons
 	return client, nil
 }
 

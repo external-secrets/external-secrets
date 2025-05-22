@@ -154,7 +154,9 @@ func getQuayRobotToken(ctx context.Context, fedToken, robotAccount, url string, 
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != 200 {
 		return "", fmt.Errorf("request failed do to unexpected status: %s", resp.Status)

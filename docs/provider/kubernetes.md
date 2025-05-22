@@ -9,7 +9,7 @@ The `SecretStore` reconciler checks if you have read access for secrets in that 
 This provider supports the use of the `Property` field. With it you point to the key of the remote secret. If you leave it empty it will json encode all key/value pairs.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: database-credentials
@@ -58,7 +58,7 @@ spec:
 You can fetch secrets based on labels or names matching a regexp:
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: fetch-tls-and-nginx
@@ -89,7 +89,7 @@ If you want to connect to a remote API Server you need to fetch it and store it 
 You may also define it inline as base64 encoded value using the `caBundle` property.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: k8s-store-default-ns
@@ -150,7 +150,7 @@ data:
 Create a SecretStore: The `auth` section indicates that the type `token` will be used for authentication, it includes the path to fetch the token. Set `remoteNamespace` to the name of the namespace where your target secrets reside.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: k8s-store-token-auth
@@ -185,7 +185,7 @@ $ kubectl create rolebinding my-store --role=eso-store-role --serviceaccount=def
 Create a SecretStore: the `auth` section indicates that the type `serviceAccount` will be used for authentication.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: k8s-store-sa-auth
@@ -212,7 +212,7 @@ $ kubectl create secret tls tls-secret --cert=path/to/tls.cert --key=path/to/tls
 Reference the `tls-secret` in the SecretStore
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: k8s-store-cert-auth
@@ -263,7 +263,7 @@ rules:
       - list
       - watch
   # This will allow the role `eso-store-role` to perform **permission reviews** for itself within the defined namespace:
-  - apiGroups: 
+  - apiGroups:
       - authorization.k8s.io
     resources:
       - selfsubjectrulesreviews # used to review or fetch the list of permissions a user or service account currently has.
@@ -302,7 +302,7 @@ metadata:
 stringData:
   token: "<paste-bearer-token-here>"
 ---
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: kubernetes-secret-store
@@ -323,7 +323,7 @@ spec:
             name: eso-token
             key: token
 ---
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: eso-kubernetes-secret
@@ -405,6 +405,31 @@ rules:
   - create
 ```
 
+It is possible to override the target secret type with the `.template.type` property. By default the secret type is copied from the source secret. If none is specified, the default type `Opaque` will be used. The type can be set to any valid Kubernetes secret type, such as `kubernetes.io/dockerconfigjson`, `kubernetes.io/tls`, etc.
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: example
+spec:
+  refreshInterval: 1h
+  secretStoreRefs:
+    - name: k8s-store-remote-ns
+      kind: SecretStore
+  selector:
+    secret:
+      name: pokedex-credentials
+  template:
+    type: kubernetes.io/dockerconfigjson
+  data:
+    - match:
+        secretKey: dockerconfigjson
+        remoteRef:
+          remoteKey: remote-dockerconfigjson
+          property: ".dockerconfigjson"
+```
+
 #### PushSecret Metadata
 
 The Kubernetes provider is able to manage both `metadata.labels` and `metadata.annotations` of the secret on the target cluster.
@@ -451,7 +476,7 @@ spec:
       remoteRef:
         remoteKey: example-remote-secret
         property: url
-        
+
     metadata:
       apiVersion: kubernetes.external-secrets.io/v1alpha1
       kind: PushSecretMetadata

@@ -763,6 +763,39 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.AuthorizationProtocol">AuthorizationProtocol
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.WebhookProvider">WebhookProvider</a>)
+</p>
+<p>
+<p>AuthorizationProtocol contains the protocol-specific configuration</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>ntlm</code></br>
+<em>
+<a href="#external-secrets.io/v1.NTLMProtocol">
+NTLMProtocol
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NTLMProtocol configures the store to use NTLM for auth</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.AzureAuthType">AzureAuthType
 (<code>string</code> alias)</p></h3>
 <p>
@@ -5358,6 +5391,47 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.IntegrationInfo">IntegrationInfo
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OnePasswordSDKProvider">OnePasswordSDKProvider</a>)
+</p>
+<p>
+<p>IntegrationInfo specifies the name and version of the integration built using the 1Password Go SDK.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name defaults to &ldquo;1Password SDK&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Version defaults to &ldquo;v1.0.0&rdquo;.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.KeeperSecurityProvider">KeeperSecurityProvider
 </h3>
 <p>
@@ -5681,6 +5755,49 @@ bool
 <td></td>
 </tr></tbody>
 </table>
+<h3 id="external-secrets.io/v1.NTLMProtocol">NTLMProtocol
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.AuthorizationProtocol">AuthorizationProtocol</a>)
+</p>
+<p>
+<p>NTLMProtocol contains the NTLM-specific configuration.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>usernameSecret</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>passwordSecret</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.NoSecretError">NoSecretError
 </h3>
 <p>
@@ -5918,6 +6035,96 @@ map[string]int
 </td>
 <td>
 <p>Vaults defines which OnePassword vaults to search in which order</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OnePasswordSDKAuth">OnePasswordSDKAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OnePasswordSDKProvider">OnePasswordSDKProvider</a>)
+</p>
+<p>
+<p>OnePasswordSDKAuth contains a secretRef for the service account token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceAccountSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>ServiceAccountSecretRef points to the secret containing the token to access 1Password vault.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OnePasswordSDKProvider">OnePasswordSDKProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>OnePasswordSDKProvider configures a store to sync secrets using the 1Password sdk.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>vault</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Vault defines the vault&rsquo;s name to access. Do NOT add op:// prefix. This will be done automatically.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>integrationInfo</code></br>
+<em>
+<a href="#external-secrets.io/v1.IntegrationInfo">
+IntegrationInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IntegrationInfo specifies the name and version of the integration built using the 1Password Go SDK.
+If you don&rsquo;t know which name and version to use, use <code>DefaultIntegrationName</code> and <code>DefaultIntegrationVersion</code>, respectively.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.OnePasswordSDKAuth">
+OnePasswordSDKAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth defines the information necessary to authenticate against OnePassword API.</p>
 </td>
 </tr>
 </tbody>
@@ -7191,6 +7398,20 @@ OnePasswordProvider
 <td>
 <em>(Optional)</em>
 <p>OnePassword configures this store to sync secrets using the 1Password Cloud provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>onepasswordSDK</code></br>
+<em>
+<a href="#external-secrets.io/v1.OnePasswordSDKProvider">
+OnePasswordSDKProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OnePasswordSDK configures this store to use 1Password&rsquo;s new Go SDK to sync secrets.</p>
 </td>
 </tr>
 <tr>
@@ -9653,7 +9874,7 @@ string
 <a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
-<p>AkeylessProvider Configures an store to sync secrets using Akeyless KV.</p>
+<p>WebHookProvider Configures an store to sync secrets from simple web apis.</p>
 </p>
 <table>
 <thead>
@@ -9695,6 +9916,20 @@ map[string]string
 <td>
 <em>(Optional)</em>
 <p>Headers</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.AuthorizationProtocol">
+AuthorizationProtocol
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth specifies a authorization protocol. Only one protocol may be set.</p>
 </td>
 </tr>
 <tr>

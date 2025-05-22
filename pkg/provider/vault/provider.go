@@ -50,6 +50,10 @@ const (
 	errCANamespace   = "missing namespace on caProvider secret"
 )
 
+const (
+	defaultCacheSize = 2 << 17
+)
+
 type Provider struct {
 	// NewVaultClient is a function that returns a new Vault client.
 	// This is used for testing to inject a fake client.
@@ -134,7 +138,7 @@ func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, err
 	}
 
-	client, err := getVaultClient(p, store, cfg)
+	client, err := getVaultClient(p, store, cfg, namespace)
 	if err != nil {
 		return nil, fmt.Errorf(errVaultClient, err)
 	}
@@ -211,14 +215,21 @@ func (p *Provider) prepareConfig(ctx context.Context, kube kclient.Client, corev
 	return c, cfg, nil
 }
 
-func getVaultClient(p *Provider, store esv1.GenericStore, cfg *vault.Config) (util.Client, error) {
-	auth := store.GetSpec().Provider.Vault.Auth
+func getVaultClient(p *Provider, store esv1.GenericStore, cfg *vault.Config, namespace string) (util.Client, error) {
+	vaultProvider := store.GetSpec().Provider.Vault
+	auth := vaultProvider.Auth
 	isStaticToken := auth != nil && auth.TokenSecretRef != nil
 	useCache := enableCache && !isStaticToken
 
+	keyNamespace := store.GetObjectMeta().Namespace
+	// A single ClusterSecretStore may need to spawn separate vault clients for each namespace.
+	if store.GetTypeMeta().Kind == esv1.ClusterSecretStoreKind && namespace != "" && isReferentSpec(vaultProvider) {
+		keyNamespace = namespace
+	}
+
 	key := cache.Key{
 		Name:      store.GetObjectMeta().Name,
-		Namespace: store.GetObjectMeta().Namespace,
+		Namespace: keyNamespace,
 		Kind:      store.GetTypeMeta().Kind,
 	}
 	if useCache {
@@ -283,24 +294,25 @@ func isReferentSpec(prov *esv1.VaultProvider) bool {
 	return false
 }
 
+func initCache(size int) {
+	logger.Info("initializing vault cache", "size", size)
+	clientCache = cache.Must(size, func(client util.Client) {
+		err := revokeTokenIfValid(context.Background(), client)
+		if err != nil {
+			logger.Error(err, "unable to revoke cached token on eviction")
+		}
+	})
+}
+
 func init() {
 	var vaultTokenCacheSize int
 	fs := pflag.NewFlagSet("vault", pflag.ExitOnError)
 	fs.BoolVar(&enableCache, "experimental-enable-vault-token-cache", false, "Enable experimental Vault token cache. External secrets will reuse the Vault token without creating a new one on each request.")
 	// max. 265k vault leases with 30bytes each ~= 7MB
-	fs.IntVar(&vaultTokenCacheSize, "experimental-vault-token-cache-size", 2<<17, "Maximum size of Vault token cache. When more tokens than Only used if --experimental-enable-vault-token-cache is set.")
-	lateInit := func() {
-		logger.Info("initializing vault cache", "size", vaultTokenCacheSize)
-		clientCache = cache.Must(vaultTokenCacheSize, func(client util.Client) {
-			err := revokeTokenIfValid(context.Background(), client)
-			if err != nil {
-				logger.Error(err, "unable to revoke cached token on eviction")
-			}
-		})
-	}
+	fs.IntVar(&vaultTokenCacheSize, "experimental-vault-token-cache-size", defaultCacheSize, "Maximum size of Vault token cache. When more tokens than Only used if --experimental-enable-vault-token-cache is set.")
 	feature.Register(feature.Feature{
 		Flags:      fs,
-		Initialize: lateInit,
+		Initialize: func() { initCache(vaultTokenCacheSize) },
 	})
 
 	esv1.Register(&Provider{

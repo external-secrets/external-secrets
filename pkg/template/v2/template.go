@@ -164,7 +164,7 @@ func execute(k, val string, data map[string][]byte) ([]byte, error) {
 	t, err := tpl.New(k).
 		Option("missingkey=error").
 		Funcs(tplFuncs).
-		Delims("{{", "}}").
+		Delims(leftDelim, rightDelim).
 		Parse(val)
 	if err != nil {
 		return nil, fmt.Errorf(errParse, k, err)
