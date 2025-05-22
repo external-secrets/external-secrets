@@ -68,6 +68,7 @@ type AWSAuthSecretRef struct {
 // Authenticate against AWS using service account tokens.
 type AWSJWTAuth struct {
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
+	SecretRef         *esmeta.SecretKeySelector      `json:"secretRef,omitempty"`
 }
 
 // ECRAuthorizationTokenSpec uses the GetAuthorizationToken API to retrieve an
