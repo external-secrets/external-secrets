@@ -706,12 +706,10 @@ func getSecretAllMetadata(tags map[string]*string, attributes *keyvault.Attribut
 
 // Retrieves a tag value if specified and all tags in JSON format if not.
 func getSecretMetadata(metadata map[string]*string, property string) ([]byte, error) {
-	fmt.Printf("metadata: %v\n", metadata)
 	if property == "" {
 		return json.Marshal(metadata)
 	}
 	if val, exist := metadata[property]; exist {
-		fmt.Printf("property: %s, value: %s\n", property, *val)
 		return []byte(*val), nil
 	}
 
