@@ -115,7 +115,7 @@ type AWSProvider struct {
 
 	// AWS STS assume role session tags
 	// +optional
-	SessionTags []Tag `json:"sessionTags,omitempty"`
+	SessionTags []*Tag `json:"sessionTags,omitempty"`
 
 	// SecretsManager defines how the provider behaves when interacting with AWS SecretsManager
 	// +optional
