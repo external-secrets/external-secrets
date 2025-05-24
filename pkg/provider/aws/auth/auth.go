@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	stsTypes "github.com/aws/aws-sdk-go-v2/service/sts/types"
+	"github.com/spf13/pflag"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -32,6 +33,7 @@ import (
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/pkg/feature"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
@@ -44,7 +46,8 @@ type Config struct {
 }
 
 var (
-	log = ctrl.Log.WithName("provider").WithName("aws")
+	log                = ctrl.Log.WithName("provider").WithName("aws")
+	enableSessionCache bool
 )
 
 const (
@@ -56,6 +59,14 @@ const (
 	errFetchSAKSecret  = "could not fetch SecretAccessKey secret: %w"
 	errFetchSTSecret   = "could not fetch SessionToken secret: %w"
 )
+
+func init() {
+	fs := pflag.NewFlagSet("aws-auth", pflag.ExitOnError)
+	fs.BoolVar(&enableSessionCache, "experimental-enable-aws-session-cache", false, "DEPRECATED: this flag is no longer used and will be removed since aws sdk v2 has its own session cache.")
+	feature.Register(feature.Feature{
+		Flags: fs,
+	})
+}
 
 // Opts define options for New function.
 type Opts struct {
