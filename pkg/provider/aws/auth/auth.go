@@ -57,40 +57,34 @@ const (
 	errFetchSTSecret   = "could not fetch SessionToken secret: %w"
 )
 
+// Opts define options for New function.
+type Opts struct {
+	Store       esv1.GenericStore
+	Kube        client.Client
+	Namespace   string
+	AssumeRoler STSProvider
+	JWTProvider jwtProviderFactory
+}
+
 // New creates a new aws config based on the provided store
 // it uses the following authentication mechanisms in order:
 // * service-account token authentication via AssumeRoleWithWebIdentity
 // * static credentials from a Kind=Secret, optionally with doing a AssumeRole.
 // * sdk default provider chain, see: https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default
-func New(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string, assumeRoler STSProvider, jwtProvider jwtProviderFactory) (*aws.Config, error) {
-	prov, err := util.GetAWSProvider(store)
+func New(ctx context.Context, opts Opts) (*aws.Config, error) {
+	prov, err := util.GetAWSProvider(opts.Store)
 	if err != nil {
 		return nil, err
 	}
 	var credsProvider aws.CredentialsProvider
-	isClusterKind := store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind
+	isClusterKind := opts.Store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind
 
-	// use credentials via service account token
-	jwtAuth := prov.Auth.JWTAuth
-	if jwtAuth != nil {
-		credsProvider, err = credsFromServiceAccount(ctx, prov.Auth, prov.Region, isClusterKind, kube, namespace, jwtProvider)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// use credentials from secretRef
-	secretRef := prov.Auth.SecretRef
-	if secretRef != nil {
-		log.V(1).Info("using credentials from secretRef")
-		credsProvider, err = credsFromSecretRef(ctx, prov.Auth, store.GetKind(), kube, namespace)
-		if err != nil {
-			return nil, err
-		}
+	credsProvider, err = constructCredsProvider(ctx, prov, isClusterKind, opts)
+	if err != nil {
+		return nil, err
 	}
 
 	// global endpoint resolver is deprecated, should we EndpointResolverV2 field on service client options
-
 	var loadCfgOpts []func(*config.LoadOptions) error
 	if credsProvider != nil {
 		loadCfgOpts = append(loadCfgOpts, config.WithCredentialsProvider(credsProvider))
@@ -99,14 +93,18 @@ func New(ctx context.Context, store esv1.GenericStore, kube client.Client, names
 		loadCfgOpts = append(loadCfgOpts, config.WithRegion(prov.Region))
 	}
 
-	config, err := config.LoadDefaultConfig(context.TODO(), loadCfgOpts...)
+	return createConfiguration(prov, opts.AssumeRoler, loadCfgOpts)
+}
+
+func createConfiguration(prov *esv1.AWSProvider, assumeRoler STSProvider, loadCfgOpts []func(*config.LoadOptions) error) (*aws.Config, error) {
+	cfg, err := config.LoadDefaultConfig(context.TODO(), loadCfgOpts...)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, aRole := range prov.AdditionalRoles {
-		stsclient := assumeRoler(config)
-		config.Credentials = stscreds.NewAssumeRoleProvider(stsclient, aRole)
+		stsclient := assumeRoler(cfg)
+		cfg.Credentials = stscreds.NewAssumeRoleProvider(stsclient, aRole)
 	}
 
 	sessExtID := prov.ExternalID
@@ -119,26 +117,42 @@ func New(ctx context.Context, store esv1.GenericStore, kube client.Client, names
 		}
 	}
 	if prov.Role != "" {
-		stsclient := assumeRoler(config)
+		stsclient := assumeRoler(cfg)
 		if sessExtID != "" || sessTags != nil {
-			var setAssumeRoleOptions = func(p *stscreds.AssumeRoleOptions) {
-				if sessExtID != "" {
-					p.ExternalID = aws.String(sessExtID)
-				}
-				if sessTags != nil {
-					p.Tags = sessTags
-					if len(sessTransitiveTagKeys) > 0 {
-						p.TransitiveTagKeys = sessTransitiveTagKeys
-					}
-				}
-			}
-			config.Credentials = stscreds.NewAssumeRoleProvider(stsclient, prov.Role, setAssumeRoleOptions)
+			cfg.Credentials = stscreds.NewAssumeRoleProvider(stsclient, prov.Role, setAssumeRoleOptionFn(sessExtID, sessTags, sessTransitiveTagKeys))
 		} else {
-			config.Credentials = stscreds.NewAssumeRoleProvider(stsclient, prov.Role)
+			cfg.Credentials = stscreds.NewAssumeRoleProvider(stsclient, prov.Role)
 		}
 	}
-	log.Info("using aws config", "region", config.Region, "external id", sessExtID, "credentials", config.Credentials)
-	return &config, nil
+	log.Info("using aws config", "region", cfg.Region, "external id", sessExtID, "credentials", cfg.Credentials)
+
+	return &cfg, nil
+}
+
+func setAssumeRoleOptionFn(sessExtID string, sessTags []stsTypes.Tag, sessTransitiveTagKeys []string) func(p *stscreds.AssumeRoleOptions) {
+	return func(p *stscreds.AssumeRoleOptions) {
+		if sessExtID != "" {
+			p.ExternalID = aws.String(sessExtID)
+		}
+		if sessTags != nil {
+			p.Tags = sessTags
+			if len(sessTransitiveTagKeys) > 0 {
+				p.TransitiveTagKeys = sessTransitiveTagKeys
+			}
+		}
+	}
+}
+
+func constructCredsProvider(ctx context.Context, prov *esv1.AWSProvider, isClusterKind bool, opts Opts) (aws.CredentialsProvider, error) {
+	switch {
+	case prov.Auth.JWTAuth != nil:
+		return credsFromServiceAccount(ctx, prov.Auth, prov.Region, isClusterKind, opts.Kube, opts.Namespace, opts.JWTProvider)
+	case prov.Auth.SecretRef != nil:
+		log.V(1).Info("using credentials from secretRef")
+		return credsFromSecretRef(ctx, prov.Auth, opts.Store.GetKind(), opts.Kube, opts.Namespace)
+	default:
+		return nil, nil
+	}
 }
 
 // NewGeneratorSession creates a new aws session based on the provided store
@@ -147,8 +161,10 @@ func New(ctx context.Context, store esv1.GenericStore, kube client.Client, names
 // * static credentials from a Kind=Secret, optionally with doing a AssumeRole.
 // * sdk default provider chain, see: https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default
 func NewGeneratorSession(ctx context.Context, auth esv1.AWSAuth, role, region string, kube client.Client, namespace string, assumeRoler STSProvider, jwtProvider jwtProviderFactory) (*aws.Config, error) {
-	var credsProvider aws.CredentialsProvider
-	var err error
+	var (
+		credsProvider aws.CredentialsProvider
+		err           error
+	)
 
 	// use credentials via service account token
 	jwtAuth := auth.JWTAuth

@@ -160,7 +160,13 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 		return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 	}
 
-	cfg, err = awsauth.New(ctx, store, kube, namespace, assumeRoler, awsauth.DefaultJWTProvider)
+	cfg, err = awsauth.New(ctx, awsauth.Opts{
+		Store:       store,
+		Kube:        kube,
+		Namespace:   namespace,
+		AssumeRoler: assumeRoler,
+		JWTProvider: awsauth.DefaultJWTProvider,
+	})
 	if err != nil {
 		return nil, fmt.Errorf(errUnableCreateSession, err)
 	}
