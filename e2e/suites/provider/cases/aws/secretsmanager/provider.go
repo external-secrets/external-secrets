@@ -20,11 +20,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
-
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	secretsmanagertypes "github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	//nolint
 	. "github.com/onsi/ginkgo/v2"
 
@@ -45,21 +45,16 @@ type Provider struct {
 	ServiceAccountNamespace string
 
 	region    string
-	client    *secretsmanager.SecretsManager
+	client    *secretsmanager.Client
 	framework *framework.Framework
 }
 
 func NewProvider(f *framework.Framework, kid, sak, st, region, saName, saNamespace string) *Provider {
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{
-			Credentials: credentials.NewStaticCredentials(kid, sak, st),
-			Region:      aws.String(region),
-		},
-	})
+	config, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region), config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(kid, sak, st)))
 	if err != nil {
 		Fail(err.Error())
 	}
-	sm := secretsmanager.New(sess)
+	sm := secretsmanager.NewFromConfig(config)
 	prov := &Provider{
 		ServiceAccountName:      saName,
 		ServiceAccountNamespace: saNamespace,
@@ -108,9 +103,9 @@ func NewFromEnv(f *framework.Framework) *Provider {
 
 // CreateSecret creates a secret at the provider.
 func (s *Provider) CreateSecret(key string, val framework.SecretEntry) {
-	smTags := make([]*secretsmanager.Tag, 0)
+	smTags := make([]secretsmanagertypes.Tag, 0)
 	for k, v := range val.Tags {
-		smTags = append(smTags, &secretsmanager.Tag{
+		smTags = append(smTags, secretsmanagertypes.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v),
 		})
@@ -122,7 +117,7 @@ func (s *Provider) CreateSecret(key string, val framework.SecretEntry) {
 	attempts := 20
 	for {
 		log.Logf("creating secret %s / attempts left: %d", key, attempts)
-		_, err := s.client.CreateSecret(&secretsmanager.CreateSecretInput{
+		_, err := s.client.CreateSecret(context.Background(), &secretsmanager.CreateSecretInput{
 			Name:         aws.String(key),
 			SecretString: aws.String(val.Value),
 			Tags:         smTags,
@@ -143,11 +138,11 @@ func (s *Provider) CreateSecret(key string, val framework.SecretEntry) {
 // and the removal of the secret on the provider side.
 func (s *Provider) DeleteSecret(key string) {
 	log.Logf("deleting secret %s", key)
-	_, err := s.client.DeleteSecret(&secretsmanager.DeleteSecretInput{
+	_, err := s.client.DeleteSecret(context.Background(), &secretsmanager.DeleteSecretInput{
 		SecretId:                   aws.String(key),
 		ForceDeleteWithoutRecovery: aws.Bool(true),
 	})
-	var nf *secretsmanager.ResourceNotFoundException
+	var nf *secretsmanagertypes.ResourceNotFoundException
 	if errors.As(err, &nf) {
 		return
 	}

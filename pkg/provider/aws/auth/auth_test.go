@@ -20,11 +20,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	awssess "github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/aws/aws-sdk-go/service/sts/stsiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
+	ststypes "github.com/aws/aws-sdk-go-v2/service/sts/types"
 	"github.com/stretchr/testify/assert"
 	authv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
@@ -42,6 +40,18 @@ const (
 	myServiceAccountKey = "my-service-account"
 	otherNsName         = "other-ns"
 )
+
+func TestSTSResolver(t *testing.T) {
+	endpointEnvKey := STSEndpointEnv
+	endpointURL := "http://sts.foo"
+
+	t.Setenv(endpointEnvKey, endpointURL)
+
+	f, err := customEndpointResolver{}.ResolveEndpoint(context.Background(), sts.EndpointParameters{})
+
+	assert.Nil(t, err)
+	assert.Equal(t, endpointURL, f.URI.String())
+}
 
 func TestNewSession(t *testing.T) {
 	rows := []TestSessionRow{
@@ -90,16 +100,16 @@ func TestNewSession(t *testing.T) {
 		},
 		{
 			name: "configure aws using environment variables + assume role",
-			stsProvider: func(*awssess.Session) stsiface.STSAPI {
+			stsProvider: func(cfg aws.Config) STSprovider {
 				return &fakesess.AssumeRoler{
 					AssumeRoleFunc: func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error) {
 						assert.Equal(t, *input.RoleArn, "foo-bar-baz")
 						return &sts.AssumeRoleOutput{
-							AssumedRoleUser: &sts.AssumedRoleUser{
+							AssumedRoleUser: &ststypes.AssumedRoleUser{
 								Arn:           aws.String("1123132"),
 								AssumedRoleId: aws.String("xxxxx"),
 							},
-							Credentials: &sts.Credentials{
+							Credentials: &ststypes.Credentials{
 								AccessKeyId:     aws.String("3333"),
 								SecretAccessKey: aws.String("4444"),
 								Expiration:      aws.Time(time.Now().Add(time.Hour)),
@@ -365,20 +375,19 @@ func TestNewSession(t *testing.T) {
 					},
 				},
 			},
-			jwtProvider: func(name, namespace, roleArn string, aud []string, region string) (credentials.Provider, error) {
+			jwtProvider: func(name, namespace, roleArn string, aud []string, region string) (aws.CredentialsProvider, error) {
 				assert.Equal(t, myServiceAccountKey, name)
 				assert.Equal(t, otherNsName, namespace)
 				assert.Equal(t, "my-sa-role", roleArn)
 				return fakesess.CredentialsProvider{
-					RetrieveFunc: func() (credentials.Value, error) {
-						return credentials.Value{
+					RetrieveFunc: func() (aws.Credentials, error) {
+						return aws.Credentials{
 							AccessKeyID:     "3333",
 							SecretAccessKey: "4444",
 							SessionToken:    "1234",
-							ProviderName:    "fake",
+							Source:          "fake",
 						}, nil
 					},
-					IsExpiredFunc: func() bool { return false },
 				}, nil
 			},
 			store: &esv1.ClusterSecretStore{
@@ -407,16 +416,16 @@ func TestNewSession(t *testing.T) {
 		},
 		{
 			name: "configure aws using environment variables + assume role + check external id",
-			stsProvider: func(*awssess.Session) stsiface.STSAPI {
+			stsProvider: func(cfg aws.Config) STSprovider {
 				return &fakesess.AssumeRoler{
 					AssumeRoleFunc: func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error) {
 						assert.Equal(t, *input.ExternalId, "12345678")
 						return &sts.AssumeRoleOutput{
-							AssumedRoleUser: &sts.AssumedRoleUser{
+							AssumedRoleUser: &ststypes.AssumedRoleUser{
 								Arn:           aws.String("1123132"),
 								AssumedRoleId: aws.String("xxxxx"),
 							},
-							Credentials: &sts.Credentials{
+							Credentials: &ststypes.Credentials{
 								AccessKeyId:     aws.String("3333"),
 								SecretAccessKey: aws.String("4444"),
 								Expiration:      aws.Time(time.Now().Add(time.Hour)),
@@ -488,7 +497,13 @@ func testRow(t *testing.T, row TestSessionRow) {
 		},
 	})
 	assert.Nil(t, err)
-	s, err := New(context.Background(), row.store, kc, row.namespace, row.stsProvider, row.jwtProvider)
+	s, err := New(context.Background(), Opts{
+		Store:       row.store,
+		Kube:        kc,
+		Namespace:   row.namespace,
+		AssumeRoler: row.stsProvider,
+		JWTProvider: row.jwtProvider,
+	})
 	if !ErrorContains(err, row.expectErr) {
 		t.Errorf("expected error %s but found %s", row.expectErr, err.Error())
 	}
@@ -500,7 +515,7 @@ func testRow(t *testing.T, row TestSessionRow) {
 		t.Errorf("expected provider object, found nil")
 		return
 	}
-	creds, _ := s.Config.Credentials.Get()
+	creds, _ := s.Credentials.Retrieve(context.Background())
 	assert.Equal(t, row.expectedKeyID, creds.AccessKeyID)
 	assert.Equal(t, row.expectedSecretKey, creds.SecretAccessKey)
 }
@@ -509,17 +524,22 @@ func TestSMEnvCredentials(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 	t.Setenv("AWS_SECRET_ACCESS_KEY", "1111")
 	t.Setenv("AWS_ACCESS_KEY_ID", "2222")
-	s, err := New(context.Background(), &esv1.SecretStore{
-		Spec: esv1.SecretStoreSpec{
-			Provider: &esv1.SecretStoreProvider{
-				// defaults
-				AWS: &esv1.AWSProvider{},
+	s, err := New(context.Background(), Opts{
+		Kube:        k8sClient,
+		Namespace:   "example-ns",
+		AssumeRoler: DefaultSTSProvider,
+		Store: &esv1.SecretStore{
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					// defaults
+					AWS: &esv1.AWSProvider{},
+				},
 			},
 		},
-	}, k8sClient, "example-ns", DefaultSTSProvider, nil)
+	})
 	assert.Nil(t, err)
 	assert.NotNil(t, s)
-	creds, err := s.Config.Credentials.Get()
+	creds, err := s.Credentials.Retrieve(context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, creds.AccessKeyID, "2222")
 	assert.Equal(t, creds.SecretAccessKey, "1111")
@@ -531,11 +551,11 @@ func TestSMAssumeRole(t *testing.T) {
 		AssumeRoleFunc: func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error) {
 			if *input.RoleArn == "chained-role-1" {
 				return &sts.AssumeRoleOutput{
-					AssumedRoleUser: &sts.AssumedRoleUser{
+					AssumedRoleUser: &ststypes.AssumedRoleUser{
 						Arn:           aws.String("1111111"),
 						AssumedRoleId: aws.String("yyyyy1"),
 					},
-					Credentials: &sts.Credentials{
+					Credentials: &ststypes.Credentials{
 						AccessKeyId:     aws.String("77771"),
 						SecretAccessKey: aws.String("88881"),
 						Expiration:      aws.Time(time.Now().Add(time.Hour)),
@@ -544,11 +564,11 @@ func TestSMAssumeRole(t *testing.T) {
 				}, nil
 			} else if *input.RoleArn == "chained-role-2" {
 				return &sts.AssumeRoleOutput{
-					AssumedRoleUser: &sts.AssumedRoleUser{
+					AssumedRoleUser: &ststypes.AssumedRoleUser{
 						Arn:           aws.String("2222222"),
 						AssumedRoleId: aws.String("yyyyy2"),
 					},
-					Credentials: &sts.Credentials{
+					Credentials: &ststypes.Credentials{
 						AccessKeyId:     aws.String("77772"),
 						SecretAccessKey: aws.String("88882"),
 						Expiration:      aws.Time(time.Now().Add(time.Hour)),
@@ -559,11 +579,11 @@ func TestSMAssumeRole(t *testing.T) {
 				// make sure the correct role is passed in
 				assert.Equal(t, *input.RoleArn, "my-awesome-role")
 				return &sts.AssumeRoleOutput{
-					AssumedRoleUser: &sts.AssumedRoleUser{
+					AssumedRoleUser: &ststypes.AssumedRoleUser{
 						Arn:           aws.String("1123132"),
 						AssumedRoleId: aws.String("xxxxx"),
 					},
-					Credentials: &sts.Credentials{
+					Credentials: &ststypes.Credentials{
 						AccessKeyId:     aws.String("3333"),
 						SecretAccessKey: aws.String("4444"),
 						Expiration:      aws.Time(time.Now().Add(time.Hour)),
@@ -575,39 +595,44 @@ func TestSMAssumeRole(t *testing.T) {
 	}
 	t.Setenv("AWS_SECRET_ACCESS_KEY", "1111")
 	t.Setenv("AWS_ACCESS_KEY_ID", "2222")
-	s, err := New(context.Background(), &esv1.SecretStore{
-		Spec: esv1.SecretStoreSpec{
-			Provider: &esv1.SecretStoreProvider{
-				// do assume role!
-				AWS: &esv1.AWSProvider{
-					Role:            "my-awesome-role",
-					AdditionalRoles: []string{"chained-role-1", "chained-role-2"},
+	s, err := New(context.Background(), Opts{
+		Kube:      k8sClient,
+		Namespace: "example-ns",
+		Store: &esv1.SecretStore{
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					// do assume role!
+					AWS: &esv1.AWSProvider{
+						Role:            "my-awesome-role",
+						AdditionalRoles: []string{"chained-role-1", "chained-role-2"},
+					},
 				},
 			},
 		},
-	}, k8sClient, "example-ns", func(se *awssess.Session) stsiface.STSAPI {
-		// check if the correct temporary credentials were used
-		creds, err := se.Config.Credentials.Get()
-		assert.Nil(t, err)
-		if creds.SessionToken == "" {
-			// called with credentials from envvars
-			assert.Equal(t, creds.AccessKeyID, "2222")
-			assert.Equal(t, creds.SecretAccessKey, "1111")
-		} else if creds.SessionToken == "99991" {
-			// called with chained role 1's credentials
-			assert.Equal(t, creds.AccessKeyID, "77771")
-			assert.Equal(t, creds.SecretAccessKey, "88881")
-		} else {
-			// called with chained role 2's credentials
-			assert.Equal(t, creds.AccessKeyID, "77772")
-			assert.Equal(t, creds.SecretAccessKey, "88882")
-		}
-		return sts
-	}, nil)
+		AssumeRoler: func(cfg aws.Config) STSprovider {
+			// check if the correct temporary credentials were used
+			creds, err := cfg.Credentials.Retrieve(context.Background())
+			assert.Nil(t, err)
+			if creds.SessionToken == "" {
+				// called with credentials from envvars
+				assert.Equal(t, creds.AccessKeyID, "2222")
+				assert.Equal(t, creds.SecretAccessKey, "1111")
+			} else if creds.SessionToken == "99991" {
+				// called with chained role 1's credentials
+				assert.Equal(t, creds.AccessKeyID, "77771")
+				assert.Equal(t, creds.SecretAccessKey, "88881")
+			} else {
+				// called with chained role 2's credentials
+				assert.Equal(t, creds.AccessKeyID, "77772")
+				assert.Equal(t, creds.SecretAccessKey, "88882")
+			}
+			return sts
+		},
+	})
 	assert.Nil(t, err)
 	assert.NotNil(t, s)
 
-	creds, err := s.Config.Credentials.Get()
+	creds, err := s.Credentials.Retrieve(context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, creds.AccessKeyID, "3333")
 	assert.Equal(t, creds.SecretAccessKey, "4444")

@@ -12,7 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package auth
+package secretsmanager
 
 import (
 	"context"
@@ -20,12 +20,12 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	smithyendpoints "github.com/aws/smithy-go/endpoints"
 )
 
 const (
-	STSEndpointEnv = "AWS_STS_ENDPOINT"
+	SecretsManagerEndpointEnv = "AWS_SECRETSMANAGER_ENDPOINT"
 )
 
 type customEndpointResolver struct{}
@@ -33,17 +33,16 @@ type customEndpointResolver struct{}
 // ResolveEndpoint returns a ResolverFunc with
 // customizable endpoints.
 
-// should this reside somewhere else since it's specific to sts?
-func (c customEndpointResolver) ResolveEndpoint(ctx context.Context, params sts.EndpointParameters) (smithyendpoints.Endpoint, error) {
+func (c customEndpointResolver) ResolveEndpoint(ctx context.Context, params secretsmanager.EndpointParameters) (smithyendpoints.Endpoint, error) {
 	endpoint := smithyendpoints.Endpoint{}
-	if v := os.Getenv(STSEndpointEnv); v != "" {
+	if v := os.Getenv(SecretsManagerEndpointEnv); v != "" {
 		url, err := url.Parse(v)
 		if err != nil {
-			return endpoint, fmt.Errorf("failed to parse sts endpoint %s: %w", v, err)
+			return endpoint, fmt.Errorf("failed to parse secretsmanager endpoint %s: %w", v, err)
 		}
 		endpoint.URI = *url
 		return endpoint, nil
 	}
-	defaultResolver := sts.NewDefaultEndpointResolverV2()
+	defaultResolver := secretsmanager.NewDefaultEndpointResolverV2()
 	return defaultResolver.ResolveEndpoint(ctx, params)
 }
