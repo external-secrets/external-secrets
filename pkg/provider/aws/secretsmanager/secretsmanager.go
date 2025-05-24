@@ -373,7 +373,7 @@ func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1.ExternalSecre
 
 	if ref.Path != nil {
 		filters = append(filters, types.Filter{
-			Key: types.FilterNameStringTypeTagKey,
+			Key: types.FilterNameStringTypeName,
 			Values: []string{
 				*ref.Path,
 			},
@@ -499,7 +499,7 @@ func (sm *SecretsManager) Validate() (esv1.ValidationResult, error) {
 	if err != nil {
 		return esv1.ValidationResultError, util.SanitizeErr(err)
 	}
-	
+
 	return esv1.ValidationResultReady, nil
 }
 
