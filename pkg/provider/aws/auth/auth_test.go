@@ -22,10 +22,12 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	awssess "github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	authv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -354,7 +356,7 @@ func TestNewSession(t *testing.T) {
 			expectedSecretKey: "4444",
 		},
 		{
-			name:      "jwt auth via cluster secret store",
+			name:      "jwt auth from service account via cluster secret store",
 			namespace: esNamespaceKey,
 			sa: &v1.ServiceAccount{
 				ObjectMeta: metav1.ObjectMeta{
@@ -365,11 +367,18 @@ func TestNewSession(t *testing.T) {
 					},
 				},
 			},
-			jwtProvider: func(name, namespace, roleArn string, aud []string, region string) (credentials.Provider, error) {
-				assert.Equal(t, myServiceAccountKey, name)
-				assert.Equal(t, otherNsName, namespace)
+			jwtProvider: func(roleArn, region string, tokenFetcher stscreds.TokenFetcher) (*credentials.Credentials, error) {
 				assert.Equal(t, "my-sa-role", roleArn)
-				return fakesess.CredentialsProvider{
+
+				// We can't actually run the authTokenFetcher so instead let's just
+				// confirm it is configured as expected
+				authFetcher, ok := tokenFetcher.(*authTokenFetcher)
+				require.True(t, ok)
+				assert.NotNil(t, authFetcher)
+				assert.Equal(t, myServiceAccountKey, authFetcher.ServiceAccount)
+				assert.Equal(t, otherNsName, authFetcher.Namespace)
+
+				return credentials.NewCredentials(fakesess.CredentialsProvider{
 					RetrieveFunc: func() (credentials.Value, error) {
 						return credentials.Value{
 							AccessKeyID:     "3333",
@@ -379,7 +388,7 @@ func TestNewSession(t *testing.T) {
 						}, nil
 					},
 					IsExpiredFunc: func() bool { return false },
-				}, nil
+				}), nil
 			},
 			store: &esv1.ClusterSecretStore{
 				TypeMeta: metav1.TypeMeta{
@@ -398,6 +407,62 @@ func TestNewSession(t *testing.T) {
 								},
 							},
 						},
+					},
+				},
+			},
+			expectProvider:    true,
+			expectedKeyID:     "3333",
+			expectedSecretKey: "4444",
+		},
+		{
+			name:      "jwt auth from secret via cluster secret store",
+			namespace: esNamespaceKey,
+			jwtProvider: func(roleArn, region string, tokenFetcher stscreds.TokenFetcher) (*credentials.Credentials, error) {
+				assert.Equal(t, "arn:aws:iam::111122223333:role/s3-reader", roleArn)
+				tokenBytes, err := tokenFetcher.FetchToken(context.Background())
+				assert.NoError(t, err)
+				assert.Equal(t, "jwt-secret-token", string(tokenBytes))
+				return credentials.NewCredentials(fakesess.CredentialsProvider{
+					RetrieveFunc: func() (credentials.Value, error) {
+						return credentials.Value{
+							AccessKeyID:     "3333",
+							SecretAccessKey: "4444",
+							SessionToken:    "1234",
+							ProviderName:    "fake",
+						}, nil
+					},
+					IsExpiredFunc: func() bool { return false },
+				}), nil
+			},
+			store: &esv1.ClusterSecretStore{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: esv1.ClusterSecretStoreKindAPIVersion,
+					Kind:       esv1.ClusterSecretStoreKind,
+				},
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						AWS: &esv1.AWSProvider{
+							Role: "arn:aws:iam::111122223333:role/s3-reader",
+							Auth: esv1.AWSAuth{
+								JWTAuth: &esv1.AWSJWTAuth{
+									SecretRef: &esmeta.SecretKeySelector{
+										Name: "jwtsecret",
+										Key:  "jwt",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			secrets: []v1.Secret{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "jwtsecret",
+						Namespace: esNamespaceKey,
+					},
+					Data: map[string][]byte{
+						"jwt": []byte("jwt-secret-token"),
 					},
 				},
 			},
