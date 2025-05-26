@@ -215,6 +215,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	secretPassword := "P@ssw0rd"
 	secretAPIKey := "01234567890"
 	secretCertificate := "certificate_value"
+	firstValue := "val1"
 
 	// good case: default version is set
 	// key is passed in, output is sent back
@@ -437,7 +438,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	badSecretPrivateCert := funcSetCertSecretTest(privateCert, "bad case: private_cert type without property", sm.Secret_SecretType_PrivateCert, false)
 
 	secretDataKV := make(map[string]any)
-	secretDataKV["key1"] = "val1"
+	secretDataKV["key1"] = firstValue
 
 	secretDataKVComplex := make(map[string]any)
 	secretKVComplex := `{"key1":"val1","key2":"val2","key3":"val3","keyC":{"keyC1":"valC1","keyC2":"valC2"},"special.log":"file-content"}`
@@ -474,7 +475,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		smtc.apiOutput = secret
 		smtc.ref.Key = secretKV
 		smtc.ref.Property = "key1"
-		smtc.expectedSecret = "val1"
+		smtc.expectedSecret = firstValue
 	}
 
 	// good case: kv type with property, returns specific value
@@ -541,7 +542,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	}
 
 	customCredentialsSecretCredentialsContent := make(map[string]any)
-	customCredentialsSecretCredentialsContent["key1"] = "val1"
+	customCredentialsSecretCredentialsContent["key1"] = firstValue
 
 	customCredentialsSecretCredentialsContentComplex := make(map[string]any)
 	customCredentialsSecretComplex := `{"key1":"val1","key2":"val2","key3":"val3","keyC":{"keyC1":"valC1","keyC2":"valC2"},"special.log":"file-content"}`
@@ -578,7 +579,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		smtc.apiOutput = secret
 		smtc.ref.Key = secretCustomCredentials
 		smtc.ref.Property = "key1"
-		smtc.expectedSecret = "val1"
+		smtc.expectedSecret = firstValue
 	}
 
 	// good case: custom_credentials type with property, returns specific value
