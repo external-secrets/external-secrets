@@ -199,18 +199,6 @@ func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1.ExternalSecretData
 		}
 		return getKVOrCustomCredentialsSecret(ref, secret.CredentialsContent)
 
-	case sm.Secret_SecretType_CustomCredentials:
-
-		response, err := getSecretData(ibm, &secretName, sm.Secret_SecretType_CustomCredentials, secretGroupName)
-		if err != nil {
-			return nil, err
-		}
-		secret, ok := response.(*sm.CustomCredentialsSecret)
-		if !ok {
-			return nil, fmt.Errorf(errExtractingSecret, secretName, sm.Secret_SecretType_CustomCredentials, "GetSecret")
-		}
-		return getCustomCredentialsSecret(ref, secret)
-
 	default:
 		return nil, fmt.Errorf("unknown secret type %s", secretType)
 	}
@@ -364,50 +352,6 @@ func getKVOrCustomCredentialsSecret(ref esv1.ExternalSecretDataRemoteRef, creden
 		}
 
 		// b) "." is symbole for JSON path
-		// try to get value for this path
-		val := gjson.Get(payloadJSON, ref.Property)
-		if !val.Exists() {
-			return nil, fmt.Errorf(errKeyDoesNotExist, ref.Property, ref.Key)
-		}
-		return []byte(val.String()), nil
-	}
-
-	return nil, fmt.Errorf("no property provided for secret %s", ref.Key)
-}
-
-// Returns a secret of type custom credentials and supports json path.
-func getCustomCredentialsSecret(ref esv1.ExternalSecretDataRemoteRef, secret *sm.CustomCredentialsSecret) ([]byte, error) {
-	payloadJSONByte, err := json.Marshal(secret.CredentialsContent)
-	if err != nil {
-		return nil, fmt.Errorf("marshaling credneitlas content from secret failed. %w", err)
-	}
-	payloadJSON := string(payloadJSONByte)
-
-	// no property requested, return the entire payload
-	if ref.Property == "" {
-		return []byte(payloadJSON), nil
-	}
-
-	// returns the requested key
-	// consider that the key contains a ".". this could be one of 2 options
-	// a) "." is part of the key name
-	// b) "." is symbol for JSON path
-	if ref.Property != "" {
-		refProperty := ref.Property
-
-		// a) "." is part the key name
-		// escape "."
-		idx := strings.Index(refProperty, ".")
-		if idx > 0 {
-			refProperty = strings.ReplaceAll(refProperty, ".", "\\.")
-
-			val := gjson.Get(payloadJSON, refProperty)
-			if val.Exists() {
-				return []byte(val.String()), nil
-			}
-		}
-
-		// b) "." is symbol for JSON path
 		// try to get value for this path
 		val := gjson.Get(payloadJSON, ref.Property)
 		if !val.Exists() {
@@ -587,23 +531,6 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1.ExternalSecretD
 			return nil, fmt.Errorf(errExtractingSecret, secretName, sm.Secret_SecretType_CustomCredentials, "GetSecretMap")
 		}
 		secret, err := getKVOrCustomCredentialsSecret(ref, secretData.CredentialsContent)
-		if err != nil {
-			return nil, err
-		}
-		m := make(map[string]any)
-		err = json.Unmarshal(secret, &m)
-		if err != nil {
-			return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
-		}
-		secretMap = byteArrayMap(m, secretMap)
-		return secretMap, nil
-
-	case sm.Secret_SecretType_CustomCredentials:
-		secretData, ok := response.(*sm.CustomCredentialsSecret)
-		if !ok {
-			return nil, fmt.Errorf(errExtractingSecret, secretName, sm.Secret_SecretType_CustomCredentials, "GetSecretMap")
-		}
-		secret, err := getCustomCredentialsSecret(ref, secretData)
 		if err != nil {
 			return nil, err
 		}
