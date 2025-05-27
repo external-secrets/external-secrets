@@ -19,6 +19,9 @@ spec:
   - secretKey: srv_cred
     remoteRef:
       key: service_credentials/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+  - secretKey: cstm_cred
+    remoteRef:
+      key: custom_credentials/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
   - secretKey: imp_cert
     remoteRef:
       key: imported_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz

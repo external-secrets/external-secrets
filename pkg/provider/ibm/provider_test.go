@@ -215,6 +215,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	secretPassword := "P@ssw0rd"
 	secretAPIKey := "01234567890"
 	secretCertificate := "certificate_value"
+	firstValue := "val1"
 
 	// good case: default version is set
 	// key is passed in, output is sent back
@@ -437,7 +438,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	badSecretPrivateCert := funcSetCertSecretTest(privateCert, "bad case: private_cert type without property", sm.Secret_SecretType_PrivateCert, false)
 
 	secretDataKV := make(map[string]any)
-	secretDataKV["key1"] = "val1"
+	secretDataKV["key1"] = firstValue
 
 	secretDataKVComplex := make(map[string]any)
 	secretKVComplex := `{"key1":"val1","key2":"val2","key3":"val3","keyC":{"keyC1":"valC1","keyC2":"valC2"},"special.log":"file-content"}`
@@ -474,7 +475,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		smtc.apiOutput = secret
 		smtc.ref.Key = secretKV
 		smtc.ref.Property = "key1"
-		smtc.expectedSecret = "val1"
+		smtc.expectedSecret = firstValue
 	}
 
 	// good case: kv type with property, returns specific value
@@ -540,6 +541,110 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		smtc.expectedSecret = secretKVComplex
 	}
 
+	customCredentialsSecretCredentialsContent := make(map[string]any)
+	customCredentialsSecretCredentialsContent["key1"] = firstValue
+
+	customCredentialsSecretCredentialsContentComplex := make(map[string]any)
+	customCredentialsSecretComplex := `{"key1":"val1","key2":"val2","key3":"val3","keyC":{"keyC1":"valC1","keyC2":"valC2"},"special.log":"file-content"}`
+	json.Unmarshal([]byte(customCredentialsSecretComplex), &customCredentialsSecretCredentialsContentComplex)
+
+	secretCustomCredentials := "custom_credentials/" + secretUUID
+
+	// bad case: custom credentials type with key which is not in payload
+	badSecretCustomCredentials := func(smtc *secretManagerTestCase) {
+		secret := &sm.CustomCredentialsSecret{
+			SecretType:         utilpointer.To(sm.Secret_SecretType_CustomCredentials),
+			Name:               utilpointer.To("testyname"),
+			ID:                 utilpointer.To(secretUUID),
+			CredentialsContent: customCredentialsSecretCredentialsContent,
+		}
+		smtc.name = "bad case: custom credentials type with key which is not in payload"
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = secretCustomCredentials
+		smtc.ref.Property = "other-key"
+		smtc.expectError = "key other-key does not exist in secret custom_credentials/" + secretUUID
+	}
+
+	// good case: custom credentials type with property
+	setSecretCustomCredentials := func(smtc *secretManagerTestCase) {
+		secret := &sm.CustomCredentialsSecret{
+			SecretType:         utilpointer.To(sm.Secret_SecretType_CustomCredentials),
+			Name:               utilpointer.To("testyname"),
+			ID:                 utilpointer.To(secretUUID),
+			CredentialsContent: customCredentialsSecretCredentialsContent,
+		}
+		smtc.name = "good case: custom_credentials type with property"
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = secretCustomCredentials
+		smtc.ref.Property = "key1"
+		smtc.expectedSecret = firstValue
+	}
+
+	// good case: custom_credentials type with property, returns specific value
+	setSecretCustomCredentialsWithKey := func(smtc *secretManagerTestCase) {
+		secret := &sm.CustomCredentialsSecret{
+			SecretType:         utilpointer.To(sm.Secret_SecretType_CustomCredentials),
+			Name:               utilpointer.To("testyname"),
+			ID:                 utilpointer.To(secretUUID),
+			CredentialsContent: customCredentialsSecretCredentialsContentComplex,
+		}
+		smtc.name = "good case: custom_credentials type with property, returns specific value"
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = secretCustomCredentials
+		smtc.ref.Property = "key2"
+		smtc.expectedSecret = "val2"
+	}
+
+	// good case: custom_credentials type with property and path, returns specific value
+	setSecretCustomCredentialsWithKeyPath := func(smtc *secretManagerTestCase) {
+		secret := &sm.CustomCredentialsSecret{
+			SecretType:         utilpointer.To(sm.Secret_SecretType_CustomCredentials),
+			Name:               utilpointer.To("testyname"),
+			ID:                 utilpointer.To(secretUUID),
+			CredentialsContent: customCredentialsSecretCredentialsContentComplex,
+		}
+		smtc.name = "good case: custom_credentials type with property and path, returns specific value"
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = secretCustomCredentials
+		smtc.ref.Property = "keyC.keyC2"
+		smtc.expectedSecret = "valC2"
+	}
+
+	// good case: custom_credentials type with property and dot, returns specific value
+	setSecretCustomCredentialsWithKeyDot := func(smtc *secretManagerTestCase) {
+		secret := &sm.CustomCredentialsSecret{
+			SecretType:         utilpointer.To(sm.Secret_SecretType_CustomCredentials),
+			Name:               utilpointer.To("testyname"),
+			ID:                 utilpointer.To(secretUUID),
+			CredentialsContent: customCredentialsSecretCredentialsContentComplex,
+		}
+		smtc.name = "good case: custom_credentials type with property and dot, returns specific value"
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = secretCustomCredentials
+		smtc.ref.Property = "special.log"
+		smtc.expectedSecret = "file-content"
+	}
+
+	// good case: custom_credentials type without property, returns all
+	setSecretCustomCredentialsWithOutKey := func(smtc *secretManagerTestCase) {
+		secret := &sm.CustomCredentialsSecret{
+			SecretType:         utilpointer.To(sm.Secret_SecretType_CustomCredentials),
+			Name:               utilpointer.To("testyname"),
+			ID:                 utilpointer.To(secretUUID),
+			CredentialsContent: customCredentialsSecretCredentialsContentComplex,
+		}
+		smtc.name = "good case: custom_credentials type without property, returns all"
+		smtc.apiInput.ID = utilpointer.To(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = secretCustomCredentials
+		smtc.expectedSecret = customCredentialsSecretComplex
+	}
+
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCaseCustom(setSecretString),
 		makeValidSecretManagerTestCaseCustom(setCustomKey),
@@ -564,6 +669,12 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(badSecretPrivateCert),
 		makeValidSecretManagerTestCaseCustom(setSecretIamByNameNew),
 		makeValidSecretManagerTestCaseCustom(setSecretSrvCredByID),
+		makeValidSecretManagerTestCaseCustom(setSecretCustomCredentials),
+		makeValidSecretManagerTestCaseCustom(setSecretCustomCredentialsWithKey),
+		makeValidSecretManagerTestCaseCustom(setSecretCustomCredentialsWithKeyPath),
+		makeValidSecretManagerTestCaseCustom(setSecretCustomCredentialsWithKeyDot),
+		makeValidSecretManagerTestCaseCustom(setSecretCustomCredentialsWithOutKey),
+		makeValidSecretManagerTestCaseCustom(badSecretCustomCredentials),
 	}
 
 	sm := providerIBM{}
@@ -1029,6 +1140,41 @@ func TestGetSecretMap(t *testing.T) {
 		}
 	}
 
+	// good case: custom_credentials with property and metadata
+	setSecretCustomCredentialsWithMetadata := func(smtc *secretManagerTestCase) {
+		secret := &sm.CustomCredentialsSecret{
+			CreatedBy:          utilpointer.To("testCreatedBy"),
+			CreatedAt:          &strfmt.DateTime{},
+			Downloaded:         utilpointer.To(false),
+			Labels:             []string{"abc", "def", "xyz"},
+			LocksTotal:         utilpointer.To(int64(20)),
+			CredentialsContent: secretComplex,
+		}
+		smtc.name = "good case: custom_credentials, with property and with metadata"
+		smtc.apiInput.ID = core.StringPtr(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = "custom_credentials/" + secretUUID
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
+		smtc.expectedData = map[string][]byte{
+			"created_at":          []byte(timeValue),
+			"created_by":          []byte(*secret.CreatedBy),
+			"crn":                 []byte(nilValue),
+			"credentials_content": []byte("map[key1:val1 key2:val2 keyC:map[keyC1:map[keyA:valA keyB:valB]]]"),
+			"downloaded":          []byte(strconv.FormatBool(*secret.Downloaded)),
+			"id":                  []byte(nilValue),
+			"key1":                []byte("val1"),
+			"key2":                []byte("val2"),
+			"keyC":                []byte(`{"keyC1":{"keyA":"valA","keyB":"valB"}}`),
+			"labels":              []byte("[" + strings.Join(secret.Labels, " ") + "]"),
+			"locks_total":         []byte(strconv.Itoa(int(*secret.LocksTotal))),
+			"secret_group_id":     []byte(nilValue),
+			"secret_type":         []byte(nilValue),
+			"updated_at":          []byte(nilValue),
+			"versions_total":      []byte(nilValue),
+			"configuration":       []byte(nilValue),
+		}
+	}
+
 	// good case: iam_credentials without metadata
 	setSecretIamWithoutMetadata := func(smtc *secretManagerTestCase) {
 		secret := &sm.IAMCredentialsSecret{
@@ -1116,6 +1262,73 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.expectError = "key unknown.property does not exist in secret " + secretKeyKV
 	}
 
+	secretKeyCustomCredentials := "custom_credentials/" + secretUUID
+	// good case: custom_credentials, no property, return entire payload as key:value pairs
+	setSecretCustomCredentials := func(smtc *secretManagerTestCase) {
+		secret := &sm.CustomCredentialsSecret{
+			Name:               utilpointer.To("testyname"),
+			ID:                 utilpointer.To(secretUUID),
+			SecretType:         utilpointer.To(sm.Secret_SecretType_CustomCredentials),
+			CredentialsContent: secretComplex,
+		}
+		smtc.name = "good case: custom_credentials, no property, return entire payload as key:value pairs"
+		smtc.apiInput.ID = core.StringPtr(secretUUID)
+		smtc.apiOutput = secret
+		smtc.ref.Key = secretKeyCustomCredentials
+		smtc.expectedData["key1"] = []byte("val1")
+		smtc.expectedData["key2"] = []byte("val2")
+		smtc.expectedData["keyC"] = []byte(`{"keyC1":{"keyA":"valA","keyB":"valB"}}`)
+	}
+
+	// good case: custom_credentials, with property
+	setSecretCustomCredentialsWithProperty := func(smtc *secretManagerTestCase) {
+		secret := &sm.CustomCredentialsSecret{
+			Name:               utilpointer.To("d5deb37a-7883-4fe2-a5e7-3c15420adc76"),
+			ID:                 utilpointer.To(secretUUID),
+			SecretType:         utilpointer.To(sm.Secret_SecretType_CustomCredentials),
+			CredentialsContent: secretComplex,
+		}
+		smtc.name = "good case: custom_credentials, with property"
+		smtc.apiInput.ID = core.StringPtr(secretUUID)
+		smtc.ref.Property = "keyC"
+		smtc.apiOutput = secret
+		smtc.ref.Key = secretKeyCustomCredentials
+		smtc.expectedData["keyC1"] = []byte(`{"keyA":"valA","keyB":"valB"}`)
+	}
+
+	// good case: custom_credentials, with property and path
+	setSecretCustomCredentialsWithPathAndProperty := func(smtc *secretManagerTestCase) {
+		secret := &sm.CustomCredentialsSecret{
+			Name:               utilpointer.To(secretUUID),
+			ID:                 utilpointer.To(secretUUID),
+			SecretType:         utilpointer.To(sm.Secret_SecretType_CustomCredentials),
+			CredentialsContent: secretComplex,
+		}
+		smtc.name = "good case: custom_credentials, with property and path"
+		smtc.apiInput.ID = core.StringPtr(secretUUID)
+		smtc.ref.Property = "keyC.keyC1"
+		smtc.apiOutput = secret
+		smtc.ref.Key = secretKeyCustomCredentials
+		smtc.expectedData["keyA"] = []byte("valA")
+		smtc.expectedData["keyB"] = []byte("valB")
+	}
+
+	// bad case: custom_credentials, with property and path
+	badSecretCustomCredentialsWithUnknownProperty := func(smtc *secretManagerTestCase) {
+		secret := &sm.CustomCredentialsSecret{
+			Name:               utilpointer.To("testyname"),
+			ID:                 utilpointer.To(secretUUID),
+			SecretType:         utilpointer.To(sm.Secret_SecretType_CustomCredentials),
+			CredentialsContent: secretComplex,
+		}
+		smtc.name = "bad case: custom_credentials, with property and path"
+		smtc.apiInput.ID = core.StringPtr(secretUUID)
+		smtc.ref.Property = "unknown.property"
+		smtc.apiOutput = secret
+		smtc.ref.Key = secretKeyCustomCredentials
+		smtc.expectError = "key unknown.property does not exist in secret " + secretKeyCustomCredentials
+	}
+
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCaseCustom(badSecretIam),
 		makeValidSecretManagerTestCaseCustom(setSecretSrvCreds),
@@ -1129,6 +1342,10 @@ func TestGetSecretMap(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setSecretKVWithProperty),
 		makeValidSecretManagerTestCaseCustom(setSecretKVWithPathAndProperty),
 		makeValidSecretManagerTestCaseCustom(badSecretKVWithUnknownProperty),
+		makeValidSecretManagerTestCaseCustom(setSecretCustomCredentials),
+		makeValidSecretManagerTestCaseCustom(setSecretCustomCredentialsWithProperty),
+		makeValidSecretManagerTestCaseCustom(setSecretCustomCredentialsWithPathAndProperty),
+		makeValidSecretManagerTestCaseCustom(badSecretCustomCredentialsWithUnknownProperty),
 		makeValidSecretManagerTestCaseCustom(setSecretPublicCert),
 		makeValidSecretManagerTestCaseCustom(setSecretPrivateCert),
 		makeValidSecretManagerTestCaseCustom(setimportedCertWithNoPvtKey),
@@ -1139,8 +1356,10 @@ func TestGetSecretMap(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setPublicCertWithMetadata),
 		makeValidSecretManagerTestCaseCustom(setPrivateCertWithMetadata),
 		makeValidSecretManagerTestCaseCustom(setSecretKVWithMetadata),
+		makeValidSecretManagerTestCaseCustom(setSecretCustomCredentialsWithMetadata),
 		makeValidSecretManagerTestCaseCustom(setSecretIamWithoutMetadata),
 		makeValidSecretManagerTestCaseCustom(setSecretIamByName),
+		makeValidSecretManagerTestCaseCustom(setSecretCustomCredentials),
 	}
 
 	sm := providerIBM{}
