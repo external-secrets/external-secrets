@@ -41,6 +41,10 @@ spec:
       {{- end }}
       {{- end }}
       hostNetwork: {{ .Values.hostNetwork }}
+      initContainers:
+        {{- if .Values.initContainers }}
+          {{- toYaml .Values.initContainers | nindent 8 }}
+        {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           {{- with .Values.securityContext }}

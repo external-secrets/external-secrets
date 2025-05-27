@@ -397,6 +397,9 @@
         "imagePullSecrets": {
             "type": "array"
         },
+        "initContainers": {
+            "type": "array"
+        },
         "installCRDs": {
             "type": "boolean"
         },

@@ -154,6 +154,9 @@ extraVolumeMounts: []
 ## -- Extra containers to add to the pod.
 extraContainers: []
 
+# -- Init containers to add to the pod.
+initContainers: []
+
 # -- Annotations to add to Deployment
 deploymentAnnotations: {}
 

@@ -120,6 +120,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | image.repository | string | `"oci.external-secrets.io/external-secrets/external-secrets"` |  |
 | image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
 | imagePullSecrets | list | `[]` |  |
+| initContainers | list | `[]` |  |
 | installCRDs | bool | `true` | If set, install and upgrade CRDs through helm chart. |
 | leaderElect | bool | `false` | If true, external-secrets will perform leader election between instances to ensure no more than one instance of external-secrets operates at a time. |
 | log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifices Log Params to the External Secrets Operator |
