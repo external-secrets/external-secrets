@@ -17,7 +17,7 @@ package util
 import (
 	"fmt"
 
-	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
+	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 )
 
 const (
