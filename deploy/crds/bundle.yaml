@@ -126,7 +126,7 @@ spec:
                             description: The key in the Kubernetes Secret to store the value.
                             maxLength: 253
                             minLength: 1
-                            pattern: ^[-._a-zA-Z0-9]+$
+                            pattern: ^[-._!a-zA-Z0-9]+$
                             type: string
                           sourceRef:
                             description: |-
@@ -846,7 +846,7 @@ spec:
                             description: The key in the Kubernetes Secret to store the value.
                             maxLength: 253
                             minLength: 1
-                            pattern: ^[-._a-zA-Z0-9]+$
+                            pattern: ^[-._!a-zA-Z0-9]+$
                             type: string
                           sourceRef:
                             description: |-
@@ -10444,7 +10444,7 @@ spec:
                         description: The key in the Kubernetes Secret to store the value.
                         maxLength: 253
                         minLength: 1
-                        pattern: ^[-._a-zA-Z0-9]+$
+                        pattern: ^[-._!a-zA-Z0-9]+$
                         type: string
                       sourceRef:
                         description: |-
@@ -11040,7 +11040,7 @@ spec:
                         description: The key in the Kubernetes Secret to store the value.
                         maxLength: 253
                         minLength: 1
-                        pattern: ^[-._a-zA-Z0-9]+$
+                        pattern: ^[-._!a-zA-Z0-9]+$
                         type: string
                       sourceRef:
                         description: |-

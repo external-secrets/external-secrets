@@ -51,6 +51,7 @@ var _ = Describe("[awsmanaged] IRSA via referenced service account", Label("aws"
 		framework.Compose(awscommon.WithReferencedIRSA, f, common.FindByNameWithPath, awscommon.UseClusterSecretStore),
 		framework.Compose(awscommon.WithReferencedIRSA, f, common.FindByTag, awscommon.UseClusterSecretStore),
 		framework.Compose(awscommon.WithReferencedIRSA, f, common.FindByTagWithPath, awscommon.UseClusterSecretStore),
+		framework.Compose(awscommon.WithMountedIRSA, f, SimpleDataSyncWithSpecialCharacter, awscommon.UseClusterSecretStore),
 	)
 })
 
@@ -91,5 +92,34 @@ var _ = Describe("[awsmanaged] with mounted IRSA", Label("aws", "secretsmanager"
 		framework.Compose(awscommon.WithMountedIRSA, f, common.FindByNameWithPath, awscommon.UseMountedIRSAStore),
 		framework.Compose(awscommon.WithMountedIRSA, f, common.FindByTag, awscommon.UseMountedIRSAStore),
 		framework.Compose(awscommon.WithMountedIRSA, f, common.FindByTagWithPath, awscommon.UseMountedIRSAStore),
+		framework.Compose(awscommon.WithMountedIRSA, f, SimpleDataSyncWithSpecialCharacter, awscommon.UseMountedIRSAStore),
 	)
 })
+
+
+// This case creates secrets with special character and sync them inside the cluster. Currently it only covers the '!', but if there is other special character, they could be added in this test cases
+func SimpleDataSyncWithSpecialCharacters(f *framework.Framework) (string, func(*framework.TestCase)) {
+	return "[common] should sync simple secrets from .Data[]", func(tc *framework.TestCase) {
+		// This is a typical format used by AWS DocumentDB (using a '!' because why not)
+		secretKeyManagedCredsDocDB := fmt.Sprintf("rds!cluster-%s", uuid.New().String())
+		remoteRefKey1 := f.MakeRemoteRefKey(secretKeyManagedCredsDocDB)
+		secretValue := "bar"
+		tc.Secrets = map[string]framework.SecretEntry{
+			remoteRefKey1: {Value: secretValue},
+		}
+		tc.ExpectedSecret = &v1.Secret{
+			Type: v1.SecretTypeOpaque,
+			Data: map[string][]byte{
+				secretKeyManagedCredsDocDB: []byte(secretValue),
+			},
+		}
+		tc.ExternalSecret.Spec.Data = []esv1.ExternalSecretData{
+			{
+				SecretKey: secretKeyManagedCredsDocDB,
+				RemoteRef: esv1.ExternalSecretDataRemoteRef{
+					Key: remoteRefKey1,
+				},
+			}
+		}
+	}
+}
