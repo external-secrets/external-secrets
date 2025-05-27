@@ -273,7 +273,7 @@ SecretsManager
 <td>
 <code>transitiveTagKeys</code></br>
 <em>
-[]*string
+[]string
 </em>
 </td>
 <td>

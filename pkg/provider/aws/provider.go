@@ -19,12 +19,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	awsclient "github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/aws/endpoints"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
+	"github.com/aws/aws-sdk-go-v2/config"
+	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -100,29 +99,27 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 }
 
 func validateRegion(prov *esv1.AWSProvider) error {
-	resolver := endpoints.DefaultResolver()
-	partitions := resolver.(endpoints.EnumPartitions).Partitions()
-	found := false
-	for _, p := range partitions {
-		var serviceskey string
-		if prov.Service == esv1.AWSServiceSecretsManager {
-			serviceskey = "secretsmanager"
-		} else if prov.Service == esv1.AWSServiceParameterStore {
-			serviceskey = "ssm"
+	switch prov.Service {
+	case esv1.AWSServiceSecretsManager:
+		resolver := awssm.NewDefaultEndpointResolverV2()
+		_, err := resolver.ResolveEndpoint(context.TODO(), awssm.EndpointParameters{
+			Region: &prov.Region,
+		})
+		if err != nil {
+			return fmt.Errorf(errRegionNotFound, prov.Region)
 		}
-		service, ok := p.Services()[serviceskey]
-		if ok {
-			for region := range service.Endpoints() {
-				if region == prov.Region {
-					found = true
-				}
-			}
+		return nil
+	case esv1.AWSServiceParameterStore:
+		resolver := ssm.NewDefaultEndpointResolverV2()
+		_, err := resolver.ResolveEndpoint(context.TODO(), ssm.EndpointParameters{
+			Region: &prov.Region,
+		})
+		if err != nil {
+			return fmt.Errorf(errRegionNotFound, prov.Region)
 		}
+		return nil
 	}
-	if !found {
-		return fmt.Errorf(errRegionNotFound, prov.Region)
-	}
-	return nil
+	return fmt.Errorf(errUnknownProviderService, prov.Service)
 }
 
 func validateSecretsManagerConfig(prov *esv1.AWSProvider) error {
@@ -150,18 +147,26 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 	// when using referent namespace.
 	if util.IsReferentSpec(prov.Auth) && namespace == "" &&
 		store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind {
-		cfg = aws.NewConfig().WithRegion("eu-west-1").WithEndpointResolver(awsauth.ResolveEndpoint())
-		sess := &session.Session{Config: cfg}
+		cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("eu-west-1"))
+		if err != nil {
+			return nil, fmt.Errorf(errInitAWSProvider, err)
+		}
 		switch prov.Service {
 		case esv1.AWSServiceSecretsManager:
-			return secretsmanager.New(sess, cfg, prov.SecretsManager, storeSpec.Provider.AWS.Prefix, true)
+			return secretsmanager.New(ctx, &cfg, prov.SecretsManager, storeSpec.Provider.AWS.Prefix, true)
 		case esv1.AWSServiceParameterStore:
-			return parameterstore.New(sess, cfg, storeSpec.Provider.AWS.Prefix, true)
+			return parameterstore.New(ctx, &cfg, storeSpec.Provider.AWS.Prefix, true)
 		}
 		return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
 	}
 
-	sess, err := awsauth.New(ctx, store, kube, namespace, assumeRoler, awsauth.DefaultJWTProvider)
+	cfg, err = awsauth.New(ctx, awsauth.Opts{
+		Store:       store,
+		Kube:        kube,
+		Namespace:   namespace,
+		AssumeRoler: assumeRoler,
+		JWTProvider: awsauth.DefaultJWTProvider,
+	})
 	if err != nil {
 		return nil, fmt.Errorf(errUnableCreateSession, err)
 	}
@@ -183,21 +188,40 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 		if err != nil {
 			return nil, fmt.Errorf(errInitAWSProvider, err)
 		}
-		awsRetryer := awsclient.DefaultRetryer{
-			NumMaxRetries:    retryAmount,
-			MinRetryDelay:    retryDuration,
-			MaxThrottleDelay: 120 * time.Second,
+		// awsRetryer := awsclient.DefaultRetryer{
+		// 	NumMaxRetries:    retryAmount,
+		// 	MinRetryDelay:    retryDuration,
+		// 	MaxThrottleDelay: 120 * time.Second,  Not sure how to set this in sdk go v2
+		// }
+
+		cfg.Retryer = func() aws.Retryer {
+			return retry.AddWithMaxAttempts(
+				retry.NewStandard(func(o *retry.StandardOptions) {
+					if retryDuration > 0 {
+						o.Backoff = fixedDelayer{delay: retryDuration}
+					}
+				}),
+				retryAmount,
+			)
 		}
-		cfg = request.WithRetryer(aws.NewConfig(), awsRetryer)
 	}
 
 	switch prov.Service {
 	case esv1.AWSServiceSecretsManager:
-		return secretsmanager.New(sess, cfg, prov.SecretsManager, storeSpec.Provider.AWS.Prefix, false)
+		return secretsmanager.New(ctx, cfg, prov.SecretsManager, storeSpec.Provider.AWS.Prefix, false)
 	case esv1.AWSServiceParameterStore:
-		return parameterstore.New(sess, cfg, storeSpec.Provider.AWS.Prefix, false)
+		return parameterstore.New(ctx, cfg, storeSpec.Provider.AWS.Prefix, false)
 	}
 	return nil, fmt.Errorf(errUnknownProviderService, prov.Service)
+}
+
+// Add this type at package level.
+type fixedDelayer struct {
+	delay time.Duration
+}
+
+func (f fixedDelayer) BackoffDelay(attempt int, err error) (time.Duration, error) {
+	return f.delay, nil
 }
 
 func init() {
