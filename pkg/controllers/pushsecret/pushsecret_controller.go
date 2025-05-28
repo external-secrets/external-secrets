@@ -37,6 +37,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
@@ -444,15 +445,21 @@ func (r *Reconciler) resolveSecretFromGenerator(ctx context.Context, namespace s
 	if err != nil {
 		return nil, fmt.Errorf("unable to resolve generator: %w", err)
 	}
-	prevState, err := generatorState.GetLatestState(defaultGeneratorStateKey)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get latest state: %w", err)
+	var prevState *genv1alpha1.GeneratorState
+	if generatorState != nil {
+		prevState, err = generatorState.GetLatestState(defaultGeneratorStateKey)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get latest state: %w", err)
+		}
 	}
 	secretMap, newState, err := gen.Generate(ctx, genResource, r.Client, namespace)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate: %w", err)
 	}
-	if prevState != nil {
+	if prevState != nil && generatorState != nil {
+		generatorState.EnqueueMoveStateToGC(defaultGeneratorStateKey)
+	}
+	if generatorState != nil {
 		generatorState.EnqueueSetLatest(ctx, defaultGeneratorStateKey, namespace, genResource, gen, newState)
 	}
 	return &v1.Secret{

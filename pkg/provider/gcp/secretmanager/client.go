@@ -215,12 +215,14 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 			}
 		}
 		parent := getParentName(c.store.ProjectID, c.store.Location)
-
 		scrt := &secretmanagerpb.Secret{
 			Labels: map[string]string{
 				managedByKey: managedByValue,
 			},
-			Replication: replication,
+		}
+		// fix: cannot set Replication at all when using regional Secrets.
+		if c.store.Location == "" {
+			scrt.Replication = replication
 		}
 
 		topics, err := utils.FetchValueFromMetadata(topicsKey, pushSecretData.GetMetadata(), []any{})

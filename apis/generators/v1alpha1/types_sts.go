@@ -22,9 +22,13 @@ import (
 type RequestParameters struct {
 	// SessionDuration The duration, in seconds, that the credentials should remain valid. Acceptable durations for
 	// IAM user sessions range from 900 seconds (15 minutes) to 129,600 seconds (36 hours), with 43,200 seconds
-	// (12 hours) as the default.
+	// (12 hours) as the default. Sessions for
+	// Amazon Web Services account owners are restricted to a maximum of 3,600 seconds
+	// (one hour). If the duration is longer than one hour, the session for Amazon Web
+	// Services account owners defaults to one hour.
+
 	// +optional
-	SessionDuration *int64 `json:"sessionDuration,omitempty"`
+	SessionDuration *int32 `json:"sessionDuration,omitempty"`
 	// SerialNumber is the identification number of the MFA device that is associated with the IAM user who is making
 	// the GetSessionToken call.
 	// Possible values: hardware device (such as GAHT12345678) or an Amazon Resource Name (ARN) for a virtual device

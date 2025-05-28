@@ -23,12 +23,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -115,6 +113,18 @@ func makeValidSecretsManagerTestCaseCustom(tweaks ...func(smtc *secretsManagerTe
 var setAPIErr = func(smtc *secretsManagerTestCase) {
 	smtc.apiErr = errors.New("oh no")
 	smtc.expectError = "oh no"
+}
+
+func TestSecretsManagerResolver(t *testing.T) {
+	endpointEnvKey := SecretsManagerEndpointEnv
+	endpointURL := "http://sm.foo"
+
+	t.Setenv(endpointEnvKey, endpointURL)
+
+	f, err := customEndpointResolver{}.ResolveEndpoint(context.Background(), awssm.EndpointParameters{})
+
+	assert.Nil(t, err)
+	assert.Equal(t, endpointURL, f.URI.String())
 }
 
 // test the sm<->aws interface
@@ -209,7 +219,7 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 		describeSecretOutput := &awssm.DescribeSecretOutput{
 			Tags: getTagSlice(),
 		}
-		smtc.fakeClient.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(describeSecretOutput, nil)
+		smtc.fakeClient.DescribeSecretFn = fakesm.NewDescribeSecretFn(describeSecretOutput, nil)
 		jsonTags, _ := util.SecretTagsToJSONString(getTagSlice())
 		smtc.apiOutput.SecretString = &jsonTags
 		smtc.expectedSecret = jsonTags
@@ -220,7 +230,7 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 		describeSecretOutput := &awssm.DescribeSecretOutput{
 			Tags: getTagSlice(),
 		}
-		smtc.fakeClient.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(describeSecretOutput, nil)
+		smtc.fakeClient.DescribeSecretFn = fakesm.NewDescribeSecretFn(describeSecretOutput, nil)
 		smtc.remoteRef.Property = tagname2
 		jsonTags, _ := util.SecretTagsToJSONString(getTagSlice())
 		smtc.apiOutput.SecretString = &jsonTags
@@ -232,7 +242,7 @@ func TestSecretsManagerGetSecret(t *testing.T) {
 		describeSecretOutput := &awssm.DescribeSecretOutput{
 			Tags: getTagSlice(),
 		}
-		smtc.fakeClient.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(describeSecretOutput, nil)
+		smtc.fakeClient.DescribeSecretFn = fakesm.NewDescribeSecretFn(describeSecretOutput, nil)
 		smtc.remoteRef.Property = "fail"
 		jsonTags, _ := util.SecretTagsToJSONString(getTagSlice())
 		smtc.apiOutput.SecretString = &jsonTags
@@ -403,14 +413,14 @@ func TestSetSecret(t *testing.T) {
 	noPermission := errors.New("no permission")
 	arn := "arn:aws:secretsmanager:us-east-1:702902267788:secret:foo-bar5-Robbgh"
 
-	getSecretCorrectErr := awssm.ResourceNotFoundException{}
-	getSecretWrongErr := awssm.InvalidRequestException{}
+	getSecretCorrectErr := types.ResourceNotFoundException{}
+	getSecretWrongErr := types.InvalidRequestException{}
 
 	secretOutput := &awssm.CreateSecretOutput{
 		ARN: &arn,
 	}
 
-	externalSecretsTag := []*awssm.Tag{
+	externalSecretsTag := []types.Tag{
 		{
 			Key:   &managedBy,
 			Value: &externalSecrets,
@@ -421,7 +431,7 @@ func TestSetSecret(t *testing.T) {
 		},
 	}
 
-	externalSecretsTagFaulty := []*awssm.Tag{
+	externalSecretsTagFaulty := []types.Tag{
 		{
 			Key:   &notManagedBy,
 			Value: &externalSecrets,
@@ -513,10 +523,10 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
-					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
-					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil),
-					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
+					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
+					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -529,10 +539,10 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
-					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
-					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil),
-					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
+					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
+					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 				},
 				pushSecretData: pushSecretDataWithoutSecretKey,
 			},
@@ -545,10 +555,10 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
-					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
-					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil),
-					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
+					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
+					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 				},
 				pushSecretData: pushSecretDataWithMetadata,
 			},
@@ -561,10 +571,10 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, &getSecretCorrectErr),
-					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
-					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil),
-					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, &getSecretCorrectErr),
+					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
+					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 				},
 				pushSecretData: fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "", Metadata: &apiextensionsv1.JSON{
 					Raw: []byte(`{
@@ -585,10 +595,10 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
-					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
-					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil),
-					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
+					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
+					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 				},
 				pushSecretData: fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "", Metadata: &apiextensionsv1.JSON{
 					Raw: []byte(`{
@@ -608,8 +618,8 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretCorrectErr),
-					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil),
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(blankSecretValueOutput, &getSecretCorrectErr),
+					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -622,8 +632,8 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretCorrectErr),
-					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(secretOutput, nil, []byte(`{"other-fake-property":"fake-value"}`)),
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(blankSecretValueOutput, &getSecretCorrectErr),
+					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil, []byte(`{"other-fake-property":"fake-value"}`)),
 				},
 				pushSecretData: pushSecretDataWithProperty,
 			},
@@ -636,9 +646,9 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutputFrom(params{b: []byte((`{"fake-property":"fake-value"}`))}), nil),
-					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
-					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutputFrom(params{b: []byte((`{"fake-property":"fake-value"}`))}), nil),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
 						SecretBinary: []byte(`{"fake-property":"fake-value","other-fake-property":"fake-value"}`),
 						Version:      &defaultUpdatedVersion,
 					}),
@@ -654,12 +664,12 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutputFrom(params{
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutputFrom(params{
 						b:       []byte((`{"fake-property":"fake-value"}`)),
 						version: &randomUUIDVersion,
 					}), nil),
-					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
-					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
 						SecretBinary: []byte(`{"fake-property":"fake-value","other-fake-property":"fake-value"}`),
 						Version:      &randomUUIDVersionIncremented,
 					}),
@@ -675,12 +685,12 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutputFrom(params{
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutputFrom(params{
 						b:       []byte((`{"fake-property":"fake-value"}`)),
 						version: &unparsableVersion,
 					}), nil),
-					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
-					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
 						SecretBinary: []byte(`{"fake-property":"fake-value","other-fake-property":"fake-value"}`),
 						Version:      &initialVersion,
 					}),
@@ -696,12 +706,12 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(&awssm.GetSecretValueOutput{
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(&awssm.GetSecretValueOutput{
 						ARN:          &arn,
 						SecretBinary: []byte((`{"fake-property":"fake-value"}`)),
 					}, nil),
-					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
-					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
 						SecretBinary: []byte(`{"fake-property":"fake-value","other-fake-property":"fake-value"}`),
 						Version:      &initialVersion,
 					}),
@@ -717,9 +727,9 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutputFrom(params{s: `{"fake-property":"fake-value"}`}), nil),
-					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
-					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutputFrom(params{s: `{"fake-property":"fake-value"}`}), nil),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
 						SecretBinary: []byte(`{"fake-property":"fake-value","other-fake-property":"fake-value"}`),
 						Version:      &defaultUpdatedVersion,
 					}),
@@ -735,9 +745,9 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutputFrom(params{s: `{"fake-property":{"fake-property":"fake-value"}}`}), nil),
-					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
-					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutputFrom(params{s: `{"fake-property":{"fake-property":"fake-value"}}`}), nil),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
 						SecretBinary: []byte(`{"fake-property":{"fake-property":"fake-value","other-fake-property":"fake-value"}}`),
 						Version:      &defaultUpdatedVersion,
 					}),
@@ -753,8 +763,8 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutputFrom(params{s: `non-json-secret`}), nil),
-					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutputFrom(params{s: `non-json-secret`}), nil),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 				},
 				pushSecretData: pushSecretDataWithProperty,
 			},
@@ -767,8 +777,8 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretCorrectErr),
-					CreateSecretWithContextFn:   fakesm.NewCreateSecretWithContextFn(nil, noPermission),
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(blankSecretValueOutput, &getSecretCorrectErr),
+					CreateSecretFn:   fakesm.NewCreateSecretFn(nil, noPermission),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -781,7 +791,7 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, noPermission),
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(blankSecretValueOutput, noPermission),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -794,8 +804,8 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput2, nil),
-					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput2, nil),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -808,9 +818,9 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
-					PutSecretValueWithContextFn: fakesm.NewPutSecretValueWithContextFn(nil, noPermission),
-					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutput, nil),
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
+					PutSecretValueFn: fakesm.NewPutSecretValueFn(nil, noPermission),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -823,7 +833,7 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretWrongErr),
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(blankSecretValueOutput, &getSecretWrongErr),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -836,8 +846,8 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
-					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(nil, noPermission),
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(nil, noPermission),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -850,8 +860,8 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
-					DescribeSecretWithContextFn: fakesm.NewDescribeSecretWithContextFn(tagSecretOutputFaulty, nil),
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutputFaulty, nil),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -869,8 +879,8 @@ func TestSetSecret(t *testing.T) {
 					Prefix:  "prefix-",
 				},
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretCorrectErr),
-					CreateSecretWithContextFn: func(ctx aws.Context, input *awssm.CreateSecretInput, opts ...request.Option) (*awssm.CreateSecretOutput, error) {
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(blankSecretValueOutput, &getSecretCorrectErr),
+					CreateSecretFn: func(ctx context.Context, input *awssm.CreateSecretInput, opts ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error) {
 						// Verify that the input name has the prefix applied
 						if *input.Name != "prefix-"+fakeKey {
 							return nil, fmt.Errorf("expected secret name to be prefixed with 'prefix-', got %s", *input.Name)
@@ -914,7 +924,7 @@ func TestDeleteSecret(t *testing.T) {
 	fakeClient := fakesm.Client{}
 	managed := managedBy
 	manager := externalSecrets
-	secretTag := awssm.Tag{
+	secretTag := types.Tag{
 		Key:   &managed,
 		Value: &manager,
 	}
@@ -945,7 +955,7 @@ func TestDeleteSecret(t *testing.T) {
 				config:          esv1.SecretsManager{},
 				getSecretOutput: &awssm.GetSecretValueOutput{},
 				describeSecretOutput: &awssm.DescribeSecretOutput{
-					Tags: []*awssm.Tag{&secretTag},
+					Tags: []types.Tag{secretTag},
 				},
 				deleteSecretOutput: &awssm.DeleteSecretOutput{},
 				getSecretErr:       nil,
@@ -966,7 +976,7 @@ func TestDeleteSecret(t *testing.T) {
 				},
 				getSecretOutput: &awssm.GetSecretValueOutput{},
 				describeSecretOutput: &awssm.DescribeSecretOutput{
-					Tags: []*awssm.Tag{&secretTag},
+					Tags: []types.Tag{secretTag},
 				},
 				deleteSecretOutput: &awssm.DeleteSecretOutput{
 					DeletionDate: aws.Time(time.Now()),
@@ -987,7 +997,7 @@ func TestDeleteSecret(t *testing.T) {
 				config:          esv1.SecretsManager{},
 				getSecretOutput: &awssm.GetSecretValueOutput{},
 				describeSecretOutput: &awssm.DescribeSecretOutput{
-					Tags: []*awssm.Tag{},
+					Tags: []types.Tag{},
 				},
 				deleteSecretOutput: &awssm.DeleteSecretOutput{},
 				getSecretErr:       nil,
@@ -1008,7 +1018,7 @@ func TestDeleteSecret(t *testing.T) {
 				},
 				getSecretOutput: &awssm.GetSecretValueOutput{},
 				describeSecretOutput: &awssm.DescribeSecretOutput{
-					Tags: []*awssm.Tag{&secretTag},
+					Tags: []types.Tag{secretTag},
 				},
 				deleteSecretOutput: &awssm.DeleteSecretOutput{},
 				getSecretErr:       nil,
@@ -1030,7 +1040,7 @@ func TestDeleteSecret(t *testing.T) {
 				},
 				getSecretOutput: &awssm.GetSecretValueOutput{},
 				describeSecretOutput: &awssm.DescribeSecretOutput{
-					Tags: []*awssm.Tag{&secretTag},
+					Tags: []types.Tag{secretTag},
 				},
 				deleteSecretOutput: &awssm.DeleteSecretOutput{},
 				getSecretErr:       nil,
@@ -1066,12 +1076,12 @@ func TestDeleteSecret(t *testing.T) {
 				getSecretOutput:      nil,
 				describeSecretOutput: nil,
 				deleteSecretOutput:   nil,
-				getSecretErr:         awserr.New(awssm.ErrCodeResourceNotFoundException, "not here, sorry dude", nil),
+				getSecretErr:         errors.New("not here, sorry dude"),
 				describeSecretErr:    nil,
 				deleteSecretErr:      nil,
 			},
 			want: want{
-				err: nil,
+				err: errors.New("not here, sorry dude"),
 			},
 		},
 		"Not expected AWS error": {
@@ -1081,7 +1091,7 @@ func TestDeleteSecret(t *testing.T) {
 				getSecretOutput:      nil,
 				describeSecretOutput: nil,
 				deleteSecretOutput:   nil,
-				getSecretErr:         awserr.New(awssm.ErrCodeEncryptionFailure, "aws unavailable", nil),
+				getSecretErr:         errors.New("aws unavailable"),
 				describeSecretErr:    nil,
 				deleteSecretErr:      nil,
 			},
@@ -1107,23 +1117,23 @@ func TestDeleteSecret(t *testing.T) {
 		"DeleteWithPrefix": {
 			args: args{
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: func(ctx aws.Context, input *awssm.GetSecretValueInput, opts ...request.Option) (*awssm.GetSecretValueOutput, error) {
+					GetSecretValueFn: func(ctx context.Context, input *awssm.GetSecretValueInput, opts ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error) {
 						// Verify that the input secret ID has the prefix applied
 						if *input.SecretId != "my-prefix-"+fakeKey {
 							return nil, fmt.Errorf("expected secret name to be prefixed with 'my-prefix-', got %s", *input.SecretId)
 						}
 						return &awssm.GetSecretValueOutput{}, nil
 					},
-					DescribeSecretWithContextFn: func(ctx aws.Context, input *awssm.DescribeSecretInput, opts ...request.Option) (*awssm.DescribeSecretOutput, error) {
+					DescribeSecretFn: func(ctx context.Context, input *awssm.DescribeSecretInput, opts ...func(*awssm.Options)) (*awssm.DescribeSecretOutput, error) {
 						// Verify that the input secret ID has the prefix applied
 						if *input.SecretId != "my-prefix-"+fakeKey {
 							return nil, fmt.Errorf("expected secret name to be prefixed with 'my-prefix-', got %s", *input.SecretId)
 						}
 						return &awssm.DescribeSecretOutput{
-							Tags: []*awssm.Tag{&secretTag},
+							Tags: []types.Tag{secretTag},
 						}, nil
 					},
-					DeleteSecretWithContextFn: func(ctx aws.Context, input *awssm.DeleteSecretInput, opts ...request.Option) (*awssm.DeleteSecretOutput, error) {
+					DeleteSecretFn: func(ctx context.Context, input *awssm.DeleteSecretInput, opts ...func(*awssm.Options)) (*awssm.DeleteSecretOutput, error) {
 						return &awssm.DeleteSecretOutput{}, nil
 					},
 				},
@@ -1151,14 +1161,14 @@ func TestDeleteSecret(t *testing.T) {
 				prefix: tc.args.prefix,
 			}
 
-			if tc.args.client.GetSecretValueWithContextFn == nil {
-				tc.args.client.GetSecretValueWithContextFn = fakesm.NewGetSecretValueWithContextFn(tc.args.getSecretOutput, tc.args.getSecretErr)
+			if tc.args.client.GetSecretValueFn == nil {
+				tc.args.client.GetSecretValueFn = fakesm.NewGetSecretValueFn(tc.args.getSecretOutput, tc.args.getSecretErr)
 			}
-			if tc.args.client.DescribeSecretWithContextFn == nil {
-				tc.args.client.DescribeSecretWithContextFn = fakesm.NewDescribeSecretWithContextFn(tc.args.describeSecretOutput, tc.args.describeSecretErr)
+			if tc.args.client.DescribeSecretFn == nil {
+				tc.args.client.DescribeSecretFn = fakesm.NewDescribeSecretFn(tc.args.describeSecretOutput, tc.args.describeSecretErr)
 			}
-			if tc.args.client.DeleteSecretWithContextFn == nil {
-				tc.args.client.DeleteSecretWithContextFn = fakesm.NewDeleteSecretWithContextFn(tc.args.deleteSecretOutput, tc.args.deleteSecretErr)
+			if tc.args.client.DeleteSecretFn == nil {
+				tc.args.client.DeleteSecretFn = fakesm.NewDeleteSecretFn(tc.args.deleteSecretOutput, tc.args.deleteSecretErr)
 			}
 
 			err := sm.DeleteSecret(context.TODO(), ref)
@@ -1195,13 +1205,13 @@ func makeValidSecretStore() *esv1.SecretStore {
 	}
 }
 
-func getTagSlice() []*awssm.Tag {
+func getTagSlice() []types.Tag {
 	tagKey1 := tagname1
 	tagValue1 := tagvalue1
 	tagKey2 := tagname2
 	tagValue2 := tagvalue2
 
-	return []*awssm.Tag{
+	return []types.Tag{
 		{
 			Key:   &tagKey1,
 			Value: &tagValue1,
@@ -1225,15 +1235,15 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 	}
 	// Test cases
 	testCases := []struct {
-		name                             string
-		ref                              esv1.ExternalSecretFind
-		secretName                       string
-		secretVersion                    string
-		secretValue                      string
-		batchGetSecretValueWithContextFn func(aws.Context, *awssm.BatchGetSecretValueInput, ...request.Option) (*awssm.BatchGetSecretValueOutput, error)
-		listSecretsFn                    func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error)
-		expectedData                     map[string][]byte
-		expectedError                    string
+		name                  string
+		ref                   esv1.ExternalSecretFind
+		secretName            string
+		secretVersion         string
+		secretValue           string
+		batchGetSecretValueFn func(context.Context, *awssm.BatchGetSecretValueInput, ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error)
+		listSecretsFn         func(context.Context, *awssm.ListSecretsInput, ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error)
+		expectedData          map[string][]byte
+		expectedError         string
 	}{
 		{
 			name: "Matching secrets found",
@@ -1246,15 +1256,15 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			secretName:    secretName,
 			secretVersion: secretVersion,
 			secretValue:   secretValue,
-			batchGetSecretValueWithContextFn: func(_ aws.Context, input *awssm.BatchGetSecretValueInput, _ ...request.Option) (*awssm.BatchGetSecretValueOutput, error) {
+			batchGetSecretValueFn: func(_ context.Context, input *awssm.BatchGetSecretValueInput, _ ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error) {
 				assert.Len(t, input.Filters, 1)
-				assert.Equal(t, "name", *input.Filters[0].Key)
-				assert.Equal(t, secretPath, *input.Filters[0].Values[0])
+				assert.Equal(t, "name", string(input.Filters[0].Key))
+				assert.Equal(t, secretPath, input.Filters[0].Values[0])
 				return &awssm.BatchGetSecretValueOutput{
-					SecretValues: []*awssm.SecretValueEntry{
+					SecretValues: []types.SecretValueEntry{
 						{
 							Name:          ptr.To(secretName),
-							VersionStages: []*string{ptr.To(secretVersion)},
+							VersionStages: []string{secretVersion},
 							SecretBinary:  []byte(secretValue),
 						},
 					},
@@ -1276,9 +1286,9 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			secretName:    secretName,
 			secretVersion: secretVersion,
 			secretValue:   secretValue,
-			batchGetSecretValueWithContextFn: func(aws.Context, *awssm.BatchGetSecretValueInput, ...request.Option) (*awssm.BatchGetSecretValueOutput, error) {
+			batchGetSecretValueFn: func(_ context.Context, input *awssm.BatchGetSecretValueInput, _ ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error) {
 				return &awssm.BatchGetSecretValueOutput{
-					SecretValues: []*awssm.SecretValueEntry{
+					SecretValues: []types.SecretValueEntry{
 						{
 							Name: ptr.To(secretName),
 						},
@@ -1295,7 +1305,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 					RegExp: secretName,
 				},
 			},
-			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error) {
+			listSecretsFn: func(_ context.Context, input *awssm.ListSecretsInput, _ ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error) {
 				return nil, errBoom
 			},
 			expectedData:  nil,
@@ -1308,18 +1318,18 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 					RegExp: secretName,
 				},
 			},
-			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, opts ...request.Option) (*awssm.ListSecretsOutput, error) {
+			listSecretsFn: func(_ context.Context, input *awssm.ListSecretsInput, _ ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error) {
 				return &awssm.ListSecretsOutput{
-					SecretList: []*awssm.SecretListEntry{
+					SecretList: []types.SecretListEntry{
 						{
 							Name: ptr.To("other-secret"),
 						},
 					},
 				}, nil
 			},
-			batchGetSecretValueWithContextFn: func(aws.Context, *awssm.BatchGetSecretValueInput, ...request.Option) (*awssm.BatchGetSecretValueOutput, error) {
+			batchGetSecretValueFn: func(_ context.Context, input *awssm.BatchGetSecretValueInput, _ ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error) {
 				return &awssm.BatchGetSecretValueOutput{
-					SecretValues: []*awssm.SecretValueEntry{
+					SecretValues: []types.SecretValueEntry{
 						{
 							Name: ptr.To("other-secret"),
 						},
@@ -1348,17 +1358,17 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			secretName:    secretName,
 			secretVersion: secretVersion,
 			secretValue:   secretValue,
-			batchGetSecretValueWithContextFn: func(_ aws.Context, input *awssm.BatchGetSecretValueInput, _ ...request.Option) (*awssm.BatchGetSecretValueOutput, error) {
+			batchGetSecretValueFn: func(_ context.Context, input *awssm.BatchGetSecretValueInput, _ ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error) {
 				assert.Len(t, input.Filters, 2)
-				assert.Equal(t, "tag-key", *input.Filters[0].Key)
-				assert.Equal(t, "foo", *input.Filters[0].Values[0])
-				assert.Equal(t, "tag-value", *input.Filters[1].Key)
-				assert.Equal(t, "bar", *input.Filters[1].Values[0])
+				assert.Equal(t, "tag-key", string(input.Filters[0].Key))
+				assert.Equal(t, "foo", input.Filters[0].Values[0])
+				assert.Equal(t, "tag-value", string(input.Filters[1].Key))
+				assert.Equal(t, "bar", input.Filters[1].Values[0])
 				return &awssm.BatchGetSecretValueOutput{
-					SecretValues: []*awssm.SecretValueEntry{
+					SecretValues: []types.SecretValueEntry{
 						{
 							Name:          ptr.To(secretName),
-							VersionStages: []*string{ptr.To(secretVersion)},
+							VersionStages: []string{secretVersion},
 							SecretBinary:  []byte(secretValue),
 						},
 					},
@@ -1377,12 +1387,12 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			secretName:    secretName,
 			secretVersion: secretVersion,
 			secretValue:   secretValue,
-			batchGetSecretValueWithContextFn: func(aws.Context, *awssm.BatchGetSecretValueInput, ...request.Option) (*awssm.BatchGetSecretValueOutput, error) {
+			batchGetSecretValueFn: func(_ context.Context, input *awssm.BatchGetSecretValueInput, _ ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error) {
 				return &awssm.BatchGetSecretValueOutput{
-					SecretValues: []*awssm.SecretValueEntry{
+					SecretValues: []types.SecretValueEntry{
 						{
 							Name:          ptr.To(secretName),
-							VersionStages: []*string{ptr.To(secretVersion)},
+							VersionStages: []string{secretVersion},
 							SecretBinary:  []byte(secretValue),
 						},
 					},
@@ -1396,7 +1406,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			ref: esv1.ExternalSecretFind{
 				Tags: secretTags,
 			},
-			batchGetSecretValueWithContextFn: func(aws.Context, *awssm.BatchGetSecretValueInput, ...request.Option) (*awssm.BatchGetSecretValueOutput, error) {
+			batchGetSecretValueFn: func(_ context.Context, input *awssm.BatchGetSecretValueInput, _ ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error) {
 				return nil, errBoom
 			},
 			expectedData:  nil,
@@ -1407,7 +1417,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			fc := fakesm.NewClient()
-			fc.BatchGetSecretValueWithContextFn = tc.batchGetSecretValueWithContextFn
+			fc.BatchGetSecretValueFn = tc.batchGetSecretValueFn
 			fc.ListSecretsFn = tc.listSecretsFn
 			sm := SecretsManager{
 				client: fc,
@@ -1426,15 +1436,26 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 
 func TestSecretsManagerValidate(t *testing.T) {
 	type fields struct {
-		sess         *session.Session
+		cfg          *aws.Config
 		referentAuth bool
 	}
-	validSession, _ := session.NewSession(aws.NewConfig().WithCredentials(credentials.NewStaticCredentials("fake", "fake", "fake")))
-	invalidSession, _ := session.NewSession(aws.NewConfig().WithCredentials(credentials.NewCredentials(&FakeCredProvider{
-		retrieveFunc: func() (credentials.Value, error) {
-			return credentials.Value{}, errors.New("invalid credentials")
+
+	validConfig := &aws.Config{
+		Credentials: credentials.NewStaticCredentialsProvider(
+			"fake",
+			"fake",
+			"fake",
+		),
+	}
+
+	invalidConfig := &aws.Config{
+		Credentials: &FakeCredProvider{
+			retrieveFunc: func() (aws.Credentials, error) {
+				return aws.Credentials{}, errors.New("invalid credentials")
+			},
 		},
-	})))
+	}
+
 	tests := []struct {
 		name    string
 		fields  fields
@@ -1451,14 +1472,14 @@ func TestSecretsManagerValidate(t *testing.T) {
 		{
 			name: "Valid credentials should return ready",
 			fields: fields{
-				sess: validSession,
+				cfg: validConfig,
 			},
 			want: esv1.ValidationResultReady,
 		},
 		{
 			name: "Invalid credentials should return error",
 			fields: fields{
-				sess: invalidSession,
+				cfg: invalidConfig,
 			},
 			want:    esv1.ValidationResultError,
 			wantErr: true,
@@ -1467,7 +1488,7 @@ func TestSecretsManagerValidate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sm := &SecretsManager{
-				sess:         tt.fields.sess,
+				cfg:          tt.fields.cfg,
 				referentAuth: tt.fields.referentAuth,
 			}
 			got, err := sm.Validate()
@@ -1491,8 +1512,8 @@ func TestSecretExists(t *testing.T) {
 
 	blankSecretValueOutput := &awssm.GetSecretValueOutput{}
 
-	getSecretCorrectErr := awssm.ResourceNotFoundException{}
-	getSecretWrongErr := awssm.InvalidRequestException{}
+	getSecretCorrectErr := types.ResourceNotFoundException{}
+	getSecretWrongErr := types.InvalidRequestException{}
 
 	pushSecretDataWithoutProperty := fake.PushSecretData{SecretKey: "fake-secret-key", RemoteKey: fakeKey, Property: ""}
 
@@ -1515,7 +1536,7 @@ func TestSecretExists(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(secretValueOutput, nil),
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -1528,7 +1549,7 @@ func TestSecretExists(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretCorrectErr),
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(blankSecretValueOutput, &getSecretCorrectErr),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -1541,7 +1562,7 @@ func TestSecretExists(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueWithContextFn: fakesm.NewGetSecretValueWithContextFn(blankSecretValueOutput, &getSecretWrongErr),
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(blankSecretValueOutput, &getSecretWrongErr),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -1571,13 +1592,13 @@ func TestSecretExists(t *testing.T) {
 }
 
 // FakeCredProvider implements the AWS credentials.Provider interface
-// It is used to inject an error into the AWS session to cause a
+// It is used to inject an error into the AWS config to cause a
 // validation error.
 type FakeCredProvider struct {
-	retrieveFunc func() (credentials.Value, error)
+	retrieveFunc func() (aws.Credentials, error)
 }
 
-func (f *FakeCredProvider) Retrieve() (credentials.Value, error) {
+func (f *FakeCredProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
 	return f.retrieveFunc()
 }
 
