@@ -58,7 +58,7 @@ the following manner:
 1. ESO uses `spec.secretStoreRef` to find an appropriate `SecretStore`. If it
    doesn't exist or the `spec.controller` field doesn't match it won't further
    process this ExternalSecret.
-2. ESO instanciates an external API client using the specified credentials from
+2. ESO instantiates an external API client using the specified credentials from
    the `SecretStore` spec.
 3. ESO fetches the secrets as requested by the `ExternalSecret`, it will decode
    the secrets if required
