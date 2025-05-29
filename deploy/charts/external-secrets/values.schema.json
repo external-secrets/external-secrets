@@ -121,7 +121,7 @@
                             "type": "boolean"
                         },
                         "minAvailable": {
-                            "type": "integer"
+                            "type": "string"
                         }
                     },
                     "type": "object"
@@ -465,7 +465,7 @@
                     "type": "boolean"
                 },
                 "minAvailable": {
-                    "type": "integer"
+                    "type": "string"
                 }
             },
             "type": "object"
@@ -817,7 +817,7 @@
                             "type": "boolean"
                         },
                         "minAvailable": {
-                            "type": "integer"
+                            "type": "string"
                         }
                     },
                     "type": "object"
