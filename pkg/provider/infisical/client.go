@@ -173,7 +173,6 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFin
 // and is able to retrieve secrets from the provider.
 // If the validation result is unknown it will be ignored.
 func (p *Provider) Validate() (esv1.ValidationResult, error) {
-
 	// try to fetch the secrets to ensure provided credentials has access to read secrets
 	_, err := p.sdkClient.Secrets().List(infisical.ListSecretsOptions{
 		Environment:            p.apiScope.EnvironmentSlug,

@@ -72,7 +72,6 @@ func NewMockClient(status int, data any) (infisicalSdk.InfisicalClientInterface,
 }
 
 func NewAPIClient(baseURL string, certificate *x509.Certificate) (infisicalSdk.InfisicalClientInterface, context.CancelFunc, error) {
-
 	baseParsedURL, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, nil, err
