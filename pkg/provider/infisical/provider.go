@@ -107,7 +107,6 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 			cancelSdkClient()
 			return nil, fmt.Errorf("failed to authenticate via universal auth %w", err)
 		}
-
 	} else if infisicalSpec.Auth.AzureAuthCredentials != nil {
 		azureAuthCredentials := infisicalSpec.Auth.AzureAuthCredentials
 		identityID, err := GetStoreSecretData(ctx, store, kube, namespace, azureAuthCredentials.IdentityID)
@@ -132,7 +131,6 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 			cancelSdkClient()
 			return nil, fmt.Errorf("failed to authenticate via azure auth %w", err)
 		}
-
 	} else {
 		cancelSdkClient()
 		return &Provider{}, errors.New("authentication method not found")
@@ -150,11 +148,9 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 			ExpandSecretReferences: infisicalSpec.SecretsScope.ExpandSecretReferences,
 		},
 	}, nil
-
 }
 
 func (p *Provider) Close(ctx context.Context) error {
-
 	p.cancelSdkClient()
 	err := p.sdkClient.Auth().RevokeAccessToken()
 	metrics.ObserveAPICall(constants.ProviderName, revokeAccessToken, err)
