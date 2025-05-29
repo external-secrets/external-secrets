@@ -21,12 +21,12 @@ import (
 	"fmt"
 	"strings"
 
+	infisical "github.com/infisical/go-sdk"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/find"
-	"github.com/external-secrets/external-secrets/pkg/provider/infisical/api"
 )
 
 var (
@@ -74,11 +74,12 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRem
 		return nil, err
 	}
 
-	secret, err := p.apiClient.GetSecretByKeyV3(api.GetSecretByKeyV3Request{
-		EnvironmentSlug:        p.apiScope.EnvironmentSlug,
+	secret, err := p.sdkClient.Secrets().Retrieve(infisical.RetrieveSecretOptions{
+		Environment:            p.apiScope.EnvironmentSlug,
 		ProjectSlug:            p.apiScope.ProjectSlug,
 		SecretKey:              key,
 		SecretPath:             path,
+		IncludeImports:         true,
 		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 	})
 
@@ -87,7 +88,7 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRem
 	}
 
 	if ref.Property != "" {
-		propertyValue, err := getPropertyValue(secret, ref.Property, ref.Key)
+		propertyValue, err := getPropertyValue(secret.SecretValue, ref.Property, ref.Key)
 		if err != nil {
 			return nil, err
 		}
@@ -95,7 +96,7 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRem
 		return propertyValue, nil
 	}
 
-	return []byte(secret), nil
+	return []byte(secret.SecretValue), nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
@@ -129,20 +130,21 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFin
 		return nil, errTagsNotImplemented
 	}
 
-	secrets, err := p.apiClient.GetSecretsV3(api.GetSecretsV3Request{
-		EnvironmentSlug:        p.apiScope.EnvironmentSlug,
+	secrets, err := p.sdkClient.Secrets().List(infisical.ListSecretsOptions{
+		Environment:            p.apiScope.EnvironmentSlug,
 		ProjectSlug:            p.apiScope.ProjectSlug,
 		SecretPath:             p.apiScope.SecretPath,
 		Recursive:              p.apiScope.Recursive,
 		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
+		IncludeImports:         true,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	secretMap := make(map[string][]byte)
-	for key, value := range secrets {
-		secretMap[key] = []byte(value)
+	for _, secret := range secrets {
+		secretMap[secret.SecretKey] = []byte(secret.SecretValue)
 	}
 	if ref.Name == nil && ref.Path == nil {
 		return secretMap, nil
@@ -158,11 +160,11 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFin
 	}
 
 	selected := map[string][]byte{}
-	for key, value := range secrets {
-		if (matcher != nil && !matcher.MatchName(key)) || (ref.Path != nil && !strings.HasPrefix(key, *ref.Path)) {
+	for _, secret := range secrets {
+		if (matcher != nil && !matcher.MatchName(secret.SecretKey)) || (ref.Path != nil && !strings.HasPrefix(secret.SecretKey, *ref.Path)) {
 			continue
 		}
-		selected[key] = []byte(value)
+		selected[secret.SecretKey] = []byte(secret.SecretValue)
 	}
 	return selected, nil
 }
@@ -171,9 +173,10 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFin
 // and is able to retrieve secrets from the provider.
 // If the validation result is unknown it will be ignored.
 func (p *Provider) Validate() (esv1.ValidationResult, error) {
+
 	// try to fetch the secrets to ensure provided credentials has access to read secrets
-	_, err := p.apiClient.GetSecretsV3(api.GetSecretsV3Request{
-		EnvironmentSlug:        p.apiScope.EnvironmentSlug,
+	_, err := p.sdkClient.Secrets().List(infisical.ListSecretsOptions{
+		Environment:            p.apiScope.EnvironmentSlug,
 		ProjectSlug:            p.apiScope.ProjectSlug,
 		Recursive:              p.apiScope.Recursive,
 		SecretPath:             p.apiScope.SecretPath,

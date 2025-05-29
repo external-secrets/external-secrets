@@ -18,22 +18,31 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
-	"time"
 
+	infisicalSdk "github.com/infisical/go-sdk"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/provider/infisical/api"
+	"github.com/external-secrets/external-secrets/pkg/metrics"
+	"github.com/external-secrets/external-secrets/pkg/provider/infisical/constants"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
+const (
+	machineIdentityLoginViaUniversalAuth = "MachineIdentityLoginViaUniversalAuth"
+	machineIdentityLoginViaAzureAuth     = "MachineIdentityLoginViaAzureAuth"
+	getSecretsV3                         = "GetSecretsV3"
+	getSecretByKeyV3                     = "GetSecretByKeyV3"
+	revokeAccessToken                    = "RevokeAccessToken"
+)
+
 type Provider struct {
-	apiClient *api.InfisicalClient
-	apiScope  *InfisicalClientScope
+	cancelSdkClient context.CancelFunc
+	sdkClient       infisicalSdk.InfisicalClientInterface
+	apiScope        *InfisicalClientScope
 }
 
 type InfisicalClientScope struct {
@@ -67,53 +76,93 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 
 	infisicalSpec := storeSpec.Provider.Infisical
 
-	apiClient, err := api.NewAPIClient(infisicalSpec.HostAPI, &http.Client{
-		Timeout: time.Second * 15,
+	ctx, cancelSdkClient := context.WithCancel(ctx)
+
+	sdkClient := infisicalSdk.NewInfisicalClient(ctx, infisicalSdk.Config{
+		SiteUrl: infisicalSpec.HostAPI,
 	})
-	if err != nil {
-		return nil, err
+	secretPath := infisicalSpec.SecretsScope.SecretsPath
+	if secretPath == "" {
+		secretPath = "/"
 	}
 
 	if infisicalSpec.Auth.UniversalAuthCredentials != nil {
 		universalAuthCredentials := infisicalSpec.Auth.UniversalAuthCredentials
 		clientID, err := GetStoreSecretData(ctx, store, kube, namespace, universalAuthCredentials.ClientID)
 		if err != nil {
+			cancelSdkClient()
 			return nil, err
 		}
 
 		clientSecret, err := GetStoreSecretData(ctx, store, kube, namespace, universalAuthCredentials.ClientSecret)
 		if err != nil {
+			cancelSdkClient()
 			return nil, err
 		}
 
-		if err := apiClient.SetTokenViaMachineIdentity(clientID, clientSecret); err != nil {
+		_, err = sdkClient.Auth().UniversalAuthLogin(clientID, clientSecret)
+		metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaUniversalAuth, err)
+
+		if err != nil {
+			cancelSdkClient()
 			return nil, fmt.Errorf("failed to authenticate via universal auth %w", err)
 		}
 
-		secretPath := infisicalSpec.SecretsScope.SecretsPath
-		if secretPath == "" {
-			secretPath = "/"
+	} else if infisicalSpec.Auth.AzureAuthCredentials != nil {
+		azureAuthCredentials := infisicalSpec.Auth.AzureAuthCredentials
+		identityID, err := GetStoreSecretData(ctx, store, kube, namespace, azureAuthCredentials.IdentityID)
+		if err != nil {
+			cancelSdkClient()
+			return nil, err
 		}
 
-		return &Provider{
-			apiClient: apiClient,
-			apiScope: &InfisicalClientScope{
-				EnvironmentSlug:        infisicalSpec.SecretsScope.EnvironmentSlug,
-				ProjectSlug:            infisicalSpec.SecretsScope.ProjectSlug,
-				Recursive:              infisicalSpec.SecretsScope.Recursive,
-				SecretPath:             secretPath,
-				ExpandSecretReferences: infisicalSpec.SecretsScope.ExpandSecretReferences,
-			},
-		}, nil
+		resource := ""
+		if azureAuthCredentials.Resource.Name != "" {
+			resource, err = GetStoreSecretData(ctx, store, kube, namespace, azureAuthCredentials.Resource)
+			if err != nil {
+				cancelSdkClient()
+				return nil, err
+			}
+		}
+
+		_, err = sdkClient.Auth().AzureAuthLogin(identityID, resource)
+		metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaAzureAuth, err)
+
+		if err != nil {
+			cancelSdkClient()
+			return nil, fmt.Errorf("failed to authenticate via azure auth %w", err)
+		}
+
+	} else {
+		cancelSdkClient()
+		return &Provider{}, errors.New("authentication method not found")
 	}
 
-	return &Provider{}, errors.New("authentication method not found")
+	return &Provider{
+		cancelSdkClient: cancelSdkClient,
+		sdkClient:       sdkClient,
+
+		apiScope: &InfisicalClientScope{
+			EnvironmentSlug:        infisicalSpec.SecretsScope.EnvironmentSlug,
+			ProjectSlug:            infisicalSpec.SecretsScope.ProjectSlug,
+			Recursive:              infisicalSpec.SecretsScope.Recursive,
+			SecretPath:             secretPath,
+			ExpandSecretReferences: infisicalSpec.SecretsScope.ExpandSecretReferences,
+		},
+	}, nil
+
 }
 
 func (p *Provider) Close(ctx context.Context) error {
-	if err := p.apiClient.RevokeAccessToken(); err != nil {
+
+	p.cancelSdkClient()
+	err := p.sdkClient.Auth().RevokeAccessToken()
+	metrics.ObserveAPICall(constants.ProviderName, revokeAccessToken, err)
+
+	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
