@@ -4585,6 +4585,14 @@ service accounts which have iam roles bound using pod identity. Doing so will re
 <td>AWS_STS_ENDPOINT</td>
 <td>Endpoint for the Security Token Service. The controller uses this endpoint when creating a session and when doing <code>assumeRole</code> or <code>assumeRoleWithWebIdentity</code> calls.</td>
 </tr>
+<tr>
+<td>AWS_ECR_ENDPOINT</td>
+<td>Endpoint for the ECR Service. The controller uses this endpoint to fetch authorization tokens from ECR.</td>
+</tr>
+<tr>
+<td>AWS_ECR_PUBLIC_ENDPOINT</td>
+<td>Endpoint for the Public ECR Service. The controller uses this endpoint to fetch authorization tokens from ECR.</td>
+</tr>
 </tbody>
 </table>
 
