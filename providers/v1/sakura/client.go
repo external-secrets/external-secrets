@@ -26,7 +26,7 @@ import (
 )
 
 type Client struct {
-	client secretmanager.SecretAPI
+	api secretmanager.SecretAPI
 }
 
 // Check if the Client satisfies the esv1.SecretsClient interface.

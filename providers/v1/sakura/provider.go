@@ -56,7 +56,6 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve auth.secretRef.accessTokenSecret: %w", err)
 	}
-
 	var theClient saclient.Client
 	theClient.SetEnviron([]string{
 		fmt.Sprintf("SAKURA_ACCESS_TOKEN=%s", accessToken),
@@ -65,11 +64,11 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 
 	client, err := secretmanager.NewClient(&theClient)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to create Sakura Cloud client: %w", err)
 	}
 
 	return &Client{
-		client: secretmanager.NewSecretOp(client, provider.VaultResourceID),
+		api: secretmanager.NewSecretOp(client, provider.VaultResourceID),
 	}, nil
 }
 
