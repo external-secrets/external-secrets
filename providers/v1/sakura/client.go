@@ -18,8 +18,10 @@ package sakura
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/sacloud/secretmanager-api-go"
+	v1 "github.com/sacloud/secretmanager-api-go/apis/v1"
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -32,9 +34,27 @@ type Client struct {
 // Check if the Client satisfies the esv1.SecretsClient interface.
 var _ esv1.SecretsClient = &Client{}
 
-func (c *Client) GetSecret(ctx context.Context, name esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	// Implement the logic to get a secret from Sakura Cloud
-	return nil, nil
+func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	version := v1.OptNilInt{}
+
+	if ref.Version != "" {
+		versionInt, err := strconv.Atoi(ref.Version)
+		if err != nil {
+			return nil, err
+		}
+
+		version = v1.NewOptNilInt(versionInt)
+	}
+
+	res, err := c.api.Unveil(ctx, v1.Unveil{
+		Name:    ref.Key,
+		Version: version,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return []byte(res.GetValue()), nil
 }
 
 func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
