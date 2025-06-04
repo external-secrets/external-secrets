@@ -82,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#macro-syntax-error" class="md-skip">
+        <a href="#output-keys-and-values" class="md-skip">
           Skip to content
         </a>
       
@@ -1066,8 +1066,19 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
-        
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    AWS Elastic Container Registry
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
         
@@ -1080,6 +1091,50 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#output-keys-and-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      Output Keys and Values
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      Authentication
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-manifest" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example Manifest
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -3837,8 +3892,41 @@
   
   
   
-    
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#output-keys-and-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      Output Keys and Values
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      Authentication
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-manifest" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example Manifest
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -3857,10 +3945,111 @@
   
 
 
-<h1 id="macro-syntax-error"><em>Macro Syntax Error</em></h1>
-<p><em>File</em>: <code>api/generator/ecr.md</code></p>
-<p><em>Line 13 in Markdown file:</em> <strong>unexpected '.'</strong>
-<div class="highlight"><pre><span></span><code>
+  <h1>AWS Elastic Container Registry</h1>
+
+<p>ECRAuthorizationTokenSpec uses the GetAuthorizationToken API to retrieve an authorization token.
+The authorization token is valid for 12 hours. For more information, see <a href="https://docs.aws.amazon.com/AmazonECR/latest/userguide/Registries.html#registry_auth">registry authentication</a> in the Amazon Elastic Container Registry User Guide.</p>
+<h2 id="output-keys-and-values">Output Keys and Values</h2>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>username</td>
+<td>username for the <code>docker login</code> command.</td>
+</tr>
+<tr>
+<td>password</td>
+<td>password for the <code>docker login</code> command.</td>
+</tr>
+<tr>
+<td>proxy_endpoint</td>
+<td>The registry URL to use for this authorization token in a <code>docker login</code> command.</td>
+</tr>
+<tr>
+<td>expires_at</td>
+<td>time when token expires in UNIX time (seconds since January 1, 1970 UTC).</td>
+</tr>
+</tbody>
+</table>
+<h2 id="authentication">Authentication</h2>
+<p>You can choose from three authentication mechanisms:</p>
+<ul>
+<li>static credentials using <code>spec.auth.secretRef</code></li>
+<li>point to a IRSA Service Account with <code>spec.auth.jwt</code></li>
+<li>use credentials from the <a href="https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default">SDK default credentials chain</a> from the controller environment</li>
+</ul>
+<h2 id="example-manifest">Example Manifest</h2>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ECRAuthorizationToken</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ecr-gen</span>
+<span class="nt">spec</span><span class="p">:</span>
+
+<span class="w">  </span><span class="c1"># specify aws region (mandatory)</span>
+<span class="w">  </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eu-west-1</span>
+
+<span class="w">  </span><span class="c1"># assume role with the given authentication credentials</span>
+<span class="w">  </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-role&quot;</span>
+
+<span class="w">  </span><span class="c1"># choose an authentication strategy</span>
+<span class="w">  </span><span class="c1"># if no auth strategy is defined it falls back to using</span>
+<span class="w">  </span><span class="c1"># credentials from the environment of the controller.</span>
+<span class="w">  </span><span class="nt">auth</span><span class="p">:</span>
+
+<span class="w">    </span><span class="c1"># 1: static credentials</span>
+<span class="w">    </span><span class="c1"># point to a secret that contains static credentials</span>
+<span class="w">    </span><span class="c1"># like AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY</span>
+<span class="w">    </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">accessKeyIDSecretRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-aws-creds&quot;</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;key-id&quot;</span>
+<span class="w">      </span><span class="nt">secretAccessKeySecretRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-aws-creds&quot;</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;access-secret&quot;</span>
+
+<span class="w">    </span><span class="c1"># option 2: IAM Roles for Service Accounts</span>
+<span class="w">    </span><span class="c1"># point to a service account that should be used</span>
+<span class="w">    </span><span class="c1"># that is configured for IAM Roles for Service Accounts (IRSA)</span>
+<span class="w">    </span><span class="nt">jwt</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">serviceAccountRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;oci-token-sync&quot;</span>
+</code></pre></div>
+<p>Example <code>ExternalSecret</code> that references the ECR generator:
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ecr-secret&quot;</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1h&quot;</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ecr-secret</span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.io/dockerconfigjson</span>
+<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">annotations</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">expiresAt</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.expires_at</span><span class="nv"> </span><span class="s">}}&quot;</span>
+<span class="w">      </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">.dockerconfigjson</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">          </span><span class="no">{</span>
+<span class="w">            </span><span class="no">&quot;auths&quot;: {</span>
+<span class="w">              </span><span class="no">&quot;{{ .proxy_endpoint | replace &quot;https://&quot; &quot;&quot; }}&quot;: {</span>
+<span class="w">                </span><span class="no">&quot;username&quot;: &quot;{{ .username }}&quot;,</span>
+<span class="w">                </span><span class="no">&quot;password&quot;: &quot;{{ .password }}&quot;,</span>
+<span class="w">                </span><span class="no">&quot;auth&quot;: &quot;{{ printf &quot;%s:%s&quot; .username .password | b64enc }}&quot;</span>
+<span class="w">              </span><span class="no">}</span>
+<span class="w">            </span><span class="no">}</span>
+<span class="w">          </span><span class="no">}</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">sourceRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">generatorRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="w">          </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ECRAuthorizationToken</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ecr-gen&quot;</span>
 </code></pre></div></p>
 
 
