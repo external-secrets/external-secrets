@@ -32,6 +32,7 @@ import (
 const (
 	errKeeperSecuritySecretsNotFound            = "unable to find secrets. %w"
 	errKeeperSecuritySecretNotFound             = "unable to find secret %s. Error: %w"
+	errKeeperSecuritySecretNotUnique            = "more than 1 secret %s found"
 	errKeeperSecurityNoSecretsFound             = "no secrets found"
 	errKeeperSecurityInvalidSecretInvalidFormat = "invalid secret. Invalid format: %w"
 	errKeeperSecurityInvalidSecretDuplicatedKey = "invalid Secret. Following keys are duplicated %s"
@@ -314,6 +315,9 @@ func (c *Client) findSecretByID(id string) (*ksm.Record, error) {
 	if len(records) == 0 {
 		return nil, errors.New(errKeeperSecurityNoSecretsFound)
 	}
+	if len(records) > 1 {
+		return nil, fmt.Errorf(errKeeperSecuritySecretNotUnique, id)
+	}
 
 	return records[0], nil
 }
@@ -339,9 +343,12 @@ func (c *Client) findSecretByName(name string) (*ksm.Record, error) {
 	// DeleteSecret will consider record already deleted (no error)
 	if len(records) == 0 {
 		return nil, nil
+	} else if len(records) == 1 {
+		return records[0], nil
 	}
 
-	return records[0], nil
+	// len(records) > 1
+	return nil, fmt.Errorf(errKeeperSecuritySecretNotUnique, name)
 }
 
 func (s *Secret) validate() error {
