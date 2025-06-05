@@ -4,8 +4,6 @@ go 1.24.4
 
 replace github.com/Masterminds/sprig/v3 => github.com/external-secrets/sprig/v3 v3.3.0
 
-replace github.com/infisical/go-sdk => ../go-sdk
-
 require (
 	cloud.google.com/go/iam v1.5.2
 	cloud.google.com/go/secretmanager v1.14.7
