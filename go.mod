@@ -4,8 +4,6 @@ go 1.24.2
 
 replace github.com/Masterminds/sprig/v3 => github.com/external-secrets/sprig/v3 v3.3.0
 
-replace github.com/infisical/go-sdk => ../go-sdk
-
 require (
 	cloud.google.com/go/iam v1.5.2
 	cloud.google.com/go/secretmanager v1.14.7
@@ -103,7 +101,7 @@ require (
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/hashicorp/vault/api/auth/aws v0.9.0
 	github.com/hashicorp/vault/api/auth/userpass v0.9.0
-	github.com/infisical/go-sdk v0.5.93
+	github.com/infisical/go-sdk v0.5.95
 	github.com/keeper-security/secrets-manager-go/core v1.6.4
 	github.com/lestrrat-go/jwx/v2 v2.1.6
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.11.2
