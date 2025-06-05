@@ -264,8 +264,8 @@ priorityClassName: ""
 # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
 podDisruptionBudget:
   enabled: false
-  minAvailable: 1
-  # maxUnavailable: 1
+  minAvailable: 1    # @schema type:[integer, string]
+  # maxUnavailable: "50%"
 
 # -- Run the controller on the host network
 hostNetwork: false
@@ -372,8 +372,8 @@ webhook:
   # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
   podDisruptionBudget:
     enabled: false
-    minAvailable: 1
-    # maxUnavailable: 1
+    minAvailable: 1    # @schema type:[integer, string]
+    # maxUnavailable: "50%"
 
   metrics:
 
@@ -508,8 +508,8 @@ certController:
   # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
   podDisruptionBudget:
     enabled: false
-    minAvailable: 1
-    # maxUnavailable: 1
+    minAvailable: 1    # @schema type:[integer, string]
+    # maxUnavailable: "50%"
 
   metrics:
 
