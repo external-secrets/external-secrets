@@ -4370,7 +4370,16 @@ Please estimate your costs before using ESO. Cost depends on the RefreshInterval
 <h2 id="setsecret">SetSecret</h2>
 <p>The SetSecret method for the Parameter Store allows the user to set the value stored within the Kubernetes cluster to the remote AWS Parameter Store.</p>
 <h3 id="creating-a-push-secret">Creating a Push Secret</h3>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span>
+<span class="c1"># The source secret that will be pushed to the destination secret by PushSecret.</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source-secret</span>
+<span class="nt">stringData</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">best-pokemon-src</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Pikachu&quot;</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pushsecret-example</span><span class="w"> </span><span class="c1"># Customisable</span>
@@ -4395,10 +4404,12 @@ Please estimate your costs before using ESO. Cost depends on the RefreshInterval
 <span class="w">      </span><span class="nt">annotations</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="w"> </span><span class="p p-Indicator">}</span>
 <span class="w">      </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="w"> </span><span class="p p-Indicator">}</span>
 <span class="w">    </span><span class="nt">data</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">best-pokemon</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.best-pokemon</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">toString</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">upper</span><span class="nv"> </span><span class="s">}}</span><span class="nv"> </span><span class="s">is</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">really</span><span class="nv"> </span><span class="s">best!&quot;</span>
-<span class="w">    </span><span class="c1"># Uses an existing template from configmap</span>
-<span class="w">    </span><span class="c1"># Secret is fetched, merged and templated within the referenced configMap data</span>
-<span class="w">    </span><span class="c1"># It does not update the configmap, it creates a secret with: data[&quot;alertmanager.yml&quot;] = ...result...</span>
+<span class="w">      </span><span class="c1"># If the key source secret key has dashes, then it cannot be accessed directly,</span>
+<span class="w">      </span><span class="c1"># and the &quot;index&quot; function should be used.</span>
+<span class="w">      </span><span class="nt">best-pokemon</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">index</span><span class="nv"> </span><span class="s">.</span><span class="nv"> </span><span class="s">\&quot;best-pokemon-src\&quot;</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">toString</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">upper</span><span class="nv"> </span><span class="s">}}</span><span class="nv"> </span><span class="s">is</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">really</span><span class="nv"> </span><span class="s">best!&quot;</span>
+<span class="w">    </span><span class="c1"># Also, it&#39;s possible to use an existing template from configmap where Secret is fetched, </span>
+<span class="w">    </span><span class="c1"># merged and templated within the referenced configMap data.</span>
+<span class="w">    </span><span class="c1"># It does not update the configmap, it creates a secret with: data[&quot;config.yml&quot;] = ...result...</span>
 <span class="w">    </span><span class="nt">templateFrom</span><span class="p">:</span>
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">configMap</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">application-config-tmpl</span>
@@ -4407,9 +4418,11 @@ Please estimate your costs before using ESO. Cost depends on the RefreshInterval
 <span class="w">  </span><span class="nt">data</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">conversionStrategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">None</span><span class="w"> </span><span class="c1"># Also supports the ReverseUnicode strategy</span>
 <span class="w">      </span><span class="nt">match</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">best-pokemon</span><span class="w"> </span><span class="c1"># Source Kubernetes secret key to be pushed</span>
+<span class="w">        </span><span class="c1"># The secretKey is used within PushSecret (it should match key under spec.template.data)</span>
+<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">best-pokemon</span>
 <span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-first-parameter</span><span class="w"> </span><span class="c1"># Remote reference (where the secret is going to be pushed)</span>
+<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">destination-secret</span><span class="w"> </span><span class="c1"># The destination secret object name (where the secret is going to be pushed)</span>
+<span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">best-pokemon-dst</span><span class="w"> </span><span class="c1"># The key within the destination secret object.</span>
 </code></pre></div>
 <h4 id="additional-metadata-for-pushsecret">Additional Metadata for PushSecret</h4>
 <p>Optionally, it is possible to configure additional options for the parameter. These are as follows:
