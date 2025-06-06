@@ -681,27 +681,30 @@ func getSecretAllMetadata(tags map[string]*string, attributes *keyvault.Attribut
 	for k, v := range tags {
 		metadata[k] = v
 	}
-	if attributes != nil {
-		if attributes.Expires != nil {
-			expiredTimeDur := time.Unix(int64(attributes.Expires.Duration().Seconds()), 0).String()
-			metadata[attributeExpires] = &expiredTimeDur
-		}
+        if attributes == nil {
+                return metadata
+        }
 
-		if attributes.Created != nil {
-			createdTimeDur := time.Unix(int64(attributes.Created.Duration().Seconds()), 0).String()
-			metadata[attributeCreated] = &createdTimeDur
-		}
-
-		if attributes.Updated != nil {
-			updatedTimeDur := time.Unix(int64(attributes.Updated.Duration().Seconds()), 0).String()
-			metadata[attributeUpdated] = &updatedTimeDur
-		}
-
-		if attributes.NotBefore != nil {
-			notBeforeTimeDur := time.Unix(int64(attributes.NotBefore.Duration().Seconds()), 0).String()
-			metadata[attributeNotBefore] = &notBeforeTimeDur
-		}
+        if attributes.Expires != nil {
+		expiredTimeDur := time.Unix(int64(attributes.Expires.Duration().Seconds()), 0).String()
+		metadata[attributeExpires] = &expiredTimeDur
 	}
+
+	if attributes.Created != nil {
+		createdTimeDur := time.Unix(int64(attributes.Created.Duration().Seconds()), 0).String()
+		metadata[attributeCreated] = &createdTimeDur
+	}
+
+	if attributes.Updated != nil {
+		updatedTimeDur := time.Unix(int64(attributes.Updated.Duration().Seconds()), 0).String()
+		metadata[attributeUpdated] = &updatedTimeDur
+	}
+
+	if attributes.NotBefore != nil {
+		notBeforeTimeDur := time.Unix(int64(attributes.NotBefore.Duration().Seconds()), 0).String()
+		metadata[attributeNotBefore] = &notBeforeTimeDur
+	}
+
 	return metadata
 }
 
