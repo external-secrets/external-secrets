@@ -430,6 +430,58 @@ func TestRewrite(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			name: "test merge",
+			args: args{
+				operations: []esv1.ExternalSecretRewrite{
+					{
+						Merge: &esv1.ExternalSecretRewriteMerge{},
+					},
+				},
+				in: map[string][]byte{
+					"object-storage":    []byte(`{"access_key": {"foo": "bar"}, "secret_key": "bar"}`),
+					"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
+				},
+			},
+			want: map[string][]byte{
+				"access_key": []byte(`{"foo":"bar"}`),
+				"secret_key": []byte("bar"),
+				"username":   []byte("foz"),
+				"password":   []byte("baz"),
+			},
+		},
+		{
+			name: "test merge with into",
+			args: args{
+				operations: []esv1.ExternalSecretRewrite{
+					{
+						Merge: &esv1.ExternalSecretRewriteMerge{
+							Into: "credentials",
+						},
+					},
+				},
+				in: map[string][]byte{
+					"object-storage":    []byte(`{"access_key": {"foo": "bar"}, "secret_key": "bar"}`),
+					"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
+				},
+			},
+			want: map[string][]byte{
+				"credentials": func() []byte {
+					// Create a map with the expected structure
+					expected := map[string]interface{}{
+						"access_key": map[string]interface{}{
+							"foo": "bar",
+						},
+						"secret_key": "bar",
+						"username":   "foz",
+						"password":   "baz",
+					}
+					// Marshal it to ensure consistent formatting
+					b, _ := json.Marshal(expected)
+					return b
+				}(),
+			},
+		},
+		{
 			name: "replace of a single key",
 			args: args{
 				operations: []esv1.ExternalSecretRewrite{

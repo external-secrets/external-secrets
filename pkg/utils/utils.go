@@ -80,6 +80,12 @@ func RewriteMap(operations []esv1.ExternalSecretRewrite, in map[string][]byte) (
 	out := in
 	var err error
 	for i, op := range operations {
+		if op.Merge != nil {
+			out, err = RewriteMerge(*op.Merge, out)
+			if err != nil {
+				return nil, fmt.Errorf("failed rewriting merge operation[%v]: %w", i, err)
+			}
+		}
 		if op.Regexp != nil {
 			out, err = RewriteRegexp(*op.Regexp, out)
 			if err != nil {
@@ -93,6 +99,43 @@ func RewriteMap(operations []esv1.ExternalSecretRewrite, in map[string][]byte) (
 			}
 		}
 	}
+	return out, nil
+}
+
+func RewriteMerge(operation esv1.ExternalSecretRewriteMerge, in map[string][]byte) (map[string][]byte, error) {
+	out := make(map[string][]byte)
+	mergedMap := make(map[string]interface{})
+
+	for _, value := range in {
+		var jsonMap map[string]interface{}
+		if err := json.Unmarshal(value, &jsonMap); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal JSON: %w", err)
+		}
+
+		// Merge all key-value pairs into the mergedMap
+		for k, v := range jsonMap {
+			mergedMap[k] = v
+		}
+	}
+
+	if operation.Into != "" {
+		// Convert the merged map to JSON bytes with consistent formatting
+		mergedBytes, err := JSONMarshal(mergedMap)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal merged map: %w", err)
+		}
+		out[operation.Into] = mergedBytes
+	} else {
+		// If no Into key specified, hoist all key-value pairs into the output
+		for k, v := range mergedMap {
+			byteValue, err := GetByteValue(v)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert value to []byte: %w", err)
+			}
+			out[k] = byteValue
+		}
+	}
+
 	return out, nil
 }
 
