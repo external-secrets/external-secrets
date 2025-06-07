@@ -217,10 +217,6 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 		SecretId: &secretName,
 	}
 
-	secretInput := awssm.DescribeSecretInput{
-		SecretId: &secretName,
-	}
-
 	awsSecret, err := sm.client.GetSecretValue(ctx, &secretValue)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
 
@@ -245,7 +241,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 		return err
 	}
 
-	return sm.putSecretValueWithContext(ctx, secretInput, awsSecret, psd, value)
+	return sm.putSecretValueWithContext(ctx, awsSecret, psd, value)
 }
 
 func padOrTrim(b []byte) []byte {
@@ -546,15 +542,7 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 	return err
 }
 
-func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretInput awssm.DescribeSecretInput, awsSecret *awssm.GetSecretValueOutput, psd esv1.PushSecretData, value []byte) error {
-	data, err := sm.client.DescribeSecret(ctx, &secretInput)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDescribeSecret, err)
-	if err != nil {
-		return err
-	}
-	if !isManagedByESO(data) {
-		return errors.New("secret not managed by external-secrets")
-	}
+func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, awsSecret *awssm.GetSecretValueOutput, psd esv1.PushSecretData, value []byte) error {
 	if awsSecret != nil && bytes.Equal(awsSecret.SecretBinary, value) || utils.CompareStringAndByteSlices(awsSecret.SecretString, value) {
 		return nil
 	}
