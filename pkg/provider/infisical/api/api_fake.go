@@ -15,9 +15,16 @@ limitations under the License.
 package api
 
 import (
+	"context"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+
+	infisical "github.com/infisical/go-sdk"
+	infisicalSdk "github.com/infisical/go-sdk"
 )
 
 func newMockServer(status int, data any) *httptest.Server {
@@ -27,6 +34,7 @@ func newMockServer(status int, data any) *httptest.Server {
 	}
 
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
 		_, err := w.Write(body)
 		if err != nil {
@@ -37,11 +45,51 @@ func newMockServer(status int, data any) *httptest.Server {
 
 // NewMockClient creates an InfisicalClient with a mocked HTTP client that has a
 // fixed response.
-func NewMockClient(status int, data any) (*InfisicalClient, func()) {
+func NewMockClient(status int, data any) (infisicalSdk.InfisicalClientInterface, func()) {
 	server := newMockServer(status, data)
-	client, err := NewAPIClient(server.URL, server.Client())
-	if err != nil {
-		panic(err)
+	caCert := server.Certificate()
+
+	infisicalConfig := infisicalSdk.Config{
+		SiteUrl: server.URL,
 	}
-	return client, server.Close
+
+	if caCert != nil {
+		infisicalConfig.CaCertificate = string(pem.EncodeToMemory(&pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: caCert.Raw,
+		}))
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	infisicalSdk := infisicalSdk.NewInfisicalClient(ctx, infisicalConfig)
+
+	closeFunc := func() {
+		cancel()
+		server.Close()
+	}
+
+	return infisicalSdk, closeFunc
+}
+
+func NewAPIClient(baseURL string, certificate *x509.Certificate) (infisicalSdk.InfisicalClientInterface, context.CancelFunc, error) {
+	baseParsedURL, err := url.Parse(baseURL)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	infisicalConfig := infisical.Config{
+		SiteUrl: baseParsedURL.String(),
+	}
+
+	if certificate != nil {
+		infisicalConfig.CaCertificate = string(pem.EncodeToMemory(&pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: certificate.Raw,
+		}))
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	infisicalSdk := infisicalSdk.NewInfisicalClient(ctx, infisicalConfig)
+
+	return infisicalSdk, cancel, nil
 }
