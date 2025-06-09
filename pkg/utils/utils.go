@@ -28,6 +28,7 @@ import (
 	"net/url"
 	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	tpl "text/template"
@@ -106,13 +107,26 @@ func RewriteMerge(operation esv1.ExternalSecretRewriteMerge, in map[string][]byt
 	out := make(map[string][]byte)
 	mergedMap := make(map[string]interface{})
 
-	for _, value := range in {
+	// Sort input keys for deterministic iteration, predictably overwriting conflicting keys
+	// TODO: introduce support for secret key priority. This can be implemented by removing
+	// 		 the keys that to prioritize before sorting and then appending them at the end.
+	keys := make([]string, 0, len(in))
+	for k := range in {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		value := in[key]
 		var jsonMap map[string]interface{}
 		if err := json.Unmarshal(value, &jsonMap); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal JSON: %w", err)
 		}
 
 		// Merge all key-value pairs into the mergedMap
+		// TODO: conflicts are silently solved by overwriting the existing key.
+		//       in the future we must support a user specified `conflictStrategy`
+		//       that should be either `Ignore` or `ErrorOut`.
 		for k, v := range jsonMap {
 			mergedMap[k] = v
 		}

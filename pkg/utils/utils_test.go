@@ -482,6 +482,39 @@ func TestRewrite(t *testing.T) {
 			},
 		},
 		{
+			name: "test merge with into with conflicting keys",
+			args: args{
+				operations: []esv1.ExternalSecretRewrite{
+					{
+						Merge: &esv1.ExternalSecretRewriteMerge{
+							Into: "credentials",
+						},
+					},
+				},
+				in: map[string][]byte{
+					"object-storage":    []byte(`{"access_key": {"foo": "bar"}, "secret_key": "bar"}`),
+					"pongo-credentials": []byte(`{"password": "paz"}`),
+					"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
+				},
+			},
+			want: map[string][]byte{
+				"credentials": func() []byte {
+					// Create a map with the expected structure
+					expected := map[string]interface{}{
+						"access_key": map[string]interface{}{
+							"foo": "bar",
+						},
+						"secret_key": "bar",
+						"username":   "foz",
+						"password":   "paz",
+					}
+					// Marshal it to ensure consistent formatting
+					b, _ := json.Marshal(expected)
+					return b
+				}(),
+			},
+		},
+		{
 			name: "replace of a single key",
 			args: args{
 				operations: []esv1.ExternalSecretRewrite{
