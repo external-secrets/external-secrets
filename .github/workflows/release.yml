@@ -63,6 +63,7 @@ jobs:
           generate_release_notes: true
           body: |
             Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}`
+            NOTE - the following UBI images are not currently working (broken build process).
             Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi`
             Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi-boringssl`
         env:
@@ -86,8 +87,9 @@ jobs:
       matrix:
         include:
         - tag_suffix: "" # distroless image
-        - tag_suffix: "-ubi" # ubi image
-        - tag_suffix: "-ubi-boringssl" # ubi image
+        # TODO[gusfcarfvalho] - UBI images are not building - look at this eventually
+        # - tag_suffix: "-ubi" # ubi image
+        # - tag_suffix: "-ubi-boringssl" # ubi image
 
     permissions:
       contents: write #to update the github release
