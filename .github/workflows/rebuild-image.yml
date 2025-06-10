@@ -49,17 +49,16 @@ jobs:
           build-arch: "amd64 arm64 ppc64le"
           build-platform: "linux/amd64,linux/arm64,linux/ppc64le"
           tag-suffix: "-${{ needs.checkout.outputs.timestamp }}" # distroless
-        # TODO[gusfcarfvalho] - UBI images are not building - look at this eventually
-        # - dockerfile: "Dockerfile.ubi"
-        #   build-args: "CGO_ENABLED=0"
-        #   build-arch: "amd64 arm64 ppc64le"
-        #   build-platform: "linux/amd64,linux/arm64,linux/ppc64le"
-        #   tag-suffix: "-ubi-${{ needs.checkout.outputs.timestamp }}" # ubi
-        # - dockerfile: "Dockerfile.ubi"
-        #   build-args: "CGO_ENABLED=0 GOEXPERIMENT=boringcrypto" # fips
-        #   build-arch: "amd64 ppc64le"
-        #   build-platform: "linux/amd64,linux/ppc64le"
-        #   tag-suffix: "-ubi-boringssl-${{ needs.checkout.outputs.timestamp }}"
+        - dockerfile: "Dockerfile.ubi"
+          build-args: "CGO_ENABLED=0"
+          build-arch: "amd64 arm64 ppc64le"
+          build-platform: "linux/amd64,linux/arm64,linux/ppc64le"
+          tag-suffix: "-ubi-${{ needs.checkout.outputs.timestamp }}" # ubi
+        - dockerfile: "Dockerfile.ubi"
+          build-args: "CGO_ENABLED=0 GOEXPERIMENT=boringcrypto" # fips
+          build-arch: "amd64 ppc64le"
+          build-platform: "linux/amd64,linux/ppc64le"
+          tag-suffix: "-ubi-boringssl-${{ needs.checkout.outputs.timestamp }}"
     with:
       dockerfile: ${{ matrix.dockerfile }}
       tag-suffix: ${{ matrix.tag-suffix }}

@@ -161,17 +161,16 @@ jobs:
           build-arch: "amd64 arm64 s390x ppc64le"
           build-platform: "linux/amd64,linux/arm64,linux/s390x,linux/ppc64le"
           tag-suffix: "" # distroless
-    # TODO[gusfcarfvalho] - UBI images are not building - look at this eventually
-    #     - dockerfile: "Dockerfile.ubi"
-    #       build-args: "CGO_ENABLED=0"
-    #       build-arch: "amd64 arm64 ppc64le"
-    #       build-platform: "linux/amd64,linux/arm64,linux/ppc64le"
-    #       tag-suffix: "-ubi"
-    #     - dockerfile: "Dockerfile.ubi"
-    #       build-args: "CGO_ENABLED=0 GOEXPERIMENT=boringcrypto"
-    #       build-arch: "amd64 ppc64le"
-    #       build-platform: "linux/amd64,linux/ppc64le"
-    #       tag-suffix: "-ubi-boringssl"
+        - dockerfile: "Dockerfile.ubi"
+          build-args: "CGO_ENABLED=0"
+          build-arch: "amd64 arm64 ppc64le"
+          build-platform: "linux/amd64,linux/arm64,linux/ppc64le"
+          tag-suffix: "-ubi"
+        - dockerfile: "Dockerfile.ubi"
+          build-args: "CGO_ENABLED=0 GOEXPERIMENT=boringcrypto"
+          build-arch: "amd64 ppc64le"
+          build-platform: "linux/amd64,linux/ppc64le"
+          tag-suffix: "-ubi-boringssl"
     with:
       dockerfile: ${{ matrix.dockerfile }}
       tag-suffix: ${{ matrix.tag-suffix }}

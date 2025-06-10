@@ -37,7 +37,7 @@ jobs:
           ref: ${{ github.event.inputs.source_ref }}
       - name: check-docs
         run: |
-          DOCS_VERSION=${{ github.event.inputs.version }} make docs.check 
+          DOCS_VERSION=${{ github.event.inputs.version }} make docs.check
   release:
     name: Create Release
     runs-on: ubuntu-latest
@@ -87,9 +87,8 @@ jobs:
       matrix:
         include:
         - tag_suffix: "" # distroless image
-        # TODO[gusfcarfvalho] - UBI images are not building - look at this eventually
-        # - tag_suffix: "-ubi" # ubi image
-        # - tag_suffix: "-ubi-boringssl" # ubi image
+        - tag_suffix: "-ubi" # ubi image
+        - tag_suffix: "-ubi-boringssl" # ubi image
 
     permissions:
       contents: write #to update the github release
