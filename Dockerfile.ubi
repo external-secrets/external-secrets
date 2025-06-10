@@ -6,7 +6,7 @@ LABEL maintainer="cncf-externalsecretsop-maintainers@lists.cncf.io" \
 
 ARG TARGETOS
 ARG TARGETARCH
-RUN dnf update -y && dnf install -y binutils
+RUN dnf update -y --allowerasing && dnf install -y binutils
 # prep target rootfs for scratch container
 WORKDIR /
 RUN mkdir /image && \
