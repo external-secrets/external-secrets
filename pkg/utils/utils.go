@@ -36,6 +36,8 @@ import (
 	"time"
 	"unicode"
 
+	"golang.org/x/exp/maps"
+
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -104,52 +106,23 @@ func RewriteMap(operations []esv1.ExternalSecretRewrite, in map[string][]byte) (
 	return out, nil
 }
 
+// RewriteMerge merges input values according to the operation's strategy and conflict policy.
 func RewriteMerge(operation esv1.ExternalSecretRewriteMerge, in map[string][]byte) (map[string][]byte, error) {
 	out := make(map[string][]byte)
-	mergedMap := make(map[string]interface{})
-	priorityKeys := make([]string, 0)
 
-	if len(operation.Priority) > 0 {
-		priorityKeys = operation.Priority
+	mergedMap, conflicts, err := merge(operation, in)
+	if err != nil {
+		return nil, err
 	}
 
-	// Sort input keys for deterministic priority in conflict resolution.
-	keys := make([]string, 0, len(in))
-	for k := range in {
-		if !slices.Contains(priorityKeys, k) {
-			keys = append(keys, k)
-		}
-	}
-	sort.Strings(keys)
-
-	// Add priority keys in reverse order to the end of the keys slice.
-	slices.Reverse(priorityKeys)
-	keys = append(keys, priorityKeys...)
-
-	for _, key := range keys {
-		value := in[key]
-		var jsonMap map[string]interface{}
-		if err := json.Unmarshal(value, &jsonMap); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal JSON: %w", err)
-		}
-
-		// Merge all key-value pairs into the mergedMap
-		// TODO: conflicts are silently solved by overwriting the existing key.
-		//       in the future we must support a user specified `conflictStrategy`
-		//       that should be either `Ignore` or `ErrorOut`.
-		for k, v := range jsonMap {
-			mergedMap[k] = v
+	if operation.ConflictPolicy == esv1.ExternalSecretRewriteMergeConflictPolicyError {
+		if len(conflicts) > 0 {
+			return nil, fmt.Errorf("conflict in merge operation: %v", strings.Join(conflicts, ", "))
 		}
 	}
 
-	if operation.Into != "" {
-		mergedBytes, err := JSONMarshal(mergedMap)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal merged map: %w", err)
-		}
-		out[operation.Into] = mergedBytes
-	} else {
-		// If no Into key specified, hoist all key-value pairs into the output
+	switch operation.Strategy {
+	case esv1.ExternalSecretRewriteMergeStrategyExtract, "":
 		for k, v := range mergedMap {
 			byteValue, err := GetByteValue(v)
 			if err != nil {
@@ -157,9 +130,56 @@ func RewriteMerge(operation esv1.ExternalSecretRewriteMerge, in map[string][]byt
 			}
 			out[k] = byteValue
 		}
+	case esv1.ExternalSecretRewriteMergeStrategyJSON:
+		mergedBytes, err := JSONMarshal(mergedMap)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal merged map: %w", err)
+		}
+		maps.Copy(out, in)
+		out[operation.Into] = mergedBytes
 	}
 
 	return out, nil
+}
+
+// merge merges the input maps and returns the merged map and a list of conflicting keys.
+func merge(operation esv1.ExternalSecretRewriteMerge, in map[string][]byte) (map[string]any, []string, error) {
+	mergedMap := make(map[string]any)
+	conflicts := make([]string, 0)
+
+	// sort keys with priority keys at the end in their specified order
+	keys := sortKeysWithPriority(operation, in)
+
+	for _, key := range keys {
+		value := in[key]
+		var jsonMap map[string]any
+		if err := json.Unmarshal(value, &jsonMap); err != nil {
+			return nil, nil, fmt.Errorf("failed to unmarshal JSON: %w", err)
+		}
+
+		for k, v := range jsonMap {
+			if _, conflict := mergedMap[k]; conflict {
+				conflicts = append(conflicts, k)
+			}
+			mergedMap[k] = v
+		}
+	}
+
+	return mergedMap, conflicts, nil
+}
+
+// sortKeysWithPriority sorts keys with priority keys at the end in their specified order.
+// Non-priority keys are sorted alphabetically and placed before priority keys.
+func sortKeysWithPriority(operation esv1.ExternalSecretRewriteMerge, in map[string][]byte) []string {
+	keys := make([]string, 0, len(in))
+	for k := range in {
+		if !slices.Contains(operation.Priority, k) {
+			keys = append(keys, k)
+		}
+	}
+	sort.Strings(keys)
+	keys = append(keys, operation.Priority...)
+	return keys
 }
 
 // RewriteRegexp rewrites a single Regexp Rewrite Operation.
