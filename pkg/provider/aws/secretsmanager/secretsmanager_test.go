@@ -527,7 +527,6 @@ func TestSetSecret(t *testing.T) {
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
 					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
-					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
 					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 					TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
@@ -545,7 +544,6 @@ func TestSetSecret(t *testing.T) {
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
 					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
-					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
 					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 					TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
@@ -563,7 +561,6 @@ func TestSetSecret(t *testing.T) {
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
 					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
-					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
 					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 					TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
@@ -605,7 +602,6 @@ func TestSetSecret(t *testing.T) {
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
 					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
-					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
 					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 					TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
@@ -705,10 +701,6 @@ func TestSetSecret(t *testing.T) {
 						version: &unparsableVersion,
 					}), nil),
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
-					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
-						SecretBinary: []byte(`{"fake-property":"fake-value","other-fake-property":"fake-value"}`),
-						Version:      &initialVersion,
-					}),
 				},
 				pushSecretData: pushSecretDataWithProperty,
 			},
