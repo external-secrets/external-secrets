@@ -293,8 +293,14 @@ spec:
                                     The resulting key will contain all values from the specified secrets
                                   properties:
                                     into:
+                                      default: ""
                                       description: Used to define the target key of the merge operation.
                                       type: string
+                                    priority:
+                                      description: Used to define key priority in conflict resolution.
+                                      items:
+                                        type: string
+                                      type: array
                                   type: object
                                 regexp:
                                   description: |-
@@ -10620,8 +10626,14 @@ spec:
                                 The resulting key will contain all values from the specified secrets
                               properties:
                                 into:
+                                  default: ""
                                   description: Used to define the target key of the merge operation.
                                   type: string
+                                priority:
+                                  description: Used to define key priority in conflict resolution.
+                                  items:
+                                    type: string
+                                  type: array
                               type: object
                             regexp:
                               description: |-

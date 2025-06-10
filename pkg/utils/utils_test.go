@@ -692,6 +692,54 @@ func TestRewrite(t *testing.T) {
 				"key_foo": []byte("barr"),
 			},
 		},
+		{
+			name: "test merge with priority keys",
+			args: args{
+				operations: []esv1.ExternalSecretRewrite{
+					{
+						Merge: &esv1.ExternalSecretRewriteMerge{
+							Priority: []string{"mongo-credentials", "object-storage"},
+						},
+					},
+				},
+				in: map[string][]byte{
+					"object-storage":    []byte(`{"access_key": {"foo": "bar"}, "secret_key": "bar"}`),
+					"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
+					"other-credentials": []byte(`{"key": "value"}`),
+				},
+			},
+			want: map[string][]byte{
+				"access_key": []byte(`{"foo":"bar"}`),
+				"secret_key": []byte("bar"),
+				"username":   []byte("foz"),
+				"password":   []byte("baz"),
+				"key":        []byte("value"),
+			},
+		},
+		{
+			name: "test merge with priority keys and conflicts",
+			args: args{
+				operations: []esv1.ExternalSecretRewrite{
+					{
+						Merge: &esv1.ExternalSecretRewriteMerge{
+							Priority: []string{"mongo-credentials", "object-storage"},
+						},
+					},
+				},
+				in: map[string][]byte{
+					"object-storage":    []byte(`{"access_key": {"foo": "bar"}, "secret_key": "bar"}`),
+					"mongo-credentials": []byte(`{"username": "foz", "password": "baz", "access_key": "override"}`),
+					"other-credentials": []byte(`{"key": "value", "access_key": "should-not-appear"}`),
+				},
+			},
+			want: map[string][]byte{
+				"access_key": []byte("override"),
+				"secret_key": []byte("bar"),
+				"username":   []byte("foz"),
+				"password":   []byte("baz"),
+				"key":        []byte("value"),
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

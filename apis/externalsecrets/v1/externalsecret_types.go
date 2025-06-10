@@ -324,7 +324,13 @@ type ExternalSecretRewrite struct {
 
 type ExternalSecretRewriteMerge struct {
 	// Used to define the target key of the merge operation.
+	// +optional
+	// +kubebuilder:default=""
 	Into string `json:"into,omitempty"`
+
+	// Used to define key priority in conflict resolution.
+	// +optional
+	Priority []string `json:"priority,omitempty"`
 }
 
 type ExternalSecretRewriteRegexp struct {

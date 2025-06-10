@@ -28,6 +28,7 @@ import (
 	"net/url"
 	"reflect"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -106,15 +107,24 @@ func RewriteMap(operations []esv1.ExternalSecretRewrite, in map[string][]byte) (
 func RewriteMerge(operation esv1.ExternalSecretRewriteMerge, in map[string][]byte) (map[string][]byte, error) {
 	out := make(map[string][]byte)
 	mergedMap := make(map[string]interface{})
+	priorityKeys := make([]string, 0)
 
-	// Sort input keys for deterministic iteration, predictably overwriting conflicting keys
-	// TODO: introduce support for secret key priority. This can be implemented by removing
-	// 		 the keys that to prioritize before sorting and then appending them at the end.
+	if len(operation.Priority) > 0 {
+		priorityKeys = operation.Priority
+	}
+
+	// Sort input keys for deterministic priority in conflict resolution.
 	keys := make([]string, 0, len(in))
 	for k := range in {
-		keys = append(keys, k)
+		if !slices.Contains(priorityKeys, k) {
+			keys = append(keys, k)
+		}
 	}
 	sort.Strings(keys)
+
+	// Add priority keys in reverse order to the end of the keys slice.
+	slices.Reverse(priorityKeys)
+	keys = append(keys, priorityKeys...)
 
 	for _, key := range keys {
 		value := in[key]
@@ -133,7 +143,6 @@ func RewriteMerge(operation esv1.ExternalSecretRewriteMerge, in map[string][]byt
 	}
 
 	if operation.Into != "" {
-		// Convert the merged map to JSON bytes with consistent formatting
 		mergedBytes, err := JSONMarshal(mergedMap)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal merged map: %w", err)
