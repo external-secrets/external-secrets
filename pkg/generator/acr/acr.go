@@ -297,11 +297,12 @@ func accessTokenForManagedIdentity(ctx context.Context, envType esv1.AzureEnviro
 		opts = &azidentity.ManagedIdentityCredentialOptions{
 			ID: azidentity.ResourceID(identityID),
 		}
-	} else {
+	} else if identityID != "" {
 		opts = &azidentity.ManagedIdentityCredentialOptions{
 			ID: azidentity.ClientID(identityID),
 		}
 	}
+	// lacking option ID, az will default to `id := managedidentity.SystemAssigned()`.
 	creds, err := azidentity.NewManagedIdentityCredential(opts)
 	if err != nil {
 		return "", err
