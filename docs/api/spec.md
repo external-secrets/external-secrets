@@ -3883,7 +3883,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to define the target key of the merge operation.</p>
+<p>Used to define the target key of the merge operation.
+Required if strategy is JSON. Ignored otherwise.</p>
 </td>
 </tr>
 <tr>
@@ -3898,7 +3899,77 @@ string
 <p>Used to define key priority in conflict resolution.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>conflictPolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteMergeConflictPolicy">
+ExternalSecretRewriteMergeConflictPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define the policy to use in conflict resolution.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>strategy</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteMergeStrategy">
+ExternalSecretRewriteMergeStrategy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define the strategy to use in the merge operation.</p>
+</td>
+</tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1.ExternalSecretRewriteMergeConflictPolicy">ExternalSecretRewriteMergeConflictPolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteMerge">ExternalSecretRewriteMerge</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Error&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Ignore&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1.ExternalSecretRewriteMergeStrategy">ExternalSecretRewriteMergeStrategy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteMerge">ExternalSecretRewriteMerge</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Extract&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;JSON&#34;</p></td>
+<td></td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1.ExternalSecretRewriteRegexp">ExternalSecretRewriteRegexp
 </h3>
