@@ -36,8 +36,6 @@ import (
 	"time"
 	"unicode"
 
-	"golang.org/x/exp/maps"
-
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -108,7 +106,7 @@ func RewriteMap(operations []esv1.ExternalSecretRewrite, in map[string][]byte) (
 
 // RewriteMerge merges input values according to the operation's strategy and conflict policy.
 func RewriteMerge(operation esv1.ExternalSecretRewriteMerge, in map[string][]byte) (map[string][]byte, error) {
-	out := make(map[string][]byte)
+	var out map[string][]byte
 
 	mergedMap, conflicts, err := merge(operation, in)
 	if err != nil {
@@ -123,6 +121,7 @@ func RewriteMerge(operation esv1.ExternalSecretRewriteMerge, in map[string][]byt
 
 	switch operation.Strategy {
 	case esv1.ExternalSecretRewriteMergeStrategyExtract, "":
+		out = make(map[string][]byte)
 		for k, v := range mergedMap {
 			byteValue, err := GetByteValue(v)
 			if err != nil {
@@ -131,11 +130,14 @@ func RewriteMerge(operation esv1.ExternalSecretRewriteMerge, in map[string][]byt
 			out[k] = byteValue
 		}
 	case esv1.ExternalSecretRewriteMergeStrategyJSON:
+		if operation.Into == "" {
+			return nil, fmt.Errorf("merge strategy JSON requires an 'into' field")
+		}
 		mergedBytes, err := JSONMarshal(mergedMap)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal merged map: %w", err)
 		}
-		maps.Copy(out, in)
+		out = in
 		out[operation.Into] = mergedBytes
 	}
 
