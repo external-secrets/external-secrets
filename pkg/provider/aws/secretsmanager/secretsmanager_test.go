@@ -1372,7 +1372,6 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				}, nil
 			},
 			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, f ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error) {
-
 				var tags []types.Tag
 				for k, v := range secretTags {
 					tags = append(tags, types.Tag{
@@ -1415,7 +1414,6 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				}, errBoom
 			},
 			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, f ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error) {
-
 				var tags []types.Tag
 				for k, v := range secretTags {
 					tags = append(tags, types.Tag{
@@ -1445,7 +1443,6 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				return nil, errBoom
 			},
 			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, f ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error) {
-
 				var tags []types.Tag
 				for k, v := range secretTags {
 					tags = append(tags, types.Tag{
@@ -1739,20 +1736,20 @@ func TestSecretsManager_filterTagsCorrectly(t *testing.T) {
 			},
 		},
 	}
-	for _, testcase := range tests {
-		t.Run(testcase.name, func(t *testing.T) {
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
 			sm := &SecretsManager{
-				cfg:    testcase.fields.cfg,
-				client: testcase.fields.client,
+				cfg:    tc.fields.cfg,
+				client: tc.fields.client,
 			}
-			got, err := sm.filterTagByKeyValPair(testcase.args.ctx, testcase.args.filters, testcase.args.ref)
+			got, err := sm.filterTagByKeyValPair(tc.args.ctx, tc.args.filters, tc.args.ref)
 
-			if (err != nil) != testcase.wantErr {
-				t.Errorf("filterTagByKeyValPair() error = %v, wantErr %v", err, testcase.wantErr)
+			if (err != nil) != tc.wantErr {
+				t.Errorf("filterTagByKeyValPair() error = %v, wantErr %v", err, tc.wantErr)
 				return
 			}
 
-			assert.Equalf(t, testcase.want, got, "filterTagByKeyValPair(%v, %v, %v)", testcase.args.ctx, testcase.args.filters, testcase.args.ref)
+			assert.Equalf(t, tc.want, got, "filterTagByKeyValPair(%v, %v, %v)", tc.args.ctx, tc.args.filters, tc.args.ref)
 		})
 	}
 }

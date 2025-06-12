@@ -401,11 +401,9 @@ func (sm *SecretsManager) filterTagByKeyValPair(ctx context.Context, filters []t
 
 secretLoop:
 	for _, potentialSecret := range listSecrets.SecretList {
-
 		tagMap := convertTagsSliceToMap(potentialSecret.Tags)
 
 		for desiredKey, desiredValue := range ref.Tags {
-
 			if val, ok := tagMap[desiredKey]; !ok || val != desiredValue {
 				continue secretLoop
 			}
