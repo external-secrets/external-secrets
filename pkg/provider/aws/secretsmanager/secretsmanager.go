@@ -229,10 +229,8 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 			return sm.createSecretWithContext(ctx, secretName, psd, finalValue)
 		}
 		return err
-	} else {
-		if !isManagedByESO(describeSecretOutput) {
-			return errors.New("secret not managed by external-secrets")
-		}
+	} else if !isManagedByESO(describeSecretOutput) {
+		return errors.New("secret not managed by external-secrets")
 	}
 
 	if len(describeSecretOutput.VersionIdsToStages) == 0 {
