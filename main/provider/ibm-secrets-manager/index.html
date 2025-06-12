@@ -2786,6 +2786,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#custom_credentials" class="md-nav__link">
+    <span class="md-ellipsis">
+      custom_credentials
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4141,6 +4150,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#custom_credentials" class="md-nav__link">
+    <span class="md-ellipsis">
+      custom_credentials
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4300,6 +4318,7 @@
 <li><code>public_cert</code></li>
 <li><code>private_cert</code></li>
 <li><code>kv</code></li>
+<li><code>custom_credentials</code></li>
 </ul>
 <p>To define the type of secret you would like to sync you need to prefix the secret id with the desired type. If the secret type is not specified it is defaulted to <code>arbitrary</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
@@ -4323,6 +4342,9 @@
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">srv_cred</span>
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">service_credentials/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cstm_cred</span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">custom_credentials/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">imp_cert</span>
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">imported_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz</span>
@@ -4376,6 +4398,13 @@
 <h4 id="kv">kv</h4>
 <ul>
 <li>An optional <code>property</code> field can be set to <code>remoteRef</code> to select requested key from the KV secret. If not set, the entire secret will be returned</li>
+<li><code>dataFrom</code> retrieves a string from secrets manager and tries to parse it as JSON object setting the key:values pairs in resulting Kubernetes secret if successful. It could be either used with the methods</li>
+<li><code>Extract</code> to extract multiple key/value pairs from one secret (with optional <code>property</code> field being supported as well)</li>
+<li><code>Find</code> to find secrets based on tags or regular expressions and allows finding multiple external secrets and map them into a single Kubernetes secret</li>
+</ul>
+<h4 id="custom_credentials">custom_credentials</h4>
+<ul>
+<li>An optional <code>property</code> field can be set to <code>remoteRef</code> to select requested key from the Custom Credentials secret. If not set, the entire secret will be returned</li>
 <li><code>dataFrom</code> retrieves a string from secrets manager and tries to parse it as JSON object setting the key:values pairs in resulting Kubernetes secret if successful. It could be either used with the methods</li>
 <li><code>Extract</code> to extract multiple key/value pairs from one secret (with optional <code>property</code> field being supported as well)</li>
 <li><code>Find</code> to find secrets based on tags or regular expressions and allows finding multiple external secrets and map them into a single Kubernetes secret</li>
