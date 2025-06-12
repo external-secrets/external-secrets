@@ -320,7 +320,7 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1.ExternalSecre
 			},
 		})
 
-		return sm.fetchWithBatch(ctx, filters, matcher)
+		return sm.fetchWithBatch(ctx, fetchWithBatchOpts{filters: filters, matcher: matcher})
 	}
 
 	data := make(map[string][]byte)
@@ -380,7 +380,52 @@ func (sm *SecretsManager) findByTags(ctx context.Context, ref esv1.ExternalSecre
 		})
 	}
 
-	return sm.fetchWithBatch(ctx, filters, nil)
+	secretListIds, err := sm.filterTagByKeyValPair(ctx, filters, ref)
+	if err != nil {
+		return nil, fmt.Errorf("failed to filter tags correctly: %w", err)
+	}
+
+	log.V(5).Info("secretListIds", "secrets", secretListIds)
+	return sm.fetchWithBatch(ctx, fetchWithBatchOpts{secretsListIds: secretListIds})
+}
+
+func (sm *SecretsManager) filterTagByKeyValPair(ctx context.Context, filters []types.Filter, ref esv1.ExternalSecretFind) ([]string, error) {
+	listSecrets, err := sm.client.ListSecrets(ctx, &awssm.ListSecretsInput{
+		Filters: filters,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list secrets: %w", err)
+	}
+
+	secretsIdsList := make([]string, 0, len(listSecrets.SecretList))
+
+secretLoop:
+	for _, potentialSecret := range listSecrets.SecretList {
+
+		tagMap := convertTagsSliceToMap(potentialSecret.Tags)
+
+		for desiredKey, desiredValue := range ref.Tags {
+
+			if val, ok := tagMap[desiredKey]; !ok || val != desiredValue {
+				continue secretLoop
+			}
+		}
+		if !slices.Contains(secretsIdsList, *potentialSecret.Name) {
+			secretsIdsList = append(secretsIdsList, *potentialSecret.Name)
+		}
+	}
+
+	return secretsIdsList, nil
+}
+
+func convertTagsSliceToMap(tags []types.Tag) map[string]string {
+	tagMap := make(map[string]string)
+
+	for _, tag := range tags {
+		tagMap[*tag.Key] = *tag.Value
+	}
+
+	return tagMap
 }
 
 func (sm *SecretsManager) fetchAndSet(ctx context.Context, data map[string][]byte, name string) error {
@@ -583,22 +628,48 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretI
 	return err
 }
 
-func (sm *SecretsManager) fetchWithBatch(ctx context.Context, filters []types.Filter, matcher *find.Matcher) (map[string][]byte, error) {
+type fetchWithBatchOpts struct {
+	secretsListIds []string
+	filters        []types.Filter
+	matcher        *find.Matcher
+}
+
+func (f *fetchWithBatchOpts) withBatchSecretValueInput(token *string) (*awssm.BatchGetSecretValueInput, error) {
+	if f.secretsListIds != nil && f.filters != nil {
+		return nil, fmt.Errorf("cannot set both secretsListIds and filters for BatchGetSecretValueInput")
+	}
+
+	if f.filters != nil {
+		return &awssm.BatchGetSecretValueInput{
+			Filters:   f.filters,
+			NextToken: token,
+		}, nil
+	}
+
+	return &awssm.BatchGetSecretValueInput{
+		SecretIdList: f.secretsListIds,
+		NextToken:    token,
+	}, nil
+}
+
+func (sm *SecretsManager) fetchWithBatch(ctx context.Context, opts fetchWithBatchOpts) (map[string][]byte, error) {
 	data := make(map[string][]byte)
 	var nextToken *string
 
+	input, err := opts.withBatchSecretValueInput(nextToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct BatchGetSecretValueInput: %w", err)
+	}
+
 	for {
-		it, err := sm.client.BatchGetSecretValue(ctx, &awssm.BatchGetSecretValueInput{
-			Filters:   filters,
-			NextToken: nextToken,
-		})
+		it, err := sm.client.BatchGetSecretValue(ctx, input)
 		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMBatchGetSecretValue, err)
 		if err != nil {
 			return nil, err
 		}
 		log.V(1).Info("aws sm findByName found", "secrets", len(it.SecretValues))
 		for _, secret := range it.SecretValues {
-			if matcher != nil && !matcher.MatchName(*secret.Name) {
+			if opts.matcher != nil && !opts.matcher.MatchName(*secret.Name) {
 				continue
 			}
 			log.V(1).Info("aws sm findByName matches", "name", *secret.Name)
