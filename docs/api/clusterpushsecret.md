@@ -10,3 +10,15 @@ Below is an example of the `ClusterPushSecret` in use.
 ```yaml
 {% include 'full-cluster-push-secret.yaml' %}
 ```
+
+The result of the created Secret object will look like:
+
+```yaml
+# The destination secret that will be templated and pushed by ClusterPushSecret.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: destination-secret
+stringData:
+  best-pokemon-dst: "PIKACHU is the really best!"
+```

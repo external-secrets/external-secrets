@@ -22,6 +22,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/1Password/connect-sdk-go/connect"
@@ -89,6 +90,7 @@ var (
 type ProviderOnePassword struct {
 	vaults map[string]int
 	client connect.Client
+	mu     sync.Mutex
 }
 
 type PushSecretMetadataSpec struct {
@@ -104,11 +106,13 @@ var (
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (provider *ProviderOnePassword) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+	return esv1.SecretStoreReadWrite
 }
 
 // NewClient constructs a 1Password Provider.
 func (provider *ProviderOnePassword) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
+	provider.mu.Lock()
+	defer provider.mu.Unlock()
 	config := store.GetSpec().Provider.OnePassword
 	token, err := resolvers.SecretKeyRef(
 		ctx,
@@ -197,6 +201,8 @@ func deleteField(fields []*onepassword.ItemField, label string) ([]*onepassword.
 }
 
 func (provider *ProviderOnePassword) DeleteSecret(_ context.Context, ref esv1.PushSecretRemoteRef) error {
+	provider.mu.Lock()
+	defer provider.mu.Unlock()
 	providerItem, err := provider.findItem(ref.GetRemoteKey())
 	if err != nil {
 		return err
@@ -326,6 +332,8 @@ func generateNewItemField(label, newVal string) *onepassword.ItemField {
 }
 
 func (provider *ProviderOnePassword) PushSecret(ctx context.Context, secret *corev1.Secret, ref esv1.PushSecretData) error {
+	provider.mu.Lock()
+	defer provider.mu.Unlock()
 	val, ok := secret.Data[ref.GetSecretKey()]
 	if !ok {
 		return ErrKeyNotFound
@@ -391,6 +399,8 @@ func getObjType(documentType onepassword.ItemCategory, property string) (string,
 
 // GetSecret returns a single secret from the provider.
 func (provider *ProviderOnePassword) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	provider.mu.Lock()
+	defer provider.mu.Unlock()
 	if ref.Version != "" {
 		return nil, errors.New(errVersionNotImplemented)
 	}
@@ -410,6 +420,8 @@ func (provider *ProviderOnePassword) GetSecret(_ context.Context, ref esv1.Exter
 // Validate checks if the client is configured correctly
 // to be able to retrieve secrets from the provider.
 func (provider *ProviderOnePassword) Validate() (esv1.ValidationResult, error) {
+	provider.mu.Lock()
+	defer provider.mu.Unlock()
 	for vaultName := range provider.vaults {
 		_, err := provider.client.GetVault(vaultName)
 		if err != nil {
@@ -422,6 +434,8 @@ func (provider *ProviderOnePassword) Validate() (esv1.ValidationResult, error) {
 
 // GetSecretMap returns multiple k/v pairs from the provider, for dataFrom.extract.
 func (provider *ProviderOnePassword) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	provider.mu.Lock()
+	defer provider.mu.Unlock()
 	if ref.Version != "" {
 		return nil, errors.New(errVersionNotImplemented)
 	}
@@ -440,6 +454,8 @@ func (provider *ProviderOnePassword) GetSecretMap(_ context.Context, ref esv1.Ex
 
 // GetAllSecrets syncs multiple 1Password Items into a single Kubernetes Secret, for dataFrom.find.
 func (provider *ProviderOnePassword) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	provider.mu.Lock()
+	defer provider.mu.Unlock()
 	secretData := make(map[string][]byte)
 	sortedVaults := sortVaults(provider.vaults)
 	for _, vaultName := range sortedVaults {
@@ -466,6 +482,8 @@ func (provider *ProviderOnePassword) GetAllSecrets(_ context.Context, ref esv1.E
 
 // Close closes the client connection.
 func (provider *ProviderOnePassword) Close(_ context.Context) error {
+	provider.mu.Lock()
+	defer provider.mu.Unlock()
 	return nil
 }
 
