@@ -231,10 +231,8 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 			return sm.createSecretWithContext(ctx, secretName, psd, finalValue)
 		}
 		return err
-	} else {
-		if !isManagedByESO(describeSecretOutput) {
-			return errors.New("secret not managed by external-secrets")
-		}
+	} else if !isManagedByESO(describeSecretOutput) {
+		return errors.New("secret not managed by external-secrets")
 	}
 
 	if len(describeSecretOutput.VersionIdsToStages) == 0 {
@@ -242,7 +240,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 		if err != nil {
 			return err
 		}
-		return sm.putSecretValueWithContext(ctx, secretName, nil, psd, finalValue)
+		return sm.putSecretValueWithContext(ctx, secretName, nil, psd, finalValue, describeSecretOutput.Tags)
 	}
 
 	getSecretValueInput := awssm.GetSecretValueInput{SecretId: &secretName}
@@ -256,7 +254,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 	if err != nil {
 		return err
 	}
-	return sm.putSecretValueWithContext(ctx, secretName, getSecretValueOutput, psd, finalValue)
+	return sm.putSecretValueWithContext(ctx, secretName, getSecretValueOutput, psd, finalValue, describeSecretOutput.Tags)
 }
 
 func (sm *SecretsManager) getNewSecretValue(value []byte, property string, existingSecret *awssm.GetSecretValueOutput) ([]byte, error) {
@@ -570,7 +568,7 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 	return err
 }
 
-func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretArn string, awsSecret *awssm.GetSecretValueOutput, psd esv1.PushSecretData, value []byte) error {
+func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretArn string, awsSecret *awssm.GetSecretValueOutput, psd esv1.PushSecretData, value []byte, tags []types.Tag) error {
 	if awsSecret != nil && (bytes.Equal(awsSecret.SecretBinary, value) || utils.CompareStringAndByteSlices(awsSecret.SecretString, value)) {
 		return nil
 	}
@@ -603,11 +601,11 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretA
 		return err
 	}
 
-	currentTags := make(map[string]string, len(data.Tags))
-	for _, tag := range data.Tags {
+	currentTags := make(map[string]string, len(tags))
+	for _, tag := range tags {
 		currentTags[*tag.Key] = *tag.Value
 	}
-	return sm.patchTags(ctx, psd.GetMetadata(), awsSecret.ARN, currentTags)
+	return sm.patchTags(ctx, psd.GetMetadata(), &secretArn, currentTags)
 }
 
 func (sm *SecretsManager) patchTags(ctx context.Context, metadata *apiextensionsv1.JSON, secretId *string, tags map[string]string) error {
