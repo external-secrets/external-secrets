@@ -1662,12 +1662,8 @@ func (f *FakeCredProvider) IsExpired() bool {
 
 func TestSecretsManager_filterTagsCorrectly(t *testing.T) {
 	type fields struct {
-		cfg          *aws.Config
-		client       SMInterface
-		referentAuth bool
-		cache        map[string]*awssm.GetSecretValueOutput
-		config       *esv1.SecretsManager
-		prefix       string
+		cfg    *aws.Config
+		client SMInterface
 	}
 	type args struct {
 		ctx     context.Context
@@ -1746,12 +1742,8 @@ func TestSecretsManager_filterTagsCorrectly(t *testing.T) {
 	for _, testcase := range tests {
 		t.Run(testcase.name, func(t *testing.T) {
 			sm := &SecretsManager{
-				cfg:          testcase.fields.cfg,
-				client:       testcase.fields.client,
-				referentAuth: testcase.fields.referentAuth,
-				cache:        testcase.fields.cache,
-				config:       testcase.fields.config,
-				prefix:       testcase.fields.prefix,
+				cfg:    testcase.fields.cfg,
+				client: testcase.fields.client,
 			}
 			got, err := sm.filterTagByKeyValPair(testcase.args.ctx, testcase.args.filters, testcase.args.ref)
 
