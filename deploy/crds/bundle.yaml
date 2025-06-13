@@ -293,7 +293,7 @@ spec:
                                     The resulting key will contain all values from the specified secrets
                                   properties:
                                     conflictPolicy:
-                                      default: Ignore
+                                      default: Error
                                       description: Used to define the policy to use in conflict resolution.
                                       type: string
                                     into:
@@ -10636,7 +10636,7 @@ spec:
                                 The resulting key will contain all values from the specified secrets
                               properties:
                                 conflictPolicy:
-                                  default: Ignore
+                                  default: Error
                                   description: Used to define the policy to use in conflict resolution.
                                   type: string
                                 into:
