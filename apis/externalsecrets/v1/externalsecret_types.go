@@ -335,7 +335,7 @@ type ExternalSecretRewriteMerge struct {
 
 	// Used to define the policy to use in conflict resolution.
 	// +optional
-	// +kubebuilder:default="Ignore"
+	// +kubebuilder:default="Error"
 	ConflictPolicy ExternalSecretRewriteMergeConflictPolicy `json:"conflictPolicy,omitempty"`
 
 	// Used to define the strategy to use in the merge operation.

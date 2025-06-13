@@ -435,15 +435,17 @@ func TestRewrite(t *testing.T) {
 				operations: []esv1.ExternalSecretRewrite{
 					{
 						Merge: &esv1.ExternalSecretRewriteMerge{
-							Strategy: esv1.ExternalSecretRewriteMergeStrategyJSON,
-							Into:     "merged",
-							Priority: []string{"a"},
+							Strategy:       esv1.ExternalSecretRewriteMergeStrategyJSON,
+							ConflictPolicy: esv1.ExternalSecretRewriteMergeConflictPolicyIgnore,
+							Into:           "merged",
+							Priority:       []string{"a"},
 						},
 					},
 					{
 						Merge: &esv1.ExternalSecretRewriteMerge{
-							Strategy: esv1.ExternalSecretRewriteMergeStrategyExtract,
-							Priority: []string{"b"},
+							Strategy:       esv1.ExternalSecretRewriteMergeStrategyExtract,
+							ConflictPolicy: esv1.ExternalSecretRewriteMergeConflictPolicyIgnore,
+							Priority:       []string{"b"},
 						},
 					},
 				},
@@ -470,9 +472,10 @@ func TestRewrite(t *testing.T) {
 					},
 					{
 						Merge: &esv1.ExternalSecretRewriteMerge{
-							Strategy: esv1.ExternalSecretRewriteMergeStrategyJSON,
-							Into:     "merged",
-							Priority: []string{"a"},
+							Strategy:       esv1.ExternalSecretRewriteMergeStrategyJSON,
+							ConflictPolicy: esv1.ExternalSecretRewriteMergeConflictPolicyIgnore,
+							Into:           "merged",
+							Priority:       []string{"a"},
 						},
 					},
 				},
@@ -690,7 +693,8 @@ func TestRewriteMerge(t *testing.T) {
 			name: "using priority",
 			args: args{
 				operation: esv1.ExternalSecretRewriteMerge{
-					Priority: []string{"mongo-credentials", "redis-credentials"},
+					ConflictPolicy: esv1.ExternalSecretRewriteMergeConflictPolicyIgnore,
+					Priority:       []string{"mongo-credentials", "redis-credentials"},
 				},
 				in: map[string][]byte{
 					"redis-credentials": []byte(`{"host": "redis.example.com", "port": "6379"}`),

@@ -113,7 +113,7 @@ func RewriteMerge(operation esv1.ExternalSecretRewriteMerge, in map[string][]byt
 		return nil, err
 	}
 
-	if operation.ConflictPolicy == esv1.ExternalSecretRewriteMergeConflictPolicyError {
+	if operation.ConflictPolicy != esv1.ExternalSecretRewriteMergeConflictPolicyIgnore {
 		if len(conflicts) > 0 {
 			return nil, fmt.Errorf("conflict in merge operation: %v", strings.Join(conflicts, ", "))
 		}
