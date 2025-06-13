@@ -1753,3 +1753,92 @@ func TestSecretsManager_filterTagsCorrectly(t *testing.T) {
 		})
 	}
 }
+
+func Test_fetchWithBatchOpts_withBatchSecretValueInput(t *testing.T) {
+	type fields struct {
+		secretsListIds []string
+		filters        []types.Filter
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    *awssm.BatchGetSecretValueInput
+		wantErr bool
+	}{
+		{
+			name: "returns error if secretsListIds and filters are specified",
+			fields: fields{
+				secretsListIds: []string{
+					"my-secret",
+				},
+				filters: []types.Filter{
+					{
+						Key: types.FilterNameStringTypeTagKey,
+						Values: []string{
+							"Cluster",
+						},
+					},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "returns filters correctly",
+			fields: fields{
+				filters: []types.Filter{
+					{
+						Key: types.FilterNameStringTypeTagKey,
+						Values: []string{
+							"tag-key",
+						},
+					},
+				},
+			},
+			want: &awssm.BatchGetSecretValueInput{
+				Filters: []types.Filter{
+					{
+						Key: types.FilterNameStringTypeTagKey,
+						Values: []string{
+							"tag-key",
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "return secretsListIds correctly",
+			fields: fields{
+				secretsListIds: []string{
+					"secret-id-1",
+					"secret-id-2",
+				},
+				filters: nil,
+			},
+			want: &awssm.BatchGetSecretValueInput{
+				SecretIdList: []string{
+					"secret-id-1",
+					"secret-id-2",
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			f := &fetchWithBatchOpts{
+				secretsListIds: tc.fields.secretsListIds,
+				filters:        tc.fields.filters,
+			}
+			got, err := f.withBatchSecretValueInput(nil)
+
+			if (err != nil) != tc.wantErr {
+				t.Errorf("withBatchSecretValueInput() error = %v, wantErr %v", err, tc.wantErr)
+				return
+			}
+
+			assert.Equal(t, tc.want, got, "withBatchSecretValueInput()")
+		})
+	}
+}
