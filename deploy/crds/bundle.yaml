@@ -6079,7 +6079,7 @@ spec:
                           description: Yandex.Cloud API endpoint (e.g. 'api.cloud.yandex.net:443')
                           type: string
                         auth:
-                          description: Auth defines the information necessary to authenticate against Yandex Lockbox
+                          description: Auth defines the information necessary to authenticate against Yandex Certificate Manager
                           properties:
                             authorizedKeySecretRef:
                               description: The authorized key used for authentication
@@ -16126,7 +16126,7 @@ spec:
                           description: Yandex.Cloud API endpoint (e.g. 'api.cloud.yandex.net:443')
                           type: string
                         auth:
-                          description: Auth defines the information necessary to authenticate against Yandex Lockbox
+                          description: Auth defines the information necessary to authenticate against Yandex Certificate Manager
                           properties:
                             authorizedKeySecretRef:
                               description: The authorized key used for authentication

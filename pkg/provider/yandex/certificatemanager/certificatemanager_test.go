@@ -66,7 +66,7 @@ func TestNewClient(t *testing.T) {
 	tassert.EqualError(t, err, errMissingKey)
 	tassert.Nil(t, secretClient)
 
-	store.Spec.Provider.YandexCertificateManager.Auth = esv1.YandexCertificateManagerAuth{}
+	store.Spec.Provider.YandexCertificateManager.Auth = esv1.YandexAuth{}
 	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
 	tassert.EqualError(t, err, errMissingKey)
 	tassert.Nil(t, secretClient)
@@ -89,7 +89,7 @@ func TestNewClient(t *testing.T) {
 
 	const caCertificateSecretName = "caCertificateSecretName"
 	const caCertificateSecretKey = "caCertificateSecretKey"
-	store.Spec.Provider.YandexCertificateManager.CAProvider = &esv1.YandexCertificateManagerCAProvider{
+	store.Spec.Provider.YandexCertificateManager.CAProvider = &esv1.YandexCAProvider{
 		Certificate: esmeta.SecretKeySelector{
 			Key:  caCertificateSecretKey,
 			Name: caCertificateSecretName,
@@ -676,7 +676,7 @@ func newYandexCertificateManagerSecretStore(apiEndpoint, namespace, authorizedKe
 			Provider: &esv1.SecretStoreProvider{
 				YandexCertificateManager: &esv1.YandexCertificateManagerProvider{
 					APIEndpoint: apiEndpoint,
-					Auth: esv1.YandexCertificateManagerAuth{
+					Auth: esv1.YandexAuth{
 						AuthorizedKey: esmeta.SecretKeySelector{
 							Name: authorizedKeySecretName,
 							Key:  authorizedKeySecretKey,
