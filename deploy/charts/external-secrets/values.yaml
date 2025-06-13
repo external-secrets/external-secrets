@@ -45,6 +45,8 @@ crds:
   createClusterPushSecret: true
   # -- If true, create CRDs for Push Secret.
   createPushSecret: true
+  # -- If true, create CRDs for Generators.
+  createGenerators: true
   annotations: {}
   conversion:
     # -- Conversion is disabled by default as we stopped supporting v1alpha1.
