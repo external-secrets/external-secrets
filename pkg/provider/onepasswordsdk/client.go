@@ -16,7 +16,6 @@ package onepasswordsdk
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -27,6 +26,13 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
+)
+
+const (
+	fieldPrefix             = "field"
+	filePrefix              = "file"
+	prefixSplitter          = "/"
+	errExpectedOneFieldMsgF = "found more than 1 fields with title '%s' in '%s', got %d"
 )
 
 // ErrKeyNotFound is returned when a key is not found in the 1Password Vaults.
@@ -112,32 +118,85 @@ func (p *Provider) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (
 	return nil, fmt.Errorf(errOnePasswordSdkStore, errors.New(errNotImplemented))
 }
 
-// GetSecretMap implements v1.SecretsClient.
+// GetSecretMap returns multiple k/v pairs from the provider, for dataFrom.extract.
 func (p *Provider) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if ref.Version != "" {
 		return nil, errors.New(errVersionNotImplemented)
 	}
 
-	// Gets a secret as normal, expecting secret value to be a json object
-	data, err := p.GetSecret(ctx, ref)
+	item, err := p.findItem(ctx, ref.Key)
 	if err != nil {
-		return nil, fmt.Errorf("error getting secret %s: %w", ref.Key, err)
+		return nil, err
 	}
 
-	// Maps the json data to a string:string map
-	kv := make(map[string]string)
-	err = json.Unmarshal(data, &kv)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal data: %w", err)
+	propertyType, property := getObjType(item.Category, ref.Property)
+	if propertyType == filePrefix {
+		return p.getFiles(ctx, item, property)
 	}
 
-	// Converts values in K:V pairs into bytes, while leaving keys as strings
+	return p.getFields(item, property)
+}
+
+func (p *Provider) getFields(item onepassword.Item, property string) (map[string][]byte, error) {
 	secretData := make(map[string][]byte)
-	for k, v := range kv {
-		secretData[k] = []byte(v)
+	for _, field := range item.Fields {
+		if property != "" && field.Title != property {
+			continue
+		}
+		if length := countFieldsWithLabel(field.Title, item.Fields); length != 1 {
+			return nil, fmt.Errorf(errExpectedOneFieldMsgF, field.Title, item.Title, length)
+		}
+
+		// caution: do not use client.GetValue here because it has undesirable behavior on keys with a dot in them
+		secretData[field.Title] = []byte(field.Value)
 	}
 
 	return secretData, nil
+}
+
+func (p *Provider) getFiles(ctx context.Context, item onepassword.Item, property string) (map[string][]byte, error) {
+	secretData := make(map[string][]byte)
+	for _, file := range item.Files {
+		if property != "" && file.Attributes.Name != property {
+			continue
+		}
+
+		contents, err := p.client.Items().Files().Read(ctx, p.vaultID, file.FieldID, file.Attributes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read file: %w", err)
+		}
+
+		secretData[file.Attributes.Name] = contents
+	}
+
+	return secretData, nil
+}
+
+func countFieldsWithLabel(fieldLabel string, fields []onepassword.ItemField) int {
+	count := 0
+	for _, field := range fields {
+		if field.Title == fieldLabel {
+			count++
+		}
+	}
+
+	return count
+}
+
+// Clean property string by removing property prefix if needed.
+func getObjType(documentType onepassword.ItemCategory, property string) (string, string) {
+	if strings.HasPrefix(property, fieldPrefix+prefixSplitter) {
+		return fieldPrefix, property[6:]
+	}
+	if strings.HasPrefix(property, filePrefix+prefixSplitter) {
+		return filePrefix, property[5:]
+	}
+
+	if documentType == onepassword.ItemCategoryDocument {
+		return filePrefix, property
+	}
+
+	return fieldPrefix, property
 }
 
 // createItem creates a new item in the first vault. If no vaults exist, it returns an error.
