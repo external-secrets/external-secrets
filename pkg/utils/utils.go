@@ -82,26 +82,25 @@ func RewriteMap(operations []esv1.ExternalSecretRewrite, in map[string][]byte) (
 	out := in
 	var err error
 	for i, op := range operations {
-		if op.Merge != nil {
-			out, err = RewriteMerge(*op.Merge, out)
-			if err != nil {
-				return nil, fmt.Errorf("failed rewriting merge operation[%v]: %w", i, err)
-			}
-		}
-		if op.Regexp != nil {
-			out, err = RewriteRegexp(*op.Regexp, out)
-			if err != nil {
-				return nil, fmt.Errorf("failed rewriting regexp operation[%v]: %w", i, err)
-			}
-		}
-		if op.Transform != nil {
-			out, err = RewriteTransform(*op.Transform, out)
-			if err != nil {
-				return nil, fmt.Errorf("failed rewriting transform operation[%v]: %w", i, err)
-			}
+		out, err = handleRewriteOperation(op, out)
+		if err != nil {
+			return nil, fmt.Errorf("failed rewrite operation[%v]: %w", i, err)
 		}
 	}
 	return out, nil
+}
+
+func handleRewriteOperation(op esv1.ExternalSecretRewrite, in map[string][]byte) (map[string][]byte, error) {
+	switch {
+	case op.Merge != nil:
+		return RewriteMerge(*op.Merge, in)
+	case op.Regexp != nil:
+		return RewriteRegexp(*op.Regexp, in)
+	case op.Transform != nil:
+		return RewriteTransform(*op.Transform, in)
+	default:
+		return in, nil
+	}
 }
 
 // RewriteMerge merges input values according to the operation's strategy and conflict policy.
