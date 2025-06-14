@@ -114,7 +114,7 @@ func RewriteMerge(operation esv1.ExternalSecretRewriteMerge, in map[string][]byt
 
 	if operation.ConflictPolicy != esv1.ExternalSecretRewriteMergeConflictPolicyIgnore {
 		if len(conflicts) > 0 {
-			return nil, fmt.Errorf("conflict in merge operation: %v", strings.Join(conflicts, ", "))
+			return nil, fmt.Errorf("merge failed with conflicts: %v", strings.Join(conflicts, ", "))
 		}
 	}
 
@@ -124,17 +124,17 @@ func RewriteMerge(operation esv1.ExternalSecretRewriteMerge, in map[string][]byt
 		for k, v := range mergedMap {
 			byteValue, err := GetByteValue(v)
 			if err != nil {
-				return nil, fmt.Errorf("failed to convert value to []byte: %w", err)
+				return nil, fmt.Errorf("merge failed with failed to convert value to []byte: %w", err)
 			}
 			out[k] = byteValue
 		}
 	case esv1.ExternalSecretRewriteMergeStrategyJSON:
 		if operation.Into == "" {
-			return nil, fmt.Errorf("merge strategy JSON requires an 'into' field")
+			return nil, fmt.Errorf("merge failed with missing 'into' field")
 		}
 		mergedBytes, err := JSONMarshal(mergedMap)
 		if err != nil {
-			return nil, fmt.Errorf("failed to marshal merged map: %w", err)
+			return nil, fmt.Errorf("merge failed with failed to marshal merged map: %w", err)
 		}
 		out = in
 		out[operation.Into] = mergedBytes
@@ -155,7 +155,7 @@ func merge(operation esv1.ExternalSecretRewriteMerge, in map[string][]byte) (map
 		value := in[key]
 		var jsonMap map[string]any
 		if err := json.Unmarshal(value, &jsonMap); err != nil {
-			return nil, nil, fmt.Errorf("failed to unmarshal JSON: %w", err)
+			return nil, nil, fmt.Errorf("merge failed with failed to unmarshal JSON: %w", err)
 		}
 
 		for k, v := range jsonMap {
@@ -188,7 +188,7 @@ func RewriteRegexp(operation esv1.ExternalSecretRewriteRegexp, in map[string][]b
 	out := make(map[string][]byte)
 	re, err := regexp.Compile(operation.Source)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("regexp failed with failed to compile: %w", err)
 	}
 	for key, value := range in {
 		newKey := re.ReplaceAllString(key, operation.Target)
@@ -207,7 +207,7 @@ func RewriteTransform(operation esv1.ExternalSecretRewriteTransform, in map[stri
 
 		result, err := transform(operation.Template, data)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("transform failed with failed to transform key: %w", err)
 		}
 
 		newKey := string(result)
