@@ -324,21 +324,21 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, ref es
 	return nil
 }
 
-func (p *Provider) GetVault(ctx context.Context, name string) (string, error) {
+func (p *Provider) GetVault(ctx context.Context, titleOrUuid string) (string, error) {
 	vaults, err := p.client.VaultsAPI.List(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to list vaults: %w", err)
 	}
 
 	for _, v := range vaults {
-		if v.Title == name {
+		if v.Title == titleOrUuid || v.ID == titleOrUuid {
 			// cache the ID so we don't have to repeat this lookup.
 			p.vaultID = v.ID
 			return v.ID, nil
 		}
 	}
 
-	return "", fmt.Errorf("vault %s not found", name)
+	return "", fmt.Errorf("vault %s not found", titleOrUuid)
 }
 
 func (p *Provider) findItem(ctx context.Context, name string) (onepassword.Item, error) {
