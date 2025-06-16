@@ -305,6 +305,12 @@ type ExternalSecretDataFromRemoteRef struct {
 }
 
 type ExternalSecretRewrite struct {
+
+	// Used to merge key/values in one single Secret
+	// The resulting key will contain all values from the specified secrets
+	// +optional
+	Merge *ExternalSecretRewriteMerge `json:"merge,omitempty"`
+
 	// Used to rewrite with regular expressions.
 	// The resulting key will be the output of a regexp.ReplaceAll operation.
 	// +optional
@@ -315,6 +321,42 @@ type ExternalSecretRewrite struct {
 	// +optional
 	Transform *ExternalSecretRewriteTransform `json:"transform,omitempty"`
 }
+
+type ExternalSecretRewriteMerge struct {
+	// Used to define the target key of the merge operation.
+	// Required if strategy is JSON. Ignored otherwise.
+	// +optional
+	// +kubebuilder:default=""
+	Into string `json:"into,omitempty"`
+
+	// Used to define key priority in conflict resolution.
+	// +optional
+	Priority []string `json:"priority,omitempty"`
+
+	// Used to define the policy to use in conflict resolution.
+	// +optional
+	// +kubebuilder:default="Error"
+	ConflictPolicy ExternalSecretRewriteMergeConflictPolicy `json:"conflictPolicy,omitempty"`
+
+	// Used to define the strategy to use in the merge operation.
+	// +optional
+	// +kubebuilder:default="Extract"
+	Strategy ExternalSecretRewriteMergeStrategy `json:"strategy,omitempty"`
+}
+
+type ExternalSecretRewriteMergeConflictPolicy string
+
+const (
+	ExternalSecretRewriteMergeConflictPolicyIgnore ExternalSecretRewriteMergeConflictPolicy = "Ignore"
+	ExternalSecretRewriteMergeConflictPolicyError  ExternalSecretRewriteMergeConflictPolicy = "Error"
+)
+
+type ExternalSecretRewriteMergeStrategy string
+
+const (
+	ExternalSecretRewriteMergeStrategyExtract ExternalSecretRewriteMergeStrategy = "Extract"
+	ExternalSecretRewriteMergeStrategyJSON    ExternalSecretRewriteMergeStrategy = "JSON"
+)
 
 type ExternalSecretRewriteRegexp struct {
 	// Used to define the regular expression of a re.Compiler.
