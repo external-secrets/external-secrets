@@ -25,7 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	v1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 )
 
@@ -588,6 +588,33 @@ func TestDeleteItemField(t *testing.T) {
 
 			testCase.assertError(t, p.DeleteSecret(ctx, testCase.ref))
 			testCase.assertLister(t, lister)
+		})
+	}
+}
+
+func TestGetVault(t *testing.T) {
+	fc := &fakeClient{
+		listAllResult: []onepassword.VaultOverview{
+			{
+				ID:    "vault-id",
+				Title: "vault-title",
+			},
+		},
+	}
+
+	p := &Provider{
+		client: &onepassword.Client{
+			VaultsAPI: fc,
+		},
+	}
+
+	titleOrUuids := []string{"vault-title", "vault-id"}
+
+	for _, titleOrUuid := range titleOrUuids {
+		t.Run(titleOrUuid, func(t *testing.T) {
+			vaultID, err := p.GetVault(context.Background(), titleOrUuid)
+			require.NoError(t, err)
+			require.Equal(t, fc.listAllResult[0].ID, vaultID)
 		})
 	}
 }
