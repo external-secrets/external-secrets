@@ -6,7 +6,7 @@
 
 ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![Version: 0.18.0-rc1](https://img.shields.io/badge/Version-0.18.0--rc1-informational?style=flat-square)
 
-External secret management for Kubernetes
+External secrets management for Kubernetes
 
 ## TL;DR
 ```bash
