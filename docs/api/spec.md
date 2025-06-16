@@ -6096,7 +6096,7 @@ string
 </em>
 </td>
 <td>
-<p>Vault defines the vault&rsquo;s name to access. Do NOT add op:// prefix. This will be done automatically.</p>
+<p>Vault defines the vault&rsquo;s name or uuid to access. Do NOT add op:// prefix. This will be done automatically.</p>
 </td>
 </tr>
 <tr>
