@@ -1,4 +1,4 @@
-apiVersion: v2
+apiVersion: v2 
 name: external-secrets
 description: External secret management for Kubernetes
 type: application
