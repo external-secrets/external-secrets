@@ -255,8 +255,10 @@ func (g *gitlabBase) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRem
 	// 	"masked": true,
 	// 	"environment_scope": "*"
 	// }
+	var gopts *gitlab.GetGroupVariableOptions
 	var vopts *gitlab.GetProjectVariableOptions
 	if g.store.Environment != "" {
+		gopts = &gitlab.GetGroupVariableOptions{Filter: &gitlab.VariableFilter{EnvironmentScope: g.store.Environment}}
 		vopts = &gitlab.GetProjectVariableOptions{Filter: &gitlab.VariableFilter{EnvironmentScope: g.store.Environment}}
 	}
 
@@ -282,7 +284,7 @@ func (g *gitlabBase) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRem
 			return result, nil
 		}
 
-		groupVar, resp, err := g.groupVariablesClient.GetVariable(groupID, ref.Key, nil)
+		groupVar, resp, err := g.groupVariablesClient.GetVariable(groupID, ref.Key, gopts)
 		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupGetVariable, err)
 		if resp.StatusCode >= 400 && resp.StatusCode != http.StatusNotFound && err != nil {
 			return nil, err
