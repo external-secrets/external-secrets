@@ -24,6 +24,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"maps"
 	"net"
 	"net/url"
 	"reflect"
@@ -129,6 +130,7 @@ func RewriteMerge(operation esv1.ExternalSecretRewriteMerge, in map[string][]byt
 			out[k] = byteValue
 		}
 	case esv1.ExternalSecretRewriteMergeStrategyJSON:
+		out = make(map[string][]byte)
 		if operation.Into == "" {
 			return nil, fmt.Errorf("merge failed with missing 'into' field")
 		}
@@ -136,7 +138,7 @@ func RewriteMerge(operation esv1.ExternalSecretRewriteMerge, in map[string][]byt
 		if err != nil {
 			return nil, fmt.Errorf("merge failed with failed to marshal merged map: %w", err)
 		}
-		out = in
+		maps.Copy(out, in)
 		out[operation.Into] = mergedBytes
 	}
 
