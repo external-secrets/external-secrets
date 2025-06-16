@@ -1,0 +1,14 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: "uuid"
+spec:
+  refreshInterval: "30m"
+  target:
+    name: uuid-secret
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: UUID
+          name: "my-uuid"
