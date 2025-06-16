@@ -1359,17 +1359,32 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			secretVersion: secretVersion,
 			secretValue:   secretValue,
 			batchGetSecretValueFn: func(_ context.Context, input *awssm.BatchGetSecretValueInput, _ ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error) {
-				assert.Len(t, input.Filters, 2)
-				assert.Equal(t, "tag-key", string(input.Filters[0].Key))
-				assert.Equal(t, "foo", input.Filters[0].Values[0])
-				assert.Equal(t, "tag-value", string(input.Filters[1].Key))
-				assert.Equal(t, "bar", input.Filters[1].Values[0])
+				assert.Len(t, input.Filters, 0) // fetchByTags does not use filters. Instead, it produces an accurate list of secrets ids.
+				assert.Len(t, input.SecretIdList, 1)
 				return &awssm.BatchGetSecretValueOutput{
 					SecretValues: []types.SecretValueEntry{
 						{
 							Name:          ptr.To(secretName),
 							VersionStages: []string{secretVersion},
 							SecretBinary:  []byte(secretValue),
+						},
+					},
+				}, nil
+			},
+			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, f ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error) {
+				var tags []types.Tag
+				for k, v := range secretTags {
+					tags = append(tags, types.Tag{
+						Key:   aws.String(k),
+						Value: aws.String(v),
+					})
+				}
+
+				return &awssm.ListSecretsOutput{
+					SecretList: []types.SecretListEntry{
+						{
+							Name: aws.String("secret"),
+							Tags: tags,
 						},
 					},
 				}, nil
@@ -1398,6 +1413,24 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 					},
 				}, errBoom
 			},
+			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, f ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error) {
+				var tags []types.Tag
+				for k, v := range secretTags {
+					tags = append(tags, types.Tag{
+						Key:   aws.String(k),
+						Value: aws.String(v),
+					})
+				}
+
+				return &awssm.ListSecretsOutput{
+					SecretList: []types.SecretListEntry{
+						{
+							Name: aws.String("secret"),
+							Tags: tags,
+						},
+					},
+				}, nil
+			},
 			expectedData:  nil,
 			expectedError: errBoom.Error(),
 		},
@@ -1408,6 +1441,24 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			},
 			batchGetSecretValueFn: func(_ context.Context, input *awssm.BatchGetSecretValueInput, _ ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error) {
 				return nil, errBoom
+			},
+			listSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, f ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error) {
+				var tags []types.Tag
+				for k, v := range secretTags {
+					tags = append(tags, types.Tag{
+						Key:   aws.String(k),
+						Value: aws.String(v),
+					})
+				}
+
+				return &awssm.ListSecretsOutput{
+					SecretList: []types.SecretListEntry{
+						{
+							Name: aws.String("secret"),
+							Tags: tags,
+						},
+					},
+				}, nil
 			},
 			expectedData:  nil,
 			expectedError: errBoom.Error(),
@@ -1604,4 +1655,190 @@ func (f *FakeCredProvider) Retrieve(ctx context.Context) (aws.Credentials, error
 
 func (f *FakeCredProvider) IsExpired() bool {
 	return true
+}
+
+func TestSecretsManager_filterTagsCorrectly(t *testing.T) {
+	type fields struct {
+		cfg    *aws.Config
+		client SMInterface
+	}
+	type args struct {
+		ctx     context.Context
+		filters []types.Filter
+		ref     esv1.ExternalSecretFind
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    []string
+		wantErr bool
+	}{
+		{
+			name: "only returns matching secrets",
+			args: args{
+				ctx: context.Background(),
+				filters: []types.Filter{
+					{
+						Key:    types.FilterNameStringTypeTagKey,
+						Values: []string{"AppName", "Cluster"},
+					},
+					{
+						Key:    types.FilterNameStringTypeTagValue,
+						Values: []string{"secret", "dev-cluster"},
+					},
+				},
+				ref: esv1.ExternalSecretFind{
+					Tags: map[string]string{
+						"AppName": "secret",
+						"Cluster": "dev-cluster",
+					},
+				},
+			},
+			want:    []string{"secret"},
+			wantErr: false,
+			fields: fields{
+				client: &fakesm.Client{
+					ListSecretsFn: func(ctx context.Context, input *awssm.ListSecretsInput, f ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error) {
+						return &awssm.ListSecretsOutput{
+							NextToken: aws.String("next-token"),
+							SecretList: []types.SecretListEntry{
+								{
+									Name: aws.String("secret"),
+									Tags: []types.Tag{
+										{
+											Key:   aws.String("AppName"),
+											Value: aws.String("secret"),
+										},
+										{
+											Key:   aws.String("Cluster"),
+											Value: aws.String("dev-cluster"),
+										},
+									},
+								},
+								{
+									Name: aws.String("secret-1"),
+									Tags: []types.Tag{
+										{
+											Key:   aws.String("AppName"),
+											Value: aws.String("secret-1"),
+										},
+										{
+											Key:   aws.String("Cluster"),
+											Value: aws.String("dev-cluster"),
+										},
+									},
+								},
+							},
+						}, nil
+					},
+				},
+			},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			sm := &SecretsManager{
+				cfg:    tc.fields.cfg,
+				client: tc.fields.client,
+			}
+			got, err := sm.filterTagByKeyValPair(tc.args.ctx, tc.args.filters, tc.args.ref)
+
+			if (err != nil) != tc.wantErr {
+				t.Errorf("filterTagByKeyValPair() error = %v, wantErr %v", err, tc.wantErr)
+				return
+			}
+
+			assert.Equalf(t, tc.want, got, "filterTagByKeyValPair(%v, %v, %v)", tc.args.ctx, tc.args.filters, tc.args.ref)
+		})
+	}
+}
+
+func Test_fetchWithBatchOpts_withBatchSecretValueInput(t *testing.T) {
+	type fields struct {
+		secretsListIds []string
+		filters        []types.Filter
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    *awssm.BatchGetSecretValueInput
+		wantErr bool
+	}{
+		{
+			name: "returns error if secretsListIds and filters are specified",
+			fields: fields{
+				secretsListIds: []string{
+					"my-secret",
+				},
+				filters: []types.Filter{
+					{
+						Key: types.FilterNameStringTypeTagKey,
+						Values: []string{
+							"Cluster",
+						},
+					},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "returns filters correctly",
+			fields: fields{
+				filters: []types.Filter{
+					{
+						Key: types.FilterNameStringTypeTagKey,
+						Values: []string{
+							"tag-key",
+						},
+					},
+				},
+			},
+			want: &awssm.BatchGetSecretValueInput{
+				Filters: []types.Filter{
+					{
+						Key: types.FilterNameStringTypeTagKey,
+						Values: []string{
+							"tag-key",
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "return secretsListIds correctly",
+			fields: fields{
+				secretsListIds: []string{
+					"secret-id-1",
+					"secret-id-2",
+				},
+				filters: nil,
+			},
+			want: &awssm.BatchGetSecretValueInput{
+				SecretIdList: []string{
+					"secret-id-1",
+					"secret-id-2",
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			f := &fetchWithBatchOpts{
+				secretsListIds: tc.fields.secretsListIds,
+				filters:        tc.fields.filters,
+			}
+			got, err := f.withBatchSecretValueInput(nil)
+
+			if (err != nil) != tc.wantErr {
+				t.Errorf("withBatchSecretValueInput() error = %v, wantErr %v", err, tc.wantErr)
+				return
+			}
+
+			assert.Equal(t, tc.want, got, "withBatchSecretValueInput()")
+		})
+	}
 }
