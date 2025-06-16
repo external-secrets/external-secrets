@@ -4499,7 +4499,7 @@ spec:
                               type: string
                           type: object
                         vault:
-                          description: Vault defines the vault's name to access. Do NOT add op:// prefix. This will be done automatically.
+                          description: Vault defines the vault's name or uuid to access. Do NOT add op:// prefix. This will be done automatically.
                           type: string
                       required:
                         - auth
@@ -14571,7 +14571,7 @@ spec:
                               type: string
                           type: object
                         vault:
-                          description: Vault defines the vault's name to access. Do NOT add op:// prefix. This will be done automatically.
+                          description: Vault defines the vault's name or uuid to access. Do NOT add op:// prefix. This will be done automatically.
                           type: string
                       required:
                         - auth
