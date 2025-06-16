@@ -712,6 +712,21 @@ func TestRewriteMerge(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "using priority with keys not in input",
+			args: args{
+				operation: esv1.ExternalSecretRewriteMerge{
+					ConflictPolicy: esv1.ExternalSecretRewriteMergeConflictPolicyIgnore,
+					Priority:       []string{"non-existent-key", "another-missing-key", "mongo-credentials"},
+				},
+				in: map[string][]byte{
+					"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
+					"redis-credentials": []byte(`{"host": "redis.example.com", "port": "6379"}`),
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
 			name: "using conflict policy error",
 			args: args{
 				operation: esv1.ExternalSecretRewriteMerge{

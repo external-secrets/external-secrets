@@ -154,7 +154,10 @@ func merge(operation esv1.ExternalSecretRewriteMerge, in map[string][]byte) (map
 	keys := sortKeysWithPriority(operation, in)
 
 	for _, key := range keys {
-		value := in[key]
+		value, exists := in[key]
+		if !exists {
+			return nil, nil, fmt.Errorf("merge failed with key %q not found in input map", key)
+		}
 		var jsonMap map[string]any
 		if err := json.Unmarshal(value, &jsonMap); err != nil {
 			return nil, nil, fmt.Errorf("merge failed with failed to unmarshal JSON: %w", err)
