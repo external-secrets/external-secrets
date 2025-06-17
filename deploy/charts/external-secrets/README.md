@@ -126,6 +126,13 @@ The command removes all the Kubernetes components associated with the chart and 
 | imagePullSecrets | list | `[]` |  |
 | installCRDs | bool | `true` | If set, install and upgrade CRDs through helm chart. |
 | leaderElect | bool | `false` | If true, external-secrets will perform leader election between instances to ensure no more than one instance of external-secrets operates at a time. |
+| livenessProbe.address | string | `""` | Address for liveness probe. |
+| livenessProbe.failureThreshold | int | `5` | Number of consecutive probe failures that should occur before considering the probe as failed. |
+| livenessProbe.httpGet | object | `{"path":"/healthz","port":0}` | Handler for liveness probe. |
+| livenessProbe.initialDelaySeconds | int | `10` | Delay in seconds for the container to start before performing the initial probe. |
+| livenessProbe.periodSeconds | int | `10` | Period in seconds for K8s to start performing probes. |
+| livenessProbe.successThreshold | int | `1` | Number of successful probes to mark probe successful. |
+| livenessProbe.timeoutSeconds | int | `5` | Specify the maximum amount of time to wait for a probe to respond before considering it fails. |
 | log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the External Secrets Operator |
 | metrics.listen.port | int | `8080` |  |
 | metrics.service.annotations | object | `{}` | Additional service annotations |
