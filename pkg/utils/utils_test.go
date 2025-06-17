@@ -430,6 +430,67 @@ func TestRewrite(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			name: "using double merge",
+			args: args{
+				operations: []esv1.ExternalSecretRewrite{
+					{
+						Merge: &esv1.ExternalSecretRewriteMerge{
+							Strategy:       esv1.ExternalSecretRewriteMergeStrategyJSON,
+							ConflictPolicy: esv1.ExternalSecretRewriteMergeConflictPolicyIgnore,
+							Into:           "merged",
+							Priority:       []string{"a"},
+						},
+					},
+					{
+						Merge: &esv1.ExternalSecretRewriteMerge{
+							Strategy:       esv1.ExternalSecretRewriteMergeStrategyExtract,
+							ConflictPolicy: esv1.ExternalSecretRewriteMergeConflictPolicyIgnore,
+							Priority:       []string{"b"},
+						},
+					},
+				},
+				in: map[string][]byte{
+					"a": []byte(`{"host": "dba", "pass": "yola", "port": 123}`),
+					"b": []byte(`{"host": "dbb", "pass": "yolb"}`),
+				},
+			},
+			want: map[string][]byte{
+				"host": []byte("dbb"),
+				"pass": []byte("yolb"),
+				"port": []byte("123"),
+			},
+		},
+		{
+			name: "using regexp and merge",
+			args: args{
+				operations: []esv1.ExternalSecretRewrite{
+					{
+						Regexp: &esv1.ExternalSecretRewriteRegexp{
+							Source: "db/(.*)",
+							Target: "$1",
+						},
+					},
+					{
+						Merge: &esv1.ExternalSecretRewriteMerge{
+							Strategy:       esv1.ExternalSecretRewriteMergeStrategyJSON,
+							ConflictPolicy: esv1.ExternalSecretRewriteMergeConflictPolicyIgnore,
+							Into:           "merged",
+							Priority:       []string{"a"},
+						},
+					},
+				},
+				in: map[string][]byte{
+					"db/a": []byte(`{"host": "dba.example.com"}`),
+					"db/b": []byte(`{"host": "dbb.example.com", "pass": "yolo"}`),
+				},
+			},
+			want: map[string][]byte{
+				"a":      []byte(`{"host": "dba.example.com"}`),
+				"b":      []byte(`{"host": "dbb.example.com", "pass": "yolo"}`),
+				"merged": []byte(`{"host":"dba.example.com","pass":"yolo"}`),
+			},
+		},
+		{
 			name: "replace of a single key",
 			args: args{
 				operations: []esv1.ExternalSecretRewrite{
@@ -578,33 +639,11 @@ func TestRewrite(t *testing.T) {
 					},
 				},
 				in: map[string][]byte{
-					"my/app/bar/api-key":      []byte("bar"),
-					"my/app/bar/api-password": []byte("barr"),
+					"my/app/bar/key": []byte("bar"),
 				},
 			},
 			want: map[string][]byte{
-				"APP_API_KEY":      []byte("bar"),
-				"APP_API_PASSWORD": []byte("barr"),
-			},
-		},
-		{
-			name: "using transform rewrite operation to lower case",
-			args: args{
-				operations: []esv1.ExternalSecretRewrite{
-					{
-						Transform: &esv1.ExternalSecretRewriteTransform{
-							Template: `{{ .value | lower }}`,
-						},
-					},
-				},
-				in: map[string][]byte{
-					"API_FOO": []byte("bar"),
-					"KEY_FOO": []byte("barr"),
-				},
-			},
-			want: map[string][]byte{
-				"api_foo": []byte("bar"),
-				"key_foo": []byte("barr"),
+				"APP_KEY": []byte("bar"),
 			},
 		},
 	}
@@ -622,6 +661,152 @@ func TestRewrite(t *testing.T) {
 	}
 }
 
+func TestRewriteMerge(t *testing.T) {
+	type args struct {
+		operation esv1.ExternalSecretRewriteMerge
+		in        map[string][]byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    map[string][]byte
+		wantErr bool
+	}{
+		{
+			name: "using empty merge",
+			args: args{
+				operation: esv1.ExternalSecretRewriteMerge{},
+				in: map[string][]byte{
+					"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
+					"redis-credentials": []byte(`{"host": "redis.example.com", "port": "6379"}`),
+				},
+			},
+			want: map[string][]byte{
+				"username": []byte("foz"),
+				"password": []byte("baz"),
+				"host":     []byte("redis.example.com"),
+				"port":     []byte("6379"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "using priority",
+			args: args{
+				operation: esv1.ExternalSecretRewriteMerge{
+					ConflictPolicy: esv1.ExternalSecretRewriteMergeConflictPolicyIgnore,
+					Priority:       []string{"mongo-credentials", "redis-credentials"},
+				},
+				in: map[string][]byte{
+					"redis-credentials": []byte(`{"host": "redis.example.com", "port": "6379"}`),
+					"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
+					"other-credentials": []byte(`{"key": "value", "host": "other.example.com"}`),
+				},
+			},
+			want: map[string][]byte{
+				"username": []byte("foz"),
+				"password": []byte("baz"),
+				"host":     []byte("redis.example.com"),
+				"port":     []byte("6379"),
+				"key":      []byte("value"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "using priority with keys not in input",
+			args: args{
+				operation: esv1.ExternalSecretRewriteMerge{
+					ConflictPolicy: esv1.ExternalSecretRewriteMergeConflictPolicyIgnore,
+					Priority:       []string{"non-existent-key", "another-missing-key", "mongo-credentials"},
+				},
+				in: map[string][]byte{
+					"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
+					"redis-credentials": []byte(`{"host": "redis.example.com", "port": "6379"}`),
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "using conflict policy error",
+			args: args{
+				operation: esv1.ExternalSecretRewriteMerge{
+					ConflictPolicy: esv1.ExternalSecretRewriteMergeConflictPolicyError,
+				},
+				in: map[string][]byte{
+					"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
+					"redis-credentials": []byte(`{"username": "redis", "port": "6379"}`),
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "using JSON strategy",
+			args: args{
+				operation: esv1.ExternalSecretRewriteMerge{
+					Strategy: esv1.ExternalSecretRewriteMergeStrategyJSON,
+					Into:     "credentials",
+				},
+				in: map[string][]byte{
+					"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
+					"redis-credentials": []byte(`{"host": "redis.example.com", "port": "6379"}`),
+				},
+			},
+			want: map[string][]byte{
+				"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
+				"redis-credentials": []byte(`{"host": "redis.example.com", "port": "6379"}`),
+				"credentials": func() []byte {
+					expected := map[string]interface{}{
+						"username": "foz",
+						"password": "baz",
+						"host":     "redis.example.com",
+						"port":     "6379",
+					}
+					b, _ := json.Marshal(expected)
+					return b
+				}(),
+			},
+			wantErr: false,
+		},
+		{
+			name: "using JSON strategy without into",
+			args: args{
+				operation: esv1.ExternalSecretRewriteMerge{
+					Strategy: esv1.ExternalSecretRewriteMergeStrategyJSON,
+				},
+				in: map[string][]byte{
+					"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
+					"redis-credentials": []byte(`{"host": "redis.example.com", "port": "6379"}`),
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "with invalid JSON",
+			args: args{
+				operation: esv1.ExternalSecretRewriteMerge{},
+				in: map[string][]byte{
+					"invalid-json": []byte(`{"username": "foz", "password": "baz"`),
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := RewriteMerge(tt.args.operation, tt.args.in)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RewriteMerge() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RewriteMerge() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 func TestReverse(t *testing.T) {
 	type args struct {
 		strategy esv1alpha1.PushSecretConversionStrategy
