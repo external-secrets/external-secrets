@@ -173,7 +173,7 @@ jobs:
 
       - name: Generate provenance attestation and push to OCI registry
         if: steps.push_chart.outputs.push_status == 'pushed'
-        uses: actions/attest-build-provenance@db473fddc028af60658334401dc6fa3ffd8669fd # v2.3.0
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
         with:
           push-to-registry: true
           subject-name: ${{ steps.push_chart.outputs.registry }}/${{ steps.push_chart.outputs.chart_name }}
