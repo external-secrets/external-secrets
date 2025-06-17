@@ -95,6 +95,8 @@ Kubernetes Secret will be create with follow `.data.X`
 ```bash
 API_SETTINGS='[{"TOKEN":"example-token-value","URL":"https://example.com/api/example"}]'
 API_SETTINGS_TOKEN='example-token-value'
+API_SETTINGS_TOKEN_ENCRYPT='hAZJktRFdzSkGxxiiSE46T271veCgwvC0GrY+AwDYA/KeuFZFdPgZsJ74awu1WR6x4BrbMLTXNpQw4UqChdbaM7VoKUCkPTcCU1jsveqYNisM2MNF98QjNjvp+9jXHfAsClLA5AvJxe3GjfWIi18E4PieFpATn/BTrmoklx4rSkWmfifZol7Wcny0D2fhrj/JOdxEIqowUB/tNwYzNd+lXgm55wea+G3YnD3Fr4ARaCCaQMUcdW9Kgx7mmZGZE3xDAhs8WMfpe9xVZ17Ca7Sw2r1JKS0o0fYiZNHUmCXVsP9O+//+0sfEtETiVUF0jItrwlK4GL8+bVcXQ9N2TW7+g=='
+API_SETTINGS_TOKEN_DECRYPT='a1b2c3d4'
 ```
 
 ---
