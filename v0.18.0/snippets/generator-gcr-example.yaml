@@ -1,0 +1,14 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: "gcr-token"
+spec:
+  refreshInterval: "30m"
+  target:
+    name: gcr-token
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: GCRAccessToken
+        name: "gcr-gen"
