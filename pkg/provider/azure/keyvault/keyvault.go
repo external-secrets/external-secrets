@@ -102,8 +102,10 @@ const (
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
-var _ esv1.SecretsClient = &Azure{}
-var _ esv1.Provider = &Azure{}
+var (
+	_ esv1.SecretsClient = &Azure{}
+	_ esv1.Provider      = &Azure{}
+)
 
 // interface to keyvault.BaseClient.
 type SecretClient interface {
@@ -508,6 +510,7 @@ func (a *Azure) setKeyVaultCertificate(ctx context.Context, secretName string, v
 	}
 	return nil
 }
+
 func equalKeys(newKey, oldKey keyvault.JSONWebKey) bool {
 	// checks for everything except KeyID and KeyOps
 	rsaCheck := newKey.E != nil && oldKey.E != nil && *newKey.E == *oldKey.E &&
@@ -520,6 +523,7 @@ func equalKeys(newKey, oldKey keyvault.JSONWebKey) bool {
 
 	return newKey.Kty == oldKey.Kty && (rsaCheck || symmetricCheck)
 }
+
 func (a *Azure) setKeyVaultKey(ctx context.Context, secretName string, value []byte, tags map[string]string) error {
 	key, err := getKeyFromValue(value)
 	if err != nil {
@@ -769,73 +773,88 @@ func (a *Azure) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemote
 	case defaultObjType:
 		// returns a SecretBundle with the secret value
 		// https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#SecretBundle
-		secretResp, err := a.baseClient.GetSecret(ctx, *a.provider.VaultURL, secretName, ref.Version)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
-		err = parseError(err)
-		if err != nil {
-			return nil, err
-		}
-		if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
-			if secretResp.Attributes != nil {
-				attr := keyvault.Attributes{
-					NotBefore: secretResp.Attributes.NotBefore,
-					Expires:   secretResp.Attributes.Expires,
-					Created:   secretResp.Attributes.Created,
-					Updated:   secretResp.Attributes.Updated,
-				}
-				return getSecretMetadata(getSecretAllMetadata(secretResp.Tags, &attr), ref.Property)
-			}
-			return getSecretMetadata(getSecretAllMetadata(secretResp.Tags, nil), ref.Property)
-		}
-		return getProperty(*secretResp.Value, ref.Property, ref.Key)
+		return a.fetchSecret(ctx, secretName, ref)
 	case objectTypeCert:
 		// returns a CertBundle. We return CER contents of x509 certificate
 		// see: https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#CertificateBundle
-		certResp, err := a.baseClient.GetCertificate(ctx, *a.provider.VaultURL, secretName, ref.Version)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetCertificate, err)
-		err = parseError(err)
-		if err != nil {
-			return nil, err
-		}
-		if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
-			if certResp.Attributes != nil {
-				attr := keyvault.Attributes{
-					NotBefore: certResp.Attributes.NotBefore,
-					Expires:   certResp.Attributes.Expires,
-					Created:   certResp.Attributes.Created,
-					Updated:   certResp.Attributes.Updated,
-				}
-				return getSecretMetadata(getSecretAllMetadata(certResp.Tags, &attr), ref.Property)
-			}
-			return getSecretMetadata(getSecretAllMetadata(certResp.Tags, nil), ref.Property)
-		}
-		return *certResp.Cer, nil
+		return a.fetchCertificate(ctx, secretName, ref)
 	case objectTypeKey:
 		// returns a KeyBundle that contains a jwk
 		// azure kv returns only public keys
 		// see: https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#KeyBundle
-		keyResp, err := a.baseClient.GetKey(ctx, *a.provider.VaultURL, secretName, ref.Version)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetKey, err)
-		err = parseError(err)
-		if err != nil {
-			return nil, err
-		}
-		if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
-			if keyResp.Attributes != nil {
-				attr := keyvault.Attributes{
-					NotBefore: keyResp.Attributes.NotBefore,
-					Expires:   keyResp.Attributes.Expires,
-					Created:   keyResp.Attributes.Created,
-					Updated:   keyResp.Attributes.Updated,
-				}
-				return getSecretMetadata(getSecretAllMetadata(keyResp.Tags, &attr), ref.Property)
-			}
-			return getSecretMetadata(getSecretAllMetadata(keyResp.Tags, nil), ref.Property)
-		}
-		return json.Marshal(keyResp.Key)
+		return a.fetchKey(ctx, secretName, ref)
 	}
 
 	return nil, fmt.Errorf(errUnknownObjectType, secretName)
+}
+
+func (a *Azure) fetchSecret(ctx context.Context, secretName string, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	secretResp, err := a.baseClient.GetSecret(ctx, *a.provider.VaultURL, secretName, ref.Version)
+	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
+	if err = parseError(err); err != nil {
+		return nil, err
+	}
+
+	if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
+		if secretResp.Attributes != nil {
+			attr := keyvault.Attributes{
+				NotBefore: secretResp.Attributes.NotBefore,
+				Expires:   secretResp.Attributes.Expires,
+				Created:   secretResp.Attributes.Created,
+				Updated:   secretResp.Attributes.Updated,
+			}
+			return getSecretMetadata(getSecretAllMetadata(secretResp.Tags, &attr), ref.Property)
+		}
+		return getSecretMetadata(getSecretAllMetadata(secretResp.Tags, nil), ref.Property)
+	}
+
+	return getProperty(*secretResp.Value, ref.Property, ref.Key)
+}
+
+func (a *Azure) fetchCertificate(ctx context.Context, secretName string, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	certResp, err := a.baseClient.GetCertificate(ctx, *a.provider.VaultURL, secretName, ref.Version)
+	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetCertificate, err)
+	if err = parseError(err); err != nil {
+		return nil, err
+	}
+
+	if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
+		if certResp.Attributes != nil {
+			attr := keyvault.Attributes{
+				NotBefore: certResp.Attributes.NotBefore,
+				Expires:   certResp.Attributes.Expires,
+				Created:   certResp.Attributes.Created,
+				Updated:   certResp.Attributes.Updated,
+			}
+			return getSecretMetadata(getSecretAllMetadata(certResp.Tags, &attr), ref.Property)
+		}
+		return getSecretMetadata(getSecretAllMetadata(certResp.Tags, nil), ref.Property)
+	}
+
+	return *certResp.Cer, nil
+}
+
+func (a *Azure) fetchKey(ctx context.Context, secretName string, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	keyResp, err := a.baseClient.GetKey(ctx, *a.provider.VaultURL, secretName, ref.Version)
+	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetKey, err)
+	if err = parseError(err); err != nil {
+		return nil, err
+	}
+
+	if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
+		if keyResp.Attributes != nil {
+			attr := keyvault.Attributes{
+				NotBefore: keyResp.Attributes.NotBefore,
+				Expires:   keyResp.Attributes.Expires,
+				Created:   keyResp.Attributes.Created,
+				Updated:   keyResp.Attributes.Updated,
+			}
+			return getSecretMetadata(getSecretAllMetadata(keyResp.Tags, &attr), ref.Property)
+		}
+		return getSecretMetadata(getSecretAllMetadata(keyResp.Tags, nil), ref.Property)
+	}
+
+	return json.Marshal(keyResp.Key)
 }
 
 // returns a SecretBundle with the tags values.
@@ -1144,7 +1163,6 @@ func (a *Azure) getAuthorizerFromCredentials(ctx context.Context) (autorest.Auth
 		a.store.GetKind(),
 		a.namespace, a.provider.AuthSecretRef.ClientID,
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -1156,7 +1174,6 @@ func (a *Azure) getAuthorizerFromCredentials(ctx context.Context) (autorest.Auth
 			a.store.GetKind(),
 			a.namespace, a.provider.AuthSecretRef.ClientSecret,
 		)
-
 		if err != nil {
 			return nil, err
 		}
@@ -1174,7 +1191,6 @@ func (a *Azure) getAuthorizerFromCredentials(ctx context.Context) (autorest.Auth
 			a.store.GetKind(),
 			a.namespace, a.provider.AuthSecretRef.ClientCertificate,
 		)
-
 		if err != nil {
 			return nil, err
 		}
