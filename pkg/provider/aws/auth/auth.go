@@ -298,8 +298,8 @@ func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region st
 	}
 
 	awscfg, err := config.LoadDefaultConfig(context.TODO(), config.WithAppID("external-secrets"),
-		config.WithRegion(region), // Disable shared config files:
-		config.WithSharedConfigFiles([]string{}),
+		config.WithRegion(region),
+		config.WithSharedConfigFiles([]string{}), // Disable shared config files:
 		config.WithSharedCredentialsFiles([]string{}))
 
 	if err != nil {
