@@ -1,0 +1,46 @@
+---
+# Test ECR with static AWS credentials - comprehensive test
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: ECRAuthorizationToken
+metadata:
+  name: ecr-auth-static
+  namespace: default
+spec:
+  region: us-east-1
+  auth:
+    secretRef:
+      accessKeyIDSecretRef:
+        name: aws-creds
+        key: access-key-id
+      secretAccessKeySecretRef:
+        name: aws-creds
+        key: secret-access-key
+      sessionTokenSecretRef:
+        name: aws-creds
+        key: session-token
+
+---
+# ExternalSecret using static credentials
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: ecr-secret-static
+  namespace: default
+spec:
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: ECRAuthorizationToken
+        name: ecr-auth-static
+  refreshInterval: 30m
+  target:
+    creationPolicy: Owner
+    deletionPolicy: Retain
+    template:
+      data:
+        username: "{{ .username }}"
+        password: "{{ .password }}"
+        proxy_endpoint: "{{ .proxy_endpoint }}"
+        expires_at: "{{ .expires_at }}"
+      type: Opaque 
