@@ -196,20 +196,32 @@ func NewGeneratorSession(ctx context.Context, auth esv1.AWSAuth, role, region st
 		}
 	}
 
-	config := aws.NewConfig()
+	// Build load options for config
+	var loadCfgOpts []func(*config.LoadOptions) error
 	if credsProvider != nil {
-		config.Credentials = credsProvider
+		loadCfgOpts = append(loadCfgOpts, config.WithCredentialsProvider(credsProvider))
 	}
 	if region != "" {
-		config.Region = region
+		loadCfgOpts = append(loadCfgOpts, config.WithRegion(region))
+	}
+
+	// Disable shared config files to prevent issues in test environments
+	loadCfgOpts = append(loadCfgOpts, config.WithSharedConfigFiles([]string{}))
+	loadCfgOpts = append(loadCfgOpts, config.WithSharedCredentialsFiles([]string{}))
+
+	// Use LoadDefaultConfig to get the default credential chain
+	// This will use IRSA, environment variables, or other default credential sources when no explicit credentials are provided
+	cfg, err := config.LoadDefaultConfig(ctx, loadCfgOpts...)
+	if err != nil {
+		return nil, err
 	}
 
 	if role != "" {
-		stsclient := assumeRoler(*config)
-		config.Credentials = stscreds.NewAssumeRoleProvider(stsclient, role)
+		stsclient := assumeRoler(cfg)
+		cfg.Credentials = stscreds.NewAssumeRoleProvider(stsclient, role)
 	}
-	log.Info("using aws config", "region", config.Region, "credentials", config.Credentials)
-	return config, nil
+	log.Info("using aws config", "region", cfg.Region, "credentials", cfg.Credentials)
+	return &cfg, nil
 }
 
 // credsFromSecretRef pulls access-key / secret-access-key from a secretRef to
