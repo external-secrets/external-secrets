@@ -11,11 +11,23 @@ Rewrite operations are all applied before `ConversionStrategy` is applied.
 ### Regexp
 This method implements rewriting through the use of regular expressions. It needs a `source` and a `target` field. The source field is where the definition of the matching regular expression goes, where the `target` field is where the replacing expression goes.
 
-Some considerations about the implementation of Regexp Rewrite:
+### Merge
+This method implements rewriting keys by merging operation and solving key collisions. It supports two merging strategies: `Extract` and `JSON`.
+
+The `Extract` strategy interprets all secret values in the secret map as JSON and merges all contained key/value pairs hoisting them to the top level, substituting the original secret map.
+
+The `JSON` strategy interprets all secret values in the secret map as JSON and merges all contained key/value pairs in the key specified by the _required_ parameter `into`. If the key specified by `into` already exists in the original secrets map it will be overwritten.
+
+Key collisions can be ignored or cause an error according to `conflictPolicy` which can be either `Ignore` or `Error`.  
+
+To guarantee deterministic results of the merge operation, secret keys are processed in alphabetical order. Key priority can also be made explicit by providing a list of secret keys in the `priority` parameter. These keys will be processed last in the order they appear while all other keys will still be processed in alphabetical order.
+
+## Considerations about Rewrite implementation
 
 1. The input of a subsequent rewrite operation are the outputs of the previous rewrite.
 2. If a given set of keys do not match any Rewrite operation, there will be no error. Rather, the original keys will be used.
-3. If a `source` is not a compilable `regexp` expression, an error will be produced and the external secret goes into a error state.
+3. In Regexp operations, if a `source` is not a compilable `regexp` expression, an error will be produced and the external secret will go into a error state.
+4. In Merge operations, if secrets are not valid JSON, an error will be produced and the external secret will go into an error state.
 
 ## Examples
 ### Removing a common path from find operations
@@ -91,6 +103,39 @@ type: Opaque
 data:
     foo_bar: MTExMQ== #1111
     foo_baz: MjIyMg== #2222
+```
+
+### Merging all secrets 
+
+The following ExternalSecret:
+```yaml
+{% include 'datafrom-rewrite-merge-empty.yaml' %}
+
+```
+Will merge all keys found in all secrets at top level.
+In this example, if we had the following secrets available in the provider:
+```json
+{
+    "path/to/secrets/object-storage-credentials": {
+        "ACCESS_KEY": "XXXX",
+        "SECRET_KEY": "YYYY"
+    },
+    "path/to/secrets/mongo-credentials": {
+        "USERNAME": "XXXX",
+        "PASSWORD": "YYYY"
+    }
+}
+```
+the output kubernetes secret would be:
+```yaml
+apiVersion: v1
+kind: Secret
+type: Opaque
+data:
+    ACCESS_KEY: WFhYWA== #XXXX
+    SECRET_KEY: WVlZWQ== #YYYY
+    USERNAME: WFhYWA== #XXXX
+    PASSWORD:  WVlZWQ== #YYYY
 ```
 
 ## Limitations
