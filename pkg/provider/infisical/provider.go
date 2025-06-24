@@ -113,6 +113,7 @@ func performAzureAuthLogin(ctx context.Context, store esv1.GenericStore, infisic
 		return fmt.Errorf("failed to authenticate via azure auth %w", err)
 	}
 
+	return nil
 }
 
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
