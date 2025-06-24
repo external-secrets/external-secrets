@@ -67,6 +67,54 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
 }
 
+func performUniversalAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
+
+	universalAuthCredentials := infisicalSpec.Auth.UniversalAuthCredentials
+	clientID, err := GetStoreSecretData(ctx, store, kube, namespace, universalAuthCredentials.ClientID)
+	if err != nil {
+		return err
+	}
+
+	clientSecret, err := GetStoreSecretData(ctx, store, kube, namespace, universalAuthCredentials.ClientSecret)
+	if err != nil {
+		return err
+	}
+
+	_, err = sdkClient.Auth().UniversalAuthLogin(clientID, clientSecret)
+	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaUniversalAuth, err)
+
+	if err != nil {
+		return fmt.Errorf("failed to authenticate via universal auth %w", err)
+	}
+
+	return nil
+}
+
+func performAzureAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
+
+	azureAuthCredentials := infisicalSpec.Auth.AzureAuthCredentials
+	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, azureAuthCredentials.IdentityID)
+	if err != nil {
+		return err
+	}
+
+	resource := ""
+	if azureAuthCredentials.Resource.Name != "" {
+		resource, err = GetStoreSecretData(ctx, store, kube, namespace, azureAuthCredentials.Resource)
+	}
+	if err != nil {
+		return err
+	}
+
+	_, err = sdkClient.Auth().AzureAuthLogin(identityID, resource)
+	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaAzureAuth, err)
+
+	if err != nil {
+		return fmt.Errorf("failed to authenticate via azure auth %w", err)
+	}
+
+}
+
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 
@@ -87,49 +135,16 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 
 	if infisicalSpec.Auth.UniversalAuthCredentials != nil {
-		universalAuthCredentials := infisicalSpec.Auth.UniversalAuthCredentials
-		clientID, err := GetStoreSecretData(ctx, store, kube, namespace, universalAuthCredentials.ClientID)
+		err := performUniversalAuthLogin(ctx, store, infisicalSpec, sdkClient, kube, namespace)
 		if err != nil {
 			cancelSdkClient()
 			return nil, err
-		}
-
-		clientSecret, err := GetStoreSecretData(ctx, store, kube, namespace, universalAuthCredentials.ClientSecret)
-		if err != nil {
-			cancelSdkClient()
-			return nil, err
-		}
-
-		_, err = sdkClient.Auth().UniversalAuthLogin(clientID, clientSecret)
-		metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaUniversalAuth, err)
-
-		if err != nil {
-			cancelSdkClient()
-			return nil, fmt.Errorf("failed to authenticate via universal auth %w", err)
 		}
 	} else if infisicalSpec.Auth.AzureAuthCredentials != nil {
-		azureAuthCredentials := infisicalSpec.Auth.AzureAuthCredentials
-		identityID, err := GetStoreSecretData(ctx, store, kube, namespace, azureAuthCredentials.IdentityID)
+		err := performAzureAuthLogin(ctx, store, infisicalSpec, sdkClient, kube, namespace)
 		if err != nil {
 			cancelSdkClient()
 			return nil, err
-		}
-
-		resource := ""
-		if azureAuthCredentials.Resource.Name != "" {
-			resource, err = GetStoreSecretData(ctx, store, kube, namespace, azureAuthCredentials.Resource)
-			if err != nil {
-				cancelSdkClient()
-				return nil, err
-			}
-		}
-
-		_, err = sdkClient.Auth().AzureAuthLogin(identityID, resource)
-		metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaAzureAuth, err)
-
-		if err != nil {
-			cancelSdkClient()
-			return nil, fmt.Errorf("failed to authenticate via azure auth %w", err)
 		}
 	} else {
 		cancelSdkClient()
