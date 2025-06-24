@@ -1734,8 +1734,26 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#merge" class="md-nav__link">
+    <span class="md-ellipsis">
+      Merge
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considerations-about-rewrite-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Considerations about Rewrite implementation
+    </span>
+  </a>
   
 </li>
       
@@ -1771,6 +1789,15 @@
   <a href="#remove-invalid-characters" class="md-nav__link">
     <span class="md-ellipsis">
       Remove invalid characters
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#merging-all-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Merging all secrets
     </span>
   </a>
   
@@ -3972,8 +3999,26 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#merge" class="md-nav__link">
+    <span class="md-ellipsis">
+      Merge
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#considerations-about-rewrite-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Considerations about Rewrite implementation
+    </span>
+  </a>
   
 </li>
       
@@ -4009,6 +4054,15 @@
   <a href="#remove-invalid-characters" class="md-nav__link">
     <span class="md-ellipsis">
       Remove invalid characters
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#merging-all-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Merging all secrets
     </span>
   </a>
   
@@ -4054,11 +4108,18 @@
 <h2 id="methods">Methods</h2>
 <h3 id="regexp">Regexp</h3>
 <p>This method implements rewriting through the use of regular expressions. It needs a <code>source</code> and a <code>target</code> field. The source field is where the definition of the matching regular expression goes, where the <code>target</code> field is where the replacing expression goes.</p>
-<p>Some considerations about the implementation of Regexp Rewrite:</p>
+<h3 id="merge">Merge</h3>
+<p>This method implements rewriting keys by merging operation and solving key collisions. It supports two merging strategies: <code>Extract</code> and <code>JSON</code>.</p>
+<p>The <code>Extract</code> strategy interprets all secret values in the secret map as JSON and merges all contained key/value pairs hoisting them to the top level, substituting the original secret map.</p>
+<p>The <code>JSON</code> strategy interprets all secret values in the secret map as JSON and merges all contained key/value pairs in the key specified by the <em>required</em> parameter <code>into</code>. If the key specified by <code>into</code> already exists in the original secrets map it will be overwritten.</p>
+<p>Key collisions can be ignored or cause an error according to <code>conflictPolicy</code> which can be either <code>Ignore</code> or <code>Error</code>.  </p>
+<p>To guarantee deterministic results of the merge operation, secret keys are processed in alphabetical order. Key priority can also be made explicit by providing a list of secret keys in the <code>priority</code> parameter. These keys will be processed last in the order they appear while all other keys will still be processed in alphabetical order.</p>
+<h2 id="considerations-about-rewrite-implementation">Considerations about Rewrite implementation</h2>
 <ol>
 <li>The input of a subsequent rewrite operation are the outputs of the previous rewrite.</li>
 <li>If a given set of keys do not match any Rewrite operation, there will be no error. Rather, the original keys will be used.</li>
-<li>If a <code>source</code> is not a compilable <code>regexp</code> expression, an error will be produced and the external secret goes into a error state.</li>
+<li>In Regexp operations, if a <code>source</code> is not a compilable <code>regexp</code> expression, an error will be produced and the external secret will go into a error state.</li>
+<li>In Merge operations, if secrets are not valid JSON, an error will be produced and the external secret will go into an error state.</li>
 </ol>
 <h2 id="examples">Examples</h2>
 <h3 id="removing-a-common-path-from-find-operations">Removing a common path from find operations</h3>
@@ -4180,6 +4241,47 @@ the output kubernetes secret would be:
 <span class="nt">data</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">foo_bar</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MTExMQ==</span><span class="w"> </span><span class="c1">#1111</span>
 <span class="w">    </span><span class="nt">foo_baz</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MjIyMg==</span><span class="w"> </span><span class="c1">#2222</span>
+</code></pre></div></p>
+<h3 id="merging-all-secrets">Merging all secrets</h3>
+<p>The following ExternalSecret:
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">merge-basic-example</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">path/to/secrets</span>
+<span class="w">        </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;.*-credentials&quot;</span>
+<span class="w">      </span><span class="nt">rewrite</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">merge</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+</code></pre></div>
+Will merge all keys found in all secrets at top level.
+In this example, if we had the following secrets available in the provider:
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;path/to/secrets/object-storage-credentials&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;ACCESS_KEY&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;XXXX&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;SECRET_KEY&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;YYYY&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;path/to/secrets/mongo-credentials&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;USERNAME&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;XXXX&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;PASSWORD&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;YYYY&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+the output kubernetes secret would be:
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">ACCESS_KEY</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">WFhYWA==</span><span class="w"> </span><span class="c1">#XXXX</span>
+<span class="w">    </span><span class="nt">SECRET_KEY</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">WVlZWQ==</span><span class="w"> </span><span class="c1">#YYYY</span>
+<span class="w">    </span><span class="nt">USERNAME</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">WFhYWA==</span><span class="w"> </span><span class="c1">#XXXX</span>
+<span class="w">    </span><span class="nt">PASSWORD</span><span class="p">:</span><span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">WVlZWQ==</span><span class="w"> </span><span class="c1">#YYYY</span>
 </code></pre></div></p>
 <h2 id="limitations">Limitations</h2>
 <p>Regexp Rewrite is based on golang <code>regexp</code>, which in turns implements <code>RE2</code> regexp language. There a a series of known limitations to this implementation, such as:</p>
