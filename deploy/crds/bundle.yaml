@@ -6094,6 +6094,23 @@ spec:
                                   type: string
                               type: object
                           type: object
+                        meaningOfKey:
+                          description: MeaningOfKey defines how to interpret the key field in ExternalSecret
+                          properties:
+                            folderId:
+                              description: |-
+                                FolderID where to search for the secret when type is "name"
+                                Required when type is "name", ignored when type is "id"
+                              type: string
+                            type:
+                              description: Type of the key - either "name" or "id"
+                              enum:
+                                - name
+                                - id
+                              type: string
+                          required:
+                            - type
+                          type: object
                       required:
                         - auth
                       type: object
@@ -6164,6 +6181,23 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
                               type: object
+                          type: object
+                        meaningOfKey:
+                          description: MeaningOfKey defines how to interpret the key field in ExternalSecret
+                          properties:
+                            folderId:
+                              description: |-
+                                FolderID where to search for the secret when type is "name"
+                                Required when type is "name", ignored when type is "id"
+                              type: string
+                            type:
+                              description: Type of the key - either "name" or "id"
+                              enum:
+                                - name
+                                - id
+                              type: string
+                          required:
+                            - type
                           type: object
                       required:
                         - auth
@@ -10236,6 +10270,23 @@ spec:
                                   type: string
                               type: object
                           type: object
+                        meaningOfKey:
+                          description: MeaningOfKey defines how to interpret the key field in ExternalSecret
+                          properties:
+                            folderId:
+                              description: |-
+                                FolderID where to search for the secret when type is "name"
+                                Required when type is "name", ignored when type is "id"
+                              type: string
+                            type:
+                              description: Type of the key - either "name" or "id"
+                              enum:
+                                - name
+                                - id
+                              type: string
+                          required:
+                            - type
+                          type: object
                       required:
                         - auth
                       type: object
@@ -10306,6 +10357,23 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
                               type: object
+                          type: object
+                        meaningOfKey:
+                          description: MeaningOfKey defines how to interpret the key field in ExternalSecret
+                          properties:
+                            folderId:
+                              description: |-
+                                FolderID where to search for the secret when type is "name"
+                                Required when type is "name", ignored when type is "id"
+                              type: string
+                            type:
+                              description: Type of the key - either "name" or "id"
+                              enum:
+                                - name
+                                - id
+                              type: string
+                          required:
+                            - type
                           type: object
                       required:
                         - auth
@@ -16166,6 +16234,23 @@ spec:
                                   type: string
                               type: object
                           type: object
+                        meaningOfKey:
+                          description: MeaningOfKey defines how to interpret the key field in ExternalSecret
+                          properties:
+                            folderId:
+                              description: |-
+                                FolderID where to search for the secret when type is "name"
+                                Required when type is "name", ignored when type is "id"
+                              type: string
+                            type:
+                              description: Type of the key - either "name" or "id"
+                              enum:
+                                - name
+                                - id
+                              type: string
+                          required:
+                            - type
+                          type: object
                       required:
                         - auth
                       type: object
@@ -16236,6 +16321,23 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
                               type: object
+                          type: object
+                        meaningOfKey:
+                          description: MeaningOfKey defines how to interpret the key field in ExternalSecret
+                          properties:
+                            folderId:
+                              description: |-
+                                FolderID where to search for the secret when type is "name"
+                                Required when type is "name", ignored when type is "id"
+                              type: string
+                            type:
+                              description: Type of the key - either "name" or "id"
+                              enum:
+                                - name
+                                - id
+                              type: string
+                          required:
+                            - type
                           type: object
                       required:
                         - auth
@@ -20308,6 +20410,23 @@ spec:
                                   type: string
                               type: object
                           type: object
+                        meaningOfKey:
+                          description: MeaningOfKey defines how to interpret the key field in ExternalSecret
+                          properties:
+                            folderId:
+                              description: |-
+                                FolderID where to search for the secret when type is "name"
+                                Required when type is "name", ignored when type is "id"
+                              type: string
+                            type:
+                              description: Type of the key - either "name" or "id"
+                              enum:
+                                - name
+                                - id
+                              type: string
+                          required:
+                            - type
+                          type: object
                       required:
                         - auth
                       type: object
@@ -20378,6 +20497,23 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
                               type: object
+                          type: object
+                        meaningOfKey:
+                          description: MeaningOfKey defines how to interpret the key field in ExternalSecret
+                          properties:
+                            folderId:
+                              description: |-
+                                FolderID where to search for the secret when type is "name"
+                                Required when type is "name", ignored when type is "id"
+                              type: string
+                            type:
+                              description: Type of the key - either "name" or "id"
+                              enum:
+                                - name
+                                - id
+                              type: string
+                          required:
+                            - type
                           type: object
                       required:
                         - auth

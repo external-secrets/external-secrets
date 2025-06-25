@@ -40,4 +40,8 @@ type YandexCertificateManagerProvider struct {
 	// The provider for the CA bundle to use to validate Yandex.Cloud server certificate.
 	// +optional
 	CAProvider *YandexCertificateManagerCAProvider `json:"caProvider,omitempty"`
+
+	// MeaningOfKey defines how to interpret the key field in ExternalSecret
+	// +optional
+	MeaningOfKey *MeaningOfKey `json:"meaningOfKey,omitempty"`
 }
