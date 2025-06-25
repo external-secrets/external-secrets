@@ -1,0 +1,176 @@
+{{- if and .Values.rbac.create .Values.watchNamespaces }}
+{{- range $ns := uniq .Values.watchNamespaces }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "external-secrets.fullname" $ }}
+  namespace: {{ $ns }}
+rules:
+  - apiGroups:
+    - "external-secrets.io"
+    resources:
+    - "secretstores"
+    - "externalsecrets"
+    {{- if $.Values.processPushSecret }}
+    - "pushsecrets"
+    {{- end }}
+    verbs:
+    - "get"
+    - "list"
+    - "watch"
+  - apiGroups:
+    - "external-secrets.io"
+    resources:
+    - "externalsecrets"
+    - "externalsecrets/status"
+    {{- if $.Values.openshiftFinalizers }}
+    - "externalsecrets/finalizers"
+    {{- end }}
+    - "secretstores"
+    - "secretstores/status"
+    {{- if $.Values.openshiftFinalizers }}
+    - "secretstores/finalizers"
+    {{- end }}
+    {{- if $.Values.processPushSecret }}
+    - "pushsecrets"
+    - "pushsecrets/status"
+    {{- if $.Values.openshiftFinalizers }}
+    - "pushsecrets/finalizers"
+    {{- end }}
+    {{- end }}
+    verbs:
+    - "get"
+    - "update"
+    - "patch"
+  - apiGroups:
+    - "generators.external-secrets.io"
+    resources:
+    - "generatorstates"
+    verbs:
+    - "get"
+    - "list"
+    - "watch"
+    - "create"
+    - "update"
+    - "patch"
+    - "delete"
+    - "deletecollection"
+  - apiGroups:
+    - "generators.external-secrets.io"
+    resources:
+    - "acraccesstokens"
+    - "cloudsmithaccesstokens"
+    - "ecrauthorizationtokens"
+    - "fakes"
+    - "gcraccesstokens"
+    - "githubaccesstokens"
+    - "quayaccesstokens"
+    - "passwords"
+    - "sshkeys"
+    - "stssessiontokens"
+    - "uuids"
+    - "vaultdynamicsecrets"
+    - "webhooks"
+    - "grafanas"
+    - "mfas"
+    - "beyondtrustworkloadcredentialsdynamicsecrets"
+    verbs:
+    - "get"
+    - "list"
+    - "watch"
+  - apiGroups:
+    - ""
+    resources:
+    - "serviceaccounts"
+    verbs:
+    - "get"
+    - "list"
+    - "watch"
+  - apiGroups:
+    - ""
+    resources:
+    - "configmaps"
+    verbs:
+    - "get"
+    - "list"
+    - "watch"
+  - apiGroups:
+    - ""
+    resources:
+    - "secrets"
+    verbs:
+    - "get"
+    - "list"
+    - "watch"
+    - "create"
+    - "update"
+    - "delete"
+    - "patch"
+  {{- if $.Values.genericTargets.enabled }}
+  # Generic target permissions (ConfigMaps)
+  - apiGroups:
+    - ""
+    resources:
+    - "configmaps"
+    verbs:
+    - "create"
+    - "update"
+    - "delete"
+    - "patch"
+  {{- range $.Values.genericTargets.resources }}
+  # Custom resource permissions for non-Secret targets
+  - apiGroups:
+    - {{ .apiGroup | quote }}
+    resources:
+    {{- range .resources }}
+    - {{ . | quote }}
+    {{- end }}
+    verbs:
+    {{- range .verbs }}
+    - {{ . | quote }}
+    {{- end }}
+  {{- end }}
+  {{- end }}
+  {{- if $.Values.rbac.serviceAccountTokenCreate }}
+  - apiGroups:
+    - ""
+    resources:
+    - "serviceaccounts/token"
+    verbs:
+    - "create"
+  {{- end }}
+  - apiGroups:
+    - ""
+    resources:
+    - "events"
+    verbs:
+    - "create"
+    - "patch"
+  {{- if $.Values.processPushSecret }}
+  - apiGroups:
+    - "external-secrets.io"
+    resources:
+    - "pushsecrets"
+    verbs:
+    - "create"
+    - "update"
+    - "delete"
+  {{- end }}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "external-secrets.fullname" $ }}
+  namespace: {{ $ns }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "external-secrets.fullname" $ }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "external-secrets.serviceAccountName" $ }}
+    namespace: {{ template "external-secrets.namespace" $ }}
+{{- end }}
+{{- end }}

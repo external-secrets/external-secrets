@@ -79,7 +79,10 @@ spec:
           {{- if or .Values.scopedNamespace .Values.scopedRBAC }}
           - --namespace={{ .Values.scopedNamespace | default .Release.Namespace }}
           {{- end }}
-          {{- if .Values.scopedRBAC }}
+          {{- if .Values.watchNamespaces }}
+          - --watch-namespaces={{ join "," .Values.watchNamespaces }}
+          {{- end }}
+          {{- if or .Values.scopedNamespace .Values.scopedRBAC .Values.watchNamespaces }}
           - --enable-cluster-store-reconciler=false
           - --enable-cluster-external-secret-reconciler=false
           - --enable-cluster-push-secret-reconciler=false
