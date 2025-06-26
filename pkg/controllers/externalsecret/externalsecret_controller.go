@@ -62,7 +62,8 @@ import (
 )
 
 const (
-	fieldOwnerTemplate = "externalsecrets.external-secrets.io/%v"
+	fieldOwnerTemplate    = "externalsecrets.external-secrets.io/%v"
+	fieldOwnerTemplateSha = "externalsecrets.external-secrets.io/sha3/%x"
 
 	// condition messages for "SecretSynced" reason.
 	msgSynced       = "secret synced"
@@ -233,7 +234,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	// if the secret exists but does not have the "managed" label, add the label
 	// using a PATCH so it is visible in the cache, then requeue immediately
 	if secretPartial.UID != "" && secretPartial.Labels[esv1.LabelManaged] != esv1.LabelManagedValue {
-		fqdn := fmt.Sprintf(fieldOwnerTemplate, externalSecret.Name)
+		fqdn := fqdnFor(externalSecret.Name)
 		patch := client.MergeFrom(secretPartial.DeepCopy())
 		if secretPartial.Labels == nil {
 			secretPartial.Labels = make(map[string]string)
@@ -630,7 +631,7 @@ func (r *Reconciler) deleteOrphanedSecrets(ctx context.Context, externalSecret *
 
 // createSecret creates a new secret with the given mutation function.
 func (r *Reconciler) createSecret(ctx context.Context, mutationFunc func(secret *v1.Secret) error, es *esv1.ExternalSecret, secretName string) error {
-	fqdn := fmt.Sprintf(fieldOwnerTemplate, es.Name)
+	fqdn := fqdnFor(es.Name)
 
 	// define and mutate the new secret
 	newSecret := &v1.Secret{
@@ -658,7 +659,7 @@ func (r *Reconciler) createSecret(ctx context.Context, mutationFunc func(secret 
 }
 
 func (r *Reconciler) updateSecret(ctx context.Context, existingSecret *v1.Secret, mutationFunc func(secret *v1.Secret) error, es *esv1.ExternalSecret, secretName string) error {
-	fqdn := fmt.Sprintf(fieldOwnerTemplate, es.Name)
+	fqdn := fqdnFor(es.Name)
 
 	// fail if the secret does not exist
 	// this should never happen because we check this before calling this function
@@ -754,7 +755,7 @@ func getManagedFieldKeys(
 	fieldOwner string,
 	process func(fields map[string]any) []string,
 ) ([]string, error) {
-	fqdn := fmt.Sprintf(fieldOwnerTemplate, fieldOwner)
+	fqdn := fqdnFor(fieldOwner)
 	var keys []string
 	for _, v := range secret.ObjectMeta.ManagedFields {
 		if v.Manager != fqdn {
