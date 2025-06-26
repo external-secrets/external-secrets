@@ -281,7 +281,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	//     - it exists
 	//     - it has the correct "managed" label
 	//     - it has the correct "data-hash" annotation
-	if !shouldRefresh(externalSecret) && isSecretValid(existingSecret) {
+	if !shouldRefresh(externalSecret) && isSecretValid(existingSecret, externalSecret) {
 		log.V(1).Info("skipping refresh")
 		return r.getRequeueResult(externalSecret), nil
 	}
@@ -906,8 +906,12 @@ func shouldRefreshPeriodic(es *esv1.ExternalSecret) bool {
 }
 
 // isSecretValid checks if the secret exists, and it's data is consistent with the calculated hash.
-func isSecretValid(existingSecret *v1.Secret) bool {
-	// if target secret doesn't exist, we need to refresh
+func isSecretValid(existingSecret *v1.Secret, es *esv1.ExternalSecret) bool {
+	// Secret is always valid with `CreationPolicy=Orphan`
+	if es.Spec.Target.CreationPolicy == esv1.CreatePolicyOrphan {
+		return true
+	}
+
 	if existingSecret.UID == "" {
 		return false
 	}
