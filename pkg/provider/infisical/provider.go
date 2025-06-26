@@ -68,7 +68,6 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 }
 
 func performUniversalAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
-
 	universalAuthCredentials := infisicalSpec.Auth.UniversalAuthCredentials
 	clientID, err := GetStoreSecretData(ctx, store, kube, namespace, universalAuthCredentials.ClientID)
 	if err != nil {
@@ -91,7 +90,6 @@ func performUniversalAuthLogin(ctx context.Context, store esv1.GenericStore, inf
 }
 
 func performAzureAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
-
 	azureAuthCredentials := infisicalSpec.Auth.AzureAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, azureAuthCredentials.IdentityID)
 	if err != nil {

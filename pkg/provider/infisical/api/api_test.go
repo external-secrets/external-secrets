@@ -26,7 +26,6 @@ import (
 )
 
 func parseInfisicalAPIError(err error, t *testing.T) (int, string, error) {
-
 	var apiErr *infisical.APIError
 	assert.True(t, errors.As(err, &apiErr))
 
@@ -48,7 +47,7 @@ func parseInfisicalAPIError(err error, t *testing.T) (int, string, error) {
 
 	statusCode, err := strconv.Atoi(statusMatch[1])
 	if err != nil {
-		return 0, "", fmt.Errorf("invalid status code: %v", err)
+		return 0, "", fmt.Errorf("invalid status code: %w", err)
 	}
 
 	return statusCode, messageMatch[1], nil
@@ -148,7 +147,6 @@ func TestRevokeAccessToken(t *testing.T) {
 
 func TestGetSecretsV3(t *testing.T) {
 	t.Run("Works with secrets", func(t *testing.T) {
-
 		secrets := []SecretsV3{
 			{SecretKey: "foo", SecretValue: "bar"},
 		}
@@ -236,7 +234,6 @@ func TestGetSecretsV3(t *testing.T) {
 }
 func TestGetSecretByKeyV3(t *testing.T) {
 	t.Run("Works", func(t *testing.T) {
-
 		secret := SecretsV3{
 			SecretKey:   "foo",
 			SecretValue: "bar",
