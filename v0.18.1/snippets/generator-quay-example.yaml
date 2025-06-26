@@ -1,0 +1,29 @@
+{% raw %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: quay-credentials
+  namespace: default
+spec:
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: QuayAccessToken
+          name: my-quay-token
+  refreshInterval: 55m # Tokens are good for 1 hour
+  target:
+    name: quay-credentials
+    template:
+      type: kubernetes.io/dockerconfigjson
+      data:
+        .dockerconfigjson: |
+          {
+            "auths": {
+              "{{ .registry }}": {
+                "auth": "{{ .auth }}"
+              }
+            }
+          }
+
+{% endraw %}

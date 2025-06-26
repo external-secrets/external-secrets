@@ -1,0 +1,14 @@
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: my-secret-store
+spec:
+  provider:
+    oracle:
+      vault: # The vault OCID
+      principalType: Workload
+      # If serviceAccountRef is not specified, the Oracle provider will authenticate using the service account token of the External Secrets Operator.
+      serviceAccountRef:
+        # If using a namespaced secret store, this service account must exist in the same namespace as the secret store.
+        # namespace: service account namespace. Required if using ClusterSecretStore, otherwise cannot be specified.
+        name: # The service account name to use for authentication.

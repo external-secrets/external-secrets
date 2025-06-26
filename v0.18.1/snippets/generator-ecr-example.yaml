@@ -1,0 +1,32 @@
+{% raw %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: "ecr-secret"
+spec:
+  refreshInterval: "1h"
+  target:
+    name: ecr-secret
+    template:
+      type: kubernetes.io/dockerconfigjson
+      metadata:
+        annotations:
+          expiresAt: "{{ .expires_at }}"
+      data:
+        .dockerconfigjson: |
+          {
+            "auths": {
+              "{{ .proxy_endpoint | replace "https://" "" }}": {
+                "username": "{{ .username }}",
+                "password": "{{ .password }}",
+                "auth": "{{ printf "%s:%s" .username .password | b64enc }}"
+              }
+            }
+          }
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: ECRAuthorizationToken
+          name: "ecr-gen"
+{% endraw %}

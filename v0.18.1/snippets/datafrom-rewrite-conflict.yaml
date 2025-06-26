@@ -1,0 +1,24 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: example
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: backend
+  target:
+    name: secret-to-be-created
+  dataFrom:
+  - extract:
+      key: my-secrets-dev
+    rewrite:
+    - regexp:
+        source: "(.*)"
+        target: "dev-$1"      
+  - extract:
+      key: my-secrets-prod
+    rewrite:
+    - regexp:
+        source: "(.*)"
+        target: "prod-$1"
