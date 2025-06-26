@@ -1865,6 +1865,48 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#refresh-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Refresh Policy
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Refresh Policy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#periodic-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      Periodic (default)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#onchange" class="md-nav__link">
+    <span class="md-ellipsis">
+      OnChange
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#createdonce" class="md-nav__link">
+    <span class="md-ellipsis">
+      CreatedOnce
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#creation-policy" class="md-nav__link">
     <span class="md-ellipsis">
       Creation Policy
@@ -3972,6 +4014,48 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#refresh-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Refresh Policy
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Refresh Policy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#periodic-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      Periodic (default)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#onchange" class="md-nav__link">
+    <span class="md-ellipsis">
+      OnChange
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#createdonce" class="md-nav__link">
+    <span class="md-ellipsis">
+      CreatedOnce
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#creation-policy" class="md-nav__link">
     <span class="md-ellipsis">
       Creation Policy
@@ -4084,7 +4168,7 @@
 
 
 <h1 id="lifecycle">Lifecycle</h1>
-<p>The External Secrets Operator manages the lifecycle of secrets in Kubernetes. With <code>creationPolicy</code> and <code>deletionPolicy</code> you get fine-grained control of its lifecycle.</p>
+<p>The External Secrets Operator manages the lifecycle of secrets in Kubernetes. With <code>refreshPolicy</code>,   <code>creationPolicy</code> and <code>deletionPolicy</code> you get fine-grained control of its lifecycle.</p>
 <div class="admonition note">
 <p class="admonition-title">Creation/Deletion Policy Combinations</p>
 <p>Some combinations of creationPolicy/deletionPolicy are not allowed as they would delete existing secrets:
@@ -4092,6 +4176,14 @@
 <br/>- <code>deletionPolicy=Delete</code> &amp; <code>creationPolicy=None</code>
 <br/>- <code>deletionPolicy=Merge</code> &amp; <code>creationPolicy=None</code></p>
 </div>
+<h2 id="refresh-policy">Refresh Policy</h2>
+<p>The field <code>spec.refreshPolicy</code> defines how the operator refreshes the a secret.</p>
+<h3 id="periodic-default">Periodic (default)</h3>
+<p>Refreshes the secret at a fixed interval via <code>spec.refreshInterval</code>. Due to backwards compatibility, setting a refresh interval of 0 will result in the same behavior as <code>CreatedOnce</code>.</p>
+<h3 id="onchange">OnChange</h3>
+<p>Refreshes the secret only when the ExternalSecret is updated.  </p>
+<h3 id="createdonce">CreatedOnce</h3>
+<p>Refreshes the secret only once, when the ExternalSecret is created.</p>
 <h2 id="creation-policy">Creation Policy</h2>
 <p>The field <code>spec.target.creationPolicy</code> defines how the operator creates the a secret.</p>
 <h3 id="owner-default">Owner (default)</h3>
@@ -4101,7 +4193,17 @@
 <p>If the secret exists and the ownerReference field is not found, the controller treats this secret as orphaned. It will take ownership of this secret by adding an <code>ownerReference</code> field and updating it.</p>
 </div>
 <h3 id="orphan">Orphan</h3>
-<p>The operator creates the secret but does not set the <code>ownerReference</code> on the Secret. That means the Secret will not be subject to garbage collection. If a secret with the same name already exists it will be updated.</p>
+<p>Whenever triggered via <code>RefreshPolicy</code> conditions, the operator creates/updates 
+the target Secret according to the provider available information. 
+However, the operator will not watch on Secret Changes (delete/updates), nor trigger 
+<a href="https://kubernetes.io/docs/concepts/architecture/garbage-collection/">garbage collection</a> when the <code>ExternalSecret</code> object is deleted.</p>
+<div class="admonition warning">
+<p class="admonition-title">Unwanted reverts of manual changes</p>
+<p>If you set <code>spec.refreshPolicy</code> to <code>Periodic</code> or <code>OnChange</code> and <code>spec.target.creationPolicy</code> to <code>Orphan</code>,
+any changes manually done to the Secret will eventually be replaced on the next sync interval
+or on the next update to <code>ExternalSecret</code> object. That manual change is then lost forever.
+Use <code>creationPolicy=Orphan</code> with caution.</p>
+</div>
 <h3 id="merge">Merge</h3>
 <p>The operator does not create a secret. Instead, it expects the secret to already exist. Values from the secret provider will be merged into the existing secret. Note: the controller takes ownership of a field even if it is owned by a different entity. Multiple ExternalSecrets can use <code>creationPolicy=Merge</code> with a single secret as long as the fields don't collide - otherwise you end up in an oscillating state.</p>
 <h3 id="none">None</h3>
