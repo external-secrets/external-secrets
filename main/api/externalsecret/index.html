@@ -4109,7 +4109,7 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 <span class="w">  </span><span class="c1"># other fields...</span>
 </code></pre></div></p>
 <h2 id="manual-refresh">Manual Refresh</h2>
-<p>Regardless of the refresh policy, you can always manually trigger a refresh of the <code>Kind=Secret</code> by updating the annotations of the <code>ExternalSecret</code>:</p>
+<p>If supported by the configured <code>refreshPolicy</code>, you can manually trigger a refresh of the <code>Kind=Secret</code> by updating the annotations of the <code>ExternalSecret</code>:</p>
 <div class="highlight"><pre><span></span><code>kubectl annotate es my-es force-sync=$(date +%s) --overwrite
 </code></pre></div>
 <h2 id="features">Features</h2>
