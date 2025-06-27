@@ -38,8 +38,9 @@ func adaptInput(store esv1.GenericStore) (*common.SecretsClientInput, error) {
 	}
 	storeSpecYandexCertificateManager := storeSpec.Provider.YandexCertificateManager
 
-	if storeSpecYandexCertificateManager.Auth.AuthorizedKey.Name == "" {
-		return nil, errors.New("invalid Yandex Certificate Manager SecretStore resource: missing AuthorizedKey Name")
+	var authorizedKey *esmeta.SecretKeySelector
+	if storeSpecYandexCertificateManager.Auth.AuthorizedKey.Name != "" {
+		authorizedKey = &storeSpecYandexCertificateManager.Auth.AuthorizedKey
 	}
 
 	var caCertificate *esmeta.SecretKeySelector
@@ -49,7 +50,7 @@ func adaptInput(store esv1.GenericStore) (*common.SecretsClientInput, error) {
 
 	return &common.SecretsClientInput{
 		APIEndpoint:   storeSpecYandexCertificateManager.APIEndpoint,
-		AuthorizedKey: storeSpecYandexCertificateManager.Auth.AuthorizedKey,
+		AuthorizedKey: authorizedKey,
 		CACertificate: caCertificate,
 	}, nil
 }
