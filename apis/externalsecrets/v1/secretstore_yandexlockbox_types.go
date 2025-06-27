@@ -28,6 +28,18 @@ type YandexLockboxCAProvider struct {
 	Certificate esmeta.SecretKeySelector `json:"certSecretRef,omitempty"`
 }
 
+// MeaningOfKey defines how to interpret the key field in ExternalSecret
+type MeaningOfKey struct {
+	// Type of the key - either "name" or "id"
+	// +kubebuilder:validation:Enum=name;id
+	Type string `json:"type"`
+
+	// FolderID where to search for the secret when type is "name"
+	// Required when type is "name", ignored when type is "id"
+	// +optional
+	FolderID string `json:"folderId,omitempty"`
+}
+
 // YandexLockboxProvider Configures a store to sync secrets using the Yandex Lockbox provider.
 type YandexLockboxProvider struct {
 	// Yandex.Cloud API endpoint (e.g. 'api.cloud.yandex.net:443')
@@ -40,4 +52,8 @@ type YandexLockboxProvider struct {
 	// The provider for the CA bundle to use to validate Yandex.Cloud server certificate.
 	// +optional
 	CAProvider *YandexLockboxCAProvider `json:"caProvider,omitempty"`
+
+	// MeaningOfKey defines how to interpret the key field in ExternalSecret
+	// +optional
+	MeaningOfKey *MeaningOfKey `json:"meaningOfKey,omitempty"`
 }
