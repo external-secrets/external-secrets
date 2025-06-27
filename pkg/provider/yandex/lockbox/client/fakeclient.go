@@ -42,6 +42,10 @@ func (c *fakeLockboxClient) GetPayloadEntries(_ context.Context, iamToken, secre
 	return c.fakeLockboxServer.getEntries(iamToken, secretID, versionID)
 }
 
+func (c *fakeLockboxClient) GetExPayload(_ context.Context, iamToken, folderID, name, versionID string) (map[string][]byte, error) {
+	return c.fakeLockboxServer.getExPayload(iamToken, folderID, name, versionID)
+}
+
 // Fakes Yandex Lockbox service backend.
 type FakeLockboxServer struct {
 	secretMap  map[secretKey]secretValue   // secret specific data
@@ -134,4 +138,38 @@ func (s *FakeLockboxServer) getEntries(iamToken, secretID, versionID string) ([]
 	}
 
 	return s.versionMap[versionKey{secretID, versionID}].entries, nil
+}
+
+// Пока не обращать внимания: некорректная реализация
+func (s *FakeLockboxServer) getExPayload(iamToken, folderId, name, versionID string) (map[string][]byte, error) {
+	if _, ok := s.secretMap[secretKey{name}]; !ok {
+		return nil, errors.New("secret not found")
+	}
+	if _, ok := s.versionMap[versionKey{name, versionID}]; !ok {
+		return nil, errors.New("version not found")
+	}
+	if _, ok := s.tokenMap[tokenKey{iamToken}]; !ok {
+		return nil, errors.New("unauthenticated")
+	}
+
+	if s.tokenMap[tokenKey{iamToken}].expiresAt.Before(s.clock.CurrentTime()) {
+		return nil, errors.New("iam token expired")
+	}
+	if !cmp.Equal(s.tokenMap[tokenKey{iamToken}].authorizedKey, s.secretMap[secretKey{name}].expectedAuthorizedKey, cmpopts.IgnoreUnexported(iamkey.Key{})) {
+		return nil, errors.New("permission denied")
+	}
+
+	entries := s.versionMap[versionKey{name, versionID}].entries
+	result := make(map[string][]byte)
+	for _, entry := range entries {
+		var value []byte
+		switch entry.Value.(type) {
+		case *api.Payload_Entry_TextValue:
+			value = []byte(entry.GetTextValue())
+		case *api.Payload_Entry_BinaryValue:
+			value = entry.GetBinaryValue()
+		}
+		result[entry.Key] = value
+	}
+	return result, nil
 }

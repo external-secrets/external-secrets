@@ -23,4 +23,5 @@ import (
 // Requests the payload of the given secret from Lockbox.
 type LockboxClient interface {
 	GetPayloadEntries(ctx context.Context, iamToken, secretID, versionID string) ([]*api.Payload_Entry, error)
+	GetExPayload(ctx context.Context, iamToken, folderID, name, versionID string) (map[string][]byte, error)
 }
