@@ -1,4 +1,4 @@
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: merge-basic-example
@@ -10,6 +10,7 @@ spec:
   dataFrom:
     - find:
         path: path/to/secrets
-        regexp: ".*-credentials"
+        name:
+          regexp: ".*-credentials"
       rewrite:
         - merge: {}
