@@ -47,10 +47,29 @@ func adaptInput(store esv1.GenericStore) (*common.SecretsClientInput, error) {
 		caCertificate = &storeSpecYandexLockbox.CAProvider.Certificate
 	}
 
+	var resourceKeyType common.ResourceKeyType
+	var folderID string
+	if storeSpecYandexLockbox.MeaningOfKey != nil {
+		switch storeSpecYandexLockbox.MeaningOfKey.Type {
+		case "name":
+			if storeSpecYandexLockbox.MeaningOfKey.FolderID == "" {
+				return nil, errors.New("folderId is required when meaningOfKey type is 'name'")
+			}
+			resourceKeyType = common.NAME
+			folderID = storeSpecYandexLockbox.MeaningOfKey.FolderID
+		case "id":
+			resourceKeyType = common.ID
+		default:
+			return nil, errors.New("invalid meaningOfKey type: must be 'name' or 'id'")
+		}
+	}
+
 	return &common.SecretsClientInput{
-		APIEndpoint:   storeSpecYandexLockbox.APIEndpoint,
-		AuthorizedKey: storeSpecYandexLockbox.Auth.AuthorizedKey,
-		CACertificate: caCertificate,
+		APIEndpoint:     storeSpecYandexLockbox.APIEndpoint,
+		AuthorizedKey:   storeSpecYandexLockbox.Auth.AuthorizedKey,
+		CACertificate:   caCertificate,
+		ResourceKeyType: resourceKeyType,
+		FolderID:        folderID,
 	}, nil
 }
 
