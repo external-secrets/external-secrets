@@ -16,6 +16,7 @@ package templating
 
 import (
 	"context"
+	"crypto/sha3"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -29,6 +30,7 @@ import (
 )
 
 const fieldOwnerTemplate = "externalsecrets.external-secrets.io/%v"
+const fieldOwnerTemplateSha = "externalsecrets.external-secrets.io/sha3/%x"
 
 var (
 	errTplCMMissingKey  = "error in configmap %s: missing key %s"
@@ -222,7 +224,12 @@ func getManagedFieldKeys(
 	fieldOwner string,
 	process func(fields map[string]any) []string,
 ) ([]string, error) {
+	// If secret name is just too big, use the SHA3 hash of the secret name
+	// Done this way for backwards compatibility thus avoiding breaking changes
 	fqdn := fmt.Sprintf(fieldOwnerTemplate, fieldOwner)
+	if len(fieldOwner) > 63 {
+		fqdn = fmt.Sprintf(fieldOwnerTemplateSha, sha3.Sum224([]byte(fieldOwner)))
+	}
 	var keys []string
 	for _, v := range secret.ObjectMeta.ManagedFields {
 		if v.Manager != fqdn {

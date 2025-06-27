@@ -1,0 +1,16 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: merge-basic-example
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: vault-backend
+    kind: SecretStore
+  dataFrom:
+    - find:
+        path: path/to/secrets
+        name:
+          regexp: ".*-credentials"
+      rewrite:
+        - merge: {}

@@ -287,6 +287,31 @@ spec:
                               Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
                             items:
                               properties:
+                                merge:
+                                  description: |-
+                                    Used to merge key/values in one single Secret
+                                    The resulting key will contain all values from the specified secrets
+                                  properties:
+                                    conflictPolicy:
+                                      default: Error
+                                      description: Used to define the policy to use in conflict resolution.
+                                      type: string
+                                    into:
+                                      default: ""
+                                      description: |-
+                                        Used to define the target key of the merge operation.
+                                        Required if strategy is JSON. Ignored otherwise.
+                                      type: string
+                                    priority:
+                                      description: Used to define key priority in conflict resolution.
+                                      items:
+                                        type: string
+                                      type: array
+                                    strategy:
+                                      default: Extract
+                                      description: Used to define the strategy to use in the merge operation.
+                                      type: string
+                                  type: object
                                 regexp:
                                   description: |-
                                     Used to rewrite with regular expressions.
@@ -10605,6 +10630,31 @@ spec:
                           Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
                         items:
                           properties:
+                            merge:
+                              description: |-
+                                Used to merge key/values in one single Secret
+                                The resulting key will contain all values from the specified secrets
+                              properties:
+                                conflictPolicy:
+                                  default: Error
+                                  description: Used to define the policy to use in conflict resolution.
+                                  type: string
+                                into:
+                                  default: ""
+                                  description: |-
+                                    Used to define the target key of the merge operation.
+                                    Required if strategy is JSON. Ignored otherwise.
+                                  type: string
+                                priority:
+                                  description: Used to define key priority in conflict resolution.
+                                  items:
+                                    type: string
+                                  type: array
+                                strategy:
+                                  default: Extract
+                                  description: Used to define the strategy to use in the merge operation.
+                                  type: string
+                              type: object
                             regexp:
                               description: |-
                                 Used to rewrite with regular expressions.
