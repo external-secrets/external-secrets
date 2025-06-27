@@ -34,8 +34,6 @@ import (
 const (
 	machineIdentityLoginViaUniversalAuth = "MachineIdentityLoginViaUniversalAuth"
 	machineIdentityLoginViaAzureAuth     = "MachineIdentityLoginViaAzureAuth"
-	getSecretsV3                         = "GetSecretsV3"
-	getSecretByKeyV3                     = "GetSecretByKeyV3"
 	revokeAccessToken                    = "RevokeAccessToken"
 )
 
@@ -93,15 +91,16 @@ func performAzureAuthLogin(ctx context.Context, store esv1.GenericStore, infisic
 	azureAuthCredentials := infisicalSpec.Auth.AzureAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, azureAuthCredentials.IdentityID)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get secret data id %w", err)
 	}
 
 	resource := ""
 	if azureAuthCredentials.Resource.Name != "" {
 		resource, err = GetStoreSecretData(ctx, store, kube, namespace, azureAuthCredentials.Resource)
-	}
-	if err != nil {
-		return err
+
+		if err != nil {
+			return fmt.Errorf("failed to get secret data resource %w", err)
+		}
 	}
 
 	_, err = sdkClient.Auth().AzureAuthLogin(identityID, resource)
@@ -133,21 +132,20 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		secretPath = "/"
 	}
 
-	if infisicalSpec.Auth.UniversalAuthCredentials != nil {
-		err := performUniversalAuthLogin(ctx, store, infisicalSpec, sdkClient, kube, namespace)
-		if err != nil {
-			cancelSdkClient()
-			return nil, err
-		}
-	} else if infisicalSpec.Auth.AzureAuthCredentials != nil {
-		err := performAzureAuthLogin(ctx, store, infisicalSpec, sdkClient, kube, namespace)
-		if err != nil {
-			cancelSdkClient()
-			return nil, err
-		}
-	} else {
+	var loginFn func(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error
+	switch {
+	case infisicalSpec.Auth.UniversalAuthCredentials != nil:
+		loginFn = performUniversalAuthLogin
+	case infisicalSpec.Auth.AzureAuthCredentials != nil:
+		loginFn = performAzureAuthLogin
+	default:
 		cancelSdkClient()
-		return &Provider{}, errors.New("authentication method not found")
+		return nil, errors.New("authentication method not found")
+	}
+
+	if err := loginFn(ctx, store, infisicalSpec, sdkClient, kube, namespace); err != nil {
+		cancelSdkClient()
+		return nil, err
 	}
 
 	return &Provider{
@@ -169,11 +167,7 @@ func (p *Provider) Close(ctx context.Context) error {
 	err := p.sdkClient.Auth().RevokeAccessToken()
 	metrics.ObserveAPICall(constants.ProviderName, revokeAccessToken, err)
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func GetStoreSecretData(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string, secret esmeta.SecretKeySelector) (string, error) {

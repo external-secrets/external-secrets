@@ -34,9 +34,8 @@ func (e *InfisicalAPIError) Error() string {
 	if e.Details != nil {
 		detailsJSON, _ := json.Marshal(e.Details)
 		return fmt.Sprintf("API error (%d): error=%v message=%v, details=%s", e.StatusCode, e.Err, e.Message, string(detailsJSON))
-	} else {
-		return fmt.Sprintf("API error (%d): error=%v message=%v", e.StatusCode, e.Err, e.Message)
 	}
+	return fmt.Sprintf("API error (%d): error=%v message=%v", e.StatusCode, e.Err, e.Message)
 }
 
 type MachineIdentityDetailsResponse struct {

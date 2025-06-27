@@ -27,12 +27,19 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/find"
+	"github.com/external-secrets/external-secrets/pkg/metrics"
+	"github.com/external-secrets/external-secrets/pkg/provider/infisical/constants"
 )
 
 var (
 	errNotImplemented     = errors.New("not implemented")
 	errPropertyNotFound   = "property %s does not exist in secret %s"
 	errTagsNotImplemented = errors.New("find by tags not supported")
+)
+
+const (
+	getSecretsV3     = "GetSecretsV3"
+	getSecretByKeyV3 = "GetSecretByKeyV3"
 )
 
 func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
@@ -82,6 +89,7 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRem
 		IncludeImports:         true,
 		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 	})
+	metrics.ObserveAPICall(constants.ProviderName, getSecretByKeyV3, err)
 
 	if err != nil {
 		return nil, err
@@ -138,6 +146,7 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFin
 		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 		IncludeImports:         true,
 	})
+	metrics.ObserveAPICall(constants.ProviderName, getSecretsV3, err)
 	if err != nil {
 		return nil, err
 	}
@@ -181,6 +190,7 @@ func (p *Provider) Validate() (esv1.ValidationResult, error) {
 		SecretPath:             p.apiScope.SecretPath,
 		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 	})
+	metrics.ObserveAPICall(constants.ProviderName, getSecretsV3, err)
 
 	if err != nil {
 		return esv1.ValidationResultError, fmt.Errorf("cannot read secrets with provided project scope project:%s environment:%s secret-path:%s recursive:%t, %w", p.apiScope.ProjectSlug, p.apiScope.EnvironmentSlug, p.apiScope.SecretPath, p.apiScope.Recursive, err)
