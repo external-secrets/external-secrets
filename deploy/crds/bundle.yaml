@@ -3890,7 +3890,7 @@ spec:
                           type: object
                         caBundle:
                           description: |-
-                            Base64 encoded certificate for the bitwarden server sdk. The sdk MUST run with HTTPS to make sure no MITM attack
+                            Base64 encoded certificate for the GitLab server sdk. The sdk MUST run with HTTPS to make sure no MITM attack
                             can be performed.
                           format: byte
                           type: string
@@ -8127,7 +8127,7 @@ spec:
                           type: object
                         caBundle:
                           description: |-
-                            Base64 encoded certificate for the bitwarden server sdk. The sdk MUST run with HTTPS to make sure no MITM attack
+                            Base64 encoded certificate for the GitLab server sdk. The sdk MUST run with HTTPS to make sure no MITM attack
                             can be performed.
                           format: byte
                           type: string
@@ -14040,7 +14040,7 @@ spec:
                           type: object
                         caBundle:
                           description: |-
-                            Base64 encoded certificate for the bitwarden server sdk. The sdk MUST run with HTTPS to make sure no MITM attack
+                            Base64 encoded certificate for the GitLab server sdk. The sdk MUST run with HTTPS to make sure no MITM attack
                             can be performed.
                           format: byte
                           type: string
@@ -18277,7 +18277,7 @@ spec:
                           type: object
                         caBundle:
                           description: |-
-                            Base64 encoded certificate for the bitwarden server sdk. The sdk MUST run with HTTPS to make sure no MITM attack
+                            Base64 encoded certificate for the GitLab server sdk. The sdk MUST run with HTTPS to make sure no MITM attack
                             can be performed.
                           format: byte
                           type: string

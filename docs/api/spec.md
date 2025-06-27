@@ -5240,7 +5240,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Base64 encoded certificate for the bitwarden server sdk. The sdk MUST run with HTTPS to make sure no MITM attack
+<p>Base64 encoded certificate for the GitLab server sdk. The sdk MUST run with HTTPS to make sure no MITM attack
 can be performed.</p>
 </td>
 </tr>
