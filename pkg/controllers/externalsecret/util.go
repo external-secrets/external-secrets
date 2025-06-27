@@ -15,6 +15,9 @@ limitations under the License.
 package externalsecret
 
 import (
+	"crypto/sha3"
+	"fmt"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -78,4 +81,14 @@ func filterOutCondition(conditions []esv1.ExternalSecretStatusCondition, condTyp
 		newConditions = append(newConditions, c)
 	}
 	return newConditions
+}
+
+func fqdnFor(name string) string {
+	fqdn := fmt.Sprintf(fieldOwnerTemplate, name)
+	// If secret name is just too big, use the SHA3 hash of the secret name
+	// Done this way for backwards compatibility thus avoiding breaking changes
+	if len(fqdn) > 63 {
+		fqdn = fmt.Sprintf(fieldOwnerTemplateSha, sha3.Sum224([]byte(name)))
+	}
+	return fqdn
 }
