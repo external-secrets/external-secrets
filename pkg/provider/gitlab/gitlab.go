@@ -159,26 +159,35 @@ func (g *gitlabBase) fetchProjectVariables(effectiveEnvironment string, matcher 
 			return err
 		}
 
-		for _, data := range projectData {
-			matching, key, isWildcard := matchesFilter(effectiveEnvironment, data.EnvironmentScope, data.Key, matcher)
-
-			if !matching {
-				continue
-			}
-			if isWildcard && nonWildcardSet[key] {
-				continue
-			}
-			secretData[key] = []byte(data.Value)
-			if !isWildcard {
-				nonWildcardSet[key] = true
-			}
-		}
+		processProjectVariables(projectData, effectiveEnvironment, matcher, secretData, nonWildcardSet)
 		if response.CurrentPage >= response.TotalPages {
 			break
 		}
 	}
 
 	return nil
+}
+
+func processProjectVariables(
+	projectData []*gitlab.ProjectVariable,
+	effectiveEnvironment string,
+	matcher *find.Matcher,
+	secretData map[string][]byte,
+	nonWildcardSet map[string]bool,
+) {
+	for _, data := range projectData {
+		matching, key, isWildcard := matchesFilter(effectiveEnvironment, data.EnvironmentScope, data.Key, matcher)
+		if !matching {
+			continue
+		}
+		if isWildcard && nonWildcardSet[key] {
+			continue
+		}
+		secretData[key] = []byte(data.Value)
+		if !isWildcard {
+			nonWildcardSet[key] = true
+		}
+	}
 }
 
 func (g *gitlabBase) fetchSecretData(effectiveEnvironment string, matcher *find.Matcher) (map[string][]byte, error) {
