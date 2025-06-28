@@ -150,6 +150,7 @@ func (g *gitlabBase) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFin
 
 func (g *gitlabBase) fetchProjectVariables(effectiveEnvironment string, matcher *find.Matcher, secretData map[string][]byte) error {
 	var popts = &gitlab.ListProjectVariablesOptions{PerPage: 100}
+	nonWildcardSet := make(map[string]bool)
 	for projectPage := 1; ; projectPage++ {
 		popts.Page = projectPage
 		projectData, response, err := g.projectVariablesClient.ListVariables(g.store.ProjectID, popts)
@@ -164,11 +165,13 @@ func (g *gitlabBase) fetchProjectVariables(effectiveEnvironment string, matcher 
 			if !matching {
 				continue
 			}
-			_, exists := secretData[key]
-			if exists && isWildcard {
+			if isWildcard && nonWildcardSet[key] {
 				continue
 			}
 			secretData[key] = []byte(data.Value)
+			if !isWildcard {
+				nonWildcardSet[key] = true
+			}
 		}
 		if response.CurrentPage >= response.TotalPages {
 			break
@@ -221,7 +224,12 @@ func (g *gitlabBase) setGroupValues(
 ) {
 	for _, data := range groupVars {
 		matching, key, isWildcard := matchesFilter(effectiveEnvironment, data.EnvironmentScope, data.Key, matcher)
-		if !matching && !isWildcard {
+		if !matching {
+			continue
+		}
+		// Check if a more specific variable already exists (project environment > project variable > group environment > group variable)
+		_, exists := secretData[key]
+		if exists && isWildcard {
 			continue
 		}
 		secretData[key] = []byte(data.Value)
@@ -237,6 +245,31 @@ func ExtractTag(tags map[string]string) (string, error) {
 		environmentScope = value
 	}
 	return environmentScope, nil
+}
+
+func (g *gitlabBase) getGroupVariables(groupID string, ref esv1.ExternalSecretDataRemoteRef, gopts *gitlab.GetGroupVariableOptions) (*gitlab.GroupVariable, *gitlab.Response, error) {
+	groupVar, resp, err := g.groupVariablesClient.GetVariable(groupID, ref.Key, gopts)
+	metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupGetVariable, err)
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound && !isEmptyOrWildcard(g.store.Environment) {
+			if gopts == nil {
+				gopts = &gitlab.GetGroupVariableOptions{}
+			}
+			if gopts.Filter == nil {
+				gopts.Filter = &gitlab.VariableFilter{}
+			}
+			gopts.Filter.EnvironmentScope = "*"
+			groupVar, resp, err = g.groupVariablesClient.GetVariable(groupID, ref.Key, gopts)
+			metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupGetVariable, err)
+			if err != nil || resp == nil {
+				return nil, resp, fmt.Errorf("error getting group variable %s from GitLab: %w", ref.Key, err)
+			}
+		} else {
+			return nil, resp, err
+		}
+	}
+
+	return groupVar, resp, nil
 }
 
 func (g *gitlabBase) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
@@ -284,12 +317,11 @@ func (g *gitlabBase) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRem
 			return result, nil
 		}
 
-		groupVar, resp, err := g.groupVariablesClient.GetVariable(groupID, ref.Key, gopts)
-		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupGetVariable, err)
-		if resp.StatusCode >= 400 && resp.StatusCode != http.StatusNotFound && err != nil {
+		groupVar, resp, err := g.getGroupVariables(groupID, ref, gopts)
+		if err != nil {
 			return nil, err
 		}
-		if resp.StatusCode < 300 {
+		if resp != nil && resp.StatusCode < 300 {
 			result, _ = extractVariable(ref, groupVar.Value)
 		}
 	}
