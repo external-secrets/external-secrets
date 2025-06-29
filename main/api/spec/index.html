@@ -4648,6 +4648,49 @@ NTLMProtocol
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.AzureAuthCredentials">AzureAuthCredentials
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.InfisicalAuth">InfisicalAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>identityId</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>resource</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.AzureAuthType">AzureAuthType
 (<code>string</code> alias)</p></h3>
 <p>
@@ -9333,6 +9376,19 @@ string
 <em>
 <a href="#external-secrets.io/v1.UniversalAuthCredentials">
 UniversalAuthCredentials
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>azureAuthCredentials</code></br>
+<em>
+<a href="#external-secrets.io/v1.AzureAuthCredentials">
+AzureAuthCredentials
 </a>
 </em>
 </td>
