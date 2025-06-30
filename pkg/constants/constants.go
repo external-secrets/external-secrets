@@ -30,6 +30,8 @@ const (
 	CallAWSPSPutParameter        = "PutParameter"
 	CallAWSPSDeleteParameter     = "DeleteParameter"
 	CallAWSPSDescribeParameter   = "DescribeParameter"
+	CallAWSPSRemoveTagsParameter = "RemoveTagsFromResource"
+	CallAWSPSAddTagsParameter    = "AddTagsToResource"
 	CallAWSPSListTagsForResource = "ListTagsForResource"
 
 	ProviderAzureKV              = "Azure/KeyVault"
