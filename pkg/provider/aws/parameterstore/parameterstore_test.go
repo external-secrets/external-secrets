@@ -989,7 +989,6 @@ func getTagSlice() []ssmtypes.Tag {
 }
 
 func normaliseTags(input []ssmtypes.Tag) map[string]string {
-	// Sort the tags by key to ensure consistent ordering
 	tags := make(map[string]string, len(input))
 	for _, tag := range input {
 		if tag.Key != nil && tag.Value != nil {
