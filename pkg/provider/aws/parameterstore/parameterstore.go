@@ -336,7 +336,6 @@ func isManagedByESO(tags map[string]string) bool {
 }
 
 func (pm *ParameterStore) setManagedRemoteParameter(ctx context.Context, secretRequest ssm.PutParameterInput, tags []ssmTypes.Tag, createManagedByTags bool) error {
-
 	overwrite := true
 	secretRequest.Overwrite = &overwrite
 	if createManagedByTags {
