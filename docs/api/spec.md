@@ -4693,6 +4693,45 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.FetchByID">FetchByID
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.YandexCertificateManagerProvider">YandexCertificateManagerProvider</a>, 
+<a href="#external-secrets.io/v1.YandexLockboxProvider">YandexLockboxProvider</a>)
+</p>
+<p>
+</p>
+<h3 id="external-secrets.io/v1.FetchByName">FetchByName
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.YandexCertificateManagerProvider">YandexCertificateManagerProvider</a>, 
+<a href="#external-secrets.io/v1.YandexLockboxProvider">YandexLockboxProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>folderID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The folder to fetch secrets from</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.FindName">FindName
 </h3>
 <p>
@@ -10963,6 +11002,34 @@ YandexCAProvider
 <p>The provider for the CA bundle to use to validate Yandex.Cloud server certificate.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>fetchByID</code></br>
+<em>
+<a href="#external-secrets.io/v1.FetchByID">
+FetchByID
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>FetchByID configures the provider to interpret the <code>data.secretKey.remoteRef.key</code> field in ExternalSecret as certificate ID</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>fetchByName</code></br>
+<em>
+<a href="#external-secrets.io/v1.FetchByName">
+FetchByName
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>FetchByName configures the provider to interpret the <code>data.secretKey.remoteRef.key</code> field in ExternalSecret as certificate name</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.YandexLockboxProvider">YandexLockboxProvider
@@ -11019,6 +11086,34 @@ YandexCAProvider
 <td>
 <em>(Optional)</em>
 <p>The provider for the CA bundle to use to validate Yandex.Cloud server certificate.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>fetchByID</code></br>
+<em>
+<a href="#external-secrets.io/v1.FetchByID">
+FetchByID
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>FetchByID configures the provider to interpret the <code>data.secretKey.remoteRef.key</code> field in ExternalSecret as secret ID</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>fetchByName</code></br>
+<em>
+<a href="#external-secrets.io/v1.FetchByName">
+FetchByName
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>FetchByName configures the provider to interpret the <code>data.secretKey.remoteRef.key</code> field in ExternalSecret as secret name</p>
 </td>
 </tr>
 </tbody>
