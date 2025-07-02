@@ -694,12 +694,10 @@ func findTagKeysToRemove(tags, metaTags map[string]string) []string {
 // computeTagsToUpdate compares the current tags with the desired metaTags and returns a slice of ssmTypes.Tag
 // that should be set on the resource. It also returns a boolean indicating if any tag was added or modified.
 func computeTagsToUpdate(tags, metaTags map[string]string) ([]ssmTypes.Tag, bool) {
-	result := []ssmTypes.Tag{}
+	var result []ssmTypes.Tag
 	modified := false
 	for k, v := range metaTags {
-		if _, exists := tags[k]; !exists {
-			modified = true
-		} else if tags[k] != v {
+		if _, exists := tags[k]; !exists || tags[k] != v {
 			modified = true
 		}
 		result = append(result, ssmTypes.Tag{
