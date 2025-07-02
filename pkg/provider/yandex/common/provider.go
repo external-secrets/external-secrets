@@ -110,8 +110,8 @@ type SecretsClientInput struct {
 type ResourceKeyType int
 
 const (
-	ID ResourceKeyType = iota
-	NAME
+	ResourceKeyTypeId   ResourceKeyType = iota
+	ResourceKeyTypeName ResourceKeyType = iota
 )
 
 func (p *YandexCloudProvider) Capabilities() esv1.SecretStoreCapabilities {
