@@ -4453,6 +4453,7 @@ Please estimate your costs before using ESO. Cost depends on the RefreshInterval
 <span class="w">        </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.external-secrets.io/v1alpha1</span>
 <span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecretMetadata</span>
 <span class="w">        </span><span class="nt">spec</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;This</span><span class="nv"> </span><span class="s">is</span><span class="nv"> </span><span class="s">a</span><span class="nv"> </span><span class="s">secret</span><span class="nv"> </span><span class="s">for</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">API</span><span class="nv"> </span><span class="s">credentials&quot;</span>
 <span class="w">          </span><span class="nt">secretType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecureString</span>
 <span class="w">          </span><span class="nt">kmsKeyID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bb123123-b2b0-4f60-ac3a-44a13f0e6b6c</span>
 <span class="w">          </span><span class="nt">tier</span><span class="p">:</span>
@@ -4477,6 +4478,11 @@ Please estimate your costs before using ESO. Cost depends on the RefreshInterval
 <span class="w">                </span><span class="nt">attributes</span><span class="p">:</span>
 <span class="w">                  </span><span class="nt">after</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;30&quot;</span>
 <span class="w">                  </span><span class="nt">unit</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Days&quot;</span>
+<span class="w">          </span><span class="nt">tags</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">environment</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sandbox</span>
+<span class="w">            </span><span class="nt">team</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pokedex</span>
+<span class="w">            </span><span class="nt">secret-store</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-parameterstore</span>
+<span class="w">            </span><span class="nt">refresh-interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
 </code></pre></div>
 <ul>
 <li><code>secretType</code> takes three options. <code>String</code>, <code>StringList</code>, and <code>SecureString</code>, where <code>String</code> is the <em>default</em></li>
