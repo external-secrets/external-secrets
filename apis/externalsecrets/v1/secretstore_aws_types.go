@@ -125,6 +125,11 @@ type AWSProvider struct {
 	// +optional
 	TransitiveTagKeys []string `json:"transitiveTagKeys,omitempty"`
 
+	// InjectKubernetesContext, when true, automatically adds STS session tags identifying the calling namespace,
+	// and the SecretStore name.
+	// +optional
+	InjectKubernetesContext bool `json:"injectKubernetesContext,omitempty"`
+
 	// Prefix adds a prefix to all retrieved values.
 	// +optional
 	Prefix string `json:"prefix,omitempty"`
