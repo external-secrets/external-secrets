@@ -6799,20 +6799,16 @@ spec:
                               type: object
                           type: object
                         fetchByID:
-                          description: |-
-                            FetchByID enables fetching secrets by ID.
-                            The values in ExternalSecret `data.secretKey.remoteRef.key` field will be interpreted as IDs
+                          description: FetchByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as certificate ID
                           type: object
                         fetchByName:
-                          description: |-
-                            FetchByName enables fetching secrets by name.
-                            The values in ExternalSecret `data.secretKey.remoteRef.key` field will be interpreted as name
+                          description: FetchByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as certificate name
                           properties:
-                            folderId:
+                            folderID:
                               description: The folder to fetch secrets from
                               type: string
                           required:
-                            - folderId
+                            - folderID
                           type: object
                       required:
                         - auth
@@ -6891,11 +6887,11 @@ spec:
                         fetchByName:
                           description: FetchByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name
                           properties:
-                            folderId:
+                            folderID:
                               description: The folder to fetch secrets from
                               type: string
                           required:
-                            - folderId
+                            - folderID
                           type: object
                       required:
                         - auth
@@ -17647,20 +17643,16 @@ spec:
                               type: object
                           type: object
                         fetchByID:
-                          description: |-
-                            FetchByID enables fetching secrets by ID.
-                            The values in ExternalSecret `data.secretKey.remoteRef.key` field will be interpreted as IDs
+                          description: FetchByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as certificate ID
                           type: object
                         fetchByName:
-                          description: |-
-                            FetchByName enables fetching secrets by name.
-                            The values in ExternalSecret `data.secretKey.remoteRef.key` field will be interpreted as name
+                          description: FetchByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as certificate name
                           properties:
-                            folderId:
+                            folderID:
                               description: The folder to fetch secrets from
                               type: string
                           required:
-                            - folderId
+                            - folderID
                           type: object
                       required:
                         - auth
@@ -17739,11 +17731,11 @@ spec:
                         fetchByName:
                           description: FetchByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name
                           properties:
-                            folderId:
+                            folderID:
                               description: The folder to fetch secrets from
                               type: string
                           required:
-                            - folderId
+                            - folderID
                           type: object
                       required:
                         - auth
