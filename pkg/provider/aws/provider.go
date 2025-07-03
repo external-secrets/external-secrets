@@ -143,6 +143,24 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 	storeSpec := store.GetSpec()
 	var cfg *aws.Config
 
+	// --------------------------------------------------------------------------------
+	// Enrich AWS provider configuration with auto-generated STS session tags that
+	// capture Kubernetes context. Behaviour is controlled via the SecretStore
+	// specification (InjectKubernetesContext / OperatorRBACName).
+	// --------------------------------------------------------------------------------
+	operatorRole := prov.OperatorRBACName
+	if operatorRole == "" {
+		operatorRole = "external-secrets-controller"
+	}
+	if extra := buildContextSessionTags(prov.InjectKubernetesContext, namespace, store.GetName(), operatorRole); len(extra) > 0 {
+		// Make sure we do not mutate the slice referenced by the informer cache –
+		// copy on write to avoid side-effects.
+		copied := make([]*esv1.Tag, len(prov.SessionTags))
+		copy(copied, prov.SessionTags)
+		copied = append(copied, extra...)
+		prov.SessionTags = copied
+	}
+
 	// allow SecretStore controller validation to pass
 	// when using referent namespace.
 	if util.IsReferentSpec(prov.Auth) && namespace == "" &&

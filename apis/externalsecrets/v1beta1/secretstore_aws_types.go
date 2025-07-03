@@ -125,6 +125,18 @@ type AWSProvider struct {
 	// +optional
 	TransitiveTagKeys []*string `json:"transitiveTagKeys,omitempty"`
 
+	// InjectKubernetesContext, when true, makes the operator automatically add
+	// STS session tags identifying the calling namespace, the SecretStore name
+	// and (optionally) the operator's RBAC role name.
+	// +optional
+	InjectKubernetesContext bool `json:"injectKubernetesContext,omitempty"`
+
+	// OperatorRBACName is the name of the Role/ClusterRole the operator is
+	// running under. It is only evaluated when InjectKubernetesContext is true.
+	// If omitted, the default "external-secrets-controller" is used.
+	// +optional
+	OperatorRBACName string `json:"operatorRBACName,omitempty"`
+
 	// Prefix adds a prefix to all retrieved values.
 	// +optional
 	Prefix string `json:"prefix,omitempty"`
