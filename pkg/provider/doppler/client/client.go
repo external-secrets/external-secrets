@@ -16,7 +16,9 @@ package client
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -31,6 +33,13 @@ type DopplerClient struct {
 	DopplerToken string
 	VerifyTLS    bool
 	UserAgent    string
+	Cache        map[string]*CacheEntry
+}
+
+type CacheEntry struct {
+	ETag          string
+	Data          *SecretsResponse
+	LastCheckedAt time.Time
 }
 
 type queryParams map[string]string
@@ -75,7 +84,6 @@ type SecretsRequest struct {
 	Config          string
 	NameTransformer string
 	Format          string
-	ETag            string // Specifying an ETag implies that the caller has implemented response caching
 }
 
 type UpdateSecretsRequest struct {
@@ -85,33 +93,29 @@ type UpdateSecretsRequest struct {
 	Config         string   `json:"config,omitempty"`
 }
 
-type secretResponseBody struct {
-	Name  string `json:"name,omitempty"`
-	Value struct {
-		Raw      *string `json:"raw"`
-		Computed *string `json:"computed"`
-	} `json:"value,omitempty"`
-	Messages *[]string `json:"messages,omitempty"`
-	Success  bool      `json:"success"`
-}
-
 type SecretResponse struct {
 	Name  string
 	Value string
 }
 
 type SecretsResponse struct {
-	Secrets  Secrets
-	Body     []byte
-	Modified bool
-	ETag     string
+	Secrets Secrets
+	Body    []byte
+	ETag    string
 }
 
-func NewDopplerClient(dopplerToken string) (*DopplerClient, error) {
+// We don't bother sending a request if the cacheEntry was last checked
+// in under this interval. This prevents excessive requests when using an
+// ExternalSecret with many discrete secrets referenced (which causes a
+// separate request per secret).
+var minRefreshInterval = 5 * time.Second
+
+func NewDopplerClient(dopplerToken string, cache map[string]*CacheEntry) (*DopplerClient, error) {
 	client := &DopplerClient{
 		DopplerToken: dopplerToken,
 		VerifyTLS:    true,
 		UserAgent:    "doppler-external-secrets",
+		Cache:        cache,
 	}
 
 	if err := client.SetBaseURL("https://api.doppler.com"); err != nil {
@@ -119,6 +123,32 @@ func NewDopplerClient(dopplerToken string) (*DopplerClient, error) {
 	}
 
 	return client, nil
+}
+
+func (c *DopplerClient) CacheKey(request SecretsRequest) (string, error) {
+	type cacheElements struct {
+		Token   string         `json:"token"`
+		Request SecretsRequest `json:"request"`
+	}
+
+	cacheElementsBytes, err := json.Marshal(cacheElements{Token: c.DopplerToken, Request: request})
+	if err != nil {
+		return "", err
+	}
+	hash := sha256.Sum256(cacheElementsBytes)
+	return base64.URLEncoding.EncodeToString(hash[:]), nil
+}
+
+func (c *DopplerClient) UpdateCache(cacheKey, etag string, data *SecretsResponse) {
+	c.Cache[cacheKey] = &CacheEntry{ETag: etag, LastCheckedAt: time.Now(), Data: data}
+}
+
+func (c *DopplerClient) UpdateCacheTimestamp(cacheKey string, time time.Time) {
+	cacheEntry, cacheEntryFound := c.Cache[cacheKey]
+	if cacheEntryFound {
+		cacheEntry.LastCheckedAt = time
+		c.Cache[cacheKey] = cacheEntry
+	}
 }
 
 func (c *DopplerClient) BaseURL() *url.URL {
@@ -151,30 +181,45 @@ func (c *DopplerClient) Authenticate() error {
 }
 
 func (c *DopplerClient) GetSecret(request SecretRequest) (*SecretResponse, error) {
-	params := request.buildQueryParams(request.Name)
-	response, err := c.performRequest("/v3/configs/config/secret", "GET", headers{}, params, httpRequestBody{})
+	response, err := c.GetSecrets(SecretsRequest{Project: request.Project, Config: request.Config})
 	if err != nil {
 		return nil, err
 	}
 
-	var data secretResponseBody
-	if err := json.Unmarshal(response.Body, &data); err != nil {
-		return nil, &APIError{Err: err, Message: "unable to unmarshal secret payload", Data: string(response.Body)}
+	secretName := request.Name
+	secretValue, ok := response.Secrets[request.Name]
+
+	if !ok {
+		return nil, &APIError{Message: fmt.Sprintf("secret '%s' not found", secretName)}
 	}
 
-	if data.Value.Computed == nil {
-		return nil, &APIError{Message: fmt.Sprintf("secret '%s' not found", request.Name)}
-	}
-
-	return &SecretResponse{Name: data.Name, Value: *data.Value.Computed}, nil
+	return &SecretResponse{Name: secretName, Value: secretValue}, nil
 }
 
-// GetSecrets should only have an ETag supplied if Secrets are cached as SecretsResponse.Secrets will be nil if 304 (not modified) returned.
+// GetSecrets will fetch all secrets from the specified config. These are then
+// cached and the response etag is stored. Subsequent requests that match the
+// cache entry will either return the cached response immediately if made within
+// `minRefreshInterval` of the last request, or send the request in with the
+// `if-none-match` header set to the cached etag. If nothing has changed, we
+// get a 304 response back and subsequently return the cached response. Otherwise
+// some secret has changed, so we return the fresh response and update the cache.
 func (c *DopplerClient) GetSecrets(request SecretsRequest) (*SecretsResponse, error) {
 	headers := headers{}
-	if request.ETag != "" {
-		headers["if-none-match"] = request.ETag
+
+	cacheKey, err := c.CacheKey(request)
+	if err != nil {
+		return nil, err
 	}
+	cacheEntry, cacheEntryFound := c.Cache[cacheKey]
+	if cacheEntryFound {
+		// Check to see if we should short circuit and just return the cache
+		if time.Since(cacheEntry.LastCheckedAt) <= minRefreshInterval {
+			return cacheEntry.Data, nil
+		}
+
+		headers["if-none-match"] = cacheEntry.ETag
+	}
+
 	if request.Format != "" && request.Format != "json" {
 		headers["accept"] = "text/plain"
 	}
@@ -185,49 +230,60 @@ func (c *DopplerClient) GetSecrets(request SecretsRequest) (*SecretsResponse, er
 		return nil, apiErr
 	}
 
-	if response.HTTPResponse.StatusCode == 304 {
-		return &SecretsResponse{Modified: false, Secrets: nil, ETag: request.ETag}, nil
+	if cacheEntryFound && response.HTTPResponse.StatusCode == 304 {
+		c.UpdateCacheTimestamp(cacheKey, time.Now())
+		return cacheEntry.Data, nil
 	}
 
-	eTag := response.HTTPResponse.Header.Get("etag")
-
+	responseETag := response.HTTPResponse.Header.Get("ETag")
 	// Format defeats JSON parsing
 	if request.Format != "" {
-		return &SecretsResponse{Modified: true, Body: response.Body, ETag: eTag}, nil
+		secretsResponse := &SecretsResponse{Body: response.Body, ETag: responseETag}
+		c.UpdateCache(cacheKey, responseETag, secretsResponse)
+		return secretsResponse, nil
 	}
 
 	var secrets Secrets
 	if err := json.Unmarshal(response.Body, &secrets); err != nil {
 		return nil, &APIError{Err: err, Message: "unable to unmarshal secrets payload"}
 	}
-	return &SecretsResponse{Modified: true, Secrets: secrets, Body: response.Body, ETag: eTag}, nil
+
+	secretsResponse := &SecretsResponse{Secrets: secrets, Body: response.Body, ETag: responseETag}
+	c.UpdateCache(cacheKey, responseETag, secretsResponse)
+	return secretsResponse, nil
 }
 
+// Secret writes are much more expensive to perform than reads. Since secrets likely
+// don't change that often, we perform a fetch and only issue writes if the secret
+// values have changed.
 func (c *DopplerClient) UpdateSecrets(request UpdateSecretsRequest) error {
+	response, err := c.GetSecrets(SecretsRequest{Project: request.Project, Config: request.Config})
+	if err != nil {
+		return err
+	}
+
+	// remove any secrets whose value hasn't changed from upstream
+	for secretName, newValue := range request.Secrets {
+		oldValue := response.Secrets[secretName]
+		if oldValue == newValue {
+			delete(request.Secrets, secretName)
+		}
+	}
+	// only continue if we still have any to update after removing unchanged secrets
+	if len(request.Secrets) == 0 {
+		return nil
+	}
+
 	body, jsonErr := json.Marshal(request)
 	if jsonErr != nil {
 		return &APIError{Err: jsonErr, Message: "unable to unmarshal update secrets payload"}
 	}
-	_, err := c.performRequest("/v3/configs/config/secrets", "POST", headers{}, queryParams{}, body)
+	_, err = c.performRequest("/v3/configs/config/secrets", "POST", headers{}, queryParams{}, body)
 	if err != nil {
 		return err
 	}
+
 	return nil
-}
-
-func (r *SecretRequest) buildQueryParams(name string) queryParams {
-	params := queryParams{}
-	params["name"] = name
-
-	if r.Project != "" {
-		params["project"] = r.Project
-	}
-
-	if r.Config != "" {
-		params["config"] = r.Config
-	}
-
-	return params
 }
 
 func (r *SecretsRequest) buildQueryParams() queryParams {
