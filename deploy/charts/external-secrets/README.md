@@ -36,6 +36,7 @@ The command removes all the Kubernetes components associated with the chart and 
 |-----|------|---------|-------------|
 | affinity | object | `{}` |  |
 | bitwarden-sdk-server.enabled | bool | `false` |  |
+| bitwarden-sdk-server.namespaceOverride | string | `""` |  |
 | certController.affinity | object | `{}` |  |
 | certController.create | bool | `true` | Specifies whether a certificate controller deployment be created. |
 | certController.deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
