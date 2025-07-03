@@ -318,6 +318,9 @@
         "extraEnv": {
             "type": "array"
         },
+        "extraInitContainers": {
+            "type": "array"
+        },
         "extraObjects": {
             "type": "array"
         },
