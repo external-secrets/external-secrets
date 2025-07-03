@@ -33,6 +33,8 @@ type Client struct {
 	DeleteParameterFn        DeleteParameterFn
 	DescribeParametersFn     DescribeParametersFn
 	ListTagsForResourceFn    ListTagsForResourceFn
+	RemoveTagsFromResourceFn RemoveTagsFromResourceFn
+	AddTagsToResourceFn      AddTagsToResourceFn
 }
 
 type GetParameterFn func(context.Context, *ssm.GetParameterInput, ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
@@ -41,6 +43,10 @@ type PutParameterFn func(context.Context, *ssm.PutParameterInput, ...func(*ssm.O
 type DescribeParametersFn func(context.Context, *ssm.DescribeParametersInput, ...func(*ssm.Options)) (*ssm.DescribeParametersOutput, error)
 type ListTagsForResourceFn func(context.Context, *ssm.ListTagsForResourceInput, ...func(*ssm.Options)) (*ssm.ListTagsForResourceOutput, error)
 type DeleteParameterFn func(ctx context.Context, input *ssm.DeleteParameterInput, opts ...func(*ssm.Options)) (*ssm.DeleteParameterOutput, error)
+
+type RemoveTagsFromResourceFn func(ctx context.Context, params *ssm.RemoveTagsFromResourceInput, optFns ...func(*ssm.Options)) (*ssm.RemoveTagsFromResourceOutput, error)
+
+type AddTagsToResourceFn func(ctx context.Context, params *ssm.AddTagsToResourceInput, optFns ...func(*ssm.Options)) (*ssm.AddTagsToResourceOutput, error)
 
 func (sm *Client) ListTagsForResource(ctx context.Context, input *ssm.ListTagsForResourceInput, options ...func(*ssm.Options)) (*ssm.ListTagsForResourceOutput, error) {
 	return sm.ListTagsForResourceFn(ctx, input, options...)
@@ -104,5 +110,25 @@ func (sm *Client) WithValue(in *ssm.GetParameterInput, val *ssm.GetParameterOutp
 			return nil, errors.New("unexpected test argument")
 		}
 		return val, err
+	}
+}
+
+func (sm *Client) RemoveTagsFromResource(_ context.Context, params *ssm.RemoveTagsFromResourceInput, optFns ...func(*ssm.Options)) (*ssm.RemoveTagsFromResourceOutput, error) {
+	return nil, errors.New("RemoveTagsFromResource is not implemented in fake client")
+}
+
+func NewRemoveTagsFromResourceFn(output *ssm.RemoveTagsFromResourceOutput, err error) RemoveTagsFromResourceFn {
+	return func(ctx context.Context, params *ssm.RemoveTagsFromResourceInput, optFns ...func(*ssm.Options)) (*ssm.RemoveTagsFromResourceOutput, error) {
+		return output, err
+	}
+}
+
+func (sm *Client) AddTagsToResource(_ context.Context, params *ssm.AddTagsToResourceInput, optFns ...func(*ssm.Options)) (*ssm.AddTagsToResourceOutput, error) {
+	return nil, errors.New("AddTagsToResource is not implemented in fake client")
+}
+
+func NewAddTagsToResourceFn(output *ssm.AddTagsToResourceOutput, err error) AddTagsToResourceFn {
+	return func(ctx context.Context, params *ssm.AddTagsToResourceInput, optFns ...func(*ssm.Options)) (*ssm.AddTagsToResourceOutput, error) {
+		return output, err
 	}
 }

@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -53,6 +52,8 @@ type PushSecretMetadataSpec struct {
 	KMSKeyID        string                 `json:"kmsKeyID,omitempty"`
 	Tier            Tier                   `json:"tier,omitempty"`
 	EncodeAsDecoded bool                   `json:"encodeAsDecoded,omitempty"`
+	Tags            map[string]string      `json:"tags,omitempty"`
+	Description     string                 `json:"description,omitempty"`
 }
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -79,17 +80,18 @@ type PMInterface interface {
 	PutParameter(ctx context.Context, input *ssm.PutParameterInput, opts ...func(*ssm.Options)) (*ssm.PutParameterOutput, error)
 	DescribeParameters(ctx context.Context, input *ssm.DescribeParametersInput, opts ...func(*ssm.Options)) (*ssm.DescribeParametersOutput, error)
 	ListTagsForResource(ctx context.Context, input *ssm.ListTagsForResourceInput, opts ...func(*ssm.Options)) (*ssm.ListTagsForResourceOutput, error)
+	RemoveTagsFromResource(ctx context.Context, params *ssm.RemoveTagsFromResourceInput, optFns ...func(*ssm.Options)) (*ssm.RemoveTagsFromResourceOutput, error)
+	AddTagsToResource(ctx context.Context, params *ssm.AddTagsToResourceInput, optFns ...func(*ssm.Options)) (*ssm.AddTagsToResourceOutput, error)
 	DeleteParameter(ctx context.Context, input *ssm.DeleteParameterInput, opts ...func(*ssm.Options)) (*ssm.DeleteParameterOutput, error)
 }
 
 const (
 	errUnexpectedFindOperator    = "unexpected find operator"
-	errAccessDeniedException     = "AccessDeniedException"
 	errCodeAccessDeniedException = "AccessDeniedException"
 )
 
 // New constructs a ParameterStore Provider that is specific to a store.
-func New(ctx context.Context, cfg *aws.Config, prefix string, referentAuth bool) (*ParameterStore, error) {
+func New(_ context.Context, cfg *aws.Config, prefix string, referentAuth bool) (*ParameterStore, error) {
 	return &ParameterStore{
 		cfg:          cfg,
 		referentAuth: referentAuth,
@@ -100,7 +102,7 @@ func New(ctx context.Context, cfg *aws.Config, prefix string, referentAuth bool)
 	}, nil
 }
 
-func (pm *ParameterStore) getTagsByName(ctx context.Context, ref *ssm.GetParameterOutput) ([]ssmTypes.Tag, error) {
+func (pm *ParameterStore) getTagsByName(ctx context.Context, ref *ssm.GetParameterOutput) (map[string]string, error) {
 	parameterType := "Parameter"
 
 	parameterTags := ssm.ListTagsForResourceInput{
@@ -114,7 +116,11 @@ func (pm *ParameterStore) getTagsByName(ctx context.Context, ref *ssm.GetParamet
 		return nil, fmt.Errorf("error listing tags %w", err)
 	}
 
-	return data.TagList, nil
+	tags := map[string]string{}
+	for _, tag := range data.TagList {
+		tags[*tag.Key] = *tag.Value
+	}
+	return tags, nil
 }
 
 func (pm *ParameterStore) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
@@ -200,12 +206,22 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 		value = secret.Data[key]
 	}
 
+	tags := make([]ssmTypes.Tag, 0, len(meta.Spec.Tags))
+
+	for k, v := range meta.Spec.Tags {
+		tags = append(tags, ssmTypes.Tag{
+			Key:   ptr.To(k),
+			Value: ptr.To(v),
+		})
+	}
+
 	secretName := pm.prefix + data.GetRemoteKey()
 	secretRequest := ssm.PutParameterInput{
-		Name:      ptr.To(pm.prefix + data.GetRemoteKey()),
-		Value:     ptr.To(string(value)),
-		Type:      meta.Spec.SecretType,
-		Overwrite: ptr.To(true),
+		Name:        ptr.To(pm.prefix + data.GetRemoteKey()),
+		Value:       ptr.To(string(value)),
+		Type:        meta.Spec.SecretType,
+		Overwrite:   ptr.To(true),
+		Description: ptr.To(meta.Spec.Description),
 	}
 
 	if meta.Spec.SecretType == "SecureString" {
@@ -234,12 +250,12 @@ func (pm *ParameterStore) PushSecret(ctx context.Context, secret *corev1.Secret,
 
 	// If we have a valid parameter returned to us, check its tags
 	if existing != nil && existing.Parameter != nil {
-		return pm.setExisting(ctx, existing, secretName, value, secretRequest)
+		return pm.setExisting(ctx, existing, secretName, value, secretRequest, meta.Spec.Tags)
 	}
 
 	// let's set the secret
 	// Do we need to delete the existing parameter on the remote?
-	return pm.setManagedRemoteParameter(ctx, secretRequest, true)
+	return pm.setManagedRemoteParameter(ctx, secretRequest, tags, true)
 }
 
 func (pm *ParameterStore) encodeSecretData(encodeAsDecoded bool, data map[string][]byte) ([]byte, error) {
@@ -259,7 +275,7 @@ func convertMap(in map[string][]byte) map[string]string {
 	return m
 }
 
-func (pm *ParameterStore) setExisting(ctx context.Context, existing *ssm.GetParameterOutput, secretName string, value []byte, secretRequest ssm.PutParameterInput) error {
+func (pm *ParameterStore) setExisting(ctx context.Context, existing *ssm.GetParameterOutput, secretName string, value []byte, secretRequest ssm.PutParameterInput, metaTags map[string]string) error {
 	tags, err := pm.getTagsByName(ctx, existing)
 	if err != nil {
 		return fmt.Errorf("error getting the existing tags for the parameter %v: %w", secretName, err)
@@ -281,25 +297,49 @@ func (pm *ParameterStore) setExisting(ctx context.Context, existing *ssm.GetPara
 		return nil
 	}
 
-	return pm.setManagedRemoteParameter(ctx, secretRequest, false)
-}
-
-func isManagedByESO(tags []ssmTypes.Tag) bool {
-	return slices.ContainsFunc(tags, func(tag ssmTypes.Tag) bool {
-		return *tag.Key == managedBy && *tag.Value == externalSecrets
-	})
-}
-
-func (pm *ParameterStore) setManagedRemoteParameter(ctx context.Context, secretRequest ssm.PutParameterInput, createManagedByTags bool) error {
-	externalSecretsTag := ssmTypes.Tag{
-		Key:   &managedBy,
-		Value: &externalSecrets,
+	err = pm.setManagedRemoteParameter(ctx, secretRequest, []ssmTypes.Tag{}, false)
+	if err != nil {
+		return err
 	}
 
+	tagKeysToRemove := findTagKeysToRemove(tags, metaTags)
+	if len(tagKeysToRemove) > 0 {
+		_, err = pm.client.RemoveTagsFromResource(ctx, &ssm.RemoveTagsFromResourceInput{
+			ResourceId:   existing.Parameter.Name,
+			ResourceType: ssmTypes.ResourceTypeForTaggingParameter,
+			TagKeys:      tagKeysToRemove,
+		})
+		metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSRemoveTagsParameter, err)
+		if err != nil {
+			return err
+		}
+	}
+
+	tagsToUpdate, isModified := computeTagsToUpdate(tags, metaTags)
+	if isModified {
+		_, err = pm.client.AddTagsToResource(ctx, &ssm.AddTagsToResourceInput{
+			ResourceId:   existing.Parameter.Name,
+			ResourceType: ssmTypes.ResourceTypeForTaggingParameter,
+			Tags:         tagsToUpdate,
+		})
+		metrics.ObserveAPICall(constants.ProviderAWSPS, constants.CallAWSPSAddTagsParameter, err)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func isManagedByESO(tags map[string]string) bool {
+	return tags[managedBy] == externalSecrets
+}
+
+func (pm *ParameterStore) setManagedRemoteParameter(ctx context.Context, secretRequest ssm.PutParameterInput, tags []ssmTypes.Tag, createManagedByTags bool) error {
 	overwrite := true
 	secretRequest.Overwrite = &overwrite
 	if createManagedByTags {
-		secretRequest.Tags = append(secretRequest.Tags, externalSecretsTag)
+		secretRequest.Tags = append(secretRequest.Tags, tags...)
 		overwrite = false
 	}
 
@@ -609,6 +649,10 @@ func (pm *ParameterStore) constructMetadataWithDefaults(data *apiextensionsv1.JS
 		meta = &metadata.PushSecretMetadata[PushSecretMetadataSpec]{}
 	}
 
+	if meta.Spec.Description == "" {
+		meta.Spec.Description = fmt.Sprintf("secret '%s:%s'", managedBy, externalSecrets)
+	}
+
 	if meta.Spec.Tier.Type == "" {
 		meta.Spec.Tier.Type = "Standard"
 	}
@@ -621,5 +665,45 @@ func (pm *ParameterStore) constructMetadataWithDefaults(data *apiextensionsv1.JS
 		meta.Spec.KMSKeyID = "alias/aws/ssm"
 	}
 
+	if len(meta.Spec.Tags) > 0 {
+		if _, exists := meta.Spec.Tags[managedBy]; exists {
+			return nil, fmt.Errorf("error parsing tags in metadata: Cannot specify a '%s' tag", managedBy)
+		}
+	} else {
+		meta.Spec.Tags = make(map[string]string)
+	}
+	// always add the managedBy tag
+	meta.Spec.Tags[managedBy] = externalSecrets
+
 	return meta, nil
+}
+
+// findTagKeysToRemove returns a slice of tag keys that exist in the current tags
+// but are not present in the desired metaTags. These keys should be removed to
+// synchronize the tags with the desired state.
+func findTagKeysToRemove(tags, metaTags map[string]string) []string {
+	var diff []string
+	for key, _ := range tags {
+		if _, ok := metaTags[key]; !ok {
+			diff = append(diff, key)
+		}
+	}
+	return diff
+}
+
+// computeTagsToUpdate compares the current tags with the desired metaTags and returns a slice of ssmTypes.Tag
+// that should be set on the resource. It also returns a boolean indicating if any tag was added or modified.
+func computeTagsToUpdate(tags, metaTags map[string]string) ([]ssmTypes.Tag, bool) {
+	result := make([]ssmTypes.Tag, 0, len(metaTags))
+	modified := false
+	for k, v := range metaTags {
+		if _, exists := tags[k]; !exists || tags[k] != v {
+			modified = true
+		}
+		result = append(result, ssmTypes.Tag{
+			Key:   ptr.To(k),
+			Value: ptr.To(v),
+		})
+	}
+	return result, modified
 }

@@ -25,9 +25,18 @@ type UniversalAuthCredentials struct {
 	ClientSecret esmeta.SecretKeySelector `json:"clientSecret"`
 }
 
+type AzureAuthCredentials struct {
+	// +kubebuilder:validation:Required
+	IdentityID esmeta.SecretKeySelector `json:"identityId"`
+	// +optional
+	Resource esmeta.SecretKeySelector `json:"resource"`
+}
+
 type InfisicalAuth struct {
 	// +optional
 	UniversalAuthCredentials *UniversalAuthCredentials `json:"universalAuthCredentials,omitempty"`
+	// +optional
+	AzureAuthCredentials *AzureAuthCredentials `json:"azureAuthCredentials,omitempty"`
 }
 
 type MachineIdentityScopeInWorkspace struct {
