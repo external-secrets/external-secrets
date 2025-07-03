@@ -106,6 +106,7 @@ const (
 	errUpdateNotFound        = "unable to update secret %s: not found"
 	errDeleteCreatePolicy    = "unable to delete secret %s: creationPolicy=%s is not Owner"
 	errSecretCachesNotSynced = "controller caches for secret %s are not in sync"
+	errDecrypt               = "error applying decripting strategy %s to data: %w"
 
 	// event messages.
 	eventCreated                  = "secret created"
