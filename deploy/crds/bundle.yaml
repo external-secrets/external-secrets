@@ -2578,6 +2578,11 @@ spec:
                         externalID:
                           description: AWS External ID set on assumed IAM roles
                           type: string
+                        injectKubernetesContext:
+                          description: |-
+                            InjectKubernetesContext, when true, automatically adds STS session tags identifying the calling namespace,
+                            and the SecretStore name.
+                          type: boolean
                         prefix:
                           description: Prefix adds a prefix to all retrieved values.
                           type: string
@@ -6876,6 +6881,11 @@ spec:
                         externalID:
                           description: AWS External ID set on assumed IAM roles
                           type: string
+                        injectKubernetesContext:
+                          description: |-
+                            InjectKubernetesContext, when true, automatically adds STS session tags identifying the calling namespace,
+                            and the SecretStore name.
+                          type: boolean
                         prefix:
                           description: Prefix adds a prefix to all retrieved values.
                           type: string
@@ -12789,6 +12799,11 @@ spec:
                         externalID:
                           description: AWS External ID set on assumed IAM roles
                           type: string
+                        injectKubernetesContext:
+                          description: |-
+                            InjectKubernetesContext, when true, automatically adds STS session tags identifying the calling namespace,
+                            and the SecretStore name.
+                          type: boolean
                         prefix:
                           description: Prefix adds a prefix to all retrieved values.
                           type: string
@@ -17087,6 +17102,11 @@ spec:
                         externalID:
                           description: AWS External ID set on assumed IAM roles
                           type: string
+                        injectKubernetesContext:
+                          description: |-
+                            InjectKubernetesContext, when true, automatically adds STS session tags identifying the calling namespace,
+                            and the SecretStore name.
+                          type: boolean
                         prefix:
                           description: Prefix adds a prefix to all retrieved values.
                           type: string
