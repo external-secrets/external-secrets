@@ -612,7 +612,9 @@ func TestPushSecret(t *testing.T) {
 					}`),
 				},
 				client: fakeps.Client{
-					PutParameterFn: fakeps.NewPutParameterFn(putParameterOutput, nil),
+					PutParameterFn: fakeps.NewPutParameterFn(putParameterOutput, nil, func(input *ssm.PutParameterInput) {
+						assert.Len(t, input.Tags, 0)
+					}),
 					GetParameterFn: fakeps.NewGetParameterFn(&ssm.GetParameterOutput{
 						Parameter: &ssmtypes.Parameter{
 							Value: aws.String("some-value"),
