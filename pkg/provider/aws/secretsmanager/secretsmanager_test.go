@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
+	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -527,6 +528,8 @@ func TestSetSecret(t *testing.T) {
 					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
 					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+					UntagResourceFn:  fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -543,6 +546,8 @@ func TestSetSecret(t *testing.T) {
 					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
 					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+					UntagResourceFn:  fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithoutSecretKey,
 			},
@@ -559,6 +564,8 @@ func TestSetSecret(t *testing.T) {
 					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
 					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+					UntagResourceFn:  fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithMetadata,
 			},
@@ -599,6 +606,8 @@ func TestSetSecret(t *testing.T) {
 					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
 					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+					UntagResourceFn:  fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
 				},
 				pushSecretData: fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "", Metadata: &apiextensionsv1.JSON{
 					Raw: []byte(`{
@@ -652,6 +661,8 @@ func TestSetSecret(t *testing.T) {
 						SecretBinary: []byte(`{"fake-property":"fake-value","other-fake-property":"fake-value"}`),
 						Version:      &defaultUpdatedVersion,
 					}),
+					TagResourceFn:   fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+					UntagResourceFn: fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithProperty,
 			},
@@ -673,6 +684,8 @@ func TestSetSecret(t *testing.T) {
 						SecretBinary: []byte(`{"fake-property":"fake-value","other-fake-property":"fake-value"}`),
 						Version:      &randomUUIDVersionIncremented,
 					}),
+					TagResourceFn:   fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+					UntagResourceFn: fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithProperty,
 			},
@@ -715,6 +728,8 @@ func TestSetSecret(t *testing.T) {
 						SecretBinary: []byte(`{"fake-property":"fake-value","other-fake-property":"fake-value"}`),
 						Version:      &initialVersion,
 					}),
+					TagResourceFn:   fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+					UntagResourceFn: fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithProperty,
 			},
@@ -733,6 +748,8 @@ func TestSetSecret(t *testing.T) {
 						SecretBinary: []byte(`{"fake-property":"fake-value","other-fake-property":"fake-value"}`),
 						Version:      &defaultUpdatedVersion,
 					}),
+					TagResourceFn:   fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+					UntagResourceFn: fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithProperty,
 			},
@@ -751,6 +768,8 @@ func TestSetSecret(t *testing.T) {
 						SecretBinary: []byte(`{"fake-property":{"fake-property":"fake-value","other-fake-property":"fake-value"}}`),
 						Version:      &defaultUpdatedVersion,
 					}),
+					TagResourceFn:   fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+					UntagResourceFn: fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
 				},
 				pushSecretData: fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "fake-property.other-fake-property"},
 			},
@@ -821,6 +840,8 @@ func TestSetSecret(t *testing.T) {
 					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
 					PutSecretValueFn: fakesm.NewPutSecretValueFn(nil, noPermission),
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+					UntagResourceFn:  fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -869,26 +890,44 @@ func TestSetSecret(t *testing.T) {
 				err: errors.New("secret not managed by external-secrets"),
 			},
 		},
-		"SetSecretWithPrefix": {
-			reason: "secret key is properly prefixed when creating a new secret",
+		"PatchSecretTags": {
+			reason: "secret key is configured with tags to remove and add",
 			args: args{
-
 				store: &esv1.AWSProvider{
 					Service: esv1.AWSServiceSecretsManager,
 					Region:  "eu-west-2",
-					Prefix:  "prefix-",
 				},
 				client: fakesm.Client{
-					GetSecretValueFn: fakesm.NewGetSecretValueFn(blankSecretValueOutput, &getSecretCorrectErr),
-					CreateSecretFn: func(ctx context.Context, input *awssm.CreateSecretInput, opts ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error) {
-						// Verify that the input name has the prefix applied
-						if *input.Name != "prefix-"+fakeKey {
-							return nil, fmt.Errorf("expected secret name to be prefixed with 'prefix-', got %s", *input.Name)
-						}
-						return secretOutput, nil
-					},
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutputFrom(params{s: `{"fake-property":{"fake-property":"fake-value"}}`}), nil),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(&awssm.DescribeSecretOutput{
+						ARN: &arn,
+						Tags: []types.Tag{
+							{Key: &managedBy, Value: &externalSecrets},
+							{Key: ptr.To("team"), Value: ptr.To("paradox")},
+						},
+					}, nil),
+					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
+					TagResourceFn: fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil, func(input *awssm.TagResourceInput) {
+						assert.Len(t, input.Tags, 2)
+						assert.Contains(t, input.Tags, types.Tag{Key: &managedBy, Value: &externalSecrets})
+						assert.Contains(t, input.Tags, types.Tag{Key: ptr.To("env"), Value: ptr.To("sandbox")})
+					}),
+					UntagResourceFn: fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil, func(input *awssm.UntagResourceInput) {
+						assert.Len(t, input.TagKeys, 1)
+						assert.Equal(t, []string{"team"}, input.TagKeys)
+					}),
 				},
-				pushSecretData: pushSecretDataWithoutProperty,
+				pushSecretData: fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "", Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{
+					"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+					"kind": "PushSecretMetadata",
+					"spec": {
+						"secretPushFormat": "string",
+						"tags": {
+							"env": "sandbox"
+						}
+					}
+				}`)}},
 			},
 			want: want{
 				err: nil,
@@ -1587,6 +1626,98 @@ func TestSecretExists(t *testing.T) {
 					err:       err,
 					wantError: got,
 				})
+		})
+	}
+}
+
+func TestConstructMetadataWithDefaults(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       *apiextensionsv1.JSON
+		expected    *metadata.PushSecretMetadata[PushSecretMetadataSpec]
+		expectError bool
+	}{
+		{
+			name: "Valid metadata with multiple fields",
+			input: &apiextensionsv1.JSON{Raw: []byte(`{
+				"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+				"kind": "PushSecretMetadata",
+				"spec": {
+					"description": "test description",
+					"secretPushFormat":"string",
+					"kmsKeyID": "custom-kms-key",
+					"tags": {
+						"customKey": "customValue"
+					},
+				}
+			}`)},
+			expected: &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
+				APIVersion: "kubernetes.external-secrets.io/v1alpha1",
+				Kind:       "PushSecretMetadata",
+				Spec: PushSecretMetadataSpec{
+					Description:      "test description",
+					SecretPushFormat: "string",
+					KMSKeyID:         "custom-kms-key",
+					Tags: map[string]string{
+						"customKey": "customValue",
+						managedBy:   externalSecrets,
+					},
+				},
+			},
+		},
+		{
+			name:  "Empty metadata, defaults applied",
+			input: nil,
+			expected: &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
+				Spec: PushSecretMetadataSpec{
+					Description:      fmt.Sprintf("secret '%s:%s'", managedBy, externalSecrets),
+					SecretPushFormat: "binary",
+					KMSKeyID:         "alias/aws/secretsmanager",
+					Tags: map[string]string{
+						managedBy: externalSecrets,
+					},
+				},
+			},
+		},
+		{
+			name: "Added default metadata with 'managed-by' tag",
+			input: &apiextensionsv1.JSON{Raw: []byte(`{
+				"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+				"kind": "PushSecretMetadata",
+				"spec": {
+					"tags": {
+                        "managed-by": "external-secrets",
+						"customKey": "customValue"
+					},
+				}
+			}`)},
+			expected:    nil,
+			expectError: true,
+		},
+		{
+			name:        "Invalid metadata format",
+			input:       &apiextensionsv1.JSON{Raw: []byte(`invalid-json`)},
+			expected:    nil,
+			expectError: true,
+		},
+		{
+			name:        "Metadata with 'managed-by' tag specified",
+			input:       &apiextensionsv1.JSON{Raw: []byte(`{"tags":{"managed-by":"invalid"}}`)},
+			expected:    nil,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := (&SecretsManager{}).constructMetadataWithDefaults(tt.input)
+
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expected, result)
+			}
 		})
 	}
 }

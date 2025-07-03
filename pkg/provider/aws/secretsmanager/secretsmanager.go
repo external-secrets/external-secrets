@@ -83,6 +83,8 @@ type SMInterface interface {
 	PutSecretValue(ctx context.Context, params *awssm.PutSecretValueInput, optFuncs ...func(*awssm.Options)) (*awssm.PutSecretValueOutput, error)
 	DescribeSecret(ctx context.Context, params *awssm.DescribeSecretInput, optFuncs ...func(*awssm.Options)) (*awssm.DescribeSecretOutput, error)
 	DeleteSecret(ctx context.Context, params *awssm.DeleteSecretInput, optFuncs ...func(*awssm.Options)) (*awssm.DeleteSecretOutput, error)
+	TagResource(ctx context.Context, params *awssm.TagResourceInput, optFuncs ...func(*awssm.Options)) (*awssm.TagResourceOutput, error)
+	UntagResource(ctx context.Context, params *awssm.UntagResourceInput, optFuncs ...func(*awssm.Options)) (*awssm.UntagResourceOutput, error)
 }
 
 const (
@@ -95,7 +97,7 @@ const (
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager")
 
 // New creates a new SecretsManager client.
-func New(ctx context.Context, cfg *aws.Config, secretsManagerCfg *esv1.SecretsManager, prefix string, referentAuth bool) (*SecretsManager, error) {
+func New(_ context.Context, cfg *aws.Config, secretsManagerCfg *esv1.SecretsManager, prefix string, referentAuth bool) (*SecretsManager, error) {
 	return &SecretsManager{
 		cfg: cfg,
 		client: awssm.NewFromConfig(*cfg, func(o *awssm.Options) {
@@ -513,12 +515,7 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 		return fmt.Errorf("failed to parse push secret metadata: %w", err)
 	}
 
-	tags := []types.Tag{
-		{
-			Key:   utilpointer.To(managedBy),
-			Value: utilpointer.To(externalSecrets),
-		},
-	}
+	tags := make([]types.Tag, len(mdata.Spec.Tags))
 
 	for k, v := range mdata.Spec.Tags {
 		tags = append(tags, types.Tag{
@@ -579,8 +576,61 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretI
 
 	_, err = sm.client.PutSecretValue(ctx, input)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutSecretValue, err)
+	if err != nil {
+		return err
+	}
 
+	meta, err := sm.constructMetadataWithDefaults(psd.GetMetadata())
+	if err != nil {
+		return err
+	}
+
+	currentTags := make(map[string]string, len(data.Tags))
+	for _, tag := range data.Tags {
+		currentTags[*tag.Key] = *tag.Value
+	}
+
+	tagKeysToRemove := util.FindTagKeysToRemove(currentTags, meta.Spec.Tags)
+	if len(tagKeysToRemove) > 0 {
+		_, err = sm.client.UntagResource(ctx, &awssm.UntagResourceInput{
+			SecretId: awsSecret.ARN,
+			TagKeys:  tagKeysToRemove,
+		})
+		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMUntagResource, err)
+		if err != nil {
+			return err
+		}
+	}
+
+	tagsToUpdate, isModified := computeTagsToUpdate(currentTags, meta.Spec.Tags)
+	if isModified {
+		_, err = sm.client.TagResource(ctx, &awssm.TagResourceInput{
+			SecretId: awsSecret.ARN,
+			Tags:     tagsToUpdate,
+		})
+		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMTagResource, err)
+		if err != nil {
+			return err
+		}
+	}
 	return err
+}
+
+// computeTagsToUpdate compares the current tags with the desired metaTags and returns a slice of ssmTypes.Tag
+// that should be set on the resource. It also returns a boolean indicating if any tag was added or modified.
+func computeTagsToUpdate(tags, metaTags map[string]string) ([]types.Tag, bool) {
+	result := make([]types.Tag, 0, len(metaTags))
+	modified := false
+	for k, v := range metaTags {
+		if _, exists := tags[k]; !exists || tags[k] != v {
+			modified = true
+		}
+		result = append(result, types.Tag{
+			Key:   utilpointer.To(k),
+			Value: utilpointer.To(v),
+		})
+	}
+	return result, modified
 }
 
 func (sm *SecretsManager) fetchWithBatch(ctx context.Context, filters []types.Filter, matcher *find.Matcher) (map[string][]byte, error) {
@@ -711,7 +761,10 @@ func (sm *SecretsManager) constructMetadataWithDefaults(data *apiextensionsv1.JS
 		if _, exists := meta.Spec.Tags[managedBy]; exists {
 			return nil, fmt.Errorf("error parsing tags in metadata: Cannot specify a '%s' tag", managedBy)
 		}
+	} else {
+		meta.Spec.Tags = make(map[string]string)
 	}
+	meta.Spec.Tags[managedBy] = externalSecrets
 
 	return meta, nil
 }

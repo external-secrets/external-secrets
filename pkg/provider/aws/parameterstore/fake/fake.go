@@ -113,22 +113,32 @@ func (sm *Client) WithValue(in *ssm.GetParameterInput, val *ssm.GetParameterOutp
 	}
 }
 
-func (sm *Client) RemoveTagsFromResource(_ context.Context, params *ssm.RemoveTagsFromResourceInput, optFns ...func(*ssm.Options)) (*ssm.RemoveTagsFromResourceOutput, error) {
-	return nil, errors.New("RemoveTagsFromResource is not implemented in fake client")
+func (sm *Client) RemoveTagsFromResource(ctx context.Context, params *ssm.RemoveTagsFromResourceInput, optFns ...func(*ssm.Options)) (*ssm.RemoveTagsFromResourceOutput, error) {
+	return sm.RemoveTagsFromResourceFn(ctx, params, optFns...)
 }
 
-func NewRemoveTagsFromResourceFn(output *ssm.RemoveTagsFromResourceOutput, err error) RemoveTagsFromResourceFn {
+func NewRemoveTagsFromResourceFn(output *ssm.RemoveTagsFromResourceOutput, err error, aFunc ...func(input *ssm.RemoveTagsFromResourceInput)) RemoveTagsFromResourceFn {
 	return func(ctx context.Context, params *ssm.RemoveTagsFromResourceInput, optFns ...func(*ssm.Options)) (*ssm.RemoveTagsFromResourceOutput, error) {
+		if len(aFunc) > 0 {
+			for _, f := range aFunc {
+				f(params)
+			}
+		}
 		return output, err
 	}
 }
 
-func (sm *Client) AddTagsToResource(_ context.Context, params *ssm.AddTagsToResourceInput, optFns ...func(*ssm.Options)) (*ssm.AddTagsToResourceOutput, error) {
-	return nil, errors.New("AddTagsToResource is not implemented in fake client")
+func (sm *Client) AddTagsToResource(ctx context.Context, params *ssm.AddTagsToResourceInput, optFns ...func(*ssm.Options)) (*ssm.AddTagsToResourceOutput, error) {
+	return sm.AddTagsToResourceFn(ctx, params, optFns...)
 }
 
-func NewAddTagsToResourceFn(output *ssm.AddTagsToResourceOutput, err error) AddTagsToResourceFn {
+func NewAddTagsToResourceFn(output *ssm.AddTagsToResourceOutput, err error, aFunc ...func(input *ssm.AddTagsToResourceInput)) AddTagsToResourceFn {
 	return func(ctx context.Context, params *ssm.AddTagsToResourceInput, optFns ...func(*ssm.Options)) (*ssm.AddTagsToResourceOutput, error) {
+		if len(aFunc) > 0 {
+			for _, f := range aFunc {
+				f(params)
+			}
+		}
 		return output, err
 	}
 }

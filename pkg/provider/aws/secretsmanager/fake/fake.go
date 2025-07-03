@@ -38,6 +38,8 @@ type Client struct {
 	DeleteSecretFn        DeleteSecretFn
 	ListSecretsFn         ListSecretsFn
 	BatchGetSecretValueFn BatchGetSecretValueFn
+	TagResourceFn         TagResourceFn
+	UntagResourceFn       UntagResourceFn
 }
 type CreateSecretFn func(context.Context, *awssm.CreateSecretInput, ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error)
 type GetSecretValueFn func(context.Context, *awssm.GetSecretValueInput, ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error)
@@ -46,6 +48,9 @@ type DescribeSecretFn func(context.Context, *awssm.DescribeSecretInput, ...func(
 type DeleteSecretFn func(context.Context, *awssm.DeleteSecretInput, ...func(*awssm.Options)) (*awssm.DeleteSecretOutput, error)
 type ListSecretsFn func(context.Context, *awssm.ListSecretsInput, ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error)
 type BatchGetSecretValueFn func(context.Context, *awssm.BatchGetSecretValueInput, ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error)
+
+type TagResourceFn func(context.Context, *awssm.TagResourceInput, ...func(*awssm.Options)) (*awssm.TagResourceOutput, error)
+type UntagResourceFn func(context.Context, *awssm.UntagResourceInput, ...func(*awssm.Options)) (*awssm.UntagResourceOutput, error)
 
 func (sm Client) CreateSecret(ctx context.Context, input *awssm.CreateSecretInput, options ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error) {
 	return sm.CreateSecretFn(ctx, input, options...)
@@ -187,5 +192,35 @@ func (sm *Client) WithValue(in *awssm.GetSecretValueInput, val *awssm.GetSecretV
 			return nil, errors.New("unexpected test argument")
 		}
 		return val, err
+	}
+}
+
+func (sm *Client) TagResource(ctx context.Context, params *awssm.TagResourceInput, optFns ...func(*awssm.Options)) (*awssm.TagResourceOutput, error) {
+	return sm.TagResourceFn(ctx, params, optFns...)
+}
+
+func NewTagResourceFn(output *awssm.TagResourceOutput, err error, aFunc ...func(input *awssm.TagResourceInput)) TagResourceFn {
+	return func(ctx context.Context, params *awssm.TagResourceInput, optFns ...func(*awssm.Options)) (*awssm.TagResourceOutput, error) {
+		if len(aFunc) > 0 {
+			for _, f := range aFunc {
+				f(params)
+			}
+		}
+		return output, err
+	}
+}
+
+func (sm *Client) UntagResource(ctx context.Context, params *awssm.UntagResourceInput, optFuncs ...func(*awssm.Options)) (*awssm.UntagResourceOutput, error) {
+	return sm.UntagResourceFn(ctx, params, optFuncs...)
+}
+
+func NewUntagResourceFn(output *awssm.UntagResourceOutput, err error, aFunc ...func(input *awssm.UntagResourceInput)) UntagResourceFn {
+	return func(ctx context.Context, params *awssm.UntagResourceInput, optFuncs ...func(*awssm.Options)) (*awssm.UntagResourceOutput, error) {
+		if len(aFunc) > 0 {
+			for _, f := range aFunc {
+				f(params)
+			}
+		}
+		return output, err
 	}
 }
