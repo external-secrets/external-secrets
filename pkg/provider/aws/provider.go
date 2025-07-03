@@ -143,22 +143,8 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 	storeSpec := store.GetSpec()
 	var cfg *aws.Config
 
-	// --------------------------------------------------------------------------------
-	// Enrich AWS provider configuration with auto-generated STS session tags that
-	// capture Kubernetes context. Behaviour is controlled via the SecretStore
-	// specification (InjectKubernetesContext / OperatorRBACName).
-	// --------------------------------------------------------------------------------
-	operatorRole := prov.OperatorRBACName
-	if operatorRole == "" {
-		operatorRole = "external-secrets-controller"
-	}
-	if extra := buildContextSessionTags(prov.InjectKubernetesContext, namespace, store.GetName(), operatorRole); len(extra) > 0 {
-		// Make sure we do not mutate the slice referenced by the informer cache –
-		// copy on write to avoid side-effects.
-		copied := make([]*esv1.Tag, len(prov.SessionTags))
-		copy(copied, prov.SessionTags)
-		copied = append(copied, extra...)
-		prov.SessionTags = copied
+	if prov.InjectKubernetesContext {
+		prov.SessionTags = buildContextSessionTags(prov.SessionTags, namespace, store.GetName())
 	}
 
 	// allow SecretStore controller validation to pass
@@ -246,4 +232,28 @@ func init() {
 	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
 		AWS: &esv1.AWSProvider{},
 	}, esv1.MaintenanceStatusMaintained)
+}
+
+// buildContextSessionTags builds a list of session tags for the AWS STS session.
+// It includes the namespace and store name, and any additional tags provided.
+func buildContextSessionTags(tags []*esv1.Tag, namespace, storeName string) []*esv1.Tag {
+	m := make(map[string]string)
+
+	for _, tag := range tags {
+		if tag.Key != "" && tag.Value != "" {
+			m[tag.Key] = tag.Value
+		}
+	}
+	m["esoNamespace"] = namespace
+	m["esoStoreName"] = storeName
+
+	newTags := make([]*esv1.Tag, 0, len(m))
+	for k, v := range m {
+		newTags = append(newTags, &esv1.Tag{
+			Key:   k,
+			Value: v,
+		})
+	}
+
+	return newTags
 }
