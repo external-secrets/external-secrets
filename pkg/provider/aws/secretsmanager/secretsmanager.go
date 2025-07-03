@@ -515,7 +515,7 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 		return fmt.Errorf("failed to parse push secret metadata: %w", err)
 	}
 
-	tags := make([]types.Tag, len(mdata.Spec.Tags))
+	tags := make([]types.Tag, 0)
 
 	for k, v := range mdata.Spec.Tags {
 		tags = append(tags, types.Tag{
