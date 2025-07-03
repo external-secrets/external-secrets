@@ -41,13 +41,11 @@ type YandexCertificateManagerProvider struct {
 	// +optional
 	CAProvider *YandexCertificateManagerCAProvider `json:"caProvider,omitempty"`
 
-	// FetchByID enables fetching secrets by ID.
-	// The values in ExternalSecret `data.secretKey.remoteRef.key` field will be interpreted as IDs
+	// FetchByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as certificate ID
 	// +optional
 	FetchByID *FetchByID `json:"fetchByID,omitempty"`
 
-	// FetchByName enables fetching secrets by name.
-	// The values in ExternalSecret `data.secretKey.remoteRef.key` field will be interpreted as name
+	// FetchByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as certificate name
 	// +optional
 	FetchByName *FetchByName `json:"fetchByName,omitempty"`
 }

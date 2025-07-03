@@ -32,7 +32,7 @@ type FetchByID struct{}
 
 type FetchByName struct {
 	// The folder to fetch secrets from
-	FolderID string `json:"folderId"`
+	FolderID string `json:"folderID"`
 }
 
 // YandexLockboxProvider Configures a store to sync secrets using the Yandex Lockbox provider.
