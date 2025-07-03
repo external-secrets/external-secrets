@@ -114,9 +114,15 @@ func tlsConfig(caCertificate []byte) (*tls.Config, error) {
 }
 
 func buildSDK(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, tlsConfig *tls.Config) (*ycsdk.SDK, error) {
-	creds, err := ycsdk.ServiceAccountKey(authorizedKey)
-	if err != nil {
-		return nil, err
+	var creds ycsdk.Credentials
+	if authorizedKey != nil {
+		var err error
+		creds, err = ycsdk.ServiceAccountKey(authorizedKey)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		creds = ycsdk.InstanceServiceAccount()
 	}
 
 	sdk, err := ycsdk.Build(ctx, ycsdk.Config{
