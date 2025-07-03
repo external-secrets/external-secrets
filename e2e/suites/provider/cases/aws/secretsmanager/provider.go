@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	secretsmanagertypes "github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
+
 	//nolint
 	. "github.com/onsi/ginkgo/v2"
 
@@ -214,4 +215,26 @@ func (s *Provider) TeardownReferencedIRSAStore() {
 			Name: awscommon.ReferencedIRSAStoreName(s.framework),
 		},
 	})
+}
+
+// buildContextSessionTags returns additional STS session tags that encode
+// Kubernetes execution context. The tags are only produced when `enabled` is
+// true. Keys that are added:
+//
+//	esoNamespace     – namespace of the requesting resource
+//	esoStoreName     – name of the SecretStore / ClusterSecretStore
+//	esoOperatorRBAC  – (optional) name of the operator Role/ClusterRole
+func buildContextSessionTags(enabled bool, namespace, storeName, operatorRBAC string) []*esv1.Tag {
+	if !enabled {
+		return nil
+	}
+
+	tags := []*esv1.Tag{
+		&esv1.Tag{Key: "esoNamespace", Value: namespace},
+		&esv1.Tag{Key: "esoStoreName", Value: storeName},
+	}
+	if operatorRBAC != "" {
+		tags = append(tags, &esv1.Tag{Key: "esoOperatorRBAC", Value: operatorRBAC})
+	}
+	return tags
 }
