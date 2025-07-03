@@ -15,6 +15,6 @@ maintainers:
     email: kellinmcavoy@gmail.com
 dependencies:
   - name: bitwarden-sdk-server
-    version: v0.4.2
+    version: v0.5.0
     repository: oci://ghcr.io/external-secrets/charts
     condition: bitwarden-sdk-server.enabled

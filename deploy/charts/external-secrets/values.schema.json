@@ -9,6 +9,9 @@
             "properties": {
                 "enabled": {
                     "type": "boolean"
+                },
+                "namespaceOverride": {
+                    "type": "string"
                 }
             },
             "type": "object"
