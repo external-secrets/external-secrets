@@ -56,3 +56,22 @@ func (c *grpcCertificateManagerClient) GetCertificateContent(ctx context.Context
 	}
 	return response, nil
 }
+
+func (c *grpcCertificateManagerClient) GetExCertificateContent(ctx context.Context, iamToken, folderID, name, _ string) (*api.GetExCertificateContentResponse, error) {
+	response, err := c.certificateContentServiceClient.GetEx(
+		ctx,
+		&api.GetExCertificateContentRequest{
+			Identifier: &api.GetExCertificateContentRequest_FolderAndName{
+				FolderAndName: &api.FolderAndName{
+					FolderId:        folderID,
+					CertificateName: name,
+				},
+			},
+		},
+		grpc.PerRPCCredentials(common.PerRPCCredentials{IamToken: iamToken}),
+	)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
