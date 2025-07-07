@@ -21,6 +21,7 @@ import (
 
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/certificatemanager/client"
 	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common"
+	api "github.com/yandex-cloud/go-genproto/yandex/cloud/certificatemanager/v1"
 )
 
 const (
@@ -41,9 +42,23 @@ func newCertificateManagerSecretGetter(certificateManagerClient client.Certifica
 }
 
 func (g *certificateManagerSecretGetter) GetSecret(ctx context.Context, iamToken, resourceID string, resourceKeyType common.ResourceKeyType, folderID, versionID, property string) ([]byte, error) {
-	response, err := g.certificateManagerClient.GetCertificateContent(ctx, iamToken, resourceID, versionID)
-	if err != nil {
-		return nil, fmt.Errorf("unable to request certificate content to get secret: %w", err)
+	var response *api.GetCertificateContentResponse
+
+	switch resourceKeyType {
+	case common.ResourceKeyTypeId:
+		var err error
+		response, err = g.certificateManagerClient.GetCertificateContent(ctx, iamToken, resourceID, versionID)
+		if err != nil {
+			return nil, fmt.Errorf("unable to request certificate content to get secret: %w", err)
+		}
+	case common.ResourceKeyTypeName:
+		responseEx, err := g.certificateManagerClient.GetExCertificateContent(ctx, iamToken, folderID, resourceID, versionID)
+		if err != nil {
+			return nil, fmt.Errorf("unable to request certificate content to getEx secret: %w", err)
+		}
+		response = convertToGetExCertificateContentResponse(responseEx)
+	default:
+		return nil, fmt.Errorf("unsupported resource key type '%v'", resourceKeyType)
 	}
 
 	chain := trimAndJoin(response.CertificateChain...)
@@ -62,9 +77,23 @@ func (g *certificateManagerSecretGetter) GetSecret(ctx context.Context, iamToken
 }
 
 func (g *certificateManagerSecretGetter) GetSecretMap(ctx context.Context, iamToken, resourceID string, resourceKeyType common.ResourceKeyType, folderID, versionID string) (map[string][]byte, error) {
-	response, err := g.certificateManagerClient.GetCertificateContent(ctx, iamToken, resourceID, versionID)
-	if err != nil {
-		return nil, fmt.Errorf("unable to request certificate content to get secret map: %w", err)
+	var response *api.GetCertificateContentResponse
+
+	switch resourceKeyType {
+	case common.ResourceKeyTypeId:
+		var err error
+		response, err = g.certificateManagerClient.GetCertificateContent(ctx, iamToken, resourceID, versionID)
+		if err != nil {
+			return nil, fmt.Errorf("unable to request certificate content to get secret map: %w", err)
+		}
+	case common.ResourceKeyTypeName:
+		responseEx, err := g.certificateManagerClient.GetExCertificateContent(ctx, iamToken, folderID, resourceID, versionID)
+		if err != nil {
+			return nil, fmt.Errorf("unable to request certificate content to getEx secret map: %w", err)
+		}
+		response = convertToGetExCertificateContentResponse(responseEx)
+	default:
+		return nil, fmt.Errorf("unsupported resource key type '%v'", resourceKeyType)
 	}
 
 	chain := strings.Join(response.CertificateChain, "\n")
@@ -83,4 +112,12 @@ func trimAndJoin(elems ...string) string {
 		sb.WriteRune('\n')
 	}
 	return sb.String()
+}
+
+func convertToGetExCertificateContentResponse(response *api.GetExCertificateContentResponse) *api.GetCertificateContentResponse {
+	return &api.GetCertificateContentResponse{
+		CertificateId:    response.CertificateId,
+		CertificateChain: response.CertificateChain,
+		PrivateKey:       response.PrivateKey,
+	}
 }
