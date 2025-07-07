@@ -116,7 +116,7 @@ func TestGetSecretForAllEntries(t *testing.T) {
 	k1, v1 := "k1", "v1"
 	k2, v2 := "k2", []byte("v2")
 	secretID, _ := fakeLockboxServer.CreateSecret(authorizedKey,
-		"", "",
+		"folderId", "secretName",
 		textEntry(k1, v1),
 		binaryEntry(k2, v2),
 	)
@@ -154,7 +154,7 @@ func TestGetSecretForTextEntry(t *testing.T) {
 	k1, v1 := "k1", "v1"
 	k2, v2 := "k2", []byte("v2")
 	secretID, _ := fakeLockboxServer.CreateSecret(authorizedKey,
-		"", "",
+		"folderId", "secretName",
 		textEntry(k1, v1),
 		binaryEntry(k2, v2),
 	)
@@ -185,7 +185,7 @@ func TestGetSecretForBinaryEntry(t *testing.T) {
 	k1, v1 := "k1", "v1"
 	k2, v2 := "k2", []byte("v2")
 	secretID, _ := fakeLockboxServer.CreateSecret(authorizedKey,
-		"", "",
+		"folderId", "secretName",
 		textEntry(k1, v1),
 		binaryEntry(k2, v2),
 	)
@@ -215,7 +215,7 @@ func TestGetSecretByVersionID(t *testing.T) {
 	fakeLockboxServer := client.NewFakeLockboxServer(fakeClock, time.Hour)
 	oldKey, oldVal := "oldKey", "oldVal"
 	secretID, oldVersionID := fakeLockboxServer.CreateSecret(authorizedKey,
-		"", "",
+		"folderId", "secretName",
 		textEntry(oldKey, oldVal),
 	)
 
@@ -257,7 +257,7 @@ func TestGetSecretUnauthorized(t *testing.T) {
 	fakeClock := clock.NewFakeClock()
 	fakeLockboxServer := client.NewFakeLockboxServer(fakeClock, time.Hour)
 	secretID, _ := fakeLockboxServer.CreateSecret(authorizedKeyA,
-		"", "",
+		"folderId", "secretName",
 		textEntry("k1", "v1"),
 	)
 
@@ -297,7 +297,7 @@ func TestGetSecretNotFound(t *testing.T) {
 	tassert.EqualError(t, err, errSecretPayloadNotFound)
 
 	secretID, _ := fakeLockboxServer.CreateSecret(authorizedKey,
-		"", "",
+		"folderId", "secretName",
 		textEntry("k1", "v1"),
 	)
 	_, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: secretID, Version: "no-version-with-this-id"})
@@ -315,12 +315,12 @@ func TestGetSecretWithTwoNamespaces(t *testing.T) {
 	fakeLockboxServer := client.NewFakeLockboxServer(fakeClock, time.Hour)
 	k1, v1 := "k1", "v1"
 	secretID1, _ := fakeLockboxServer.CreateSecret(authorizedKey1,
-		"", "",
+		"folderId", "secretName",
 		textEntry(k1, v1),
 	)
 	k2, v2 := "k2", "v2"
 	secretID2, _ := fakeLockboxServer.CreateSecret(authorizedKey2,
-		"", "",
+		"folderId", "secretName",
 		textEntry(k2, v2),
 		textEntry(k2, v2),
 	)
@@ -368,13 +368,13 @@ func TestGetSecretWithTwoApiEndpoints(t *testing.T) {
 	fakeLockboxServer1 := client.NewFakeLockboxServer(fakeClock, time.Hour)
 	k1, v1 := "k1", "v1"
 	secretID1, _ := fakeLockboxServer1.CreateSecret(authorizedKey1,
-		"", "",
+		"folderId", "secretName",
 		textEntry(k1, v1),
 	)
 	fakeLockboxServer2 := client.NewFakeLockboxServer(fakeClock, time.Hour)
 	k2, v2 := "k2", "v2"
 	secretID2, _ := fakeLockboxServer2.CreateSecret(authorizedKey2,
-		"", "",
+		"folderId", "secretName",
 		textEntry(k2, v2),
 	)
 
@@ -426,7 +426,7 @@ func TestGetSecretWithIamTokenExpiration(t *testing.T) {
 	fakeLockboxServer := client.NewFakeLockboxServer(fakeClock, tokenExpirationTime)
 	k1, v1 := "k1", "v1"
 	secretID, _ := fakeLockboxServer.CreateSecret(authorizedKey,
-		"", "",
+		"folderId", "secretName",
 		textEntry(k1, v1),
 	)
 
@@ -470,11 +470,11 @@ func TestGetSecretWithIamTokenCleanup(t *testing.T) {
 	tokenExpirationDuration := time.Hour
 	fakeLockboxServer := client.NewFakeLockboxServer(fakeClock, tokenExpirationDuration)
 	secretID1, _ := fakeLockboxServer.CreateSecret(authorizedKey1,
-		"", "",
+		"folderId", "secretName",
 		textEntry("k1", "v1"),
 	)
 	secretID2, _ := fakeLockboxServer.CreateSecret(authorizedKey2,
-		"", "",
+		"folderId", "secretName",
 		textEntry("k2", "v2"),
 	)
 
@@ -549,7 +549,7 @@ func TestGetSecretMap(t *testing.T) {
 	k1, v1 := "k1", "v1"
 	k2, v2 := "k2", []byte("v2")
 	secretID, _ := fakeLockboxServer.CreateSecret(authorizedKey,
-		"", "",
+		"folderId", "secretName",
 		textEntry(k1, v1),
 		binaryEntry(k2, v2),
 	)
@@ -586,7 +586,7 @@ func TestGetSecretMapByVersionID(t *testing.T) {
 	fakeLockboxServer := client.NewFakeLockboxServer(fakeClock, time.Hour)
 	oldKey, oldVal := "oldKey", "oldVal"
 	secretID, oldVersionID := fakeLockboxServer.CreateSecret(authorizedKey,
-		"", "",
+		"folderId", "secretName",
 		textEntry(oldKey, oldVal),
 	)
 
@@ -619,7 +619,7 @@ func TestGetSecretMapByVersionID(t *testing.T) {
 	tassert.Equal(t, map[string][]byte{newKey: []byte(newVal)}, data)
 }
 
-func TestGetSecretByFolderAndName(t *testing.T) {
+func TestGetSecretByNameForAllEntries(t *testing.T) {
 	ctx := context.Background()
 	namespace := uuid.NewString()
 	authorizedKey := newFakeAuthorizedKey()
@@ -657,7 +657,7 @@ func TestGetSecretByFolderAndName(t *testing.T) {
 	tassert.Equal(t, expected, unmarshalStringMap(t, data))
 }
 
-func TestGetSecretByFolderAndNameAndVersionID(t *testing.T) {
+func TestGetSecretyByNameAndVersionID(t *testing.T) {
 	ctx := context.Background()
 	namespace := uuid.NewString()
 	authorizedKey := newFakeAuthorizedKey()
@@ -700,7 +700,7 @@ func TestGetSecretByFolderAndNameAndVersionID(t *testing.T) {
 	tassert.Equal(t, map[string]string{newKey: textEntryBase64(newVal)}, unmarshalStringMap(t, data))
 }
 
-func TestGetSecretByFolderAndNameNotFound(t *testing.T) {
+func TestGetSecretByNameNotFound(t *testing.T) {
 	ctx := context.Background()
 	namespace := uuid.NewString()
 	authorizedKey := newFakeAuthorizedKey()
@@ -741,7 +741,7 @@ func TestGetSecretWithFetchByID(t *testing.T) {
 	k1, v1 := "k1", "v1"
 	k2, v2 := "k2", []byte("v2")
 	secretID, _ := fakeLockboxServer.CreateSecret(authorizedKey,
-		"", "",
+		"folderId", "secret",
 		textEntry(k1, v1),
 		binaryEntry(k2, v2),
 	)
