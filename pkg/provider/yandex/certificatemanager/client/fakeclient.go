@@ -42,6 +42,10 @@ func (c *fakeCertificateManagerClient) GetCertificateContent(_ context.Context, 
 	return c.fakeCertificateManagerServer.getCertificateContent(iamToken, certificateID, versionID)
 }
 
+func (c *fakeCertificateManagerClient) GetExCertificateContent(_ context.Context, iamToken, folderID, name, versionID string) (*api.GetExCertificateContentResponse, error) {
+	return c.fakeCertificateManagerServer.getExCertificateContent(iamToken, folderID, name, versionID)
+}
+
 // Fakes Yandex Certificate Manager service backend.
 type FakeCertificateManagerServer struct {
 	certificateMap map[certificateKey]certificateValue // certificate specific data
@@ -134,4 +138,9 @@ func (s *FakeCertificateManagerServer) getCertificateContent(iamToken, certifica
 	}
 
 	return s.versionMap[versionKey{certificateID, versionID}].content, nil
+}
+
+func (s *FakeCertificateManagerServer) getExCertificateContent(iamToken, folderID, name, versionID string) (*api.GetExCertificateContentResponse, error) {
+	// TODO: implement
+	return nil, nil
 }
