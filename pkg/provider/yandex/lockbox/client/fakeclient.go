@@ -51,6 +51,7 @@ type FakeLockboxServer struct {
 	secretMap  map[secretKey]secretValue   // secret specific data
 	versionMap map[versionKey]versionValue // version specific data
 	tokenMap   map[tokenKey]tokenValue     // token specific data
+	folderMap  map[folderKey]folderValue   // folder specific data
 
 	tokenExpirationDuration time.Duration
 	clock                   clock.Clock
@@ -62,6 +63,17 @@ type secretKey struct {
 
 type secretValue struct {
 	expectedAuthorizedKey *iamkey.Key // authorized key expected to access the secret
+}
+
+type folderKey struct {
+	folderID  string
+	name      string
+	versionID string
+}
+
+type folderValue struct {
+	secret  secretKey
+	entries []*api.Payload_Entry
 }
 
 type versionKey struct {
@@ -87,28 +99,38 @@ func NewFakeLockboxServer(clock clock.Clock, tokenExpirationDuration time.Durati
 		secretMap:               make(map[secretKey]secretValue),
 		versionMap:              make(map[versionKey]versionValue),
 		tokenMap:                make(map[tokenKey]tokenValue),
+		folderMap:               make(map[folderKey]folderValue),
 		tokenExpirationDuration: tokenExpirationDuration,
 		clock:                   clock,
 	}
 }
 
-func (s *FakeLockboxServer) CreateSecret(authorizedKey *iamkey.Key, entries ...*api.Payload_Entry) (string, string) {
+func (s *FakeLockboxServer) CreateSecret(authorizedKey *iamkey.Key, folderID string, name string, entries ...*api.Payload_Entry) (string, string) {
 	secretID := uuid.NewString()
 	versionID := uuid.NewString()
 
 	s.secretMap[secretKey{secretID}] = secretValue{authorizedKey}
 	s.versionMap[versionKey{secretID, ""}] = versionValue{entries} // empty versionID corresponds to the latest version
 	s.versionMap[versionKey{secretID, versionID}] = versionValue{entries}
-
+	if folderID != "" && name != "" {
+		folderValue := folderValue{secretKey{secretID}, entries}
+		s.folderMap[folderKey{folderID, name, ""}] = folderValue // empty versionID corresponds to the latest version
+		s.folderMap[folderKey{folderID, name, versionID}] = folderValue
+	}
 	return secretID, versionID
 }
 
-func (s *FakeLockboxServer) AddVersion(secretID string, entries ...*api.Payload_Entry) string {
+func (s *FakeLockboxServer) AddVersion(secretID, folderID, name string, entries ...*api.Payload_Entry) string {
 	versionID := uuid.NewString()
 
 	s.versionMap[versionKey{secretID, ""}] = versionValue{entries} // empty versionID corresponds to the latest version
 	s.versionMap[versionKey{secretID, versionID}] = versionValue{entries}
 
+	if folderID != "" && name != "" {
+		folderValue := folderValue{secretKey{secretID}, entries}
+		s.folderMap[folderKey{folderID, name, ""}] = folderValue // empty versionID corresponds to the latest version
+		s.folderMap[folderKey{folderID, name, versionID}] = folderValue
+	}
 	return versionID
 }
 
@@ -140,7 +162,33 @@ func (s *FakeLockboxServer) getEntries(iamToken, secretID, versionID string) ([]
 	return s.versionMap[versionKey{secretID, versionID}].entries, nil
 }
 
-func (s *FakeLockboxServer) getExPayload(iamToken, folderId, name, versionID string) (map[string][]byte, error) {
-	// TODO: implement
-	return nil, nil
+func (s *FakeLockboxServer) getExPayload(iamToken, folderID, name, versionID string) (map[string][]byte, error) {
+	fv, ok := s.folderMap[folderKey{folderID, name, versionID}]
+	if !ok {
+		if _, ok2 := s.folderMap[folderKey{folderID, name, ""}]; ok2 {
+			return nil, errors.New("version not found")
+		}
+		return nil, errors.New("secret not found")
+	}
+	if _, ok := s.tokenMap[tokenKey{iamToken}]; !ok {
+		return nil, errors.New("unauthenticated")
+	}
+
+	if s.tokenMap[tokenKey{iamToken}].expiresAt.Before(s.clock.CurrentTime()) {
+		return nil, errors.New("iam token expired")
+	}
+
+	if !cmp.Equal(s.tokenMap[tokenKey{iamToken}].authorizedKey, s.secretMap[secretKey{fv.secret.secretID}].expectedAuthorizedKey, cmpopts.IgnoreUnexported(iamkey.Key{})) {
+		return nil, errors.New("permission denied")
+	}
+	out := make(map[string][]byte, len(fv.entries))
+	for _, e := range fv.entries {
+		switch e.Value.(type) {
+		case *api.Payload_Entry_TextValue:
+			out[e.Key] = []byte(e.GetTextValue())
+		case *api.Payload_Entry_BinaryValue:
+			out[e.Key] = e.GetBinaryValue()
+		}
+	}
+	return out, nil
 }
