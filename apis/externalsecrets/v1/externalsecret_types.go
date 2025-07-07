@@ -304,6 +304,8 @@ type ExternalSecretDataFromRemoteRef struct {
 	SourceRef *StoreGeneratorSourceRef `json:"sourceRef,omitempty"`
 }
 
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
 type ExternalSecretRewrite struct {
 
 	// Used to merge key/values in one single Secret
