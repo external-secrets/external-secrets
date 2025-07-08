@@ -48,14 +48,14 @@ func adaptInput(store esv1.GenericStore) (*common.SecretsClientInput, error) {
 	}
 
 	if storeSpecYandexLockbox.FetchByID != nil && storeSpecYandexLockbox.FetchByName != nil {
-		return nil, errors.New("invalid Yandex Lockbox SecretStore resource: both fetchByID and fetchByName are set")
+		return nil, errors.New("invalid Yandex Lockbox SecretStore resource: both FetchByID and FetchByName are set")
 	}
 
 	var resourceKeyType common.ResourceKeyType
 	var folderID string
 	if storeSpecYandexLockbox.FetchByName != nil {
 		if storeSpecYandexLockbox.FetchByName.FolderID == "" {
-			return nil, errors.New("folderId is required when fetchByName is true")
+			return nil, errors.New("folderID is required when FetchByName is set")
 		}
 		resourceKeyType = common.ResourceKeyTypeName
 		folderID = storeSpecYandexLockbox.FetchByName.FolderID
