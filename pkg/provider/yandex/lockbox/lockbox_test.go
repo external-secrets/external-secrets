@@ -315,12 +315,12 @@ func TestGetSecretWithTwoNamespaces(t *testing.T) {
 	fakeLockboxServer := client.NewFakeLockboxServer(fakeClock, time.Hour)
 	k1, v1 := "k1", "v1"
 	secretID1, _ := fakeLockboxServer.CreateSecret(authorizedKey1,
-		"folderId", "secretName",
+		"folderId", "secretName1",
 		textEntry(k1, v1),
 	)
 	k2, v2 := "k2", "v2"
 	secretID2, _ := fakeLockboxServer.CreateSecret(authorizedKey2,
-		"folderId", "secretName",
+		"folderId", "secretName2",
 		textEntry(k2, v2),
 		textEntry(k2, v2),
 	)
@@ -470,11 +470,11 @@ func TestGetSecretWithIamTokenCleanup(t *testing.T) {
 	tokenExpirationDuration := time.Hour
 	fakeLockboxServer := client.NewFakeLockboxServer(fakeClock, tokenExpirationDuration)
 	secretID1, _ := fakeLockboxServer.CreateSecret(authorizedKey1,
-		"folderId", "secretName",
+		"folderId", "secretName1",
 		textEntry("k1", "v1"),
 	)
 	secretID2, _ := fakeLockboxServer.CreateSecret(authorizedKey2,
-		"folderId", "secretName",
+		"folderId", "secretName2",
 		textEntry("k2", "v2"),
 	)
 
