@@ -72,8 +72,8 @@ type folderKey struct {
 }
 
 type folderValue struct {
-	secret  secretKey
-	entries []*api.Payload_Entry
+	secret secretKey
+	value  versionValue
 }
 
 type versionKey struct {
@@ -112,11 +112,11 @@ func (s *FakeLockboxServer) CreateSecret(authorizedKey *iamkey.Key, folderID str
 	s.secretMap[secretKey{secretID}] = secretValue{authorizedKey}
 	s.versionMap[versionKey{secretID, ""}] = versionValue{entries} // empty versionID corresponds to the latest version
 	s.versionMap[versionKey{secretID, versionID}] = versionValue{entries}
-	if folderID != "" && name != "" {
-		folderValue := folderValue{secretKey{secretID}, entries}
-		s.folderMap[folderKey{folderID, name, ""}] = folderValue // empty versionID corresponds to the latest version
-		s.folderMap[folderKey{folderID, name, versionID}] = folderValue
-	}
+
+	folderValue := folderValue{secretKey{secretID}, versionValue{entries}}
+	s.folderMap[folderKey{folderID, name, ""}] = folderValue // empty versionID corresponds to the latest version
+	s.folderMap[folderKey{folderID, name, versionID}] = folderValue
+
 	return secretID, versionID
 }
 
@@ -126,11 +126,10 @@ func (s *FakeLockboxServer) AddVersion(secretID, folderID, name string, entries 
 	s.versionMap[versionKey{secretID, ""}] = versionValue{entries} // empty versionID corresponds to the latest version
 	s.versionMap[versionKey{secretID, versionID}] = versionValue{entries}
 
-	if folderID != "" && name != "" {
-		folderValue := folderValue{secretKey{secretID}, entries}
-		s.folderMap[folderKey{folderID, name, ""}] = folderValue // empty versionID corresponds to the latest version
-		s.folderMap[folderKey{folderID, name, versionID}] = folderValue
-	}
+	folderValue := folderValue{secretKey{secretID}, versionValue{entries}}
+	s.folderMap[folderKey{folderID, name, ""}] = folderValue // empty versionID corresponds to the latest version
+	s.folderMap[folderKey{folderID, name, versionID}] = folderValue
+
 	return versionID
 }
 
@@ -181,8 +180,8 @@ func (s *FakeLockboxServer) getExPayload(iamToken, folderID, name, versionID str
 	if !cmp.Equal(s.tokenMap[tokenKey{iamToken}].authorizedKey, s.secretMap[secretKey{fv.secret.secretID}].expectedAuthorizedKey, cmpopts.IgnoreUnexported(iamkey.Key{})) {
 		return nil, errors.New("permission denied")
 	}
-	out := make(map[string][]byte, len(fv.entries))
-	for _, e := range fv.entries {
+	out := make(map[string][]byte, len(fv.value.entries))
+	for _, e := range fv.value.entries {
 		switch e.Value.(type) {
 		case *api.Payload_Entry_TextValue:
 			out[e.Key] = []byte(e.GetTextValue())
