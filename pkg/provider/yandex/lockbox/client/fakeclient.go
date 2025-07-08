@@ -48,10 +48,10 @@ func (c *fakeLockboxClient) GetExPayload(_ context.Context, iamToken, folderID, 
 
 // Fakes Yandex Lockbox service backend.
 type FakeLockboxServer struct {
-	secretMap  map[secretKey]secretValue   // secret specific data
-	versionMap map[versionKey]versionValue // version specific data
-	tokenMap   map[tokenKey]tokenValue     // token specific data
-	folderMap  map[folderKey]folderValue   // folder specific data
+	secretMap        map[secretKey]secretValue   // secret specific data
+	versionMap       map[versionKey]versionValue // version specific data
+	tokenMap         map[tokenKey]tokenValue     // token specific data
+	folderAndNameMap map[folderKey]folderValue   // folder specific data
 
 	tokenExpirationDuration time.Duration
 	clock                   clock.Clock
@@ -99,7 +99,7 @@ func NewFakeLockboxServer(clock clock.Clock, tokenExpirationDuration time.Durati
 		secretMap:               make(map[secretKey]secretValue),
 		versionMap:              make(map[versionKey]versionValue),
 		tokenMap:                make(map[tokenKey]tokenValue),
-		folderMap:               make(map[folderKey]folderValue),
+		folderAndNameMap:        make(map[folderKey]folderValue),
 		tokenExpirationDuration: tokenExpirationDuration,
 		clock:                   clock,
 	}
@@ -113,9 +113,11 @@ func (s *FakeLockboxServer) CreateSecret(authorizedKey *iamkey.Key, folderID str
 	s.versionMap[versionKey{secretID, ""}] = versionValue{entries} // empty versionID corresponds to the latest version
 	s.versionMap[versionKey{secretID, versionID}] = versionValue{entries}
 
-	folderValue := folderValue{secretKey{secretID}, versionValue{entries}}
-	s.folderMap[folderKey{folderID, name, ""}] = folderValue // empty versionID corresponds to the latest version
-	s.folderMap[folderKey{folderID, name, versionID}] = folderValue
+	if _, exists := s.folderAndNameMap[folderKey{folderID, name, ""}]; !exists {
+		folderValue := folderValue{secretKey{secretID}, versionValue{entries}}
+		s.folderAndNameMap[folderKey{folderID, name, ""}] = folderValue // empty versionID corresponds to the latest version
+		s.folderAndNameMap[folderKey{folderID, name, versionID}] = folderValue
+	}
 
 	return secretID, versionID
 }
@@ -126,10 +128,11 @@ func (s *FakeLockboxServer) AddVersion(secretID, folderID, name string, entries 
 	s.versionMap[versionKey{secretID, ""}] = versionValue{entries} // empty versionID corresponds to the latest version
 	s.versionMap[versionKey{secretID, versionID}] = versionValue{entries}
 
-	folderValue := folderValue{secretKey{secretID}, versionValue{entries}}
-	s.folderMap[folderKey{folderID, name, ""}] = folderValue // empty versionID corresponds to the latest version
-	s.folderMap[folderKey{folderID, name, versionID}] = folderValue
-
+	if currentFolderValue := s.folderAndNameMap[folderKey{folderID, name, ""}]; currentFolderValue.secret.secretID == secretID {
+		folderValue := folderValue{secretKey{secretID}, versionValue{entries}}
+		s.folderAndNameMap[folderKey{folderID, name, ""}] = folderValue // empty versionID corresponds to the latest version
+		s.folderAndNameMap[folderKey{folderID, name, versionID}] = folderValue
+	}
 	return versionID
 }
 
@@ -162,21 +165,17 @@ func (s *FakeLockboxServer) getEntries(iamToken, secretID, versionID string) ([]
 }
 
 func (s *FakeLockboxServer) getExPayload(iamToken, folderID, name, versionID string) (map[string][]byte, error) {
-	fv, ok := s.folderMap[folderKey{folderID, name, versionID}]
-	if !ok {
-		if _, ok2 := s.folderMap[folderKey{folderID, name, ""}]; ok2 {
-			return nil, errors.New("version not found")
-		}
+	fv, _ := s.folderAndNameMap[folderKey{folderID, name, versionID}]
+	if _, ok := s.folderAndNameMap[folderKey{folderID, name, ""}]; !ok {
 		return nil, errors.New("secret not found")
 	}
-	if _, ok := s.tokenMap[tokenKey{iamToken}]; !ok {
-		return nil, errors.New("unauthenticated")
+	if _, ok := s.folderAndNameMap[folderKey{folderID, name, versionID}]; !ok {
+		return nil, errors.New("version not found")
 	}
 
 	if s.tokenMap[tokenKey{iamToken}].expiresAt.Before(s.clock.CurrentTime()) {
 		return nil, errors.New("iam token expired")
 	}
-
 	if !cmp.Equal(s.tokenMap[tokenKey{iamToken}].authorizedKey, s.secretMap[secretKey{fv.secret.secretID}].expectedAuthorizedKey, cmpopts.IgnoreUnexported(iamkey.Key{})) {
 		return nil, errors.New("permission denied")
 	}
