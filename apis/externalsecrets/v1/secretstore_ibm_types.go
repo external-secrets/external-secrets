@@ -47,6 +47,13 @@ type IBMAuthContainerAuth struct {
 
 	// Location the token is mounted on the pod
 	TokenLocation string `json:"tokenLocation,omitempty"`
-
-	IAMEndpoint string `json:"iamEndpoint,omitempty"`
+	// +kubebuilder:validation:Enum=public;test
+	IAMEndpoint IBMIAMEndpoint `json:"iamEndpoint,omitempty"`
 }
+
+type IBMIAMEndpoint string
+
+const (
+	IBMIAMEndpointPublic IBMIAMEndpoint = "public"
+	IBMIAMEndpointTest   IBMIAMEndpoint = "test"
+)
