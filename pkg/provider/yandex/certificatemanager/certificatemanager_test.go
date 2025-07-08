@@ -236,7 +236,6 @@ func TestGetSecretByVersionID(t *testing.T) {
 	newCertificate2 := uuid.NewString()
 	newPrivateKey := uuid.NewString()
 	newVersionID := fakeCertificateManagerServer.AddVersion(certificateID,
-		"folderId", "certificateName",
 		&certificatemanager.GetCertificateContentResponse{
 			CertificateChain: []string{newCertificate1, newCertificate2},
 			PrivateKey:       newPrivateKey,
@@ -331,7 +330,7 @@ func TestGetSecretWithTwoNamespaces(t *testing.T) {
 	certificate1 := uuid.NewString()
 	privateKey1 := uuid.NewString()
 	certificateID1, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey1,
-		"folderId", "certificateName",
+		"folderId", "certificateName1",
 		&certificatemanager.GetCertificateContentResponse{
 			CertificateChain: []string{certificate1},
 			PrivateKey:       privateKey1,
@@ -339,7 +338,7 @@ func TestGetSecretWithTwoNamespaces(t *testing.T) {
 	certificate2 := uuid.NewString()
 	privateKey2 := uuid.NewString()
 	certificateID2, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey2,
-		"folderId", "certificateName",
+		"folderId", "certificateName2",
 		&certificatemanager.GetCertificateContentResponse{
 			CertificateChain: []string{certificate2},
 			PrivateKey:       privateKey2,
@@ -499,13 +498,13 @@ func TestGetSecretWithIamTokenCleanup(t *testing.T) {
 	tokenExpirationDuration := time.Hour
 	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, tokenExpirationDuration)
 	certificateID1, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey1,
-		"folderId", "certificateName",
+		"folderId", "certificateName1",
 		&certificatemanager.GetCertificateContentResponse{
 			CertificateChain: []string{uuid.NewString()},
 			PrivateKey:       uuid.NewString(),
 		})
 	certificateID2, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey2,
-		"folderId", "certificateName",
+		"folderId", "certificateName2",
 		&certificatemanager.GetCertificateContentResponse{
 			CertificateChain: []string{uuid.NewString()},
 			PrivateKey:       uuid.NewString(),
@@ -653,7 +652,6 @@ func TestGetSecretMapByVersionID(t *testing.T) {
 	newCertificate := uuid.NewString()
 	newPrivateKey := uuid.NewString()
 	newVersionID := fakeCertificateManagerServer.AddVersion(certificateID,
-		"folderId", "certificateName",
 		&certificatemanager.GetCertificateContentResponse{
 			CertificateChain: []string{newCertificate},
 			PrivateKey:       newPrivateKey,
@@ -818,7 +816,6 @@ func TestGetSecretWithFetchByNameAndVersionID(t *testing.T) {
 	newCertificate2 := uuid.NewString()
 	newPrivateKey := uuid.NewString()
 	newVersionID := fakeCertificateManagerServer.AddVersion(certificateID,
-		folderID, certificateName,
 		&certificatemanager.GetCertificateContentResponse{
 			CertificateChain: []string{newCertificate1, newCertificate2},
 			PrivateKey:       newPrivateKey,
