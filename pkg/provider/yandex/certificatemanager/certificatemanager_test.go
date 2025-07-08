@@ -682,7 +682,7 @@ func TestGetSecretWithFetchByNameWithoutProperty(t *testing.T) {
 	certificate2 := uuid.NewString()
 	privateKey := uuid.NewString()
 	folderID := uuid.NewString()
-	certificateName := "certificateName"
+	const certificateName = "certificateName"
 	_, _ = fakeCertificateManagerServer.CreateCertificate(authorizedKey,
 		folderID, certificateName,
 		&certificatemanager.GetCertificateContentResponse{
@@ -721,7 +721,7 @@ func TestGetSecretWithFetchByNameWithProperty(t *testing.T) {
 	certificate2 := uuid.NewString()
 	privateKey := uuid.NewString()
 	folderID := uuid.NewString()
-	certificateName := "certificateName"
+	const certificateName = "certificateName"
 	_, _ = fakeCertificateManagerServer.CreateCertificate(authorizedKey,
 		folderID, certificateName,
 		&certificatemanager.GetCertificateContentResponse{
@@ -776,7 +776,7 @@ func TestGetSecretWithFetchByNameAndVersionID(t *testing.T) {
 	oldCertificate2 := uuid.NewString()
 	oldPrivateKey := uuid.NewString()
 	folderID := uuid.NewString()
-	certificateName := "certificateName"
+	const certificateName = "certificateName"
 	certificateID, oldVersionID := fakeCertificateManagerServer.CreateCertificate(authorizedKey,
 		folderID, certificateName,
 		&certificatemanager.GetCertificateContentResponse{
