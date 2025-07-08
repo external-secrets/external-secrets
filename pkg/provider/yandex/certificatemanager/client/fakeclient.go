@@ -91,7 +91,7 @@ type folderKey struct {
 
 type folderValue struct {
 	certificate certificateKey
-	content     *api.GetCertificateContentResponse
+	value       versionValue
 }
 
 func NewFakeCertificateManagerServer(clock clock.Clock, tokenExpirationDuration time.Duration) *FakeCertificateManagerServer {
@@ -105,7 +105,7 @@ func NewFakeCertificateManagerServer(clock clock.Clock, tokenExpirationDuration 
 	}
 }
 
-func (s *FakeCertificateManagerServer) CreateCertificate(authorizedKey *iamkey.Key, content *api.GetCertificateContentResponse) (string, string) {
+func (s *FakeCertificateManagerServer) CreateCertificate(authorizedKey *iamkey.Key, folderID, name string, content *api.GetCertificateContentResponse) (string, string) {
 	certificateID := uuid.NewString()
 	versionID := uuid.NewString()
 
@@ -113,14 +113,22 @@ func (s *FakeCertificateManagerServer) CreateCertificate(authorizedKey *iamkey.K
 	s.versionMap[versionKey{certificateID, ""}] = versionValue{content} // empty versionID corresponds to the latest version
 	s.versionMap[versionKey{certificateID, versionID}] = versionValue{content}
 
+	folderValue := folderValue{certificateKey{certificateID}, versionValue{content}}
+	s.folderMap[folderKey{folderID, name, ""}] = folderValue // empty versionID corresponds to the latest version
+	s.folderMap[folderKey{folderID, name, versionID}] = folderValue
+
 	return certificateID, versionID
 }
 
-func (s *FakeCertificateManagerServer) AddVersion(certificateID string, content *api.GetCertificateContentResponse) string {
+func (s *FakeCertificateManagerServer) AddVersion(certificateID, folderID, name string, content *api.GetCertificateContentResponse) string {
 	versionID := uuid.NewString()
 
 	s.versionMap[versionKey{certificateID, ""}] = versionValue{content} // empty versionID corresponds to the latest version
 	s.versionMap[versionKey{certificateID, versionID}] = versionValue{content}
+
+	folderValue := folderValue{certificateKey{certificateID}, versionValue{content}}
+	s.folderMap[folderKey{folderID, name, ""}] = folderValue // empty versionID corresponds to the latest version
+	s.folderMap[folderKey{folderID, name, versionID}] = folderValue
 
 	return versionID
 }
@@ -154,6 +162,26 @@ func (s *FakeCertificateManagerServer) getCertificateContent(iamToken, certifica
 }
 
 func (s *FakeCertificateManagerServer) getExCertificateContent(iamToken, folderID, name, versionID string) (*api.GetExCertificateContentResponse, error) {
+	fv, ok := s.folderMap[folderKey{folderID, name, versionID}]
+	if !ok {
+		if _, ok2 := s.folderMap[folderKey{folderID, name, ""}]; ok2 {
+			return nil, errors.New("version not found")
+		}
+		return nil, errors.New("certificate not found")
+	}
+	if _, ok := s.tokenMap[tokenKey{iamToken}]; !ok {
+		return nil, errors.New("unauthenticated")
+	}
+	if s.tokenMap[tokenKey{iamToken}].expiresAt.Before(s.clock.CurrentTime()) {
+		return nil, errors.New("iam token expired")
+	}
+	if !cmp.Equal(s.tokenMap[tokenKey{iamToken}].authorizedKey, s.certificateMap[fv.certificate].expectedAuthorizedKey, cmpopts.IgnoreUnexported(iamkey.Key{})) {
+		return nil, errors.New("permission denied")
+	}
 
-	return nil, nil
+	return &api.GetExCertificateContentResponse{
+		CertificateId:    fv.certificate.certificateID,
+		CertificateChain: fv.value.content.CertificateChain,
+		PrivateKey:       fv.value.content.PrivateKey,
+	}, nil
 }
