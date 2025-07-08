@@ -204,7 +204,7 @@ func TestGetSecretByVersionID(t *testing.T) {
 
 	fakeClock := clock.NewFakeClock()
 	fakeLockboxServer := client.NewFakeLockboxServer(fakeClock, time.Hour)
-	oldKey, oldVal := "oldKey", "oldVal"
+	const oldKey, oldVal = "oldKey", "oldVal"
 	secretID, oldVersionID := fakeLockboxServer.CreateSecret(authorizedKey,
 		"folderId", "secretName",
 		textEntry(oldKey, oldVal),
@@ -225,10 +225,8 @@ func TestGetSecretByVersionID(t *testing.T) {
 
 	tassert.Equal(t, map[string]string{oldKey: oldVal}, unmarshalStringMap(t, data))
 
-	newKey, newVal := "newKey", "newVal"
-	newVersionID := fakeLockboxServer.AddVersion(secretID, "folderId", "secretName",
-		textEntry(newKey, newVal),
-	)
+	const newKey, newVal = "newKey", "newVal"
+	newVersionID := fakeLockboxServer.AddVersion(secretID, textEntry(newKey, newVal))
 
 	data, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: secretID, Version: oldVersionID})
 	tassert.Nil(t, err)
@@ -597,9 +595,7 @@ func TestGetSecretMapByVersionID(t *testing.T) {
 	tassert.Equal(t, map[string][]byte{oldKey: []byte(oldVal)}, data)
 
 	newKey, newVal := "newKey", "newVal"
-	newVersionID := fakeLockboxServer.AddVersion(secretID, "folderId", "secretName",
-		textEntry(newKey, newVal),
-	)
+	newVersionID := fakeLockboxServer.AddVersion(secretID, textEntry(newKey, newVal))
 
 	data, err = secretsClient.GetSecretMap(ctx, esv1.ExternalSecretDataRemoteRef{Key: secretID, Version: oldVersionID})
 	tassert.Nil(t, err)
@@ -618,7 +614,7 @@ func TestGetSecretWithFetchByNameForAllEntries(t *testing.T) {
 	fakeClock := clock.NewFakeClock()
 	fakeLockboxServer := client.NewFakeLockboxServer(fakeClock, time.Hour)
 	folderId := uuid.NewString()
-	secretName := "secretName"
+	const secretName = "secretName"
 	k1, v1 := "k1", "v1"
 	k2, v2 := "k2", []byte("v2")
 	_, _ = fakeLockboxServer.CreateSecret(
@@ -656,7 +652,7 @@ func TestGetSecretyWithFetchByNameAndVersionID(t *testing.T) {
 	fakeClock := clock.NewFakeClock()
 	fakeLockboxServer := client.NewFakeLockboxServer(fakeClock, time.Hour)
 	folderId := uuid.NewString()
-	secretName := "secretName"
+	const secretName = "secretName"
 	oldKey, oldVal := "oldKey", "oldVal"
 	secretID, oldVersionID := fakeLockboxServer.CreateSecret(authorizedKey,
 		folderId, secretName,
@@ -678,9 +674,7 @@ func TestGetSecretyWithFetchByNameAndVersionID(t *testing.T) {
 	tassert.Equal(t, map[string]string{oldKey: base64([]byte(oldVal))}, unmarshalStringMap(t, data))
 
 	newKey, newVal := "newKey", "newVal"
-	newVersionID := fakeLockboxServer.AddVersion(secretID, folderId, secretName,
-		textEntry(newKey, newVal),
-	)
+	newVersionID := fakeLockboxServer.AddVersion(secretID, textEntry(newKey, newVal))
 
 	data, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: secretName, Version: oldVersionID})
 	tassert.Nil(t, err)
@@ -699,7 +693,7 @@ func TestGetSecretWithFetchByNameForTextEntry(t *testing.T) {
 	fakeClock := clock.NewFakeClock()
 	fakeLockboxServer := client.NewFakeLockboxServer(fakeClock, time.Hour)
 	folderId := uuid.NewString()
-	secretName := "secretName"
+	const secretName = "secretName"
 	k1, v1 := "k1", "v1"
 	k2, v2 := "k2", []byte("v2")
 	_, _ = fakeLockboxServer.CreateSecret(authorizedKey,
@@ -731,7 +725,7 @@ func TestGetSecretWithFetchByNameForBinaryEntry(t *testing.T) {
 	fakeClock := clock.NewFakeClock()
 	fakeLockboxServer := client.NewFakeLockboxServer(fakeClock, time.Hour)
 	folderId := uuid.NewString()
-	secretName := "secretName"
+	const secretName = "secretName"
 	k1, v1 := "k1", "v1"
 	k2, v2 := "k2", []byte("v2")
 	_, _ = fakeLockboxServer.CreateSecret(authorizedKey,
