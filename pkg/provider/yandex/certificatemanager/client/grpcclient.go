@@ -43,11 +43,12 @@ func NewGrpcCertificateManagerClient(ctx context.Context, apiEndpoint string, au
 	return &grpcCertificateManagerClient{api.NewCertificateContentServiceClient(conn)}, nil
 }
 
-func (c *grpcCertificateManagerClient) GetCertificateContent(ctx context.Context, iamToken, certificateID, _ string) (*api.GetCertificateContentResponse, error) {
+func (c *grpcCertificateManagerClient) GetCertificateContent(ctx context.Context, iamToken, certificateID, versionID string) (*api.GetCertificateContentResponse, error) {
 	response, err := c.certificateContentServiceClient.Get(
 		ctx,
 		&api.GetCertificateContentRequest{
 			CertificateId: certificateID,
+			VersionId:     versionID,
 		},
 		grpc.PerRPCCredentials(common.PerRPCCredentials{IamToken: iamToken}),
 	)
@@ -57,7 +58,7 @@ func (c *grpcCertificateManagerClient) GetCertificateContent(ctx context.Context
 	return response, nil
 }
 
-func (c *grpcCertificateManagerClient) GetExCertificateContent(ctx context.Context, iamToken, folderID, name, _ string) (*api.GetExCertificateContentResponse, error) {
+func (c *grpcCertificateManagerClient) GetExCertificateContent(ctx context.Context, iamToken, folderID, name, versionID string) (*api.GetExCertificateContentResponse, error) {
 	response, err := c.certificateContentServiceClient.GetEx(
 		ctx,
 		&api.GetExCertificateContentRequest{
@@ -67,6 +68,7 @@ func (c *grpcCertificateManagerClient) GetExCertificateContent(ctx context.Conte
 					CertificateName: name,
 				},
 			},
+			VersionId: versionID,
 		},
 		grpc.PerRPCCredentials(common.PerRPCCredentials{IamToken: iamToken}),
 	)

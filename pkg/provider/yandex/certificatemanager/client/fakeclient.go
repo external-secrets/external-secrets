@@ -51,6 +51,7 @@ type FakeCertificateManagerServer struct {
 	certificateMap map[certificateKey]certificateValue // certificate specific data
 	versionMap     map[versionKey]versionValue         // version specific data
 	tokenMap       map[tokenKey]tokenValue             // token specific data
+	folderMap      map[folderKey]folderValue           // folder specific data
 
 	tokenExpirationDuration time.Duration
 	clock                   clock.Clock
@@ -82,11 +83,23 @@ type tokenValue struct {
 	expiresAt     time.Time
 }
 
+type folderKey struct {
+	folderID  string
+	name      string
+	versionID string
+}
+
+type folderValue struct {
+	certificate certificateKey
+	content     *api.GetCertificateContentResponse
+}
+
 func NewFakeCertificateManagerServer(clock clock.Clock, tokenExpirationDuration time.Duration) *FakeCertificateManagerServer {
 	return &FakeCertificateManagerServer{
 		certificateMap:          make(map[certificateKey]certificateValue),
 		versionMap:              make(map[versionKey]versionValue),
 		tokenMap:                make(map[tokenKey]tokenValue),
+		folderMap:               make(map[folderKey]folderValue),
 		tokenExpirationDuration: tokenExpirationDuration,
 		clock:                   clock,
 	}
@@ -141,6 +154,6 @@ func (s *FakeCertificateManagerServer) getCertificateContent(iamToken, certifica
 }
 
 func (s *FakeCertificateManagerServer) getExCertificateContent(iamToken, folderID, name, versionID string) (*api.GetExCertificateContentResponse, error) {
-	// TODO: implement
+
 	return nil, nil
 }
