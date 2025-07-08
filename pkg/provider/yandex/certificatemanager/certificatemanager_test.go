@@ -673,7 +673,7 @@ func TestGetSecretMapByVersionID(t *testing.T) {
 	)
 }
 
-func TestGetSecretByNameWithoutProperty(t *testing.T) {
+func TestGetSecretWithFetchByNameWithoutProperty(t *testing.T) {
 	ctx := context.Background()
 	namespace := uuid.NewString()
 	authorizedKey := newFakeAuthorizedKey()
@@ -712,7 +712,7 @@ func TestGetSecretByNameWithoutProperty(t *testing.T) {
 	)
 }
 
-func TestGetSecretByNameWithProperty(t *testing.T) {
+func TestGetSecretWithFetchByNameWithProperty(t *testing.T) {
 	ctx := context.Background()
 	namespace := uuid.NewString()
 	authorizedKey := newFakeAuthorizedKey()
@@ -767,7 +767,7 @@ func TestGetSecretByNameWithProperty(t *testing.T) {
 	)
 }
 
-func TestGetSecretByNameAndVersionID(t *testing.T) {
+func TestGetSecretWithFetchByNameAndVersionID(t *testing.T) {
 	ctx := context.Background()
 	namespace := uuid.NewString()
 	authorizedKey := newFakeAuthorizedKey()
@@ -832,7 +832,7 @@ func TestGetSecretByNameAndVersionID(t *testing.T) {
 	)
 }
 
-func TestGetSecretByNameUnauthorized(t *testing.T) {
+func TestGetSecretWithFetchByNameUnauthorized(t *testing.T) {
 	ctx := context.Background()
 	namespace := uuid.NewString()
 	authorizedKeyA := newFakeAuthorizedKey()
@@ -863,7 +863,7 @@ func TestGetSecretByNameUnauthorized(t *testing.T) {
 	tassert.EqualError(t, err, "unable to request certificate content to getEx secret: permission denied")
 }
 
-func TestGetSecretByNameNotFound(t *testing.T) {
+func TestGetSecretWithFetchByNameNotFound(t *testing.T) {
 	ctx := context.Background()
 	namespace := uuid.NewString()
 	authorizedKey := newFakeAuthorizedKey()
@@ -895,7 +895,7 @@ func TestGetSecretByNameNotFound(t *testing.T) {
 	tassert.EqualError(t, err, "unable to request certificate content to getEx secret: version not found")
 }
 
-func TestGetSecretByNameWithoutFolderID(t *testing.T) {
+func TestGetSecretWithFetchByNameWithoutFolderID(t *testing.T) {
 	ctx := context.Background()
 	namespace := uuid.NewString()
 	authorizedKey := newFakeAuthorizedKey()
