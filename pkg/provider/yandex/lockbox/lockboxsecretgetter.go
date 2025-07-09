@@ -37,24 +37,10 @@ func newLockboxSecretGetter(lockboxClient client.LockboxClient) (common.SecretGe
 }
 
 func (g *lockboxSecretGetter) GetSecret(ctx context.Context, iamToken, resourceKey string, resourceKeyType common.ResourceKeyType, folderID, versionID, property string) ([]byte, error) {
-	var entries []*lockbox.Payload_Entry
-	switch resourceKeyType {
-	case common.ResourceKeyTypeId:
-		var err error
-		entries, err = g.lockboxClient.GetPayloadEntries(ctx, iamToken, resourceKey, versionID)
-		if err != nil {
-			return nil, fmt.Errorf("unable to request secret payload to get secret: %w", err)
-		}
-	case common.ResourceKeyTypeName:
-		entriesMap, err := g.lockboxClient.GetExPayload(ctx, iamToken, folderID, resourceKey, versionID)
-		if err != nil {
-			return nil, fmt.Errorf("unable to request secret payload to getEx secret: %w", err)
-		}
-		entries = convertToPayloadEntries(entriesMap)
-	default:
-		return nil, fmt.Errorf("unsupported resource key type: %v", resourceKeyType)
+	entries, err := g.fetchPayloadEntries(ctx, iamToken, resourceKey, resourceKeyType, folderID, versionID)
+	if err != nil {
+		return nil, fmt.Errorf("unable to request secret payload to get secret: %w", err)
 	}
-
 	if property == "" {
 		keyToValue := make(map[string]any, len(entries))
 		for _, entry := range entries {
@@ -78,24 +64,10 @@ func (g *lockboxSecretGetter) GetSecret(ctx context.Context, iamToken, resourceK
 }
 
 func (g *lockboxSecretGetter) GetSecretMap(ctx context.Context, iamToken, resourceKey string, resourceKeyType common.ResourceKeyType, folderID, versionID string) (map[string][]byte, error) {
-	var entries []*lockbox.Payload_Entry
-	switch resourceKeyType {
-	case common.ResourceKeyTypeId:
-		var err error
-		entries, err = g.lockboxClient.GetPayloadEntries(ctx, iamToken, resourceKey, versionID)
-		if err != nil {
-			return nil, fmt.Errorf("unable to request secret payload to get secret map: %w", err)
-		}
-	case common.ResourceKeyTypeName:
-		entriesMap, err := g.lockboxClient.GetExPayload(ctx, iamToken, folderID, resourceKey, versionID)
-		if err != nil {
-			return nil, fmt.Errorf("unable to request secret payload to getEx secret map: %w", err)
-		}
-		entries = convertToPayloadEntries(entriesMap)
-	default:
-		return nil, fmt.Errorf("unsupported resource key type: %v", resourceKeyType)
+	entries, err := g.fetchPayloadEntries(ctx, iamToken, resourceKey, resourceKeyType, folderID, versionID)
+	if err != nil {
+		return nil, fmt.Errorf("unable to request secret payload to get secret map: %w", err)
 	}
-
 	secretMap := make(map[string][]byte, len(entries))
 	for _, entry := range entries {
 		value, err := getValueAsBinary(entry)
@@ -105,6 +77,21 @@ func (g *lockboxSecretGetter) GetSecretMap(ctx context.Context, iamToken, resour
 		secretMap[entry.Key] = value
 	}
 	return secretMap, nil
+}
+
+func (g *lockboxSecretGetter) fetchPayloadEntries(ctx context.Context, iamToken, resourceKey string, resourceKeyType common.ResourceKeyType, folderID, versionID string) ([]*lockbox.Payload_Entry, error) {
+	switch resourceKeyType {
+	case common.ResourceKeyTypeId:
+		return g.lockboxClient.GetPayloadEntries(ctx, iamToken, resourceKey, versionID)
+	case common.ResourceKeyTypeName:
+		entriesMap, err := g.lockboxClient.GetExPayload(ctx, iamToken, folderID, resourceKey, versionID)
+		if err != nil {
+			return nil, err
+		}
+		return convertToPayloadEntries(entriesMap), nil
+	default:
+		return nil, fmt.Errorf("unsupported resource key type: %v", resourceKeyType)
+	}
 }
 
 func getValueAsIs(entry *lockbox.Payload_Entry) (any, error) {
