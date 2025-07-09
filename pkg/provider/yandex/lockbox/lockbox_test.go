@@ -42,6 +42,7 @@ const (
 	errMissingKey                    = "invalid Yandex Lockbox SecretStore resource: missing AuthorizedKey Name"
 	errSecretPayloadPermissionDenied = "unable to request secret payload to get secret: permission denied"
 	errSecretPayloadNotFound         = "unable to request secret payload to get secret: secret not found"
+	errSecretPayloadVersionNotFound  = "unable to request secret payload to get secret: version not found"
 )
 
 func TestNewClient(t *testing.T) {
@@ -299,7 +300,7 @@ func TestGetSecretNotFound(t *testing.T) {
 		textEntry("k1", "v1"),
 	)
 	_, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: secretID, Version: "no-version-with-this-id"})
-	tassert.EqualError(t, err, "unable to request secret payload to get secret: version not found")
+	tassert.EqualError(t, err, errSecretPayloadVersionNotFound)
 }
 
 func TestGetSecretWithTwoNamespaces(t *testing.T) {
@@ -778,7 +779,7 @@ func TestGetSecretWithFetchByNameNotFound(t *testing.T) {
 	tassert.Nil(t, err)
 
 	_, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: "no-secret-with-such-name"})
-	tassert.EqualError(t, err, "unable to request secret payload to getEx secret: secret not found")
+	tassert.EqualError(t, err, errSecretPayloadNotFound)
 	secretName := "secretName"
 	_, _ = fakeLockboxServer.CreateSecret(
 		authorizedKey,
@@ -786,7 +787,7 @@ func TestGetSecretWithFetchByNameNotFound(t *testing.T) {
 		textEntry("k1", "v1"),
 	)
 	_, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: secretName, Version: "no-version-with-such-id"})
-	tassert.EqualError(t, err, "unable to request secret payload to getEx secret: version not found")
+	tassert.EqualError(t, err, errSecretPayloadVersionNotFound)
 }
 
 func TestGetSecretWithFetchByNameUnauthorized(t *testing.T) {
@@ -815,7 +816,7 @@ func TestGetSecretWithFetchByNameUnauthorized(t *testing.T) {
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
 	_, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: secretName})
-	tassert.EqualError(t, err, "unable to request secret payload to getEx secret: permission denied")
+	tassert.EqualError(t, err, errSecretPayloadPermissionDenied)
 }
 
 func TestGetSecretWithFetchByNameWithoutFolderID(t *testing.T) {

@@ -42,6 +42,7 @@ const (
 	errMissingKey                    = "invalid Yandex Certificate Manager SecretStore resource: missing AuthorizedKey Name"
 	errSecretPayloadPermissionDenied = "unable to request certificate content to get secret: permission denied"
 	errSecretPayloadNotFound         = "unable to request certificate content to get secret: certificate not found"
+	errSecretPayloadVersionNotFound  = "unable to request certificate content to get secret: version not found"
 )
 
 func TestNewClient(t *testing.T) {
@@ -315,7 +316,7 @@ func TestGetSecretNotFound(t *testing.T) {
 			PrivateKey:       uuid.NewString(),
 		})
 	_, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID, Version: "no-version-with-this-id"})
-	tassert.EqualError(t, err, "unable to request certificate content to get secret: version not found")
+	tassert.EqualError(t, err, errSecretPayloadVersionNotFound)
 }
 
 func TestGetSecretWithTwoNamespaces(t *testing.T) {
@@ -866,7 +867,7 @@ func TestGetSecretWithFetchByNameUnauthorized(t *testing.T) {
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
 	_, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateName})
-	tassert.EqualError(t, err, "unable to request certificate content to getEx secret: permission denied")
+	tassert.EqualError(t, err, errSecretPayloadPermissionDenied)
 }
 
 func TestGetSecretWithFetchByNameNotFound(t *testing.T) {
@@ -888,7 +889,7 @@ func TestGetSecretWithFetchByNameNotFound(t *testing.T) {
 	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
 	tassert.Nil(t, err)
 	_, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: "no-secret-with-this-name"})
-	tassert.EqualError(t, err, "unable to request certificate content to getEx secret: certificate not found")
+	tassert.EqualError(t, err, errSecretPayloadNotFound)
 
 	certificateName := "certificateName"
 	_, _ = fakeCertificateManagerServer.CreateCertificate(authorizedKey,
@@ -898,7 +899,7 @@ func TestGetSecretWithFetchByNameNotFound(t *testing.T) {
 			PrivateKey:       uuid.NewString(),
 		})
 	_, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateName, Version: "no-version-with-this-id"})
-	tassert.EqualError(t, err, "unable to request certificate content to getEx secret: version not found")
+	tassert.EqualError(t, err, errSecretPayloadVersionNotFound)
 }
 
 func TestGetSecretWithFetchByNameWithoutFolderID(t *testing.T) {
