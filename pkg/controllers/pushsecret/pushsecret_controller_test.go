@@ -391,7 +391,68 @@ var _ = Describe("PushSecret controller", func() {
 			return true
 		}
 	}
-
+	syncSuccessfullyReusingKeys := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		tc.pushsecret = &v1alpha1.PushSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      PushSecretName,
+				Namespace: PushSecretNamespace,
+			},
+			Spec: v1alpha1.PushSecretSpec{
+				SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
+					{
+						Name: PushSecretStore,
+						Kind: "SecretStore",
+					},
+				},
+				Selector: v1alpha1.PushSecretSelector{
+					Secret: &v1alpha1.PushSecretSecret{
+						Name: SecretName,
+					},
+				},
+				Data: []v1alpha1.PushSecretData{
+					{
+						Match: v1alpha1.PushSecretMatch{
+							SecretKey: "otherKey",
+							RemoteRef: v1alpha1.PushSecretRemoteRef{
+								RemoteKey: defaultPath,
+							},
+						},
+					},
+				},
+				Template: &esv1.ExternalSecretTemplate{
+					Metadata: esv1.ExternalSecretTemplateMetadata{
+						Labels: map[string]string{
+							"foos": "ball",
+						},
+						Annotations: map[string]string{
+							"hihi": "ga",
+						},
+					},
+					Type:          v1.SecretTypeOpaque,
+					EngineVersion: esv1.TemplateEngineV2,
+					Data: map[string]string{
+						defaultKey: "{{ .key | toString | upper }} was templated",
+						"otherKey": "{{ .key | toString | upper }} was also templated",
+					},
+				},
+			},
+		}
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			Eventually(func() bool {
+				By("checking if Provider value got updated")
+				providerValue, ok := fakeProvider.SetSecretArgs[ps.Spec.Data[0].Match.RemoteRef.RemoteKey]
+				if !ok {
+					return false
+				}
+				got := providerValue.Value
+				return bytes.Equal(got, []byte("VALUE was also templated"))
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	syncSuccessfullyWithTemplate := func(tc *testCase) {
 		fakeProvider.SetSecretFn = func() error {
@@ -1097,6 +1158,7 @@ var _ = Describe("PushSecret controller", func() {
 		Entry("should update the PushSecret status correctly if UpdatePolicy=IfNotExists", updateIfNotExistsSyncStatus),
 		Entry("should fail if secret existence cannot be verified if UpdatePolicy=IfNotExists", updateIfNotExistsSyncFailed),
 		Entry("should sync with template", syncSuccessfullyWithTemplate),
+		Entry("should sync with template reusing keys", syncSuccessfullyReusingKeys),
 		Entry("should sync with conversion strategy", syncSuccessfullyWithConversionStrategy),
 		Entry("should delete if DeletionPolicy=Delete", syncAndDeleteSuccessfully),
 		Entry("should delete after DeletionPolicy changed from Delete to None", syncChangePolicyAndDeleteSuccessfully),
