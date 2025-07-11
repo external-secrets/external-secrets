@@ -63,11 +63,13 @@ func (g *Generator) generate(
 	if err != nil {
 		return nil, nil, fmt.Errorf(errParseSpec, err)
 	}
+	if res.Spec.Auth.JWTAuth != nil {
+		return nil, nil, errors.New("jwt auth cannot be used for STS Session Token generation")
+	}
 	cfg, err := awsauth.NewGeneratorSession(
 		ctx,
 		esv1.AWSAuth{
 			SecretRef: (*esv1.AWSAuthSecretRef)(res.Spec.Auth.SecretRef),
-			JWTAuth:   (*esv1.AWSJWTAuth)(res.Spec.Auth.JWTAuth),
 		},
 		res.Spec.Role,
 		res.Spec.Region,
@@ -78,14 +80,14 @@ func (g *Generator) generate(
 	if err != nil {
 		return nil, nil, fmt.Errorf(errCreateSess, err)
 	}
-	client := stsFunc(cfg)
+	api := stsFunc(cfg)
 	input := &sts.GetSessionTokenInput{}
 	if res.Spec.RequestParameters != nil {
 		input.DurationSeconds = res.Spec.RequestParameters.SessionDuration
 		input.TokenCode = res.Spec.RequestParameters.TokenCode
 		input.SerialNumber = res.Spec.RequestParameters.SerialNumber
 	}
-	out, err := client.GetSessionToken(ctx, input)
+	out, err := api.GetSessionToken(ctx, input)
 	if err != nil {
 		return nil, nil, fmt.Errorf(errGetToken, err)
 	}
