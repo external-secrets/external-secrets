@@ -200,7 +200,13 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 	}
-	_, err = p.ValidateStore(store)
+	warns, err := p.ValidateStore(store)
+	if warns == nil {
+		t.Error("ProfileSelector test failed: expected warnings, got nil")
+	}
+	if !strings.Contains(warns[0], "setting up a custom token location is deprecated. use CONTAINER_AUTH_TOKEN_PATH env var instead.") {
+		t.Errorf("ProfileSelector test failed: expected warning, got: '%s'", warns[0])
+	}
 	expected := "cannot read container auth token"
 	if !ErrorContains(err, expected) {
 		t.Errorf("ProfileSelector test failed: %s, expected: '%s'", err.Error(), expected)
