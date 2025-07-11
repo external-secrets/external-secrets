@@ -53,7 +53,7 @@ jobs:
     outputs:
       image-tag: ${{ steps.container_info.outputs.image-tag }}
     steps:
-      - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+      - uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49 # v2.12.2
         with:
           egress-policy: audit
 
@@ -68,13 +68,13 @@ jobs:
           platforms: all
 
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
         with:
           version: 'v0.4.2'
           install: true
 
       - name: Setup Go
-        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5.4.0
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         id: setup-go
         with:
           go-version-file: "go.mod"
@@ -134,7 +134,7 @@ jobs:
         run: make docker.build
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@6c175e9c4083a92bbca2f9724c8a5e33bc2d97a5 # master
+        uses: aquasecurity/trivy-action@dc5a429b52fcf669ce959baa2c2dd26090d2a6c4 # master
         with:
           image-ref: ${{ inputs.image-name }}:${{ steps.container_info.outputs.image-tag }}
           format: 'table'
@@ -151,7 +151,7 @@ jobs:
       id-token: write #for keyless sign
       packages: write #to update packages with added SBOMs.
     steps:
-      - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+      - uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49 # v2.12.2
         with:
           egress-policy: audit
       - name: Checkout

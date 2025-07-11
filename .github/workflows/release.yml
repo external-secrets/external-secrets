@@ -19,6 +19,25 @@ permissions:
   contents: read
 
 jobs:
+  check-docs-for-release:
+    name: Check Docs for release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49 # v2.12.2
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.source_ref }}
+      - name: check-docs
+        run: |
+          DOCS_VERSION=${{ github.event.inputs.version }} make docs.check
   release:
     name: Create Release
     runs-on: ubuntu-latest
@@ -26,7 +45,7 @@ jobs:
       contents: write # to create a release and push new docs
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49 # v2.12.2
         with:
           egress-policy: audit
 
@@ -37,13 +56,14 @@ jobs:
           ref: ${{ github.event.inputs.source_ref }}
 
       - name: Create Release
-        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.2.2
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
         with:
           tag_name: ${{ github.event.inputs.version }}
           target_commitish: ${{ github.event.inputs.source_ref }}
           generate_release_notes: true
           body: |
             Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}`
+            NOTE - the following UBI images are not currently working (broken build process).
             Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi`
             Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi-boringssl`
         env:
@@ -80,7 +100,7 @@ jobs:
       RELEASE_TAG: ${{ github.event.inputs.version }}${{ matrix.tag_suffix }}
 
     steps:
-      - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+      - uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49 # v2.12.2
         with:
           egress-policy: audit
       - name: Checkout
@@ -89,7 +109,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Go
-        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5.4.0
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         id: setup-go
         with:
           go-version-file: "go.mod"
@@ -123,7 +143,7 @@ jobs:
           image-tag: ${{ env.RELEASE_TAG }}
 
       - name: Update Release
-        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.2.2
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
         with:
           tag_name: ${{ github.event.inputs.version }}
           files: |

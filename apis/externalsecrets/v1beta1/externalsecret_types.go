@@ -508,6 +508,8 @@ type ExternalSecretStatus struct {
 // +kubebuilder:object:root=true
 // ExternalSecret is the Schema for the external-secrets API.
 // +kubebuilder:subresource:status
+// +kubebuilder:unservedversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
 // +kubebuilder:resource:scope=Namespaced,categories={external-secrets},shortName=es
 // +kubebuilder:printcolumn:name="StoreType",type=string,JSONPath=`.spec.secretStoreRef.kind`

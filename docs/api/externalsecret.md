@@ -25,7 +25,7 @@ With `refreshPolicy: CreatedOnce`, the controller will:
 
 Example:
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: example
@@ -44,7 +44,7 @@ With `refreshPolicy: Periodic` (the default behavior), the controller will:
 
 Example:
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: example
@@ -64,7 +64,7 @@ With `refreshPolicy: OnChange`, the controller will:
 
 Example:
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: example
@@ -75,7 +75,7 @@ spec:
 
 ## Manual Refresh
 
-Regardless of the refresh policy, you can always manually trigger a refresh of the `Kind=Secret` by updating the annotations of the `ExternalSecret`:
+If supported by the configured `refreshPolicy`, you can manually trigger a refresh of the `Kind=Secret` by updating the annotations of the `ExternalSecret`:
 
 ```
 kubectl annotate es my-es force-sync=$(date +%s) --overwrite

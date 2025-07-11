@@ -19,9 +19,7 @@ import (
 	"errors"
 	"fmt"
 
-	awssm "github.com/aws/aws-sdk-go/service/secretsmanager"
-	"github.com/aws/aws-sdk-go/service/ssm"
-
+	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
@@ -66,7 +64,7 @@ func IsReferentSpec(prov esv1.AWSAuth) bool {
 	return false
 }
 
-func SecretTagsToJSONString(tags []*awssm.Tag) (string, error) {
+func SecretTagsToJSONString(tags []awssm.Tag) (string, error) {
 	tagMap := make(map[string]string, len(tags))
 	for _, tag := range tags {
 		tagMap[*tag.Key] = *tag.Value
@@ -80,13 +78,8 @@ func SecretTagsToJSONString(tags []*awssm.Tag) (string, error) {
 	return string(byteArr), nil
 }
 
-func ParameterTagsToJSONString(tags []*ssm.Tag) (string, error) {
-	tagMap := make(map[string]string, len(tags))
-	for _, tag := range tags {
-		tagMap[*tag.Key] = *tag.Value
-	}
-
-	byteArr, err := json.Marshal(tagMap)
+func ParameterTagsToJSONString(tags map[string]string) (string, error) {
+	byteArr, err := json.Marshal(tags)
 	if err != nil {
 		return "", err
 	}

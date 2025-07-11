@@ -185,7 +185,19 @@ func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1.ExternalSecretData
 		if !ok {
 			return nil, fmt.Errorf(errExtractingSecret, secretName, sm.Secret_SecretType_Kv, "GetSecret")
 		}
-		return getKVSecret(ref, secret)
+		return getKVOrCustomCredentialsSecret(ref, secret.Data)
+
+	case sm.Secret_SecretType_CustomCredentials:
+
+		response, err := getSecretData(ibm, &secretName, sm.Secret_SecretType_CustomCredentials, secretGroupName)
+		if err != nil {
+			return nil, err
+		}
+		secret, ok := response.(*sm.CustomCredentialsSecret)
+		if !ok {
+			return nil, fmt.Errorf(errExtractingSecret, secretName, sm.Secret_SecretType_CustomCredentials, "GetSecret")
+		}
+		return getKVOrCustomCredentialsSecret(ref, secret.CredentialsContent)
 
 	default:
 		return nil, fmt.Errorf("unknown secret type %s", secretType)
@@ -307,9 +319,9 @@ func getUsernamePasswordSecret(ibm *providerIBM, secretName *string, ref esv1.Ex
 	return nil, fmt.Errorf(errKeyDoesNotExist, ref.Property, ref.Key)
 }
 
-// Returns a secret of type kv and supports json path.
-func getKVSecret(ref esv1.ExternalSecretDataRemoteRef, secret *sm.KVSecret) ([]byte, error) {
-	payloadJSONByte, err := json.Marshal(secret.Data)
+// Returns a secret of type kv or custom credentials and supports json path.
+func getKVOrCustomCredentialsSecret(ref esv1.ExternalSecretDataRemoteRef, credentialsData map[string]interface{}) ([]byte, error) {
+	payloadJSONByte, err := json.Marshal(credentialsData)
 	if err != nil {
 		return nil, fmt.Errorf("marshaling payload from secret failed. %w", err)
 	}
@@ -501,7 +513,24 @@ func (ibm *providerIBM) GetSecretMap(_ context.Context, ref esv1.ExternalSecretD
 		if !ok {
 			return nil, fmt.Errorf(errExtractingSecret, secretName, sm.Secret_SecretType_Kv, "GetSecretMap")
 		}
-		secret, err := getKVSecret(ref, secretData)
+		secret, err := getKVOrCustomCredentialsSecret(ref, secretData.Data)
+		if err != nil {
+			return nil, err
+		}
+		m := make(map[string]any)
+		err = json.Unmarshal(secret, &m)
+		if err != nil {
+			return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
+		}
+		secretMap = byteArrayMap(m, secretMap)
+		return secretMap, nil
+
+	case sm.Secret_SecretType_CustomCredentials:
+		secretData, ok := response.(*sm.CustomCredentialsSecret)
+		if !ok {
+			return nil, fmt.Errorf(errExtractingSecret, secretName, sm.Secret_SecretType_CustomCredentials, "GetSecretMap")
+		}
+		secret, err := getKVOrCustomCredentialsSecret(ref, secretData.CredentialsContent)
 		if err != nil {
 			return nil, err
 		}

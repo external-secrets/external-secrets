@@ -18,92 +18,117 @@ import (
 	"context"
 	"errors"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 // Client implements the aws parameterstore interface.
 type Client struct {
-	GetParameterWithContextFn           GetParameterWithContextFn
-	GetParametersByPathWithContextFn    GetParametersByPathWithContextFn
-	PutParameterWithContextFn           PutParameterWithContextFn
-	PutParameterWithContextCalledN      int
-	PutParameterWithContextFnCalledWith [][]*ssm.PutParameterInput
-	DeleteParameterWithContextFn        DeleteParameterWithContextFn
-	DescribeParametersWithContextFn     DescribeParametersWithContextFn
-	ListTagsForResourceWithContextFn    ListTagsForResourceWithContextFn
+	GetParameterFn           GetParameterFn
+	GetParametersByPathFn    GetParametersByPathFn
+	PutParameterFn           PutParameterFn
+	PutParameterCalledN      int
+	PutParameterFnCalledWith [][]*ssm.PutParameterInput
+	DeleteParameterFn        DeleteParameterFn
+	DescribeParametersFn     DescribeParametersFn
+	ListTagsForResourceFn    ListTagsForResourceFn
+	RemoveTagsFromResourceFn RemoveTagsFromResourceFn
+	AddTagsToResourceFn      AddTagsToResourceFn
 }
 
-type GetParameterWithContextFn func(aws.Context, *ssm.GetParameterInput, ...request.Option) (*ssm.GetParameterOutput, error)
-type GetParametersByPathWithContextFn func(aws.Context, *ssm.GetParametersByPathInput, ...request.Option) (*ssm.GetParametersByPathOutput, error)
-type PutParameterWithContextFn func(aws.Context, *ssm.PutParameterInput, ...request.Option) (*ssm.PutParameterOutput, error)
-type DescribeParametersWithContextFn func(aws.Context, *ssm.DescribeParametersInput, ...request.Option) (*ssm.DescribeParametersOutput, error)
-type ListTagsForResourceWithContextFn func(aws.Context, *ssm.ListTagsForResourceInput, ...request.Option) (*ssm.ListTagsForResourceOutput, error)
-type DeleteParameterWithContextFn func(ctx aws.Context, input *ssm.DeleteParameterInput, opts ...request.Option) (*ssm.DeleteParameterOutput, error)
+type GetParameterFn func(context.Context, *ssm.GetParameterInput, ...func(*ssm.Options)) (*ssm.GetParameterOutput, error)
+type GetParametersByPathFn func(context.Context, *ssm.GetParametersByPathInput, ...func(*ssm.Options)) (*ssm.GetParametersByPathOutput, error)
+type PutParameterFn func(context.Context, *ssm.PutParameterInput, ...func(*ssm.Options)) (*ssm.PutParameterOutput, error)
+type DescribeParametersFn func(context.Context, *ssm.DescribeParametersInput, ...func(*ssm.Options)) (*ssm.DescribeParametersOutput, error)
+type ListTagsForResourceFn func(context.Context, *ssm.ListTagsForResourceInput, ...func(*ssm.Options)) (*ssm.ListTagsForResourceOutput, error)
+type DeleteParameterFn func(ctx context.Context, input *ssm.DeleteParameterInput, opts ...func(*ssm.Options)) (*ssm.DeleteParameterOutput, error)
 
-func (sm *Client) ListTagsForResourceWithContext(ctx aws.Context, input *ssm.ListTagsForResourceInput, options ...request.Option) (*ssm.ListTagsForResourceOutput, error) {
-	return sm.ListTagsForResourceWithContextFn(ctx, input, options...)
+type RemoveTagsFromResourceFn func(ctx context.Context, params *ssm.RemoveTagsFromResourceInput, optFns ...func(*ssm.Options)) (*ssm.RemoveTagsFromResourceOutput, error)
+
+type AddTagsToResourceFn func(ctx context.Context, params *ssm.AddTagsToResourceInput, optFns ...func(*ssm.Options)) (*ssm.AddTagsToResourceOutput, error)
+
+func (sm *Client) ListTagsForResource(ctx context.Context, input *ssm.ListTagsForResourceInput, options ...func(*ssm.Options)) (*ssm.ListTagsForResourceOutput, error) {
+	return sm.ListTagsForResourceFn(ctx, input, options...)
 }
 
-func NewListTagsForResourceWithContextFn(output *ssm.ListTagsForResourceOutput, err error) ListTagsForResourceWithContextFn {
-	return func(aws.Context, *ssm.ListTagsForResourceInput, ...request.Option) (*ssm.ListTagsForResourceOutput, error) {
+func NewListTagsForResourceFn(output *ssm.ListTagsForResourceOutput, err error) ListTagsForResourceFn {
+	return func(context.Context, *ssm.ListTagsForResourceInput, ...func(*ssm.Options)) (*ssm.ListTagsForResourceOutput, error) {
 		return output, err
 	}
 }
 
-func (sm *Client) DeleteParameterWithContext(ctx aws.Context, input *ssm.DeleteParameterInput, opts ...request.Option) (*ssm.DeleteParameterOutput, error) {
-	return sm.DeleteParameterWithContextFn(ctx, input, opts...)
+func (sm *Client) DeleteParameter(ctx context.Context, input *ssm.DeleteParameterInput, opts ...func(*ssm.Options)) (*ssm.DeleteParameterOutput, error) {
+	return sm.DeleteParameterFn(ctx, input, opts...)
 }
 
-func NewDeleteParameterWithContextFn(output *ssm.DeleteParameterOutput, err error) DeleteParameterWithContextFn {
-	return func(aws.Context, *ssm.DeleteParameterInput, ...request.Option) (*ssm.DeleteParameterOutput, error) {
+func NewDeleteParameterFn(output *ssm.DeleteParameterOutput, err error) DeleteParameterFn {
+	return func(context.Context, *ssm.DeleteParameterInput, ...func(*ssm.Options)) (*ssm.DeleteParameterOutput, error) {
 		return output, err
 	}
 }
 
-func (sm *Client) GetParameterWithContext(ctx aws.Context, input *ssm.GetParameterInput, options ...request.Option) (*ssm.GetParameterOutput, error) {
-	return sm.GetParameterWithContextFn(ctx, input, options...)
+func (sm *Client) GetParameter(ctx context.Context, input *ssm.GetParameterInput, options ...func(*ssm.Options)) (*ssm.GetParameterOutput, error) {
+	return sm.GetParameterFn(ctx, input, options...)
 }
 
-func (sm *Client) GetParametersByPathWithContext(ctx aws.Context, input *ssm.GetParametersByPathInput, options ...request.Option) (*ssm.GetParametersByPathOutput, error) {
-	return sm.GetParametersByPathWithContextFn(ctx, input, options...)
+func (sm *Client) GetParametersByPath(ctx context.Context, input *ssm.GetParametersByPathInput, options ...func(*ssm.Options)) (*ssm.GetParametersByPathOutput, error) {
+	return sm.GetParametersByPathFn(ctx, input, options...)
 }
 
-func NewGetParameterWithContextFn(output *ssm.GetParameterOutput, err error) GetParameterWithContextFn {
-	return func(aws.Context, *ssm.GetParameterInput, ...request.Option) (*ssm.GetParameterOutput, error) {
+func NewGetParameterFn(output *ssm.GetParameterOutput, err error) GetParameterFn {
+	return func(context.Context, *ssm.GetParameterInput, ...func(*ssm.Options)) (*ssm.GetParameterOutput, error) {
 		return output, err
 	}
 }
 
-func (sm *Client) DescribeParametersWithContext(ctx context.Context, input *ssm.DescribeParametersInput, options ...request.Option) (*ssm.DescribeParametersOutput, error) {
-	return sm.DescribeParametersWithContextFn(ctx, input, options...)
+func (sm *Client) DescribeParameters(ctx context.Context, input *ssm.DescribeParametersInput, options ...func(*ssm.Options)) (*ssm.DescribeParametersOutput, error) {
+	return sm.DescribeParametersFn(ctx, input, options...)
 }
 
-func NewDescribeParametersWithContextFn(output *ssm.DescribeParametersOutput, err error) DescribeParametersWithContextFn {
-	return func(aws.Context, *ssm.DescribeParametersInput, ...request.Option) (*ssm.DescribeParametersOutput, error) {
+func NewDescribeParametersFn(output *ssm.DescribeParametersOutput, err error) DescribeParametersFn {
+	return func(context.Context, *ssm.DescribeParametersInput, ...func(*ssm.Options)) (*ssm.DescribeParametersOutput, error) {
 		return output, err
 	}
 }
 
-func (sm *Client) PutParameterWithContext(ctx aws.Context, input *ssm.PutParameterInput, options ...request.Option) (*ssm.PutParameterOutput, error) {
-	sm.PutParameterWithContextCalledN++
-	sm.PutParameterWithContextFnCalledWith = append(sm.PutParameterWithContextFnCalledWith, []*ssm.PutParameterInput{input})
-	return sm.PutParameterWithContextFn(ctx, input, options...)
+func (sm *Client) PutParameter(ctx context.Context, input *ssm.PutParameterInput, options ...func(*ssm.Options)) (*ssm.PutParameterOutput, error) {
+	sm.PutParameterCalledN++
+	sm.PutParameterFnCalledWith = append(sm.PutParameterFnCalledWith, []*ssm.PutParameterInput{input})
+	return sm.PutParameterFn(ctx, input, options...)
 }
 
-func NewPutParameterWithContextFn(output *ssm.PutParameterOutput, err error) PutParameterWithContextFn {
-	return func(aws.Context, *ssm.PutParameterInput, ...request.Option) (*ssm.PutParameterOutput, error) {
+func NewPutParameterFn(output *ssm.PutParameterOutput, err error) PutParameterFn {
+	return func(context.Context, *ssm.PutParameterInput, ...func(*ssm.Options)) (*ssm.PutParameterOutput, error) {
 		return output, err
 	}
 }
 
 func (sm *Client) WithValue(in *ssm.GetParameterInput, val *ssm.GetParameterOutput, err error) {
-	sm.GetParameterWithContextFn = func(ctx aws.Context, paramIn *ssm.GetParameterInput, options ...request.Option) (*ssm.GetParameterOutput, error) {
-		if !cmp.Equal(paramIn, in) {
+	sm.GetParameterFn = func(ctx context.Context, paramIn *ssm.GetParameterInput, options ...func(*ssm.Options)) (*ssm.GetParameterOutput, error) {
+		if !cmp.Equal(paramIn, in, cmpopts.IgnoreUnexported(ssm.GetParameterInput{})) {
 			return nil, errors.New("unexpected test argument")
 		}
 		return val, err
+	}
+}
+
+func (sm *Client) RemoveTagsFromResource(_ context.Context, params *ssm.RemoveTagsFromResourceInput, optFns ...func(*ssm.Options)) (*ssm.RemoveTagsFromResourceOutput, error) {
+	return nil, errors.New("RemoveTagsFromResource is not implemented in fake client")
+}
+
+func NewRemoveTagsFromResourceFn(output *ssm.RemoveTagsFromResourceOutput, err error) RemoveTagsFromResourceFn {
+	return func(ctx context.Context, params *ssm.RemoveTagsFromResourceInput, optFns ...func(*ssm.Options)) (*ssm.RemoveTagsFromResourceOutput, error) {
+		return output, err
+	}
+}
+
+func (sm *Client) AddTagsToResource(_ context.Context, params *ssm.AddTagsToResourceInput, optFns ...func(*ssm.Options)) (*ssm.AddTagsToResourceOutput, error) {
+	return nil, errors.New("AddTagsToResource is not implemented in fake client")
+}
+
+func NewAddTagsToResourceFn(output *ssm.AddTagsToResourceOutput, err error) AddTagsToResourceFn {
+	return func(ctx context.Context, params *ssm.AddTagsToResourceInput, optFns ...func(*ssm.Options)) (*ssm.AddTagsToResourceOutput, error) {
+		return output, err
 	}
 }

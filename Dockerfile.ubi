@@ -1,8 +1,12 @@
-FROM registry.access.redhat.com/ubi8/ubi@sha256:244e9858f9d8a2792a3dceb850b4fa8fdbd67babebfde42587bfa919d5d1ecef AS minimal-ubi
+FROM registry.access.redhat.com/ubi8/ubi@sha256:19eae3d00adb37538a62b9bd093fd1e01dc6197f1925e960224244a1ed52bfb5 AS minimal-ubi
+
+# Add metadata
+LABEL maintainer="cncf-externalsecretsop-maintainers@lists.cncf.io" \
+      description="External Secrets Operator is a Kubernetes operator that integrates external secret management systems"
 
 ARG TARGETOS
 ARG TARGETARCH
-RUN dnf update -y && dnf install -y binutils
+RUN dnf update -y --allowerasing && dnf install -y binutils
 # prep target rootfs for scratch container
 WORKDIR /
 RUN mkdir /image && \

@@ -48,15 +48,15 @@ For example, the following CLI call grants the Kubernetes service account access
 ```shell
 gcloud secrets add-iam-policy-binding demo-secret \
   --project=$PROJECT_ID \
-  --role="roles/secretmanager.secretAccessor"
+  --role="roles/secretmanager.secretAccessor" \
   --member="principal://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${PROJECT_ID}.svc.id.goog/subject/ns/${K8S_NAMESPACE}/sa/${K8S_SA}"
 ```
 
 You can also grant the Kubernetes service account access to _all_ secrets in a GCP project:
 
 ```shell
-gcloud project add-iam-policy-binding $PROJECT_ID \
-  --role="roles/secretmanager.secretAccessor"
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --role="roles/secretmanager.secretAccessor" \
   --member="principal://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${PROJECT_ID}.svc.id.goog/subject/ns/${K8S_NAMESPACE}/sa/${K8S_SA}"
 ```
 
@@ -182,7 +182,7 @@ In the case of a `ClusterSecretStore`, you additionally have to define the servi
 
 #### Authorizing the Core Controller Pod
 
-Instead of managing authentication at the `SecretStore` and `ClusterSecretStore` level, you can give the [Core Controller](/api/components/) Pod's service account access to Secret Manager secrets using one of the two WIF approaches described in the previous sections.
+Instead of managing authentication at the `SecretStore` and `ClusterSecretStore` level, you can give the [Core Controller](../api/components/) Pod's service account access to Secret Manager secrets using one of the two WIF approaches described in the previous sections.
 
 To demonstrate this approach, we'll assume you installed ESO using Helm into the `external-secrets` namespace, with `external-secrets` as the release name:
 
@@ -291,18 +291,25 @@ spec:
 
 ### Location and Replication
 
-By default, secrets are automatically replicated across multiple regions. You can specify a single location for your secrets by setting the `location` field:
+By default, secrets are automatically replicated across multiple regions. You can specify a single location for your secrets by setting the `replicationLocation` field:
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
-kind: SecretStore
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
 metadata:
-  name: gcp-secret-store
+  name: pushsecret-example
 spec:
-  provider:
-    gcpsm:
-      projectID: my-project
-      location: us-east1  # Specify a single location
+  # ... other fields ...
+  data:
+    - match:
+        secretKey: mykey
+        remoteRef:
+          remoteKey: my-secret
+      metadata:
+        apiVersion: kubernetes.external-secrets.io/v1alpha1
+        kind: PushSecretMetadata`
+        spec:
+          replicationLocation: "us-east1"
 ```
 
 ### Customer-Managed Encryption Keys (CMEK)
@@ -335,7 +342,7 @@ spec:
 Note: When using CMEK, you must specify a location in the SecretStore as customer-managed encryption keys are region-specific.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: gcp-secret-store
@@ -346,50 +353,19 @@ spec:
       location: us-east1  # Required when using CMEK
 ```
 
-## Migration Guide: PushSecret Metadata Format (v0.11.x to v0.12.0)
+## Regional Secrets
+GCP Secret Manager Regional Secrets are available to be used with both ExternalSecrets and PushSecrets.
 
-In version 0.12.0, the metadata format for PushSecrets has been standardized to use a structured format. If you're upgrading from v0.11.x, you'll need to update your PushSecret specifications.
+In order to achieve so, add a `location` to your SecretStore definition:
 
-### Old Format (v0.11.x)
 ```yaml
-apiVersion: external-secrets.io/v1alpha1
-kind: PushSecret
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: gcp-secret-store
 spec:
-  data:
-    - match:
-        secretKey: mykey
-        remoteRef:
-          remoteKey: my-secret
-      metadata:
-        annotations:
-          key1: "value1"
-        labels:
-          key2: "value2"
-        topics:
-          - "topic1"
-          - "topic2"
-```
-
-### New Format (v0.12.0+)
-```yaml
-apiVersion: external-secrets.io/v1alpha1
-kind: PushSecret
-spec:
-  data:
-    - match:
-        secretKey: mykey
-        remoteRef:
-          remoteKey: my-secret
-      metadata:
-        apiVersion: kubernetes.external-secrets.io/v1alpha1
-        kind: PushSecretMetadata
-        spec:
-          annotations:
-            key1: "value1"
-          labels:
-            key2: "value2"
-          topics:
-            - "topic1"
-            - "topic2"
-          cmekKeyName: "projects/my-project/locations/us-east1/keyRings/my-keyring/cryptoKeys/my-key"  # Optional: for CMEK
+  provider:
+    gcpsm:
+      projectID: my-project
+      location: us-east1 # uses regional secrets on us-east1
 ```

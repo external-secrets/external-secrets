@@ -16,6 +16,7 @@ replicaCount: 1
 
 bitwarden-sdk-server:
   enabled: false
+  namespaceOverride: ""
 
 # -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
 revisionHistoryLimit: 10
@@ -129,6 +130,12 @@ rbac:
   servicebindings:
     # -- Specifies whether a clusterrole to give servicebindings read access should be created.
     create: true
+
+  # -- Specifies whether permissions are aggregated to the view ClusterRole
+  aggregateToView: true
+
+  # -- Specifies whether permissions are aggregated to the edit ClusterRole
+  aggregateToEdit: true
 
 ## -- Extra environment variables to add to container.
 extraEnv: []
@@ -261,8 +268,8 @@ priorityClassName: ""
 # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
 podDisruptionBudget:
   enabled: false
-  minAvailable: 1
-  # maxUnavailable: 1
+  minAvailable: 1    # @schema type:[integer, string]
+  # maxUnavailable: "50%"
 
 # -- Run the controller on the host network
 hostNetwork: false
@@ -369,8 +376,8 @@ webhook:
   # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
   podDisruptionBudget:
     enabled: false
-    minAvailable: 1
-    # maxUnavailable: 1
+    minAvailable: 1    # @schema type:[integer, string]
+    # maxUnavailable: "50%"
 
   metrics:
 
@@ -508,8 +515,8 @@ certController:
   # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
   podDisruptionBudget:
     enabled: false
-    minAvailable: 1
-    # maxUnavailable: 1
+    minAvailable: 1    # @schema type:[integer, string]
+    # maxUnavailable: "50%"
 
   metrics:
 

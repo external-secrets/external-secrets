@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-    - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+    - uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49 # v2.12.2
       with:
         egress-policy: audit
     - name: Checkout repository
@@ -29,9 +29,9 @@ jobs:
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@60168efe1c415ce0f5521ea06d5c2062adbeed1b # v3.28.17
+      uses: github/codeql-action/init@181d5eefc20863364f96762470ba6f862bdef56b # v3.29.2
       with:
         languages: go
         build-mode: autobuild
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@60168efe1c415ce0f5521ea06d5c2062adbeed1b # v3.28.17
+      uses: github/codeql-action/analyze@181d5eefc20863364f96762470ba6f862bdef56b # v3.29.2

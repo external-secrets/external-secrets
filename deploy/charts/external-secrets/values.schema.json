@@ -9,6 +9,9 @@
             "properties": {
                 "enabled": {
                     "type": "boolean"
+                },
+                "namespaceOverride": {
+                    "type": "string"
                 }
             },
             "type": "object"
@@ -124,7 +127,10 @@
                             "type": "boolean"
                         },
                         "minAvailable": {
-                            "type": "integer"
+                            "type": [
+                                "integer",
+                                "string"
+                            ]
                         }
                     },
                     "type": "object"
@@ -471,7 +477,10 @@
                     "type": "boolean"
                 },
                 "minAvailable": {
-                    "type": "integer"
+                    "type": [
+                        "integer",
+                        "string"
+                    ]
                 }
             },
             "type": "object"
@@ -509,6 +518,12 @@
         },
         "rbac": {
             "properties": {
+                "aggregateToEdit": {
+                    "type": "boolean"
+                },
+                "aggregateToView": {
+                    "type": "boolean"
+                },
                 "create": {
                     "type": "boolean"
                 },
@@ -820,7 +835,10 @@
                             "type": "boolean"
                         },
                         "minAvailable": {
-                            "type": "integer"
+                            "type": [
+                                "integer",
+                                "string"
+                            ]
                         }
                     },
                     "type": "object"

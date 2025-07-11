@@ -18,7 +18,7 @@ spec.provider.secretserver.password.value: "yourpassword" <br />
 Or you can reference a kubernetes secret (password example below).
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: secret-server-store
@@ -48,7 +48,7 @@ in your ExternalSecret configuration.<br />
 You can access nested values or arrays using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md).
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
     name: secret-server-external-secret
@@ -63,6 +63,32 @@ spec:
           key: "52622" #<SECRET_ID>
           property: "array.0.value" #<GJSON_PROPERTY> * an empty property will return the entire secret
 ```
+
+### Support for Non-JSON Secret Templates
+
+The Secret Server provider now supports secrets that are not formatted as JSON. This enhancement allows users to retrieve and utilize secrets stored in formats such as plain text, XML, or other non-JSON structures without requiring additional parsing or transformation.​
+
+When working with non-JSON secrets, you can omit the remoteRef.property field in your ExternalSecret configuration. The entire content of the secret will be retrieved and stored as-is in the corresponding Kubernetes Secret.​
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+    name: secret-server-external-secret
+spec:
+    refreshInterval: 1h
+    secretStoreRef:
+      kind: SecretStore
+      name: secret-server-store
+    data:
+      - secretKey: SecretServerValue
+        remoteRef:
+          key: "52622"  # Secret ID
+```
+
+In this example, the secret with ID 52622 is retrieved in its entirety and stored under the key SecretServerValue in the Kubernetes Secret.​
+
+This feature simplifies the integration process for applications that require secrets in specific formats, eliminating the need for custom parsing logic within your applications.
 
 ### Preparing your secret
 You can either retrieve your entire secret or you can use a JSON formatted string

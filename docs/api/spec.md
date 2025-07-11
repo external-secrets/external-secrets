@@ -273,7 +273,7 @@ SecretsManager
 <td>
 <code>transitiveTagKeys</code></br>
 <em>
-[]*string
+[]string
 </em>
 </td>
 <td>
@@ -759,6 +759,82 @@ string
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.AuthorizationProtocol">AuthorizationProtocol
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.WebhookProvider">WebhookProvider</a>)
+</p>
+<p>
+<p>AuthorizationProtocol contains the protocol-specific configuration</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>ntlm</code></br>
+<em>
+<a href="#external-secrets.io/v1.NTLMProtocol">
+NTLMProtocol
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NTLMProtocol configures the store to use NTLM for auth</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.AzureAuthCredentials">AzureAuthCredentials
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.InfisicalAuth">InfisicalAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>identityId</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>resource</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
 </td>
 </tr>
 </tbody>
@@ -1449,6 +1525,7 @@ External Secrets meta/v1.SecretKeySelector
 <a href="#external-secrets.io/v1.AkeylessProvider">AkeylessProvider</a>, 
 <a href="#external-secrets.io/v1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider</a>, 
 <a href="#external-secrets.io/v1.ConjurProvider">ConjurProvider</a>, 
+<a href="#external-secrets.io/v1.GitlabProvider">GitlabProvider</a>, 
 <a href="#external-secrets.io/v1.KubernetesServer">KubernetesServer</a>, 
 <a href="#external-secrets.io/v1.VaultProvider">VaultProvider</a>)
 </p>
@@ -3780,6 +3857,21 @@ map[string]string
 <tbody>
 <tr>
 <td>
+<code>merge</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteMerge">
+ExternalSecretRewriteMerge
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to merge key/values in one single Secret
+The resulting key will contain all values from the specified secrets</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>regexp</code></br>
 <em>
 <a href="#external-secrets.io/v1.ExternalSecretRewriteRegexp">
@@ -3809,6 +3901,119 @@ The resulting key will be the output of the template applied by the operation.</
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1.ExternalSecretRewriteMerge">ExternalSecretRewriteMerge
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>into</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define the target key of the merge operation.
+Required if strategy is JSON. Ignored otherwise.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>priority</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define key priority in conflict resolution.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>conflictPolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteMergeConflictPolicy">
+ExternalSecretRewriteMergeConflictPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define the policy to use in conflict resolution.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>strategy</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteMergeStrategy">
+ExternalSecretRewriteMergeStrategy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define the strategy to use in the merge operation.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ExternalSecretRewriteMergeConflictPolicy">ExternalSecretRewriteMergeConflictPolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteMerge">ExternalSecretRewriteMerge</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Error&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;Ignore&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1.ExternalSecretRewriteMergeStrategy">ExternalSecretRewriteMergeStrategy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ExternalSecretRewriteMerge">ExternalSecretRewriteMerge</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Extract&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;JSON&#34;</p></td>
+<td></td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1.ExternalSecretRewriteRegexp">ExternalSecretRewriteRegexp
 </h3>
@@ -5069,6 +5274,33 @@ string
 <p>Environment environment_scope of gitlab CI/CD variables (Please see <a href="https://docs.gitlab.com/ee/ci/environments/#create-a-static-environment">https://docs.gitlab.com/ee/ci/environments/#create-a-static-environment</a> on how to create environments)</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+[]byte
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Base64 encoded certificate for the GitLab server sdk. The sdk MUST run with HTTPS to make sure no MITM attack
+can be performed.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1.CAProvider">
+CAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>see: <a href="https://external-secrets.io/latest/spec/#external-secrets.io/v1alpha1.CAProvider">https://external-secrets.io/latest/spec/#external-secrets.io/v1alpha1.CAProvider</a></p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.GitlabSecretRef">GitlabSecretRef
@@ -5299,6 +5531,19 @@ UniversalAuthCredentials
 <em>(Optional)</em>
 </td>
 </tr>
+<tr>
+<td>
+<code>azureAuthCredentials</code></br>
+<em>
+<a href="#external-secrets.io/v1.AzureAuthCredentials">
+AzureAuthCredentials
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.InfisicalProvider">InfisicalProvider
@@ -5354,6 +5599,47 @@ string
 <td>
 <em>(Optional)</em>
 <p>HostAPI specifies the base URL of the Infisical API. If not provided, it defaults to &ldquo;<a href="https://app.infisical.com/api&quot;">https://app.infisical.com/api&rdquo;</a>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.IntegrationInfo">IntegrationInfo
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OnePasswordSDKProvider">OnePasswordSDKProvider</a>)
+</p>
+<p>
+<p>IntegrationInfo specifies the name and version of the integration built using the 1Password Go SDK.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name defaults to &ldquo;1Password SDK&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Version defaults to &ldquo;v1.0.0&rdquo;.</p>
 </td>
 </tr>
 </tbody>
@@ -5681,6 +5967,49 @@ bool
 <td></td>
 </tr></tbody>
 </table>
+<h3 id="external-secrets.io/v1.NTLMProtocol">NTLMProtocol
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.AuthorizationProtocol">AuthorizationProtocol</a>)
+</p>
+<p>
+<p>NTLMProtocol contains the NTLM-specific configuration.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>usernameSecret</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>passwordSecret</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.NoSecretError">NoSecretError
 </h3>
 <p>
@@ -5918,6 +6247,96 @@ map[string]int
 </td>
 <td>
 <p>Vaults defines which OnePassword vaults to search in which order</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OnePasswordSDKAuth">OnePasswordSDKAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OnePasswordSDKProvider">OnePasswordSDKProvider</a>)
+</p>
+<p>
+<p>OnePasswordSDKAuth contains a secretRef for the service account token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceAccountSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>ServiceAccountSecretRef points to the secret containing the token to access 1Password vault.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OnePasswordSDKProvider">OnePasswordSDKProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>OnePasswordSDKProvider configures a store to sync secrets using the 1Password sdk.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>vault</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Vault defines the vault&rsquo;s name or uuid to access. Do NOT add op:// prefix. This will be done automatically.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>integrationInfo</code></br>
+<em>
+<a href="#external-secrets.io/v1.IntegrationInfo">
+IntegrationInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IntegrationInfo specifies the name and version of the integration built using the 1Password Go SDK.
+If you don&rsquo;t know which name and version to use, use <code>DefaultIntegrationName</code> and <code>DefaultIntegrationVersion</code>, respectively.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.OnePasswordSDKAuth">
+OnePasswordSDKAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth defines the information necessary to authenticate against OnePassword API.</p>
 </td>
 </tr>
 </tbody>
@@ -7191,6 +7610,20 @@ OnePasswordProvider
 <td>
 <em>(Optional)</em>
 <p>OnePassword configures this store to sync secrets using the 1Password Cloud provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>onepasswordSDK</code></br>
+<em>
+<a href="#external-secrets.io/v1.OnePasswordSDKProvider">
+OnePasswordSDKProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OnePasswordSDK configures this store to use 1Password&rsquo;s new Go SDK to sync secrets.</p>
 </td>
 </tr>
 <tr>
@@ -9653,7 +10086,7 @@ string
 <a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
-<p>AkeylessProvider Configures an store to sync secrets using Akeyless KV.</p>
+<p>WebHookProvider Configures an store to sync secrets from simple web apis.</p>
 </p>
 <table>
 <thead>
@@ -9695,6 +10128,20 @@ map[string]string
 <td>
 <em>(Optional)</em>
 <p>Headers</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.AuthorizationProtocol">
+AuthorizationProtocol
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth specifies a authorization protocol. Only one protocol may be set.</p>
 </td>
 </tr>
 <tr>

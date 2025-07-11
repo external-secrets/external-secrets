@@ -108,6 +108,7 @@ rules:
     - "vaultdynamicsecrets"
     - "webhooks"
     - "grafanas"
+    - "mfas"
     verbs:
     - "get"
     - "list"
@@ -186,8 +187,12 @@ metadata:
   {{- end }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
+    {{- if .Values.rbac.aggregateToView }}
     rbac.authorization.k8s.io/aggregate-to-view: "true"
+    {{- end }}
+    {{- if .Values.rbac.aggregateToEdit }}
     rbac.authorization.k8s.io/aggregate-to-edit: "true"
+    {{- end }}
     rbac.authorization.k8s.io/aggregate-to-admin: "true"
 rules:
   - apiGroups:
@@ -223,6 +228,8 @@ rules:
     - "webhooks"
     - "grafanas"
     - "generatorstates"
+    - "mfas"
+    - "uuids"
     verbs:
       - "get"
       - "watch"
@@ -241,7 +248,9 @@ metadata:
   {{- end }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
+    {{- if .Values.rbac.aggregateToEdit }}
     rbac.authorization.k8s.io/aggregate-to-edit: "true"
+    {{- end }}
     rbac.authorization.k8s.io/aggregate-to-admin: "true"
 rules:
   - apiGroups:
@@ -279,6 +288,8 @@ rules:
     - "webhooks"
     - "grafanas"
     - "generatorstates"
+    - "mfas"
+    - "uuids"
     verbs:
       - "create"
       - "delete"

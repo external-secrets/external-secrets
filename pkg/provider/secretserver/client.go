@@ -57,41 +57,36 @@ func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	if err != nil {
 		return nil, err
 	}
-	// If no property is defined return the full secret as raw json
+	// Intentionally fetch and return the full secret as raw JSON when no specific property is provided.
+	// This requires calling the API to retrieve the entire secret object.
 	if ref.Property == "" {
 		return jsonStr, nil
 	}
 
-	// Keep original behavior of decoding first Item into gjson
-	if len(secret.Fields) == 1 {
-		// extract first "field" i.e. Items.0.ItemValue, data from secret using gjson
-		val := gjson.Get(string(jsonStr), "Items.0.ItemValue")
-		if !val.Exists() {
-			return nil, esv1.NoSecretError{}
-		}
+	// extract first "field" i.e. Items.0.ItemValue, data from secret using gjson
+	val := gjson.Get(string(jsonStr), "Items.0.ItemValue")
+	if val.Exists() && gjson.Valid(val.String()) {
 		// extract specific value from data directly above using gjson
 		out := gjson.Get(val.String(), ref.Property)
-		if !out.Exists() {
-			return nil, esv1.NoSecretError{}
+		if out.Exists() {
+			return []byte(out.String()), nil
 		}
-		return []byte(out.String()), nil
-	} else {
-		// More general case Fields is an array in DelineaXPM/tss-sdk-go/v2/server
-		// https://github.com/DelineaXPM/tss-sdk-go/blob/571e5674a8103031ad6f873453db27959ec1ca67/server/secret.go#L23
-		secretMap := make(map[string]string)
-
-		for index := range secret.Fields {
-			secretMap[secret.Fields[index].FieldName] = secret.Fields[index].ItemValue
-			secretMap[secret.Fields[index].Slug] = secret.Fields[index].ItemValue
-		}
-
-		out, ok := secretMap[ref.Property]
-		if !ok {
-			return nil, esv1.NoSecretError{}
-		}
-
-		return []byte(out), nil
 	}
+
+	// More general case Fields is an array in DelineaXPM/tss-sdk-go/v2/server
+	// https://github.com/DelineaXPM/tss-sdk-go/blob/571e5674a8103031ad6f873453db27959ec1ca67/server/secret.go#L23
+	secretMap := make(map[string]string)
+	for index := range secret.Fields {
+		secretMap[secret.Fields[index].FieldName] = secret.Fields[index].ItemValue
+		secretMap[secret.Fields[index].Slug] = secret.Fields[index].ItemValue
+	}
+
+	out, ok := secretMap[ref.Property]
+	if !ok {
+		return nil, esv1.NoSecretError{}
+	}
+
+	return []byte(out), nil
 }
 
 // Not supported at this time.

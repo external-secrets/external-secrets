@@ -13,7 +13,7 @@ You can attach a role to the pod using [IRSA](https://docs.aws.amazon.com/eks/la
 Based on the Pod's identity you can do a `sts:assumeRole` before fetching the secrets to limit access to certain keys in your provider. This is optional.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: team-b-store
@@ -33,7 +33,7 @@ spec:
 You can store Access Key ID & Secret Access Key in a `Kind=Secret` and reference it from a SecretStore.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: team-b-store
@@ -78,7 +78,7 @@ metadata:
 Reference the service account from above in the Secret Store:
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: secretstore-sample
@@ -157,7 +157,7 @@ aws eks create-pod-identity-association --cluster-name my-cluster --role-arn arn
 Then create a secret store like this:
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: store
@@ -191,3 +191,5 @@ Use the following environment variables to point the controller to your custom e
 | AWS_SECRETSMANAGER_ENDPOINT | Endpoint for the Secrets Manager Service. The controller uses this endpoint to fetch secrets from AWS Secrets Manager.                                               |
 | AWS_SSM_ENDPOINT            | Endpoint for the AWS Secure Systems Manager. The controller uses this endpoint to fetch secrets from SSM Parameter Store.                                            |
 | AWS_STS_ENDPOINT            | Endpoint for the Security Token Service. The controller uses this endpoint when creating a session and when doing `assumeRole` or `assumeRoleWithWebIdentity` calls. |
+| AWS_ECR_ENDPOINT            | Endpoint for the ECR Service. The controller uses this endpoint to fetch authorization tokens from ECR.                                                              |
+| AWS_ECR_PUBLIC_ENDPOINT     | Endpoint for the Public ECR Service. The controller uses this endpoint to fetch authorization tokens from ECR.                                                       |
