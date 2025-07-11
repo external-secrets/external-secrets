@@ -22,21 +22,33 @@ When you create a new external-secret object, the External Secrets webhook provi
 
 * Bitwarden account (it also works with Vaultwarden!)
 * A Kubernetes secret which contains your Bitwarden credentials
-* A Docker image running the Bitwarden CLI. You could use `ghcr.io/charlesthomas/bitwarden-cli:2023.12.1` or build your own.
+* A Docker image running the Bitwarden CLI. You could use `ghcr.io/charlesthomas/bitwarden-cli:2025.6.1` or build your own.
 
 Here is an example of a Dockerfile used to build the image:
 ```dockerfile
+FROM alpine:latest AS downloader
+
+ARG BW_VERSION=2025.6.1
+
+RUN apk update --no-cache \
+ && apk add --no-cache curl jq \
+ && curl -sLo bw.zip "https://github.com/bitwarden/clients/releases/download/cli-v${BW_VERSION}/bw-oss-linux-${BW_VERSION}.zip" \
+ && echo $(\
+    curl -sL "https://api.github.com/repos/bitwarden/clients/releases/tags/cli-v${BW_VERSION}" | \
+    jq -r ".assets[] | select(.name == \"bw-oss-linux-${BW_VERSION}.zip\") .digest" | \
+    cut -f2 -d:) bw.zip > sum.txt \
+ && sha256sum -sc sum.txt \
+ && unzip bw.zip
+
 FROM debian:sid
 
-ENV BW_CLI_VERSION=2023.12.1
+COPY --from=downloader bw /usr/local/bin/
 
-RUN apt update && \
-    apt install -y wget unzip && \
-    wget https://github.com/bitwarden/clients/releases/download/cli-v${BW_CLI_VERSION}/bw-linux-${BW_CLI_VERSION}.zip && \
-    unzip bw-linux-${BW_CLI_VERSION}.zip && \
-    chmod +x bw && \
-    mv bw /usr/local/bin/bw && \
-    rm -rfv *.zip
+USER 1000
+
+WORKDIR /bw
+
+ENV HOME=/bw
 
 COPY entrypoint.sh /
 
