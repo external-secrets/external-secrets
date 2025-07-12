@@ -195,20 +195,20 @@ func NewGeneratorSession(ctx context.Context, auth esv1.AWSAuth, role, region st
 			return nil, err
 		}
 	}
-	config := aws.NewConfig()
+	awscfg, _ := config.LoadDefaultConfig(ctx)
 	if credsProvider != nil {
-		config.Credentials = credsProvider
+		awscfg.Credentials = credsProvider
 	}
 	if region != "" {
-		config.Region = region
+		awscfg.Region = region
 	}
 
 	if role != "" {
-		stsclient := assumeRoler(*config)
-		config.Credentials = stscreds.NewAssumeRoleProvider(stsclient, role)
+		stsclient := assumeRoler(awscfg)
+		awscfg.Credentials = stscreds.NewAssumeRoleProvider(stsclient, role)
 	}
-	log.Info("using aws config", "region", config.Region, "credentials", config.Credentials)
-	return config, nil
+	log.Info("using aws config", "region", awscfg.Region, "credentials", awscfg.Credentials)
+	return &awscfg, nil
 }
 
 // credsFromSecretRef pulls access-key / secret-access-key from a secretRef to
