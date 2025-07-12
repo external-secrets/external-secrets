@@ -28,6 +28,13 @@ type YandexLockboxCAProvider struct {
 	Certificate esmeta.SecretKeySelector `json:"certSecretRef,omitempty"`
 }
 
+type FetchByID struct{}
+
+type FetchByName struct {
+	// The folder to fetch secrets from
+	FolderID string `json:"folderID"`
+}
+
 // YandexLockboxProvider Configures a store to sync secrets using the Yandex Lockbox provider.
 type YandexLockboxProvider struct {
 	// Yandex.Cloud API endpoint (e.g. 'api.cloud.yandex.net:443')
@@ -40,4 +47,12 @@ type YandexLockboxProvider struct {
 	// The provider for the CA bundle to use to validate Yandex.Cloud server certificate.
 	// +optional
 	CAProvider *YandexLockboxCAProvider `json:"caProvider,omitempty"`
+
+	// FetchByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID
+	// +optional
+	FetchByID *FetchByID `json:"fetchByID,omitempty"`
+
+	// FetchByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name
+	// +optional
+	FetchByName *FetchByName `json:"fetchByName,omitempty"`
 }

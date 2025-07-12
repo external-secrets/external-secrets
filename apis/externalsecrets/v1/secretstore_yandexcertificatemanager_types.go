@@ -40,4 +40,12 @@ type YandexCertificateManagerProvider struct {
 	// The provider for the CA bundle to use to validate Yandex.Cloud server certificate.
 	// +optional
 	CAProvider *YandexCertificateManagerCAProvider `json:"caProvider,omitempty"`
+
+	// FetchByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as certificate ID
+	// +optional
+	FetchByID *FetchByID `json:"fetchByID,omitempty"`
+
+	// FetchByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as certificate name
+	// +optional
+	FetchByName *FetchByName `json:"fetchByName,omitempty"`
 }
