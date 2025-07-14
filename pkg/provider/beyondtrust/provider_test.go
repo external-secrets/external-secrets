@@ -23,12 +23,13 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kubeclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 const (
 	errTestCase  = "Test case Failed"
 	fakeAPIURL   = "https://example.com:443/BeyondTrust/api/public/v3/"
+	apiKey       = "fakeapikey00fakeapikeydd0000000000065b010f20fakeapikey0000000008700000a93fb5d74fddc0000000000000000000000000000000000000;runas=test_user"
 	clientID     = "12345678-25fg-4b05-9ced-35e7dd5093ae"
 	clientSecret = "12345678-25fg-4b05-9ced-35e7dd5093ae"
 )
@@ -96,9 +97,9 @@ func createMockPasswordSafeClient(t *testing.T) kubeclient.Client {
 
 func TestNewClient(t *testing.T) {
 	type args struct {
-		store    esv1beta1.SecretStore
+		store    esv1.SecretStore
 		kube     kubeclient.Client
-		provider esv1beta1.Provider
+		provider esv1.Provider
 	}
 	tests := []struct {
 		name              string
@@ -112,20 +113,20 @@ func TestNewClient(t *testing.T) {
 			name:      "Client ok",
 			nameSpace: "test",
 			args: args{
-				store: esv1beta1.SecretStore{
-					Spec: esv1beta1.SecretStoreSpec{
-						Provider: &esv1beta1.SecretStoreProvider{
-							Beyondtrust: &esv1beta1.BeyondtrustProvider{
-								Server: &esv1beta1.BeyondtrustServer{
+				store: esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							Beyondtrust: &esv1.BeyondtrustProvider{
+								Server: &esv1.BeyondtrustServer{
 									APIURL:        fakeAPIURL,
 									RetrievalType: "SECRET",
 								},
 
-								Auth: &esv1beta1.BeyondtrustAuth{
-									ClientID: &esv1beta1.BeyondTrustProviderSecretRef{
+								Auth: &esv1.BeyondtrustAuth{
+									ClientID: &esv1.BeyondTrustProviderSecretRef{
 										Value: clientID,
 									},
-									ClientSecret: &esv1beta1.BeyondTrustProviderSecretRef{
+									ClientSecret: &esv1.BeyondTrustProviderSecretRef{
 										Value: clientSecret,
 									},
 								},
@@ -143,20 +144,20 @@ func TestNewClient(t *testing.T) {
 			name:      "Bad Client Id",
 			nameSpace: "test",
 			args: args{
-				store: esv1beta1.SecretStore{
-					Spec: esv1beta1.SecretStoreSpec{
-						Provider: &esv1beta1.SecretStoreProvider{
-							Beyondtrust: &esv1beta1.BeyondtrustProvider{
-								Server: &esv1beta1.BeyondtrustServer{
+				store: esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							Beyondtrust: &esv1.BeyondtrustProvider{
+								Server: &esv1.BeyondtrustServer{
 									APIURL:        fakeAPIURL,
 									RetrievalType: "SECRET",
 								},
 
-								Auth: &esv1beta1.BeyondtrustAuth{
-									ClientID: &esv1beta1.BeyondTrustProviderSecretRef{
+								Auth: &esv1.BeyondtrustAuth{
+									ClientID: &esv1.BeyondTrustProviderSecretRef{
 										Value: "6138d050",
 									},
-									ClientSecret: &esv1beta1.BeyondTrustProviderSecretRef{
+									ClientSecret: &esv1.BeyondTrustProviderSecretRef{
 										Value: clientSecret,
 									},
 								},
@@ -169,26 +170,26 @@ func TestNewClient(t *testing.T) {
 			},
 			validateErrorNil:  false,
 			validateErrorText: true,
-			expectedErrorText: "error in Inputs: Key: 'UserInputValidaton.ClientId' Error:Field validation for 'ClientId' failed on the 'min' tag",
+			expectedErrorText: "error in Inputs: Error in field ClientId : min / 36.",
 		},
 		{
 			name:      "Bad Client Secret",
 			nameSpace: "test",
 			args: args{
-				store: esv1beta1.SecretStore{
-					Spec: esv1beta1.SecretStoreSpec{
-						Provider: &esv1beta1.SecretStoreProvider{
-							Beyondtrust: &esv1beta1.BeyondtrustProvider{
-								Server: &esv1beta1.BeyondtrustServer{
+				store: esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							Beyondtrust: &esv1.BeyondtrustProvider{
+								Server: &esv1.BeyondtrustServer{
 									APIURL:        fakeAPIURL,
 									RetrievalType: "SECRET",
 								},
 
-								Auth: &esv1beta1.BeyondtrustAuth{
-									ClientSecret: &esv1beta1.BeyondTrustProviderSecretRef{
+								Auth: &esv1.BeyondtrustAuth{
+									ClientSecret: &esv1.BeyondTrustProviderSecretRef{
 										Value: "8i7U0Yulabon8mTc",
 									},
-									ClientID: &esv1beta1.BeyondTrustProviderSecretRef{
+									ClientID: &esv1.BeyondTrustProviderSecretRef{
 										Value: clientID,
 									},
 								},
@@ -201,26 +202,26 @@ func TestNewClient(t *testing.T) {
 			},
 			validateErrorNil:  false,
 			validateErrorText: true,
-			expectedErrorText: "error in Inputs: Key: 'UserInputValidaton.ClientSecret' Error:Field validation for 'ClientSecret' failed on the 'min' tag",
+			expectedErrorText: "error in Inputs: Error in field ClientSecret : min / 36.",
 		},
 		{
 			name:      "Bad Separator",
 			nameSpace: "test",
 			args: args{
-				store: esv1beta1.SecretStore{
-					Spec: esv1beta1.SecretStoreSpec{
-						Provider: &esv1beta1.SecretStoreProvider{
-							Beyondtrust: &esv1beta1.BeyondtrustProvider{
-								Server: &esv1beta1.BeyondtrustServer{
+				store: esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							Beyondtrust: &esv1.BeyondtrustProvider{
+								Server: &esv1.BeyondtrustServer{
 									APIURL:        fakeAPIURL,
 									Separator:     "//",
 									RetrievalType: "SECRET",
 								},
-								Auth: &esv1beta1.BeyondtrustAuth{
-									ClientID: &esv1beta1.BeyondTrustProviderSecretRef{
+								Auth: &esv1.BeyondtrustAuth{
+									ClientID: &esv1.BeyondTrustProviderSecretRef{
 										Value: clientID,
 									},
-									ClientSecret: &esv1beta1.BeyondTrustProviderSecretRef{
+									ClientSecret: &esv1.BeyondTrustProviderSecretRef{
 										Value: clientSecret,
 									},
 								},
@@ -233,27 +234,27 @@ func TestNewClient(t *testing.T) {
 			},
 			validateErrorNil:  false,
 			validateErrorText: true,
-			expectedErrorText: "error in Inputs: Key: 'UserInputValidaton.Separator' Error:Field validation for 'Separator' failed on the 'max' tag",
+			expectedErrorText: "error in Inputs: Error in field ClientId : min / 36.",
 		},
 		{
 			name:      "Time Out",
 			nameSpace: "test",
 			args: args{
-				store: esv1beta1.SecretStore{
-					Spec: esv1beta1.SecretStoreSpec{
-						Provider: &esv1beta1.SecretStoreProvider{
-							Beyondtrust: &esv1beta1.BeyondtrustProvider{
-								Server: &esv1beta1.BeyondtrustServer{
+				store: esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							Beyondtrust: &esv1.BeyondtrustProvider{
+								Server: &esv1.BeyondtrustServer{
 									APIURL:               fakeAPIURL,
 									Separator:            "/",
 									ClientTimeOutSeconds: 400,
 									RetrievalType:        "SECRET",
 								},
-								Auth: &esv1beta1.BeyondtrustAuth{
-									ClientID: &esv1beta1.BeyondTrustProviderSecretRef{
+								Auth: &esv1.BeyondtrustAuth{
+									ClientID: &esv1.BeyondTrustProviderSecretRef{
 										Value: clientID,
 									},
-									ClientSecret: &esv1beta1.BeyondTrustProviderSecretRef{
+									ClientSecret: &esv1.BeyondTrustProviderSecretRef{
 										Value: clientSecret,
 									},
 								},
@@ -266,7 +267,64 @@ func TestNewClient(t *testing.T) {
 			},
 			validateErrorNil:  false,
 			validateErrorText: true,
-			expectedErrorText: "error in Inputs: Key: 'UserInputValidaton.ClientTimeOutinSeconds' Error:Field validation for 'ClientTimeOutinSeconds' failed on the 'lte' tag",
+			expectedErrorText: "error in Inputs: Error in field ClientTimeOutinSeconds : lte / 300.",
+		},
+		{
+			name:      "ApiKey ok",
+			nameSpace: "test",
+			args: args{
+				store: esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							Beyondtrust: &esv1.BeyondtrustProvider{
+								Server: &esv1.BeyondtrustServer{
+									APIURL:        fakeAPIURL,
+									RetrievalType: "SECRET",
+								},
+
+								Auth: &esv1.BeyondtrustAuth{
+									APIKey: &esv1.BeyondTrustProviderSecretRef{
+										Value: apiKey,
+									},
+								},
+							},
+						},
+					},
+				},
+				kube:     createMockPasswordSafeClient(t),
+				provider: &Provider{},
+			},
+			validateErrorNil:  true,
+			validateErrorText: false,
+		},
+		{
+			name:      "Bad ApiKey",
+			nameSpace: "test",
+			args: args{
+				store: esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							Beyondtrust: &esv1.BeyondtrustProvider{
+								Server: &esv1.BeyondtrustServer{
+									APIURL:        fakeAPIURL,
+									RetrievalType: "SECRET",
+								},
+
+								Auth: &esv1.BeyondtrustAuth{
+									APIKey: &esv1.BeyondTrustProviderSecretRef{
+										Value: "bad_api_key",
+									},
+								},
+							},
+						},
+					},
+				},
+				kube:     createMockPasswordSafeClient(t),
+				provider: &Provider{},
+			},
+			validateErrorNil:  false,
+			validateErrorText: true,
+			expectedErrorText: "error in Inputs: Error in field ApiKey : min / 128.",
 		},
 	}
 

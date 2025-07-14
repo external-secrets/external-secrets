@@ -22,7 +22,6 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -38,8 +37,8 @@ import (
 	"k8s.io/utils/ptr"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakeoracle "github.com/external-secrets/external-secrets/pkg/provider/oracle/fake"
 	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
@@ -58,7 +57,7 @@ type vaultTestCase struct {
 	mockClient     *fakeoracle.OracleMockClient
 	apiInput       *secrets.GetSecretBundleByNameRequest
 	apiOutput      *secrets.GetSecretBundleByNameResponse
-	ref            *esv1beta1.ExternalSecretDataRemoteRef
+	ref            *esv1.ExternalSecretDataRemoteRef
 	apiErr         error
 	expectError    string
 	expectedSecret string
@@ -81,8 +80,8 @@ func makeValidVaultTestCase() *vaultTestCase {
 	return &smtc
 }
 
-func makeValidRef() *esv1beta1.ExternalSecretDataRemoteRef {
-	return &esv1beta1.ExternalSecretDataRemoteRef{
+func makeValidRef() *esv1.ExternalSecretDataRemoteRef {
+	return &esv1.ExternalSecretDataRemoteRef{
 		Key:     "test-secret",
 		Version: "default",
 	}
@@ -148,7 +147,6 @@ func TestOracleVaultGetSecret(t *testing.T) {
 	sm := VaultManagementService{}
 	for k, v := range successCases {
 		sm.Client = v.mockClient
-		fmt.Println(*v.ref)
 		out, err := sm.GetSecret(context.Background(), *v.ref)
 		if !ErrorContains(err, v.expectError) {
 			t.Errorf("[%d] unexpected error: %s, expected: '%s'", k, err.Error(), v.expectError)
@@ -206,13 +204,13 @@ func ErrorContains(out error, want string) bool {
 	return strings.Contains(out.Error(), want)
 }
 
-type storeModifier func(*esv1beta1.SecretStore) *esv1beta1.SecretStore
+type storeModifier func(*esv1.SecretStore) *esv1.SecretStore
 
-func makeSecretStore(vault, region string, fn ...storeModifier) *esv1beta1.SecretStore {
-	store := &esv1beta1.SecretStore{
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Oracle: &esv1beta1.OracleProvider{
+func makeSecretStore(vault, region string, fn ...storeModifier) *esv1.SecretStore {
+	store := &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Oracle: &esv1.OracleProvider{
 					Vault:  vault,
 					Region: region,
 				},
@@ -226,8 +224,8 @@ func makeSecretStore(vault, region string, fn ...storeModifier) *esv1beta1.Secre
 	return store
 }
 func withSecretAuth(user, tenancy string) storeModifier {
-	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
-		store.Spec.Provider.Oracle.Auth = &esv1beta1.OracleAuth{
+	return func(store *esv1.SecretStore) *esv1.SecretStore {
+		store.Spec.Provider.Oracle.Auth = &esv1.OracleAuth{
 			User:    user,
 			Tenancy: tenancy,
 		}
@@ -235,7 +233,7 @@ func withSecretAuth(user, tenancy string) storeModifier {
 	}
 }
 func withPrivateKey(name, key string, namespace *string) storeModifier {
-	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
+	return func(store *esv1.SecretStore) *esv1.SecretStore {
 		store.Spec.Provider.Oracle.Auth.SecretRef.PrivateKey = esmeta.SecretKeySelector{
 			Name:      name,
 			Key:       key,
@@ -245,7 +243,7 @@ func withPrivateKey(name, key string, namespace *string) storeModifier {
 	}
 }
 func withFingerprint(name, key string, namespace *string) storeModifier {
-	return func(store *esv1beta1.SecretStore) *esv1beta1.SecretStore {
+	return func(store *esv1.SecretStore) *esv1.SecretStore {
 		store.Spec.Provider.Oracle.Auth.SecretRef.Fingerprint = esmeta.SecretKeySelector{
 			Name:      name,
 			Key:       key,
@@ -256,7 +254,7 @@ func withFingerprint(name, key string, namespace *string) storeModifier {
 }
 
 type ValidateStoreTestCase struct {
-	store *esv1beta1.SecretStore
+	store *esv1.SecretStore
 	err   error
 }
 
@@ -321,16 +319,16 @@ func TestValidateStore(t *testing.T) {
 	}
 }
 
-func TestVaultManagementService_NewClient(t *testing.T) {
+func TestVaultManagementServiceNewClient(t *testing.T) {
 	t.Parallel()
 
 	namespace := "default"
 	authSecretName := "oracle-auth"
 
-	auth := &esv1beta1.OracleAuth{
+	auth := &esv1.OracleAuth{
 		User:    "user",
 		Tenancy: "tenancy",
-		SecretRef: esv1beta1.OracleSecretRef{
+		SecretRef: esv1.OracleSecretRef{
 			PrivateKey: esmeta.SecretKeySelector{
 				Name: authSecretName,
 				Key:  "privateKey",
@@ -344,15 +342,15 @@ func TestVaultManagementService_NewClient(t *testing.T) {
 
 	tests := []struct {
 		desc        string
-		secretStore *esv1beta1.SecretStore
+		secretStore *esv1.SecretStore
 		expectedErr string
 	}{
 		{
 			desc: "no retry settings",
-			secretStore: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Oracle: &esv1beta1.OracleProvider{
+			secretStore: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Oracle: &esv1.OracleProvider{
 							Vault:  vaultOCID,
 							Region: region,
 							Auth:   auth,
@@ -363,16 +361,16 @@ func TestVaultManagementService_NewClient(t *testing.T) {
 		},
 		{
 			desc: "fill all the retry settings",
-			secretStore: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Oracle: &esv1beta1.OracleProvider{
+			secretStore: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Oracle: &esv1.OracleProvider{
 							Vault:  vaultOCID,
 							Region: region,
 							Auth:   auth,
 						},
 					},
-					RetrySettings: &esv1beta1.SecretStoreRetrySettings{
+					RetrySettings: &esv1.SecretStoreRetrySettings{
 						RetryInterval: ptr.To("1s"),
 						MaxRetries:    ptr.To(int32(5)),
 					},
@@ -381,16 +379,16 @@ func TestVaultManagementService_NewClient(t *testing.T) {
 		},
 		{
 			desc: "partially configure the retry settings - retry interval",
-			secretStore: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Oracle: &esv1beta1.OracleProvider{
+			secretStore: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Oracle: &esv1.OracleProvider{
 							Vault:  vaultOCID,
 							Region: region,
 							Auth:   auth,
 						},
 					},
-					RetrySettings: &esv1beta1.SecretStoreRetrySettings{
+					RetrySettings: &esv1.SecretStoreRetrySettings{
 						RetryInterval: ptr.To("1s"),
 					},
 				},
@@ -398,16 +396,16 @@ func TestVaultManagementService_NewClient(t *testing.T) {
 		},
 		{
 			desc: "partially configure the retry settings - max retries",
-			secretStore: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Oracle: &esv1beta1.OracleProvider{
+			secretStore: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Oracle: &esv1.OracleProvider{
 							Vault:  vaultOCID,
 							Region: region,
 							Auth:   auth,
 						},
 					},
-					RetrySettings: &esv1beta1.SecretStoreRetrySettings{
+					RetrySettings: &esv1.SecretStoreRetrySettings{
 						MaxRetries: ptr.To(int32(5)),
 					},
 				},
@@ -415,16 +413,16 @@ func TestVaultManagementService_NewClient(t *testing.T) {
 		},
 		{
 			desc: "auth secret does not exist",
-			secretStore: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Oracle: &esv1beta1.OracleProvider{
+			secretStore: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Oracle: &esv1.OracleProvider{
 							Vault:  vaultOCID,
 							Region: region,
-							Auth: &esv1beta1.OracleAuth{
+							Auth: &esv1.OracleAuth{
 								User:    "user",
 								Tenancy: "tenancy",
-								SecretRef: esv1beta1.OracleSecretRef{
+								SecretRef: esv1.OracleSecretRef{
 									PrivateKey: esmeta.SecretKeySelector{
 										Name: "non-existing-secret",
 										Key:  "privateKey",
@@ -437,25 +435,25 @@ func TestVaultManagementService_NewClient(t *testing.T) {
 							},
 						},
 					},
-					RetrySettings: &esv1beta1.SecretStoreRetrySettings{
+					RetrySettings: &esv1.SecretStoreRetrySettings{
 						RetryInterval: ptr.To("invalid"),
 					},
 				},
 			},
-			expectedErr: `cannot get Kubernetes secret "non-existing-secret": secrets "non-existing-secret" not found`,
+			expectedErr: `cannot get Kubernetes secret "non-existing-secret" from namespace "default": secrets "non-existing-secret" not found`,
 		},
 		{
 			desc: "invalid retry interval",
-			secretStore: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Oracle: &esv1beta1.OracleProvider{
+			secretStore: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Oracle: &esv1.OracleProvider{
 							Vault:  vaultOCID,
 							Region: region,
 							Auth:   auth,
 						},
 					},
-					RetrySettings: &esv1beta1.SecretStoreRetrySettings{
+					RetrySettings: &esv1.SecretStoreRetrySettings{
 						RetryInterval: ptr.To("invalid"),
 					},
 				},
@@ -516,7 +514,7 @@ func TestVaultManagementService_NewClient(t *testing.T) {
 func TestOracleVaultGetAllSecrets(t *testing.T) {
 	var testCases = map[string]struct {
 		vms    *VaultManagementService
-		ref    esv1beta1.ExternalSecretFind
+		ref    esv1.ExternalSecretFind
 		result map[string][]byte
 	}{
 		"filters secrets that don't match the pattern": {
@@ -534,8 +532,8 @@ func TestOracleVaultGetAllSecrets(t *testing.T) {
 					},
 				},
 			},
-			esv1beta1.ExternalSecretFind{
-				Name: &esv1beta1.FindName{
+			esv1.ExternalSecretFind{
+				Name: &esv1.FindName{
 					RegExp: "^test.*",
 				},
 			},
@@ -560,8 +558,8 @@ func TestOracleVaultGetAllSecrets(t *testing.T) {
 					},
 				},
 			},
-			esv1beta1.ExternalSecretFind{
-				Name: &esv1beta1.FindName{
+			esv1.ExternalSecretFind{
+				Name: &esv1.FindName{
 					RegExp: ".*",
 				},
 			},
@@ -682,7 +680,7 @@ func TestOracleVaultPushSecret(t *testing.T) {
 func TestOracleVaultDeleteSecret(t *testing.T) {
 	var testCases = map[string]struct {
 		vms       *VaultManagementService
-		remoteRef esv1beta1.PushSecretRemoteRef
+		remoteRef esv1.PushSecretRemoteRef
 		validator func(service *VaultManagementService) bool
 	}{
 		"do not delete if secret not found": {

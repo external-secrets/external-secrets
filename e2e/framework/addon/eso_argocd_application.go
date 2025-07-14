@@ -144,14 +144,16 @@ func (c *ArgoCDApplication) Install() error {
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
-	return wait.PollImmediate(time.Second, time.Minute*5, func() (bool, error) {
-		const payload = `{"apiVersion": "apiextensions.k8s.io/v1","kind": "ConversionReview","request": {}}`
-		res, err := client.Post("https://external-secrets-webhook.external-secrets.svc.cluster.local/convert", "application/json", bytes.NewBufferString(payload))
+	return wait.PollUntilContextTimeout(context.Background(), time.Second, time.Minute*5, true, func(ctx context.Context) (bool, error) {
+		const payload = `{"apiVersion": "admission.k8s.io/v1","kind": "AdmissionReview","request": {"uid": "test","kind": {"group": "external-secrets.io","version": "v1","kind": "ExternalSecret"}, "resource": {"group": "external-secrets.io","version": "v1","kind": "ExternalSecret"},"dryRun": true, "operation": "CREATE", "userInfo":{"username":"test","uid":"test","groups":[],"extra":{}}}}`
+		res, err := client.Post("https://external-secrets-webhook.external-secrets.svc.cluster.local/validate-external-secrets-io-v1-externalsecret", "application/json", bytes.NewBufferString(payload))
 		if err != nil {
 			return false, nil
 		}
-		defer res.Body.Close()
-		ginkgo.GinkgoWriter.Printf("conversion res: %d", res.StatusCode)
+		defer func() {
+			_ = res.Body.Close()
+		}()
+		ginkgo.GinkgoWriter.Printf("webhook res: %d", res.StatusCode)
 		return res.StatusCode == http.StatusOK, nil
 	})
 }

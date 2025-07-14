@@ -21,7 +21,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -47,7 +47,7 @@ const (
 	errInvalidClientTLS       = "when provided, both ClientTLS.ClientCert and ClientTLS.SecretRef should be provided"
 )
 
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
 		return nil, errors.New(errInvalidStore)
 	}
@@ -62,90 +62,92 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 	if vaultProvider == nil {
 		return nil, errors.New(errInvalidVaultProv)
 	}
-	if vaultProvider.Auth.AppRole != nil {
-		// check SecretRef for valid configuration
-		if err := utils.ValidateReferentSecretSelector(store, vaultProvider.Auth.AppRole.SecretRef); err != nil {
-			return nil, fmt.Errorf(errInvalidAppRoleSec, err)
-		}
+	if vaultProvider.Auth != nil {
+		if vaultProvider.Auth.AppRole != nil {
+			// check SecretRef for valid configuration
+			if err := utils.ValidateReferentSecretSelector(store, vaultProvider.Auth.AppRole.SecretRef); err != nil {
+				return nil, fmt.Errorf(errInvalidAppRoleSec, err)
+			}
 
-		// prefer .auth.appRole.roleId, fallback to .auth.appRole.roleRef, give up after that.
-		if vaultProvider.Auth.AppRole.RoleID == "" { // prevents further RoleID tests if .auth.appRole.roleId is given
-			if vaultProvider.Auth.AppRole.RoleRef != nil { // check RoleRef for valid configuration
-				if err := utils.ValidateReferentSecretSelector(store, *vaultProvider.Auth.AppRole.RoleRef); err != nil {
-					return nil, fmt.Errorf(errInvalidAppRoleRef, err)
-				}
-			} else { // we ran out of ways to get RoleID. return an appropriate error
-				return nil, errors.New(errInvalidAppRoleID)
-			}
-		}
-	}
-	if vaultProvider.Auth.Cert != nil {
-		if err := utils.ValidateReferentSecretSelector(store, vaultProvider.Auth.Cert.ClientCert); err != nil {
-			return nil, fmt.Errorf(errInvalidClientCert, err)
-		}
-		if err := utils.ValidateReferentSecretSelector(store, vaultProvider.Auth.Cert.SecretRef); err != nil {
-			return nil, fmt.Errorf(errInvalidCertSec, err)
-		}
-	}
-	if vaultProvider.Auth.Jwt != nil {
-		if vaultProvider.Auth.Jwt.SecretRef != nil {
-			if err := utils.ValidateReferentSecretSelector(store, *vaultProvider.Auth.Jwt.SecretRef); err != nil {
-				return nil, fmt.Errorf(errInvalidJwtSec, err)
-			}
-		} else if vaultProvider.Auth.Jwt.KubernetesServiceAccountToken != nil {
-			if err := utils.ValidateReferentServiceAccountSelector(store, vaultProvider.Auth.Jwt.KubernetesServiceAccountToken.ServiceAccountRef); err != nil {
-				return nil, fmt.Errorf(errInvalidJwtK8sSA, err)
-			}
-		} else {
-			return nil, errors.New(errJwtNoTokenSource)
-		}
-	}
-	if vaultProvider.Auth.Kubernetes != nil {
-		if vaultProvider.Auth.Kubernetes.ServiceAccountRef != nil {
-			if err := utils.ValidateReferentServiceAccountSelector(store, *vaultProvider.Auth.Kubernetes.ServiceAccountRef); err != nil {
-				return nil, fmt.Errorf(errInvalidKubeSA, err)
-			}
-		}
-		if vaultProvider.Auth.Kubernetes.SecretRef != nil {
-			if err := utils.ValidateReferentSecretSelector(store, *vaultProvider.Auth.Kubernetes.SecretRef); err != nil {
-				return nil, fmt.Errorf(errInvalidKubeSec, err)
-			}
-		}
-	}
-	if vaultProvider.Auth.Ldap != nil {
-		if err := utils.ValidateReferentSecretSelector(store, vaultProvider.Auth.Ldap.SecretRef); err != nil {
-			return nil, fmt.Errorf(errInvalidLdapSec, err)
-		}
-	}
-	if vaultProvider.Auth.UserPass != nil {
-		if err := utils.ValidateReferentSecretSelector(store, vaultProvider.Auth.UserPass.SecretRef); err != nil {
-			return nil, fmt.Errorf(errInvalidUserPassSec, err)
-		}
-	}
-	if vaultProvider.Auth.TokenSecretRef != nil {
-		if err := utils.ValidateReferentSecretSelector(store, *vaultProvider.Auth.TokenSecretRef); err != nil {
-			return nil, fmt.Errorf(errInvalidTokenRef, err)
-		}
-	}
-	if vaultProvider.Auth.Iam != nil {
-		if vaultProvider.Auth.Iam.JWTAuth != nil {
-			if vaultProvider.Auth.Iam.JWTAuth.ServiceAccountRef != nil {
-				if err := utils.ValidateReferentServiceAccountSelector(store, *vaultProvider.Auth.Iam.JWTAuth.ServiceAccountRef); err != nil {
-					return nil, fmt.Errorf(errInvalidTokenRef, err)
+			// prefer .auth.appRole.roleId, fallback to .auth.appRole.roleRef, give up after that.
+			if vaultProvider.Auth.AppRole.RoleID == "" { // prevents further RoleID tests if .auth.appRole.roleId is given
+				if vaultProvider.Auth.AppRole.RoleRef != nil { // check RoleRef for valid configuration
+					if err := utils.ValidateReferentSecretSelector(store, *vaultProvider.Auth.AppRole.RoleRef); err != nil {
+						return nil, fmt.Errorf(errInvalidAppRoleRef, err)
+					}
+				} else { // we ran out of ways to get RoleID. return an appropriate error
+					return nil, errors.New(errInvalidAppRoleID)
 				}
 			}
 		}
+		if vaultProvider.Auth.Cert != nil {
+			if err := utils.ValidateReferentSecretSelector(store, vaultProvider.Auth.Cert.ClientCert); err != nil {
+				return nil, fmt.Errorf(errInvalidClientCert, err)
+			}
+			if err := utils.ValidateReferentSecretSelector(store, vaultProvider.Auth.Cert.SecretRef); err != nil {
+				return nil, fmt.Errorf(errInvalidCertSec, err)
+			}
+		}
+		if vaultProvider.Auth.Jwt != nil {
+			if vaultProvider.Auth.Jwt.SecretRef != nil {
+				if err := utils.ValidateReferentSecretSelector(store, *vaultProvider.Auth.Jwt.SecretRef); err != nil {
+					return nil, fmt.Errorf(errInvalidJwtSec, err)
+				}
+			} else if vaultProvider.Auth.Jwt.KubernetesServiceAccountToken != nil {
+				if err := utils.ValidateReferentServiceAccountSelector(store, vaultProvider.Auth.Jwt.KubernetesServiceAccountToken.ServiceAccountRef); err != nil {
+					return nil, fmt.Errorf(errInvalidJwtK8sSA, err)
+				}
+			} else {
+				return nil, errors.New(errJwtNoTokenSource)
+			}
+		}
+		if vaultProvider.Auth.Kubernetes != nil {
+			if vaultProvider.Auth.Kubernetes.ServiceAccountRef != nil {
+				if err := utils.ValidateReferentServiceAccountSelector(store, *vaultProvider.Auth.Kubernetes.ServiceAccountRef); err != nil {
+					return nil, fmt.Errorf(errInvalidKubeSA, err)
+				}
+			}
+			if vaultProvider.Auth.Kubernetes.SecretRef != nil {
+				if err := utils.ValidateReferentSecretSelector(store, *vaultProvider.Auth.Kubernetes.SecretRef); err != nil {
+					return nil, fmt.Errorf(errInvalidKubeSec, err)
+				}
+			}
+		}
+		if vaultProvider.Auth.Ldap != nil {
+			if err := utils.ValidateReferentSecretSelector(store, vaultProvider.Auth.Ldap.SecretRef); err != nil {
+				return nil, fmt.Errorf(errInvalidLdapSec, err)
+			}
+		}
+		if vaultProvider.Auth.UserPass != nil {
+			if err := utils.ValidateReferentSecretSelector(store, vaultProvider.Auth.UserPass.SecretRef); err != nil {
+				return nil, fmt.Errorf(errInvalidUserPassSec, err)
+			}
+		}
+		if vaultProvider.Auth.TokenSecretRef != nil {
+			if err := utils.ValidateReferentSecretSelector(store, *vaultProvider.Auth.TokenSecretRef); err != nil {
+				return nil, fmt.Errorf(errInvalidTokenRef, err)
+			}
+		}
+		if vaultProvider.Auth.Iam != nil {
+			if vaultProvider.Auth.Iam.JWTAuth != nil {
+				if vaultProvider.Auth.Iam.JWTAuth.ServiceAccountRef != nil {
+					if err := utils.ValidateReferentServiceAccountSelector(store, *vaultProvider.Auth.Iam.JWTAuth.ServiceAccountRef); err != nil {
+						return nil, fmt.Errorf(errInvalidTokenRef, err)
+					}
+				}
+			}
 
-		if vaultProvider.Auth.Iam.SecretRef != nil {
-			if err := utils.ValidateReferentSecretSelector(store, vaultProvider.Auth.Iam.SecretRef.AccessKeyID); err != nil {
-				return nil, fmt.Errorf(errInvalidTokenRef, err)
-			}
-			if err := utils.ValidateReferentSecretSelector(store, vaultProvider.Auth.Iam.SecretRef.SecretAccessKey); err != nil {
-				return nil, fmt.Errorf(errInvalidTokenRef, err)
-			}
-			if vaultProvider.Auth.Iam.SecretRef.SessionToken != nil {
-				if err := utils.ValidateReferentSecretSelector(store, *vaultProvider.Auth.Iam.SecretRef.SessionToken); err != nil {
+			if vaultProvider.Auth.Iam.SecretRef != nil {
+				if err := utils.ValidateReferentSecretSelector(store, vaultProvider.Auth.Iam.SecretRef.AccessKeyID); err != nil {
 					return nil, fmt.Errorf(errInvalidTokenRef, err)
+				}
+				if err := utils.ValidateReferentSecretSelector(store, vaultProvider.Auth.Iam.SecretRef.SecretAccessKey); err != nil {
+					return nil, fmt.Errorf(errInvalidTokenRef, err)
+				}
+				if vaultProvider.Auth.Iam.SecretRef.SessionToken != nil {
+					if err := utils.ValidateReferentSecretSelector(store, *vaultProvider.Auth.Iam.SecretRef.SessionToken); err != nil {
+						return nil, fmt.Errorf(errInvalidTokenRef, err)
+					}
 				}
 			}
 		}
@@ -163,16 +165,16 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 	return nil, nil
 }
 
-func (c *client) Validate() (esv1beta1.ValidationResult, error) {
+func (c *client) Validate() (esv1.ValidationResult, error) {
 	// when using referent namespace we can not validate the token
 	// because the namespace is not known yet when Validate() is called
 	// from the SecretStore controller.
-	if c.storeKind == esv1beta1.ClusterSecretStoreKind && isReferentSpec(c.store) {
-		return esv1beta1.ValidationResultUnknown, nil
+	if c.storeKind == esv1.ClusterSecretStoreKind && isReferentSpec(c.store) {
+		return esv1.ValidationResultUnknown, nil
 	}
 	_, err := checkToken(context.Background(), c.token)
 	if err != nil {
-		return esv1beta1.ValidationResultError, fmt.Errorf(errInvalidCredentials, err)
+		return esv1.ValidationResultError, fmt.Errorf(errInvalidCredentials, err)
 	}
-	return esv1beta1.ValidationResultReady, nil
+	return esv1.ValidationResultReady, nil
 }

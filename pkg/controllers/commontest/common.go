@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -62,14 +61,12 @@ func HasOwnerRef(meta metav1.ObjectMeta, kind, name string) bool {
 	return false
 }
 
-func HasFieldOwnership(meta metav1.ObjectMeta, mgr, expected string) string {
+// FirstManagedFieldForManager returns the JSON representation of the first `metadata.managedFields` entry for a given manager.
+func FirstManagedFieldForManager(meta metav1.ObjectMeta, managerName string) string {
 	for _, ref := range meta.ManagedFields {
-		if ref.Manager == mgr {
-			if diff := cmp.Diff(string(ref.FieldsV1.Raw), expected); diff != "" {
-				return fmt.Sprintf("(-got, +want)\n%s", diff)
-			}
-			return ""
+		if ref.Manager == managerName {
+			return ref.FieldsV1.String()
 		}
 	}
-	return fmt.Sprintf("No managed fields managed by %s", mgr)
+	return fmt.Sprintf("No managed fields managed by %s", managerName)
 }

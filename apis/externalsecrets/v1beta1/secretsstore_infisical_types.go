@@ -31,13 +31,24 @@ type InfisicalAuth struct {
 }
 
 type MachineIdentityScopeInWorkspace struct {
+	// SecretsPath specifies the path to the secrets within the workspace. Defaults to "/" if not provided.
 	// +kubebuilder:default="/"
 	// +optional
 	SecretsPath string `json:"secretsPath,omitempty"`
+	// Recursive indicates whether the secrets should be fetched recursively. Defaults to false if not provided.
+	// +kubebuilder:default=false
+	// +optional
+	Recursive bool `json:"recursive,omitempty"`
+	// EnvironmentSlug is the required slug identifier for the environment.
 	// +kubebuilder:validation:Required
 	EnvironmentSlug string `json:"environmentSlug"`
+	// ProjectSlug is the required slug identifier for the project.
 	// +kubebuilder:validation:Required
 	ProjectSlug string `json:"projectSlug"`
+	// ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.
+	// +kubebuilder:default=true
+	// +optional
+	ExpandSecretReferences bool `json:"expandSecretReferences,omitempty"`
 }
 
 // InfisicalProvider configures a store to sync secrets using the Infisical provider.
@@ -45,8 +56,10 @@ type InfisicalProvider struct {
 	// Auth configures how the Operator authenticates with the Infisical API
 	// +kubebuilder:validation:Required
 	Auth InfisicalAuth `json:"auth"`
+	// SecretsScope defines the scope of the secrets within the workspace
 	// +kubebuilder:validation:Required
 	SecretsScope MachineIdentityScopeInWorkspace `json:"secretsScope"`
+	// HostAPI specifies the base URL of the Infisical API. If not provided, it defaults to "https://app.infisical.com/api".
 	// +kubebuilder:default="https://app.infisical.com/api"
 	// +optional
 	HostAPI string `json:"hostAPI,omitempty"`

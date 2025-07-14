@@ -4,6 +4,10 @@
 
     Templating Engine v1 is **deprecated** and will be removed in the future. Please migrate to engine v2 and take a look at our [upgrade guide](templating.md#migrating-from-v1) for changes.
 
+!!! note
+
+    Templating Engine v1 does NOT support templating the `spec.target.template.metadata` fields, or the keys of the `spec.target.template.data` map, it will treat them as plain strings.
+    To use templates in annotations/labels/data-keys, please use Templating Engine v2.
 
 With External Secrets Operator you can transform the data from the external secret provider before it is stored as `Kind=Secret`. You can do this with the `Spec.Target.Template`.
 
@@ -18,7 +22,7 @@ You can use templates to inject your secrets into a configuration file that you 
 
 You can also use pre-defined functions to extract data from your secrets. Here: extract key/cert from a pkcs12 archive and store it as PEM.
 ``` yaml
-{% include 'pkcs12-template-v2-external-secret.yaml' %}
+{% include 'pkcs12-template-v1-external-secret.yaml' %}
 ```
 
 ### TemplateFrom

@@ -51,6 +51,9 @@ type ClusterSecretStoreCondition struct {
 
 	// Choose namespaces by name
 	// +optional
+	// +kubebuilder:validation:items:MinLength:=1
+	// +kubebuilder:validation:items:MaxLength:=63
+	// +kubebuilder:validation:items:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
 	Namespaces []string `json:"namespaces,omitempty"`
 
 	// Choose namespaces by using regex matching
@@ -101,6 +104,10 @@ type SecretStoreProvider struct {
 	// YandexLockbox configures this store to sync secrets using Yandex Lockbox provider
 	// +optional
 	YandexLockbox *YandexLockboxProvider `json:"yandexlockbox,omitempty"`
+
+	// Github configures this store to push Github Action secrets using Github API provider
+	// +optional
+	Github *GithubProvider `json:"github,omitempty"`
 
 	// GitLab configures this store to sync secrets using GitLab Variables provider
 	// +optional
@@ -193,6 +200,10 @@ type SecretStoreProvider struct {
 	// Beyondtrust configures this store to sync secrets using Password Safe provider.
 	// +optional
 	Beyondtrust *BeyondtrustProvider `json:"beyondtrust,omitempty"`
+
+	// CloudruSM configures this store to sync secrets using the Cloud.ru Secret Manager provider
+	// +optional
+	CloudruSM *CloudruSMProvider `json:"cloudrusm,omitempty"`
 }
 
 type CAProviderType string
@@ -211,15 +222,24 @@ type CAProvider struct {
 	Type CAProviderType `json:"type"`
 
 	// The name of the object located at the provider type.
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	Name string `json:"name"`
 
 	// The key where the CA certificate can be found in the Secret or ConfigMap.
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$
 	Key string `json:"key,omitempty"`
 
 	// The namespace the Provider type is in.
 	// Can only be defined when used in a ClusterSecretStore.
 	// +optional
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=63
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
 	Namespace *string `json:"namespace,omitempty"`
 }
 
@@ -271,7 +291,6 @@ type SecretStoreStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:storageversion
 
 // SecretStore represents a secure external location for storing secrets, which can be referenced as part of `storeRef` fields.
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
@@ -279,6 +298,8 @@ type SecretStoreStatus struct {
 // +kubebuilder:printcolumn:name="Capabilities",type=string,JSONPath=`.status.capabilities`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:subresource:status
+// +kubebuilder:unservedversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
 // +kubebuilder:resource:scope=Namespaced,categories={external-secrets},shortName=ss
 type SecretStore struct {
@@ -299,7 +320,6 @@ type SecretStoreList struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:storageversion
 
 // ClusterSecretStore represents a secure external location for storing secrets, which can be referenced as part of `storeRef` fields.
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
@@ -307,6 +327,8 @@ type SecretStoreList struct {
 // +kubebuilder:printcolumn:name="Capabilities",type=string,JSONPath=`.status.capabilities`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:subresource:status
+// +kubebuilder:unservedversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
 // +kubebuilder:resource:scope=Cluster,categories={external-secrets},shortName=css
 type ClusterSecretStore struct {

@@ -25,7 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 const (
@@ -150,6 +150,8 @@ func TestExecute(t *testing.T) {
 		expectedStringData  map[string]string
 		expectedLabels      map[string]string
 		expectedAnnotations map[string]string
+		leftDelimiter       string
+		rightDelimiter      string
 		expErr              string
 		expLblErr           string
 		expAnnoErr          string
@@ -488,6 +490,21 @@ func TestExecute(t *testing.T) {
 				"foo": "1234",
 			},
 		},
+		{
+			name: "NonStandardDelimiters",
+			stringDataTpl: map[string][]byte{
+				"foo": []byte("<< .secret | b64dec >>"),
+			},
+			leftDelimiter:  "<<",
+			rightDelimiter: ">>",
+			data: map[string][]byte{
+				"secret": []byte("MTIzNA=="),
+				"env":    []byte("ZGV2"),
+			},
+			expectedStringData: map[string]string{
+				"foo": "1234",
+			},
+		},
 	}
 
 	for i := range tbl {
@@ -498,6 +515,18 @@ func TestExecute(t *testing.T) {
 				StringData: make(map[string]string),
 				ObjectMeta: v1.ObjectMeta{Labels: make(map[string]string), Annotations: make(map[string]string)},
 			}
+			oldLeftDelim := leftDelim
+			oldRightDelim := rightDelim
+			if row.leftDelimiter != "" {
+				leftDelim = row.leftDelimiter
+			}
+			if row.rightDelimiter != "" {
+				rightDelim = row.rightDelimiter
+			}
+			defer func() {
+				leftDelim = oldLeftDelim
+				rightDelim = oldRightDelim
+			}()
 			err := Execute(row.tpl, row.data, esapi.TemplateScopeValues, esapi.TemplateTargetData, sec)
 			if !ErrorContains(err, row.expErr) {
 				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)

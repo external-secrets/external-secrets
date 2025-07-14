@@ -2,6 +2,13 @@
 
 This section describes how to set up the Bitwarden Secrets Manager provider for External Secrets Operator (ESO).
 
+!!! note
+
+    [Bitwarden Secrets Manager](https://bitwarden.com/products/secrets-manager/)
+    enables developers, DevOps, and cybersecurity teams to centrally store, manage, and deploy secrets at scale.
+    This is different from [Bitwarden Password Manager](https://bitwarden.com/products/personal/).
+    To integrate with Bitwarden **Password Manager**, reference the [example documentation](../examples/bitwarden.md).
+
 ### Prerequisites
 
 In order for the bitwarden provider to work, we need a second service. This service is the [Bitwarden SDK Server](https://github.com/external-secrets/bitwarden-sdk-server).
@@ -60,12 +67,12 @@ There are two ways to fetch secrets from the provider.
 In order to fetch a secret by using its UUID simply provide that as remote key in the external secrets like this:
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: bitwarden
 spec:
-  refreshInterval: 10s
+  refreshInterval: 1h
   secretStoreRef:
     # This name must match the metadata.name in the `SecretStore`
     name: bitwarden-secretsmanager
@@ -86,12 +93,12 @@ To find a secret using its name, we need a bit more information. Mainly, these a
 - if more than one name exists for the same projectID within the same organization we error
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: bitwarden
 spec:
-  refreshInterval: 10s
+  refreshInterval: 1h
   secretStoreRef:
     # This name must match the metadata.name in the `SecretStore`
     name: bitwarden-secretsmanager
@@ -118,7 +125,7 @@ kind: PushSecret
 metadata:
   name: pushsecret-bitwarden # Customisable
 spec:
-  refreshInterval: 10s # Refresh interval for which push secret will reconcile
+  refreshInterval: 1h # Refresh interval for which push secret will reconcile
   secretStoreRefs: # A list of secret stores to push secrets to
     - name: bitwarden-secretsmanager
       kind: SecretStore

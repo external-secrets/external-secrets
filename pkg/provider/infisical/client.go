@@ -21,18 +21,25 @@ import (
 	"fmt"
 	"strings"
 
+	infisical "github.com/infisical/go-sdk"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/find"
-	"github.com/external-secrets/external-secrets/pkg/provider/infisical/api"
+	"github.com/external-secrets/external-secrets/pkg/metrics"
+	"github.com/external-secrets/external-secrets/pkg/provider/infisical/constants"
 )
 
 var (
 	errNotImplemented     = errors.New("not implemented")
 	errPropertyNotFound   = "property %s does not exist in secret %s"
 	errTagsNotImplemented = errors.New("find by tags not supported")
+)
+
+const (
+	getSecretsV3     = "GetSecretsV3"
+	getSecretByKeyV3 = "GetSecretByKeyV3"
 )
 
 func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
@@ -43,22 +50,53 @@ func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
 	return []byte(result.Str), nil
 }
 
-// if GetSecret returns an error with type NoSecretError.
-// then the secret entry will be deleted depending on the deletionPolicy.
-func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	secret, err := p.apiClient.GetSecretByKeyV3(api.GetSecretByKeyV3Request{
-		EnvironmentSlug: p.apiScope.EnvironmentSlug,
-		ProjectSlug:     p.apiScope.ProjectSlug,
-		SecretPath:      p.apiScope.SecretPath,
-		SecretKey:       ref.Key,
+// getSecretAddress returns the path and key from the given key.
+//
+// Users can configure a root path, and when a SecretKey is provided with a slash we assume that it is
+// within a path appended to the root path.
+//
+// If the key is not addressing a path at all (i.e. has no `/`), simply return the original
+// path and key.
+func getSecretAddress(defaultPath, key string) (string, string, error) {
+	if !strings.Contains(key, "/") {
+		return defaultPath, key, nil
+	}
+
+	// Check if `key` starts with a `/`, and throw and error if it does not.
+	if !strings.HasPrefix(key, "/") {
+		return "", "", fmt.Errorf("a secret key referencing a folder must start with a '/' as it is an absolute path, key: %s", key)
+	}
+
+	// Otherwise, take the prefix from `key` and use that as the path. We intentionally discard
+	// `defaultPath`.
+	lastIndex := strings.LastIndex(key, "/")
+	return key[:lastIndex], key[lastIndex+1:], nil
+}
+
+// GetSecret if this returns an error with type NoSecretError then the secret entry will be deleted depending on the
+// deletionPolicy.
+func (p *Provider) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	path, key, err := getSecretAddress(p.apiScope.SecretPath, ref.Key)
+	if err != nil {
+		return nil, err
+	}
+
+	secret, err := p.sdkClient.Secrets().Retrieve(infisical.RetrieveSecretOptions{
+		Environment:            p.apiScope.EnvironmentSlug,
+		ProjectSlug:            p.apiScope.ProjectSlug,
+		SecretKey:              key,
+		SecretPath:             path,
+		IncludeImports:         true,
+		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 	})
+	metrics.ObserveAPICall(constants.ProviderName, getSecretByKeyV3, err)
 
 	if err != nil {
 		return nil, err
 	}
 
 	if ref.Property != "" {
-		propertyValue, err := getPropertyValue(secret, ref.Property, ref.Key)
+		propertyValue, err := getPropertyValue(secret.SecretValue, ref.Property, ref.Key)
 		if err != nil {
 			return nil, err
 		}
@@ -66,11 +104,11 @@ func (p *Provider) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDa
 		return propertyValue, nil
 	}
 
-	return []byte(secret), nil
+	return []byte(secret.SecretValue), nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (p *Provider) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	secret, err := p.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -95,23 +133,27 @@ func (p *Provider) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecre
 }
 
 // GetAllSecrets returns multiple k/v pairs from the provider.
-func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Tags != nil {
 		return nil, errTagsNotImplemented
 	}
 
-	secrets, err := p.apiClient.GetSecretsV3(api.GetSecretsV3Request{
-		EnvironmentSlug: p.apiScope.EnvironmentSlug,
-		ProjectSlug:     p.apiScope.ProjectSlug,
-		SecretPath:      p.apiScope.SecretPath,
+	secrets, err := p.sdkClient.Secrets().List(infisical.ListSecretsOptions{
+		Environment:            p.apiScope.EnvironmentSlug,
+		ProjectSlug:            p.apiScope.ProjectSlug,
+		SecretPath:             p.apiScope.SecretPath,
+		Recursive:              p.apiScope.Recursive,
+		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
+		IncludeImports:         true,
 	})
+	metrics.ObserveAPICall(constants.ProviderName, getSecretsV3, err)
 	if err != nil {
 		return nil, err
 	}
 
 	secretMap := make(map[string][]byte)
-	for key, value := range secrets {
-		secretMap[key] = []byte(value)
+	for _, secret := range secrets {
+		secretMap[secret.SecretKey] = []byte(secret.SecretValue)
 	}
 	if ref.Name == nil && ref.Path == nil {
 		return secretMap, nil
@@ -127,11 +169,11 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 	}
 
 	selected := map[string][]byte{}
-	for key, value := range secrets {
-		if (matcher != nil && !matcher.MatchName(key)) || (ref.Path != nil && !strings.HasPrefix(key, *ref.Path)) {
+	for _, secret := range secrets {
+		if (matcher != nil && !matcher.MatchName(secret.SecretKey)) || (ref.Path != nil && !strings.HasPrefix(secret.SecretKey, *ref.Path)) {
 			continue
 		}
-		selected[key] = []byte(value)
+		selected[secret.SecretKey] = []byte(secret.SecretValue)
 	}
 	return selected, nil
 }
@@ -139,32 +181,35 @@ func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1beta1.ExternalSecr
 // Validate checks if the client is configured correctly.
 // and is able to retrieve secrets from the provider.
 // If the validation result is unknown it will be ignored.
-func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
+func (p *Provider) Validate() (esv1.ValidationResult, error) {
 	// try to fetch the secrets to ensure provided credentials has access to read secrets
-	_, err := p.apiClient.GetSecretsV3(api.GetSecretsV3Request{
-		EnvironmentSlug: p.apiScope.EnvironmentSlug,
-		ProjectSlug:     p.apiScope.ProjectSlug,
-		SecretPath:      p.apiScope.SecretPath,
+	_, err := p.sdkClient.Secrets().List(infisical.ListSecretsOptions{
+		Environment:            p.apiScope.EnvironmentSlug,
+		ProjectSlug:            p.apiScope.ProjectSlug,
+		Recursive:              p.apiScope.Recursive,
+		SecretPath:             p.apiScope.SecretPath,
+		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 	})
+	metrics.ObserveAPICall(constants.ProviderName, getSecretsV3, err)
 
 	if err != nil {
-		return esv1beta1.ValidationResultError, fmt.Errorf("cannot read secrets with provided project scope project:%s environment:%s secret-path:%s, %w", p.apiScope.ProjectSlug, p.apiScope.EnvironmentSlug, p.apiScope.SecretPath, err)
+		return esv1.ValidationResultError, fmt.Errorf("cannot read secrets with provided project scope project:%s environment:%s secret-path:%s recursive:%t, %w", p.apiScope.ProjectSlug, p.apiScope.EnvironmentSlug, p.apiScope.SecretPath, p.apiScope.Recursive, err)
 	}
 
-	return esv1beta1.ValidationResultReady, nil
+	return esv1.ValidationResultReady, nil
 }
 
 // PushSecret will write a single secret into the provider.
-func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1beta1.PushSecretData) error {
+func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	return errNotImplemented
 }
 
 // DeleteSecret will delete the secret from a provider.
-func (p *Provider) DeleteSecret(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) error {
+func (p *Provider) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	return errNotImplemented
 }
 
 // SecretExists checks if a secret is already present in the provider at the given location.
-func (p *Provider) SecretExists(ctx context.Context, remoteRef esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (p *Provider) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errNotImplemented
 }

@@ -18,7 +18,7 @@ For cluster-wide resources like `ClusterSecretStore` and `ClusterExternalSecret`
 Utilize the ClusterSecretStore resource to define specific match conditions using `namespaceSelector` or an explicit namespaces list. This restricts the usage of the `ClusterSecretStore` to a predetermined list of namespaces or a namespace that matches a predefined label. Here's an example:
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ClusterSecretStore
 metadata:
   name: fake
@@ -31,23 +31,35 @@ spec:
 
 ### 3. Selectively Disable Reconciliation of Cluster-Wide Resources
 
-ESO allows you to selectively disable the reconciliation of cluster-wide resources such as `ClusterSecretStore`, `ClusterExternalSecret`, and `PushSecret`. You can disable the installation of CRDs in the Helm chart or disable reconciliation in the core-controller using the following options:
+ESO allows you to selectively disable the reconciliation of cluster-wide resources `ClusterSecretStore`, `ClusterExternalSecret`, and `PushSecret`.
+You can disable the installation of CRDs and reconciliation in the Helm chart, or disable reconciliation in the core controller.
 
-To disable CRD installation:
+To disable reconciliation in the Helm chart:
 
 ```yaml
-# disable cluster-wide resources & push secret
+processClusterExternalSecret: false
+processClusterStore: false
+processPushSecret: false
+```
+
+To disable CRD installation in the Helm chart:
+
+```yaml
 crds:
   createClusterExternalSecret: false
   createClusterSecretStore: false
   createPushSecret: false
 ```
 
-To disable reconciliation in the core-controller:
+Note that disabling CRD installation for a cluster-wide resource does not automatically disable its reconciliation.
+The core controller will issue error logs if the CRD is not installed but the reconciliation is not disabled.
+
+To disable reconciliation in the core controller, set the following flags:
 
 ```
---enable-cluster-external-secret-reconciler
---enable-cluster-store-reconciler
+--enable-cluster-external-secret-reconciler=false
+--enable-cluster-store-reconciler=false
+--enable-push-secret-reconciler=false
 ```
 
 ### 4. Implement Namespace-Scoped Installation

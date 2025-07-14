@@ -15,26 +15,55 @@ on:
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository }}
 
+permissions:
+  contents: read
+
 jobs:
+  check-docs-for-release:
+    name: Check Docs for release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49 # v2.12.2
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.source_ref }}
+      - name: check-docs
+        run: |
+          DOCS_VERSION=${{ github.event.inputs.version }} make docs.check
   release:
     name: Create Release
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: write # to create a release and push new docs
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49 # v2.12.2
+        with:
+          egress-policy: audit
+
       - name: Checkout
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.source_ref }}
 
       - name: Create Release
-        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2.0.8
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
         with:
           tag_name: ${{ github.event.inputs.version }}
           target_commitish: ${{ github.event.inputs.source_ref }}
           generate_release_notes: true
           body: |
             Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}`
+            NOTE - the following UBI images are not currently working (broken build process).
             Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi`
             Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi-boringssl`
         env:
@@ -62,21 +91,25 @@ jobs:
         - tag_suffix: "-ubi-boringssl" # ubi image
 
     permissions:
-      id-token: write
-      contents: write
+      contents: write #to update the github release
+      id-token: write #for keyless sign
+      packages: write #to update packages with added SBOMs.
 
     env:
       SOURCE_TAG: ${{ github.event.inputs.source_ref }}${{ matrix.tag_suffix }}
       RELEASE_TAG: ${{ github.event.inputs.version }}${{ matrix.tag_suffix }}
 
     steps:
+      - uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49 # v2.12.2
+        with:
+          egress-policy: audit
       - name: Checkout
-        uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
       - name: Setup Go
-        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         id: setup-go
         with:
           go-version-file: "go.mod"
@@ -86,11 +119,11 @@ jobs:
         run: go mod download
 
       - name: Login to Docker
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           registry: ghcr.io
-          username: ${{ secrets.GHCR_USERNAME }}
-          password: ${{ secrets.GHCR_TOKEN }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Promote Container Image
         run: make docker.promote
@@ -108,12 +141,9 @@ jobs:
         with:
           image-name: ${{ env.IMAGE_NAME }}
           image-tag: ${{ env.RELEASE_TAG }}
-          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
-          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update Release
-        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2.0.8
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
         with:
           tag_name: ${{ github.event.inputs.version }}
           files: |

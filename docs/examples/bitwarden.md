@@ -2,13 +2,19 @@
 
 Bitwarden is an integrated open source password management solution for individuals, teams, and business organizations.
 
+!!! note
+
+    This documentation is for Bitwarden **Password Manager**.
+    It is different from [Bitwarden Secrets Manager](https://bitwarden.com/products/secrets-manager/), which enables developers, DevOps, and cybersecurity teams to centrally store, manage, and deploy secrets at scale.
+    To integrate with Bitwarden **Secrets Manager**, reference the [provider documentation](../provider/bitwarden-secrets-manager.md).
+
 ## How does it work?
 
 To make external-secrets compatible with Bitwarden, we need:
 
 * External Secrets Operator >= 0.8.0
 * Multiple (Cluster)SecretStores using the webhook provider
-* BitWarden CLI image running `bw serve`
+* Bitwarden CLI image running `bw serve`
 
 When you create a new external-secret object, the External Secrets webhook provider will query the Bitwarden CLI pod that is synced with the Bitwarden server.
 
@@ -45,7 +51,14 @@ set -e
 
 bw config server ${BW_HOST}
 
-export BW_SESSION=$(bw login ${BW_USER} --passwordenv BW_PASSWORD --raw)
+if [ -n "$BW_CLIENTID" ] && [ -n "$BW_CLIENTSECRET" ]; then
+    echo "Using apikey to log in"
+    bw login --apikey --raw
+    export BW_SESSION=$(bw unlock --passwordenv BW_PASSWORD --raw)
+else
+    echo "Using username and password to log in"
+    export BW_SESSION=$(bw login ${BW_USER} --passwordenv BW_PASSWORD --raw)
+fi
 
 bw unlock --check
 

@@ -24,8 +24,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+)
+
+const (
+	remoteID = "d8f29773-3019-4973-9bbc-66327d077fe2"
+	testKey  = "this-is-a-name"
 )
 
 var projectID = "e8fc8f9c-2208-446e-9e89-9bc358f39b47"
@@ -34,13 +39,13 @@ func TestProviderDeleteSecret(t *testing.T) {
 	type fields struct {
 		kube       client.Client
 		namespace  string
-		store      v1beta1.GenericStore
+		store      esv1.GenericStore
 		mock       func(c *FakeClient)
 		assertMock func(t *testing.T, c *FakeClient)
 	}
 	type args struct {
 		ctx context.Context
-		ref v1beta1.PushSecretRemoteRef
+		ref esv1.PushSecretRemoteRef
 	}
 	tests := []struct {
 		name    string
@@ -52,10 +57,10 @@ func TestProviderDeleteSecret(t *testing.T) {
 			name: "delete secret is successfully with UUID",
 			fields: fields{
 				namespace: "default",
-				store: &v1beta1.SecretStore{
-					Spec: v1beta1.SecretStoreSpec{
-						Provider: &v1beta1.SecretStoreProvider{
-							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							BitwardenSecretsManager: &esv1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
 								ProjectID:      projectID,
 							},
@@ -72,7 +77,7 @@ func TestProviderDeleteSecret(t *testing.T) {
 			args: args{
 				ctx: context.TODO(),
 				ref: v1alpha1.PushSecretRemoteRef{
-					RemoteKey: "d8f29773-3019-4973-9bbc-66327d077fe2",
+					RemoteKey: remoteID,
 				},
 			},
 		},
@@ -80,10 +85,10 @@ func TestProviderDeleteSecret(t *testing.T) {
 			name: "delete secret by name",
 			fields: fields{
 				namespace: "default",
-				store: &v1beta1.SecretStore{
-					Spec: v1beta1.SecretStoreSpec{
-						Provider: &v1beta1.SecretStoreProvider{
-							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							BitwardenSecretsManager: &esv1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
 								ProjectID:      projectID,
 							},
@@ -94,15 +99,15 @@ func TestProviderDeleteSecret(t *testing.T) {
 					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
 						Data: []SecretIdentifierResponse{
 							{
-								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-								Key:            "this-is-a-name",
+								ID:             remoteID,
+								Key:            testKey,
 								OrganizationID: "orgid",
 							},
 						},
 					})
 
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						ID:             remoteID,
 						Key:            "key",
 						Note:           "note",
 						OrganizationID: "org",
@@ -118,7 +123,7 @@ func TestProviderDeleteSecret(t *testing.T) {
 			args: args{
 				ctx: context.TODO(),
 				ref: v1alpha1.PushSecretRemoteRef{
-					RemoteKey: "d8f29773-3019-4973-9bbc-66327d077fe2",
+					RemoteKey: remoteID,
 				},
 			},
 		},
@@ -126,10 +131,10 @@ func TestProviderDeleteSecret(t *testing.T) {
 			name: "delete secret by name will not delete if something doesn't match",
 			fields: fields{
 				namespace: "default",
-				store: &v1beta1.SecretStore{
-					Spec: v1beta1.SecretStoreSpec{
-						Provider: &v1beta1.SecretStoreProvider{
-							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							BitwardenSecretsManager: &esv1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
 								ProjectID:      projectID,
 							},
@@ -140,8 +145,8 @@ func TestProviderDeleteSecret(t *testing.T) {
 					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
 						Data: []SecretIdentifierResponse{
 							{
-								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-								Key:            "this-is-a-name",
+								ID:             remoteID,
+								Key:            testKey,
 								OrganizationID: "orgid",
 							},
 						},
@@ -149,8 +154,8 @@ func TestProviderDeleteSecret(t *testing.T) {
 
 					projectID := "another-project"
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-						Key:            "this-is-a-name",
+						ID:             remoteID,
+						Key:            testKey,
 						Note:           "note",
 						OrganizationID: "orgid",
 						Value:          "value",
@@ -165,7 +170,7 @@ func TestProviderDeleteSecret(t *testing.T) {
 			args: args{
 				ctx: context.TODO(),
 				ref: v1alpha1.PushSecretRemoteRef{
-					RemoteKey: "this-is-a-name",
+					RemoteKey: testKey,
 				},
 			},
 		},
@@ -194,12 +199,12 @@ func TestProviderGetAllSecrets(t *testing.T) {
 	type fields struct {
 		kube      client.Client
 		namespace string
-		store     v1beta1.GenericStore
+		store     esv1.GenericStore
 		mock      func(c *FakeClient)
 	}
 	type args struct {
 		ctx context.Context
-		ref v1beta1.ExternalSecretFind
+		ref esv1.ExternalSecretFind
 	}
 	tests := []struct {
 		name    string
@@ -212,10 +217,10 @@ func TestProviderGetAllSecrets(t *testing.T) {
 			name: "get all secrets",
 			fields: fields{
 				namespace: "default",
-				store: &v1beta1.SecretStore{
-					Spec: v1beta1.SecretStoreSpec{
-						Provider: &v1beta1.SecretStoreProvider{
-							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							BitwardenSecretsManager: &esv1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
 								ProjectID:      projectID,
 							},
@@ -226,7 +231,7 @@ func TestProviderGetAllSecrets(t *testing.T) {
 					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
 						Data: []SecretIdentifierResponse{
 							{
-								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+								ID:             remoteID,
 								Key:            "key1",
 								OrganizationID: "orgid",
 							},
@@ -239,7 +244,7 @@ func TestProviderGetAllSecrets(t *testing.T) {
 					})
 
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:    "d8f29773-3019-4973-9bbc-66327d077fe2",
+						ID:    remoteID,
 						Key:   "key1",
 						Value: "value1",
 					})
@@ -252,10 +257,10 @@ func TestProviderGetAllSecrets(t *testing.T) {
 			},
 			args: args{
 				ctx: context.TODO(),
-				ref: v1beta1.ExternalSecretFind{},
+				ref: esv1.ExternalSecretFind{},
 			},
 			want: map[string][]byte{
-				"d8f29773-3019-4973-9bbc-66327d077fe2": []byte("value1"),
+				remoteID:                               []byte("value1"),
 				"7c0d21ec-10d9-4972-bdf8-ec52df99cc86": []byte("value2"),
 			},
 		},
@@ -287,12 +292,12 @@ func TestProviderGetSecret(t *testing.T) {
 	type fields struct {
 		kube      func() client.Client
 		namespace string
-		store     v1beta1.GenericStore
+		store     esv1.GenericStore
 		mock      func(c *FakeClient)
 	}
 	type args struct {
 		ctx context.Context
-		ref v1beta1.ExternalSecretDataRemoteRef
+		ref esv1.ExternalSecretDataRemoteRef
 	}
 	tests := []struct {
 		name    string
@@ -308,7 +313,7 @@ func TestProviderGetSecret(t *testing.T) {
 					return fake.NewFakeClient()
 				},
 				namespace: "default",
-				store:     &v1beta1.SecretStore{},
+				store:     &esv1.SecretStore{},
 				mock: func(c *FakeClient) {
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
 						ID:             "id",
@@ -321,8 +326,8 @@ func TestProviderGetSecret(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				ref: v1beta1.ExternalSecretDataRemoteRef{
-					Key: "d8f29773-3019-4973-9bbc-66327d077fe2",
+				ref: esv1.ExternalSecretDataRemoteRef{
+					Key: remoteID,
 				},
 			},
 			want: []byte("value"),
@@ -334,10 +339,10 @@ func TestProviderGetSecret(t *testing.T) {
 					return fake.NewFakeClient()
 				},
 				namespace: "default",
-				store: &v1beta1.SecretStore{
-					Spec: v1beta1.SecretStoreSpec{
-						Provider: &v1beta1.SecretStoreProvider{
-							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							BitwardenSecretsManager: &esv1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
 								ProjectID:      projectID,
 							},
@@ -348,15 +353,15 @@ func TestProviderGetSecret(t *testing.T) {
 					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
 						Data: []SecretIdentifierResponse{
 							{
-								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-								Key:            "this-is-a-name",
+								ID:             remoteID,
+								Key:            testKey,
 								OrganizationID: "orgid",
 							},
 						},
 					})
 
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						ID:             remoteID,
 						Key:            "key",
 						Note:           "note",
 						OrganizationID: "org",
@@ -367,8 +372,8 @@ func TestProviderGetSecret(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				ref: v1beta1.ExternalSecretDataRemoteRef{
-					Key: "this-is-a-name",
+				ref: esv1.ExternalSecretDataRemoteRef{
+					Key: testKey,
 				},
 			},
 			want: []byte("value"),
@@ -401,14 +406,14 @@ func TestProviderPushSecret(t *testing.T) {
 	type fields struct {
 		kube       func() client.Client
 		namespace  string
-		store      v1beta1.GenericStore
+		store      esv1.GenericStore
 		mock       func(c *FakeClient)
 		assertMock func(t *testing.T, c *FakeClient)
 	}
 	type args struct {
 		ctx    context.Context
 		secret *corev1.Secret
-		data   v1beta1.PushSecretData
+		data   esv1.PushSecretData
 	}
 	tests := []struct {
 		name    string
@@ -429,7 +434,7 @@ func TestProviderPushSecret(t *testing.T) {
 					Match: v1alpha1.PushSecretMatch{
 						SecretKey: "key",
 						RemoteRef: v1alpha1.PushSecretRemoteRef{
-							RemoteKey: "this-is-a-name",
+							RemoteKey: testKey,
 						},
 					},
 				},
@@ -439,10 +444,10 @@ func TestProviderPushSecret(t *testing.T) {
 					return fake.NewFakeClient()
 				},
 				namespace: "default",
-				store: &v1beta1.SecretStore{
-					Spec: v1beta1.SecretStoreSpec{
-						Provider: &v1beta1.SecretStoreProvider{
-							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							BitwardenSecretsManager: &esv1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
 								ProjectID:      projectID,
 							},
@@ -453,14 +458,14 @@ func TestProviderPushSecret(t *testing.T) {
 					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
 						Data: []SecretIdentifierResponse{
 							{
-								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-								Key:            "this-is-a-name",
+								ID:             remoteID,
+								Key:            testKey,
 								OrganizationID: "orgid",
 							},
 						},
 					})
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						ID:             remoteID,
 						Key:            "no-match", // if this is this-is-a-name it would match
 						Note:           "",
 						OrganizationID: "orgid",
@@ -472,7 +477,7 @@ func TestProviderPushSecret(t *testing.T) {
 				assertMock: func(t *testing.T, c *FakeClient) {
 					cargs := c.createSecretCallArguments[0]
 					assert.Equal(t, cargs, SecretCreateRequest{
-						Key:            "this-is-a-name",
+						Key:            testKey,
 						Note:           "",
 						OrganizationID: "orgid",
 						ProjectIDS:     []string{projectID},
@@ -482,7 +487,71 @@ func TestProviderPushSecret(t *testing.T) {
 			},
 		},
 		{
-			name: "push secret is successful for a existing remote secret but only the value differs will call update",
+			name: "push entire secret succeeds",
+			args: args{
+				ctx: context.Background(),
+				secret: &corev1.Secret{
+					Data: map[string][]byte{
+						"key": []byte("value"),
+					},
+				},
+				data: v1alpha1.PushSecretData{
+					Match: v1alpha1.PushSecretMatch{
+						RemoteRef: v1alpha1.PushSecretRemoteRef{
+							RemoteKey: testKey,
+						},
+					},
+				},
+			},
+			fields: fields{
+				kube: func() client.Client {
+					return fake.NewFakeClient()
+				},
+				namespace: "default",
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							BitwardenSecretsManager: &esv1.BitwardenSecretsManagerProvider{
+								OrganizationID: "orgid",
+								ProjectID:      projectID,
+							},
+						},
+					},
+				},
+				mock: func(c *FakeClient) {
+					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
+						Data: []SecretIdentifierResponse{
+							{
+								ID:             remoteID,
+								Key:            testKey,
+								OrganizationID: "orgid",
+							},
+						},
+					})
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             remoteID,
+						Key:            "no-match", // if this is this-is-a-name it would match
+						Note:           "",
+						OrganizationID: "orgid",
+						Value:          "value",
+						ProjectID:      &projectID,
+					})
+					c.CreateSecretReturnsOnCallN(0, &SecretResponse{})
+				},
+				assertMock: func(t *testing.T, c *FakeClient) {
+					cargs := c.createSecretCallArguments[0]
+					assert.Equal(t, SecretCreateRequest{
+						Key:            testKey,
+						Note:           "",
+						OrganizationID: "orgid",
+						ProjectIDS:     []string{projectID},
+						Value:          `{"key":"value"}`,
+					}, cargs)
+				},
+			},
+		},
+		{
+			name: "push secret is successful for an existing remote secret but only the value differs will call update",
 			args: args{
 				ctx: context.Background(),
 				secret: &corev1.Secret{
@@ -494,7 +563,7 @@ func TestProviderPushSecret(t *testing.T) {
 					Match: v1alpha1.PushSecretMatch{
 						SecretKey: "key",
 						RemoteRef: v1alpha1.PushSecretRemoteRef{
-							RemoteKey: "this-is-a-name",
+							RemoteKey: testKey,
 						},
 					},
 				},
@@ -504,10 +573,10 @@ func TestProviderPushSecret(t *testing.T) {
 					return fake.NewFakeClient()
 				},
 				namespace: "default",
-				store: &v1beta1.SecretStore{
-					Spec: v1beta1.SecretStoreSpec{
-						Provider: &v1beta1.SecretStoreProvider{
-							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							BitwardenSecretsManager: &esv1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
 								ProjectID:      projectID,
 							},
@@ -518,15 +587,15 @@ func TestProviderPushSecret(t *testing.T) {
 					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
 						Data: []SecretIdentifierResponse{
 							{
-								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-								Key:            "this-is-a-name",
+								ID:             remoteID,
+								Key:            testKey,
 								OrganizationID: "orgid",
 							},
 						},
 					})
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-						Key:            "this-is-a-name",
+						ID:             remoteID,
+						Key:            testKey,
 						Note:           "",
 						OrganizationID: "orgid",
 						Value:          "value",
@@ -537,8 +606,8 @@ func TestProviderPushSecret(t *testing.T) {
 				assertMock: func(t *testing.T, c *FakeClient) {
 					pargs := c.updateSecretCallArguments[0]
 					assert.Equal(t, pargs, SecretPutRequest{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-						Key:            "this-is-a-name",
+						ID:             remoteID,
+						Key:            testKey,
 						Note:           "",
 						OrganizationID: "orgid",
 						ProjectIDS:     []string{projectID},
@@ -560,7 +629,7 @@ func TestProviderPushSecret(t *testing.T) {
 					Match: v1alpha1.PushSecretMatch{
 						SecretKey: "key",
 						RemoteRef: v1alpha1.PushSecretRemoteRef{
-							RemoteKey: "this-is-a-name",
+							RemoteKey: testKey,
 						},
 					},
 				},
@@ -570,10 +639,10 @@ func TestProviderPushSecret(t *testing.T) {
 					return fake.NewFakeClient()
 				},
 				namespace: "default",
-				store: &v1beta1.SecretStore{
-					Spec: v1beta1.SecretStoreSpec{
-						Provider: &v1beta1.SecretStoreProvider{
-							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							BitwardenSecretsManager: &esv1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
 								ProjectID:      projectID,
 							},
@@ -584,15 +653,15 @@ func TestProviderPushSecret(t *testing.T) {
 					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
 						Data: []SecretIdentifierResponse{
 							{
-								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-								Key:            "this-is-a-name",
+								ID:             remoteID,
+								Key:            testKey,
 								OrganizationID: "orgid",
 							},
 						},
 					})
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
-						Key:            "this-is-a-name",
+						ID:             remoteID,
+						Key:            testKey,
 						OrganizationID: "orgid",
 						Value:          "value",
 						ProjectID:      &projectID,
@@ -631,7 +700,7 @@ func TestProviderSecretExists(t *testing.T) {
 	type fields struct {
 		kube       client.Client
 		namespace  string
-		store      v1beta1.GenericStore
+		store      esv1.GenericStore
 		mock       func(c *FakeClient)
 		assertMock func(t *testing.T, c *FakeClient)
 	}
@@ -649,10 +718,10 @@ func TestProviderSecretExists(t *testing.T) {
 		{
 			name: "secret exists",
 			fields: fields{
-				store: &v1beta1.SecretStore{
-					Spec: v1beta1.SecretStoreSpec{
-						Provider: &v1beta1.SecretStoreProvider{
-							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							BitwardenSecretsManager: &esv1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
 								ProjectID:      projectID,
 							},
@@ -671,7 +740,7 @@ func TestProviderSecretExists(t *testing.T) {
 				ref: v1alpha1.PushSecretData{
 					Match: v1alpha1.PushSecretMatch{
 						RemoteRef: v1alpha1.PushSecretRemoteRef{
-							RemoteKey: "d8f29773-3019-4973-9bbc-66327d077fe2",
+							RemoteKey: remoteID,
 						},
 					},
 				},
@@ -681,10 +750,10 @@ func TestProviderSecretExists(t *testing.T) {
 		{
 			name: "secret exists by name",
 			fields: fields{
-				store: &v1beta1.SecretStore{
-					Spec: v1beta1.SecretStoreSpec{
-						Provider: &v1beta1.SecretStoreProvider{
-							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							BitwardenSecretsManager: &esv1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
 								ProjectID:      projectID,
 							},
@@ -695,14 +764,14 @@ func TestProviderSecretExists(t *testing.T) {
 					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
 						Data: []SecretIdentifierResponse{
 							{
-								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+								ID:             remoteID,
 								Key:            "name",
 								OrganizationID: "orgid",
 							},
 						},
 					})
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						ID:             remoteID,
 						Key:            "name",
 						OrganizationID: "orgid",
 						Value:          "value",
@@ -725,10 +794,10 @@ func TestProviderSecretExists(t *testing.T) {
 		{
 			name: "secret not found by name",
 			fields: fields{
-				store: &v1beta1.SecretStore{
-					Spec: v1beta1.SecretStoreSpec{
-						Provider: &v1beta1.SecretStoreProvider{
-							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							BitwardenSecretsManager: &esv1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
 								ProjectID:      projectID,
 							},
@@ -739,7 +808,7 @@ func TestProviderSecretExists(t *testing.T) {
 					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
 						Data: []SecretIdentifierResponse{
 							{
-								ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+								ID:             remoteID,
 								Key:            "name",
 								OrganizationID: "orgid",
 							},
@@ -747,7 +816,7 @@ func TestProviderSecretExists(t *testing.T) {
 					})
 					projectIDDifferent := "different-project"
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						ID:             remoteID,
 						Key:            "name",
 						OrganizationID: "orgid",
 						Value:          "value",
@@ -765,16 +834,15 @@ func TestProviderSecretExists(t *testing.T) {
 					},
 				},
 			},
-			want:    false,
-			wantErr: true, // secret not found
+			want: false,
 		},
 		{
 			name: "invalid name format should error",
 			fields: fields{
-				store: &v1beta1.SecretStore{
-					Spec: v1beta1.SecretStoreSpec{
-						Provider: &v1beta1.SecretStoreProvider{
-							BitwardenSecretsManager: &v1beta1.BitwardenSecretsManagerProvider{
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							BitwardenSecretsManager: &esv1.BitwardenSecretsManagerProvider{
 								OrganizationID: "orgid",
 								ProjectID:      projectID,
 							},
@@ -782,6 +850,7 @@ func TestProviderSecretExists(t *testing.T) {
 					},
 				},
 				mock: func(c *FakeClient) {
+					// no mocking needed
 				},
 				assertMock: func(t *testing.T, c *FakeClient) {
 					assert.Equal(t, 0, c.listSecretsCalledN)
@@ -828,12 +897,12 @@ func TestProviderGetSecretMap(t *testing.T) {
 	type fields struct {
 		kube      func() client.Client
 		namespace string
-		store     v1beta1.GenericStore
+		store     esv1.GenericStore
 		mock      func(c *FakeClient)
 	}
 	type args struct {
 		ctx context.Context
-		ref v1beta1.ExternalSecretDataRemoteRef
+		ref esv1.ExternalSecretDataRemoteRef
 		key string
 	}
 	tests := []struct {
@@ -850,10 +919,10 @@ func TestProviderGetSecretMap(t *testing.T) {
 					return fake.NewFakeClient()
 				},
 				namespace: "default",
-				store:     &v1beta1.SecretStore{},
+				store:     &esv1.SecretStore{},
 				mock: func(c *FakeClient) {
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						ID:             remoteID,
 						Key:            "key",
 						Note:           "note",
 						OrganizationID: "org",
@@ -863,13 +932,99 @@ func TestProviderGetSecretMap(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				ref: v1beta1.ExternalSecretDataRemoteRef{
-					Key:      "d8f29773-3019-4973-9bbc-66327d077fe2",
+				ref: esv1.ExternalSecretDataRemoteRef{
+					Key:      remoteID,
 					Property: "key",
 				},
 				key: "key",
 			},
 			want: []byte("value"),
+		},
+		{
+			name: "get secret map with yaml",
+			fields: fields{
+				kube: func() client.Client {
+					return fake.NewFakeClient()
+				},
+				namespace: "default",
+				store:     &esv1.SecretStore{},
+				mock: func(c *FakeClient) {
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             remoteID,
+						Key:            "key",
+						Note:           "note",
+						OrganizationID: "org",
+						Value:          `key: value`,
+					})
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: esv1.ExternalSecretDataRemoteRef{
+					Key:      remoteID,
+					Property: "key",
+				},
+				key: "key",
+			},
+			want: []byte("value"),
+		},
+		{
+			name: "get secret map with nested yaml",
+			fields: fields{
+				kube: func() client.Client {
+					return fake.NewFakeClient()
+				},
+				namespace: "default",
+				store:     &esv1.SecretStore{},
+				mock: func(c *FakeClient) {
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             remoteID,
+						Key:            "key",
+						Note:           "note",
+						OrganizationID: "org",
+						Value: `key:
+  key2: value`,
+					})
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: esv1.ExternalSecretDataRemoteRef{
+					Key:      remoteID,
+					Property: "key",
+				},
+				key: "key",
+			},
+			want: []byte("key2: value"),
+		},
+		{
+			name: "get secret map with binary yaml data",
+			fields: fields{
+				kube: func() client.Client {
+					return fake.NewFakeClient()
+				},
+				namespace: "default",
+				store:     &esv1.SecretStore{},
+				mock: func(c *FakeClient) {
+					c.GetSecretReturnsOnCallN(0, &SecretResponse{
+						ID:             remoteID,
+						Key:            "key",
+						Note:           "note",
+						OrganizationID: "org",
+						Value: `key: value
+key2: !!binary VGhpcyBpcyBhIHRlc3Q=`,
+					})
+				},
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: esv1.ExternalSecretDataRemoteRef{
+					Key:      remoteID,
+					Property: "key2",
+				},
+				key: "key2",
+			},
+			want: []byte(`This is a test`),
 		},
 		{
 			name: "get secret map - missing key",
@@ -878,10 +1033,10 @@ func TestProviderGetSecretMap(t *testing.T) {
 					return fake.NewFakeClient()
 				},
 				namespace: "default",
-				store:     &v1beta1.SecretStore{},
+				store:     &esv1.SecretStore{},
 				mock: func(c *FakeClient) {
 					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:             "d8f29773-3019-4973-9bbc-66327d077fe2",
+						ID:             remoteID,
 						Key:            "key",
 						Note:           "note",
 						OrganizationID: "org",
@@ -891,8 +1046,8 @@ func TestProviderGetSecretMap(t *testing.T) {
 			},
 			args: args{
 				ctx: context.Background(),
-				ref: v1beta1.ExternalSecretDataRemoteRef{
-					Key:      "d8f29773-3019-4973-9bbc-66327d077fe2",
+				ref: esv1.ExternalSecretDataRemoteRef{
+					Key:      remoteID,
 					Property: "nope",
 				},
 			},

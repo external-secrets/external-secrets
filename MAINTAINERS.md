@@ -10,8 +10,6 @@ describes governance guidelines and maintainer responsibilities.
 | RealName Here | [knelasevero](https://github.com/knelasevero)   | [Company](https://www.github.com/Company/) |
 | RealName Here | [gusfcarvalho](https://github.com/gusfcarvalho) | [Company](https://www.github.com/Company/) |
 | RealName Here | [moolen](https://github.com/moolen)             | [Company](https://www.github.com/Company/) |
-| RealName Here | [sebagomez](https://github.com/sebagomez)       | [Company](https://www.github.com/Company/) |
-| RealName Here | [rodrmartinez](https://github.com/rodrmartinez) | [Company](https://www.github.com/Company/) |
 | RealName Here | [IdanAdar](https://github.com/IdanAdar)         | [Company](https://www.github.com/Company/) |
 | RealName Here | [Skarlso](https://github.com/Skarlso)           | [Company](https://www.github.com/Company/) |
 
@@ -42,3 +40,5 @@ describes governance guidelines and maintainer responsibilities.
 * RealName Here, [mcavoyk](https://github.com/mcavoyk)
 * RealName Here, [riccardomc](https://github.com/riccardomc)
 * RealName Here, [jonatasbaldin](https://github.com/jonatasbaldin)
+* RealName Here, [sebagomez](https://github.com/sebagomez)
+* RealName Here, [rodrmartinez](https://github.com/rodrmartinez)

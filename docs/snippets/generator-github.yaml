@@ -13,6 +13,10 @@ spec:
   appID: "0000000" # (1)
   installID: "00000000" # (5)
   url: "" # (Default https://api.github.com.)
+  repositories: # Optional
+    - "Hello-World"
+  permissions: # Optional
+    contents: read
   auth:
     privateKey:
       secretRef:

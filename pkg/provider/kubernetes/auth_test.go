@@ -27,7 +27,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	fclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	utilfake "github.com/external-secrets/external-secrets/pkg/provider/util/fake"
 )
@@ -67,13 +67,14 @@ users:
   user:
     token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJPbmxpbmUgSldUIEJ1aWxkZXIiLCJpYXQiOjE3MTkzOTY4OTksImV4cCI6MTc1MDkzMjg4NywiYXVkIjoid3d3LmV4YW1wbGUuY29tIiwic3ViIjoianJvY2tldEBleGFtcGxlLmNvbSIsIkdpdmVuTmFtZSI6IkpvaG5ueSIsIlN1cm5hbWUiOiJSb2NrZXQiLCJFbWFpbCI6Impyb2NrZXRAZXhhbXBsZS5jb20iLCJSb2xlIjpbIk1hbmFnZXIiLCJQcm9qZWN0IEFkbWluaXN0cmF0b3IiXX0.xXrfIl0akhfjWU_BDl7Ad54SXje0YlJdnugzwh96VmM
 `
+	serverURL = "https://my.test.tld"
 )
 
 func TestSetAuth(t *testing.T) {
 	type fields struct {
 		kube          kclient.Client
 		kubeclientset typedcorev1.CoreV1Interface
-		store         *esv1beta1.KubernetesProvider
+		store         *esv1.KubernetesProvider
 		namespace     string
 		storeKind     string
 	}
@@ -87,8 +88,8 @@ func TestSetAuth(t *testing.T) {
 		{
 			name: "should return err if no ca provided",
 			fields: fields{
-				store: &esv1beta1.KubernetesProvider{
-					Server: esv1beta1.KubernetesServer{},
+				store: &esv1.KubernetesProvider{
+					Server: esv1.KubernetesServer{},
 				},
 			},
 			want:    nil,
@@ -97,8 +98,8 @@ func TestSetAuth(t *testing.T) {
 		{
 			name: "should return err if no auth provided",
 			fields: fields{
-				store: &esv1beta1.KubernetesProvider{
-					Server: esv1beta1.KubernetesServer{
+				store: &esv1.KubernetesProvider{
+					Server: esv1.KubernetesServer{
 						CABundle: []byte(caCert),
 					},
 				},
@@ -120,17 +121,17 @@ func TestSetAuth(t *testing.T) {
 						"token": []byte("mytoken"),
 					},
 				}).Build(),
-				store: &esv1beta1.KubernetesProvider{
-					Server: esv1beta1.KubernetesServer{
-						URL: "https://my.test.tld",
-						CAProvider: &esv1beta1.CAProvider{
-							Type: esv1beta1.CAProviderTypeSecret,
+				store: &esv1.KubernetesProvider{
+					Server: esv1.KubernetesServer{
+						URL: serverURL,
+						CAProvider: &esv1.CAProvider{
+							Type: esv1.CAProviderTypeSecret,
 							Name: "foobar",
 							Key:  "cert",
 						},
 					},
-					Auth: esv1beta1.KubernetesAuth{
-						Token: &esv1beta1.TokenAuth{
+					Auth: esv1.KubernetesAuth{
+						Token: &esv1.TokenAuth{
 							BearerToken: v1.SecretKeySelector{
 								Name:      "foobar",
 								Namespace: pointer.To("shouldnotberelevant"),
@@ -141,7 +142,7 @@ func TestSetAuth(t *testing.T) {
 				},
 			},
 			want: &want{
-				Host:        "https://my.test.tld",
+				Host:        serverURL,
 				BearerToken: "mytoken",
 				TLSClientConfig: rest.TLSClientConfig{
 					CAData: []byte(caCert),
@@ -170,17 +171,17 @@ func TestSetAuth(t *testing.T) {
 						"cert": "1234",
 					},
 				}).Build(),
-				store: &esv1beta1.KubernetesProvider{
-					Server: esv1beta1.KubernetesServer{
-						URL: "https://my.test.tld",
-						CAProvider: &esv1beta1.CAProvider{
-							Type: esv1beta1.CAProviderTypeConfigMap,
+				store: &esv1.KubernetesProvider{
+					Server: esv1.KubernetesServer{
+						URL: serverURL,
+						CAProvider: &esv1.CAProvider{
+							Type: esv1.CAProviderTypeConfigMap,
 							Name: "foobar",
 							Key:  "cert",
 						},
 					},
-					Auth: esv1beta1.KubernetesAuth{
-						Token: &esv1beta1.TokenAuth{
+					Auth: esv1.KubernetesAuth{
+						Token: &esv1.TokenAuth{
 							BearerToken: v1.SecretKeySelector{
 								Name:      "foobar",
 								Namespace: pointer.To("shouldnotberelevant"),
@@ -191,7 +192,7 @@ func TestSetAuth(t *testing.T) {
 				},
 			},
 			want: &want{
-				Host:        "https://my.test.tld",
+				Host:        serverURL,
 				BearerToken: "mytoken",
 				TLSClientConfig: rest.TLSClientConfig{
 					CAData: []byte("1234"),
@@ -212,13 +213,13 @@ func TestSetAuth(t *testing.T) {
 						"token": []byte("mytoken"),
 					},
 				}).Build(),
-				store: &esv1beta1.KubernetesProvider{
-					Server: esv1beta1.KubernetesServer{
-						URL:      "https://my.test.tld",
+				store: &esv1.KubernetesProvider{
+					Server: esv1.KubernetesServer{
+						URL:      serverURL,
 						CABundle: []byte(caCert),
 					},
-					Auth: esv1beta1.KubernetesAuth{
-						Token: &esv1beta1.TokenAuth{
+					Auth: esv1.KubernetesAuth{
+						Token: &esv1.TokenAuth{
 							BearerToken: v1.SecretKeySelector{
 								Name:      "foobar",
 								Namespace: pointer.To("shouldnotberelevant"),
@@ -229,7 +230,7 @@ func TestSetAuth(t *testing.T) {
 				},
 			},
 			want: &want{
-				Host:        "https://my.test.tld",
+				Host:        serverURL,
 				BearerToken: "mytoken",
 				TLSClientConfig: rest.TLSClientConfig{
 					CAData: []byte(caCert),
@@ -250,29 +251,14 @@ func TestSetAuth(t *testing.T) {
 						"cert": []byte("my-cert"),
 						"key":  []byte("my-key"),
 					},
-				}, &corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foobar",
-						Namespace: "default",
-					},
-					Data: map[string][]byte{
-						"token": []byte("mytoken"),
-					},
 				}).Build(),
-				store: &esv1beta1.KubernetesProvider{
-					Server: esv1beta1.KubernetesServer{
-						URL:      "https://my.test.tld",
+				store: &esv1.KubernetesProvider{
+					Server: esv1.KubernetesServer{
+						URL:      serverURL,
 						CABundle: []byte(caCert),
 					},
-					Auth: esv1beta1.KubernetesAuth{
-						Token: &esv1beta1.TokenAuth{
-							BearerToken: v1.SecretKeySelector{
-								Name:      "foobar",
-								Namespace: pointer.To("shouldnotberelevant"),
-								Key:       "token",
-							},
-						},
-						Cert: &esv1beta1.CertAuth{
+					Auth: esv1.KubernetesAuth{
+						Cert: &esv1.CertAuth{
 							ClientCert: v1.SecretKeySelector{
 								Name: "mycert",
 								Key:  "cert",
@@ -286,8 +272,7 @@ func TestSetAuth(t *testing.T) {
 				},
 			},
 			want: &want{
-				Host:        "https://my.test.tld",
-				BearerToken: "mytoken",
+				Host: serverURL,
 				TLSClientConfig: rest.TLSClientConfig{
 					CAData:   []byte(caCert),
 					CertData: []byte("my-cert"),
@@ -307,12 +292,12 @@ func TestSetAuth(t *testing.T) {
 					},
 				}).Build(),
 				kubeclientset: utilfake.NewCreateTokenMock().WithToken("my-sa-token"),
-				store: &esv1beta1.KubernetesProvider{
-					Server: esv1beta1.KubernetesServer{
-						URL:      "https://my.test.tld",
+				store: &esv1.KubernetesProvider{
+					Server: esv1.KubernetesServer{
+						URL:      serverURL,
 						CABundle: []byte(caCert),
 					},
-					Auth: esv1beta1.KubernetesAuth{
+					Auth: esv1.KubernetesAuth{
 						ServiceAccount: &v1.ServiceAccountSelector{
 							Name:      "my-sa",
 							Namespace: pointer.To("shouldnotberelevant"),
@@ -321,7 +306,7 @@ func TestSetAuth(t *testing.T) {
 				},
 			},
 			want: &want{
-				Host:        "https://my.test.tld",
+				Host:        serverURL,
 				BearerToken: "my-sa-token",
 				TLSClientConfig: rest.TLSClientConfig{
 					CAData: []byte(caCert),
@@ -340,11 +325,11 @@ func TestSetAuth(t *testing.T) {
 					},
 				}).Build(),
 				kubeclientset: utilfake.NewCreateTokenMock().WithToken("my-sa-token"),
-				store: &esv1beta1.KubernetesProvider{
-					Server: esv1beta1.KubernetesServer{
+				store: &esv1.KubernetesProvider{
+					Server: esv1.KubernetesServer{
 						CABundle: []byte(caCert),
 					},
-					Auth: esv1beta1.KubernetesAuth{
+					Auth: esv1.KubernetesAuth{
 						ServiceAccount: &v1.ServiceAccountSelector{
 							Name:      "my-sa",
 							Namespace: pointer.To("shouldnotberelevant"),
@@ -368,7 +353,7 @@ func TestSetAuth(t *testing.T) {
 						"config": []byte(authTestKubeConfig),
 					},
 				}).Build(),
-				store: &esv1beta1.KubernetesProvider{
+				store: &esv1.KubernetesProvider{
 					AuthRef: &v1.SecretKeySelector{
 						Name:      "foobar",
 						Namespace: pointer.To("default"),

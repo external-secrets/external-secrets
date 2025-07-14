@@ -25,28 +25,35 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/metrics"
 )
 
 const (
-	errStoreProvider       = "could not get store provider: %w"
 	errStoreClient         = "could not get provider client: %w"
 	errValidationFailed    = "could not validate provider: %w"
 	errPatchStatus         = "unable to patch status: %w"
 	errUnableCreateClient  = "unable to create client"
 	errUnableValidateStore = "unable to validate store: %s"
-	errUnableGetProvider   = "unable to get store provider"
 
-	msgStoreValidated = "store validated"
+	msgStoreValidated     = "store validated"
+	msgStoreNotMaintained = "store isn't currently maintained. Please plan and prepare accordingly."
 )
 
-func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl client.Client, log logr.Logger,
-	controllerClass string, gaugeVecGetter metrics.GaugeVevGetter, recorder record.EventRecorder, requeueInterval time.Duration) (ctrl.Result, error) {
-	if !ShouldProcessStore(ss, controllerClass) {
+type Opts struct {
+	ControllerClass string
+	GaugeVecGetter  metrics.GaugeVevGetter
+	Recorder        record.EventRecorder
+	RequeueInterval time.Duration
+}
+
+func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl client.Client, log logr.Logger, opts Opts) (ctrl.Result, error) {
+	if !ShouldProcessStore(ss, opts.ControllerClass) {
 		log.V(1).Info("skip store")
 		return ctrl.Result{}, nil
 	}
+
+	requeueInterval := opts.RequeueInterval
 
 	if ss.GetSpec().RefreshInterval != 0 {
 		requeueInterval = time.Second * time.Duration(ss.GetSpec().RefreshInterval)
@@ -64,7 +71,7 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 	// validateStore modifies the store conditions
 	// we have to patch the status
 	log.V(1).Info("validating")
-	err := validateStore(ctx, req.Namespace, controllerClass, ss, cl, gaugeVecGetter, recorder)
+	err := validateStore(ctx, req.Namespace, opts.ControllerClass, ss, cl, opts.GaugeVecGetter, opts.Recorder)
 	if err != nil {
 		log.Error(err, "unable to validate store")
 		return ctrl.Result{}, err
@@ -73,15 +80,27 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
+	isMaintained, err := esapi.GetMaintenanceStatus(ss)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	annotations := ss.GetAnnotations()
+	_, ok := annotations["external-secrets.io/ignore-maintenance-checks"]
+
+	if !bool(isMaintained) && !ok {
+		opts.Recorder.Event(ss, v1.EventTypeWarning, esapi.StoreUnmaintained, msgStoreNotMaintained)
+	}
+
 	capStatus := esapi.SecretStoreStatus{
 		Capabilities: storeProvider.Capabilities(),
 		Conditions:   ss.GetStatus().Conditions,
 	}
 	ss.SetStatus(capStatus)
 
-	recorder.Event(ss, v1.EventTypeNormal, esapi.ReasonStoreValid, msgStoreValidated)
+	opts.Recorder.Event(ss, v1.EventTypeNormal, esapi.ReasonStoreValid, msgStoreValidated)
 	cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionTrue, esapi.ReasonStoreValid, msgStoreValidated)
-	SetExternalSecretCondition(ss, *cond, gaugeVecGetter)
+	SetExternalSecretCondition(ss, *cond, opts.GaugeVecGetter)
 
 	return ctrl.Result{
 		RequeueAfter: requeueInterval,
@@ -93,7 +112,9 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 func validateStore(ctx context.Context, namespace, controllerClass string, store esapi.GenericStore,
 	client client.Client, gaugeVecGetter metrics.GaugeVevGetter, recorder record.EventRecorder) error {
 	mgr := NewManager(client, controllerClass, false)
-	defer mgr.Close(ctx)
+	defer func() {
+		_ = mgr.Close(ctx)
+	}()
 	cl, err := mgr.GetFromStore(ctx, store, namespace)
 	if err != nil {
 		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonInvalidProviderConfig, errUnableCreateClient)

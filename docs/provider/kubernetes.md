@@ -9,7 +9,7 @@ The `SecretStore` reconciler checks if you have read access for secrets in that 
 This provider supports the use of the `Property` field. With it you point to the key of the remote secret. If you leave it empty it will json encode all key/value pairs.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: database-credentials
@@ -58,7 +58,7 @@ spec:
 You can fetch secrets based on labels or names matching a regexp:
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: fetch-tls-and-nginx
@@ -89,7 +89,7 @@ If you want to connect to a remote API Server you need to fetch it and store it 
 You may also define it inline as base64 encoded value using the `caBundle` property.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: k8s-store-default-ns
@@ -150,7 +150,7 @@ data:
 Create a SecretStore: The `auth` section indicates that the type `token` will be used for authentication, it includes the path to fetch the token. Set `remoteNamespace` to the name of the namespace where your target secrets reside.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: k8s-store-token-auth
@@ -185,7 +185,7 @@ $ kubectl create rolebinding my-store --role=eso-store-role --serviceaccount=def
 Create a SecretStore: the `auth` section indicates that the type `serviceAccount` will be used for authentication.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: k8s-store-sa-auth
@@ -212,7 +212,7 @@ $ kubectl create secret tls tls-secret --cert=path/to/tls.cert --key=path/to/tls
 Reference the `tls-secret` in the SecretStore
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: k8s-store-cert-auth
@@ -233,6 +233,113 @@ spec:
             key: "tls.key"
 ```
 
+
+### Access from different namespace in same cluster
+
+If you don't have cluster wide access to create a `ClusterExternalSecret`, you can still access a secret from a dedicated namespace via a bearer token to a service connection within that namespace:
+
+```YAML
+# shared-secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: user-credentials
+  namespace: shared-secrets
+type: Opaque
+stringData:
+  username: peter
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: eso-store-role
+  namespace: shared-secrets
+rules:
+  - apiGroups: [""]
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+      - watch
+  # This will allow the role `eso-store-role` to perform **permission reviews** for itself within the defined namespace:
+  - apiGroups:
+      - authorization.k8s.io
+    resources:
+      - selfsubjectrulesreviews # used to review or fetch the list of permissions a user or service account currently has.
+    verbs:
+      - create # `create` allows creating a `selfsubjectrulesreviews` request.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: eso-service-account
+  namespace: shared-secrets
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: bind-eso-store-role-to-eso-service-account
+  namespace: shared-secrets
+subjects:
+  - kind: ServiceAccount
+    name: eso-service-account
+    namespace: shared-secrets
+roleRef:
+  kind: Role
+  name: eso-store-role
+  apiGroup: rbac.authorization.k8s.io
+```
+
+After `kubectl apply -f shared-secrets.yaml`, create a bearer token for the service account with `kubectl create token eso-service-account`, then use that bearer token to access the `remoteNamespace` via secret in the target namespace:
+
+```YAML
+apiVersion: v1
+kind: Secret
+metadata:
+  name: eso-token
+  namespace: target-namespace
+stringData:
+  token: "<paste-bearer-token-here>"
+---
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: kubernetes-secret-store
+  namespace: target-namespace
+spec:
+  provider:
+    kubernetes:
+      remoteNamespace: shared-secrets
+      server:
+        # Skip url cause we are in the same cluster
+        caProvider:
+          type: ConfigMap
+          name: kube-root-ca.crt
+          key: ca.crt
+      auth:
+        token:
+          bearerToken:
+            name: eso-token
+            key: token
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: eso-kubernetes-secret
+  namespace: target-namespace
+spec:
+  secretStoreRef:
+    kind: SecretStore
+    name: kubernetes-secret-store
+  target:
+    name: eso-kubernetes-secret
+  data:
+    - secretKey: username
+      remoteRef:
+        key: user-credentials
+        property: username
+```
 
 ### PushSecret
 
@@ -255,7 +362,7 @@ kind: PushSecret
 metadata:
   name: example
 spec:
-  refreshInterval: 10s
+  refreshInterval: 1h
   secretStoreRefs:
     - name: k8s-store-remote-ns
       kind: SecretStore
@@ -297,6 +404,99 @@ rules:
   verbs:
   - create
 ```
+
+It is possible to override the target secret type with the `.template.type` property. By default the secret type is copied from the source secret. If none is specified, the default type `Opaque` will be used. The type can be set to any valid Kubernetes secret type, such as `kubernetes.io/dockerconfigjson`, `kubernetes.io/tls`, etc.
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: example
+spec:
+  refreshInterval: 1h
+  secretStoreRefs:
+    - name: k8s-store-remote-ns
+      kind: SecretStore
+  selector:
+    secret:
+      name: pokedex-credentials
+  template:
+    type: kubernetes.io/dockerconfigjson
+  data:
+    - match:
+        secretKey: dockerconfigjson
+        remoteRef:
+          remoteKey: remote-dockerconfigjson
+          property: ".dockerconfigjson"
+```
+
+#### PushSecret Metadata
+
+The Kubernetes provider is able to manage both `metadata.labels` and `metadata.annotations` of the secret on the target cluster.
+
+Users have different preferences on what metadata should be pushed. ESO by default pushes both labels and annotations to the target secret and merges them with the existing metadata.
+
+You can specify the metadata in the `spec.template.metadata` section if you want to decouple it from the existing secret.
+
+```yaml
+{% raw %}
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: example
+spec:
+  # ...
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/part-of: argocd
+    data:
+      mysql_connection_string: "mysql://{{ .hostname }}:3306/{{ .database }}"
+  data:
+  - match:
+      secretKey: mysql_connection_string
+      remoteRef:
+        remoteKey: backend_secrets
+        property: mysql_connection_string
+{% endraw %}
+```
+
+Further, you can leverage the `.data[].metadata` section to fine-tine the behaviour of the metadata merge strategy. The metadata section is a versioned custom-resource _alike_ structure, the behaviour is detailed below.
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: example
+spec:
+  # ...
+  data:
+  - match:
+      secretKey: example-1
+      remoteRef:
+        remoteKey: example-remote-secret
+        property: url
+
+    metadata:
+      apiVersion: kubernetes.external-secrets.io/v1alpha1
+      kind: PushSecretMetadata
+      spec:
+        sourceMergePolicy: Merge # or Replace
+        targetMergePolicy: Merge # or Replace / Ignore
+        labels:
+          color: red
+        annotations:
+          yes: please
+
+```
+
+
+| Field             | Type                                 | Description                                                                                                                                                                                                                                                                                                                                       |
+| ----------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| sourceMergePolicy | string: `Merge`, `Replace`           | The sourceMergePolicy defines how the metadata of the source secret is merged. `Merge` will merge the metadata of the source secret with the  metadata defined in `.data[].metadata`. With `Replace`, the metadata in `.data[].metadata` replaces the source metadata.                                                                            |
+| targetMergePolicy | string: `Merge`, `Replace`, `Ignore` | The targetMergePolicy defines how ESO merges the metadata produced by the sourceMergePolicy with the target secret. With `Merge`, the source metadata is merged with the existing metadata from the target secret. `Replace` will replace the target metadata with the metadata defined in the source. `Ignore` leaves the target metadata as is. |
+| labels            | `map[string]string`                  | The labels.                                                                                                                                                                                                                                                                                                                                       |
+| annotations       | `map[string]string`                  | The annotations.                                                                                                                                                                                                                                                                                                                                  |
 
 #### Implementation Considerations
 

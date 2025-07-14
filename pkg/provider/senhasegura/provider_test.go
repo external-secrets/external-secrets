@@ -19,13 +19,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 func TestValidateStore(t *testing.T) {
 	tbl := []struct {
 		test   string
-		store  esv1beta1.GenericStore
+		store  esv1.GenericStore
 		expErr bool
 	}{
 		{
@@ -36,26 +36,26 @@ func TestValidateStore(t *testing.T) {
 		{
 			test:   "should not create provider due to missing provider",
 			expErr: true,
-			store: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{},
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{},
 			},
 		},
 		{
 			test:   "should not create provider due to missing provider field",
 			expErr: true,
-			store: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{},
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{},
 				},
 			},
 		},
 		{
 			test:   "should not create provider due to missing provider module",
 			expErr: true,
-			store: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Senhasegura: &esv1beta1.SenhaseguraProvider{},
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Senhasegura: &esv1.SenhaseguraProvider{},
 					},
 				},
 			},
@@ -63,11 +63,11 @@ func TestValidateStore(t *testing.T) {
 		{
 			test:   "should not create provider due to missing provider auth client ID",
 			expErr: true,
-			store: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Senhasegura: &esv1beta1.SenhaseguraProvider{
-							Module: esv1beta1.SenhaseguraModuleDSM,
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Senhasegura: &esv1.SenhaseguraProvider{
+							Module: esv1.SenhaseguraModuleDSM,
 						},
 					},
 				},
@@ -76,10 +76,10 @@ func TestValidateStore(t *testing.T) {
 		{
 			test:   "invalid module should return an error",
 			expErr: true,
-			store: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Senhasegura: &esv1beta1.SenhaseguraProvider{
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Senhasegura: &esv1.SenhaseguraProvider{
 							Module: "HIHIHIHHEHEHEHEHEHE",
 						},
 					},
@@ -89,11 +89,11 @@ func TestValidateStore(t *testing.T) {
 		{
 			test:   "should not create provider due senhasegura URL without https scheme",
 			expErr: true,
-			store: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Senhasegura: &esv1beta1.SenhaseguraProvider{
-							Module: esv1beta1.SenhaseguraModuleDSM,
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Senhasegura: &esv1.SenhaseguraProvider{
+							Module: esv1.SenhaseguraModuleDSM,
 							URL:    "http://dev.null",
 						},
 					},
@@ -103,11 +103,11 @@ func TestValidateStore(t *testing.T) {
 		{
 			test:   "should not create provider due senhasegura URL without valid name",
 			expErr: true,
-			store: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Senhasegura: &esv1beta1.SenhaseguraProvider{
-							Module: esv1beta1.SenhaseguraModuleDSM,
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Senhasegura: &esv1.SenhaseguraProvider{
+							Module: esv1.SenhaseguraModuleDSM,
 							URL:    "https://",
 						},
 					},
@@ -117,13 +117,13 @@ func TestValidateStore(t *testing.T) {
 		{
 			test:   "should create provider",
 			expErr: false,
-			store: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Senhasegura: &esv1beta1.SenhaseguraProvider{
-							Module: esv1beta1.SenhaseguraModuleDSM,
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Senhasegura: &esv1.SenhaseguraProvider{
+							Module: esv1.SenhaseguraModuleDSM,
 							URL:    "https://senhasegura.local",
-							Auth: esv1beta1.SenhaseguraAuth{
+							Auth: esv1.SenhaseguraAuth{
 								ClientID: "example",
 							},
 						},

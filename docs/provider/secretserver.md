@@ -18,7 +18,7 @@ spec.provider.secretserver.password.value: "yourpassword" <br />
 Or you can reference a kubernetes secret (password example below).
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: secret-server-store
@@ -48,12 +48,12 @@ in your ExternalSecret configuration.<br />
 You can access nested values or arrays using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md).
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
     name: secret-server-external-secret
 spec:
-    refreshInterval: 15s
+    refreshInterval: 1h
     secretStoreRef:
         kind: SecretStore
         name: secret-server-store
@@ -64,12 +64,38 @@ spec:
           property: "array.0.value" #<GJSON_PROPERTY> * an empty property will return the entire secret
 ```
 
+### Support for Non-JSON Secret Templates
+
+The Secret Server provider now supports secrets that are not formatted as JSON. This enhancement allows users to retrieve and utilize secrets stored in formats such as plain text, XML, or other non-JSON structures without requiring additional parsing or transformation.​
+
+When working with non-JSON secrets, you can omit the remoteRef.property field in your ExternalSecret configuration. The entire content of the secret will be retrieved and stored as-is in the corresponding Kubernetes Secret.​
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+    name: secret-server-external-secret
+spec:
+    refreshInterval: 1h
+    secretStoreRef:
+      kind: SecretStore
+      name: secret-server-store
+    data:
+      - secretKey: SecretServerValue
+        remoteRef:
+          key: "52622"  # Secret ID
+```
+
+In this example, the secret with ID 52622 is retrieved in its entirety and stored under the key SecretServerValue in the Kubernetes Secret.​
+
+This feature simplifies the integration process for applications that require secrets in specific formats, eliminating the need for custom parsing logic within your applications.
+
 ### Preparing your secret
 You can either retrieve your entire secret or you can use a JSON formatted string
 stored in your secret located at Items[0].ItemValue to retrieve a specific value.<br />
 See example JSON secret below.
 
-### Examples
+#### Examples
 Using the json formatted secret below:
 
 - Lookup a single top level property using secret ID.
@@ -124,6 +150,84 @@ returns: The entire secret in JSON format as displayed below
       "FieldDescription": "json text field",
       "Filename": "",
       "ItemValue": "{ \"user\": \"marktwain@hannibal.com\", \"occupation\": \"author\",\"books\":[ \"tomSawyer\",\"huckleberryFinn\",\"Pudd'nhead Wilson\"] }",
+      "IsFile": false,
+      "IsNotes": false,
+      "IsPassword": false
+    }
+  ]
+}
+```
+
+### Referencing Secrets in multiple Items secrets
+
+If there is more then one Item in the secret, it supports to retrieve them (all Item.\*.ItemValue) looking up by Item.\*.FieldName or Item.\*.Slug, instead of the above behaviour to use gjson only on the first item Items.0.ItemValue only.
+
+#### Examples
+
+Using the json formatted secret below:
+
+- Lookup a single top level property using secret ID.
+
+>spec.data.remoteRef.key = 4000 (id of the secret)<br />
+spec.data.remoteRef.property = "Username" (Items.0.FieldName)<br />
+returns: usernamevalue
+
+- Lookup a nested property using secret name.
+
+>spec.data.remoteRef.key = "Secretname" (name of the secret)<br />
+spec.data.remoteRef.property = "password" (Items.1.slug)<br />
+returns: passwordvalue
+
+- Lookup by secret ID (*secret name will work as well*) and return the entire secret.
+
+>spec.data.remoteRef.key = "4000" (id of the secret)<br />
+returns: The entire secret in JSON format as displayed below
+
+
+```JSON
+{
+  "Name": "Secretname",
+  "FolderID": 0,
+  "ID": 4000,
+  "SiteID": 0,
+  "SecretTemplateID": 0,
+  "LauncherConnectAsSecretID": 0,
+  "CheckOutIntervalMinutes": 0,
+  "Active": false,
+  "CheckedOut": false,
+  "CheckOutEnabled": false,
+  "AutoChangeEnabled": false,
+  "CheckOutChangePasswordEnabled": false,
+  "DelayIndexing": false,
+  "EnableInheritPermissions": false,
+  "EnableInheritSecretPolicy": false,
+  "ProxyEnabled": false,
+  "RequiresComment": false,
+  "SessionRecordingEnabled": false,
+  "WebLauncherRequiresIncognitoMode": false,
+  "Items": [
+    {
+      "ItemID": 0,
+      "FieldID": 0,
+      "FileAttachmentID": 0,
+      "FieldName": "Username",
+      "Slug": "username",
+      "FieldDescription": "",
+      "Filename": "",
+      "ItemValue": "usernamevalue",
+      "IsFile": false,
+      "IsNotes": false,
+      "IsPassword": false
+    },
+    {
+      "ItemID": 0,
+      "FieldID": 0,
+      "FileAttachmentID": 0,
+      "FieldName": "Password",
+      "Slug": "password",
+      "FieldDescription": "",
+      "Filename": "",
+      "ItemValue": "passwordvalue",
       "IsFile": false,
       "IsNotes": false,
       "IsPassword": false

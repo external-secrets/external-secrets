@@ -16,6 +16,7 @@ replicaCount: 1
 
 bitwarden-sdk-server:
   enabled: false
+  namespaceOverride: ""
 
 # -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
 revisionHistoryLimit: 10
@@ -39,11 +40,16 @@ crds:
   createClusterExternalSecret: true
   # -- If true, create CRDs for Cluster Secret Store.
   createClusterSecretStore: true
+  # -- If true, create CRDs for Cluster Generator.
+  createClusterGenerator: true
+  # -- If true, create CRDs for Cluster Push Secret.
+  createClusterPushSecret: true
   # -- If true, create CRDs for Push Secret.
   createPushSecret: true
   annotations: {}
   conversion:
-    enabled: true
+    # -- Conversion is disabled by default as we stopped supporting v1alpha1.
+    enabled: false
 
 imagePullSecrets: []
 nameOverride: ""
@@ -73,8 +79,14 @@ scopedNamespace: ""
 # and implicitly disable cluster stores and cluster external secrets
 scopedRBAC: false
 
+# -- If true the OpenShift finalizer permissions will be added to RBAC
+openshiftFinalizers: true
+
 # -- if true, the operator will process cluster external secret. Else, it will ignore them.
 processClusterExternalSecret: true
+
+# -- if true, the operator will process cluster push secret. Else, it will ignore them.
+processClusterPushSecret: true
 
 # -- if true, the operator will process cluster store. Else, it will ignore them.
 processClusterStore: true
@@ -88,7 +100,7 @@ createOperator: true
 # -- Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at
 # a time.
 concurrent: 1
-# -- Specifices Log Params to the Webhook
+# -- Specifices Log Params to the External Secrets Operator
 log:
   level: info
   timeEncoding: epoch
@@ -119,6 +131,12 @@ rbac:
     # -- Specifies whether a clusterrole to give servicebindings read access should be created.
     create: true
 
+  # -- Specifies whether permissions are aggregated to the view ClusterRole
+  aggregateToView: true
+
+  # -- Specifies whether permissions are aggregated to the edit ClusterRole
+  aggregateToEdit: true
+
 ## -- Extra environment variables to add to container.
 extraEnv: []
 
@@ -133,6 +151,9 @@ extraObjects: []
 
 ## -- Extra volumes to mount to the container.
 extraVolumeMounts: []
+
+## -- Extra init containers to add to the pod.
+extraInitContainers: []
 
 ## -- Extra containers to add to the pod.
 extraContainers: []
@@ -218,6 +239,21 @@ metrics:
     # -- Additional service annotations
     annotations: {}
 
+grafanaDashboard:
+  # -- If true creates a Grafana dashboard.
+  enabled: false
+
+  # -- Label that ConfigMaps should have to be loaded as dashboards.
+  sidecarLabel: "grafana_dashboard"
+
+  # -- Label value that ConfigMaps should have to be loaded as dashboards.
+  sidecarLabelValue: "1"
+
+  # -- Annotations that ConfigMaps can have to get configured in Grafana,
+  # See: sidecar.dashboards.folderAnnotation for specifying the dashboard folder.
+  # https://github.com/grafana/helm-charts/tree/main/charts/grafana
+  annotations: {}
+
 nodeSelector: {}
 
 tolerations: []
@@ -232,14 +268,16 @@ priorityClassName: ""
 # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
 podDisruptionBudget:
   enabled: false
-  minAvailable: 1
-  # maxUnavailable: 1
+  minAvailable: 1    # @schema type:[integer, string]
+  # maxUnavailable: "50%"
 
 # -- Run the controller on the host network
 hostNetwork: false
 
 webhook:
-  # -- Specifies whether a webhook deployment be created.
+  # -- Annotations to place on validating webhook configuration.
+  annotations: {}
+  # -- Specifies whether a webhook deployment be created. If set to false, crds.conversion.enabled should also be set to false otherwise the kubeapi will be hammered because the conversion is looking for a webhook endpoint.
   create: true
   # -- Specifices the time to check if the cert is valid
   certCheckInterval: "5m"
@@ -312,6 +350,10 @@ webhook:
       # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
       # One year by default.
       duration: "8760h"
+      # -- Set the revisionHistoryLimit on the Certificate. See
+      # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
+      # Defaults to 0 (ignored).
+      revisionHistoryLimit: 0
       # -- How long before the currently issued certificate’s expiry
       # cert-manager should renew the certificate. See
       # https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1.CertificateSpec
@@ -334,8 +376,8 @@ webhook:
   # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
   podDisruptionBudget:
     enabled: false
-    minAvailable: 1
-    # maxUnavailable: 1
+    minAvailable: 1    # @schema type:[integer, string]
+    # maxUnavailable: "50%"
 
   metrics:
 
@@ -365,6 +407,9 @@ webhook:
 
     ## -- Map of extra arguments to pass to container.
   extraArgs: {}
+
+    ## -- Extra init containers to add to the pod.
+  extraInitContainers: []
 
     ## -- Extra volumes to pass to pod.
   extraVolumes: []
@@ -404,12 +449,26 @@ webhook:
       #   cpu: 10m
       #   memory: 32Mi
 
+  # -- Manage the service through which the webhook is reached.
+  service:
+    # -- Whether the service object should be enabled or not (it is expected to exist).
+    enabled: true
+    # -- Custom annotations for the webhook service.
+    annotations: {}
+    # -- Custom labels for the webhook service.
+    labels: {}
+    # -- The service type of the webhook service.
+    type: ClusterIP
+    # -- If the webhook service type is LoadBalancer, you can assign a specific load balancer IP here.
+    # Check the documentation of your load balancer provider to see if/how this should be used.
+    loadBalancerIP: ""
+
 certController:
   # -- Specifies whether a certificate controller deployment be created.
   create: true
   requeueInterval: "5m"
   replicaCount: 1
-  # -- Specifices Log Params to the Webhook
+  # -- Specifices Log Params to the Certificate Controller
   log:
     level: info
     timeEncoding: epoch
@@ -456,8 +515,8 @@ certController:
   # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
   podDisruptionBudget:
     enabled: false
-    minAvailable: 1
-    # maxUnavailable: 1
+    minAvailable: 1    # @schema type:[integer, string]
+    # maxUnavailable: "50%"
 
   metrics:
 
@@ -486,6 +545,8 @@ certController:
     ## -- Map of extra arguments to pass to container.
   extraArgs: {}
 
+    ## -- Extra init containers to add to the pod.
+  extraInitContainers: []
 
     ## -- Extra volumes to pass to pod.
   extraVolumes: []

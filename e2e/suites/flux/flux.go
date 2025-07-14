@@ -34,7 +34,6 @@ var _ = Describe("flux", Label("flux"), func() {
 		Entry(common.JSONDataFromSync(f)),
 		Entry(common.SSHKeySync(f)),
 		Entry(common.SyncWithoutTargetName(f)),
-		Entry(common.SyncV1Alpha1(f)),
 		Entry(common.DeletionPolicyDelete(f)),
 	)
 })

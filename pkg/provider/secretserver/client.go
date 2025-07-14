@@ -24,7 +24,7 @@ import (
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -32,7 +32,7 @@ type client struct {
 	api secretAPI
 }
 
-var _ esv1beta1.SecretsClient = &client{}
+var _ esv1.SecretsClient = &client{}
 
 // GetSecret supports two types:
 //  1. Get the secrets using the secret ID in ref.key i.e. key: 53974
@@ -44,7 +44,7 @@ var _ esv1beta1.SecretsClient = &client{}
 //     by leaving the ref.Property empty.
 //  4. get a specific value by using a key from the json formatted secret in Items.0.ItemValue.
 //     Nested values are supported by specifying a gjson expression
-func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	secret, err := c.getSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -57,45 +57,59 @@ func (c *client) GetSecret(ctx context.Context, ref esv1beta1.ExternalSecretData
 	if err != nil {
 		return nil, err
 	}
-	// If no property is defined return the full secret as raw json
+	// Intentionally fetch and return the full secret as raw JSON when no specific property is provided.
+	// This requires calling the API to retrieve the entire secret object.
 	if ref.Property == "" {
 		return jsonStr, nil
 	}
+
 	// extract first "field" i.e. Items.0.ItemValue, data from secret using gjson
 	val := gjson.Get(string(jsonStr), "Items.0.ItemValue")
-	if !val.Exists() {
-		return nil, esv1beta1.NoSecretError{}
-	}
-	// extract specific value from data directly above using gjson
-	out := gjson.Get(val.String(), ref.Property)
-	if !out.Exists() {
-		return nil, esv1beta1.NoSecretError{}
+	if val.Exists() && gjson.Valid(val.String()) {
+		// extract specific value from data directly above using gjson
+		out := gjson.Get(val.String(), ref.Property)
+		if out.Exists() {
+			return []byte(out.String()), nil
+		}
 	}
 
-	return []byte(out.String()), nil
+	// More general case Fields is an array in DelineaXPM/tss-sdk-go/v2/server
+	// https://github.com/DelineaXPM/tss-sdk-go/blob/571e5674a8103031ad6f873453db27959ec1ca67/server/secret.go#L23
+	secretMap := make(map[string]string)
+	for index := range secret.Fields {
+		secretMap[secret.Fields[index].FieldName] = secret.Fields[index].ItemValue
+		secretMap[secret.Fields[index].Slug] = secret.Fields[index].ItemValue
+	}
+
+	out, ok := secretMap[ref.Property]
+	if !ok {
+		return nil, esv1.NoSecretError{}
+	}
+
+	return []byte(out), nil
 }
 
 // Not supported at this time.
-func (c *client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
+func (c *client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
 	return errors.New("pushing secrets is not supported by Secret Server at this time")
 }
 
 // Not supported at this time.
-func (c *client) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
+func (c *client) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	return errors.New("deleting secrets is not supported by Secret Server at this time")
 }
 
 // Not supported at this time.
-func (c *client) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (c *client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New("not implemented")
 }
 
 // Not supported at this time.
-func (c *client) Validate() (esv1beta1.ValidationResult, error) {
-	return esv1beta1.ValidationResultReady, nil
+func (c *client) Validate() (esv1.ValidationResult, error) {
+	return esv1.ValidationResultReady, nil
 }
 
-func (c *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	secret, err := c.getSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -118,7 +132,7 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1beta1.ExternalSecretD
 }
 
 // Not supported at this time.
-func (c *client) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (c *client) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, errors.New("getting all secrets is not supported by Delinea Secret Server at this time")
 }
 
@@ -127,7 +141,7 @@ func (c *client) Close(context.Context) error {
 }
 
 // getSecret retrieves the secret referenced by ref from the Vault API.
-func (c *client) getSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) (*server.Secret, error) {
+func (c *client) getSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (*server.Secret, error) {
 	if ref.Version != "" {
 		return nil, errors.New("specifying a version is not supported")
 	}

@@ -15,7 +15,7 @@ Pulumi [Access Tokens](https://www.pulumi.com/docs/pulumi-cloud/access-managemen
 A Pulumi `SecretStore` can be created by specifying the `organization`, `project` and `environment` and referencing a Kubernetes secret containing the `accessToken`.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: secret-store
@@ -38,7 +38,7 @@ If required, the API URL (`apiUrl`) can be customized as well. If not specified,
 Similarly, a `ClusterSecretStore` can be created by specifying the `namespace` and referencing a Kubernetes secret containing the `accessToken`.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ClusterSecretStore
 metadata:
   name: secret-store
@@ -60,12 +60,12 @@ spec:
 Secrets can be referenced by defining the `key` containing the JSON path to the secret. Pulumi ESC secrets are internally organized as a JSON object.
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: secret
 spec:
-  refreshInterval: 5m
+  refreshInterval: 1h
   secretStoreRef:
     kind: SecretStore
     name: secret-store
@@ -111,7 +111,7 @@ kind: PushSecret
 metadata:
   name: push-secret-example
 spec:
-  refreshInterval: 10s
+  refreshInterval: 1h
   selector:
     secret:
       name: <NAME_OF_KUBE_SECRET>

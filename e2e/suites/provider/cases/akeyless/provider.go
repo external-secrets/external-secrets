@@ -37,7 +37,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -129,16 +129,16 @@ func (a *akeylessProvider) BeforeEach() {
 	Expect(err).ToNot(HaveOccurred())
 
 	// Creating Akeyless secret store
-	secretStore := &esv1beta1.SecretStore{
+	secretStore := &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      a.framework.Namespace.Name,
 			Namespace: a.framework.Namespace.Name,
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Akeyless: &esv1beta1.AkeylessProvider{
-					Auth: &esv1beta1.AkeylessAuth{
-						SecretRef: esv1beta1.AkeylessAuthSecretRef{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Akeyless: &esv1.AkeylessProvider{
+					Auth: &esv1.AkeylessAuth{
+						SecretRef: esv1.AkeylessAuthSecretRef{
 							AccessID: esmeta.SecretKeySelector{
 								Name: "access-id-secret",
 								Key:  "access-id",
@@ -221,7 +221,9 @@ func readK8SServiceAccountJWT() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer data.Close()
+	defer func() {
+		_ = data.Close()
+	}()
 
 	contentBytes, err := io.ReadAll(data)
 	if err != nil {

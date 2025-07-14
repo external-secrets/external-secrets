@@ -17,11 +17,12 @@ package pushsecret
 import (
 	"context"
 	"fmt"
+	"maps"
 
 	v1 "k8s.io/api/core/v1"
 
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
 	"github.com/external-secrets/external-secrets/pkg/template"
 	"github.com/external-secrets/external-secrets/pkg/utils"
@@ -50,15 +51,20 @@ func (r *Reconciler) applyTemplate(ctx context.Context, ps *v1alpha1.PushSecret,
 		return err
 	}
 
-	execute, err := template.EngineForVersion(esv1beta1.TemplateEngineV2)
+	execute, err := template.EngineForVersion(esv1.TemplateEngineV2)
 	if err != nil {
 		return err
 	}
-
+	// Copies secret.Data to dataMap to avoid modifying the original secret
+	// This avoids uncertain behavior if kube-apiserver sends the
+	// template map in a different order on each reconcile loop
+	// ref: https://github.com/external-secrets/external-secrets/issues/5018
+	dataMap := make(map[string][]byte)
+	maps.Copy(dataMap, secret.Data)
 	p := templating.Parser{
 		Client:       r.Client,
 		TargetSecret: secret,
-		DataMap:      secret.Data,
+		DataMap:      dataMap,
 		Exec:         execute,
 	}
 
@@ -68,18 +74,18 @@ func (r *Reconciler) applyTemplate(ctx context.Context, ps *v1alpha1.PushSecret,
 		return fmt.Errorf(errFetchTplFrom, err)
 	}
 	// explicitly defined template.Data takes precedence over templateFrom
-	err = p.MergeMap(ps.Spec.Template.Data, esv1beta1.TemplateTargetData)
+	err = p.MergeMap(ps.Spec.Template.Data, esv1.TemplateTargetData)
 	if err != nil {
 		return fmt.Errorf(errExecTpl, err)
 	}
 
 	// get template data for labels
-	err = p.MergeMap(ps.Spec.Template.Metadata.Labels, esv1beta1.TemplateTargetLabels)
+	err = p.MergeMap(ps.Spec.Template.Metadata.Labels, esv1.TemplateTargetLabels)
 	if err != nil {
 		return fmt.Errorf(errExecTpl, err)
 	}
 	// get template data for annotations
-	err = p.MergeMap(ps.Spec.Template.Metadata.Annotations, esv1beta1.TemplateTargetAnnotations)
+	err = p.MergeMap(ps.Spec.Template.Metadata.Annotations, esv1.TemplateTargetAnnotations)
 	if err != nil {
 		return fmt.Errorf(errExecTpl, err)
 	}

@@ -25,7 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
@@ -43,6 +43,10 @@ const (
 // setAuth gets a new token using the configured mechanism.
 // If there's already a valid token, does nothing.
 func (c *client) setAuth(ctx context.Context, cfg *vault.Config) error {
+	if c.store.Auth == nil {
+		return nil
+	}
+
 	if c.store.Namespace != nil { // set namespace before checking the need for AuthNamespace
 		c.client.SetNamespace(*c.store.Namespace)
 	}
@@ -132,7 +136,7 @@ func createServiceAccountToken(
 			ExpirationSeconds: &expirationSeconds,
 		},
 	}
-	if (storeKind == esv1beta1.ClusterSecretStoreKind) &&
+	if (storeKind == esv1.ClusterSecretStoreKind) &&
 		(serviceAccountRef.Namespace != nil) {
 		tokenRequest.Namespace = *serviceAccountRef.Namespace
 	}
@@ -208,7 +212,7 @@ func (c *client) useAuthNamespace(_ context.Context) func() {
 		ns = *c.store.Namespace
 	}
 
-	if c.store.Auth.Namespace != nil {
+	if c.store.Auth != nil && c.store.Auth.Namespace != nil {
 		// Different Auth Vault Namespace than Secret Vault Namespace
 		// Switch namespaces then switch back at the end
 		if c.store.Auth.Namespace != nil && *c.store.Auth.Namespace != ns {
@@ -222,6 +226,7 @@ func (c *client) useAuthNamespace(_ context.Context) func() {
 		}
 	}
 
-	// no-op
-	return func() {}
+	return func() {
+		// no-op
+	}
 }

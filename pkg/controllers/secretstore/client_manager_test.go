@@ -25,26 +25,31 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 func TestManagerGet(t *testing.T) {
 	scheme := runtime.NewScheme()
-	_ = clientgoscheme.AddToScheme(scheme)
-	_ = esv1beta1.AddToScheme(scheme)
-	_ = apiextensionsv1.AddToScheme(scheme)
+
+	// add kubernetes schemes
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
+
+	// add external-secrets schemes
+	utilruntime.Must(esv1.AddToScheme(scheme))
 
 	// We have a test provider to control
 	// the behavior of the NewClient func.
 	fakeProvider := &WrapProvider{}
-	esv1beta1.ForceRegister(fakeProvider, &esv1beta1.SecretStoreProvider{
-		AWS: &esv1beta1.AWSProvider{},
-	})
+	esv1.ForceRegister(fakeProvider, &esv1.SecretStoreProvider{
+		AWS: &esv1.AWSProvider{},
+	}, esv1.MaintenanceStatusMaintained)
 
 	// fake clients are re-used to compare the
 	// in-memory reference
@@ -53,23 +58,23 @@ func TestManagerGet(t *testing.T) {
 
 	const testNamespace = "foo"
 
-	readyStatus := esv1beta1.SecretStoreStatus{
-		Conditions: []esv1beta1.SecretStoreStatusCondition{
+	readyStatus := esv1.SecretStoreStatus{
+		Conditions: []esv1.SecretStoreStatusCondition{
 			{
-				Type:   esv1beta1.SecretStoreReady,
+				Type:   esv1.SecretStoreReady,
 				Status: corev1.ConditionTrue,
 			},
 		},
 	}
 
-	fakeSpec := esv1beta1.SecretStoreSpec{
-		Provider: &esv1beta1.SecretStoreProvider{
-			AWS: &esv1beta1.AWSProvider{},
+	fakeSpec := esv1.SecretStoreSpec{
+		Provider: &esv1.SecretStoreProvider{
+			AWS: &esv1.AWSProvider{},
 		},
 	}
 
-	defaultStore := &esv1beta1.SecretStore{
-		TypeMeta: metav1.TypeMeta{Kind: esv1beta1.SecretStoreKind},
+	defaultStore := &esv1.SecretStore{
+		TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: testNamespace,
@@ -78,8 +83,8 @@ func TestManagerGet(t *testing.T) {
 		Status: readyStatus,
 	}
 
-	otherStore := &esv1beta1.SecretStore{
-		TypeMeta: metav1.TypeMeta{Kind: esv1beta1.SecretStoreKind},
+	otherStore := &esv1.SecretStore{
+		TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "other",
 			Namespace: testNamespace,
@@ -99,9 +104,9 @@ func TestManagerGet(t *testing.T) {
 		clientMap map[clientKey]*clientVal
 	}
 	type args struct {
-		storeRef  esv1beta1.SecretStoreRef
+		storeRef  esv1.SecretStoreRef
 		namespace string
-		sourceRef *esv1beta1.StoreGeneratorSourceRef
+		sourceRef *esv1.StoreGeneratorSourceRef
 	}
 	tests := []struct {
 		name              string
@@ -109,12 +114,12 @@ func TestManagerGet(t *testing.T) {
 		args              args
 		clientConstructor func(
 			ctx context.Context,
-			store esv1beta1.GenericStore,
+			store esv1.GenericStore,
 			kube client.Client,
-			namespace string) (esv1beta1.SecretsClient, error)
-		verify     func(esv1beta1.SecretsClient)
+			namespace string) (esv1.SecretsClient, error)
+		verify     func(esv1.SecretsClient)
 		afterClose func()
-		want       esv1beta1.SecretsClient
+		want       esv1.SecretsClient
 		wantErr    bool
 	}{
 		{
@@ -128,17 +133,17 @@ func TestManagerGet(t *testing.T) {
 				clientMap: make(map[clientKey]*clientVal),
 			},
 			args: args{
-				storeRef: esv1beta1.SecretStoreRef{
+				storeRef: esv1.SecretStoreRef{
 					Name: defaultStore.Name,
-					Kind: esv1beta1.SecretStoreKind,
+					Kind: esv1.SecretStoreKind,
 				},
 				namespace: defaultStore.Namespace,
 				sourceRef: nil,
 			},
-			clientConstructor: func(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+			clientConstructor: func(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 				return clientA, nil
 			},
-			verify: func(sc esv1beta1.SecretsClient) {
+			verify: func(sc esv1.SecretsClient) {
 				// we now must have this provider in the clientMap
 				// and it mustbe the client defined in clientConstructor
 				assert.NotNil(t, sc)
@@ -164,23 +169,23 @@ func TestManagerGet(t *testing.T) {
 				clientMap: make(map[clientKey]*clientVal),
 			},
 			args: args{
-				storeRef: esv1beta1.SecretStoreRef{
+				storeRef: esv1.SecretStoreRef{
 					Name: defaultStore.Name,
-					Kind: esv1beta1.SecretStoreKind,
+					Kind: esv1.SecretStoreKind,
 				},
 				// this should take precedence
-				sourceRef: &esv1beta1.StoreGeneratorSourceRef{
-					SecretStoreRef: &esv1beta1.SecretStoreRef{
+				sourceRef: &esv1.StoreGeneratorSourceRef{
+					SecretStoreRef: &esv1.SecretStoreRef{
 						Name: otherStore.Name,
-						Kind: esv1beta1.SecretStoreKind,
+						Kind: esv1.SecretStoreKind,
 					},
 				},
 				namespace: defaultStore.Namespace,
 			},
-			clientConstructor: func(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+			clientConstructor: func(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 				return clientB, nil
 			},
-			verify: func(sc esv1beta1.SecretsClient) {
+			verify: func(sc esv1.SecretsClient) {
 				// we now must have this provider in the clientMap
 				// and it mustbe the client defined in clientConstructor
 				assert.NotNil(t, sc)
@@ -212,20 +217,20 @@ func TestManagerGet(t *testing.T) {
 				},
 			},
 			args: args{
-				storeRef: esv1beta1.SecretStoreRef{
+				storeRef: esv1.SecretStoreRef{
 					Name: defaultStore.Name,
-					Kind: esv1beta1.SecretStoreKind,
+					Kind: esv1.SecretStoreKind,
 				},
 				namespace: defaultStore.Namespace,
 				sourceRef: nil,
 			},
-			clientConstructor: func(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+			clientConstructor: func(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 				// constructor should not be called,
 				// the client from the cache should be returned instead
 				t.Fail()
 				return nil, nil
 			},
-			verify: func(sc esv1beta1.SecretsClient) {
+			verify: func(sc esv1.SecretsClient) {
 				// verify that the secretsClient is the one from cache
 				assert.NotNil(t, sc)
 				c, ok := mgr.clientMap[provKey]
@@ -258,19 +263,19 @@ func TestManagerGet(t *testing.T) {
 				},
 			},
 			args: args{
-				storeRef: esv1beta1.SecretStoreRef{
+				storeRef: esv1.SecretStoreRef{
 					Name: otherStore.Name,
-					Kind: esv1beta1.SecretStoreKind,
+					Kind: esv1.SecretStoreKind,
 				},
 				namespace: otherStore.Namespace,
 				sourceRef: nil,
 			},
-			clientConstructor: func(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+			clientConstructor: func(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 				// because there is a store mismatch
 				// we create a new client
 				return clientB, nil
 			},
-			verify: func(sc esv1beta1.SecretsClient) {
+			verify: func(sc esv1.SecretsClient) {
 				// verify that SecretsClient is NOT the one from cache
 				assert.NotNil(t, sc)
 				c, ok := mgr.clientMap[provKey]
@@ -312,21 +317,25 @@ func TestManagerGet(t *testing.T) {
 
 func TestShouldProcessSecret(t *testing.T) {
 	scheme := runtime.NewScheme()
-	_ = clientgoscheme.AddToScheme(scheme)
-	_ = esv1beta1.AddToScheme(scheme)
-	_ = apiextensionsv1.AddToScheme(scheme)
+
+	// add kubernetes schemes
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(apiextensionsv1.AddToScheme(scheme))
+
+	// add external-secrets schemes
+	utilruntime.Must(esv1.AddToScheme(scheme))
 
 	testNamespace := "test-a"
 	testCases := []struct {
 		name       string
-		conditions []esv1beta1.ClusterSecretStoreCondition
+		conditions []esv1.ClusterSecretStoreCondition
 		namespace  *corev1.Namespace
 		wantErr    string
 		want       bool
 	}{
 		{
 			name: "processes a regex condition",
-			conditions: []esv1beta1.ClusterSecretStoreCondition{
+			conditions: []esv1.ClusterSecretStoreCondition{
 				{
 					NamespaceRegexes: []string{`test-*`},
 				},
@@ -340,7 +349,7 @@ func TestShouldProcessSecret(t *testing.T) {
 		},
 		{
 			name: "process multiple regexes",
-			conditions: []esv1beta1.ClusterSecretStoreCondition{
+			conditions: []esv1.ClusterSecretStoreCondition{
 				{
 					NamespaceRegexes: []string{`nope`, `test-*`},
 				},
@@ -354,7 +363,7 @@ func TestShouldProcessSecret(t *testing.T) {
 		},
 		{
 			name: "shouldn't process if nothing matches",
-			conditions: []esv1beta1.ClusterSecretStoreCondition{
+			conditions: []esv1.ClusterSecretStoreCondition{
 				{
 					NamespaceRegexes: []string{`nope`},
 				},
@@ -370,12 +379,12 @@ func TestShouldProcessSecret(t *testing.T) {
 
 	for _, tt := range testCases {
 		t.Run(tt.name, func(t *testing.T) {
-			fakeSpec := esv1beta1.SecretStoreSpec{
+			fakeSpec := esv1.SecretStoreSpec{
 				Conditions: tt.conditions,
 			}
 
-			defaultStore := &esv1beta1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{Kind: esv1beta1.ClusterSecretStoreKind},
+			defaultStore := &esv1.ClusterSecretStore{
+				TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "foo",
 					Namespace: tt.namespace.Name,
@@ -403,26 +412,26 @@ func TestShouldProcessSecret(t *testing.T) {
 type WrapProvider struct {
 	newClientFunc func(
 		context.Context,
-		esv1beta1.GenericStore,
+		esv1.GenericStore,
 		client.Client,
-		string) (esv1beta1.SecretsClient, error)
+		string) (esv1.SecretsClient, error)
 }
 
 // NewClient constructs a SecretsManager Provider.
 func (f *WrapProvider) NewClient(
 	ctx context.Context,
-	store esv1beta1.GenericStore,
+	store esv1.GenericStore,
 	kube client.Client,
-	namespace string) (esv1beta1.SecretsClient, error) {
+	namespace string) (esv1.SecretsClient, error) {
 	return f.newClientFunc(ctx, store, kube, namespace)
 }
 
-func (f *WrapProvider) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadOnly
+func (f *WrapProvider) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadOnly
 }
 
 // ValidateStore checks if the provided store is valid.
-func (f *WrapProvider) ValidateStore(_ esv1beta1.GenericStore) (admission.Warnings, error) {
+func (f *WrapProvider) ValidateStore(_ esv1.GenericStore) (admission.Warnings, error) {
 	return nil, nil
 }
 
@@ -431,33 +440,33 @@ type MockFakeClient struct {
 	closeCalled bool
 }
 
-func (c *MockFakeClient) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1beta1.PushSecretData) error {
+func (c *MockFakeClient) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
 	return nil
 }
 
-func (c *MockFakeClient) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
+func (c *MockFakeClient) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	return nil
 }
 
-func (c *MockFakeClient) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (c *MockFakeClient) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, nil
 }
 
-func (c *MockFakeClient) GetSecret(_ context.Context, _ esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (c *MockFakeClient) GetSecret(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	return nil, nil
 }
 
-func (c *MockFakeClient) Validate() (esv1beta1.ValidationResult, error) {
-	return esv1beta1.ValidationResultReady, nil
+func (c *MockFakeClient) Validate() (esv1.ValidationResult, error) {
+	return esv1.ValidationResultReady, nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider.
-func (c *MockFakeClient) GetSecretMap(_ context.Context, _ esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (c *MockFakeClient) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	return nil, nil
 }
 
 // GetAllSecrets returns multiple k/v pairs from the provider.
-func (c *MockFakeClient) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (c *MockFakeClient) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, nil
 }
 

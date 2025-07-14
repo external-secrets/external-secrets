@@ -17,7 +17,8 @@ package webhook
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 type Spec struct {
@@ -31,6 +32,10 @@ type Spec struct {
 	// Headers
 	// +optional
 	Headers map[string]string `json:"headers,omitempty"`
+
+	// Auth specifies a authorization protocol. Only one protocol may be set.
+	// +optional
+	Auth *AuthorizationProtocol `json:"auth,omitempty"`
 
 	// Body
 	// +optional
@@ -57,7 +62,24 @@ type Spec struct {
 
 	// The provider for the CA bundle to use to validate webhook server certificate.
 	// +optional
-	CAProvider *esv1beta1.CAProvider `json:"caProvider,omitempty"`
+	CAProvider *esv1.CAProvider `json:"caProvider,omitempty"`
+}
+
+// AuthorizationProtocol contains the protocol-specific configuration
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
+type AuthorizationProtocol struct {
+	// NTLMProtocol configures the store to use NTLM for auth
+	// +optional
+	NTLM *NTLMProtocol `json:"ntlm,omitempty"`
+
+	// Define other protocols here
+}
+
+// NTLMProtocol contains the NTLM-specific configuration.
+type NTLMProtocol struct {
+	UserName esmeta.SecretKeySelector `json:"usernameSecret"`
+	Password esmeta.SecretKeySelector `json:"passwordSecret"`
 }
 
 type Result struct {
@@ -71,14 +93,5 @@ type Secret struct {
 	Name string `json:"name"`
 
 	// Secret ref to fill in credentials
-	SecretRef SecretKeySelector `json:"secretRef"`
-}
-
-type SecretKeySelector struct {
-	// The name of the Secret resource being referred to.
-	Name string `json:"name,omitempty"`
-	// The key where the token is found.
-	Key string `json:"key,omitempty"`
-
-	Namespace *string `json:"namespace,omitempty"`
+	SecretRef esmeta.SecretKeySelector `json:"secretRef"`
 }

@@ -28,17 +28,17 @@ import (
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
-var _ esv1beta1.SecretsClient = &client{}
+var _ esv1.SecretsClient = &client{}
 
 type client struct {
 	kube      kclient.Client
-	store     *esv1beta1.VaultProvider
+	store     *esv1.VaultProvider
 	log       logr.Logger
 	corev1    typedcorev1.CoreV1Interface
 	client    util.Client
@@ -120,7 +120,7 @@ func (c *client) configureClientTLS(ctx context.Context, cfg *vault.Config) erro
 func (c *client) Close(ctx context.Context) error {
 	// Revoke the token if we have one set, it wasn't sourced from a TokenSecretRef,
 	// and token caching isn't enabled
-	if !enableCache && c.client.Token() != "" && c.store.Auth.TokenSecretRef == nil {
+	if !enableCache && c.client.Token() != "" && c.store.Auth != nil && c.store.Auth.TokenSecretRef == nil {
 		err := revokeTokenIfValid(ctx, c.client)
 		if err != nil {
 			return err

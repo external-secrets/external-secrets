@@ -36,85 +36,53 @@ var (
 	AddToScheme   = SchemeBuilder.AddToScheme
 )
 
-// ECRAuthorizationToken type metadata.
 var (
-	ECRAuthorizationTokenKind             = reflect.TypeOf(ECRAuthorizationToken{}).Name()
-	ECRAuthorizationTokenGroupKind        = schema.GroupKind{Group: Group, Kind: ECRAuthorizationTokenKind}.String()
-	ECRAuthorizationTokenKindAPIVersion   = ECRAuthorizationTokenKind + "." + SchemeGroupVersion.String()
-	ECRAuthorizationTokenGroupVersionKind = SchemeGroupVersion.WithKind(ECRAuthorizationTokenKind)
-)
-
-// GCRAccessToken type metadata.
-var (
-	GCRAccessTokenKind             = reflect.TypeOf(GCRAccessToken{}).Name()
-	GCRAccessTokenGroupKind        = schema.GroupKind{Group: Group, Kind: GCRAccessTokenKind}.String()
-	GCRAccessTokenKindAPIVersion   = GCRAccessTokenKind + "." + SchemeGroupVersion.String()
-	GCRAccessTokenGroupVersionKind = SchemeGroupVersion.WithKind(GCRAccessTokenKind)
-)
-
-// ACRAccessToken type metadata.
-var (
-	ACRAccessTokenKind             = reflect.TypeOf(ACRAccessToken{}).Name()
-	ACRAccessTokenGroupKind        = schema.GroupKind{Group: Group, Kind: ACRAccessTokenKind}.String()
-	ACRAccessTokenKindAPIVersion   = ACRAccessTokenKind + "." + SchemeGroupVersion.String()
-	ACRAccessTokenGroupVersionKind = SchemeGroupVersion.WithKind(ACRAccessTokenKind)
-)
-
-// Password type metadata.
-var (
-	PasswordKind             = reflect.TypeOf(Password{}).Name()
-	PasswordGroupKind        = schema.GroupKind{Group: Group, Kind: PasswordKind}.String()
-	PasswordKindAPIVersion   = PasswordKind + "." + SchemeGroupVersion.String()
-	PasswordGroupVersionKind = SchemeGroupVersion.WithKind(PasswordKind)
-)
-
-// Webhook type metadata.
-var (
-	WebhookKind             = reflect.TypeOf(Webhook{}).Name()
-	WebhookGroupKind        = schema.GroupKind{Group: Group, Kind: WebhookKind}.String()
-	WebhookKindAPIVersion   = WebhookKind + "." + SchemeGroupVersion.String()
-	WebhookGroupVersionKind = SchemeGroupVersion.WithKind(WebhookKind)
-)
-
-// Fake type metadata.
-var (
-	FakeKind             = reflect.TypeOf(Fake{}).Name()
-	FakeGroupKind        = schema.GroupKind{Group: Group, Kind: FakeKind}.String()
-	FakeKindAPIVersion   = FakeKind + "." + SchemeGroupVersion.String()
-	FakeGroupVersionKind = SchemeGroupVersion.WithKind(FakeKind)
-)
-
-// Vault type metadata.
-var (
-	VaultDynamicSecretKind             = reflect.TypeOf(VaultDynamicSecret{}).Name()
-	VaultDynamicSecretGroupKind        = schema.GroupKind{Group: Group, Kind: VaultDynamicSecretKind}.String()
-	VaultDynamicSecretKindAPIVersion   = VaultDynamicSecretKind + "." + SchemeGroupVersion.String()
-	VaultDynamicSecretGroupVersionKind = SchemeGroupVersion.WithKind(VaultDynamicSecretKind)
-)
-
-// GithubAccessToken type metadata.
-var (
-	GithubAccessTokenKind             = reflect.TypeOf(GithubAccessToken{}).Name()
-	GithubAccessTokenGroupKind        = schema.GroupKind{Group: Group, Kind: GithubAccessTokenKind}.String()
-	GithubAccessTokenKindAPIVersion   = GithubAccessTokenKind + "." + SchemeGroupVersion.String()
-	GithubAccessTokenGroupVersionKind = SchemeGroupVersion.WithKind(GithubAccessTokenKind)
-)
-
-// Uuid type metadata.
-var (
-	UUIDKind             = reflect.TypeOf(UUID{}).Name()
-	UUIDGroupKind        = schema.GroupKind{Group: Group, Kind: UUIDKind}.String()
-	UUIDKindAPIVersion   = UUIDKind + "." + SchemeGroupVersion.String()
-	UUIDGroupVersionKind = SchemeGroupVersion.WithKind(UUIDKind)
+	ECRAuthorizationTokenKind = reflect.TypeOf(ECRAuthorizationToken{}).Name()
+	STSSessionTokenKind       = reflect.TypeOf(STSSessionToken{}).Name()
+	GCRAccessTokenKind        = reflect.TypeOf(GCRAccessToken{}).Name()
+	ACRAccessTokenKind        = reflect.TypeOf(ACRAccessToken{}).Name()
+	PasswordKind              = reflect.TypeOf(Password{}).Name()
+	WebhookKind               = reflect.TypeOf(Webhook{}).Name()
+	FakeKind                  = reflect.TypeOf(Fake{}).Name()
+	VaultDynamicSecretKind    = reflect.TypeOf(VaultDynamicSecret{}).Name()
+	GithubAccessTokenKind     = reflect.TypeOf(GithubAccessToken{}).Name()
+	QuayAccessTokenKind       = reflect.TypeOf(QuayAccessToken{}).Name()
+	UUIDKind                  = reflect.TypeOf(UUID{}).Name()
+	GrafanaKind               = reflect.TypeOf(Grafana{}).Name()
+	MFAKind                   = reflect.TypeOf(MFA{}).Name()
+	ClusterGeneratorKind      = reflect.TypeOf(ClusterGenerator{}).Name()
 )
 
 func init() {
-	SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationToken{})
+	SchemeBuilder.Register(&GeneratorState{}, &GeneratorStateList{})
+
+	/*
+		===============================================================================
+		 NOTE: when adding support for new kinds of generators:
+		  1. register the struct types in `SchemeBuilder` (right below this note)
+		  2. update the `kubebuilder:validation:Enum` annotation for GeneratorRef.Kind (apis/externalsecrets/v1beta1/externalsecret_types.go)
+		  3. add it to the imports of (pkg/generator/register/register.go)
+		  4. add it to the ClusterRole called "*-controller" (deploy/charts/external-secrets/templates/rbac.yaml)
+		  5. support it in ClusterGenerator:
+			  - add a new GeneratorKind enum value (apis/generators/v1alpha1/types_cluster.go)
+			  - update the `kubebuilder:validation:Enum` annotation for the GeneratorKind enum
+			  - add a spec field to GeneratorSpec (apis/generators/v1alpha1/types_cluster.go)
+			  - update the clusterGeneratorToVirtual() function (pkg/utils/resolvers/generator.go)
+		===============================================================================
+	*/
+
+	SchemeBuilder.Register(&ACRAccessToken{}, &ACRAccessTokenList{})
+	SchemeBuilder.Register(&ClusterGenerator{}, &ClusterGeneratorList{})
+	SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationTokenList{})
+	SchemeBuilder.Register(&Fake{}, &FakeList{})
 	SchemeBuilder.Register(&GCRAccessToken{}, &GCRAccessTokenList{})
 	SchemeBuilder.Register(&GithubAccessToken{}, &GithubAccessTokenList{})
-	SchemeBuilder.Register(&ACRAccessToken{}, &ACRAccessTokenList{})
-	SchemeBuilder.Register(&Fake{}, &FakeList{})
-	SchemeBuilder.Register(&VaultDynamicSecret{}, &VaultDynamicSecretList{})
+	SchemeBuilder.Register(&QuayAccessToken{}, &QuayAccessTokenList{})
 	SchemeBuilder.Register(&Password{}, &PasswordList{})
+	SchemeBuilder.Register(&STSSessionToken{}, &STSSessionTokenList{})
+	SchemeBuilder.Register(&UUID{}, &UUIDList{})
+	SchemeBuilder.Register(&VaultDynamicSecret{}, &VaultDynamicSecretList{})
 	SchemeBuilder.Register(&Webhook{}, &WebhookList{})
+	SchemeBuilder.Register(&Grafana{}, &GrafanaList{})
+	SchemeBuilder.Register(&MFA{}, &MFAList{})
 }

@@ -19,20 +19,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 
 	v1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/restmapper"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
-	// Loading registered providers.
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
+	"github.com/external-secrets/external-secrets/pkg/generator/statemanager"
 	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 
 	// Loading registered generators.
 	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
@@ -40,205 +37,246 @@ import (
 )
 
 // getProviderSecretData returns the provider's secret data with the provided ExternalSecret.
-func (r *Reconciler) getProviderSecretData(ctx context.Context, externalSecret *esv1beta1.ExternalSecret) (map[string][]byte, error) {
+func (r *Reconciler) GetProviderSecretData(ctx context.Context, externalSecret *esv1.ExternalSecret) (providerData map[string][]byte, err error) {
 	// We MUST NOT create multiple instances of a provider client (mostly due to limitations with GCP)
 	// Clientmanager keeps track of the client instances
 	// that are created during the fetching process and closes clients
 	// if needed.
 	mgr := secretstore.NewManager(r.Client, r.ControllerClass, r.EnableFloodGate)
-	defer mgr.Close(ctx)
+	defer func() {
+		_ = mgr.Close(ctx)
+	}()
 
-	providerData := make(map[string][]byte)
+	// statemanager takes care of managing the state of the generators.
+	// Since ExternalSecrets can have multiple generators, we need to keep track of the state of each generator
+	// and if one fails we need to rollback all generated values from this iteration.
+	var genState *statemanager.Manager
+	if r.EnableGeneratorState {
+		genState = statemanager.New(ctx, r.Client, r.Scheme, externalSecret.Namespace, externalSecret)
+		defer func() {
+			// NoSecretErr does not make sense for the generator state.
+			// A generator is expected to always generate a secret.
+			// If it doesn't, it should return an error.
+			// If the error is NoSecretErr, we should commit the generator state.
+			if err != nil && !errors.Is(err, esv1.NoSecretErr) {
+				if rollBackErr := genState.Rollback(); rollBackErr != nil {
+					r.Log.Error(rollBackErr, "error rolling back generator state")
+				}
+				return
+			}
+			if commitErr := genState.Commit(); commitErr != nil {
+				r.Log.Error(commitErr, "error committing generator state")
+				// At this point the original error can only be a NoSecretErr
+				// but we should return the commit error here as it's more important.
+				err = commitErr
+			}
+		}()
+	}
+	providerData = make(map[string][]byte)
 	for i, remoteRef := range externalSecret.Spec.DataFrom {
 		var secretMap map[string][]byte
-		var err error
 
 		if remoteRef.Find != nil {
-			secretMap, err = r.handleFindAllSecrets(ctx, externalSecret, remoteRef, mgr, i)
+			secretMap, err = r.handleFindAllSecrets(ctx, externalSecret, remoteRef, mgr, genState, i)
+			if err != nil {
+				err = fmt.Errorf("error processing spec.dataFrom[%d].find, err: %w", i, err)
+			}
 		} else if remoteRef.Extract != nil {
-			secretMap, err = r.handleExtractSecrets(ctx, externalSecret, remoteRef, mgr, i)
+			secretMap, err = r.handleExtractSecrets(ctx, externalSecret, remoteRef, mgr, genState, i)
+			if err != nil {
+				err = fmt.Errorf("error processing spec.dataFrom[%d].extract, err: %w", i, err)
+			}
 		} else if remoteRef.SourceRef != nil && remoteRef.SourceRef.GeneratorRef != nil {
-			secretMap, err = r.handleGenerateSecrets(ctx, externalSecret.Namespace, remoteRef, i)
+			secretMap, err = r.handleGenerateSecrets(ctx, externalSecret.Namespace, remoteRef, i, genState)
+			if err != nil {
+				err = fmt.Errorf("error processing spec.dataFrom[%d].sourceRef.generatorRef, err: %w", i, err)
+			}
 		}
-		if errors.Is(err, esv1beta1.NoSecretErr) && externalSecret.Spec.Target.DeletionPolicy != esv1beta1.DeletionPolicyRetain {
-			r.recorder.Event(
-				externalSecret,
-				v1.EventTypeNormal,
-				esv1beta1.ReasonDeleted,
-				fmt.Sprintf("secret does not exist at provider using .dataFrom[%d]", i),
-			)
+
+		if errors.Is(err, esv1.NoSecretErr) && externalSecret.Spec.Target.DeletionPolicy != esv1.DeletionPolicyRetain {
+			r.recorder.Eventf(externalSecret, v1.EventTypeNormal, esv1.ReasonMissingProviderSecret, eventMissingProviderSecret, i)
 			continue
 		}
 		if err != nil {
 			return nil, err
 		}
+
 		providerData = utils.MergeByteMap(providerData, secretMap)
 	}
 
 	for i, secretRef := range externalSecret.Spec.Data {
-		err := r.handleSecretData(ctx, i, *externalSecret, secretRef, providerData, mgr)
-		if errors.Is(err, esv1beta1.NoSecretErr) && externalSecret.Spec.Target.DeletionPolicy != esv1beta1.DeletionPolicyRetain {
-			r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1beta1.ReasonDeleted, fmt.Sprintf("secret does not exist at provider using .data[%d] key=%s", i, secretRef.RemoteRef.Key))
+		err := r.handleSecretData(ctx, externalSecret, secretRef, providerData, mgr)
+		if errors.Is(err, esv1.NoSecretErr) && externalSecret.Spec.Target.DeletionPolicy != esv1.DeletionPolicyRetain {
+			r.recorder.Eventf(externalSecret, v1.EventTypeNormal, esv1.ReasonMissingProviderSecret, eventMissingProviderSecretKey, i, secretRef.RemoteRef.Key)
 			continue
 		}
 		if err != nil {
-			return nil, fmt.Errorf("error retrieving secret at .data[%d], key: %s, err: %w", i, secretRef.RemoteRef.Key, err)
+			return nil, fmt.Errorf("error processing spec.data[%d] (key: %s), err: %w", i, secretRef.RemoteRef.Key, err)
 		}
 	}
 
 	return providerData, nil
 }
 
-func (r *Reconciler) handleSecretData(ctx context.Context, i int, externalSecret esv1beta1.ExternalSecret, secretRef esv1beta1.ExternalSecretData, providerData map[string][]byte, cmgr *secretstore.Manager) error {
+func (r *Reconciler) handleSecretData(ctx context.Context, externalSecret *esv1.ExternalSecret, secretRef esv1.ExternalSecretData, providerData map[string][]byte, cmgr *secretstore.Manager) error {
 	client, err := cmgr.Get(ctx, externalSecret.Spec.SecretStoreRef, externalSecret.Namespace, toStoreGenSourceRef(secretRef.SourceRef))
 	if err != nil {
 		return err
 	}
+
+	// get a single secret from the store
 	secretData, err := client.GetSecret(ctx, secretRef.RemoteRef)
 	if err != nil {
 		return err
 	}
+
+	// decode the secret if needed
 	secretData, err = utils.Decode(secretRef.RemoteRef.DecodingStrategy, secretData)
 	if err != nil {
-		return fmt.Errorf(errDecode, "spec.data", i, err)
+		return fmt.Errorf(errDecode, secretRef.RemoteRef.DecodingStrategy, err)
 	}
+
+	// store the secret data
 	providerData[secretRef.SecretKey] = secretData
+
 	return nil
 }
 
-func toStoreGenSourceRef(ref *esv1beta1.StoreSourceRef) *esv1beta1.StoreGeneratorSourceRef {
+func toStoreGenSourceRef(ref *esv1.StoreSourceRef) *esv1.StoreGeneratorSourceRef {
 	if ref == nil {
 		return nil
 	}
-	return &esv1beta1.StoreGeneratorSourceRef{
+	return &esv1.StoreGeneratorSourceRef{
 		SecretStoreRef: &ref.SecretStoreRef,
 	}
 }
 
-func (r *Reconciler) handleGenerateSecrets(ctx context.Context, namespace string, remoteRef esv1beta1.ExternalSecretDataFromRemoteRef, i int) (map[string][]byte, error) {
-	genDef, err := r.getGeneratorDefinition(ctx, namespace, remoteRef.SourceRef.GeneratorRef)
+func (r *Reconciler) handleGenerateSecrets(ctx context.Context, namespace string, remoteRef esv1.ExternalSecretDataFromRemoteRef, i int, generatorState *statemanager.Manager) (map[string][]byte, error) {
+	impl, generatorResource, err := resolvers.GeneratorRef(ctx, r.Client, r.Scheme, namespace, remoteRef.SourceRef.GeneratorRef)
 	if err != nil {
 		return nil, err
 	}
-	gen, err := genv1alpha1.GetGenerator(genDef)
-	if err != nil {
-		return nil, err
+	var latestState *genv1alpha1.GeneratorState
+	if generatorState != nil {
+		latestState, err = generatorState.GetLatestState(generatorStateKey(i))
+		if err != nil {
+			return nil, fmt.Errorf("unable to get latest state: %w", err)
+		}
 	}
-	secretMap, err := gen.Generate(ctx, genDef, r.Client, namespace)
+	secretMap, newState, err := impl.Generate(ctx, generatorResource, r.Client, namespace)
 	if err != nil {
-		return nil, fmt.Errorf(errGenerate, i, err)
+		return nil, fmt.Errorf(errGenerate, err)
 	}
+	if latestState != nil {
+		if generatorState != nil {
+			generatorState.EnqueueMoveStateToGC(generatorStateKey(i))
+		}
+	}
+	if generatorState != nil {
+		generatorState.EnqueueSetLatest(ctx, generatorStateKey(i), namespace, generatorResource, impl, newState)
+	}
+	// rewrite the keys if needed
 	secretMap, err = utils.RewriteMap(remoteRef.Rewrite, secretMap)
 	if err != nil {
-		return nil, fmt.Errorf(errRewrite, i, err)
+		return nil, fmt.Errorf(errRewrite, err)
 	}
-	if !utils.ValidateKeys(secretMap) {
-		return nil, fmt.Errorf(errInvalidKeys, "generator", i)
+
+	// validate the keys
+	err = utils.ValidateKeys(r.Log, secretMap)
+	if err != nil {
+		return nil, fmt.Errorf(errInvalidKeys, err)
 	}
+
 	return secretMap, err
 }
 
-// getGeneratorDefinition returns the generator JSON for a given sourceRef
-// when it uses a generatorRef it fetches the resource and returns the JSON.
-func (r *Reconciler) getGeneratorDefinition(ctx context.Context, namespace string, generatorRef *esv1beta1.GeneratorRef) (*apiextensions.JSON, error) {
-	// client-go dynamic client needs a GVR to fetch the resource
-	// But we only have the GVK in our generatorRef.
-	//
-	// TODO: there is no need to discover the GroupVersionResource
-	//       this should be cached.
-	c := discovery.NewDiscoveryClientForConfigOrDie(r.RestConfig)
-	groupResources, err := restmapper.GetAPIGroupResources(c)
-	if err != nil {
-		return nil, err
-	}
-
-	gv, err := schema.ParseGroupVersion(generatorRef.APIVersion)
-	if err != nil {
-		return nil, err
-	}
-	mapper := restmapper.NewDiscoveryRESTMapper(groupResources)
-	mapping, err := mapper.RESTMapping(schema.GroupKind{
-		Group: gv.Group,
-		Kind:  generatorRef.Kind,
-	})
-	if err != nil {
-		return nil, err
-	}
-	d, err := dynamic.NewForConfig(r.RestConfig)
-	if err != nil {
-		return nil, err
-	}
-	res, err := d.Resource(mapping.Resource).
-		Namespace(namespace).
-		Get(ctx, generatorRef.Name, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	jsonRes, err := res.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
-	return &apiextensions.JSON{Raw: jsonRes}, nil
+// We're using the index of the generator as the key for the generator state
+// this is because we can have multiple generators in the same ExternalSecret
+// and we need to keep track of the state of each generator.
+func generatorStateKey(i int) string {
+	return strconv.Itoa(i)
 }
 
-func (r *Reconciler) handleExtractSecrets(ctx context.Context, externalSecret *esv1beta1.ExternalSecret, remoteRef esv1beta1.ExternalSecretDataFromRemoteRef, cmgr *secretstore.Manager, i int) (map[string][]byte, error) {
+func (r *Reconciler) handleExtractSecrets(ctx context.Context, externalSecret *esv1.ExternalSecret, remoteRef esv1.ExternalSecretDataFromRemoteRef, cmgr *secretstore.Manager, genState *statemanager.Manager, i int) (map[string][]byte, error) {
 	client, err := cmgr.Get(ctx, externalSecret.Spec.SecretStoreRef, externalSecret.Namespace, remoteRef.SourceRef)
 	if err != nil {
 		return nil, err
 	}
+
+	// get multiple secrets from the store
 	secretMap, err := client.GetSecretMap(ctx, *remoteRef.Extract)
 	if err != nil {
 		return nil, err
 	}
+
+	// rewrite the keys if needed
 	secretMap, err = utils.RewriteMap(remoteRef.Rewrite, secretMap)
 	if err != nil {
-		return nil, fmt.Errorf(errRewrite, i, err)
+		return nil, fmt.Errorf(errRewrite, err)
 	}
 	if len(remoteRef.Rewrite) == 0 {
 		secretMap, err = utils.ConvertKeys(remoteRef.Extract.ConversionStrategy, secretMap)
 		if err != nil {
-			return nil, fmt.Errorf(errConvert, err)
+			return nil, fmt.Errorf(errConvert, remoteRef.Extract.ConversionStrategy, err)
 		}
 	}
-	if !utils.ValidateKeys(secretMap) {
-		return nil, fmt.Errorf(errInvalidKeys, "extract", i)
+
+	// validate the keys
+	err = utils.ValidateKeys(r.Log, secretMap)
+	if err != nil {
+		return nil, fmt.Errorf(errInvalidKeys, err)
 	}
+
+	// decode the secrets if needed
 	secretMap, err = utils.DecodeMap(remoteRef.Extract.DecodingStrategy, secretMap)
 	if err != nil {
-		return nil, fmt.Errorf(errDecode, "spec.dataFrom", i, err)
+		return nil, fmt.Errorf(errDecode, remoteRef.Extract.DecodingStrategy, err)
 	}
-	return secretMap, err
+	if genState != nil {
+		genState.EnqueueFlagLatestStateForGC(generatorStateKey(i))
+	}
+	return secretMap, nil
 }
 
-func (r *Reconciler) handleFindAllSecrets(ctx context.Context, externalSecret *esv1beta1.ExternalSecret, remoteRef esv1beta1.ExternalSecretDataFromRemoteRef, cmgr *secretstore.Manager, i int) (map[string][]byte, error) {
+func (r *Reconciler) handleFindAllSecrets(ctx context.Context, externalSecret *esv1.ExternalSecret, remoteRef esv1.ExternalSecretDataFromRemoteRef, cmgr *secretstore.Manager, genState *statemanager.Manager, i int) (map[string][]byte, error) {
 	client, err := cmgr.Get(ctx, externalSecret.Spec.SecretStoreRef, externalSecret.Namespace, remoteRef.SourceRef)
 	if err != nil {
 		return nil, err
 	}
+
+	// get all secrets from the store that match the selector
 	secretMap, err := client.GetAllSecrets(ctx, *remoteRef.Find)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting all secrets: %w", err)
 	}
+
+	// rewrite the keys if needed
 	secretMap, err = utils.RewriteMap(remoteRef.Rewrite, secretMap)
 	if err != nil {
-		return nil, fmt.Errorf(errRewrite, i, err)
+		return nil, fmt.Errorf(errRewrite, err)
 	}
 	if len(remoteRef.Rewrite) == 0 {
-		// ConversionStrategy is deprecated. Use RewriteMap instead.
-		r.recorder.Event(externalSecret, v1.EventTypeWarning, esv1beta1.ReasonDeprecated, fmt.Sprintf("dataFrom[%d].find.conversionStrategy=%v is deprecated and will be removed in further releases. Use dataFrom.rewrite instead", i, remoteRef.Find.ConversionStrategy))
 		secretMap, err = utils.ConvertKeys(remoteRef.Find.ConversionStrategy, secretMap)
 		if err != nil {
-			return nil, fmt.Errorf(errConvert, err)
+			return nil, fmt.Errorf(errConvert, remoteRef.Find.ConversionStrategy, err)
 		}
 	}
-	if !utils.ValidateKeys(secretMap) {
-		return nil, fmt.Errorf(errInvalidKeys, "find", i)
+
+	// validate the keys
+	err = utils.ValidateKeys(r.Log, secretMap)
+	if err != nil {
+		return nil, fmt.Errorf(errInvalidKeys, err)
 	}
+
+	// decode the secrets if needed
 	secretMap, err = utils.DecodeMap(remoteRef.Find.DecodingStrategy, secretMap)
 	if err != nil {
-		return nil, fmt.Errorf(errDecode, "spec.dataFrom", i, err)
+		return nil, fmt.Errorf(errDecode, remoteRef.Find.DecodingStrategy, err)
 	}
-	return secretMap, err
+	if genState != nil {
+		genState.EnqueueFlagLatestStateForGC(generatorStateKey(i))
+	}
+	return secretMap, nil
 }
 
 func shouldSkipGenerator(r *Reconciler, generatorDef *apiextensions.JSON) (bool, error) {

@@ -22,11 +22,17 @@ BeyondTrust [OAuth Authentication](https://www.beyondtrust.com/docs/beyondinsigh
 5. Add the user to the group
 6. Add the Secrets Safe Feature to the group
 
-> NOTE: The ClentID and ClientSecret must be stored in a Kubernetes secret in order for the SecretStore to read the configuration.
+> NOTE: The ClientID and ClientSecret must be stored in a Kubernetes secret in order for the SecretStore to read the configuration.
 
+If you're using client credentials authentication:
 ```sh
 kubectl create secret generic bt-secret --from-literal ClientSecret="<your secret>"
 kubectl create secret generic bt-id --from-literal ClientId="<your ID>"
+```
+
+If you're using API Key authentication:
+```sh
+kubectl create secret generic bt-apikey --from-literal ApiKey="<your apikey>"
 ```
 
 ### Client Certificate
@@ -61,7 +67,7 @@ kubectl apply -f secret-store.yml
 ```
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: secretstore-beyondtrust
@@ -70,10 +76,11 @@ spec:
     beyondtrust:
       server:
         apiUrl: https://example.com:443/BeyondTrust/api/public/v3/
-        retrievalType: MANAGED_ACCOUNT # or SECRET
+        retrievalType: MANAGED_ACCOUNT  # or SECRET
         verifyCA: true
         clientTimeOutSeconds: 45
-      auth: 
+        apiVersion: "3.0" # The recommended version is 3.1. If no version is specified, the default API version 3.0 will be used.
+      auth:
         certificate: # omit certificates if retrievalType is SECRET
           secretRef:
             name: bt-certificate
@@ -82,17 +89,21 @@ spec:
           secretRef:
             name: bt-certificatekey
             key: ClientCertificateKey
-        clientSecret:
+        clientSecret: # define this section if using client credentials authentication
           secretRef:
             name: bt-secret
             key: ClientSecret
-        clientId:
+        clientId: # define this section if using client credentials authentication
           secretRef:
             name: bt-id
             key: ClientId
+        apiKey: # define this section if using Api Key authentication
+          secretRef:
+            name: bt-apikey
+            key: ApiKey
 ```
 
-### Creating a ExternalSecret
+### Creating an ExternalSecret
 
 You can follow the below example to create a `ExternalSecret` resource. Secrets can be referenced by path.
 You can also use a `ClusterExternalSecret` allowing you to reference secrets from all namespaces.
@@ -102,12 +113,12 @@ kubectl apply -f external-secret.yml
 ```
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: beyondtrust-external-secret
 spec:
-  refreshInterval: 300s
+  refreshInterval: 1h
   secretStoreRef:
     kind: SecretStore
     name: secretstore-beyondtrust

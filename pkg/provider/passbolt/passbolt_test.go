@@ -24,8 +24,15 @@ import (
 	g "github.com/onsi/gomega"
 	"github.com/passbolt/go-passbolt/api"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+)
+
+const (
+	someKey1 = "some-key1"
+	someKey2 = "some-key2"
+	someURI1 = "some-uri1"
+	someURI2 = "some-uri2"
 )
 
 type PassboltClientMock struct {
@@ -42,8 +49,8 @@ func (p *PassboltClientMock) Logout(_ context.Context) error {
 }
 func (p *PassboltClientMock) GetResource(_ context.Context, resourceID string) (*api.Resource, error) {
 	resmap := map[string]api.Resource{
-		"some-key1": {ID: "some-key1", Name: "some-name1", URI: "some-uri1"},
-		"some-key2": {ID: "some-key2", Name: "some-name2", URI: "some-uri2"},
+		someKey1: {ID: someKey1, Name: "some-name1", URI: someURI1},
+		someKey2: {ID: someKey2, Name: "some-name2", URI: someURI2},
 	}
 
 	if res, ok := resmap[resourceID]; ok {
@@ -55,8 +62,8 @@ func (p *PassboltClientMock) GetResource(_ context.Context, resourceID string) (
 
 func (p *PassboltClientMock) GetResources(_ context.Context, _ *api.GetResourcesOptions) ([]api.Resource, error) {
 	res := []api.Resource{
-		{ID: "some-key1", Name: "some-name1", URI: "some-uri1"},
-		{ID: "some-key2", Name: "some-name2", URI: "some-uri2"},
+		{ID: someKey1, Name: "some-name1", URI: someURI1},
+		{ID: someKey2, Name: "some-name2", URI: someURI2},
 	}
 	return res, nil
 }
@@ -72,8 +79,8 @@ func (p *PassboltClientMock) DecryptMessage(message string) (string, error) {
 
 func (p *PassboltClientMock) GetSecret(_ context.Context, resourceID string) (*api.Secret, error) {
 	resmap := map[string]api.Secret{
-		"some-key1": {Data: `{"password": "some-password1", "description": "some-description1"}`},
-		"some-key2": {Data: `{"password": "some-password2", "description": "some-description2"}`},
+		someKey1: {Data: `{"password": "some-password1", "description": "some-description1"}`},
+		someKey2: {Data: `{"password": "some-password2", "description": "some-description2"}`},
 	}
 
 	if res, ok := resmap[resourceID]; ok {
@@ -89,10 +96,10 @@ func TestValidateStore(t *testing.T) {
 	p := &ProviderPassbolt{client: clientMock}
 
 	g.RegisterTestingT(t)
-	store := &esv1beta1.SecretStore{
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				Passbolt: &esv1beta1.PassboltProvider{},
+	store := &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Passbolt: &esv1.PassboltProvider{},
 			},
 		},
 	}
@@ -102,20 +109,20 @@ func TestValidateStore(t *testing.T) {
 	g.Expect(err).To(g.BeEquivalentTo(errors.New(errPassboltStoreMissingAuth)))
 
 	// missing password
-	store.Spec.Provider.Passbolt.Auth = &esv1beta1.PassboltAuth{
+	store.Spec.Provider.Passbolt.Auth = &esv1.PassboltAuth{
 		PrivateKeySecretRef: &esmeta.SecretKeySelector{Key: "some-secret", Name: "privatekey"},
 	}
 	_, err = p.ValidateStore(store)
 	g.Expect(err).To(g.BeEquivalentTo(errors.New(errPassboltStoreMissingAuthPassword)))
 
 	// missing privateKey
-	store.Spec.Provider.Passbolt.Auth = &esv1beta1.PassboltAuth{
+	store.Spec.Provider.Passbolt.Auth = &esv1.PassboltAuth{
 		PasswordSecretRef: &esmeta.SecretKeySelector{Key: "some-secret", Name: "password"},
 	}
 	_, err = p.ValidateStore(store)
 	g.Expect(err).To(g.BeEquivalentTo(errors.New(errPassboltStoreMissingAuthPrivateKey)))
 
-	store.Spec.Provider.Passbolt.Auth = &esv1beta1.PassboltAuth{
+	store.Spec.Provider.Passbolt.Auth = &esv1.PassboltAuth{
 
 		PasswordSecretRef:   &esmeta.SecretKeySelector{Key: "some-secret", Name: "password"},
 		PrivateKeySecretRef: &esmeta.SecretKeySelector{Key: "some-secret", Name: "privatekey"},
@@ -146,14 +153,14 @@ func TestClose(t *testing.T) {
 func TestGetAllSecrets(t *testing.T) {
 	cases := []struct {
 		desc        string
-		ref         esv1beta1.ExternalSecretFind
+		ref         esv1.ExternalSecretFind
 		expected    map[string][]byte
 		expectedErr string
 	}{
 		{
 			desc: "no matches",
-			ref: esv1beta1.ExternalSecretFind{
-				Name: &esv1beta1.FindName{
+			ref: esv1.ExternalSecretFind{
+				Name: &esv1.FindName{
 					RegExp: "nonexistant",
 				},
 			},
@@ -161,25 +168,25 @@ func TestGetAllSecrets(t *testing.T) {
 		},
 		{
 			desc: "matches",
-			ref: esv1beta1.ExternalSecretFind{
-				Name: &esv1beta1.FindName{
+			ref: esv1.ExternalSecretFind{
+				Name: &esv1.FindName{
 					RegExp: "some-name.*",
 				},
 			},
 			expected: map[string][]byte{
-				"some-key1": []byte(`{"name":"some-name1","username":"","password":"some-password1","uri":"some-uri1","description":"some-description1"}`),
-				"some-key2": []byte(`{"name":"some-name2","username":"","password":"some-password2","uri":"some-uri2","description":"some-description2"}`),
+				someKey1: []byte(`{"name":"some-name1","username":"","password":"some-password1","uri":"some-uri1","description":"some-description1"}`),
+				someKey2: []byte(`{"name":"some-name2","username":"","password":"some-password2","uri":"some-uri2","description":"some-description2"}`),
 			},
 		},
 		{
 			desc:        "missing find.name",
-			ref:         esv1beta1.ExternalSecretFind{},
+			ref:         esv1.ExternalSecretFind{},
 			expectedErr: errPassboltExternalSecretMissingFindNameRegExp,
 		},
 		{
 			desc: "empty find.name.regexp",
-			ref: esv1beta1.ExternalSecretFind{
-				Name: &esv1beta1.FindName{
+			ref: esv1.ExternalSecretFind{
+				Name: &esv1.FindName{
 					RegExp: "",
 				},
 			},
@@ -220,36 +227,36 @@ func TestGetSecret(t *testing.T) {
 	g.RegisterTestingT(t)
 	tbl := []struct {
 		name     string
-		request  esv1beta1.ExternalSecretDataRemoteRef
+		request  esv1.ExternalSecretDataRemoteRef
 		expValue string
 		expErr   string
 	}{
 		{
 			name: "return err when not found",
-			request: esv1beta1.ExternalSecretDataRemoteRef{
+			request: esv1.ExternalSecretDataRemoteRef{
 				Key: "nonexistent",
 			},
 			expErr: "ID not found",
 		},
 		{
 			name: "get property from secret",
-			request: esv1beta1.ExternalSecretDataRemoteRef{
-				Key:      "some-key1",
+			request: esv1.ExternalSecretDataRemoteRef{
+				Key:      someKey1,
 				Property: "password",
 			},
 			expValue: "some-password1",
 		},
 		{
 			name: "get full secret",
-			request: esv1beta1.ExternalSecretDataRemoteRef{
-				Key: "some-key1",
+			request: esv1.ExternalSecretDataRemoteRef{
+				Key: someKey1,
 			},
 			expValue: `{"name":"some-name1","username":"","password":"some-password1","uri":"some-uri1","description":"some-description1"}`,
 		},
 		{
 			name: "return err when using invalid property",
-			request: esv1beta1.ExternalSecretDataRemoteRef{
-				Key:      "some-key1",
+			request: esv1.ExternalSecretDataRemoteRef{
+				Key:      someKey1,
 				Property: "invalid",
 			},
 			expErr: errPassboltSecretPropertyInvalid,
@@ -292,6 +299,6 @@ func TestDeleteSecret(t *testing.T) {
 func TestGetSecretMap(t *testing.T) {
 	p := &ProviderPassbolt{client: clientMock}
 	g.RegisterTestingT(t)
-	_, err := p.GetSecretMap(context.TODO(), esv1beta1.ExternalSecretDataRemoteRef{})
+	_, err := p.GetSecretMap(context.TODO(), esv1.ExternalSecretDataRemoteRef{})
 	g.Expect(err).To(g.BeEquivalentTo(errors.New(errNotImplemented)))
 }

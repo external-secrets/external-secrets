@@ -4,6 +4,8 @@ External-secrets runs within your Kubernetes cluster as a deployment resource.
 It utilizes CustomResourceDefinitions to configure access to secret providers through SecretStore resources
 and manages Kubernetes secret resources with ExternalSecret resources.
 
+This tutorial is intended for those who already have the PreRequisites complete. If there is a term that you don't comprehend, we suggest you to take a look at the Glossary for a general understanding.
+
 > Note: The minimum supported version of Kubernetes is `1.16.0`. Users still running Kubernetes v1.15 or below should upgrade
 > to a supported version before installing external-secrets.
 
@@ -99,10 +101,6 @@ Events:                    <none>
 
 For more advanced examples, please read the other
 [guides](../guides/introduction.md).
-
-## Installing with OLM
-
-External-secrets can be managed by [Operator Lifecycle Manager](https://olm.operatorframework.io/) (OLM) via an installer operator. It is made available through [OperatorHub.io](https://operatorhub.io/), this installation method is suited best for OpenShift. See installation instructions on the [external-secrets-operator](https://operatorhub.io/operator/external-secrets-operator) package.
 
 ## Uninstalling
 

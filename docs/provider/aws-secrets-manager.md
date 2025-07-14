@@ -12,14 +12,29 @@ way users of the `SecretStore` can only access the secrets necessary.
 {% include 'aws-sm-store.yaml' %}
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `accessKeyIDSecretRef` and `secretAccessKeySecretRef`  with the namespaces where the secrets reside.
+
+**NOTE:** When using `dataFrom` without a `path` defined, the provider will fall back to using `ListSecrets`. `ListSecrets`
+then proceeds to fetch each individual secret in turn. To use `BatchGetSecretValue` and avoid excessive API calls define
+a `path` prefix or use `Tags` filter.
+
 ### IAM Policy
 
 Create a IAM Policy to pin down access to secrets matching `dev-*`.
+
+For Batch permissions read the following post https://aws.amazon.com/about-aws/whats-new/2023/11/aws-secrets-manager-batch-retrieval-secrets/.
 
 ``` json
 {
   "Version": "2012-10-17",
   "Statement": [
+    {
+      "Action" : [
+        "secretsmanager:ListSecrets",
+        "secretsmanager:BatchGetSecretValue"
+      ],
+      "Effect" : "Allow",
+      "Resource" : "*"
+    },
     {
       "Effect": "Allow",
       "Action": [
@@ -102,15 +117,22 @@ Additional settings can be set at the `SecretStore` level to control the behavio
 
 #### Additional Metadata for PushSecret
 
-It's possible to configure AWS Secrets Manager to either push secrets in `binary` format or as plain `string`.
+Optionally, it is possible to configure additional options for the parameter. These are as follows:
+- kmsKeyID
+- secretPushFormat
+- description
+- tags
 
-To control this behaviour set the following provider metadata:
+To control this behavior set the following provider metadata:
 
 ```yaml
 {% include 'aws-sm-push-secret-with-metadata.yaml' %}
 ```
 
-`secretPushFormat` takes two options. `binary` and `string`, where `binary` is the _default_.
+- `secretPushFormat` takes two options. `binary` and `string`, where `binary` is the _default_.
+- `kmsKeyID` takes a KMS Key `$ID` or `$ARN` (in case a key source is created in another account) as a string, where `alias/aws/secretsmanager` is the _default_.
+- `description` Description of the secret.
+- `tags` Key-value map of user-defined tags that are attached to the secret.
 
 ### JSON Secret Values
 
@@ -143,7 +165,7 @@ The `version` field on the `remoteRef` of the ExternalSecret will normally consi
 So in this example, the operator will request the same secret with different versions: `AWSCURRENT` and `AWSPREVIOUS`:
 
 ``` yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: versioned-api-key
@@ -169,7 +191,7 @@ spec:
 While in this example, the operator will request the secret with `VersionId` as `abcd-1234`
 
 ``` yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: versioned-api-key

@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -35,7 +35,7 @@ const (
 	// we can remove this and replace it with a interface.
 	EmptyStoreKind = "EmptyStoreKind"
 
-	errGetKubeSecret         = "cannot get Kubernetes secret %q: %w"
+	errGetKubeSecret         = "cannot get Kubernetes secret %q from namespace %q: %w"
 	errSecretKeyFmt          = "cannot find secret data for key: %q"
 	errGetKubeSATokenRequest = "cannot request Kubernetes service account token for service account %q: %w"
 )
@@ -54,14 +54,14 @@ func SecretKeyRef(
 		Namespace: esNamespace,
 		Name:      ref.Name,
 	}
-	if (storeKind == esv1beta1.ClusterSecretStoreKind) &&
+	if (storeKind == esv1.ClusterSecretStoreKind) &&
 		(ref.Namespace != nil) {
 		key.Namespace = *ref.Namespace
 	}
 	secret := &corev1.Secret{}
 	err := c.Get(ctx, key, secret)
 	if err != nil {
-		return "", fmt.Errorf(errGetKubeSecret, ref.Name, err)
+		return "", fmt.Errorf(errGetKubeSecret, ref.Name, key.Namespace, err)
 	}
 	val, ok := secret.Data[ref.Key]
 	if !ok {

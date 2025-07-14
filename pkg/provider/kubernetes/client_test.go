@@ -24,12 +24,13 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
 )
 
@@ -86,8 +87,9 @@ func (fk *fakeClient) Delete(_ context.Context, name string, _ metav1.DeleteOpti
 
 func (fk *fakeClient) Create(_ context.Context, secret *v1.Secret, _ metav1.CreateOptions) (*v1.Secret, error) {
 	s := &v1.Secret{
-		Data: secret.Data,
-		Type: secret.Type,
+		Data:       secret.Data,
+		ObjectMeta: secret.ObjectMeta,
+		Type:       secret.Type,
 	}
 	fk.secretMap[secret.Name] = s
 	return s, nil
@@ -98,6 +100,7 @@ func (fk *fakeClient) Update(_ context.Context, secret *v1.Secret, _ metav1.Upda
 	if !ok {
 		return nil, errors.New("error while updating secret")
 	}
+	s.ObjectMeta = secret.ObjectMeta
 	s.Data = secret.Data
 	return s, nil
 }
@@ -109,7 +112,7 @@ func TestGetSecret(t *testing.T) {
 		desc      string
 		secrets   map[string]*v1.Secret
 		clientErr error
-		ref       esv1beta1.ExternalSecretDataRemoteRef
+		ref       esv1.ExternalSecretDataRemoteRef
 		want      []byte
 		wantErr   string
 	}{
@@ -122,7 +125,7 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "mysec",
 				Property: "token",
 			},
@@ -137,7 +140,7 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "mysec",
 				Property: "foo.huga.bar",
 			},
@@ -153,7 +156,7 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "mysec",
 				Property: "foo.png",
 			},
@@ -168,7 +171,7 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "mysec",
 			},
 			want: []byte(`{"html":"<foobar>"}`),
@@ -183,8 +186,8 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
-				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+			ref: esv1.ExternalSecretDataRemoteRef{
+				MetadataPolicy: esv1.ExternalSecretMetadataPolicyFetch,
 				Key:            "mysec",
 			},
 			want: []byte(`{"annotations":{"date":"today"},"labels":{"dev":"<seb>"}}`),
@@ -198,7 +201,7 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "mysec",
 				Property: "bindata",
 			},
@@ -213,7 +216,7 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "mysec",
 			},
 			want: []byte(`{"token":"foobar"}`),
@@ -228,8 +231,8 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
-				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+			ref: esv1.ExternalSecretDataRemoteRef{
+				MetadataPolicy: esv1.ExternalSecretMetadataPolicyFetch,
 				Key:            "mysec",
 			},
 			want: []byte(`{"annotations":{"date":"today"},"labels":{"dev":"seb"}}`),
@@ -244,8 +247,8 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
-				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+			ref: esv1.ExternalSecretDataRemoteRef{
+				MetadataPolicy: esv1.ExternalSecretMetadataPolicyFetch,
 				Key:            "mysec",
 				Property:       "labels",
 			},
@@ -261,8 +264,8 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
-				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+			ref: esv1.ExternalSecretDataRemoteRef{
+				MetadataPolicy: esv1.ExternalSecretMetadataPolicyFetch,
 				Key:            "mysec",
 				Property:       "labels.dev",
 			},
@@ -271,7 +274,7 @@ func TestGetSecret(t *testing.T) {
 		{
 			desc:      "secret is not found",
 			clientErr: apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, "secret"),
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "mysec",
 				Property: "token",
 			},
@@ -286,7 +289,7 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
+			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:      "mysec",
 				Property: "not-the-token",
 			},
@@ -302,8 +305,8 @@ func TestGetSecret(t *testing.T) {
 					},
 				},
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
-				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+			ref: esv1.ExternalSecretDataRemoteRef{
+				MetadataPolicy: esv1.ExternalSecretMetadataPolicyFetch,
 				Key:            "mysec",
 				Property:       "foo",
 			},
@@ -349,7 +352,7 @@ func TestGetSecretMap(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		ref    esv1beta1.ExternalSecretDataRemoteRef
+		ref    esv1.ExternalSecretDataRemoteRef
 
 		want    map[string][]byte
 		wantErr bool
@@ -370,8 +373,8 @@ func TestGetSecretMap(t *testing.T) {
 				},
 				Namespace: "default",
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
-				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+			ref: esv1.ExternalSecretDataRemoteRef{
+				MetadataPolicy: esv1.ExternalSecretMetadataPolicyFetch,
 				Key:            "mysec",
 			},
 			want: map[string][]byte{"annotations": []byte("{\"date\":\"today\"}"), "labels": []byte("{\"dev\":\"seb\"}")},
@@ -392,8 +395,8 @@ func TestGetSecretMap(t *testing.T) {
 				},
 				Namespace: "default",
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
-				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+			ref: esv1.ExternalSecretDataRemoteRef{
+				MetadataPolicy: esv1.ExternalSecretMetadataPolicyFetch,
 				Key:            "mysec",
 				Property:       "labels",
 			},
@@ -415,8 +418,8 @@ func TestGetSecretMap(t *testing.T) {
 				},
 				Namespace: "default",
 			},
-			ref: esv1beta1.ExternalSecretDataRemoteRef{
-				MetadataPolicy: esv1beta1.ExternalSecretMetadataPolicyFetch,
+			ref: esv1.ExternalSecretDataRemoteRef{
+				MetadataPolicy: esv1.ExternalSecretMetadataPolicyFetch,
 				Key:            "mysec",
 				Property:       "foo",
 			},
@@ -450,7 +453,7 @@ func TestGetAllSecrets(t *testing.T) {
 	}
 	type args struct {
 		ctx context.Context
-		ref esv1beta1.ExternalSecretFind
+		ref esv1.ExternalSecretFind
 	}
 	tests := []struct {
 		name    string
@@ -485,8 +488,8 @@ func TestGetAllSecrets(t *testing.T) {
 				},
 			},
 			args: args{
-				ref: esv1beta1.ExternalSecretFind{
-					Name: &esv1beta1.FindName{
+				ref: esv1.ExternalSecretFind{
+					Name: &esv1.FindName{
 						RegExp: "other",
 					},
 				},
@@ -524,7 +527,7 @@ func TestGetAllSecrets(t *testing.T) {
 				},
 			},
 			args: args{
-				ref: esv1beta1.ExternalSecretFind{
+				ref: esv1.ExternalSecretFind{
 					Tags: map[string]string{
 						"app": "foobar",
 					},
@@ -562,7 +565,7 @@ func TestDeleteSecret(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		ref    esv1beta1.PushSecretRemoteRef
+		ref    esv1.PushSecretRemoteRef
 
 		wantSecretMap map[string]*v1.Secret
 		wantErr       bool
@@ -705,6 +708,9 @@ func TestDeleteSecret(t *testing.T) {
 			wantErr: false,
 			wantSecretMap: map[string]*v1.Secret{
 				"mysec": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "mysec",
+					},
 					Data: map[string][]byte{
 						"secret": []byte(`bar`),
 					},
@@ -797,6 +803,11 @@ func TestPushSecret(t *testing.T) {
 			},
 			wantSecretMap: map[string]*v1.Secret{
 				"mysec": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "mysec",
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
+					},
 					Data: map[string][]byte{
 						"token":  []byte(`foo`),
 						"token2": []byte(`foo`),
@@ -827,6 +838,11 @@ func TestPushSecret(t *testing.T) {
 			},
 			wantSecretMap: map[string]*v1.Secret{
 				"mysec": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "mysec",
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
+					},
 					Data: map[string][]byte{
 						"token": []byte(`{"foo":"bar"}`),
 					},
@@ -856,6 +872,11 @@ func TestPushSecret(t *testing.T) {
 			},
 			wantSecretMap: map[string]*v1.Secret{
 				"mysec": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "mysec",
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
+					},
 					Data: map[string][]byte{
 						"token":  []byte(`foo`),
 						"token2": []byte(`{"foo":"bar"}`),
@@ -883,6 +904,11 @@ func TestPushSecret(t *testing.T) {
 			},
 			wantSecretMap: map[string]*v1.Secret{
 				"mysec": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "mysec",
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
+					},
 					Data: map[string][]byte{
 						"marshaled": []byte(`{"token":"foo","token2":"2"}`),
 					},
@@ -915,6 +941,11 @@ func TestPushSecret(t *testing.T) {
 			wantErr: false,
 			wantSecretMap: map[string]*v1.Secret{
 				"mysec": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "mysec",
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
+					},
 					Data: map[string][]byte{
 						"token":  []byte(`foo`),
 						"secret": []byte(`bar`),
@@ -947,6 +978,11 @@ func TestPushSecret(t *testing.T) {
 			wantErr: false,
 			wantSecretMap: map[string]*v1.Secret{
 				"mysec": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "mysec",
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
+					},
 					Data: map[string][]byte{
 						"token": []byte(`bar`),
 					},
@@ -954,7 +990,216 @@ func TestPushSecret(t *testing.T) {
 			},
 		},
 		{
-			name: "create new secret",
+			name: "replace existing property in existing secret with targetMergePolicy set to Ignore",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"token": []byte(`foo`),
+							},
+						},
+					},
+				},
+			},
+			secret: &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mysec",
+					// these should be ignored as the targetMergePolicy is set to Ignore
+					Labels:      map[string]string{"dev": "seb"},
+					Annotations: map[string]string{"date": "today"},
+				},
+				Data: map[string][]byte{secretKey: []byte("bar")},
+			},
+			data: testingfake.PushSecretData{
+				SecretKey: secretKey,
+				RemoteKey: "mysec",
+				Property:  "token",
+				Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1", "kind": "PushSecretMetadata", spec: {"targetMergePolicy": "Ignore"}}`),
+				},
+			},
+			wantErr: false,
+			wantSecretMap: map[string]*v1.Secret{
+				"mysec": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "mysec",
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
+					},
+					Data: map[string][]byte{
+						"token": []byte(`bar`),
+					},
+				},
+			},
+		},
+		{
+			name: "replace existing property in existing secret with targetMergePolicy set to Replace",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"mysec": {
+							ObjectMeta: metav1.ObjectMeta{
+								Name: "mysec",
+								Labels: map[string]string{
+									"already": "existing",
+								},
+								Annotations: map[string]string{
+									"already": "existing",
+								},
+							},
+							Data: map[string][]byte{
+								"token": []byte(`foo`),
+							},
+						},
+					},
+				},
+			},
+			secret: &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mysec",
+					// these should replace existing metadata as the targetMergePolicy is set to Replace
+					Labels:      map[string]string{"dev": "seb"},
+					Annotations: map[string]string{"date": "today"},
+				},
+				Data: map[string][]byte{secretKey: []byte("bar")},
+			},
+			data: testingfake.PushSecretData{
+				SecretKey: secretKey,
+				RemoteKey: "mysec",
+				Property:  "token",
+				Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1", "kind": "PushSecretMetadata", spec: {"targetMergePolicy": "Replace"}}`),
+				},
+			},
+			wantErr: false,
+			wantSecretMap: map[string]*v1.Secret{
+				"mysec": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "mysec",
+						Labels: map[string]string{
+							"dev": "seb",
+						},
+						Annotations: map[string]string{
+							"date": "today",
+						},
+					},
+					Data: map[string][]byte{
+						"token": []byte(`bar`),
+					},
+				},
+			},
+		},
+		{
+			name: "create new secret, merging existing metadata",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"yoursec": {
+							Data: map[string][]byte{
+								"token": []byte(`foo`),
+							},
+						},
+					},
+				},
+			},
+			secret: &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"this-annotation": "should be present on the targey secret",
+					},
+				},
+				Data: map[string][]byte{secretKey: []byte("bar")},
+			},
+			data: testingfake.PushSecretData{
+				SecretKey: secretKey,
+				RemoteKey: "mysec",
+				Property:  "secret",
+				Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1", "kind": "PushSecretMetadata", spec: {"annotations": {"date": "today"}, "labels": {"dev": "seb"}}}`),
+				},
+			},
+			wantErr: false,
+			wantSecretMap: map[string]*v1.Secret{
+				"yoursec": {
+					Data: map[string][]byte{
+						"token": []byte(`foo`),
+					},
+				},
+				"mysec": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "mysec",
+						Annotations: map[string]string{
+							"date":            "today",
+							"this-annotation": "should be present on the targey secret",
+						},
+						Labels: map[string]string{"dev": "seb"},
+					},
+					Data: map[string][]byte{
+						"secret": []byte(`bar`),
+					},
+					Type: v1.SecretTypeOpaque,
+				},
+			},
+		},
+		{
+			name: "create new secret with metadata from secret metadata and remoteRef.metadata",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"yoursec": {
+							Data: map[string][]byte{
+								"token": []byte(`foo`),
+							},
+						},
+					},
+				},
+			},
+			secret: &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{"date": "today"},
+					Labels:      map[string]string{"dev": "seb"},
+				},
+				Data: map[string][]byte{secretKey: []byte("bar")},
+			},
+			data: testingfake.PushSecretData{
+				SecretKey: secretKey,
+				RemoteKey: "mysec",
+				Property:  "secret",
+				Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1", "kind": "PushSecretMetadata", spec: { "sourceMergePolicy": "Replace", "annotations": {"another-field": "from-remote-ref"}, "labels": {"other-label": "from-remote-ref"}}}`),
+				},
+			},
+			wantErr: false,
+			wantSecretMap: map[string]*v1.Secret{
+				"yoursec": {
+					Data: map[string][]byte{
+						"token": []byte(`foo`),
+					},
+				},
+				"mysec": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "mysec",
+						Annotations: map[string]string{
+							"another-field": "from-remote-ref",
+						},
+						Labels: map[string]string{
+							"other-label": "from-remote-ref",
+						},
+					},
+					Data: map[string][]byte{
+						"secret": []byte(`bar`),
+					},
+					Type: v1.SecretTypeOpaque,
+				},
+			},
+		},
+		{
+			name: "invalid secret metadata structure results in error",
 			fields: fields{
 				Client: &fakeClient{
 					t: t,
@@ -974,6 +1219,75 @@ func TestPushSecret(t *testing.T) {
 				SecretKey: secretKey,
 				RemoteKey: "mysec",
 				Property:  "secret",
+				Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{}`),
+				},
+			},
+			wantErr: true,
+			wantSecretMap: map[string]*v1.Secret{
+				"yoursec": {
+					Data: map[string][]byte{
+						"token": []byte(`foo`),
+					},
+				},
+			},
+		},
+		{
+			name: "non-json secret metadata results in error",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"yoursec": {
+							Data: map[string][]byte{
+								"token": []byte(`foo`),
+							},
+						},
+					},
+				},
+			},
+			secret: &v1.Secret{
+				Data: map[string][]byte{secretKey: []byte("bar")},
+			},
+			data: testingfake.PushSecretData{
+				SecretKey: secretKey,
+				RemoteKey: "mysec",
+				Property:  "secret",
+				Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`--- not json ---`),
+				},
+			},
+			wantErr: true,
+			wantSecretMap: map[string]*v1.Secret{
+				"yoursec": {
+					Data: map[string][]byte{
+						"token": []byte(`foo`),
+					},
+				},
+			},
+		},
+		{
+			name: "create new secret with whole secret",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"yoursec": {
+							Data: map[string][]byte{
+								"token": []byte(`foo`),
+							},
+						},
+					},
+				},
+			},
+			secret: &v1.Secret{
+				Data: map[string][]byte{
+					"foo": []byte("bar"),
+					"baz": []byte("bang"),
+				},
+			},
+			data: testingfake.PushSecretData{
+				RemoteKey: "mysec",
 			},
 			wantErr: false,
 			wantSecretMap: map[string]*v1.Secret{
@@ -983,8 +1297,14 @@ func TestPushSecret(t *testing.T) {
 					},
 				},
 				"mysec": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "mysec",
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
+					},
 					Data: map[string][]byte{
-						"secret": []byte(`bar`),
+						"foo": []byte("bar"),
+						"baz": []byte("bang"),
 					},
 					Type: v1.SecretTypeOpaque,
 				},
@@ -1021,18 +1341,24 @@ func TestPushSecret(t *testing.T) {
 					},
 				},
 				"mysec": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "mysec",
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
+					},
 					Data: map[string][]byte{
 						"config.json": []byte(`{"auths": {"myregistry.localhost": {"username": "{{ .username }}", "password": "{{ .password }}"}}}`),
 					},
 					Type: v1.SecretTypeDockerConfigJson,
 				},
 			},
-		}}
+		},
+	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &Client{
 				userSecretClient: tt.fields.Client,
-				store:            &esv1beta1.KubernetesProvider{},
+				store:            &esv1.KubernetesProvider{},
 			}
 			err := p.PushSecret(context.Background(), tt.secret, tt.data)
 			if (err != nil) != tt.wantErr {

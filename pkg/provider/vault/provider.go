@@ -28,7 +28,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/cache"
 	"github.com/external-secrets/external-secrets/pkg/feature"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
@@ -36,7 +36,7 @@ import (
 )
 
 var (
-	_           esv1beta1.Provider = &Provider{}
+	_           esv1.Provider = &Provider{}
 	enableCache bool
 	logger      = ctrl.Log.WithName("provider").WithName("vault")
 	clientCache *cache.Cache[util.Client]
@@ -48,6 +48,10 @@ const (
 	errVaultCert     = "cannot set Vault CA certificate: %w"
 	errClientTLSAuth = "error from Client TLS Auth: %q"
 	errCANamespace   = "missing namespace on caProvider secret"
+)
+
+const (
+	defaultCacheSize = 2 << 17
 )
 
 type Provider struct {
@@ -76,12 +80,12 @@ func NewVaultClient(config *vault.Config) (util.Client, error) {
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
-func (p *Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadWrite
+func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadWrite
 }
 
 // NewClient implements the Client interface.
-func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	// controller-runtime/client does not support TokenRequest or other subresource APIs
 	// so we need to construct our own client and use it to fetch tokens
 	// (for Kubernetes service account token auth)
@@ -96,8 +100,8 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return p.newClient(ctx, store, kube, clientset.CoreV1(), namespace)
 }
 
-func (p *Provider) NewGeneratorClient(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, namespace string) (util.Client, error) {
-	vStore, cfg, err := p.prepareConfig(ctx, kube, corev1, vaultSpec, nil, namespace, resolvers.EmptyStoreKind)
+func (p *Provider) NewGeneratorClient(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1.VaultProvider, namespace string, retrySettings *esv1.SecretStoreRetrySettings) (util.Client, error) {
+	vStore, cfg, err := p.prepareConfig(ctx, kube, corev1, vaultSpec, retrySettings, namespace, resolvers.EmptyStoreKind)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +119,7 @@ func (p *Provider) NewGeneratorClient(ctx context.Context, kube kclient.Client, 
 	return client, nil
 }
 
-func (p *Provider) newClient(ctx context.Context, store esv1beta1.GenericStore, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Vault == nil {
 		return nil, errors.New(errVaultStore)
@@ -134,7 +138,7 @@ func (p *Provider) newClient(ctx context.Context, store esv1beta1.GenericStore, 
 		return nil, err
 	}
 
-	client, err := getVaultClient(p, store, cfg)
+	client, err := getVaultClient(p, store, cfg, namespace)
 	if err != nil {
 		return nil, fmt.Errorf(errVaultClient, err)
 	}
@@ -142,7 +146,7 @@ func (p *Provider) newClient(ctx context.Context, store esv1beta1.GenericStore, 
 	return p.initClient(ctx, vStore, client, cfg, vaultSpec)
 }
 
-func (p *Provider) initClient(ctx context.Context, c *client, client util.Client, cfg *vault.Config, vaultSpec *esv1beta1.VaultProvider) (esv1beta1.SecretsClient, error) {
+func (p *Provider) initClient(ctx context.Context, c *client, client util.Client, cfg *vault.Config, vaultSpec *esv1.VaultProvider) (esv1.SecretsClient, error) {
 	if vaultSpec.Namespace != nil {
 		client.SetNamespace(*vaultSpec.Namespace)
 	}
@@ -164,7 +168,7 @@ func (p *Provider) initClient(ctx context.Context, c *client, client util.Client
 
 	// allow SecretStore controller validation to pass
 	// when using referent namespace.
-	if c.storeKind == esv1beta1.ClusterSecretStoreKind && c.namespace == "" && isReferentSpec(vaultSpec) {
+	if c.storeKind == esv1.ClusterSecretStoreKind && c.namespace == "" && isReferentSpec(vaultSpec) {
 		return c, nil
 	}
 	if err := c.setAuth(ctx, cfg); err != nil {
@@ -174,7 +178,7 @@ func (p *Provider) initClient(ctx context.Context, c *client, client util.Client
 	return c, nil
 }
 
-func (p *Provider) prepareConfig(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1beta1.VaultProvider, retrySettings *esv1beta1.SecretStoreRetrySettings, namespace, storeKind string) (*client, *vault.Config, error) {
+func (p *Provider) prepareConfig(ctx context.Context, kube kclient.Client, corev1 typedcorev1.CoreV1Interface, vaultSpec *esv1.VaultProvider, retrySettings *esv1.SecretStoreRetrySettings, namespace, storeKind string) (*client, *vault.Config, error) {
 	c := &client{
 		kube:      kube,
 		corev1:    corev1,
@@ -211,13 +215,21 @@ func (p *Provider) prepareConfig(ctx context.Context, kube kclient.Client, corev
 	return c, cfg, nil
 }
 
-func getVaultClient(p *Provider, store esv1beta1.GenericStore, cfg *vault.Config) (util.Client, error) {
-	isStaticToken := store.GetSpec().Provider.Vault.Auth.TokenSecretRef != nil
+func getVaultClient(p *Provider, store esv1.GenericStore, cfg *vault.Config, namespace string) (util.Client, error) {
+	vaultProvider := store.GetSpec().Provider.Vault
+	auth := vaultProvider.Auth
+	isStaticToken := auth != nil && auth.TokenSecretRef != nil
 	useCache := enableCache && !isStaticToken
+
+	keyNamespace := store.GetObjectMeta().Namespace
+	// A single ClusterSecretStore may need to spawn separate vault clients for each namespace.
+	if store.GetTypeMeta().Kind == esv1.ClusterSecretStoreKind && namespace != "" && isReferentSpec(vaultProvider) {
+		keyNamespace = namespace
+	}
 
 	key := cache.Key{
 		Name:      store.GetObjectMeta().Name,
-		Namespace: store.GetObjectMeta().Namespace,
+		Namespace: keyNamespace,
 		Kind:      store.GetTypeMeta().Kind,
 	}
 	if useCache {
@@ -238,7 +250,11 @@ func getVaultClient(p *Provider, store esv1beta1.GenericStore, cfg *vault.Config
 	return client, nil
 }
 
-func isReferentSpec(prov *esv1beta1.VaultProvider) bool {
+func isReferentSpec(prov *esv1.VaultProvider) bool {
+	if prov.Auth == nil {
+		return false
+	}
+
 	if prov.Auth.TokenSecretRef != nil && prov.Auth.TokenSecretRef.Namespace == nil {
 		return true
 	}
@@ -278,29 +294,30 @@ func isReferentSpec(prov *esv1beta1.VaultProvider) bool {
 	return false
 }
 
+func initCache(size int) {
+	logger.Info("initializing vault cache", "size", size)
+	clientCache = cache.Must(size, func(client util.Client) {
+		err := revokeTokenIfValid(context.Background(), client)
+		if err != nil {
+			logger.Error(err, "unable to revoke cached token on eviction")
+		}
+	})
+}
+
 func init() {
 	var vaultTokenCacheSize int
 	fs := pflag.NewFlagSet("vault", pflag.ExitOnError)
 	fs.BoolVar(&enableCache, "experimental-enable-vault-token-cache", false, "Enable experimental Vault token cache. External secrets will reuse the Vault token without creating a new one on each request.")
 	// max. 265k vault leases with 30bytes each ~= 7MB
-	fs.IntVar(&vaultTokenCacheSize, "experimental-vault-token-cache-size", 2<<17, "Maximum size of Vault token cache. When more tokens than Only used if --experimental-enable-vault-token-cache is set.")
-	lateInit := func() {
-		logger.Info("initializing vault cache", "size", vaultTokenCacheSize)
-		clientCache = cache.Must(vaultTokenCacheSize, func(client util.Client) {
-			err := revokeTokenIfValid(context.Background(), client)
-			if err != nil {
-				logger.Error(err, "unable to revoke cached token on eviction")
-			}
-		})
-	}
+	fs.IntVar(&vaultTokenCacheSize, "experimental-vault-token-cache-size", defaultCacheSize, "Maximum size of Vault token cache. When more tokens than Only used if --experimental-enable-vault-token-cache is set.")
 	feature.Register(feature.Feature{
 		Flags:      fs,
-		Initialize: lateInit,
+		Initialize: func() { initCache(vaultTokenCacheSize) },
 	})
 
-	esv1beta1.Register(&Provider{
+	esv1.Register(&Provider{
 		NewVaultClient: NewVaultClient,
-	}, &esv1beta1.SecretStoreProvider{
-		Vault: &esv1beta1.VaultProvider{},
-	})
+	}, &esv1.SecretStoreProvider{
+		Vault: &esv1.VaultProvider{},
+	}, esv1.MaintenanceStatusMaintained)
 }

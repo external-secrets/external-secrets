@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
-	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics"
 
@@ -63,7 +63,12 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
-	return reconcile(ctx, req, &ss, r.Client, log, r.ControllerClass, ssmetrics.GetGaugeVec, r.recorder, r.RequeueInterval)
+	return reconcile(ctx, req, &ss, r.Client, log, Opts{
+		ControllerClass: r.ControllerClass,
+		GaugeVecGetter:  ssmetrics.GetGaugeVec,
+		Recorder:        r.recorder,
+		RequeueInterval: r.RequeueInterval,
+	})
 }
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.

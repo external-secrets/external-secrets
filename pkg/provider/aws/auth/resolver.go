@@ -15,41 +15,35 @@ limitations under the License.
 package auth
 
 import (
+	"context"
+	"fmt"
+	"net/url"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws/endpoints"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
+	smithyendpoints "github.com/aws/smithy-go/endpoints"
 )
 
 const (
-	SecretsManagerEndpointEnv = "AWS_SECRETSMANAGER_ENDPOINT"
-	STSEndpointEnv            = "AWS_STS_ENDPOINT"
-	SSMEndpointEnv            = "AWS_SSM_ENDPOINT"
+	STSEndpointEnv = "AWS_STS_ENDPOINT"
 )
+
+type customEndpointResolver struct{}
 
 // ResolveEndpoint returns a ResolverFunc with
 // customizable endpoints.
-func ResolveEndpoint() endpoints.ResolverFunc {
-	customEndpoints := make(map[string]string)
-	if v := os.Getenv(SecretsManagerEndpointEnv); v != "" {
-		customEndpoints["secretsmanager"] = v
-	}
-	if v := os.Getenv(SSMEndpointEnv); v != "" {
-		customEndpoints["ssm"] = v
-	}
-	if v := os.Getenv(STSEndpointEnv); v != "" {
-		customEndpoints["sts"] = v
-	}
-	return ResolveEndpointWithServiceMap(customEndpoints)
-}
 
-func ResolveEndpointWithServiceMap(customEndpoints map[string]string) endpoints.ResolverFunc {
-	defaultResolver := endpoints.DefaultResolver()
-	return func(service, region string, opts ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
-		if ep, ok := customEndpoints[service]; ok {
-			return endpoints.ResolvedEndpoint{
-				URL: ep,
-			}, nil
+// should this reside somewhere else since it's specific to sts?
+func (c customEndpointResolver) ResolveEndpoint(ctx context.Context, params sts.EndpointParameters) (smithyendpoints.Endpoint, error) {
+	endpoint := smithyendpoints.Endpoint{}
+	if v := os.Getenv(STSEndpointEnv); v != "" {
+		url, err := url.Parse(v)
+		if err != nil {
+			return endpoint, fmt.Errorf("failed to parse sts endpoint %s: %w", v, err)
 		}
-		return defaultResolver.EndpointFor(service, region, opts...)
+		endpoint.URI = *url
+		return endpoint, nil
 	}
+	defaultResolver := sts.NewDefaultEndpointResolverV2()
+	return defaultResolver.ResolveEndpoint(ctx, params)
 }

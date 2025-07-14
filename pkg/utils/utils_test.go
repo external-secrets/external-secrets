@@ -21,14 +21,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/oracle/oci-go-sdk/v65/vault"
+	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
 	esmetav1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -50,19 +51,19 @@ func TestObjectHash(t *testing.T) {
 		{
 			name:  "A nil should be still working",
 			input: nil,
-			want:  "60046f14c917c18a9a0f923e191ba0dc",
+			want:  "c461202a18e99215f121936fb2452e03843828e448a00a53f285a6fc",
 		},
 		{
 			name:  "We accept a simple scalar value, i.e. string",
 			input: "hello there",
-			want:  "161bc25962da8fed6d2f59922fb642aa",
+			want:  "f78681ec611ebaeea0689bff6c7812a83ff98a7faba986d9af76c999",
 		},
 		{
 			name: "A complex object like a secret is not an issue",
 			input: v1.Secret{Data: map[string][]byte{
 				"xx": []byte("yyy"),
 			}},
-			want: "85eabdeb376371ffc5a658d7a162eba8",
+			want: "9c717e13e4281db3cdad3f56c6e7faab1d7029c4b4fbbf12fbec9b1e",
 		},
 		{
 			name: "map also works",
@@ -70,7 +71,7 @@ func TestObjectHash(t *testing.T) {
 				"foo": []byte("value1"),
 				"bar": []byte("value2"),
 			},
-			want: "caa0155759a6a9b3b6ada5a6883ee2bb",
+			want: "1bed8bcbcb4547ffe19a19cd47d9078e84aa6598266d86b99f992d64",
 		},
 	}
 	for _, tt := range tests {
@@ -169,7 +170,7 @@ func TestIsNil(t *testing.T) {
 
 func TestConvertKeys(t *testing.T) {
 	type args struct {
-		strategy esv1beta1.ExternalSecretConversionStrategy
+		strategy esv1.ExternalSecretConversionStrategy
 		in       map[string][]byte
 	}
 	tests := []struct {
@@ -181,7 +182,7 @@ func TestConvertKeys(t *testing.T) {
 		{
 			name: "convert with special chars",
 			args: args{
-				strategy: esv1beta1.ExternalSecretConversionDefault,
+				strategy: esv1.ExternalSecretConversionDefault,
 				in: map[string][]byte{
 					"foo$bar%baz*bing": []byte(`noop`),
 				},
@@ -193,7 +194,7 @@ func TestConvertKeys(t *testing.T) {
 		{
 			name: "error on collision",
 			args: args{
-				strategy: esv1beta1.ExternalSecretConversionDefault,
+				strategy: esv1.ExternalSecretConversionDefault,
 				in: map[string][]byte{
 					"foo$bar%baz*bing": []byte(`noop`),
 					"foo_bar_baz$bing": []byte(`noop`),
@@ -204,7 +205,7 @@ func TestConvertKeys(t *testing.T) {
 		{
 			name: "convert path",
 			args: args{
-				strategy: esv1beta1.ExternalSecretConversionDefault,
+				strategy: esv1.ExternalSecretConversionDefault,
 				in: map[string][]byte{
 					"/foo/bar/baz/bing": []byte(`noop`),
 					"foo/bar/baz/bing/": []byte(`noop`),
@@ -218,7 +219,7 @@ func TestConvertKeys(t *testing.T) {
 		{
 			name: "convert unicode",
 			args: args{
-				strategy: esv1beta1.ExternalSecretConversionUnicode,
+				strategy: esv1.ExternalSecretConversionUnicode,
 				in: map[string][]byte{
 					keyWithEmojis: []byte(`noop`),
 				},
@@ -244,7 +245,7 @@ func TestConvertKeys(t *testing.T) {
 
 func TestReverseKeys(t *testing.T) {
 	type args struct {
-		encodingStrategy esv1beta1.ExternalSecretConversionStrategy
+		encodingStrategy esv1.ExternalSecretConversionStrategy
 		decodingStrategy esv1alpha1.PushSecretConversionStrategy
 		in               map[string][]byte
 	}
@@ -257,7 +258,7 @@ func TestReverseKeys(t *testing.T) {
 		{
 			name: "encoding and decoding strategy are selecting Unicode conversion and reverse unicode, so the in and want should match, this test covers Unicode characters beyond the Basic Multilingual Plane (BMP)",
 			args: args{
-				encodingStrategy: esv1beta1.ExternalSecretConversionUnicode,
+				encodingStrategy: esv1.ExternalSecretConversionUnicode,
 				decodingStrategy: esv1alpha1.PushSecretConversionReverseUnicode,
 				in: map[string][]byte{
 					keyWithEmojis: []byte(`noop`),
@@ -270,7 +271,7 @@ func TestReverseKeys(t *testing.T) {
 		{
 			name: "encoding and decoding strategy are selecting Unicode conversion and reverse unicode, so the in and want should match, this test covers Unicode characters in the Basic Multilingual Plane (BMP)",
 			args: args{
-				encodingStrategy: esv1beta1.ExternalSecretConversionUnicode,
+				encodingStrategy: esv1.ExternalSecretConversionUnicode,
 				decodingStrategy: esv1alpha1.PushSecretConversionReverseUnicode,
 				in: map[string][]byte{
 					keyWithInvalidChars: []byte(`noop`),
@@ -283,7 +284,7 @@ func TestReverseKeys(t *testing.T) {
 		{
 			name: "the encoding strategy is selecting Unicode conversion, but the decoding strategy is none, so we want an encoded representation of the content",
 			args: args{
-				encodingStrategy: esv1beta1.ExternalSecretConversionUnicode,
+				encodingStrategy: esv1.ExternalSecretConversionUnicode,
 				decodingStrategy: esv1alpha1.PushSecretConversionNone,
 				in: map[string][]byte{
 					keyWithInvalidChars: []byte(`noop`),
@@ -315,7 +316,7 @@ func TestReverseKeys(t *testing.T) {
 
 func TestDecode(t *testing.T) {
 	type args struct {
-		strategy esv1beta1.ExternalSecretDecodingStrategy
+		strategy esv1.ExternalSecretDecodingStrategy
 		in       map[string][]byte
 	}
 	tests := []struct {
@@ -327,7 +328,7 @@ func TestDecode(t *testing.T) {
 		{
 			name: "base64 decoded",
 			args: args{
-				strategy: esv1beta1.ExternalSecretDecodeBase64,
+				strategy: esv1.ExternalSecretDecodeBase64,
 				in: map[string][]byte{
 					"foo": []byte("YmFy"),
 				},
@@ -339,7 +340,7 @@ func TestDecode(t *testing.T) {
 		{
 			name: "invalid base64",
 			args: args{
-				strategy: esv1beta1.ExternalSecretDecodeBase64,
+				strategy: esv1.ExternalSecretDecodeBase64,
 				in: map[string][]byte{
 					"foo": []byte("foo"),
 				},
@@ -349,7 +350,7 @@ func TestDecode(t *testing.T) {
 		{
 			name: "base64url decoded",
 			args: args{
-				strategy: esv1beta1.ExternalSecretDecodeBase64URL,
+				strategy: esv1.ExternalSecretDecodeBase64URL,
 				in: map[string][]byte{
 					"foo": []byte(base64URLEncodedValue),
 				},
@@ -361,7 +362,7 @@ func TestDecode(t *testing.T) {
 		{
 			name: "invalid base64url",
 			args: args{
-				strategy: esv1beta1.ExternalSecretDecodeBase64URL,
+				strategy: esv1.ExternalSecretDecodeBase64URL,
 				in: map[string][]byte{
 					"foo": []byte("foo"),
 				},
@@ -371,7 +372,7 @@ func TestDecode(t *testing.T) {
 		{
 			name: "none",
 			args: args{
-				strategy: esv1beta1.ExternalSecretDecodeNone,
+				strategy: esv1.ExternalSecretDecodeNone,
 				in: map[string][]byte{
 					"foo": []byte(base64URLEncodedValue),
 				},
@@ -383,7 +384,7 @@ func TestDecode(t *testing.T) {
 		{
 			name: "auto",
 			args: args{
-				strategy: esv1beta1.ExternalSecretDecodeAuto,
+				strategy: esv1.ExternalSecretDecodeAuto,
 				in: map[string][]byte{
 					"b64":        []byte(base64EncodedValue),
 					"invalidb64": []byte("foo"),
@@ -419,7 +420,7 @@ func TestValidate(t *testing.T) {
 
 func TestRewrite(t *testing.T) {
 	type args struct {
-		operations []esv1beta1.ExternalSecretRewrite
+		operations []esv1.ExternalSecretRewrite
 		in         map[string][]byte
 	}
 	tests := []struct {
@@ -429,11 +430,72 @@ func TestRewrite(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			name: "using double merge",
+			args: args{
+				operations: []esv1.ExternalSecretRewrite{
+					{
+						Merge: &esv1.ExternalSecretRewriteMerge{
+							Strategy:       esv1.ExternalSecretRewriteMergeStrategyJSON,
+							ConflictPolicy: esv1.ExternalSecretRewriteMergeConflictPolicyIgnore,
+							Into:           "merged",
+							Priority:       []string{"a"},
+						},
+					},
+					{
+						Merge: &esv1.ExternalSecretRewriteMerge{
+							Strategy:       esv1.ExternalSecretRewriteMergeStrategyExtract,
+							ConflictPolicy: esv1.ExternalSecretRewriteMergeConflictPolicyIgnore,
+							Priority:       []string{"b"},
+						},
+					},
+				},
+				in: map[string][]byte{
+					"a": []byte(`{"host": "dba", "pass": "yola", "port": 123}`),
+					"b": []byte(`{"host": "dbb", "pass": "yolb"}`),
+				},
+			},
+			want: map[string][]byte{
+				"host": []byte("dbb"),
+				"pass": []byte("yolb"),
+				"port": []byte("123"),
+			},
+		},
+		{
+			name: "using regexp and merge",
+			args: args{
+				operations: []esv1.ExternalSecretRewrite{
+					{
+						Regexp: &esv1.ExternalSecretRewriteRegexp{
+							Source: "db/(.*)",
+							Target: "$1",
+						},
+					},
+					{
+						Merge: &esv1.ExternalSecretRewriteMerge{
+							Strategy:       esv1.ExternalSecretRewriteMergeStrategyJSON,
+							ConflictPolicy: esv1.ExternalSecretRewriteMergeConflictPolicyIgnore,
+							Into:           "merged",
+							Priority:       []string{"a"},
+						},
+					},
+				},
+				in: map[string][]byte{
+					"db/a": []byte(`{"host": "dba.example.com"}`),
+					"db/b": []byte(`{"host": "dbb.example.com", "pass": "yolo"}`),
+				},
+			},
+			want: map[string][]byte{
+				"a":      []byte(`{"host": "dba.example.com"}`),
+				"b":      []byte(`{"host": "dbb.example.com", "pass": "yolo"}`),
+				"merged": []byte(`{"host":"dba.example.com","pass":"yolo"}`),
+			},
+		},
+		{
 			name: "replace of a single key",
 			args: args{
-				operations: []esv1beta1.ExternalSecretRewrite{
+				operations: []esv1.ExternalSecretRewrite{
 					{
-						Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+						Regexp: &esv1.ExternalSecretRewriteRegexp{
 							Source: "-",
 							Target: "_",
 						},
@@ -450,9 +512,9 @@ func TestRewrite(t *testing.T) {
 		{
 			name: "no operation",
 			args: args{
-				operations: []esv1beta1.ExternalSecretRewrite{
+				operations: []esv1.ExternalSecretRewrite{
 					{
-						Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+						Regexp: &esv1.ExternalSecretRewriteRegexp{
 							Source: "hello",
 							Target: "world",
 						},
@@ -469,9 +531,9 @@ func TestRewrite(t *testing.T) {
 		{
 			name: "removing prefix from keys",
 			args: args{
-				operations: []esv1beta1.ExternalSecretRewrite{
+				operations: []esv1.ExternalSecretRewrite{
 					{
-						Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+						Regexp: &esv1.ExternalSecretRewriteRegexp{
 							Source: "^my/initial/path/",
 							Target: "",
 						},
@@ -488,9 +550,9 @@ func TestRewrite(t *testing.T) {
 		{
 			name: "using un-named capture groups",
 			args: args{
-				operations: []esv1beta1.ExternalSecretRewrite{
+				operations: []esv1.ExternalSecretRewrite{
 					{
-						Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+						Regexp: &esv1.ExternalSecretRewriteRegexp{
 							Source: "f(.*)o",
 							Target: "a_new_path_$1",
 						},
@@ -509,9 +571,9 @@ func TestRewrite(t *testing.T) {
 		{
 			name: "using named and numbered capture groups",
 			args: args{
-				operations: []esv1beta1.ExternalSecretRewrite{
+				operations: []esv1.ExternalSecretRewrite{
 					{
-						Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+						Regexp: &esv1.ExternalSecretRewriteRegexp{
 							Source: "f(?P<content>.*)o",
 							Target: "a_new_path_${content}_${1}",
 						},
@@ -530,21 +592,21 @@ func TestRewrite(t *testing.T) {
 		{
 			name: "using sequenced rewrite operations",
 			args: args{
-				operations: []esv1beta1.ExternalSecretRewrite{
+				operations: []esv1.ExternalSecretRewrite{
 					{
-						Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+						Regexp: &esv1.ExternalSecretRewriteRegexp{
 							Source: "my/(.*?)/bar/(.*)",
 							Target: "$1-$2",
 						},
 					},
 					{
-						Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+						Regexp: &esv1.ExternalSecretRewriteRegexp{
 							Source: "-",
 							Target: "_",
 						},
 					},
 					{
-						Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+						Regexp: &esv1.ExternalSecretRewriteRegexp{
 							Source: "ass",
 							Target: "***",
 						},
@@ -563,47 +625,25 @@ func TestRewrite(t *testing.T) {
 		{
 			name: "using transform rewrite operation to create env var format keys",
 			args: args{
-				operations: []esv1beta1.ExternalSecretRewrite{
+				operations: []esv1.ExternalSecretRewrite{
 					{
-						Regexp: &esv1beta1.ExternalSecretRewriteRegexp{
+						Regexp: &esv1.ExternalSecretRewriteRegexp{
 							Source: "my/(.*?)/bar/(.*)",
 							Target: "$1-$2",
 						},
 					},
 					{
-						Transform: &esv1beta1.ExternalSecretRewriteTransform{
+						Transform: &esv1.ExternalSecretRewriteTransform{
 							Template: `{{ .value | upper | replace "-" "_" }}`,
 						},
 					},
 				},
 				in: map[string][]byte{
-					"my/app/bar/api-key":      []byte("bar"),
-					"my/app/bar/api-password": []byte("barr"),
+					"my/app/bar/key": []byte("bar"),
 				},
 			},
 			want: map[string][]byte{
-				"APP_API_KEY":      []byte("bar"),
-				"APP_API_PASSWORD": []byte("barr"),
-			},
-		},
-		{
-			name: "using transform rewrite operation to lower case",
-			args: args{
-				operations: []esv1beta1.ExternalSecretRewrite{
-					{
-						Transform: &esv1beta1.ExternalSecretRewriteTransform{
-							Template: `{{ .value | lower }}`,
-						},
-					},
-				},
-				in: map[string][]byte{
-					"API_FOO": []byte("bar"),
-					"KEY_FOO": []byte("barr"),
-				},
-			},
-			want: map[string][]byte{
-				"api_foo": []byte("bar"),
-				"key_foo": []byte("barr"),
+				"APP_KEY": []byte("bar"),
 			},
 		},
 	}
@@ -621,6 +661,152 @@ func TestRewrite(t *testing.T) {
 	}
 }
 
+func TestRewriteMerge(t *testing.T) {
+	type args struct {
+		operation esv1.ExternalSecretRewriteMerge
+		in        map[string][]byte
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    map[string][]byte
+		wantErr bool
+	}{
+		{
+			name: "using empty merge",
+			args: args{
+				operation: esv1.ExternalSecretRewriteMerge{},
+				in: map[string][]byte{
+					"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
+					"redis-credentials": []byte(`{"host": "redis.example.com", "port": "6379"}`),
+				},
+			},
+			want: map[string][]byte{
+				"username": []byte("foz"),
+				"password": []byte("baz"),
+				"host":     []byte("redis.example.com"),
+				"port":     []byte("6379"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "using priority",
+			args: args{
+				operation: esv1.ExternalSecretRewriteMerge{
+					ConflictPolicy: esv1.ExternalSecretRewriteMergeConflictPolicyIgnore,
+					Priority:       []string{"mongo-credentials", "redis-credentials"},
+				},
+				in: map[string][]byte{
+					"redis-credentials": []byte(`{"host": "redis.example.com", "port": "6379"}`),
+					"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
+					"other-credentials": []byte(`{"key": "value", "host": "other.example.com"}`),
+				},
+			},
+			want: map[string][]byte{
+				"username": []byte("foz"),
+				"password": []byte("baz"),
+				"host":     []byte("redis.example.com"),
+				"port":     []byte("6379"),
+				"key":      []byte("value"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "using priority with keys not in input",
+			args: args{
+				operation: esv1.ExternalSecretRewriteMerge{
+					ConflictPolicy: esv1.ExternalSecretRewriteMergeConflictPolicyIgnore,
+					Priority:       []string{"non-existent-key", "another-missing-key", "mongo-credentials"},
+				},
+				in: map[string][]byte{
+					"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
+					"redis-credentials": []byte(`{"host": "redis.example.com", "port": "6379"}`),
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "using conflict policy error",
+			args: args{
+				operation: esv1.ExternalSecretRewriteMerge{
+					ConflictPolicy: esv1.ExternalSecretRewriteMergeConflictPolicyError,
+				},
+				in: map[string][]byte{
+					"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
+					"redis-credentials": []byte(`{"username": "redis", "port": "6379"}`),
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "using JSON strategy",
+			args: args{
+				operation: esv1.ExternalSecretRewriteMerge{
+					Strategy: esv1.ExternalSecretRewriteMergeStrategyJSON,
+					Into:     "credentials",
+				},
+				in: map[string][]byte{
+					"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
+					"redis-credentials": []byte(`{"host": "redis.example.com", "port": "6379"}`),
+				},
+			},
+			want: map[string][]byte{
+				"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
+				"redis-credentials": []byte(`{"host": "redis.example.com", "port": "6379"}`),
+				"credentials": func() []byte {
+					expected := map[string]interface{}{
+						"username": "foz",
+						"password": "baz",
+						"host":     "redis.example.com",
+						"port":     "6379",
+					}
+					b, _ := json.Marshal(expected)
+					return b
+				}(),
+			},
+			wantErr: false,
+		},
+		{
+			name: "using JSON strategy without into",
+			args: args{
+				operation: esv1.ExternalSecretRewriteMerge{
+					Strategy: esv1.ExternalSecretRewriteMergeStrategyJSON,
+				},
+				in: map[string][]byte{
+					"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
+					"redis-credentials": []byte(`{"host": "redis.example.com", "port": "6379"}`),
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "with invalid JSON",
+			args: args{
+				operation: esv1.ExternalSecretRewriteMerge{},
+				in: map[string][]byte{
+					"invalid-json": []byte(`{"username": "foz", "password": "baz"`),
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := RewriteMerge(tt.args.operation, tt.args.in)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("RewriteMerge() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("RewriteMerge() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 func TestReverse(t *testing.T) {
 	type args struct {
 		strategy esv1alpha1.PushSecretConversionStrategy
@@ -734,6 +920,20 @@ func TestFetchValueFromMetadata(t *testing.T) {
 			wantT:   "value",
 			wantErr: false,
 		},
+		{
+			name: "digging for a slice",
+			args: args{
+				key: "topics",
+				data: &apiextensionsv1.JSON{
+					Raw: []byte(
+						`{"topics": ["topic1", "topic2"]}`,
+					),
+				},
+				def: []string{},
+			},
+			wantT:   []any{"topic1", "topic2"}, // we don't have deep type matching so it's not an []string{} but []any.
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -742,9 +942,7 @@ func TestFetchValueFromMetadata(t *testing.T) {
 				t.Errorf("FetchValueFromMetadata() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(gotT, tt.wantT) {
-				t.Errorf("FetchValueFromMetadata() gotT = %v, want %v", gotT, tt.wantT)
-			}
+			assert.Equal(t, tt.wantT, gotT)
 		})
 	}
 }
@@ -911,15 +1109,15 @@ func TestCompareStringAndByteSlices(t *testing.T) {
 func TestValidateSecretSelector(t *testing.T) {
 	tests := []struct {
 		desc     string
-		store    esv1beta1.GenericStore
+		store    esv1.GenericStore
 		ref      esmetav1.SecretKeySelector
 		expected error
 	}{
 		{
 			desc: "cluster secret store with namespace reference",
-			store: &esv1beta1.ClusterSecretStore{
+			store: &esv1.ClusterSecretStore{
 				TypeMeta: metav1.TypeMeta{
-					Kind: esv1beta1.ClusterSecretStoreKind,
+					Kind: esv1.ClusterSecretStoreKind,
 				},
 			},
 			ref: esmetav1.SecretKeySelector{
@@ -929,9 +1127,9 @@ func TestValidateSecretSelector(t *testing.T) {
 		},
 		{
 			desc: "secret store without namespace reference",
-			store: &esv1beta1.SecretStore{
+			store: &esv1.SecretStore{
 				TypeMeta: metav1.TypeMeta{
-					Kind: esv1beta1.SecretStoreKind,
+					Kind: esv1.SecretStoreKind,
 				},
 			},
 			ref:      esmetav1.SecretKeySelector{},
@@ -939,9 +1137,9 @@ func TestValidateSecretSelector(t *testing.T) {
 		},
 		{
 			desc: "secret store with the same namespace reference",
-			store: &esv1beta1.SecretStore{
+			store: &esv1.SecretStore{
 				TypeMeta: metav1.TypeMeta{
-					Kind: esv1beta1.SecretStoreKind,
+					Kind: esv1.SecretStoreKind,
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test",
@@ -954,9 +1152,9 @@ func TestValidateSecretSelector(t *testing.T) {
 		},
 		{
 			desc: "cluster secret store without namespace reference",
-			store: &esv1beta1.ClusterSecretStore{
+			store: &esv1.ClusterSecretStore{
 				TypeMeta: metav1.TypeMeta{
-					Kind: esv1beta1.ClusterSecretStoreKind,
+					Kind: esv1.ClusterSecretStoreKind,
 				},
 			},
 			ref:      esmetav1.SecretKeySelector{},
@@ -964,9 +1162,9 @@ func TestValidateSecretSelector(t *testing.T) {
 		},
 		{
 			desc: "secret store with the different namespace reference",
-			store: &esv1beta1.SecretStore{
+			store: &esv1.SecretStore{
 				TypeMeta: metav1.TypeMeta{
-					Kind: esv1beta1.SecretStoreKind,
+					Kind: esv1.SecretStoreKind,
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test",
@@ -993,15 +1191,15 @@ func TestValidateSecretSelector(t *testing.T) {
 func TestValidateReferentSecretSelector(t *testing.T) {
 	tests := []struct {
 		desc     string
-		store    esv1beta1.GenericStore
+		store    esv1.GenericStore
 		ref      esmetav1.SecretKeySelector
 		expected error
 	}{
 		{
 			desc: "cluster secret store with namespace reference",
-			store: &esv1beta1.ClusterSecretStore{
+			store: &esv1.ClusterSecretStore{
 				TypeMeta: metav1.TypeMeta{
-					Kind: esv1beta1.ClusterSecretStoreKind,
+					Kind: esv1.ClusterSecretStoreKind,
 				},
 			},
 			ref: esmetav1.SecretKeySelector{
@@ -1011,9 +1209,9 @@ func TestValidateReferentSecretSelector(t *testing.T) {
 		},
 		{
 			desc: "secret store without namespace reference",
-			store: &esv1beta1.SecretStore{
+			store: &esv1.SecretStore{
 				TypeMeta: metav1.TypeMeta{
-					Kind: esv1beta1.SecretStoreKind,
+					Kind: esv1.SecretStoreKind,
 				},
 			},
 			ref:      esmetav1.SecretKeySelector{},
@@ -1021,9 +1219,9 @@ func TestValidateReferentSecretSelector(t *testing.T) {
 		},
 		{
 			desc: "secret store with the same namespace reference",
-			store: &esv1beta1.SecretStore{
+			store: &esv1.SecretStore{
 				TypeMeta: metav1.TypeMeta{
-					Kind: esv1beta1.SecretStoreKind,
+					Kind: esv1.SecretStoreKind,
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test",
@@ -1036,9 +1234,9 @@ func TestValidateReferentSecretSelector(t *testing.T) {
 		},
 		{
 			desc: "secret store with the different namespace reference",
-			store: &esv1beta1.SecretStore{
+			store: &esv1.SecretStore{
 				TypeMeta: metav1.TypeMeta{
-					Kind: esv1beta1.SecretStoreKind,
+					Kind: esv1.SecretStoreKind,
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test",
@@ -1065,15 +1263,15 @@ func TestValidateReferentSecretSelector(t *testing.T) {
 func TestValidateServiceAccountSelector(t *testing.T) {
 	tests := []struct {
 		desc     string
-		store    esv1beta1.GenericStore
+		store    esv1.GenericStore
 		ref      esmetav1.ServiceAccountSelector
 		expected error
 	}{
 		{
 			desc: "cluster secret store with namespace reference",
-			store: &esv1beta1.ClusterSecretStore{
+			store: &esv1.ClusterSecretStore{
 				TypeMeta: metav1.TypeMeta{
-					Kind: esv1beta1.ClusterSecretStoreKind,
+					Kind: esv1.ClusterSecretStoreKind,
 				},
 			},
 			ref: esmetav1.ServiceAccountSelector{
@@ -1083,9 +1281,9 @@ func TestValidateServiceAccountSelector(t *testing.T) {
 		},
 		{
 			desc: "secret store without namespace reference",
-			store: &esv1beta1.SecretStore{
+			store: &esv1.SecretStore{
 				TypeMeta: metav1.TypeMeta{
-					Kind: esv1beta1.SecretStoreKind,
+					Kind: esv1.SecretStoreKind,
 				},
 			},
 			ref:      esmetav1.ServiceAccountSelector{},
@@ -1093,9 +1291,9 @@ func TestValidateServiceAccountSelector(t *testing.T) {
 		},
 		{
 			desc: "secret store with the same namespace reference",
-			store: &esv1beta1.SecretStore{
+			store: &esv1.SecretStore{
 				TypeMeta: metav1.TypeMeta{
-					Kind: esv1beta1.SecretStoreKind,
+					Kind: esv1.SecretStoreKind,
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test",
@@ -1108,9 +1306,9 @@ func TestValidateServiceAccountSelector(t *testing.T) {
 		},
 		{
 			desc: "cluster secret store without namespace reference",
-			store: &esv1beta1.ClusterSecretStore{
+			store: &esv1.ClusterSecretStore{
 				TypeMeta: metav1.TypeMeta{
-					Kind: esv1beta1.ClusterSecretStoreKind,
+					Kind: esv1.ClusterSecretStoreKind,
 				},
 			},
 			ref:      esmetav1.ServiceAccountSelector{},
@@ -1118,9 +1316,9 @@ func TestValidateServiceAccountSelector(t *testing.T) {
 		},
 		{
 			desc: "secret store with the different namespace reference",
-			store: &esv1beta1.SecretStore{
+			store: &esv1.SecretStore{
 				TypeMeta: metav1.TypeMeta{
-					Kind: esv1beta1.SecretStoreKind,
+					Kind: esv1.SecretStoreKind,
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test",
@@ -1147,15 +1345,15 @@ func TestValidateServiceAccountSelector(t *testing.T) {
 func TestValidateReferentServiceAccountSelector(t *testing.T) {
 	tests := []struct {
 		desc     string
-		store    esv1beta1.GenericStore
+		store    esv1.GenericStore
 		ref      esmetav1.ServiceAccountSelector
 		expected error
 	}{
 		{
 			desc: "cluster secret store with namespace reference",
-			store: &esv1beta1.ClusterSecretStore{
+			store: &esv1.ClusterSecretStore{
 				TypeMeta: metav1.TypeMeta{
-					Kind: esv1beta1.ClusterSecretStoreKind,
+					Kind: esv1.ClusterSecretStoreKind,
 				},
 			},
 			ref: esmetav1.ServiceAccountSelector{
@@ -1165,9 +1363,9 @@ func TestValidateReferentServiceAccountSelector(t *testing.T) {
 		},
 		{
 			desc: "secret store without namespace reference",
-			store: &esv1beta1.SecretStore{
+			store: &esv1.SecretStore{
 				TypeMeta: metav1.TypeMeta{
-					Kind: esv1beta1.SecretStoreKind,
+					Kind: esv1.SecretStoreKind,
 				},
 			},
 			ref:      esmetav1.ServiceAccountSelector{},
@@ -1175,9 +1373,9 @@ func TestValidateReferentServiceAccountSelector(t *testing.T) {
 		},
 		{
 			desc: "secret store with the same namespace reference",
-			store: &esv1beta1.SecretStore{
+			store: &esv1.SecretStore{
 				TypeMeta: metav1.TypeMeta{
-					Kind: esv1beta1.SecretStoreKind,
+					Kind: esv1.SecretStoreKind,
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test",
@@ -1190,9 +1388,9 @@ func TestValidateReferentServiceAccountSelector(t *testing.T) {
 		},
 		{
 			desc: "secret store with the different namespace reference",
-			store: &esv1beta1.SecretStore{
+			store: &esv1.SecretStore{
 				TypeMeta: metav1.TypeMeta{
-					Kind: esv1beta1.SecretStoreKind,
+					Kind: esv1.SecretStoreKind,
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "test",

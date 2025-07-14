@@ -24,17 +24,19 @@ type ClusterExternalSecretSpec struct {
 	// The spec for the ExternalSecrets to be created
 	ExternalSecretSpec ExternalSecretSpec `json:"externalSecretSpec"`
 
-	// The name of the external secrets to be created defaults to the name of the ClusterExternalSecret
+	// The name of the external secrets to be created.
+	// Defaults to the name of the ClusterExternalSecret
 	// +optional
+	// +kubebuilder:validation:MinLength:=1
+	// +kubebuilder:validation:MaxLength:=253
+	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	ExternalSecretName string `json:"externalSecretName,omitempty"`
 
 	// The metadata of the external secrets to be created
 	// +optional
 	ExternalSecretMetadata ExternalSecretMetadata `json:"externalSecretMetadata,omitempty"`
 
-	// The labels to select by to find the Namespaces to create the ExternalSecrets in.
-	// Deprecated: Use NamespaceSelectors instead.
-	// +optional
+	// The labels to select by to find the Namespaces to create the ExternalSecrets in
 	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
 
 	// A list of labels to select by to find the Namespaces to create the ExternalSecrets in. The selectors are ORed.
@@ -42,7 +44,11 @@ type ClusterExternalSecretSpec struct {
 	NamespaceSelectors []*metav1.LabelSelector `json:"namespaceSelectors,omitempty"`
 
 	// Choose namespaces by name. This field is ORed with anything that NamespaceSelectors ends up choosing.
+	// Deprecated: Use NamespaceSelectors instead.
 	// +optional
+	// +kubebuilder:validation:items:MinLength:=1
+	// +kubebuilder:validation:items:MaxLength:=63
+	// +kubebuilder:validation:items:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
 	Namespaces []string `json:"namespaces,omitempty"`
 
 	// The time in which the controller should reconcile its objects and recheck namespaces for labels.
@@ -99,9 +105,10 @@ type ClusterExternalSecretStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:storageversion
 // +kubebuilder:resource:scope=Cluster,categories={external-secrets},shortName=ces
 // +kubebuilder:subresource:status
+// +kubebuilder:unservedversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
 // +kubebuilder:printcolumn:name="Store",type=string,JSONPath=`.spec.externalSecretSpec.secretStoreRef.name`
 // +kubebuilder:printcolumn:name="Refresh Interval",type=string,JSONPath=`.spec.refreshTime`

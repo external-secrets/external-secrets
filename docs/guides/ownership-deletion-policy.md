@@ -1,11 +1,23 @@
 # Lifecycle
-The External Secrets Operator manages the lifecycle of secrets in Kubernetes. With `creationPolicy` and `deletionPolicy` you get fine-grained control of its lifecycle.
+The External Secrets Operator manages the lifecycle of secrets in Kubernetes. With `refreshPolicy`,   `creationPolicy` and `deletionPolicy` you get fine-grained control of its lifecycle.
 
 !!! note "Creation/Deletion Policy Combinations"
     Some combinations of creationPolicy/deletionPolicy are not allowed as they would delete existing secrets:
     <br/>- `deletionPolicy=Delete` & `creationPolicy=Merge`
     <br/>- `deletionPolicy=Delete` & `creationPolicy=None`
     <br/>- `deletionPolicy=Merge` & `creationPolicy=None`
+
+## Refresh Policy
+The field `spec.refreshPolicy` defines how the operator refreshes the a secret.
+
+### Periodic (default) 
+Refreshes the secret at a fixed interval via `spec.refreshInterval`. Due to backwards compatibility, setting a refresh interval of 0 will result in the same behavior as `CreatedOnce`.
+
+### OnChange
+Refreshes the secret only when the ExternalSecret is updated.  
+
+### CreatedOnce
+Refreshes the secret only once, when the ExternalSecret is created.
 
 ## Creation Policy
 The field `spec.target.creationPolicy` defines how the operator creates the a secret.
@@ -17,7 +29,16 @@ The External Secret Operator creates secret and sets the `ownerReference` field 
     If the secret exists and the ownerReference field is not found, the controller treats this secret as orphaned. It will take ownership of this secret by adding an `ownerReference` field and updating it.
 
 ### Orphan
-The operator creates the secret but does not set the `ownerReference` on the Secret. That means the Secret will not be subject to garbage collection. If a secret with the same name already exists it will be updated.
+Whenever triggered via `RefreshPolicy` conditions, the operator creates/updates 
+the target Secret according to the provider available information. 
+However, the operator will not watch on Secret Changes (delete/updates), nor trigger 
+[garbage collection](https://kubernetes.io/docs/concepts/architecture/garbage-collection/) when the `ExternalSecret` object is deleted.
+
+!!! warning "Unwanted reverts of manual changes"
+    If you set `spec.refreshPolicy` to `Periodic` or `OnChange` and `spec.target.creationPolicy` to `Orphan`,
+    any changes manually done to the Secret will eventually be replaced on the next sync interval
+    or on the next update to `ExternalSecret` object. That manual change is then lost forever.
+    Use `creationPolicy=Orphan` with caution.
 
 ### Merge
 The operator does not create a secret. Instead, it expects the secret to already exist. Values from the secret provider will be merged into the existing secret. Note: the controller takes ownership of a field even if it is owned by a different entity. Multiple ExternalSecrets can use `creationPolicy=Merge` with a single secret as long as the fields don't collide - otherwise you end up in an oscillating state.

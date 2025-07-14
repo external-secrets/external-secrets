@@ -6,15 +6,11 @@ on:
 
 permissions:
   contents: read
-  issues: write
-  pull-requests: write
-  checks: write
-  statuses: read
 name: e2e tests
 
 env:
   # Common versions
-  GO_VERSION: '1.21'
+  GO_VERSION: '1.24'
   GINKGO_VERSION: 'v2.8.0'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
   KIND_VERSION: 'v0.17.0'
@@ -24,7 +20,7 @@ env:
   # a step 'if env.GHCR_USERNAME' != ""', so we copy these to succinctly test whether
   # credentials have been provided before trying to run steps that need them.
   TARGET_SHA: ${{ github.event.client_payload.slash_command.args.named.sha }}
-  GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+  GHCR_USERNAME: ${{ github.actor }}
   GCP_SM_SA_JSON: ${{ secrets.GCP_SM_SA_JSON}}
   GCP_GKE_ZONE: ${{ secrets.GCP_GKE_ZONE}}
   GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME}} # Goolge Service Account
@@ -33,6 +29,8 @@ env:
 
   AWS_REGION: "eu-central-1"
   AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+  AWS_SA_NAME: ${{ secrets.AWS_SA_NAME }}
+  AWS_SA_NAMESPACE: ${{ secrets.AWS_SA_NAMESPACE }}
 
   TFC_AZURE_CLIENT_ID: ${{ secrets.TFC_AZURE_CLIENT_ID}}
   TFC_AZURE_CLIENT_SECRET: ${{ secrets.TFC_AZURE_CLIENT_SECRET }}
@@ -54,19 +52,24 @@ env:
   SECRETSERVER_USERNAME: ${{ secrets.SECRETSERVER_USERNAME }}
   SECRETSERVER_PASSWORD: ${{ secrets.SECRETSERVER_PASSWORD }}
   SECRETSERVER_URL: ${{ secrets.SECRETSERVER_URL }}
+
+  GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
+  GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
 jobs:
 
   integration-trusted:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
-      checks: write
-      contents: read
+      id-token: write #for oidc auth with aws/gcp/azure
+      contents: read  #for checkout
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor !='dependabot[bot]'
     steps:
+    - uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49 # v2.12.2
+      with:
+        egress-policy: audit
 
     - name: Branch based PR checkout
-      uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
     - name: Fetch History
       run: git fetch --prune --unshallow
@@ -77,15 +80,18 @@ jobs:
   integration-fork:
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
-      checks: write
-      contents: read
+      id-token: write      #for oidc auth with aws/gcp/azure
+      contents: read       #for checkout
+      pull-requests: write # to publish the status as comments
     if: github.event_name == 'repository_dispatch'
     steps:
+    - uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49 # v2.12.2
+      with:
+        egress-policy: audit
 
     # Check out merge commit
     - name: Fork based /ok-to-test checkout
-      uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       with:
         ref: '${{ env.TARGET_SHA }}'
 
@@ -95,43 +101,11 @@ jobs:
     - id: e2e
       uses: ./.github/actions/e2e
     - id: create_token
+      if: always()
       uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a # v2.1.0
       with:
         app_id: ${{ secrets.APP_ID }}
         private_key: ${{ secrets.PRIVATE_KEY }}
-    # Update check run called "integration-fork"
-    - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
-      id: update-check-run
-      if: ${{ always() }}
-      env:
-        number: ${{ github.event.client_payload.pull_request.number }}
-        job: ${{ github.job }}
-        # Conveniently, job.status maps to https://developer.github.com/v3/checks/runs/#update-a-check-run
-        conclusion: ${{ job.status }}
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          const { data: pull } = await github.rest.pulls.get({
-            ...context.repo,
-            pull_number: process.env.number
-          });
-          const ref = pull.head.sha;
-          console.log("\n\nPR sha: " + ref)
-          const { data: checks } = await github.rest.checks.listForRef({
-            ...context.repo,
-            ref
-          });
-          console.log("\n\nPR CHECKS: " + checks)
-          const check = checks.check_runs.filter(c => c.name === process.env.job);
-          console.log("\n\nPR Filtered CHECK: " + check)
-          console.log(check)
-          const { data: result } = await github.rest.checks.update({
-            ...context.repo,
-            check_run_id: check[0].id,
-            status: 'completed',
-            conclusion: process.env.conclusion
-          });
-          return result;
     - name: Update on Succeess
       if: always() && steps.e2e.conclusion == 'success'
       uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4.0.0

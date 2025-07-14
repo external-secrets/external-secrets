@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
@@ -38,7 +39,7 @@ import (
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/yaml"
 
-	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault"
@@ -64,20 +65,20 @@ const (
 )
 
 // Generate generates a token that can be used to authenticate against Azure Container Registry.
-// First, an Azure Active Directory access token is obtained with the desired authentication method.
-// This AAD access token will be used to authenticate against ACR.
+// First, a Microsoft Entra ID access token is obtained with the desired authentication method.
+// This Microsoft Entra ID access token will be used to authenticate against ACR.
 // Depending on the generator spec it generates an ACR access token or an ACR refresh token.
 // * access tokens are scoped to a specific repository or action (pull,push)
 // * refresh tokens can are scoped to whatever policy is attached to the identity that creates the acr refresh token
 // details can be found here: https://github.com/Azure/acr/blob/main/docs/AAD-OAuth.md#overview
-func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, crClient client.Client, namespace string) (map[string][]byte, error) {
+func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, crClient client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	cfg, err := ctrlcfg.GetConfig()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	kubeClient, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	g.clientSecretCreds = func(tenantID, clientID, clientSecret string, options *azidentity.ClientSecretCredentialOptions) (TokenGetter, error) {
 		return azidentity.NewClientSecretCredential(tenantID, clientID, clientSecret, options)
@@ -93,6 +94,10 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 		fetchACRRefreshToken)
 }
 
+func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, crClient client.Client, namespace string) error {
+	return nil
+}
+
 func (g *Generator) generate(
 	ctx context.Context,
 	jsonSpec *apiextensions.JSON,
@@ -100,13 +105,13 @@ func (g *Generator) generate(
 	namespace string,
 	kubeClient kubernetes.Interface,
 	fetchAccessToken accessTokenFetcher,
-	fetchRefreshToken refreshTokenFetcher) (map[string][]byte, error) {
+	fetchRefreshToken refreshTokenFetcher) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if jsonSpec == nil {
-		return nil, errors.New(errNoSpec)
+		return nil, nil, errors.New(errNoSpec)
 	}
 	res, err := parseSpec(jsonSpec.Raw)
 	if err != nil {
-		return nil, fmt.Errorf(errParseSpec, err)
+		return nil, nil, fmt.Errorf(errParseSpec, err)
 	}
 	var accessToken string
 	// pick authentication strategy to create an AAD access token
@@ -136,27 +141,27 @@ func (g *Generator) generate(
 			namespace,
 		)
 	} else {
-		return nil, errors.New("unexpeted configuration")
+		return nil, nil, errors.New("unexpeted configuration")
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	var acrToken string
 	acrToken, err = fetchRefreshToken(accessToken, res.Spec.TenantID, res.Spec.ACRRegistry)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if res.Spec.Scope != "" {
 		acrToken, err = fetchAccessToken(acrToken, res.Spec.TenantID, res.Spec.ACRRegistry, res.Spec.Scope)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
 	return map[string][]byte{
 		"username": []byte(defaultLoginUsername),
 		"password": []byte(acrToken),
-	}, nil
+	}, nil, nil
 }
 
 type accessTokenFetcher func(acrRefreshToken, tenantID, registryURL, scope string) (string, error)
@@ -172,7 +177,9 @@ func fetchACRAccessToken(acrRefreshToken, _, registryURL, scope string) (string,
 	if err != nil {
 		return "", err
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 	if res.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("could not generate access token, unexpected status code: %d", res.StatusCode)
 	}
@@ -207,7 +214,9 @@ func fetchACRRefreshToken(aadAccessToken, tenantID, registryURL string) (string,
 	if err != nil {
 		return "", err
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 	if res.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("count not generate refresh token, unexpected status code %d, expected %d", res.StatusCode, http.StatusOK)
 	}
@@ -227,7 +236,7 @@ func fetchACRRefreshToken(aadAccessToken, tenantID, registryURL string) (string,
 	return refreshToken, nil
 }
 
-func accessTokenForWorkloadIdentity(ctx context.Context, crClient client.Client, kubeClient kcorev1.CoreV1Interface, envType v1beta1.AzureEnvironmentType, serviceAccountRef *smmeta.ServiceAccountSelector, namespace string) (string, error) {
+func accessTokenForWorkloadIdentity(ctx context.Context, crClient client.Client, kubeClient kcorev1.CoreV1Interface, envType esv1.AzureEnvironmentType, serviceAccountRef *smmeta.ServiceAccountSelector, namespace string) (string, error) {
 	aadEndpoint := keyvault.AadEndpointForType(envType)
 	scope := keyvault.ServiceManagementEndpointForType(envType)
 	// if no serviceAccountRef was provided
@@ -240,7 +249,7 @@ func accessTokenForWorkloadIdentity(ctx context.Context, crClient client.Client,
 		if clientID == "" || tenantID == "" || tokenFilePath == "" {
 			return "", errors.New("missing environment variables")
 		}
-		token, err := os.ReadFile(tokenFilePath)
+		token, err := os.ReadFile(filepath.Clean(tokenFilePath))
 		if err != nil {
 			return "", fmt.Errorf("unable to read token file %s: %w", tokenFilePath, err)
 		}
@@ -281,13 +290,20 @@ func accessTokenForWorkloadIdentity(ctx context.Context, crClient client.Client,
 	return tp.OAuthToken(), nil
 }
 
-func accessTokenForManagedIdentity(ctx context.Context, envType v1beta1.AzureEnvironmentType, identityID string) (string, error) {
-	// handle workload identity
-	creds, err := azidentity.NewManagedIdentityCredential(
-		&azidentity.ManagedIdentityCredentialOptions{
+func accessTokenForManagedIdentity(ctx context.Context, envType esv1.AzureEnvironmentType, identityID string) (string, error) {
+	// handle managed identity
+	var opts *azidentity.ManagedIdentityCredentialOptions
+	if strings.Contains(identityID, "/") {
+		opts = &azidentity.ManagedIdentityCredentialOptions{
 			ID: azidentity.ResourceID(identityID),
-		},
-	)
+		}
+	} else if identityID != "" {
+		opts = &azidentity.ManagedIdentityCredentialOptions{
+			ID: azidentity.ClientID(identityID),
+		}
+	}
+	// lacking option ID, az will default to `id := managedidentity.SystemAssigned()`.
+	creds, err := azidentity.NewManagedIdentityCredential(opts)
 	if err != nil {
 		return "", err
 	}
@@ -301,7 +317,7 @@ func accessTokenForManagedIdentity(ctx context.Context, envType v1beta1.AzureEnv
 	return accessToken.Token, nil
 }
 
-func (g *Generator) accessTokenForServicePrincipal(ctx context.Context, crClient client.Client, namespace string, envType v1beta1.AzureEnvironmentType, tenantID string, idRef, secretRef smmeta.SecretKeySelector) (string, error) {
+func (g *Generator) accessTokenForServicePrincipal(ctx context.Context, crClient client.Client, namespace string, envType esv1.AzureEnvironmentType, tenantID string, idRef, secretRef smmeta.SecretKeySelector) (string, error) {
 	cid, err := secretKeyRef(ctx, crClient, namespace, idRef)
 	if err != nil {
 		return "", err
@@ -350,16 +366,16 @@ func secretKeyRef(ctx context.Context, crClient client.Client, namespace string,
 	return value, nil
 }
 
-func audienceForType(t v1beta1.AzureEnvironmentType) string {
+func audienceForType(t esv1.AzureEnvironmentType) string {
 	suffix := ".default"
 	switch t {
-	case v1beta1.AzureEnvironmentChinaCloud:
+	case esv1.AzureEnvironmentChinaCloud:
 		return azure.ChinaCloud.TokenAudience + suffix
-	case v1beta1.AzureEnvironmentGermanCloud:
+	case esv1.AzureEnvironmentGermanCloud:
 		return azure.GermanCloud.TokenAudience + suffix
-	case v1beta1.AzureEnvironmentUSGovernmentCloud:
+	case esv1.AzureEnvironmentUSGovernmentCloud:
 		return azure.USGovernmentCloud.TokenAudience + suffix
-	case v1beta1.AzureEnvironmentPublicCloud, "":
+	case esv1.AzureEnvironmentPublicCloud, "":
 		return azure.PublicCloud.TokenAudience + suffix
 	}
 	return azure.PublicCloud.TokenAudience + suffix

@@ -1,0 +1,19 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: GCRAccessToken
+metadata: {}
+spec:
+  auth:
+    secretRef:
+      secretAccessKeySecretRef:
+        key: string
+        name: string
+        namespace: string
+    workloadIdentity:
+      clusterLocation: string
+      clusterName: string
+      clusterProjectID: string
+      serviceAccountRef:
+        audiences: [] # minItems 0 of type string
+        name: string
+        namespace: string
+  projectID: string

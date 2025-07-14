@@ -1,12 +1,12 @@
-FROM golang:1.23.1-bookworm@sha256:1a5326b07cbab12f4fd7800425f2cf25ff2bd62c404ef41b56cb99669a710a83 as builder
+FROM golang:1.24.4-bookworm@sha256:10f549dc8489597aa7ed2b62008199bb96717f52a8e8434ea035d5b44368f8a6 AS builder
 
 ENV KUBECTL_VERSION="v1.28.3"
 ENV HELM_VERSION="v3.13.1"
 
 RUN go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.6
-RUN wget -q https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl -O /usr/local/bin/kubectl && \
+RUN wget --max-redirect=0 -q https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl -O /usr/local/bin/kubectl && \
     chmod +x /usr/local/bin/kubectl && \
-    wget -q https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz -O - | tar -xzO linux-amd64/helm > /usr/local/bin/helm && \
+    wget --max-redirect=0 -q https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz -O - | tar -xzO linux-amd64/helm > /usr/local/bin/helm && \
     chmod +x /usr/local/bin/helm
 
 WORKDIR /usr/src/app
@@ -16,7 +16,7 @@ COPY . .
 WORKDIR /usr/src/app/e2e
 RUN make e2e-bin
 
-FROM alpine:3.20.3@sha256:beefdbd8a1da6d2915566fde36db9db0b524eb737fc57cd1367effd16dc0d06d
+FROM alpine:3.22.0@sha256:8a1f59ffb675680d47db6337b49d22281a139e9d709335b492be023728e11715
 RUN apk add -U --no-cache \
     ca-certificates \
     bash \

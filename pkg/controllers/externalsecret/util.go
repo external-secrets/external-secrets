@@ -15,16 +15,19 @@ limitations under the License.
 package externalsecret
 
 import (
+	"crypto/sha3"
+	"fmt"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 )
 
 // NewExternalSecretCondition a set of default options for creating an External Secret Condition.
-func NewExternalSecretCondition(condType esv1beta1.ExternalSecretConditionType, status v1.ConditionStatus, reason, message string) *esv1beta1.ExternalSecretStatusCondition {
-	return &esv1beta1.ExternalSecretStatusCondition{
+func NewExternalSecretCondition(condType esv1.ExternalSecretConditionType, status v1.ConditionStatus, reason, message string) *esv1.ExternalSecretStatusCondition {
+	return &esv1.ExternalSecretStatusCondition{
 		Type:               condType,
 		Status:             status,
 		LastTransitionTime: metav1.Now(),
@@ -34,7 +37,7 @@ func NewExternalSecretCondition(condType esv1beta1.ExternalSecretConditionType, 
 }
 
 // GetExternalSecretCondition returns the condition with the provided type.
-func GetExternalSecretCondition(status esv1beta1.ExternalSecretStatus, condType esv1beta1.ExternalSecretConditionType) *esv1beta1.ExternalSecretStatusCondition {
+func GetExternalSecretCondition(status esv1.ExternalSecretStatus, condType esv1.ExternalSecretConditionType) *esv1.ExternalSecretStatusCondition {
 	for _, c := range status.Conditions {
 		if c.Type == condType {
 			return &c
@@ -45,7 +48,7 @@ func GetExternalSecretCondition(status esv1beta1.ExternalSecretStatus, condType 
 
 // SetExternalSecretCondition updates the external secret to include the provided
 // condition.
-func SetExternalSecretCondition(es *esv1beta1.ExternalSecret, condition esv1beta1.ExternalSecretStatusCondition) {
+func SetExternalSecretCondition(es *esv1.ExternalSecret, condition esv1.ExternalSecretStatusCondition) {
 	currentCond := GetExternalSecretCondition(es.Status, condition.Type)
 
 	if currentCond != nil && currentCond.Status == condition.Status &&
@@ -69,8 +72,8 @@ func SetExternalSecretCondition(es *esv1beta1.ExternalSecret, condition esv1beta
 }
 
 // filterOutCondition returns an empty set of conditions with the provided type.
-func filterOutCondition(conditions []esv1beta1.ExternalSecretStatusCondition, condType esv1beta1.ExternalSecretConditionType) []esv1beta1.ExternalSecretStatusCondition {
-	newConditions := make([]esv1beta1.ExternalSecretStatusCondition, 0, len(conditions))
+func filterOutCondition(conditions []esv1.ExternalSecretStatusCondition, condType esv1.ExternalSecretConditionType) []esv1.ExternalSecretStatusCondition {
+	newConditions := make([]esv1.ExternalSecretStatusCondition, 0, len(conditions))
 	for _, c := range conditions {
 		if c.Type == condType {
 			continue
@@ -78,4 +81,14 @@ func filterOutCondition(conditions []esv1beta1.ExternalSecretStatusCondition, co
 		newConditions = append(newConditions, c)
 	}
 	return newConditions
+}
+
+func fqdnFor(name string) string {
+	fqdn := fmt.Sprintf(fieldOwnerTemplate, name)
+	// If secret name is just too big, use the SHA3 hash of the secret name
+	// Done this way for backwards compatibility thus avoiding breaking changes
+	if len(fqdn) > 63 {
+		fqdn = fmt.Sprintf(fieldOwnerTemplateSha, sha3.Sum224([]byte(name)))
+	}
+	return fqdn
 }

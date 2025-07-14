@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -26,7 +27,7 @@ import (
 	authaws "github.com/hashicorp/vault/api/auth/aws"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
 	vaultiamauth "github.com/external-secrets/external-secrets/pkg/provider/vault/iamauth"
@@ -45,7 +46,7 @@ const (
 
 func setIamAuthToken(ctx context.Context, v *client, jwtProvider util.JwtProviderFactory, assumeRoler vaultiamauth.STSProvider) (bool, error) {
 	iamAuth := v.store.Auth.Iam
-	isClusterKind := v.storeKind == esv1beta1.ClusterSecretStoreKind
+	isClusterKind := v.storeKind == esv1.ClusterSecretStoreKind
 	if iamAuth != nil {
 		err := v.requestTokenWithIamAuth(ctx, iamAuth, isClusterKind, v.kube, v.namespace, jwtProvider, assumeRoler)
 		if err != nil {
@@ -56,7 +57,7 @@ func setIamAuthToken(ctx context.Context, v *client, jwtProvider util.JwtProvide
 	return false, nil
 }
 
-func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1beta1.VaultIamAuth, isClusterKind bool, k kclient.Client, n string, jwtProvider util.JwtProviderFactory, assumeRoler vaultiamauth.STSProvider) error {
+func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1.VaultIamAuth, isClusterKind bool, k kclient.Client, n string, jwtProvider util.JwtProviderFactory, assumeRoler vaultiamauth.STSProvider) error {
 	jwtAuth := iamAuth.JWTAuth
 	secretRefAuth := iamAuth.SecretRef
 	regionAWS := defaultAWSRegion
@@ -97,7 +98,7 @@ func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1beta1
 		}
 
 		// everything looks good so far, let's fetch the jwt token from AWS_WEB_IDENTITY_TOKEN_FILE
-		jwtByte, err := os.ReadFile(tokenFile)
+		jwtByte, err := os.ReadFile(filepath.Clean(tokenFile))
 		if err != nil {
 			return fmt.Errorf(errIrsaTokenFileNotReadable, tokenFile, err)
 		}
@@ -157,9 +158,9 @@ func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1beta1
 		return err
 	}
 	// Set environment variables. These would be fetched by Login
-	os.Setenv("AWS_ACCESS_KEY_ID", getCreds.AccessKeyID)
-	os.Setenv("AWS_SECRET_ACCESS_KEY", getCreds.SecretAccessKey)
-	os.Setenv("AWS_SESSION_TOKEN", getCreds.SessionToken)
+	_ = os.Setenv("AWS_ACCESS_KEY_ID", getCreds.AccessKeyID)
+	_ = os.Setenv("AWS_SECRET_ACCESS_KEY", getCreds.SecretAccessKey)
+	_ = os.Setenv("AWS_SESSION_TOKEN", getCreds.SessionToken)
 
 	var awsAuthClient *authaws.AWSAuth
 

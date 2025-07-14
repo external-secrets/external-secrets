@@ -1,0 +1,14 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: "cluster-secret"
+spec:
+  refreshInterval: "1h"
+  target:
+    name: cluster-secret
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: ClusterGenerator
+        name: "cluster-gen"

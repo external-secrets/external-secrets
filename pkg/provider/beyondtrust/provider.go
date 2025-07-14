@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esoClient "github.com/external-secrets/external-secrets/pkg/utils"
 )
 
@@ -56,7 +56,7 @@ var (
 	maxFileSecretSizeBytes       = 5000000
 )
 
-// Provider is a Password Safe secrets provider implementing NewClient and ValidateStore for the esv1beta1.Provider interface.
+// Provider is a Password Safe secrets provider implementing NewClient and ValidateStore for the esv1.Provider interface.
 type Provider struct {
 	apiURL        string
 	retrievaltype string
@@ -65,9 +65,22 @@ type Provider struct {
 	separator     string
 }
 
+type AuthenticatorInput struct {
+	Config                     *esv1.BeyondtrustProvider
+	HTTPClientObj              utils.HttpClientObj
+	BackoffDefinition          *backoff.ExponentialBackOff
+	APIURL                     string
+	APIVersion                 string
+	ClientID                   string
+	ClientSecret               string
+	APIKey                     string
+	Logger                     *logging.LogrLogger
+	RetryMaxElapsedTimeMinutes int
+}
+
 // Capabilities implements v1beta1.Provider.
-func (*Provider) Capabilities() esv1beta1.SecretStoreCapabilities {
-	return esv1beta1.SecretStoreReadOnly
+func (*Provider) Capabilities() esv1.SecretStoreCapabilities {
+	return esv1.SecretStoreReadOnly
 }
 
 // Close implements v1beta1.SecretsClient.
@@ -76,92 +89,66 @@ func (*Provider) Close(_ context.Context) error {
 }
 
 // DeleteSecret implements v1beta1.SecretsClient.
-func (*Provider) DeleteSecret(_ context.Context, _ esv1beta1.PushSecretRemoteRef) error {
+func (*Provider) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	return errors.New(errNotImplemented)
 }
 
 // GetSecretMap implements v1beta1.SecretsClient.
-func (*Provider) GetSecretMap(_ context.Context, _ esv1beta1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (*Provider) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	return make(map[string][]byte), errors.New(errNotImplemented)
 }
 
 // PushSecret implements v1beta1.SecretsClient.
-func (*Provider) PushSecret(_ context.Context, _ *v1.Secret, _ esv1beta1.PushSecretData) error {
+func (*Provider) PushSecret(_ context.Context, _ *v1.Secret, _ esv1.PushSecretData) error {
 	return errors.New(errNotImplemented)
 }
 
 // Validate implements v1beta1.SecretsClient.
-func (p *Provider) Validate() (esv1beta1.ValidationResult, error) {
+func (p *Provider) Validate() (esv1.ValidationResult, error) {
 	timeout := 15 * time.Second
 	clientURL := p.apiURL
 
 	if err := esoClient.NetworkValidate(clientURL, timeout); err != nil {
 		ESOLogger.Error(err, "Network Validate", "clientURL:", clientURL)
-		return esv1beta1.ValidationResultError, err
+		return esv1.ValidationResultError, err
 	}
 
-	return esv1beta1.ValidationResultReady, nil
+	return esv1.ValidationResultReady, nil
 }
 
-func (*Provider) SecretExists(_ context.Context, _ esv1beta1.PushSecretRemoteRef) (bool, error) {
+func (*Provider) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New(errNotImplemented)
 }
 
 // NewClient this is where we initialize the SecretClient and return it for the controller to use.
-func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, kube client.Client, namespace string) (esv1beta1.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 	config := store.GetSpec().Provider.Beyondtrust
 	logger := logging.NewLogrLogger(&ESOLogger)
-	apiURL := config.Server.APIURL
-	certificate := ""
-	certificateKey := ""
-	clientTimeOutInSeconds := 45
-	retryMaxElapsedTimeMinutes := 15
-	separator := "/"
 
-	if config.Server.Separator != "" {
-		separator = config.Server.Separator
-	}
-
-	if config.Server.ClientTimeOutSeconds != 0 {
-		clientTimeOutInSeconds = config.Server.ClientTimeOutSeconds
-	}
-
-	backoffDefinition := backoff.NewExponentialBackOff()
-	backoffDefinition.InitialInterval = 1 * time.Second
-	backoffDefinition.MaxElapsedTime = time.Duration(retryMaxElapsedTimeMinutes) * time.Second
-	backoffDefinition.RandomizationFactor = 0.5
-
-	clientID, err := loadConfigSecret(ctx, config.Auth.ClientID, kube, namespace)
+	clientID, clientSecret, apiKey, err := loadCredentialsFromConfig(ctx, config, kube, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("error loading clientID: %w", err)
+		return nil, fmt.Errorf("error loading credentials: %w", err)
 	}
 
-	clientSecret, err := loadConfigSecret(ctx, config.Auth.ClientSecret, kube, namespace)
+	certificate, certificateKey, err := loadCertificateFromConfig(ctx, config, kube, namespace)
 	if err != nil {
-		return nil, fmt.Errorf("error loading clientSecret: %w", err)
+		return nil, fmt.Errorf("error loading certificate: %w", err)
 	}
 
-	if config.Auth.Certificate != nil && config.Auth.CertificateKey != nil {
-		loadedCertificate, err := loadConfigSecret(ctx, config.Auth.Certificate, kube, namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error loading Certificate: %w", err)
-		}
-
-		certificate = loadedCertificate
-
-		loadedCertificateKey, err := loadConfigSecret(ctx, config.Auth.CertificateKey, kube, namespace)
-		if err != nil {
-			return nil, fmt.Errorf("error loading Certificate Key: %w", err)
-		}
-
-		certificateKey = loadedCertificateKey
+	if err != nil {
+		return nil, fmt.Errorf("error loading secrets: %w", err)
 	}
 
-	// Create an instance of ValidationParams
+	clientTimeOutInSeconds, separator, retryMaxElapsedTimeMinutes := getConfigValues(config)
+
+	backoffDefinition := getBackoffDefinition(retryMaxElapsedTimeMinutes)
+
 	params := utils.ValidationParams{
+		ApiKey:                     apiKey,
 		ClientID:                   clientID,
 		ClientSecret:               clientSecret,
-		ApiUrl:                     &apiURL,
+		ApiUrl:                     &config.Server.APIURL,
+		ApiVersion:                 config.Server.APIVersion,
 		ClientTimeOutInSeconds:     clientTimeOutInSeconds,
 		Separator:                  &separator,
 		VerifyCa:                   config.Server.VerifyCA,
@@ -172,21 +159,33 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 		MaxFileSecretSizeBytes:     &maxFileSecretSizeBytes,
 	}
 
-	errorsInInputs := utils.ValidateInputs(params)
-
-	if errorsInInputs != nil {
-		return nil, fmt.Errorf("error in Inputs: %w", errorsInInputs)
+	if err := validateInputs(params); err != nil {
+		return nil, fmt.Errorf("error in Inputs: %w", err)
 	}
 
-	// creating a http client
-	httpClientObj, err := utils.GetHttpClient(clientTimeOutInSeconds, config.Server.VerifyCA, certificate, certificateKey, logger)
+	httpClient, err := utils.GetHttpClient(clientTimeOutInSeconds, config.Server.VerifyCA, certificate, certificateKey, logger)
+	if err != nil {
+		return nil, fmt.Errorf("error creating HTTP client: %w", err)
+	}
+
+	authenticatorInput := AuthenticatorInput{
+		Config:                     config,
+		HTTPClientObj:              *httpClient,
+		BackoffDefinition:          backoffDefinition,
+		APIURL:                     config.Server.APIURL,
+		APIVersion:                 config.Server.APIVersion,
+		ClientID:                   clientID,
+		ClientSecret:               clientSecret,
+		APIKey:                     apiKey,
+		Logger:                     logger,
+		RetryMaxElapsedTimeMinutes: retryMaxElapsedTimeMinutes,
+	}
+
+	authenticate, err := getAuthenticator(authenticatorInput)
 
 	if err != nil {
-		return nil, fmt.Errorf("error creating http client: %w", err)
+		return nil, fmt.Errorf("error authenticating: %w", err)
 	}
-
-	// instantiating authenticate obj, injecting httpClient object
-	authenticate, _ := auth.Authenticate(*httpClientObj, backoffDefinition, apiURL, clientID, clientSecret, logger, retryMaxElapsedTimeMinutes)
 
 	return &Provider{
 		apiURL:        config.Server.APIURL,
@@ -197,7 +196,102 @@ func (p *Provider) NewClient(ctx context.Context, store esv1beta1.GenericStore, 
 	}, nil
 }
 
-func loadConfigSecret(ctx context.Context, ref *esv1beta1.BeyondTrustProviderSecretRef, kube client.Client, defaultNamespace string) (string, error) {
+func loadCredentialsFromConfig(ctx context.Context, config *esv1.BeyondtrustProvider, kube client.Client, namespace string) (string, string, string, error) {
+	var clientID, clientSecret, apiKey string
+	var err error
+
+	if config.Auth.APIKey != nil {
+		apiKey, err = loadConfigSecret(ctx, config.Auth.APIKey, kube, namespace)
+		if err != nil {
+			return "", "", "", fmt.Errorf("error loading apiKey: %w", err)
+		}
+	} else {
+		clientID, err = loadConfigSecret(ctx, config.Auth.ClientID, kube, namespace)
+		if err != nil {
+			return "", "", "", fmt.Errorf("error loading clientID: %w", err)
+		}
+
+		clientSecret, err = loadConfigSecret(ctx, config.Auth.ClientSecret, kube, namespace)
+		if err != nil {
+			return "", "", "", fmt.Errorf("error loading clientSecret: %w", err)
+		}
+	}
+
+	return clientID, clientSecret, apiKey, nil
+}
+
+func loadCertificateFromConfig(ctx context.Context, config *esv1.BeyondtrustProvider, kube client.Client, namespace string) (string, string, error) {
+	var certificate, certificateKey string
+	var err error
+
+	if config.Auth.Certificate != nil && config.Auth.CertificateKey != nil {
+		certificate, err = loadConfigSecret(ctx, config.Auth.Certificate, kube, namespace)
+		if err != nil {
+			return "", "", fmt.Errorf("error loading Certificate: %w", err)
+		}
+
+		certificateKey, err = loadConfigSecret(ctx, config.Auth.CertificateKey, kube, namespace)
+		if err != nil {
+			return "", "", fmt.Errorf("error loading Certificate Key: %w", err)
+		}
+	}
+
+	return certificate, certificateKey, nil
+}
+
+func getConfigValues(config *esv1.BeyondtrustProvider) (int, string, int) {
+	clientTimeOutInSeconds := 45
+	separator := "/"
+	retryMaxElapsedTimeMinutes := 15
+
+	if config.Server.ClientTimeOutSeconds != 0 {
+		clientTimeOutInSeconds = config.Server.ClientTimeOutSeconds
+	}
+
+	if config.Server.Separator != "" {
+		separator = config.Server.Separator
+	}
+
+	return clientTimeOutInSeconds, separator, retryMaxElapsedTimeMinutes
+}
+
+func getBackoffDefinition(retryMaxElapsedTimeMinutes int) *backoff.ExponentialBackOff {
+	backoffDefinition := backoff.NewExponentialBackOff()
+	backoffDefinition.InitialInterval = 1 * time.Second
+	backoffDefinition.MaxElapsedTime = time.Duration(retryMaxElapsedTimeMinutes) * time.Minute
+	backoffDefinition.RandomizationFactor = 0.5
+
+	return backoffDefinition
+}
+
+func validateInputs(params utils.ValidationParams) error {
+	return utils.ValidateInputs(params)
+}
+
+func getAuthenticator(input AuthenticatorInput) (*auth.AuthenticationObj, error) {
+	parametersObj := auth.AuthenticationParametersObj{
+		HTTPClient:                 input.HTTPClientObj,
+		BackoffDefinition:          input.BackoffDefinition,
+		EndpointURL:                input.APIURL,
+		APIVersion:                 input.APIVersion,
+		ApiKey:                     input.APIKey,
+		Logger:                     input.Logger,
+		RetryMaxElapsedTimeSeconds: input.RetryMaxElapsedTimeMinutes,
+	}
+
+	if input.Config.Auth.APIKey != nil {
+		parametersObj.ApiKey = input.APIKey
+
+		return auth.AuthenticateUsingApiKey(parametersObj)
+	}
+
+	parametersObj.ClientID = input.ClientID
+	parametersObj.ClientSecret = input.ClientSecret
+
+	return auth.Authenticate(parametersObj)
+}
+
+func loadConfigSecret(ctx context.Context, ref *esv1.BeyondTrustProviderSecretRef, kube client.Client, defaultNamespace string) (string, error) {
 	if ref.SecretRef == nil {
 		return ref.Value, nil
 	}
@@ -227,7 +321,7 @@ func loadConfigSecret(ctx context.Context, ref *esv1beta1.BeyondTrustProviderSec
 	return string(value), nil
 }
 
-func validateSecretRef(ref *esv1beta1.BeyondTrustProviderSecretRef) error {
+func validateSecretRef(ref *esv1.BeyondTrustProviderSecretRef) error {
 	if ref.SecretRef != nil {
 		if ref.Value != "" {
 			return errSecretRefAndValueConflict
@@ -243,13 +337,13 @@ func validateSecretRef(ref *esv1beta1.BeyondTrustProviderSecretRef) error {
 	return nil
 }
 
-func (p *Provider) GetAllSecrets(_ context.Context, _ esv1beta1.ExternalSecretFind) (map[string][]byte, error) {
+func (p *Provider) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
 	return nil, errors.New("GetAllSecrets not implemented")
 }
 
 // GetSecret reads the secret from the Password Safe server and returns it. The controller uses the value here to
 // create the Kubernetes secret.
-func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	managedAccountType := !strings.EqualFold(p.retrievaltype, "SECRET")
 
 	retrievalPaths := utils.ValidatePaths([]string{ref.Key}, managedAccountType, p.separator, &p.log)
@@ -290,7 +384,7 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1beta1.ExternalSecretData
 }
 
 // ValidateStore validates the store configuration to prevent unexpected errors.
-func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnings, error) {
+func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
 		return nil, errors.New(errNilStore)
 	}
@@ -332,7 +426,7 @@ func (p *Provider) ValidateStore(store esv1beta1.GenericStore) (admission.Warnin
 
 // registers the provider object to process on each reconciliation loop.
 func init() {
-	esv1beta1.Register(&Provider{}, &esv1beta1.SecretStoreProvider{
-		Beyondtrust: &esv1beta1.BeyondtrustProvider{},
-	})
+	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
+		Beyondtrust: &esv1.BeyondtrustProvider{},
+	}, esv1.MaintenanceStatusMaintained)
 }

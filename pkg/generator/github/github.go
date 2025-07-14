@@ -15,11 +15,13 @@ limitations under the License.
 package github
 
 import (
+	"bytes"
 	"context"
 	"crypto/rsa"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -37,11 +39,13 @@ type Generator struct {
 }
 
 type Github struct {
-	HTTP       *http.Client
-	Kube       client.Client
-	Namespace  string
-	URL        string
-	InstallTkn string
+	HTTP         *http.Client
+	Kube         client.Client
+	Namespace    string
+	URL          string
+	InstallTkn   string
+	Repositories []string
+	Permissions  map[string]string
 }
 
 const (
@@ -56,7 +60,7 @@ const (
 	httpClientTimeout = 5 * time.Second
 )
 
-func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, error) {
+func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(
 		ctx,
 		jsonSpec,
@@ -65,48 +69,80 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 	)
 }
 
+func (g *Generator) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, _ genv1alpha1.GeneratorProviderState, crClient client.Client, namespace string) error {
+	return nil
+}
+
 func (g *Generator) generate(
 	ctx context.Context,
 	jsonSpec *apiextensions.JSON,
 	kube client.Client,
-	namespace string) (map[string][]byte, error) {
+	namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if jsonSpec == nil {
-		return nil, errors.New(errNoSpec)
+		return nil, nil, errors.New(errNoSpec)
 	}
 	ctx, cancel := context.WithTimeout(ctx, contextTimeout)
 	defer cancel()
 
 	gh, err := newGHClient(ctx, kube, namespace, g.httpClient, jsonSpec)
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
+		return nil, nil, fmt.Errorf("error creating request: %w", err)
 	}
+
+	payload := make(map[string]interface{})
+	if gh.Permissions != nil {
+		payload["permissions"] = gh.Permissions
+	}
+	if len(gh.Repositories) > 0 {
+		payload["repositories"] = gh.Repositories
+	}
+
+	var body io.Reader = http.NoBody
+	if len(payload) > 0 {
+		bodyBytes, err := json.Marshal(payload)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error marshaling payload: %w", err)
+		}
+
+		body = bytes.NewReader(bodyBytes)
+	}
+
 	// Github api expects POST request
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, gh.URL, http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, gh.URL, body)
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
+		return nil, nil, fmt.Errorf("error creating request: %w", err)
 	}
 	req.Header.Add("Authorization", "Bearer "+gh.InstallTkn)
 	req.Header.Add("Accept", "application/vnd.github.v3+json")
 
 	resp, err := gh.HTTP.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("error performing request: %w", err)
+		return nil, nil, fmt.Errorf("error performing request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	// git access token
 	var gat map[string]any
 	if err := json.NewDecoder(resp.Body).Decode(&gat); err != nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		return nil, fmt.Errorf("error decoding response: %w", err)
+		return nil, nil, fmt.Errorf("error decoding response: %w", err)
+	}
+
+	if resp.StatusCode >= 300 {
+		if message, ok := gat["message"]; ok {
+			return nil, nil, fmt.Errorf("error generating token: response code: %d, response: %v", resp.StatusCode, message)
+		}
+		return nil, nil, fmt.Errorf("error generating token, failed to extract error message from github request: response code: %d", resp.StatusCode)
 	}
 
 	accessToken, ok := gat["token"].(string)
 	if !ok {
-		return nil, errors.New("token isn't a string or token key doesn't exist")
+		return nil, nil, errors.New("token isn't a string or token key doesn't exist")
 	}
 	return map[string][]byte{
 		defaultLoginUsername: []byte(accessToken),
-	}, nil
+	}, nil, nil
 }
 
 func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client,
@@ -120,7 +156,13 @@ func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client
 	if err != nil {
 		return nil, fmt.Errorf(errParseSpec, err)
 	}
-	gh := &Github{Kube: k, Namespace: n, HTTP: hc}
+	gh := &Github{
+		Kube:         k,
+		Namespace:    n,
+		HTTP:         hc,
+		Repositories: res.Spec.Repositories,
+		Permissions:  res.Spec.Permissions,
+	}
 
 	ghPath := fmt.Sprintf("/app/installations/%s/access_tokens", res.Spec.InstallID)
 	gh.URL = defaultGithubAPI + ghPath

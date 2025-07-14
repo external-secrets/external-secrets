@@ -24,7 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	pointer "k8s.io/utils/ptr"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -49,15 +49,15 @@ func TestValidateStore(t *testing.T) {
 	tests := []struct {
 		name    string
 		fields  fields
-		store   esv1beta1.GenericStore
+		store   esv1.GenericStore
 		wantErr bool
 	}{
 		{
 			name: "empty ca",
-			store: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Kubernetes: &esv1beta1.KubernetesProvider{},
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Kubernetes: &esv1.KubernetesProvider{},
 					},
 				},
 			},
@@ -65,15 +65,15 @@ func TestValidateStore(t *testing.T) {
 		},
 		{
 			name: "invalid client cert name",
-			store: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Kubernetes: &esv1beta1.KubernetesProvider{
-							Server: esv1beta1.KubernetesServer{
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Kubernetes: &esv1.KubernetesProvider{
+							Server: esv1.KubernetesServer{
 								CABundle: []byte("1234"),
 							},
-							Auth: esv1beta1.KubernetesAuth{
-								Cert: &esv1beta1.CertAuth{
+							Auth: esv1.KubernetesAuth{
+								Cert: &esv1.CertAuth{
 									ClientCert: v1.SecretKeySelector{
 										Name: "",
 									},
@@ -86,16 +86,57 @@ func TestValidateStore(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "caprovider with empty namespace for cluster secret store",
+			store: &esv1.ClusterSecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: "ClusterSecretStore",
+				},
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Kubernetes: &esv1.KubernetesProvider{
+							Server: esv1.KubernetesServer{
+								CAProvider: &esv1.CAProvider{
+									Name: "foobar",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "caprovider with non empty namespace for secret store",
+			store: &esv1.SecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: "SecretStore",
+				},
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Kubernetes: &esv1.KubernetesProvider{
+							Server: esv1.KubernetesServer{
+								CAProvider: &esv1.CAProvider{
+									Name:      "foobar",
+									Namespace: pointer.To("noop"),
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "invalid client cert key",
-			store: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Kubernetes: &esv1beta1.KubernetesProvider{
-							Server: esv1beta1.KubernetesServer{
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Kubernetes: &esv1.KubernetesProvider{
+							Server: esv1.KubernetesServer{
 								CABundle: []byte("1234"),
 							},
-							Auth: esv1beta1.KubernetesAuth{
-								Cert: &esv1beta1.CertAuth{
+							Auth: esv1.KubernetesAuth{
+								Cert: &esv1.CertAuth{
 									ClientCert: v1.SecretKeySelector{
 										Name: "foobar",
 										Key:  "",
@@ -110,15 +151,15 @@ func TestValidateStore(t *testing.T) {
 		},
 		{
 			name: "invalid client cert secretRef",
-			store: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Kubernetes: &esv1beta1.KubernetesProvider{
-							Server: esv1beta1.KubernetesServer{
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Kubernetes: &esv1.KubernetesProvider{
+							Server: esv1.KubernetesServer{
 								CABundle: []byte("1234"),
 							},
-							Auth: esv1beta1.KubernetesAuth{
-								Cert: &esv1beta1.CertAuth{
+							Auth: esv1.KubernetesAuth{
+								Cert: &esv1.CertAuth{
 									ClientCert: v1.SecretKeySelector{
 										Name:      "foobar",
 										Key:       "foobar",
@@ -134,15 +175,15 @@ func TestValidateStore(t *testing.T) {
 		},
 		{
 			name: "invalid client token auth name",
-			store: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Kubernetes: &esv1beta1.KubernetesProvider{
-							Server: esv1beta1.KubernetesServer{
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Kubernetes: &esv1.KubernetesProvider{
+							Server: esv1.KubernetesServer{
 								CABundle: []byte("1234"),
 							},
-							Auth: esv1beta1.KubernetesAuth{
-								Token: &esv1beta1.TokenAuth{
+							Auth: esv1.KubernetesAuth{
+								Token: &esv1.TokenAuth{
 									BearerToken: v1.SecretKeySelector{
 										Name: "",
 									},
@@ -156,15 +197,15 @@ func TestValidateStore(t *testing.T) {
 		},
 		{
 			name: "invalid client token auth key",
-			store: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Kubernetes: &esv1beta1.KubernetesProvider{
-							Server: esv1beta1.KubernetesServer{
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Kubernetes: &esv1.KubernetesProvider{
+							Server: esv1.KubernetesServer{
 								CABundle: []byte("1234"),
 							},
-							Auth: esv1beta1.KubernetesAuth{
-								Token: &esv1beta1.TokenAuth{
+							Auth: esv1.KubernetesAuth{
+								Token: &esv1.TokenAuth{
 									BearerToken: v1.SecretKeySelector{
 										Name: "foobar",
 										Key:  "",
@@ -179,15 +220,15 @@ func TestValidateStore(t *testing.T) {
 		},
 		{
 			name: "invalid client token auth namespace",
-			store: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Kubernetes: &esv1beta1.KubernetesProvider{
-							Server: esv1beta1.KubernetesServer{
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Kubernetes: &esv1.KubernetesProvider{
+							Server: esv1.KubernetesServer{
 								CABundle: []byte("1234"),
 							},
-							Auth: esv1beta1.KubernetesAuth{
-								Token: &esv1beta1.TokenAuth{
+							Auth: esv1.KubernetesAuth{
+								Token: &esv1.TokenAuth{
 									BearerToken: v1.SecretKeySelector{
 										Name:      "foobar",
 										Key:       "foobar",
@@ -203,14 +244,14 @@ func TestValidateStore(t *testing.T) {
 		},
 		{
 			name: "invalid service account auth name",
-			store: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Kubernetes: &esv1beta1.KubernetesProvider{
-							Server: esv1beta1.KubernetesServer{
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Kubernetes: &esv1.KubernetesProvider{
+							Server: esv1.KubernetesServer{
 								CABundle: []byte("1234"),
 							},
-							Auth: esv1beta1.KubernetesAuth{
+							Auth: esv1.KubernetesAuth{
 								ServiceAccount: &v1.ServiceAccountSelector{
 									Name:      "foobar",
 									Namespace: pointer.To("foobar"),
@@ -224,14 +265,14 @@ func TestValidateStore(t *testing.T) {
 		},
 		{
 			name: "valid auth",
-			store: &esv1beta1.SecretStore{
-				Spec: esv1beta1.SecretStoreSpec{
-					Provider: &esv1beta1.SecretStoreProvider{
-						Kubernetes: &esv1beta1.KubernetesProvider{
-							Server: esv1beta1.KubernetesServer{
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Kubernetes: &esv1.KubernetesProvider{
+							Server: esv1.KubernetesServer{
 								CABundle: []byte("1234"),
 							},
-							Auth: esv1beta1.KubernetesAuth{
+							Auth: esv1.KubernetesAuth{
 								ServiceAccount: &v1.ServiceAccountSelector{
 									Name: "foobar",
 								},
@@ -290,21 +331,21 @@ func TestValidate(t *testing.T) {
 		Client       KClient
 		ReviewClient RClient
 		Namespace    string
-		store        *esv1beta1.KubernetesProvider
+		store        *esv1.KubernetesProvider
 		storeKind    string
 	}
 	tests := []struct {
 		name    string
 		fields  fields
-		want    esv1beta1.ValidationResult
+		want    esv1.ValidationResult
 		wantErr bool
 	}{
 		{
 			name: "empty ns should return unknown for referent auth",
 			fields: fields{
-				storeKind: esv1beta1.ClusterSecretStoreKind,
-				store: &esv1beta1.KubernetesProvider{
-					Auth: esv1beta1.KubernetesAuth{
+				storeKind: esv1.ClusterSecretStoreKind,
+				store: &esv1.KubernetesProvider{
+					Auth: esv1.KubernetesAuth{
 						ServiceAccount: &v1.ServiceAccountSelector{
 							Name: "foobar",
 						},
@@ -312,7 +353,7 @@ func TestValidate(t *testing.T) {
 				},
 				ReviewClient: fakeReviewClient{authReview: &successReview},
 			},
-			want:    esv1beta1.ValidationResultUnknown,
+			want:    esv1.ValidationResultUnknown,
 			wantErr: false,
 		},
 		{
@@ -320,9 +361,9 @@ func TestValidate(t *testing.T) {
 			fields: fields{
 				Namespace:    "default",
 				ReviewClient: fakeReviewClient{},
-				store:        &esv1beta1.KubernetesProvider{},
+				store:        &esv1.KubernetesProvider{},
 			},
-			want:    esv1beta1.ValidationResultUnknown,
+			want:    esv1.ValidationResultUnknown,
 			wantErr: true,
 		},
 		{
@@ -330,9 +371,9 @@ func TestValidate(t *testing.T) {
 			fields: fields{
 				Namespace:    "default",
 				ReviewClient: fakeReviewClient{authReview: &failReview},
-				store:        &esv1beta1.KubernetesProvider{},
+				store:        &esv1.KubernetesProvider{},
 			},
-			want:    esv1beta1.ValidationResultError,
+			want:    esv1.ValidationResultError,
 			wantErr: true,
 		},
 		{
@@ -340,9 +381,9 @@ func TestValidate(t *testing.T) {
 			fields: fields{
 				Namespace:    "default",
 				ReviewClient: fakeReviewClient{authReview: &successReview},
-				store:        &esv1beta1.KubernetesProvider{},
+				store:        &esv1.KubernetesProvider{},
 			},
-			want:    esv1beta1.ValidationResultReady,
+			want:    esv1.ValidationResultReady,
 			wantErr: false,
 		},
 		{
@@ -350,9 +391,9 @@ func TestValidate(t *testing.T) {
 			fields: fields{
 				Namespace:    "default",
 				ReviewClient: fakeReviewClient{authReview: &successWildcardReview},
-				store:        &esv1beta1.KubernetesProvider{},
+				store:        &esv1.KubernetesProvider{},
 			},
-			want:    esv1beta1.ValidationResultReady,
+			want:    esv1.ValidationResultReady,
 			wantErr: false,
 		},
 	}

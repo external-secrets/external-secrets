@@ -19,6 +19,7 @@ import ksm "github.com/keeper-security/secrets-manager-go/core"
 type MockKeeperClient struct {
 	GetSecretsFn                 func([]string) ([]*ksm.Record, error)
 	GetSecretByTitleFn           func(recordTitle string) (*ksm.Record, error)
+	GetSecretsByTitleFn          func(recordTitle string) (records []*ksm.Record, err error)
 	CreateSecretWithRecordDataFn func(recUID, folderUID string, recordData *ksm.RecordCreate) (string, error)
 	DeleteSecretsFn              func(recrecordUids []string) (map[string]string, error)
 	SaveFn                       func(record *ksm.Record) error
@@ -45,6 +46,10 @@ func (mc *MockKeeperClient) GetSecrets(filter []string) ([]*ksm.Record, error) {
 
 func (mc *MockKeeperClient) GetSecretByTitle(recordTitle string) (*ksm.Record, error) {
 	return mc.GetSecretByTitleFn(recordTitle)
+}
+
+func (mc *MockKeeperClient) GetSecretsByTitle(recordTitle string) (records []*ksm.Record, err error) {
+	return mc.GetSecretsByTitleFn(recordTitle)
 }
 
 func (mc *MockKeeperClient) CreateSecretWithRecordData(recUID, folderUID string, recordData *ksm.RecordCreate) (string, error) {

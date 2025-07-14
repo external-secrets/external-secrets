@@ -1,8 +1,12 @@
-FROM registry.access.redhat.com/ubi8/ubi as minimal-ubi
+FROM registry.access.redhat.com/ubi8/ubi@sha256:19eae3d00adb37538a62b9bd093fd1e01dc6197f1925e960224244a1ed52bfb5 AS minimal-ubi
+
+# Add metadata
+LABEL maintainer="cncf-externalsecretsop-maintainers@lists.cncf.io" \
+      description="External Secrets Operator is a Kubernetes operator that integrates external secret management systems"
 
 ARG TARGETOS
 ARG TARGETARCH
-RUN dnf update -y && dnf install -y binutils
+RUN dnf update -y --allowerasing && dnf install -y binutils
 # prep target rootfs for scratch container
 WORKDIR /
 RUN mkdir /image && \
@@ -16,10 +20,7 @@ COPY ubi-build-files-${TARGETARCH}.txt /tmp
 # Copy all the required files from the base UBI image into the image directory
 # As the go binary is not statically compiled this includes everything needed for CGO to work, cacerts, tzdata and RH release files
 RUN tar cf /tmp/files.tar -T /tmp/ubi-build-files-${TARGETARCH}.txt && tar xf /tmp/files.tar -C /image/ \
-  && strip --strip-unneeded /image/usr/lib64/*[0-9].so
-
-# Generate a rpm database which contains all the packages that you said were needed in ubi-build-files-*.txt
-RUN rpm --root /image --initdb \
+  && strip --strip-unneeded /image/usr/lib64/*[0-9].so && rpm --root /image --initdb \
   && PACKAGES=$(rpm -qf $(cat /tmp/ubi-build-files-${TARGETARCH}.txt) | grep -v "is not owned by any package" | sort -u) \
   && echo dnf install -y 'dnf-command(download)' \
   && dnf download --destdir / ${PACKAGES} \

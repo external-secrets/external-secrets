@@ -170,7 +170,7 @@ var _ = Describe("ValidatingWebhookConfig reconcile", Ordered, func() {
 			Expect(err).ToNot(HaveOccurred())
 		}()
 		tc.assert = func() {
-
+			var resourceVersion string
 			Eventually(func() bool {
 				var vwc admissionregistration.ValidatingWebhookConfiguration
 				err := k8sClient.Get(context.Background(), types.NamespacedName{
@@ -193,11 +193,26 @@ var _ = Describe("ValidatingWebhookConfig reconcile", Ordered, func() {
 						return false
 					}
 				}
+				resourceVersion = vwc.ResourceVersion
 				return true
 			}).
 				WithTimeout(time.Second * 10).
 				WithPolling(time.Second).
 				Should(BeTrue())
+
+			// make sure no additional updates are made
+			Consistently(func() bool {
+				var vwc admissionregistration.ValidatingWebhookConfiguration
+				err := k8sClient.Get(context.Background(), types.NamespacedName{Name: tc.vwc.Name}, &vwc)
+				if err != nil {
+					return false
+				}
+				return vwc.ResourceVersion == resourceVersion
+			}).
+				WithTimeout(time.Second * 10).
+				WithPolling(time.Second).
+				Should(BeTrue())
+
 		}
 	}
 

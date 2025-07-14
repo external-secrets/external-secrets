@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 const (
@@ -46,7 +46,7 @@ const (
 )
 
 // GetAKeylessProvider does the necessary nil checks and returns the akeyless provider or an error.
-func GetAKeylessProvider(store esv1beta1.GenericStore) (*esv1beta1.AkeylessProvider, error) {
+func GetAKeylessProvider(store esv1.GenericStore) (*esv1.AkeylessProvider, error) {
 	if store == nil {
 		return nil, errors.New(errNilStore)
 	}
@@ -104,7 +104,9 @@ func sendReq(url string) string {
 	if err != nil {
 		return ""
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	body, _ := io.ReadAll(resp.Body)
 	return string(body)

@@ -22,9 +22,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ecr"
-	"github.com/aws/aws-sdk-go/service/ecr/ecriface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/ecr"
+	ecrtypes "github.com/aws/aws-sdk-go-v2/service/ecr/types"
+	"github.com/aws/aws-sdk-go-v2/service/ecrpublic"
+	ecrpublictypes "github.com/aws/aws-sdk-go-v2/service/ecrpublic/types"
 	v1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,11 +37,12 @@ import (
 
 func TestGenerate(t *testing.T) {
 	type args struct {
-		ctx           context.Context
-		jsonSpec      *apiextensions.JSON
-		kube          client.Client
-		namespace     string
-		authTokenFunc func(*ecr.GetAuthorizationTokenInput) (*ecr.GetAuthorizationTokenOutput, error)
+		ctx                  context.Context
+		jsonSpec             *apiextensions.JSON
+		kube                 client.Client
+		namespace            string
+		authTokenPrivateFunc func(*ecr.GetAuthorizationTokenInput) (*ecr.GetAuthorizationTokenOutput, error)
+		authTokenPublicFunc  func(*ecrpublic.GetAuthorizationTokenInput) (*ecrpublic.GetAuthorizationTokenOutput, error)
 	}
 	tests := []struct {
 		name    string
@@ -58,7 +61,7 @@ func TestGenerate(t *testing.T) {
 		{
 			name: "invalid json",
 			args: args{
-				authTokenFunc: func(gati *ecr.GetAuthorizationTokenInput) (*ecr.GetAuthorizationTokenOutput, error) {
+				authTokenPrivateFunc: func(gati *ecr.GetAuthorizationTokenInput) (*ecr.GetAuthorizationTokenOutput, error) {
 					return nil, errors.New("boom")
 				},
 				jsonSpec: &apiextensions.JSON{
@@ -68,7 +71,7 @@ func TestGenerate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "full spec",
+			name: "private ECR full spec",
 			args: args{
 				namespace: "foobar",
 				kube: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
@@ -81,10 +84,10 @@ func TestGenerate(t *testing.T) {
 						"access-secret": []byte("bar"),
 					},
 				}).Build(),
-				authTokenFunc: func(in *ecr.GetAuthorizationTokenInput) (*ecr.GetAuthorizationTokenOutput, error) {
+				authTokenPrivateFunc: func(in *ecr.GetAuthorizationTokenInput) (*ecr.GetAuthorizationTokenOutput, error) {
 					t := time.Unix(1234, 0)
 					return &ecr.GetAuthorizationTokenOutput{
-						AuthorizationData: []*ecr.AuthorizationData{
+						AuthorizationData: []ecrtypes.AuthorizationData{
 							{
 								AuthorizationToken: utilpointer.To(base64.StdEncoding.EncodeToString([]byte("uuser:pass"))),
 								ProxyEndpoint:      utilpointer.To("foo"),
@@ -99,6 +102,7 @@ kind: ECRAuthorizationToken
 spec:
   region: eu-west-1
   role: "my-role"
+  scope: private
   auth:
     secretRef:
       accessKeyIDSecretRef:
@@ -116,18 +120,51 @@ spec:
 				"expires_at":     []byte("1234"),
 			},
 		},
+		{
+			name: "public ECR full spec",
+			args: args{
+				namespace: "foobar",
+				authTokenPublicFunc: func(in *ecrpublic.GetAuthorizationTokenInput) (*ecrpublic.GetAuthorizationTokenOutput, error) {
+					t := time.Unix(5678, 0)
+					return &ecrpublic.GetAuthorizationTokenOutput{
+						AuthorizationData: &ecrpublictypes.AuthorizationData{
+							AuthorizationToken: utilpointer.To(base64.StdEncoding.EncodeToString([]byte("pubuser:pubpass"))),
+							ExpiresAt:          &t,
+						},
+					}, nil
+				},
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`apiVersion: generators.external-secrets.io/v1alpha1
+kind: ECRAuthorizationToken
+spec:
+  region: us-east-1
+  role: "my-role"
+  scope: public`),
+				},
+			},
+			want: map[string][]byte{
+				"username":   []byte("pubuser"),
+				"password":   []byte("pubpass"),
+				"expires_at": []byte("5678"),
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := &Generator{}
-			got, err := g.generate(
+			got, _, err := g.generate(
 				tt.args.ctx,
 				tt.args.jsonSpec,
 				tt.args.kube,
 				tt.args.namespace,
-				func(aws *session.Session) ecriface.ECRAPI {
-					return &FakeECR{
-						authTokenFunc: tt.args.authTokenFunc,
+				func(cfg *aws.Config) ecrAPI {
+					return &FakeECRPrivate{
+						authTokenFunc: tt.args.authTokenPrivateFunc,
+					}
+				},
+				func(cfg *aws.Config) ecrPublicAPI {
+					return &FakeECRPublic{
+						authTokenFunc: tt.args.authTokenPublicFunc,
 					}
 				},
 			)
@@ -142,11 +179,18 @@ spec:
 	}
 }
 
-type FakeECR struct {
-	ecriface.ECRAPI
+type FakeECRPrivate struct {
 	authTokenFunc func(*ecr.GetAuthorizationTokenInput) (*ecr.GetAuthorizationTokenOutput, error)
 }
 
-func (e *FakeECR) GetAuthorizationToken(in *ecr.GetAuthorizationTokenInput) (*ecr.GetAuthorizationTokenOutput, error) {
-	return e.authTokenFunc(in)
+func (e *FakeECRPrivate) GetAuthorizationToken(ctx context.Context, params *ecr.GetAuthorizationTokenInput, optFns ...func(*ecr.Options)) (*ecr.GetAuthorizationTokenOutput, error) {
+	return e.authTokenFunc(params)
+}
+
+type FakeECRPublic struct {
+	authTokenFunc func(*ecrpublic.GetAuthorizationTokenInput) (*ecrpublic.GetAuthorizationTokenOutput, error)
+}
+
+func (e *FakeECRPublic) GetAuthorizationToken(ctx context.Context, params *ecrpublic.GetAuthorizationTokenInput, optFns ...func(*ecrpublic.Options)) (*ecrpublic.GetAuthorizationTokenOutput, error) {
+	return e.authTokenFunc(params)
 }

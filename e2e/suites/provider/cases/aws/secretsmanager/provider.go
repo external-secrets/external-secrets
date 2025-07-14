@@ -20,11 +20,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/secretsmanager"
-
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	secretsmanagertypes "github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	//nolint
 	. "github.com/onsi/ginkgo/v2"
 
@@ -36,7 +36,7 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/framework/log"
 	awscommon "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/aws"
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmetav1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -45,21 +45,16 @@ type Provider struct {
 	ServiceAccountNamespace string
 
 	region    string
-	client    *secretsmanager.SecretsManager
+	client    *secretsmanager.Client
 	framework *framework.Framework
 }
 
 func NewProvider(f *framework.Framework, kid, sak, st, region, saName, saNamespace string) *Provider {
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{
-			Credentials: credentials.NewStaticCredentials(kid, sak, st),
-			Region:      aws.String(region),
-		},
-	})
+	config, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region), config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(kid, sak, st)))
 	if err != nil {
 		Fail(err.Error())
 	}
-	sm := secretsmanager.New(sess)
+	sm := secretsmanager.NewFromConfig(config)
 	prov := &Provider{
 		ServiceAccountName:      saName,
 		ServiceAccountNamespace: saNamespace,
@@ -69,10 +64,21 @@ func NewProvider(f *framework.Framework, kid, sak, st, region, saName, saNamespa
 	}
 
 	BeforeEach(func() {
-		awscommon.SetupStaticStore(f, kid, sak, st, region, esv1beta1.AWSServiceSecretsManager)
-		awscommon.SetupExternalIDStore(f, kid, sak, st, region, awscommon.IAMRoleExternalID, awscommon.IAMTrustedExternalID, nil, esv1beta1.AWSServiceSecretsManager)
-		awscommon.SetupSessionTagsStore(f, kid, sak, st, region, awscommon.IAMRoleSessionTags, nil, esv1beta1.AWSServiceSecretsManager)
-		awscommon.CreateReferentStaticStore(f, kid, sak, st, region, esv1beta1.AWSServiceSecretsManager)
+		awscommon.SetupStaticStore(f, awscommon.AccessOpts{KID: kid, SAK: sak, ST: st, Region: region}, esv1.AWSServiceSecretsManager)
+		awscommon.SetupExternalIDStore(
+			f,
+			awscommon.AccessOpts{KID: kid, SAK: sak, ST: st, Region: region, Role: awscommon.IAMRoleExternalID},
+			awscommon.IAMTrustedExternalID,
+			nil,
+			esv1.AWSServiceSecretsManager,
+		)
+		awscommon.SetupSessionTagsStore(
+			f,
+			awscommon.AccessOpts{KID: kid, SAK: sak, ST: st, Region: region, Role: awscommon.IAMRoleSessionTags},
+			nil,
+			esv1.AWSServiceSecretsManager,
+		)
+		awscommon.CreateReferentStaticStore(f, awscommon.AccessOpts{KID: kid, SAK: sak, ST: st, Region: region}, esv1.AWSServiceSecretsManager)
 		prov.SetupReferencedIRSAStore()
 		prov.SetupMountedIRSAStore()
 	})
@@ -97,9 +103,9 @@ func NewFromEnv(f *framework.Framework) *Provider {
 
 // CreateSecret creates a secret at the provider.
 func (s *Provider) CreateSecret(key string, val framework.SecretEntry) {
-	smTags := make([]*secretsmanager.Tag, 0)
+	smTags := make([]secretsmanagertypes.Tag, 0)
 	for k, v := range val.Tags {
-		smTags = append(smTags, &secretsmanager.Tag{
+		smTags = append(smTags, secretsmanagertypes.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v),
 		})
@@ -111,7 +117,7 @@ func (s *Provider) CreateSecret(key string, val framework.SecretEntry) {
 	attempts := 20
 	for {
 		log.Logf("creating secret %s / attempts left: %d", key, attempts)
-		_, err := s.client.CreateSecret(&secretsmanager.CreateSecretInput{
+		_, err := s.client.CreateSecret(context.Background(), &secretsmanager.CreateSecretInput{
 			Name:         aws.String(key),
 			SecretString: aws.String(val.Value),
 			Tags:         smTags,
@@ -132,11 +138,11 @@ func (s *Provider) CreateSecret(key string, val framework.SecretEntry) {
 // and the removal of the secret on the provider side.
 func (s *Provider) DeleteSecret(key string) {
 	log.Logf("deleting secret %s", key)
-	_, err := s.client.DeleteSecret(&secretsmanager.DeleteSecretInput{
+	_, err := s.client.DeleteSecret(context.Background(), &secretsmanager.DeleteSecretInput{
 		SecretId:                   aws.String(key),
 		ForceDeleteWithoutRecovery: aws.Bool(true),
 	})
-	var nf *secretsmanager.ResourceNotFoundException
+	var nf *secretsmanagertypes.ResourceNotFoundException
 	if errors.As(err, &nf) {
 		return
 	}
@@ -146,17 +152,17 @@ func (s *Provider) DeleteSecret(key string) {
 // MountedIRSAStore is a SecretStore without auth config
 // ESO relies on the pod-mounted ServiceAccount when using this store.
 func (s *Provider) SetupMountedIRSAStore() {
-	secretStore := &esv1beta1.SecretStore{
+	secretStore := &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      awscommon.MountedIRSAStoreName(s.framework),
 			Namespace: s.framework.Namespace.Name,
 		},
-		Spec: esv1beta1.SecretStoreSpec{
-			Provider: &esv1beta1.SecretStoreProvider{
-				AWS: &esv1beta1.AWSProvider{
-					Service: esv1beta1.AWSServiceSecretsManager,
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				AWS: &esv1.AWSProvider{
+					Service: esv1.AWSServiceSecretsManager,
 					Region:  s.region,
-					Auth:    esv1beta1.AWSAuth{},
+					Auth:    esv1.AWSAuth{},
 				},
 			},
 		},
@@ -166,7 +172,7 @@ func (s *Provider) SetupMountedIRSAStore() {
 }
 
 func (s *Provider) TeardownMountedIRSAStore() {
-	s.framework.CRClient.Delete(context.Background(), &esv1beta1.ClusterSecretStore{
+	s.framework.CRClient.Delete(context.Background(), &esv1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: awscommon.MountedIRSAStoreName(s.framework),
 		},
@@ -177,18 +183,18 @@ func (s *Provider) TeardownMountedIRSAStore() {
 // that references a (IRSA-) ServiceAccount in the default namespace.
 func (s *Provider) SetupReferencedIRSAStore() {
 	log.Logf("creating IRSA ClusterSecretStore %s", s.framework.Namespace.Name)
-	secretStore := &esv1beta1.ClusterSecretStore{
+	secretStore := &esv1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: awscommon.ReferencedIRSAStoreName(s.framework),
 		},
 	}
 	_, err := controllerutil.CreateOrUpdate(context.Background(), s.framework.CRClient, secretStore, func() error {
-		secretStore.Spec.Provider = &esv1beta1.SecretStoreProvider{
-			AWS: &esv1beta1.AWSProvider{
-				Service: esv1beta1.AWSServiceSecretsManager,
+		secretStore.Spec.Provider = &esv1.SecretStoreProvider{
+			AWS: &esv1.AWSProvider{
+				Service: esv1.AWSServiceSecretsManager,
 				Region:  s.region,
-				Auth: esv1beta1.AWSAuth{
-					JWTAuth: &esv1beta1.AWSJWTAuth{
+				Auth: esv1.AWSAuth{
+					JWTAuth: &esv1.AWSJWTAuth{
 						ServiceAccountRef: &esmetav1.ServiceAccountSelector{
 							Name:      s.ServiceAccountName,
 							Namespace: &s.ServiceAccountNamespace,
@@ -203,7 +209,7 @@ func (s *Provider) SetupReferencedIRSAStore() {
 }
 
 func (s *Provider) TeardownReferencedIRSAStore() {
-	s.framework.CRClient.Delete(context.Background(), &esv1beta1.ClusterSecretStore{
+	s.framework.CRClient.Delete(context.Background(), &esv1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: awscommon.ReferencedIRSAStoreName(s.framework),
 		},

@@ -23,11 +23,11 @@ import (
 	"golang.org/x/oauth2/google"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
-func NewTokenSource(ctx context.Context, auth esv1beta1.GCPSMAuth, projectID, storeKind string, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
+func NewTokenSource(ctx context.Context, auth esv1.GCPSMAuth, projectID, storeKind string, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
 	ts, err := serviceAccountTokenSource(ctx, auth, storeKind, kube, namespace)
 	if ts != nil || err != nil {
 		return ts, err
@@ -36,8 +36,10 @@ func NewTokenSource(ctx context.Context, auth esv1beta1.GCPSMAuth, projectID, st
 	if err != nil {
 		return nil, errors.New("unable to initialize workload identity")
 	}
-	defer wi.Close()
-	isClusterKind := storeKind == esv1beta1.ClusterSecretStoreKind
+	defer func() {
+		_ = wi.Close()
+	}()
+	isClusterKind := storeKind == esv1.ClusterSecretStoreKind
 	ts, err = wi.TokenSource(ctx, auth, isClusterKind, kube, namespace)
 	if ts != nil || err != nil {
 		return ts, err
@@ -45,7 +47,7 @@ func NewTokenSource(ctx context.Context, auth esv1beta1.GCPSMAuth, projectID, st
 	return google.DefaultTokenSource(ctx, CloudPlatformRole)
 }
 
-func serviceAccountTokenSource(ctx context.Context, auth esv1beta1.GCPSMAuth, storeKind string, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
+func serviceAccountTokenSource(ctx context.Context, auth esv1.GCPSMAuth, storeKind string, kube kclient.Client, namespace string) (oauth2.TokenSource, error) {
 	sr := auth.SecretRef
 	if sr == nil {
 		return nil, nil

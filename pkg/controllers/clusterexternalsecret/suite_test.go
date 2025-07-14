@@ -30,7 +30,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	ctrlcommon "github.com/external-secrets/external-secrets/pkg/controllers/common"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -66,7 +67,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	err = esv1beta1.AddToScheme(scheme.Scheme)
+	err = esv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
@@ -90,6 +91,7 @@ var _ = BeforeSuite(func() {
 		RequeueInterval: time.Second,
 	}).SetupWithManager(k8sManager, controller.Options{
 		MaxConcurrentReconciles: 1,
+		RateLimiter:             ctrlcommon.BuildRateLimiter(),
 	})
 	Expect(err).ToNot(HaveOccurred())
 
