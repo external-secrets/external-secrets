@@ -267,11 +267,6 @@ func performOciAuthLogin(ctx context.Context, store esv1.GenericStore, infisical
 
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
-
-	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Infisical == nil {
-		return nil, errors.New("invalid infisical store")
-	}
-
 	infisicalSpec := storeSpec.Provider.Infisical
 
 	ctx, cancelSdkClient := context.WithCancel(ctx)
@@ -301,8 +296,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	case infisicalSpec.Auth.OciAuthCredentials != nil:
 		loginFn = performOciAuthLogin
 	default:
-		cancelSdkClient()
-		return nil, errors.New("authentication method not found")
+		panic("ValidateStore should have caught missing auth method")
 	}
 
 	if err := loginFn(ctx, store, infisicalSpec, sdkClient, kube, namespace); err != nil {
@@ -313,7 +307,6 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	return &Provider{
 		cancelSdkClient: cancelSdkClient,
 		sdkClient:       sdkClient,
-
 		apiScope: &InfisicalClientScope{
 			EnvironmentSlug:        infisicalSpec.SecretsScope.EnvironmentSlug,
 			ProjectSlug:            infisicalSpec.SecretsScope.ProjectSlug,
@@ -374,112 +367,6 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 
 		if uaCredential.ClientID.Key == "" || uaCredential.ClientSecret.Key == "" {
 			return nil, errors.New("universalAuthCredentials.clientId and universalAuthCredentials.clientSecret cannot be empty")
-		}
-	} else if infisicalStoreSpec.Auth.OciAuthCredentials != nil {
-		ociCredential := infisicalStoreSpec.Auth.OciAuthCredentials
-		err := utils.ValidateReferentSecretSelector(store, ociCredential.IdentityID)
-		if err != nil {
-			return nil, err
-		}
-
-		err = utils.ValidateReferentSecretSelector(store, ociCredential.PrivateKey)
-		if err != nil {
-			return nil, err
-		}
-
-		err = utils.ValidateReferentSecretSelector(store, ociCredential.Fingerprint)
-		if err != nil {
-			return nil, err
-		}
-
-		err = utils.ValidateReferentSecretSelector(store, ociCredential.UserID)
-		if err != nil {
-			return nil, err
-		}
-
-		err = utils.ValidateReferentSecretSelector(store, ociCredential.TenancyID)
-		if err != nil {
-			return nil, err
-		}
-
-		err = utils.ValidateReferentSecretSelector(store, ociCredential.Region)
-		if err != nil {
-			return nil, err
-		}
-
-		if ociCredential.PrivateKeyPassphrase.Name != "" {
-			err = utils.ValidateReferentSecretSelector(store, ociCredential.PrivateKeyPassphrase)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		if ociCredential.PrivateKey.Key == "" || ociCredential.Fingerprint.Key == "" || ociCredential.UserID.Key == "" || ociCredential.TenancyID.Key == "" || ociCredential.Region.Key == "" {
-			return nil, errors.New("ociAuthCredentials.privateKey, ociAuthCredentials.fingerprint, ociAuthCredentials.userId, ociAuthCredentials.tenancyId, ociAuthCredentials.region cannot be empty")
-		}
-	}
-
-	if infisicalStoreSpec.Auth.LdapAuthCredentials != nil {
-		ldapCredential := infisicalStoreSpec.Auth.LdapAuthCredentials
-		err := utils.ValidateReferentSecretSelector(store, ldapCredential.IdentityID)
-		if err != nil {
-			return nil, err
-		}
-
-		if ldapCredential.LDAPPassword.Key == "" || ldapCredential.LDAPUsername.Key == "" {
-			return nil, errors.New("ldapAuthCredentials.ldapPassword and ldapAuthCredentials.ldapUsername cannot be empty")
-		}
-	}
-
-	if infisicalStoreSpec.Auth.AzureAuthCredentials != nil {
-		azureCredential := infisicalStoreSpec.Auth.AzureAuthCredentials
-		err := utils.ValidateReferentSecretSelector(store, azureCredential.IdentityID)
-		if err != nil {
-			return nil, err
-		}
-
-		if azureCredential.Resource.Name != "" {
-			err = utils.ValidateReferentSecretSelector(store, azureCredential.Resource)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		if azureCredential.IdentityID.Key == "" {
-			return nil, errors.New("azureAuthCredentials.identityId cannot be empty")
-		}
-	}
-
-	if infisicalStoreSpec.Auth.GcpIdTokenAuthCredentials != nil {
-		gcpIdTokenCredential := infisicalStoreSpec.Auth.GcpIdTokenAuthCredentials
-		err := utils.ValidateReferentSecretSelector(store, gcpIdTokenCredential.IdentityID)
-		if err != nil {
-			return nil, err
-		}
-
-		if gcpIdTokenCredential.IdentityID.Key == "" {
-			return nil, errors.New("gcpIdTokenAuthCredentials.identityId cannot be empty")
-		}
-	}
-
-	if infisicalStoreSpec.Auth.GcpIamAuthCredentials != nil {
-		gcpIamCredential := infisicalStoreSpec.Auth.GcpIamAuthCredentials
-		err := utils.ValidateReferentSecretSelector(store, gcpIamCredential.IdentityID)
-		if err != nil {
-			return nil, err
-		}
-
-		err = utils.ValidateReferentSecretSelector(store, gcpIamCredential.ServiceAccountKeyFilePath)
-		if err != nil {
-			return nil, err
-		}
-
-		if gcpIamCredential.IdentityID.Key == "" {
-			return nil, errors.New("gcpIamAuthCredentials.identityId cannot be empty")
-		}
-
-		if gcpIamCredential.ServiceAccountKeyFilePath.Key == "" {
-			return nil, errors.New("gcpIamAuthCredentials.serviceAccountKeyFilePath cannot be empty")
 		}
 	}
 
