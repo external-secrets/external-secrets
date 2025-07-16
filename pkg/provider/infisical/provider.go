@@ -42,6 +42,8 @@ const (
 	revokeAccessToken                            = "RevokeAccessToken"
 )
 
+const errSecretDataFormat = "failed to get secret data identityId %w"
+
 type Provider struct {
 	cancelSdkClient context.CancelFunc
 	sdkClient       infisicalSdk.InfisicalClientInterface
@@ -122,7 +124,7 @@ func performGcpIdTokenAuthLogin(ctx context.Context, store esv1.GenericStore, in
 	gcpIdTokenAuthCredentials := infisicalSpec.Auth.GcpIdTokenAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, gcpIdTokenAuthCredentials.IdentityID)
 	if err != nil {
-		return fmt.Errorf("failed to get secret data identityId %w", err)
+		return fmt.Errorf(errSecretDataFormat, err)
 	}
 
 	_, err = sdkClient.Auth().GcpIdTokenAuthLogin(identityID)
@@ -139,7 +141,7 @@ func performGcpIamAuthLogin(ctx context.Context, store esv1.GenericStore, infisi
 	gcpIamAuthCredentials := infisicalSpec.Auth.GcpIamAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, gcpIamAuthCredentials.IdentityID)
 	if err != nil {
-		return fmt.Errorf("failed to get secret data identityId %w", err)
+		return fmt.Errorf(errSecretDataFormat, err)
 	}
 
 	serviceAccountKeyFilePath, err := GetStoreSecretData(ctx, store, kube, namespace, gcpIamAuthCredentials.ServiceAccountKeyFilePath)
@@ -161,7 +163,7 @@ func performJwtAuthLogin(ctx context.Context, store esv1.GenericStore, infisical
 	jwtAuthCredentials := infisicalSpec.Auth.JwtAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, jwtAuthCredentials.IdentityID)
 	if err != nil {
-		return fmt.Errorf("failed to get secret data identityId %w", err)
+		return fmt.Errorf(errSecretDataFormat, err)
 	}
 
 	jwt, err := GetStoreSecretData(ctx, store, kube, namespace, jwtAuthCredentials.JWT)
@@ -183,7 +185,7 @@ func performLdapAuthLogin(ctx context.Context, store esv1.GenericStore, infisica
 	ldapAuthCredentials := infisicalSpec.Auth.LdapAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, ldapAuthCredentials.IdentityID)
 	if err != nil {
-		return fmt.Errorf("failed to get secret data identityId %w", err)
+		return fmt.Errorf(errSecretDataFormat, err)
 	}
 
 	ldapPassword, err := GetStoreSecretData(ctx, store, kube, namespace, ldapAuthCredentials.LDAPPassword)
@@ -210,7 +212,7 @@ func performOciAuthLogin(ctx context.Context, store esv1.GenericStore, infisical
 	ociAuthCredentials := infisicalSpec.Auth.OciAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, ociAuthCredentials.IdentityID)
 	if err != nil {
-		return fmt.Errorf("failed to get secret data identityId %w", err)
+		return fmt.Errorf(errSecretDataFormat, err)
 	}
 
 	privateKey, err := GetStoreSecretData(ctx, store, kube, namespace, ociAuthCredentials.PrivateKey)
