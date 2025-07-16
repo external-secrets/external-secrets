@@ -267,6 +267,11 @@ func performOciAuthLogin(ctx context.Context, store esv1.GenericStore, infisical
 
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
+
+	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Infisical == nil {
+		return nil, errors.New("invalid infisical store")
+	}
+
 	infisicalSpec := storeSpec.Provider.Infisical
 
 	ctx, cancelSdkClient := context.WithCancel(ctx)
@@ -296,7 +301,8 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	case infisicalSpec.Auth.OciAuthCredentials != nil:
 		loginFn = performOciAuthLogin
 	default:
-		panic("ValidateStore should have caught missing auth method")
+		cancelSdkClient()
+		return nil, errors.New("authentication method not found")
 	}
 
 	if err := loginFn(ctx, store, infisicalSpec, sdkClient, kube, namespace); err != nil {
