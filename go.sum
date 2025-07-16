@@ -621,6 +621,10 @@ github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/infisical/go-sdk v0.5.97 h1:veOi6Hduda6emtwjdUI5SBg2qd2iDQc5xLKqZ15KSoM=
 github.com/infisical/go-sdk v0.5.97/go.mod h1:ExjqFLRz7LSpZpGluqDLvFl6dFBLq5LKyLW7GBaMAIs=
+github.com/infisical/go-sdk v0.5.98 h1:xWFXt6WuAz5ym2wUctOsR7Zn65nE46cH9tE4cIZmux0=
+github.com/infisical/go-sdk v0.5.98/go.mod h1:j2D2a5WPNdKXDfHO+3y/TNyLWh5Aq9QYS7EcGI96LZI=
+github.com/infisical/go-sdk v0.5.99 h1:trvn7JhKYuSzDkc44h+yqToVjclkrRyP42t315k5kEE=
+github.com/infisical/go-sdk v0.5.99/go.mod h1:j2D2a5WPNdKXDfHO+3y/TNyLWh5Aq9QYS7EcGI96LZI=
 github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 h1:BQSFePA1RWJOlocH6Fxy8MmwDt+yVQYULKfN0RoTN8A=
 github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99/go.mod h1:1lJo3i6rXxKeerYnT8Nvf0QmHCRC1n8sfWVwXF2Frvo=
 github.com/jmespath/go-jmespath v0.3.0/go.mod h1:9QtRXoHjLGCJ5IBSaohpXITPlowMeeYCZ7fLUTSywik=
@@ -745,6 +749,8 @@ github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b h1:Ff
 github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b/go.mod h1:AC62GU6hc0BrNm+9RK9VSiwa/EUe1bkIeFORAMcHvJU=
 github.com/oracle/oci-go-sdk/v65 v65.95.1 h1:KCYeX+c+A0ezLVgXKpEcgXNukn6wBkD9oWoSV2FlaUs=
 github.com/oracle/oci-go-sdk/v65 v65.95.1/go.mod h1:u6XRPsw9tPziBh76K7GrrRXPa8P8W3BQeqJ6ZZt9VLA=
+github.com/oracle/oci-go-sdk/v65 v65.95.2 h1:0HJ0AgpLydp/DtvYrF2d4str2BjXOVAeNbuW7E07g94=
+github.com/oracle/oci-go-sdk/v65 v65.95.2/go.mod h1:u6XRPsw9tPziBh76K7GrrRXPa8P8W3BQeqJ6ZZt9VLA=
 github.com/passbolt/go-passbolt v0.7.2 h1:1kmtMq9Banqj5b6dFHV5M4M/1dOzdY0/gEjuj/JKDRs=
 github.com/passbolt/go-passbolt v0.7.2/go.mod h1:hWlTwpH5vuFKRHQdOZL5GfphqTc4O/z2iLHpSWSuqUk=
 github.com/pgavlin/fx v0.1.6 h1:r9jEg69DhNoCd3Xh0+5mIbdbS3PqWrVWujkY76MFRTU=
