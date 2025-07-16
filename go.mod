@@ -113,7 +113,7 @@ require (
 	github.com/spf13/pflag v1.0.6
 	github.com/tidwall/sjson v1.2.5
 	gitlab.com/gitlab-org/api/client-go v0.134.0
-	k8s.io/kube-openapi v0.0.0-20250710124328-f3f2b991d03b
+	k8s.io/kube-openapi v0.0.0-20250701173324-9bd5c66d9911
 	sigs.k8s.io/yaml v1.5.0
 	software.sslmate.com/src/go-pkcs12 v0.5.0
 )
@@ -255,7 +255,6 @@ require (
 	lukechampine.com/frand v1.5.1 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.7.0 // indirect
-	sigs.k8s.io/structured-merge-diff/v6 v6.2.0 // indirect
 )
 
 require (
