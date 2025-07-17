@@ -24,6 +24,25 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].imagePullPolicy
           value: IfNotPresent
+  - it: should add a init container
+    templates:
+      - cert-controller-deployment.yaml
+    set:
+      certController.extraInitContainers:
+        - name: foo
+          image: example.com/external-secrets/init-image:{{ .Chart.Version }}
+          restartPolicy: Always
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: foo
+      - matchRegex:
+          path: spec.template.spec.initContainers[0].image
+          pattern: ^example\.com/external-secrets/init-image:[0-9]+\.[0-9]+\.[0-9]+$
+      - equal:
+          path: spec.template.spec.initContainers[0].restartPolicy
+          value: Always
+
   - it: should override securityContext
     set:
       certController.podSecurityContext:

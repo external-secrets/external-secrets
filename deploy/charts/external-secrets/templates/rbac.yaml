@@ -229,6 +229,7 @@ rules:
     - "grafanas"
     - "generatorstates"
     - "mfas"
+    - "uuids"
     verbs:
       - "get"
       - "watch"
@@ -288,6 +289,7 @@ rules:
     - "grafanas"
     - "generatorstates"
     - "mfas"
+    - "uuids"
     verbs:
       - "create"
       - "delete"

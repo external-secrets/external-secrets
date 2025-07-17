@@ -83,23 +83,23 @@ func init() {
 	})
 }
 
-func applyToTarget(k, val string, target esapi.TemplateTarget, secret *corev1.Secret) {
+func applyToTarget(k string, val []byte, target esapi.TemplateTarget, secret *corev1.Secret) {
 	switch target {
 	case esapi.TemplateTargetAnnotations:
 		if secret.Annotations == nil {
 			secret.Annotations = make(map[string]string)
 		}
-		secret.Annotations[k] = val
+		secret.Annotations[k] = string(val)
 	case esapi.TemplateTargetLabels:
 		if secret.Labels == nil {
 			secret.Labels = make(map[string]string)
 		}
-		secret.Labels[k] = val
+		secret.Labels[k] = string(val)
 	case esapi.TemplateTargetData:
 		if secret.Data == nil {
 			secret.Data = make(map[string][]byte)
 		}
-		secret.Data[k] = []byte(val)
+		secret.Data[k] = val
 	default:
 	}
 }
@@ -110,7 +110,7 @@ func valueScopeApply(tplMap, data map[string][]byte, target esapi.TemplateTarget
 		if err != nil {
 			return fmt.Errorf(errExecute, k, err)
 		}
-		applyToTarget(k, string(val), target, secret)
+		applyToTarget(k, val, target, secret)
 	}
 	return nil
 }
@@ -126,7 +126,7 @@ func mapScopeApply(tpl string, data map[string][]byte, target esapi.TemplateTarg
 		return fmt.Errorf("could not unmarshal template to 'map[string][]byte': %w", err)
 	}
 	for k, val := range src {
-		applyToTarget(k, val, target, secret)
+		applyToTarget(k, []byte(val), target, secret)
 	}
 	return nil
 }

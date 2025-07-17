@@ -37,6 +37,15 @@ type GitlabProvider struct {
 
 	// Environment environment_scope of gitlab CI/CD variables (Please see https://docs.gitlab.com/ee/ci/environments/#create-a-static-environment on how to create environments)
 	Environment string `json:"environment,omitempty"`
+
+	// Base64 encoded certificate for the GitLab server sdk. The sdk MUST run with HTTPS to make sure no MITM attack
+	// can be performed.
+	// +optional
+	CABundle []byte `json:"caBundle,omitempty"`
+
+	// see: https://external-secrets.io/latest/spec/#external-secrets.io/v1alpha1.CAProvider
+	// +optional
+	CAProvider *CAProvider `json:"caProvider,omitempty"`
 }
 
 type GitlabAuth struct {

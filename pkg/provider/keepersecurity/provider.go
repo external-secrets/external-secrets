@@ -101,7 +101,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	config := spc.Provider.KeeperSecurity
 
 	if err := utils.ValidateSecretSelector(store, config.Auth); err != nil {
-		return nil, errors.New(errKeeperSecurityStoreMissingAuth)
+		return nil, fmt.Errorf("error validating secret selector: %w", err)
 	}
 	if config.FolderID == "" {
 		return nil, errors.New(errKeeperSecurityStoreMissingFolderID)

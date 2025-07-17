@@ -106,10 +106,10 @@ func TestGetSecret(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			apiClient, closeFunc := api.NewMockClient(tc.MockStatusCode, tc.MockResponse)
+			sdkClient, closeFunc := api.NewMockClient(tc.MockStatusCode, tc.MockResponse)
 			defer closeFunc()
 			p := &Provider{
-				apiClient: apiClient,
+				sdkClient: sdkClient,
 				apiScope:  &apiScope,
 			}
 
@@ -151,6 +151,7 @@ func TestGetSecretWithPath(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, fmt.Sprintf("/api/v3/secrets/raw/%s", expectedSecretKey), r.URL.Path)
 		assert.Equal(t, expectedSecretPath, r.URL.Query().Get("secretPath"))
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(200)
 		_, err := w.Write(body)
 		if err != nil {
@@ -159,11 +160,13 @@ func TestGetSecretWithPath(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := api.NewAPIClient(server.URL, server.Client())
+	sdkClient, cancelFunc, err := api.NewAPIClient(server.URL, server.Certificate())
+	defer cancelFunc()
 	require.NoError(t, err)
 	p := &Provider{
-		apiClient: client,
-		apiScope:  &apiScope,
+		sdkClient:       sdkClient,
+		cancelSdkClient: cancelFunc,
+		apiScope:        &apiScope,
 	}
 
 	// Retrieve the secret.
@@ -204,10 +207,11 @@ func TestGetSecretMap(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
-			apiClient, closeFunc := api.NewMockClient(tc.MockStatusCode, tc.MockResponse)
+			sdkClient, closeFunc := api.NewMockClient(tc.MockStatusCode, tc.MockResponse)
 			defer closeFunc()
+
 			p := &Provider{
-				apiClient: apiClient,
+				sdkClient: sdkClient,
 				apiScope:  &apiScope,
 			}
 			output, err := p.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{

@@ -358,3 +358,21 @@ tests:
       - equal:
           path: metadata.annotations["prometheus.io/scrape"]
           value: "true"
+  - it: should add a init container
+    templates:
+      - webhook-deployment.yaml
+    set:
+      webhook.extraInitContainers:
+        - name: foo
+          image: example.com/external-secrets/init-image:{{ .Chart.Version }}
+          restartPolicy: Always
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].name
+          value: foo
+      - matchRegex:
+          path: spec.template.spec.initContainers[0].image
+          pattern: ^example\.com/external-secrets/init-image:[0-9]+\.[0-9]+\.[0-9]+$
+      - equal:
+          path: spec.template.spec.initContainers[0].restartPolicy
+          value: Always

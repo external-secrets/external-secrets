@@ -17,6 +17,7 @@ package pushsecret
 import (
 	"context"
 	"fmt"
+	"maps"
 
 	v1 "k8s.io/api/core/v1"
 
@@ -54,11 +55,16 @@ func (r *Reconciler) applyTemplate(ctx context.Context, ps *v1alpha1.PushSecret,
 	if err != nil {
 		return err
 	}
-
+	// Copies secret.Data to dataMap to avoid modifying the original secret
+	// This avoids uncertain behavior if kube-apiserver sends the
+	// template map in a different order on each reconcile loop
+	// ref: https://github.com/external-secrets/external-secrets/issues/5018
+	dataMap := make(map[string][]byte)
+	maps.Copy(dataMap, secret.Data)
 	p := templating.Parser{
 		Client:       r.Client,
 		TargetSecret: secret,
-		DataMap:      secret.Data,
+		DataMap:      dataMap,
 		Exec:         execute,
 	}
 
