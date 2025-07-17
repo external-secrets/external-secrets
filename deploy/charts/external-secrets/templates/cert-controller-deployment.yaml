@@ -98,6 +98,10 @@ spec:
           volumeMounts:
           {{- toYaml .Values.certController.extraVolumeMounts | nindent 12 }}
           {{- end }}
+      {{- with .Values.certController.extraInitContainers }}
+      initContainers:
+        {{- tpl (toYaml . | nindent 8) $ }}
+      {{- end }}
       {{- if .Values.certController.extraVolumes }}
       volumes:
       {{- toYaml .Values.certController.extraVolumes | nindent 8 }}
