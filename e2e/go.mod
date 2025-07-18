@@ -63,7 +63,7 @@ require (
 	github.com/hashicorp/vault/api v1.20.0
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
-	github.com/oracle/oci-go-sdk/v65 v65.95.1
+	github.com/oracle/oci-go-sdk/v65 v65.95.2
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.34
 	gitlab.com/gitlab-org/api/client-go v0.134.0
 	golang.org/x/oauth2 v0.30.0
