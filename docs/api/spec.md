@@ -283,6 +283,19 @@ SecretsManager
 </tr>
 <tr>
 <td>
+<code>injectKubernetesContext</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>InjectKubernetesContext, when true, automatically adds STS session tags identifying the calling namespace,
+and the SecretStore name.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>prefix</code></br>
 <em>
 string
