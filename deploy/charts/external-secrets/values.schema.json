@@ -415,6 +415,40 @@
         "leaderElect": {
             "type": "boolean"
         },
+        "livenessProbe": {
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "failureThreshold": {
+                    "type": "integer"
+                },
+                "httpGet": {
+                    "properties": {
+                        "path": {
+                            "type": "string"
+                        },
+                        "port": {
+                            "type": "integer"
+                        }
+                    },
+                    "type": "object"
+                },
+                "initialDelaySeconds": {
+                    "type": "integer"
+                },
+                "periodSeconds": {
+                    "type": "integer"
+                },
+                "successThreshold": {
+                    "type": "integer"
+                },
+                "timeoutSeconds": {
+                    "type": "integer"
+                }
+            },
+            "type": "object"
+        },
         "log": {
             "properties": {
                 "level": {
