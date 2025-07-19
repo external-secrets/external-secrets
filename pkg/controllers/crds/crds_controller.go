@@ -35,6 +35,7 @@ import (
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -53,9 +54,9 @@ const (
 	certValidityDuration = 10 * 365 * 24 * time.Hour
 	LookaheadInterval    = 90 * 24 * time.Hour
 
-	errResNotReady       = "resource not ready: %s"
-	errSubsetsNotReady   = "subsets not ready"
-	errAddressesNotReady = "addresses not ready"
+	errResNotReady            = "resource not ready: %s"
+	errEndpointSlicesNotReady = "EndpointSlice objects not ready"
+	errAddressesNotReady      = "addresses not ready"
 )
 
 type Reconciler struct {
@@ -151,7 +152,7 @@ func (r *Reconciler) ReadyCheck(_ *http.Request) error {
 	if err := r.checkCRDs(); err != nil {
 		return err
 	}
-	return r.checkEndpoints()
+	return r.checkEndpointSlices()
 }
 
 func (r *Reconciler) checkCRDs() error {
@@ -166,19 +167,27 @@ func (r *Reconciler) checkCRDs() error {
 	return nil
 }
 
-func (r *Reconciler) checkEndpoints() error {
-	var eps corev1.Endpoints
-	err := r.Get(context.TODO(), types.NamespacedName{
-		Name:      r.SvcName,
-		Namespace: r.SvcNamespace,
-	}, &eps)
+func (r *Reconciler) checkEndpointSlices() error {
+	var sliceList discoveryv1.EndpointSliceList
+	err := r.List(context.TODO(), &sliceList,
+		client.InNamespace(r.SvcNamespace),
+		client.MatchingLabels{"kubernetes.io/service-name": r.SvcName},
+	)
 	if err != nil {
 		return err
 	}
-	if len(eps.Subsets) == 0 {
-		return errors.New(errSubsetsNotReady)
+	if len(sliceList.Items) == 0 {
+		return errors.New(errEndpointSlicesNotReady)
 	}
-	if len(eps.Subsets[0].Addresses) == 0 {
+	readyAddresses := 0
+	for _, slice := range sliceList.Items {
+		for _, ep := range slice.Endpoints {
+			if ep.Conditions.Ready != nil && *ep.Conditions.Ready {
+				readyAddresses += len(ep.Addresses)
+			}
+		}
+	}
+	if readyAddresses == 0 {
 		return errors.New(errAddressesNotReady)
 	}
 	return nil
