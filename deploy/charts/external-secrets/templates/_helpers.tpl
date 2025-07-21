@@ -66,7 +66,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- with .Values.commonLabels }}
 {{ toYaml . }}
 {{- end }}
-{{- if and ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) .Values.serviceMonitor.enabled }}
+{{- if .Values.serviceMonitor.enabled }}
 app.kubernetes.io/metrics: "webhook"
 {{- with .Values.webhook.service.labels }}
 {{ toYaml . }}
@@ -106,7 +106,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- with .Values.commonLabels }}
 {{ toYaml . }}
 {{- end }}
-{{- if and ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) .Values.serviceMonitor.enabled }}
+{{- if .Values.serviceMonitor.enabled }}
 app.kubernetes.io/metrics: "cert-controller"
 {{- end }}
 {{- end }}
@@ -219,3 +219,12 @@ Render the securityContext based on the provided securityContext
 {{- end -}}
 {{- omit $adaptedContext "enabled" | toYaml -}}
 {{- end -}}
+
+{{/* Check for prometheus-operator CRDs */}}
+{{- if .Values.serviceMonitor.enabled -}}
+  {{- if not .Values.serviceMonitor.trustCRDsExist }}
+      {{- if not (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1") }}
+          {{ fail "Service Monitor requires monitoring.coreos.com/v1 CRDs. Please refer to https://github.com/prometheus-operator/prometheus-operator/blob/main/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml or set .Values.serviceMonitor.trustCRDsExist=true" }}
+      {{- end }}
+  {{- end }}
+{{- end }}

@@ -191,6 +191,9 @@ serviceMonitor:
   # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
   enabled: false
 
+  # -- Should we just trust the CRDs exist rather than querying the API server?
+  trustCRDsExist: false
+
   # -- namespace where you want to install ServiceMonitors
   namespace: ""
 

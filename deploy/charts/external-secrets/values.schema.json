@@ -652,6 +652,9 @@
                 },
                 "scrapeTimeout": {
                     "type": "string"
+                },
+                "trustCRDsExist": {
+                    "type": "boolean"
                 }
             },
             "type": "object"
