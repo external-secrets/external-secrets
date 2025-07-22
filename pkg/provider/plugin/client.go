@@ -43,13 +43,13 @@ type PluginClient struct {
 // NewPluginClient creates a new plugin client with direct endpoint connection
 func NewPluginClient(ctx context.Context, store *esv1.SecretStore, kube client.Client, namespace string) (*PluginClient, error) {
 	if store.Spec.Provider.Plugin == nil {
-		return nil, fmt.Errorf("plugin provider configuration is nil")
+		return nil, ErrPluginConfigNil
 	}
 
 	cfg := store.Spec.Provider.Plugin
 
 	if cfg.Endpoint == "" {
-		return nil, fmt.Errorf("plugin endpoint is required")
+		return nil, ErrEndpointRequired
 	}
 
 	// Parse timeout
@@ -82,13 +82,13 @@ func (c *PluginClient) connect(ctx context.Context) error {
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
-	target, dialOptions, err := c.buildDialOptions()
+	target, dialOptions, err := buildDialOptions(c.endpoint)
 	if err != nil {
 		return fmt.Errorf("failed to build dial options: %w", err)
 	}
 
 	// Create the connection
-	conn, err := grpc.DialContext(ctxWithTimeout, target, dialOptions...)
+	conn, err := grpc.NewClient(target, dialOptions...)
 	if err != nil {
 		return fmt.Errorf("failed to connect to %s: %w", target, err)
 	}
@@ -106,8 +106,8 @@ func (c *PluginClient) connect(ctx context.Context) error {
 }
 
 // buildDialOptions creates appropriate dial options based on endpoint type
-func (c *PluginClient) buildDialOptions() (string, []grpc.DialOption, error) {
-	parsedURL, err := url.Parse(c.endpoint)
+func buildDialOptions(endpoint string) (string, []grpc.DialOption, error) {
+	parsedURL, err := url.Parse(endpoint)
 
 	dialOptions := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -138,41 +138,42 @@ func (c *PluginClient) buildDialOptions() (string, []grpc.DialOption, error) {
 
 	// Handle URL parsing errors or no scheme
 	if err != nil || parsedURL.Scheme == "" {
-		target = c.endpoint
+		target = endpoint
 		// For host:port format, validate it
 		if err == nil && parsedURL.Path != "" && (parsedURL.Path[0] == '/' || (len(parsedURL.Path) >= 2 && parsedURL.Path[:2] == "./")) {
-			// Unix socket path
-			target = parsedURL.Path
-			dialOptions = append(dialOptions, grpc.WithContextDialer(c.createUnixDialer(target)))
+			// Unix socket path without scheme
+			socketPath := parsedURL.Path
+			target = ""
+			dialOptions = append(dialOptions, grpc.WithContextDialer(createUnixDialer(socketPath)))
 		}
 		return target, dialOptions, nil
 	}
 
 	switch parsedURL.Scheme {
 	case "unix":
-		target = parsedURL.Path
-		if !filepath.IsAbs(target) {
-			return "", nil, fmt.Errorf("unix socket path must be absolute: %s", target)
+		socketPath := parsedURL.Path
+		if !filepath.IsAbs(socketPath) {
+			return "", nil, ErrUnixSocketNotAbsolute
 		}
-		dialOptions = append(dialOptions, grpc.WithContextDialer(c.createUnixDialer(target)))
+		// Use empty target for Unix sockets and rely on custom dialer
+		target = ""
+		dialOptions = append(dialOptions, grpc.WithContextDialer(createUnixDialer(socketPath)))
 	case "tcp":
 		target = parsedURL.Host
 		if target == "" {
-			return "", nil, fmt.Errorf("tcp scheme requires host:port")
+			return "", nil, ErrTCPSchemeRequiresHostPort
 		}
 	default:
-		return "", nil, fmt.Errorf("unsupported scheme: %s", parsedURL.Scheme)
+		return "", nil, ErrUnsupportedScheme
 	}
 
 	return target, dialOptions, nil
 }
 
 // createUnixDialer creates a dialer for Unix sockets
-func (c *PluginClient) createUnixDialer(socketPath string) func(context.Context, string) (net.Conn, error) {
+func createUnixDialer(socketPath string) func(context.Context, string) (net.Conn, error) {
 	return func(ctx context.Context, addr string) (net.Conn, error) {
-		dialer := &net.Dialer{
-			Timeout: c.timeout,
-		}
+		dialer := &net.Dialer{}
 		return dialer.DialContext(ctx, "unix", socketPath)
 	}
 }
@@ -180,7 +181,7 @@ func (c *PluginClient) createUnixDialer(socketPath string) func(context.Context,
 // healthCheck performs a health check on the connection
 func (c *PluginClient) healthCheck(ctx context.Context) error {
 	if c.grpcClient == nil {
-		return fmt.Errorf("grpc client not initialized")
+		return ErrPluginNotConnected
 	}
 
 	_, err := c.grpcClient.GetInfo(ctx, &proto.GetInfoRequest{})
@@ -207,7 +208,7 @@ func (c *PluginClient) healthCheck(ctx context.Context) error {
 // GetCapabilities returns the capabilities of the connected plugin
 func (c *PluginClient) GetCapabilities(ctx context.Context) (*proto.GetInfoResponse, error) {
 	if c.grpcClient == nil {
-		return nil, fmt.Errorf("plugin client not connected")
+		return nil, ErrPluginNotConnected
 	}
 
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, c.timeout)
@@ -303,7 +304,7 @@ func (c *PluginClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDat
 			}
 		}
 		if err != nil {
-			return nil, fmt.Errorf("plugin failed to get secret: %w", err)
+			return nil, fmt.Errorf("get secret: %w", err)
 		}
 	}
 
@@ -313,7 +314,7 @@ func (c *PluginClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDat
 // GetSecretMap retrieves multiple secrets from the configured plugin
 func (c *PluginClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	if c.grpcClient == nil {
-		return nil, fmt.Errorf("plugin client not connected")
+		return nil, ErrPluginNotConnected
 	}
 
 	// Convert the reference to proto format
@@ -327,7 +328,7 @@ func (c *PluginClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecret
 	// Call the plugin
 	response, err := c.grpcClient.GetSecretMap(ctx, request)
 	if err != nil {
-		return nil, fmt.Errorf("plugin failed to get secret map: %w", err)
+		return nil, fmt.Errorf("get secret map: %w", err)
 	}
 
 	// Convert response to map[string][]byte
@@ -337,7 +338,7 @@ func (c *PluginClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecret
 // GetAllSecrets retrieves all secrets from the configured plugin
 func (c *PluginClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	if c.grpcClient == nil {
-		return nil, fmt.Errorf("plugin client not connected")
+		return nil, ErrPluginNotConnected
 	}
 
 	// Convert the find request to proto format
@@ -348,7 +349,7 @@ func (c *PluginClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecre
 	// Call the plugin
 	response, err := c.grpcClient.GetAllSecrets(ctx, request)
 	if err != nil {
-		return nil, fmt.Errorf("plugin failed to get all secrets: %w", err)
+		return nil, fmt.Errorf("get all secrets: %w", err)
 	}
 
 	// Convert response to map[string][]byte
@@ -358,7 +359,7 @@ func (c *PluginClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecre
 // PushSecret pushes a secret to the configured plugin
 func (c *PluginClient) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	if c.grpcClient == nil {
-		return fmt.Errorf("plugin client not connected")
+		return ErrPluginNotConnected
 	}
 
 	// Extract secret data from the secret
@@ -390,7 +391,7 @@ func (c *PluginClient) PushSecret(ctx context.Context, secret *corev1.Secret, da
 // DeleteSecret deletes a secret from the configured plugin
 func (c *PluginClient) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	if c.grpcClient == nil {
-		return fmt.Errorf("plugin client not connected")
+		return ErrPluginNotConnected
 	}
 
 	// Convert the reference to proto format
@@ -400,8 +401,7 @@ func (c *PluginClient) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecr
 	}
 
 	// Call the plugin
-	_, err := c.grpcClient.DeleteSecret(ctx, request)
-	if err != nil {
+	if _, err := c.grpcClient.DeleteSecret(ctx, request); err != nil {
 		return fmt.Errorf("plugin failed to delete secret: %w", err)
 	}
 
@@ -411,7 +411,7 @@ func (c *PluginClient) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecr
 // SecretExists checks if a secret exists in the configured plugin
 func (c *PluginClient) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (bool, error) {
 	if c.grpcClient == nil {
-		return false, fmt.Errorf("plugin client not connected")
+		return false, ErrPluginNotConnected
 	}
 
 	// Convert the reference to proto format

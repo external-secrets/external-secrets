@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -98,8 +99,10 @@ func TestPluginProvider_Capabilities(t *testing.T) {
 	provider := &PluginProvider{}
 	capabilities := provider.Capabilities()
 
-	if capabilities != esv1.SecretStoreReadWrite {
-		t.Errorf("PluginProvider.Capabilities() = %v, want %v", capabilities, esv1.SecretStoreReadWrite)
+	// Plugin provider returns conservative default (read-only)
+	// Actual capabilities are discovered via GetPluginCapabilities()
+	if capabilities != esv1.SecretStoreReadOnly {
+		t.Errorf("PluginProvider.Capabilities() = %v, want %v", capabilities, esv1.SecretStoreReadOnly)
 	}
 }
 
@@ -117,6 +120,72 @@ func TestPluginProvider_NewClient_InvalidStore(t *testing.T) {
 	_, err := provider.NewClient(ctx, invalidStore, nil, "default")
 	if err == nil {
 		t.Error("PluginProvider.NewClient() expected error for invalid store, got nil")
+	}
+
+	// Check that we get the expected error type
+	if !errors.Is(err, ErrPluginConfigNil) {
+		t.Errorf("PluginProvider.NewClient() expected ErrPluginConfigNil, got %v", err)
+	}
+}
+
+func TestPluginProvider_SpecificErrors(t *testing.T) {
+	provider := &PluginProvider{}
+
+	tests := []struct {
+		name      string
+		store     esv1.GenericStore
+		expectErr error
+	}{
+		{
+			name: "nil plugin config",
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{},
+				},
+			},
+			expectErr: ErrPluginConfigNil,
+		},
+		{
+			name: "empty endpoint",
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Plugin: &esv1.PluginProvider{
+							Endpoint: "",
+						},
+					},
+				},
+			},
+			expectErr: ErrEndpointRequired,
+		},
+		{
+			name: "empty timeout",
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Plugin: &esv1.PluginProvider{
+							Endpoint: "unix:///tmp/plugins/test.sock",
+							Timeout:  stringPtr(""),
+						},
+					},
+				},
+			},
+			expectErr: ErrTimeoutEmpty,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := provider.ValidateStore(tt.store)
+			if err == nil {
+				t.Errorf("ValidateStore() expected error for %s", tt.name)
+				return
+			}
+
+			if !errors.Is(err, tt.expectErr) {
+				t.Errorf("ValidateStore() expected error %v, got %v", tt.expectErr, err)
+			}
+		})
 	}
 }
 
@@ -173,4 +242,9 @@ func TestEndpointParsing(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Helper function to create a string pointer
+func stringPtr(s string) *string {
+	return &s
 }

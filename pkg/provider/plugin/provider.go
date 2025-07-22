@@ -2,16 +2,27 @@ package plugin
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"net/url"
-	"path/filepath"
-	"strings"
 	"time"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/provider/plugin/proto"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+)
+
+// Common exported errors for plugin provider
+var (
+	ErrInvalidStoreType                 = errors.New("invalid store type")
+	ErrPluginConfigNil                  = errors.New("plugin provider configuration is nil")
+	ErrEndpointRequired                 = errors.New("endpoint is required")
+	ErrTimeoutEmpty                     = errors.New("timeout cannot be empty")
+	ErrUnixSocketNotAbsolute            = errors.New("unix socket path must be absolute")
+	ErrUnsupportedScheme                = errors.New("unsupported scheme")
+	ErrCapabilityProviderNotImplemented = errors.New("client does not implement CapabilityProvider interface")
+	ErrPluginNotConnected               = errors.New("plugin client not connected")
+	ErrTCPSchemeRequiresHostPort        = errors.New("tcp scheme requires host:port")
 )
 
 // PluginProvider implements the external-secrets Provider interface for plugin-based providers
@@ -30,7 +41,7 @@ func (p *PluginProvider) NewClient(ctx context.Context, store esv1.GenericStore,
 	if !ok {
 		clusterSecretStore, ok := store.(*esv1.ClusterSecretStore)
 		if !ok {
-			return nil, fmt.Errorf("invalid store type: %T", store)
+			return nil, ErrInvalidStoreType
 		}
 
 		// Convert ClusterSecretStore to SecretStore for processing
@@ -49,25 +60,25 @@ func (p *PluginProvider) NewClient(ctx context.Context, store esv1.GenericStore,
 // ValidateStore validates the plugin store configuration and performs capability discovery
 func (p *PluginProvider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	if store.GetSpec().Provider.Plugin == nil {
-		return nil, fmt.Errorf("plugin provider configuration is nil")
+		return nil, ErrPluginConfigNil
 	}
 
 	cfg := store.GetSpec().Provider.Plugin
 
 	// Validate endpoint
 	if cfg.Endpoint == "" {
-		return nil, fmt.Errorf("endpoint is required")
+		return nil, ErrEndpointRequired
 	}
 
 	// Validate endpoint format
 	endpoint := cfg.Endpoint
-	if err := validateEndpoint(endpoint); err != nil {
-		return nil, fmt.Errorf("invalid endpoint format: %s", err)
+	if _, _, err := buildDialOptions(endpoint); err != nil {
+		return nil, fmt.Errorf("invalid endpoint format: %w", err)
 	}
 
 	// Validate timeout
 	if cfg.Timeout != nil && *cfg.Timeout == "" {
-		return nil, fmt.Errorf("timeout cannot be empty")
+		return nil, ErrTimeoutEmpty
 	}
 
 	// Perform capability discovery during validation
@@ -98,54 +109,6 @@ func (p *PluginProvider) ValidateStore(store esv1.GenericStore) (admission.Warni
 	return nil, nil
 }
 
-// validateEndpoint validates the endpoint format using standard library functions
-func validateEndpoint(endpoint string) error {
-	// Try to parse as URL first
-	parsedURL, err := url.Parse(endpoint)
-	if err == nil && parsedURL.Scheme != "" {
-		// Valid URL with scheme
-		switch parsedURL.Scheme {
-		case "unix":
-			// Unix socket URL
-			if !filepath.IsAbs(parsedURL.Path) {
-				return fmt.Errorf("unix socket path must be absolute")
-			}
-			return nil
-		case "tcp":
-			// TCP URL - already validated by url.Parse
-			return nil
-		default:
-			return fmt.Errorf("unsupported scheme: %s. Expected unix or tcp", parsedURL.Scheme)
-		}
-	}
-
-	// Check for absolute path (unix socket without scheme)
-	if filepath.IsAbs(endpoint) {
-		return nil
-	}
-
-	// Check for relative path starting with "./"
-	if len(endpoint) >= 2 && endpoint[:2] == "./" {
-		return nil
-	}
-
-	// Check for host:port format (no scheme)
-	// If it contains a colon but no scheme, try parsing as host:port
-	if strings.Contains(endpoint, ":") {
-		// First check if it already has a scheme
-		if !strings.Contains(endpoint, "://") {
-			// Validate by trying to parse as TCP URL
-			testURL := "tcp://" + endpoint
-			if _, err := url.Parse(testURL); err != nil {
-				return fmt.Errorf("invalid host:port format: %w", err)
-			}
-			return nil
-		}
-	}
-
-	return fmt.Errorf("unsupported format. Expected unix://, tcp://, absolute path, relative path, or host:port")
-}
-
 // Capabilities returns the provider capabilities by querying the plugin via gRPC
 // Note: For plugins, this returns a conservative default since capability discovery
 // requires connecting to the specific plugin. The actual capabilities should be
@@ -174,7 +137,7 @@ func (p *PluginProvider) GetPluginCapabilities(ctx context.Context, store esv1.G
 	capabilityProvider, ok := client.(CapabilityProvider)
 	if !ok {
 		// Fallback: assume read-only for safety
-		return esv1.SecretStoreReadOnly, fmt.Errorf("client does not implement CapabilityProvider interface")
+		return esv1.SecretStoreReadOnly, ErrCapabilityProviderNotImplemented
 	}
 
 	// Query the plugin for its capabilities
@@ -186,12 +149,6 @@ func (p *PluginProvider) GetPluginCapabilities(ctx context.Context, store esv1.G
 
 	// Convert plugin capabilities to external-secrets capabilities
 	capabilities := convertPluginCapabilities(info)
-
-	// Log the discovered capabilities for debugging
-	if info != nil {
-		// Could add logging here if needed
-		// log.Info("Discovered plugin capabilities", "plugin", info.Name, "version", info.Version, "capabilities", capabilities)
-	}
 
 	return capabilities, nil
 }
