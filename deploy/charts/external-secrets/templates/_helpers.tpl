@@ -66,7 +66,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- with .Values.commonLabels }}
 {{ toYaml . }}
 {{- end }}
-{{- if and ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) .Values.serviceMonitor.enabled }}
+{{- if and ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor" ) .Values.serviceMonitor.enabled }}
 app.kubernetes.io/metrics: "webhook"
 {{- with .Values.webhook.service.labels }}
 {{ toYaml . }}
@@ -106,7 +106,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- with .Values.commonLabels }}
 {{ toYaml . }}
 {{- end }}
-{{- if and ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) .Values.serviceMonitor.enabled }}
+{{- if and ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor" ) .Values.serviceMonitor.enabled }}
 app.kubernetes.io/metrics: "cert-controller"
 {{- end }}
 {{- end }}
