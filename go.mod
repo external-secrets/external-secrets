@@ -98,6 +98,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/google/go-github/v56 v56.0.0
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20250617151817-c0f8cbb88d5c
+	github.com/hashicorp/go-plugin v1.6.3
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/hashicorp/vault/api/auth/aws v0.10.0
 	github.com/hashicorp/vault/api/auth/userpass v0.10.0
@@ -113,6 +114,7 @@ require (
 	github.com/spf13/pflag v1.0.6
 	github.com/tidwall/sjson v1.2.5
 	gitlab.com/gitlab-org/api/client-go v0.130.1
+	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1
 	k8s.io/kube-openapi v0.0.0-20250628140032-d90c4fd18f59
 	sigs.k8s.io/yaml v1.5.0
 	software.sslmate.com/src/go-pkcs12 v0.5.0
@@ -189,6 +191,7 @@ require (
 	github.com/gofrs/flock v0.12.1 // indirect
 	github.com/golang/glog v1.2.5 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/go-github/v72 v72.0.0 // indirect
@@ -197,6 +200,7 @@ require (
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hashicorp/hcl/v2 v2.23.0 // indirect
+	github.com/hashicorp/yamux v0.1.1 // indirect
 	github.com/ianlancetaylor/demangle v0.0.0-20250628045327-2d64ad6b7ec5 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
@@ -210,6 +214,7 @@ require (
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/termenv v0.16.0 // indirect
+	github.com/oklog/run v1.0.0 // indirect
 	github.com/opentracing/basictracer-go v1.1.0 // indirect
 	github.com/pgavlin/fx v0.1.6 // indirect
 	github.com/pjbgf/sha1cd v0.3.2 // indirect
@@ -351,7 +356,7 @@ require (
 	golang.org/x/time v0.12.0
 	golang.org/x/tools v0.34.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
-	google.golang.org/protobuf v1.36.6 // indirect
+	google.golang.org/protobuf v1.36.6
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0

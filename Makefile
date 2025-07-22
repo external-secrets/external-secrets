@@ -144,9 +144,18 @@ fmt: golangci-lint ## Ensure consistent code style
 	@$(GOLANGCI_LINT) run --fix
 	@$(OK) Ensured consistent code style
 
-generate: ## Generate code and crds
+generate: proto.generate ## Generate code and crds
 	@./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
 	@$(OK) Finished generating deepcopy and crds
+
+.PHONY: proto.generate
+proto.generate: ## Generate protobuf libraries
+	@echo "Generating protobuf libraries with buf..."
+	@# Install buf if not available
+	@go install github.com/bufbuild/buf/cmd/buf@latest
+	@# Generate protobuf files using buf
+	@cd pkg/provider/plugin && buf generate
+	@$(OK) Generated protobuf libraries
 
 # ====================================================================================
 # Local Utility
