@@ -1,0 +1,152 @@
+/*
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+syntax = "proto3";
+
+package plugin;
+option go_package = "github.com/external-secrets/external-secrets/pkg/provider/plugin/proto";
+
+// SecretsPlugin defines the gRPC interface for external secret plugins.
+service SecretsPluginService {
+  // GetInfo returns plugin information and capabilities.
+  rpc GetInfo(GetInfoRequest) returns (GetInfoResponse);
+
+  // GetSecret retrieves a single secret from the plugin.
+  rpc GetSecret(GetSecretRequest) returns (GetSecretResponse);
+
+  // GetSecretMap retrieves multiple key-value pairs from the plugin.
+  rpc GetSecretMap(GetSecretMapRequest) returns (GetSecretMapResponse);
+
+  // GetAllSecrets retrieves all secrets matching the given criteria.
+  rpc GetAllSecrets(GetAllSecretsRequest) returns (GetAllSecretsResponse);
+
+  // PushSecret writes a secret to the plugin.
+  rpc PushSecret(PushSecretRequest) returns (PushSecretResponse);
+
+  // DeleteSecret deletes a secret from the plugin.
+  rpc DeleteSecret(DeleteSecretRequest) returns (DeleteSecretResponse);
+
+  // SecretExists checks if a secret exists in the plugin.
+  rpc SecretExists(SecretExistsRequest) returns (SecretExistsResponse);
+
+  // Validate validates the plugin configuration.
+  rpc Validate(ValidateRequest) returns (ValidateResponse);
+}
+
+// Plugin capability enumeration matching external-secrets SecretStoreCapabilities
+enum Capability {
+  CAPABILITY_UNSPECIFIED = 0;
+  CAPABILITY_READ_ONLY = 1;   // Maps to "ReadOnly"
+  CAPABILITY_WRITE_ONLY = 2;  // Maps to "WriteOnly"
+  CAPABILITY_READ_WRITE = 3;  // Maps to "ReadWrite"
+}
+
+// Plugin information and capabilities
+message GetInfoRequest {}
+
+message GetInfoResponse {
+  string name = 1;
+  string version = 2;
+  repeated Capability capabilities = 3;
+  map<string, string> metadata = 4;
+}
+
+// Get single secret
+message GetSecretRequest {
+  string key = 1;
+  string version = 2;
+  string property = 3;
+  map<string, string> metadata = 4;
+  map<string, string> auth = 5;
+}
+
+message GetSecretResponse {
+  bytes value = 1;
+  map<string, string> metadata = 2;
+}
+
+// Get secret map
+message GetSecretMapRequest {
+  string key = 1;
+  string version = 2;
+  string property = 3;
+  map<string, string> metadata = 4;
+  map<string, string> auth = 5;
+}
+
+message GetSecretMapResponse {
+  map<string, bytes> values = 1;
+  map<string, string> metadata = 2;
+}
+
+// Get all secrets
+message GetAllSecretsRequest {
+  string path = 1;
+  map<string, string> tags = 2;
+  string name_regex = 3;
+  map<string, string> metadata = 4;
+  map<string, string> auth = 5;
+}
+
+message GetAllSecretsResponse {
+  map<string, bytes> values = 1;
+  map<string, string> metadata = 2;
+}
+
+// Push secret
+message PushSecretRequest {
+  string key = 1;
+  bytes value = 2;
+  map<string, string> metadata = 3;
+  map<string, string> auth = 4;
+}
+
+message PushSecretResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Delete secret
+message DeleteSecretRequest {
+  string key = 1;
+  map<string, string> metadata = 2;
+  map<string, string> auth = 3;
+}
+
+message DeleteSecretResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// Secret exists
+message SecretExistsRequest {
+  string key = 1;
+  map<string, string> metadata = 2;
+  map<string, string> auth = 3;
+}
+
+message SecretExistsResponse {
+  bool exists = 1;
+}
+
+// Validate
+message ValidateRequest {
+  map<string, string> config = 1;
+  map<string, string> auth = 2;
+}
+
+message ValidateResponse {
+  bool valid = 1;
+  string message = 2;
+}
