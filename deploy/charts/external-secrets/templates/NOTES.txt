@@ -6,6 +6,6 @@ or ClusterSecretStore resource (for example, by creating a 'vault' SecretStore).
 More information on the different types of SecretStores and how to configure them
 can be found in our Github: {{ .Chart.Home }}
 
-{{- if and ( not ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor" ) ) .Values.serviceMonitor.enabled ) -}}
+{{- if ( and ( not ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1/ServiceMonitor" ) ) .Values.serviceMonitor.enabled ) -}}
 WARNING: ServiceMonitors were not deployed due to missing ServiceMonitor CRD
 {{- end -}}
