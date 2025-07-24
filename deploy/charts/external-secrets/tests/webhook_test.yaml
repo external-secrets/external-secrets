@@ -219,7 +219,7 @@ tests:
       serviceMonitor.enabled: true
     capabilities:
       apiVersions:
-        - "monitoring.coreos.com/v1"
+        - "monitoring.coreos.com/v1/ServiceMonitor"
     templates:
       - webhook-service.yaml
     asserts:
@@ -245,7 +245,7 @@ tests:
       serviceMonitor.enabled: false
     capabilities:
       apiVersions:
-        - "monitoring.coreos.com/v1"
+        - "monitoring.coreos.com/v1/ServiceMonitor"
     templates:
       - webhook-service.yaml
     asserts:
