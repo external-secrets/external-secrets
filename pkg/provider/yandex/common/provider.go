@@ -101,7 +101,7 @@ type IamToken struct {
 
 type SecretsClientInput struct {
 	APIEndpoint   string
-	AuthorizedKey esmeta.SecretKeySelector
+	AuthorizedKey *esmeta.SecretKeySelector
 	CACertificate *esmeta.SecretKeySelector
 }
 
@@ -116,21 +116,24 @@ func (p *YandexCloudProvider) NewClient(ctx context.Context, store esv1.GenericS
 		return nil, err
 	}
 
-	key, err := resolvers.SecretKeyRef(
-		ctx,
-		kube,
-		store.GetKind(),
-		namespace,
-		&input.AuthorizedKey,
-	)
-	if err != nil {
-		return nil, err
-	}
+	var authorizedKey *iamkey.Key
+	if input.AuthorizedKey != nil {
+		key, err := resolvers.SecretKeyRef(
+			ctx,
+			kube,
+			store.GetKind(),
+			namespace,
+			input.AuthorizedKey,
+		)
+		if err != nil {
+			return nil, err
+		}
 
-	var authorizedKey iamkey.Key
-	err = json.Unmarshal([]byte(key), &authorizedKey)
-	if err != nil {
-		return nil, fmt.Errorf("unable to unmarshal authorized key: %w", err)
+		authorizedKey = &iamkey.Key{}
+		err = json.Unmarshal([]byte(key), authorizedKey)
+		if err != nil {
+			return nil, fmt.Errorf("unable to unmarshal authorized key: %w", err)
+		}
 	}
 
 	var caCertificateData []byte
@@ -148,12 +151,12 @@ func (p *YandexCloudProvider) NewClient(ctx context.Context, store esv1.GenericS
 		caCertificateData = []byte(caCert)
 	}
 
-	secretGetter, err := p.getOrCreateSecretGetter(ctx, input.APIEndpoint, &authorizedKey, caCertificateData)
+	secretGetter, err := p.getOrCreateSecretGetter(ctx, input.APIEndpoint, authorizedKey, caCertificateData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Yandex.Cloud client: %w", err)
 	}
 
-	iamToken, err := p.getOrCreateIamToken(ctx, input.APIEndpoint, &authorizedKey, caCertificateData)
+	iamToken, err := p.getOrCreateIamToken(ctx, input.APIEndpoint, authorizedKey, caCertificateData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create IAM token: %w", err)
 	}
@@ -183,14 +186,22 @@ func (p *YandexCloudProvider) getOrCreateIamToken(ctx context.Context, apiEndpoi
 
 	iamTokenKey := buildIamTokenKey(authorizedKey)
 	if iamToken, ok := p.iamTokenMap[iamTokenKey]; !ok || !p.isIamTokenUsable(iamToken) {
-		p.logger.Info("creating IAM token", "authorizedKeyId", authorizedKey.Id)
+		if authorizedKey != nil {
+			p.logger.Info("creating IAM token", "authorizedKeyId", authorizedKey.Id)
+		} else {
+			p.logger.Info("creating instance SA IAM token")
+		}
 
 		iamToken, err := p.newIamTokenFunc(ctx, apiEndpoint, authorizedKey, caCertificate)
 		if err != nil {
 			return nil, err
 		}
 
-		p.logger.Info("created IAM token", "authorizedKeyId", authorizedKey.Id, "expiresAt", iamToken.ExpiresAt)
+		if authorizedKey != nil {
+			p.logger.Info("created IAM token", "authorizedKeyId", authorizedKey.Id, "expiresAt", iamToken.ExpiresAt)
+		} else {
+			p.logger.Info("created instance SA IAM token", "expiresAt", iamToken.ExpiresAt)
+		}
 
 		p.iamTokenMap[iamTokenKey] = iamToken
 	}
@@ -203,6 +214,10 @@ func (p *YandexCloudProvider) isIamTokenUsable(iamToken *IamToken) bool {
 }
 
 func buildIamTokenKey(authorizedKey *iamkey.Key) iamTokenKey {
+	if authorizedKey == nil {
+		return iamTokenKey{}
+	}
+
 	privateKeyHash := sha256.Sum256([]byte(authorizedKey.PrivateKey))
 	return iamTokenKey{
 		authorizedKey.GetId(),
