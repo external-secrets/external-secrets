@@ -47,10 +47,28 @@ func adaptInput(store esv1.GenericStore) (*common.SecretsClientInput, error) {
 		caCertificate = &storeSpecYandexLockbox.CAProvider.Certificate
 	}
 
+	if storeSpecYandexLockbox.FetchByID != nil && storeSpecYandexLockbox.FetchByName != nil {
+		return nil, errors.New("invalid Yandex Lockbox SecretStore resource: both FetchByID and FetchByName are set")
+	}
+
+	var resourceKeyType common.ResourceKeyType
+	var folderID string
+	if storeSpecYandexLockbox.FetchByName != nil {
+		if storeSpecYandexLockbox.FetchByName.FolderID == "" {
+			return nil, errors.New("folderID is required when FetchByName is set")
+		}
+		resourceKeyType = common.ResourceKeyTypeName
+		folderID = storeSpecYandexLockbox.FetchByName.FolderID
+	} else {
+		resourceKeyType = common.ResourceKeyTypeId
+	}
+
 	return &common.SecretsClientInput{
-		APIEndpoint:   storeSpecYandexLockbox.APIEndpoint,
-		AuthorizedKey: storeSpecYandexLockbox.Auth.AuthorizedKey,
-		CACertificate: caCertificate,
+		APIEndpoint:     storeSpecYandexLockbox.APIEndpoint,
+		AuthorizedKey:   storeSpecYandexLockbox.Auth.AuthorizedKey,
+		CACertificate:   caCertificate,
+		ResourceKeyType: resourceKeyType,
+		FolderID:        folderID,
 	}, nil
 }
 
