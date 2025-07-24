@@ -143,6 +143,10 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 	storeSpec := store.GetSpec()
 	var cfg *aws.Config
 
+	if prov.InjectKubernetesContext {
+		prov.SessionTags = injectKubeContext(prov.SessionTags, namespace, store.GetName())
+	}
+
 	// allow SecretStore controller validation to pass
 	// when using referent namespace.
 	if util.IsReferentSpec(prov.Auth) && namespace == "" &&
@@ -228,4 +232,28 @@ func init() {
 	esv1.Register(&Provider{}, &esv1.SecretStoreProvider{
 		AWS: &esv1.AWSProvider{},
 	}, esv1.MaintenanceStatusMaintained)
+}
+
+// injectKubeContext builds a list of session tags for the AWS STS session.
+// It includes the namespace and store name, and any additional tags provided.
+func injectKubeContext(tags []*esv1.Tag, namespace, storeName string) []*esv1.Tag {
+	m := make(map[string]string)
+
+	for _, tag := range tags {
+		if tag.Key != "" && tag.Value != "" {
+			m[tag.Key] = tag.Value
+		}
+	}
+	m["esoNamespace"] = namespace
+	m["esoStoreName"] = storeName
+
+	newTags := make([]*esv1.Tag, 0, len(m))
+	for k, v := range m {
+		newTags = append(newTags, &esv1.Tag{
+			Key:   k,
+			Value: v,
+		})
+	}
+
+	return newTags
 }
