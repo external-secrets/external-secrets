@@ -21,6 +21,7 @@ import (
 
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	pointer "k8s.io/utils/ptr"
@@ -54,11 +55,11 @@ lNjvmHAXUfOE/cbD7EP++X17kWt41FjmePc=
 `
 
 type testCase struct {
-	vwc       *admissionregistration.ValidatingWebhookConfiguration
-	service   *corev1.Service
-	endpoints *corev1.Endpoints
-	secret    *corev1.Secret
-	assert    func()
+	vwc           *admissionregistration.ValidatingWebhookConfiguration
+	service       *corev1.Service
+	endpointSlice *discoveryv1.EndpointSlice
+	secret        *corev1.Secret
+	assert        func()
 }
 
 var _ = Describe("ValidatingWebhookConfig reconcile", Ordered, func() {
@@ -73,17 +74,15 @@ var _ = Describe("ValidatingWebhookConfig reconcile", Ordered, func() {
 		k8sClient.Delete(ctx, test.vwc)
 		k8sClient.Delete(ctx, test.secret)
 		k8sClient.Delete(ctx, test.service)
-		k8sClient.Delete(ctx, test.endpoints)
+		k8sClient.Delete(ctx, test.endpointSlice)
 	})
 
 	// Should patch VWC
 	PatchAndReady := func(tc *testCase) {
-		tc.endpoints.Subsets = nil
-
-		// endpoints become ready in a moment
+		// endpoint slice becomes ready in a moment
 		go func() {
 			<-time.After(time.Second * 4)
-			eps := makeEndpoints()
+			eps := makeEndpointSlice()
 			err := k8sClient.Update(context.Background(), eps)
 			Expect(err).ToNot(HaveOccurred())
 		}()
@@ -231,7 +230,7 @@ var _ = Describe("ValidatingWebhookConfig reconcile", Ordered, func() {
 		err = k8sClient.Create(ctx, test.service)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = k8sClient.Create(ctx, test.endpoints)
+		err = k8sClient.Create(ctx, test.endpointSlice)
 		Expect(err).ToNot(HaveOccurred())
 
 		test.assert()
@@ -312,19 +311,20 @@ func makeService() *corev1.Service {
 	}
 }
 
-func makeEndpoints() *corev1.Endpoints {
-	return &corev1.Endpoints{
+func makeEndpointSlice() *discoveryv1.EndpointSlice {
+	return &discoveryv1.EndpointSlice{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      ctrlSvcName,
+			Name:      ctrlSvcName + "-slice",
 			Namespace: ctrlSvcNamespace,
+			Labels: map[string]string{
+				"kubernetes.io/service-name": ctrlSvcName,
+			},
 		},
-		Subsets: []corev1.EndpointSubset{
+		AddressType: discoveryv1.AddressTypeIPv4,
+		Endpoints: []discoveryv1.Endpoint{
 			{
-				Addresses: []corev1.EndpointAddress{
-					{
-						IP: "1.2.3.4",
-					},
-				},
+				Addresses:  []string{"1.2.3.4"},
+				Conditions: discoveryv1.EndpointConditions{Ready: pointer.To(true)},
 			},
 		},
 	}
@@ -335,9 +335,9 @@ func makeDefaultTestcase() *testCase {
 		assert: func() {
 			// this is a noop by default
 		},
-		vwc:       makeValidatingWebhookConfig(),
-		secret:    makeSecret(),
-		service:   makeService(),
-		endpoints: makeEndpoints(),
+		vwc:           makeValidatingWebhookConfig(),
+		secret:        makeSecret(),
+		service:       makeService(),
+		endpointSlice: makeEndpointSlice(),
 	}
 }
