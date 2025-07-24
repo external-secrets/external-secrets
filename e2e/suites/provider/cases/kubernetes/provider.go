@@ -137,7 +137,7 @@ func makeDefaultStore(suffix, namespace string) (*rbac.Role, *rbac.RoleBinding, 
 							Key:  "ca.crt",
 						},
 					},
-					Auth: esv1.KubernetesAuth{
+					Auth: &esv1.KubernetesAuth{
 						ServiceAccount: &esmeta.ServiceAccountSelector{
 							Name: "default",
 						},
