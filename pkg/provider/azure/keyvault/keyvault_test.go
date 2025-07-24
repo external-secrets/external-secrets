@@ -132,6 +132,7 @@ const (
 	something            = "something"
 	tagname              = "tagname"
 	tagname2             = "tagname2"
+	expires              = "expires"
 	tagvalue             = "tagvalue"
 	tagvalue2            = "tagvalue2"
 	secretName           = "example-1"
@@ -1085,6 +1086,24 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		smtc.expectedSecret = tagvalue
 	}
 
+	setSecretWithAttributes := func(smtc *secretManagerTestCase) {
+		expiryDuration := time.Now().Add(time.Hour)
+		expiryTime := date.UnixTime(expiryDuration)
+		createdTime := date.UnixTime(time.Now())
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.Property = expires
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &secretString,
+			Attributes: &keyvault.SecretAttributes{
+				Expires: &expiryTime,
+				Created: &createdTime,
+				Updated: &createdTime,
+			},
+		}
+
+		smtc.expectedSecret = time.Unix(int64(expiryTime.Duration().Seconds()), 0).String()
+	}
+
 	badSecretWithTag := func(smtc *secretManagerTestCase) {
 		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
 		smtc.ref.Property = something
@@ -1313,6 +1332,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setCertificate),
 		makeValidSecretManagerTestCaseCustom(badSecretType),
 		makeValidSecretManagerTestCaseCustom(setSecretWithTag),
+		makeValidSecretManagerTestCaseCustom(setSecretWithAttributes),
 		makeValidSecretManagerTestCaseCustom(badSecretWithTag),
 		makeValidSecretManagerTestCaseCustom(setSecretWithNoSpecificTag),
 		makeValidSecretManagerTestCaseCustom(setSecretWithNoTags),
@@ -1430,6 +1450,25 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		smtc.expectedData[testsecret+"_"+tagname2] = []byte(tagvalue2)
 	}
 
+	setSecretWithAttributes := func(smtc *secretManagerTestCase) {
+		expiryDuration := time.Now().Add(time.Hour)
+		expiryTime := date.UnixTime(expiryDuration)
+		createdTime := date.UnixTime(time.Now())
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &secretString,
+			Attributes: &keyvault.SecretAttributes{
+				Expires: &expiryTime,
+				Created: &createdTime,
+				Updated: &createdTime,
+			},
+		}
+
+		smtc.expectedData["expires"] = []byte(time.Unix(int64(expiryTime.Duration().Seconds()), 0).String())
+		smtc.expectedData["created"] = []byte(time.Unix(int64(createdTime.Duration().Seconds()), 0).String())
+		smtc.expectedData["updated"] = []byte(time.Unix(int64(createdTime.Duration().Seconds()), 0).String())
+	}
+
 	setSecretWithJSONTag := func(smtc *secretManagerTestCase) {
 		tagJSONMap := make(map[string]*string)
 		tagJSONData := `{"keyname":"keyvalue","x":"y"}`
@@ -1491,6 +1530,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setSecretWithNoTags),
 		makeValidSecretManagerTestCaseCustom(nestedJSONNoProperty),
 		makeValidSecretManagerTestCaseCustom(setNestedJSONTag),
+		makeValidSecretManagerTestCaseCustom(setSecretWithAttributes),
 	}
 
 	sm := Azure{
