@@ -46,6 +46,10 @@ type RClient interface {
 	Create(ctx context.Context, selfSubjectRulesReview *authv1.SelfSubjectRulesReview, opts metav1.CreateOptions) (*authv1.SelfSubjectRulesReview, error)
 }
 
+type AClient interface {
+	Create(ctx context.Context, selfSubjectAccessReview *authv1.SelfSubjectAccessReview, opts metav1.CreateOptions) (*authv1.SelfSubjectAccessReview, error)
+}
+
 // Provider implements Secret Provider interface
 // for Kubernetes.
 type Provider struct{}
@@ -62,9 +66,12 @@ type Client struct {
 	// userSecretClient is a client-go CoreV1().Secrets() client
 	// with user-defined scope.
 	userSecretClient KClient
-	// userReviewClient is a SelfSubjectAccessReview client with
+	// userReviewClient is a SelfSubjectRulesReview client with
 	// user-defined scope.
 	userReviewClient RClient
+	// userAccessReviewClient is a SelfSubjectAccessReview client with
+	// user-defined scope.
+	userAccessReviewClient AClient
 
 	// store is the Kubernetes Provider spec
 	// which contains the configuration for this provider.
@@ -130,6 +137,7 @@ func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, ctrlC
 	}
 	client.userSecretClient = userClientset.CoreV1().Secrets(client.store.RemoteNamespace)
 	client.userReviewClient = userClientset.AuthorizationV1().SelfSubjectRulesReviews()
+	client.userAccessReviewClient = userClientset.AuthorizationV1().SelfSubjectAccessReviews()
 	return client, nil
 }
 

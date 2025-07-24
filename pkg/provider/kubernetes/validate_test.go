@@ -39,6 +39,17 @@ func (fk fakeReviewClient) Create(_ context.Context, _ *authv1.SelfSubjectRulesR
 	return fk.authReview, nil
 }
 
+type fakeAccessReviewClient struct {
+	accessReview *authv1.SelfSubjectAccessReview
+}
+
+func (fk fakeAccessReviewClient) Create(_ context.Context, _ *authv1.SelfSubjectAccessReview, _ metav1.CreateOptions) (*authv1.SelfSubjectAccessReview, error) {
+	if fk.accessReview == nil {
+		return nil, errors.New(errSomethingWentWrong)
+	}
+	return fk.accessReview, nil
+}
+
 func TestValidateStore(t *testing.T) {
 	type fields struct {
 		Client       KClient
@@ -326,13 +337,24 @@ func TestValidate(t *testing.T) {
 			},
 		},
 	}
+	successAccessReview := authv1.SelfSubjectAccessReview{
+		Status: authv1.SubjectAccessReviewStatus{
+			Allowed: true,
+		},
+	}
+	failAccessReview := authv1.SelfSubjectAccessReview{
+		Status: authv1.SubjectAccessReviewStatus{
+			Allowed: false,
+		},
+	}
 
 	type fields struct {
-		Client       KClient
-		ReviewClient RClient
-		Namespace    string
-		store        *esv1.KubernetesProvider
-		storeKind    string
+		Client             KClient
+		ReviewClient       RClient
+		AccessReviewClient AClient
+		Namespace          string
+		store              *esv1.KubernetesProvider
+		storeKind          string
 	}
 	tests := []struct {
 		name    string
@@ -351,7 +373,8 @@ func TestValidate(t *testing.T) {
 						},
 					},
 				},
-				ReviewClient: fakeReviewClient{authReview: &successReview},
+				ReviewClient:       fakeReviewClient{authReview: &successReview},
+				AccessReviewClient: fakeAccessReviewClient{accessReview: &successAccessReview},
 			},
 			want:    esv1.ValidationResultUnknown,
 			wantErr: false,
@@ -359,39 +382,54 @@ func TestValidate(t *testing.T) {
 		{
 			name: "review results in unknown",
 			fields: fields{
-				Namespace:    "default",
-				ReviewClient: fakeReviewClient{},
-				store:        &esv1.KubernetesProvider{},
+				Namespace:          "default",
+				ReviewClient:       fakeReviewClient{},
+				AccessReviewClient: fakeAccessReviewClient{},
+				store:              &esv1.KubernetesProvider{},
 			},
 			want:    esv1.ValidationResultUnknown,
 			wantErr: true,
 		},
 		{
-			name: "not allowed results in error",
+			name: "rules & access review not allowed results in error",
 			fields: fields{
-				Namespace:    "default",
-				ReviewClient: fakeReviewClient{authReview: &failReview},
-				store:        &esv1.KubernetesProvider{},
+				Namespace:          "default",
+				ReviewClient:       fakeReviewClient{authReview: &failReview},
+				AccessReviewClient: fakeAccessReviewClient{accessReview: &failAccessReview},
+				store:              &esv1.KubernetesProvider{},
 			},
 			want:    esv1.ValidationResultError,
 			wantErr: true,
 		},
 		{
-			name: "allowed results in no error",
+			name: "rules review allowed results in no error",
 			fields: fields{
-				Namespace:    "default",
-				ReviewClient: fakeReviewClient{authReview: &successReview},
-				store:        &esv1.KubernetesProvider{},
+				Namespace:          "default",
+				ReviewClient:       fakeReviewClient{authReview: &successReview},
+				AccessReviewClient: fakeAccessReviewClient{accessReview: &failAccessReview},
+				store:              &esv1.KubernetesProvider{},
 			},
 			want:    esv1.ValidationResultReady,
 			wantErr: false,
 		},
 		{
-			name: "allowed results in no error",
+			name: "rules review allowed results in no error",
 			fields: fields{
-				Namespace:    "default",
-				ReviewClient: fakeReviewClient{authReview: &successWildcardReview},
-				store:        &esv1.KubernetesProvider{},
+				Namespace:          "default",
+				ReviewClient:       fakeReviewClient{authReview: &successWildcardReview},
+				AccessReviewClient: fakeAccessReviewClient{accessReview: &failAccessReview},
+				store:              &esv1.KubernetesProvider{},
+			},
+			want:    esv1.ValidationResultReady,
+			wantErr: false,
+		},
+		{
+			name: "access review allowed results in no error",
+			fields: fields{
+				Namespace:          "default",
+				ReviewClient:       fakeReviewClient{authReview: &failReview},
+				AccessReviewClient: fakeAccessReviewClient{accessReview: &successAccessReview},
+				store:              &esv1.KubernetesProvider{},
 			},
 			want:    esv1.ValidationResultReady,
 			wantErr: false,
@@ -400,11 +438,12 @@ func TestValidate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			k := &Client{
-				userSecretClient: tt.fields.Client,
-				userReviewClient: tt.fields.ReviewClient,
-				namespace:        tt.fields.Namespace,
-				store:            tt.fields.store,
-				storeKind:        tt.fields.storeKind,
+				userSecretClient:       tt.fields.Client,
+				userReviewClient:       tt.fields.ReviewClient,
+				userAccessReviewClient: tt.fields.AccessReviewClient,
+				namespace:              tt.fields.Namespace,
+				store:                  tt.fields.store,
+				storeKind:              tt.fields.storeKind,
 			}
 			got, err := k.Validate()
 			if (err != nil) != tt.wantErr {
