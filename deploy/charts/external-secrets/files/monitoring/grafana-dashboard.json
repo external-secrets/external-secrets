@@ -1334,7 +1334,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 77
+            "y": 31
           },
           "id": 80,
           "options": {
@@ -1391,12 +1391,16 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 77
+            "y": 31
           },
           "id": 54,
+          "maxDataPoints": 25,
           "options": {
             "calculate": false,
             "cellGap": 1,
+            "cellValues": {
+              "unit": "short"
+            },
             "color": {
               "exponent": 0.5,
               "fill": "dark-orange",
@@ -1425,7 +1429,8 @@
             },
             "yAxis": {
               "axisPlacement": "left",
-              "reverse": false
+              "reverse": false,
+              "unit": "s"
             }
           },
           "pluginVersion": "12.0.2",
@@ -1436,7 +1441,8 @@
                 "uid": "$datasource"
               },
               "editorMode": "code",
-              "expr": "sum(rate(controller_runtime_webhook_latency_seconds_bucket{service=~\".*external-secrets.*\"}[$__rate_interval])) by (le)",
+              "expr": "sum by (le) (rate(controller_runtime_webhook_latency_seconds_bucket{service=~\".*external-secrets.*\"}[$__rate_interval]))",
+              "format": "heatmap",
               "legendFormat": "{{le}}",
               "range": true,
               "refId": "A"
@@ -1522,7 +1528,7 @@
             "h": 8,
             "w": 7,
             "x": 0,
-            "y": 24
+            "y": 40
           },
           "id": 2,
           "options": {
@@ -1618,7 +1624,7 @@
             "h": 8,
             "w": 8,
             "x": 7,
-            "y": 24
+            "y": 40
           },
           "id": 37,
           "options": {
@@ -1714,7 +1720,7 @@
             "h": 8,
             "w": 9,
             "x": 15,
-            "y": 24
+            "y": 40
           },
           "id": 15,
           "options": {
@@ -1778,7 +1784,7 @@
             "h": 6,
             "w": 24,
             "x": 0,
-            "y": 32
+            "y": 48
           },
           "id": 5,
           "maxPerRow": 12,
@@ -1875,7 +1881,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 38
+            "y": 54
           },
           "id": 3,
           "maxPerRow": 8,
@@ -1933,9 +1939,10 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 46
+            "y": 62
           },
           "id": 39,
+          "maxDataPoints": 25,
           "maxPerRow": 8,
           "options": {
             "calculate": false,
@@ -1987,7 +1994,8 @@
                 "uid": "$datasource"
               },
               "editorMode": "code",
-              "expr": "rate(controller_runtime_reconcile_time_seconds_bucket{service=~\".*external-secrets.*\",controller=~\"$controller\"}[$__rate_interval])",
+              "expr": "sum by (le) (rate(controller_runtime_reconcile_time_seconds_bucket{service=~\".*external-secrets.*\",controller=~\"$controller\"}[$__rate_interval]))",
+              "format": "heatmap",
               "legendFormat": "{{le}}",
               "range": true,
               "refId": "A"
@@ -2046,6 +2054,6 @@
   "timezone": "",
   "title": "External Secrets Operator",
   "uid": "n4IdKaJVk",
-  "version": 3,
+  "version": 10,
   "weekStart": ""
 }
