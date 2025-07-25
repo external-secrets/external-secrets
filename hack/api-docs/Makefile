@@ -52,7 +52,7 @@ VERSION_TO_UPDATE ?= $(shell echo $(MAJOR_VERSION).$(MINOR_VERSION).x)
 
 .PHONY: stability-support.update
 stability-support.update:
-	./add_eso_version.sh $(VERSION_TO_UPDATE)
+	ROOT=$(ROOT) ./add_eso_version.sh $(VERSION_TO_UPDATE)
 
 .PHONY: check
 check:
