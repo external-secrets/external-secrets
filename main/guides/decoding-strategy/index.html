@@ -4069,7 +4069,7 @@ It will render the following Kubernetes Secret:
   address: aGFwcHkgc3RyZWV0 #happy street
 </code></pre></div></p>
 <h2 id="limitations">Limitations</h2>
-<p>At this time, decoding Strategy Auto is only trying to check if the original input is valid to perform Base64 operations. This means that some non-encoded secret values might end up being decoded, producing gibberish. This is the case for numbered values like <code>123456</code> or some specially crafted string values such as <code>happy/street</code>. </p>
+<p>At this time, decoding Strategy Auto is only trying to check if the original input is valid to perform Base64 operations. As there is no reliable way to detect base64 encoded values, this means that some non-encoded secret values might end up being decoded, producing gibberish. For example, this is the case for alphanumeric values with a length divisible by 4, like <code>1234</code> or <code>happy/street</code>. </p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>If you are using <code>decodeStrategy: Auto</code> and start to see ESO pulling completely wrong secret values into your kubernetes secret, consider changing it to <code>None</code> to investigate it.</p>
