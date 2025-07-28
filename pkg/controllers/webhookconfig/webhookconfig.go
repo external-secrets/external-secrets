@@ -23,10 +23,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/go-logr/logr"
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	v1 "k8s.io/api/core/v1"
-	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -85,11 +85,9 @@ func New(k8sClient client.Client, scheme *runtime.Scheme, leaderChan <-chan stru
 }
 
 const (
-	ReasonUpdateFailed        = "UpdateFailed"
-	errWebhookNotReady        = "webhook not ready"
-	errEndpointSlicesNotReady = "EndpointSlice objects not ready"
-	errAddressesNotReady      = "addresses not ready"
-	errCACertNotReady         = "ca cert not yet ready"
+	ReasonUpdateFailed = "UpdateFailed"
+	errWebhookNotReady = "webhook not ready"
+	errCACertNotReady  = "ca cert not yet ready"
 
 	caCertName = "ca.crt"
 )
@@ -155,29 +153,7 @@ func (r *Reconciler) ReadyCheck(_ *http.Request) error {
 		return errors.New(errWebhookNotReady)
 	}
 
-	var sliceList discoveryv1.EndpointSliceList
-	err := r.List(context.TODO(), &sliceList,
-		client.InNamespace(r.SvcNamespace),
-		client.MatchingLabels{"kubernetes.io/service-name": r.SvcName},
-	)
-	if err != nil {
-		return err
-	}
-	if len(sliceList.Items) == 0 {
-		return errors.New(errEndpointSlicesNotReady)
-	}
-	readyAddresses := 0
-	for _, slice := range sliceList.Items {
-		for _, ep := range slice.Endpoints {
-			if ep.Conditions.Ready != nil && *ep.Conditions.Ready {
-				readyAddresses += len(ep.Addresses)
-			}
-		}
-	}
-	if readyAddresses == 0 {
-		return errors.New(errAddressesNotReady)
-	}
-	return nil
+	return utils.CheckEndpointSlicesReady(context.TODO(), r.Client, r.SvcName, r.SvcNamespace)
 }
 
 // reads the ca cert and updates the webhook config.
