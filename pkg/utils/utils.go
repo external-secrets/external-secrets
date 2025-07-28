@@ -59,10 +59,10 @@ const (
 )
 
 var (
+	errAddressesNotReady      = errors.New("addresses not ready")
+	errEndpointSlicesNotReady = errors.New("endpointSlice objects not ready")
 	errKeyNotFound            = errors.New("key not found")
 	unicodeRegex              = regexp.MustCompile(`_U([0-9a-fA-F]{4,5})_`)
-	ErrEndpointSlicesNotReady = errors.New("EndpointSlice objects not ready")
-	ErrAddressesNotReady      = errors.New("Addresses not ready")
 )
 
 // JSONMarshal takes an interface and returns a new escaped and encoded byte slice.
@@ -842,7 +842,7 @@ func CheckEndpointSlicesReady(ctx context.Context, c client.Client, svcName, svc
 		return err
 	}
 	if len(sliceList.Items) == 0 {
-		return ErrEndpointSlicesNotReady
+		return errEndpointSlicesNotReady
 	}
 	readyAddresses := 0
 	for _, slice := range sliceList.Items {
@@ -853,7 +853,7 @@ func CheckEndpointSlicesReady(ctx context.Context, c client.Client, svcName, svc
 		}
 	}
 	if readyAddresses == 0 {
-		return ErrAddressesNotReady
+		return errAddressesNotReady
 	}
 	return nil
 }
