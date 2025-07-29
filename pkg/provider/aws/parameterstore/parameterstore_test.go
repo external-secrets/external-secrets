@@ -17,7 +17,6 @@ package parameterstore
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -342,10 +341,15 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
 				client: fakeps.Client{
-					PutParameterFn:           fakeps.NewPutParameterFn(putParameterOutput, nil),
-					GetParameterFn:           fakeps.NewGetParameterFn(getParameterOutput, nil),
-					DescribeParametersFn:     fakeps.NewDescribeParametersFn(describeParameterOutput, nil),
-					ListTagsForResourceFn:    fakeps.NewListTagsForResourceFn(validListTagsForResourceOutput, nil),
+					PutParameterFn: fakeps.NewPutParameterFn(putParameterOutput, nil, func(input *ssm.PutParameterInput) {
+						assert.Len(t, input.Tags, 1)
+						assert.Contains(t, input.Tags, managedByESO)
+					}),
+					GetParameterFn:       fakeps.NewGetParameterFn(getParameterOutput, nil),
+					DescribeParametersFn: fakeps.NewDescribeParametersFn(describeParameterOutput, nil),
+					ListTagsForResourceFn: fakeps.NewListTagsForResourceFn(validListTagsForResourceOutput, nil, func(input *ssm.ListTagsForResourceInput) {
+						assert.Equal(t, "/external-secrets/parameters/fake-key", input.ResourceId)
+					}),
 					RemoveTagsFromResourceFn: fakeps.NewRemoveTagsFromResourceFn(&ssm.RemoveTagsFromResourceOutput{}, nil),
 					AddTagsToResourceFn:      fakeps.NewAddTagsToResourceFn(&ssm.AddTagsToResourceOutput{}, nil),
 				},
@@ -591,7 +595,7 @@ func TestPushSecret(t *testing.T) {
 				err: errors.New("unable to compare 'sensitive' result, ensure to request a decrypted value"),
 			},
 		},
-		"SecretWithTags": {
+		"SecretPatchTags": {
 			reason: "test if we can configure tags for the secret",
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
@@ -601,18 +605,38 @@ func TestPushSecret(t *testing.T) {
 						"kind": "PushSecretMetadata",
 						"spec": {
 							"tags": {
-								"tagname1": "value1"
+								"env": "sandbox",
+								"rotation": "1h"
 							},
 						}
 					}`),
 				},
 				client: fakeps.Client{
-					PutParameterFn:       fakeps.NewPutParameterFn(putParameterOutput, nil),
-					GetParameterFn:       fakeps.NewGetParameterFn(sameGetParameterOutput, nil),
-					DescribeParametersFn: fakeps.NewDescribeParametersFn(describeParameterOutput, nil),
-					ListTagsForResourceFn: fakeps.NewListTagsForResourceFn(&ssm.ListTagsForResourceOutput{
-						TagList: []ssmtypes.Tag{managedByESO, {Key: ptr.To("tagname1"), Value: ptr.To("value1")}},
+					PutParameterFn: fakeps.NewPutParameterFn(putParameterOutput, nil, func(input *ssm.PutParameterInput) {
+						assert.Len(t, input.Tags, 0)
+					}),
+					GetParameterFn: fakeps.NewGetParameterFn(&ssm.GetParameterOutput{
+						Parameter: &ssmtypes.Parameter{
+							Value: aws.String("some-value"),
+						},
 					}, nil),
+					DescribeParametersFn: fakeps.NewDescribeParametersFn(&ssm.DescribeParametersOutput{}, nil),
+					ListTagsForResourceFn: fakeps.NewListTagsForResourceFn(&ssm.ListTagsForResourceOutput{
+						TagList: []ssmtypes.Tag{managedByESO,
+							{Key: ptr.To("team"), Value: ptr.To("no-longer-needed")},
+							{Key: ptr.To("rotation"), Value: ptr.To("10m")},
+						},
+					}, nil),
+					RemoveTagsFromResourceFn: fakeps.NewRemoveTagsFromResourceFn(&ssm.RemoveTagsFromResourceOutput{}, nil, func(input *ssm.RemoveTagsFromResourceInput) {
+						assert.Len(t, input.TagKeys, 1)
+						assert.Equal(t, []string{"team"}, input.TagKeys)
+					}),
+					AddTagsToResourceFn: fakeps.NewAddTagsToResourceFn(&ssm.AddTagsToResourceOutput{}, nil, func(input *ssm.AddTagsToResourceInput) {
+						assert.Len(t, input.Tags, 3)
+						assert.Contains(t, input.Tags, ssmtypes.Tag{Key: &managedBy, Value: &externalSecrets})
+						assert.Contains(t, input.Tags, ssmtypes.Tag{Key: ptr.To("env"), Value: ptr.To("sandbox")})
+						assert.Contains(t, input.Tags, ssmtypes.Tag{Key: ptr.To("rotation"), Value: ptr.To("1h")})
+					}),
 				},
 			},
 			want: want{
@@ -624,7 +648,6 @@ func TestPushSecret(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			psd := fake.PushSecretData{SecretKey: fakeSecretKey, RemoteKey: remoteKey}
-			fmt.Println("line 635:", psd, tc.args.metadata)
 			if tc.args.metadata != nil {
 				psd.Metadata = tc.args.metadata
 			}
@@ -632,8 +655,6 @@ func TestPushSecret(t *testing.T) {
 				client: &tc.args.client,
 			}
 			err := ps.PushSecret(context.TODO(), fakeSecret, psd)
-
-			fmt.Println("line 644:", err)
 
 			// Error nil XOR tc.want.err nil
 			if ((err == nil) || (tc.want.err == nil)) && !((err == nil) && (tc.want.err == nil)) {
@@ -1180,71 +1201,6 @@ func TestConstructMetadataWithDefaults(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.expected, result)
 			}
-		})
-	}
-}
-
-func TestFindTagKeysToRemove(t *testing.T) {
-	tests := []struct {
-		name     string
-		tags     map[string]string
-		metaTags map[string]string
-		expected []string
-	}{
-		{
-			name: "No tags to remove",
-			tags: map[string]string{
-				"key1": "value1",
-				"key2": "value2",
-			},
-			metaTags: map[string]string{
-				"key1": "value1",
-				"key2": "value2",
-			},
-			expected: []string{},
-		},
-		{
-			name: "Some tags to remove",
-			tags: map[string]string{
-				"key1": "value1",
-				"key2": "value2",
-				"key3": "value3",
-			},
-			metaTags: map[string]string{
-				"key1": "value1",
-				"key2": "value2",
-			},
-			expected: []string{"key3"},
-		},
-		{
-			name: "All tags to remove",
-			tags: map[string]string{
-				"key1": "value1",
-				"key2": "value2",
-			},
-			metaTags: map[string]string{},
-			expected: []string{"key1", "key2"},
-		},
-		{
-			name:     "Empty tags and metaTags",
-			tags:     map[string]string{},
-			metaTags: map[string]string{},
-			expected: []string{},
-		},
-		{
-			name: "Empty metaTags with non-empty tags",
-			tags: map[string]string{
-				"key1": "value1",
-			},
-			metaTags: map[string]string{},
-			expected: []string{"key1"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := findTagKeysToRemove(tt.tags, tt.metaTags)
-			assert.ElementsMatch(t, tt.expected, result)
 		})
 	}
 }

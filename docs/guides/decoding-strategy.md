@@ -44,7 +44,7 @@ data:
 
 ## Limitations
 
-At this time, decoding Strategy Auto is only trying to check if the original input is valid to perform Base64 operations. This means that some non-encoded secret values might end up being decoded, producing gibberish. This is the case for numbered values like `123456` or some specially crafted string values such as `happy/street`. 
+At this time, decoding Strategy Auto is only trying to check if the original input is valid to perform Base64 operations. As there is no reliable way to detect base64 encoded values, this means that some non-encoded secret values might end up being decoded, producing gibberish. For example, this is the case for alphanumeric values with a length divisible by 4, like `1234` or `happy/street`. 
 
 !!! note 
     If you are using `decodeStrategy: Auto` and start to see ESO pulling completely wrong secret values into your kubernetes secret, consider changing it to `None` to investigate it.
