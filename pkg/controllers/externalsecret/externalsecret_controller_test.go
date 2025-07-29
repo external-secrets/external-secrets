@@ -91,6 +91,16 @@ type testCase struct {
 	checkSecret func(*esv1.ExternalSecret, *v1.Secret)
 }
 
+func makeExternalSecret(policy esv1.ExternalSecretCreationPolicy) *esv1.ExternalSecret {
+	return &esv1.ExternalSecret{
+		Spec: esv1.ExternalSecretSpec{
+			Target: esv1.ExternalSecretTarget{
+				CreationPolicy: policy,
+			},
+		},
+	}
+}
+
 type testTweaks func(*testCase)
 
 var _ = Describe("Kind=secret existence logic", func() {
@@ -101,12 +111,14 @@ var _ = Describe("Kind=secret existence logic", func() {
 	type testCase struct {
 		Name           string
 		Input          *v1.Secret
+		ExternalSecret *esv1.ExternalSecret
 		ExpectedOutput bool
 	}
 	tests := []testCase{
 		{
 			Name:           "Should not be valid in case of missing uid",
 			Input:          &v1.Secret{},
+			ExternalSecret: &esv1.ExternalSecret{},
 			ExpectedOutput: false,
 		},
 		{
@@ -120,6 +132,7 @@ var _ = Describe("Kind=secret existence logic", func() {
 					Annotations: map[string]string{},
 				},
 			},
+			ExternalSecret: makeExternalSecret(esv1.CreatePolicyOwner),
 			ExpectedOutput: false,
 		},
 		{
@@ -135,6 +148,7 @@ var _ = Describe("Kind=secret existence logic", func() {
 					},
 				},
 			},
+			ExternalSecret: makeExternalSecret(esv1.CreatePolicyOwner),
 			ExpectedOutput: false,
 		},
 		{
@@ -151,13 +165,36 @@ var _ = Describe("Kind=secret existence logic", func() {
 				},
 				Data: validData,
 			},
+			ExternalSecret: makeExternalSecret(esv1.CreatePolicyOwner),
+			ExpectedOutput: true,
+		},
+		{
+			Name: "Ignore Annotations if creation policy is Orphan",
+			Input: &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					UID: "xxx",
+					Labels: map[string]string{
+						esv1.LabelManaged: esv1.LabelManagedValue,
+					},
+					Annotations: map[string]string{
+						esv1.AnnotationDataHash: "xxxxxx",
+					},
+				},
+			},
+			ExternalSecret: makeExternalSecret(esv1.CreatePolicyOrphan),
+			ExpectedOutput: true,
+		},
+		{
+			Name:           "Ignore missing UID Secret if creation policy is Orphan",
+			Input:          &v1.Secret{},
+			ExternalSecret: makeExternalSecret(esv1.CreatePolicyOrphan),
 			ExpectedOutput: true,
 		},
 	}
 
 	for _, tt := range tests {
 		It(tt.Name, func() {
-			Expect(isSecretValid(tt.Input)).To(BeEquivalentTo(tt.ExpectedOutput))
+			Expect(isSecretValid(tt.Input, tt.ExternalSecret)).To(BeEquivalentTo(tt.ExpectedOutput))
 		})
 	}
 })

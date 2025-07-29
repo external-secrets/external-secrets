@@ -107,6 +107,7 @@ func (f *Framework) Install(a addon.Addon) {
 }
 
 // Compose helps define multiple testcases with same/different auth methods.
+// This is a factory function that returns a TableEntry.
 func Compose(descAppend string, f *Framework, fn func(f *Framework) (string, func(*TestCase)), tweaks ...func(*TestCase)) TableEntry {
 	// prepend common fn to tweaks
 	desc, cfn := fn(f)

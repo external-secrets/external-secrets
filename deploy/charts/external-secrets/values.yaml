@@ -16,6 +16,7 @@ replicaCount: 1
 
 bitwarden-sdk-server:
   enabled: false
+  namespaceOverride: ""
 
 # -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
 revisionHistoryLimit: 10
@@ -151,6 +152,9 @@ extraObjects: []
 ## -- Extra volumes to mount to the container.
 extraVolumeMounts: []
 
+## -- Extra init containers to add to the pod.
+extraInitContainers: []
+
 ## -- Extra containers to add to the pod.
 extraContainers: []
 
@@ -264,8 +268,8 @@ priorityClassName: ""
 # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
 podDisruptionBudget:
   enabled: false
-  minAvailable: 1
-  # maxUnavailable: 1
+  minAvailable: 1    # @schema type:[integer, string]
+  # maxUnavailable: "50%"
 
 # -- Run the controller on the host network
 hostNetwork: false
@@ -372,8 +376,8 @@ webhook:
   # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
   podDisruptionBudget:
     enabled: false
-    minAvailable: 1
-    # maxUnavailable: 1
+    minAvailable: 1    # @schema type:[integer, string]
+    # maxUnavailable: "50%"
 
   metrics:
 
@@ -403,6 +407,9 @@ webhook:
 
     ## -- Map of extra arguments to pass to container.
   extraArgs: {}
+
+    ## -- Extra init containers to add to the pod.
+  extraInitContainers: []
 
     ## -- Extra volumes to pass to pod.
   extraVolumes: []
@@ -508,8 +515,8 @@ certController:
   # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
   podDisruptionBudget:
     enabled: false
-    minAvailable: 1
-    # maxUnavailable: 1
+    minAvailable: 1    # @schema type:[integer, string]
+    # maxUnavailable: "50%"
 
   metrics:
 
@@ -538,6 +545,8 @@ certController:
     ## -- Map of extra arguments to pass to container.
   extraArgs: {}
 
+    ## -- Extra init containers to add to the pod.
+  extraInitContainers: []
 
     ## -- Extra volumes to pass to pod.
   extraVolumes: []

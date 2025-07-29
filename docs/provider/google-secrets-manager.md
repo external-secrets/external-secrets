@@ -48,15 +48,15 @@ For example, the following CLI call grants the Kubernetes service account access
 ```shell
 gcloud secrets add-iam-policy-binding demo-secret \
   --project=$PROJECT_ID \
-  --role="roles/secretmanager.secretAccessor"
+  --role="roles/secretmanager.secretAccessor" \
   --member="principal://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${PROJECT_ID}.svc.id.goog/subject/ns/${K8S_NAMESPACE}/sa/${K8S_SA}"
 ```
 
 You can also grant the Kubernetes service account access to _all_ secrets in a GCP project:
 
 ```shell
-gcloud project add-iam-policy-binding $PROJECT_ID \
-  --role="roles/secretmanager.secretAccessor"
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --role="roles/secretmanager.secretAccessor" \
   --member="principal://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${PROJECT_ID}.svc.id.goog/subject/ns/${K8S_NAMESPACE}/sa/${K8S_SA}"
 ```
 

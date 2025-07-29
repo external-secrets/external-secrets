@@ -9,6 +9,9 @@
             "properties": {
                 "enabled": {
                     "type": "boolean"
+                },
+                "namespaceOverride": {
+                    "type": "string"
                 }
             },
             "type": "object"
@@ -31,6 +34,9 @@
                     "type": "object"
                 },
                 "extraEnv": {
+                    "type": "array"
+                },
+                "extraInitContainers": {
                     "type": "array"
                 },
                 "extraVolumeMounts": {
@@ -121,7 +127,10 @@
                             "type": "boolean"
                         },
                         "minAvailable": {
-                            "type": "integer"
+                            "type": [
+                                "integer",
+                                "string"
+                            ]
                         }
                     },
                     "type": "object"
@@ -312,6 +321,9 @@
         "extraEnv": {
             "type": "array"
         },
+        "extraInitContainers": {
+            "type": "array"
+        },
         "extraObjects": {
             "type": "array"
         },
@@ -465,7 +477,10 @@
                     "type": "boolean"
                 },
                 "minAvailable": {
-                    "type": "integer"
+                    "type": [
+                        "integer",
+                        "string"
+                    ]
                 }
             },
             "type": "object"
@@ -723,6 +738,9 @@
                 "extraEnv": {
                     "type": "array"
                 },
+                "extraInitContainers": {
+                    "type": "array"
+                },
                 "extraVolumeMounts": {
                     "type": "array"
                 },
@@ -817,7 +835,10 @@
                             "type": "boolean"
                         },
                         "minAvailable": {
-                            "type": "integer"
+                            "type": [
+                                "integer",
+                                "string"
+                            ]
                         }
                     },
                     "type": "object"

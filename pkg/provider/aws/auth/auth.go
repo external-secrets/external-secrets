@@ -18,27 +18,24 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/aws/aws-sdk-go/aws/defaults"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/aws/aws-sdk-go/service/sts/stsiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
+	stsTypes "github.com/aws/aws-sdk-go-v2/service/sts/types"
 	"github.com/spf13/pflag"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/cache"
 	"github.com/external-secrets/external-secrets/pkg/feature"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 // Config contains configuration to create a new AWS provider.
@@ -51,7 +48,6 @@ type Config struct {
 var (
 	log                = ctrl.Log.WithName("provider").WithName("aws")
 	enableSessionCache bool
-	sessionCache       *cache.Cache[*session.Session]
 )
 
 const (
@@ -66,93 +62,108 @@ const (
 
 func init() {
 	fs := pflag.NewFlagSet("aws-auth", pflag.ExitOnError)
-	fs.BoolVar(&enableSessionCache, "experimental-enable-aws-session-cache", false, "Enable experimental AWS session cache. External secret will reuse the AWS session without creating a new one on each request.")
+	fs.BoolVar(&enableSessionCache, "experimental-enable-aws-session-cache", false, "DEPRECATED: this flag is no longer used and will be removed since aws sdk v2 has its own session cache.")
 	feature.Register(feature.Feature{
 		Flags: fs,
 	})
-	sessionCache = cache.Must[*session.Session](1024, nil)
 }
 
-// New creates a new aws session based on the provided store
+// Opts define options for New function.
+type Opts struct {
+	Store       esv1.GenericStore
+	Kube        client.Client
+	Namespace   string
+	AssumeRoler STSProvider
+	JWTProvider jwtProviderFactory
+}
+
+// New creates a new aws config based on the provided store
 // it uses the following authentication mechanisms in order:
 // * service-account token authentication via AssumeRoleWithWebIdentity
 // * static credentials from a Kind=Secret, optionally with doing a AssumeRole.
 // * sdk default provider chain, see: https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default
-func New(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string, assumeRoler STSProvider, jwtProvider jwtProviderFactory) (*session.Session, error) {
-	prov, err := util.GetAWSProvider(store)
+func New(ctx context.Context, opts Opts) (*aws.Config, error) {
+	prov, err := util.GetAWSProvider(opts.Store)
 	if err != nil {
 		return nil, err
 	}
-	var creds *credentials.Credentials
-	isClusterKind := store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind
+	var credsProvider aws.CredentialsProvider
+	isClusterKind := opts.Store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind
 
-	// use credentials via service account token
-	jwtAuth := prov.Auth.JWTAuth
-	if jwtAuth != nil {
-		creds, err = credsFromServiceAccount(ctx, prov.Auth, prov.Region, isClusterKind, kube, namespace, jwtProvider)
-		if err != nil {
-			return nil, err
-		}
+	credsProvider, err = constructCredsProvider(ctx, prov, isClusterKind, opts)
+	if err != nil {
+		return nil, err
 	}
 
-	// use credentials from secretRef
-	secretRef := prov.Auth.SecretRef
-	if secretRef != nil {
-		log.V(1).Info("using credentials from secretRef")
-		creds, err = credsFromSecretRef(ctx, prov.Auth, store.GetKind(), kube, namespace)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	config := aws.NewConfig().WithEndpointResolver(ResolveEndpoint())
-	if creds != nil {
-		config.WithCredentials(creds)
+	// global endpoint resolver is deprecated, should we EndpointResolverV2 field on service client options
+	var loadCfgOpts []func(*config.LoadOptions) error
+	if credsProvider != nil {
+		loadCfgOpts = append(loadCfgOpts, config.WithCredentialsProvider(credsProvider))
 	}
 	if prov.Region != "" {
-		config.WithRegion(prov.Region)
+		loadCfgOpts = append(loadCfgOpts, config.WithRegion(prov.Region))
 	}
 
-	sess, err := getAWSSession(config, enableSessionCache, store.GetName(), store.GetTypeMeta().Kind, namespace, store.GetObjectMeta().ResourceVersion)
+	return createConfiguration(prov, opts.AssumeRoler, loadCfgOpts)
+}
+
+func createConfiguration(prov *esv1.AWSProvider, assumeRoler STSProvider, loadCfgOpts []func(*config.LoadOptions) error) (*aws.Config, error) {
+	cfg, err := config.LoadDefaultConfig(context.TODO(), loadCfgOpts...)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, aRole := range prov.AdditionalRoles {
-		stsclient := assumeRoler(sess)
-		sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, aRole))
+		stsclient := assumeRoler(cfg)
+		cfg.Credentials = stscreds.NewAssumeRoleProvider(stsclient, aRole)
 	}
 
 	sessExtID := prov.ExternalID
 	sessTransitiveTagKeys := prov.TransitiveTagKeys
-	sessTags := make([]*sts.Tag, len(prov.SessionTags))
+	sessTags := make([]stsTypes.Tag, len(prov.SessionTags))
 	for i, tag := range prov.SessionTags {
-		sessTags[i] = &sts.Tag{
+		sessTags[i] = stsTypes.Tag{
 			Key:   aws.String(tag.Key),
 			Value: aws.String(tag.Value),
 		}
 	}
 	if prov.Role != "" {
-		stsclient := assumeRoler(sess)
+		stsclient := assumeRoler(cfg)
 		if sessExtID != "" || sessTags != nil {
-			var setAssumeRoleOptions = func(p *stscreds.AssumeRoleProvider) {
-				if sessExtID != "" {
-					p.ExternalID = aws.String(sessExtID)
-				}
-				if sessTags != nil {
-					p.Tags = sessTags
-					if len(sessTransitiveTagKeys) > 0 {
-						p.TransitiveTagKeys = sessTransitiveTagKeys
-					}
-				}
-			}
-			sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, prov.Role, setAssumeRoleOptions))
+			cfg.Credentials = stscreds.NewAssumeRoleProvider(stsclient, prov.Role, setAssumeRoleOptionFn(sessExtID, sessTags, sessTransitiveTagKeys))
 		} else {
-			sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, prov.Role))
+			cfg.Credentials = stscreds.NewAssumeRoleProvider(stsclient, prov.Role)
 		}
 	}
-	log.Info("using aws session", "region", *sess.Config.Region, "external id", sessExtID, "credentials", creds)
-	return sess, nil
+	log.Info("using aws config", "region", cfg.Region, "external id", sessExtID, "credentials", cfg.Credentials)
+
+	return &cfg, nil
+}
+
+func setAssumeRoleOptionFn(sessExtID string, sessTags []stsTypes.Tag, sessTransitiveTagKeys []string) func(p *stscreds.AssumeRoleOptions) {
+	return func(p *stscreds.AssumeRoleOptions) {
+		if sessExtID != "" {
+			p.ExternalID = aws.String(sessExtID)
+		}
+		if sessTags != nil {
+			p.Tags = sessTags
+			if len(sessTransitiveTagKeys) > 0 {
+				p.TransitiveTagKeys = sessTransitiveTagKeys
+			}
+		}
+	}
+}
+
+func constructCredsProvider(ctx context.Context, prov *esv1.AWSProvider, isClusterKind bool, opts Opts) (aws.CredentialsProvider, error) {
+	switch {
+	case prov.Auth.JWTAuth != nil:
+		return credsFromServiceAccount(ctx, prov.Auth, prov.Region, isClusterKind, opts.Kube, opts.Namespace, opts.JWTProvider)
+	case prov.Auth.SecretRef != nil:
+		log.V(1).Info("using credentials from secretRef")
+		return credsFromSecretRef(ctx, prov.Auth, opts.Store.GetKind(), opts.Kube, opts.Namespace)
+	default:
+		return nil, nil
+	}
 }
 
 // NewGeneratorSession creates a new aws session based on the provided store
@@ -160,14 +171,16 @@ func New(ctx context.Context, store esv1.GenericStore, kube client.Client, names
 // * service-account token authentication via AssumeRoleWithWebIdentity
 // * static credentials from a Kind=Secret, optionally with doing a AssumeRole.
 // * sdk default provider chain, see: https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default
-func NewGeneratorSession(ctx context.Context, auth esv1.AWSAuth, role, region string, kube client.Client, namespace string, assumeRoler STSProvider, jwtProvider jwtProviderFactory) (*session.Session, error) {
-	var creds *credentials.Credentials
-	var err error
+func NewGeneratorSession(ctx context.Context, auth esv1.AWSAuth, role, region string, kube client.Client, namespace string, assumeRoler STSProvider, jwtProvider jwtProviderFactory) (*aws.Config, error) {
+	var (
+		credsProvider aws.CredentialsProvider
+		err           error
+	)
 
 	// use credentials via service account token
 	jwtAuth := auth.JWTAuth
 	if jwtAuth != nil {
-		creds, err = credsFromServiceAccount(ctx, auth, region, false, kube, namespace, jwtProvider)
+		credsProvider, err = credsFromServiceAccount(ctx, auth, region, false, kube, namespace, jwtProvider)
 		if err != nil {
 			return nil, err
 		}
@@ -177,38 +190,32 @@ func NewGeneratorSession(ctx context.Context, auth esv1.AWSAuth, role, region st
 	secretRef := auth.SecretRef
 	if secretRef != nil {
 		log.V(1).Info("using credentials from secretRef")
-		creds, err = credsFromSecretRef(ctx, auth, "", kube, namespace)
+		credsProvider, err = credsFromSecretRef(ctx, auth, "", kube, namespace)
 		if err != nil {
 			return nil, err
 		}
 	}
-
-	config := aws.NewConfig().WithEndpointResolver(ResolveEndpoint())
-	if creds != nil {
-		config.WithCredentials(creds)
+	config := aws.NewConfig()
+	if credsProvider != nil {
+		config.Credentials = credsProvider
 	}
 	if region != "" {
-		config.WithRegion(region)
-	}
-
-	sess, err := getAWSSession(config, false, "", "", "", "")
-	if err != nil {
-		return nil, err
+		config.Region = region
 	}
 
 	if role != "" {
-		stsclient := assumeRoler(sess)
-		sess.Config.WithCredentials(stscreds.NewCredentialsWithClient(stsclient, role))
+		stsclient := assumeRoler(*config)
+		config.Credentials = stscreds.NewAssumeRoleProvider(stsclient, role)
 	}
-	log.Info("using aws session", "region", *sess.Config.Region, "credentials", creds)
-	return sess, nil
+	log.Info("using aws config", "region", config.Region, "credentials", config.Credentials)
+	return config, nil
 }
 
 // credsFromSecretRef pulls access-key / secret-access-key from a secretRef to
 // construct a aws.Credentials object
 // The namespace of the external secret is used if the ClusterSecretStore does not specify a namespace (referentAuth)
 // If the ClusterSecretStore defines a namespace it will take precedence.
-func credsFromSecretRef(ctx context.Context, auth esv1.AWSAuth, storeKind string, kube client.Client, namespace string) (*credentials.Credentials, error) {
+func credsFromSecretRef(ctx context.Context, auth esv1.AWSAuth, storeKind string, kube client.Client, namespace string) (aws.CredentialsProvider, error) {
 	sak, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &auth.SecretRef.SecretAccessKey)
 	if err != nil {
 		return nil, fmt.Errorf(errFetchSAKSecret, err)
@@ -225,8 +232,9 @@ func credsFromSecretRef(ctx context.Context, auth esv1.AWSAuth, storeKind string
 			return nil, fmt.Errorf(errFetchSTSecret, err)
 		}
 	}
+	var credsProvider aws.CredentialsProvider = credentials.NewStaticCredentialsProvider(aks, sak, sessionToken)
 
-	return credentials.NewStaticCredentials(aks, sak, sessionToken), err
+	return credsProvider, nil
 }
 
 // credsFromServiceAccount uses a Kubernetes Service Account to acquire temporary
@@ -234,7 +242,7 @@ func credsFromSecretRef(ctx context.Context, auth esv1.AWSAuth, storeKind string
 // in the ServiceAccount annotation.
 // If the ClusterSecretStore does not define a namespace it will use the namespace from the ExternalSecret (referentAuth).
 // If the ClusterSecretStore defines the namespace it will take precedence.
-func credsFromServiceAccount(ctx context.Context, auth esv1.AWSAuth, region string, isClusterKind bool, kube client.Client, namespace string, jwtProvider jwtProviderFactory) (*credentials.Credentials, error) {
+func credsFromServiceAccount(ctx context.Context, auth esv1.AWSAuth, region string, isClusterKind bool, kube client.Client, namespace string, jwtProvider jwtProviderFactory) (aws.CredentialsProvider, error) {
 	name := auth.JWTAuth.ServiceAccountRef.Name
 	if isClusterKind && auth.JWTAuth.ServiceAccountRef.Namespace != nil {
 		namespace = *auth.JWTAuth.ServiceAccountRef.Namespace
@@ -269,15 +277,16 @@ func credsFromServiceAccount(ctx context.Context, auth esv1.AWSAuth, region stri
 	}
 
 	log.V(1).Info("using credentials via service account", "role", roleArn, "region", region)
-	return credentials.NewCredentials(jwtProv), nil
+
+	return jwtProv, nil
 }
 
-type jwtProviderFactory func(name, namespace, roleArn string, aud []string, region string) (credentials.Provider, error)
+type jwtProviderFactory func(name, namespace, roleArn string, aud []string, region string) (aws.CredentialsProvider, error)
 
 // DefaultJWTProvider returns a credentials.Provider that calls the AssumeRoleWithWebidentity
 // controller-runtime/client does not support TokenRequest or other subresource APIs
 // so we need to construct our own client and use it to fetch tokens.
-func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region string) (credentials.Provider, error) {
+func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region string) (aws.CredentialsProvider, error) {
 	cfg, err := ctrlcfg.GetConfig()
 	if err != nil {
 		return nil, err
@@ -286,66 +295,44 @@ func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region st
 	if err != nil {
 		return nil, err
 	}
-	handlers := defaults.Handlers()
-	handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))
-	awscfg := aws.NewConfig().WithEndpointResolver(ResolveEndpoint())
-	if region != "" {
-		awscfg.WithRegion(region)
-	}
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Config:            *awscfg,
-		SharedConfigState: session.SharedConfigDisable,
-		Handlers:          handlers,
-	})
+
+	awscfg, err := config.LoadDefaultConfig(context.TODO(), config.WithAppID("external-secrets"),
+		config.WithRegion(region),
+		config.WithSharedConfigFiles([]string{}), // Disable shared config files:
+		config.WithSharedCredentialsFiles([]string{}))
+
 	if err != nil {
 		return nil, err
 	}
-	tokenFetcher := &authTokenFetcher{
+
+	tokenFetcher := authTokenFetcher{
 		Namespace:      namespace,
 		Audiences:      aud,
 		ServiceAccount: name,
 		k8sClient:      clientset.CoreV1(),
 	}
-
-	return stscreds.NewWebIdentityRoleProviderWithOptions(
-		sts.New(sess), roleArn, "external-secrets-provider-aws", tokenFetcher), nil
-}
-
-type STSProvider func(*session.Session) stsiface.STSAPI
-
-func DefaultSTSProvider(sess *session.Session) stsiface.STSAPI {
-	return sts.New(sess)
-}
-
-// getAWSSession checks if an AWS session should be reused
-// it returns the aws session or an error.
-func getAWSSession(config *aws.Config, enableCache bool, name, kind, namespace, resourceVersion string) (*session.Session, error) {
-	key := cache.Key{
-		Name:      name,
-		Namespace: namespace,
-		Kind:      kind,
-	}
-
-	if enableCache {
-		sess, ok := sessionCache.Get(resourceVersion, key)
-		if ok {
-			log.Info("reusing aws session", "SecretStore", key.Name, "namespace", key.Namespace, "kind", key.Kind, "resourceversion", resourceVersion)
-			return sess.Copy(), nil
-		}
-	}
-
-	handlers := defaults.Handlers()
-	handlers.Build.PushBack(request.WithAppendUserAgent("external-secrets"))
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Config:   *config,
-		Handlers: handlers,
+	stsClient := sts.NewFromConfig(awscfg, func(o *sts.Options) {
+		o.EndpointResolverV2 = customEndpointResolver{}
 	})
-	if err != nil {
-		return nil, err
-	}
+	return stscreds.NewWebIdentityRoleProvider(
+		stsClient, roleArn, tokenFetcher, func(opts *stscreds.WebIdentityRoleOptions) {
+			opts.RoleSessionName = "external-secrets-provider-aws"
+		}), nil
+}
 
-	if enableCache {
-		sessionCache.Add(resourceVersion, key, sess.Copy())
-	}
-	return sess, nil
+type STSprovider interface {
+	AssumeRole(ctx context.Context, params *sts.AssumeRoleInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleOutput, error)
+	AssumeRoleWithSAML(ctx context.Context, params *sts.AssumeRoleWithSAMLInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleWithSAMLOutput, error)
+	AssumeRoleWithWebIdentity(ctx context.Context, params *sts.AssumeRoleWithWebIdentityInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleWithWebIdentityOutput, error)
+	AssumeRoot(ctx context.Context, params *sts.AssumeRootInput, optFns ...func(*sts.Options)) (*sts.AssumeRootOutput, error)
+	DecodeAuthorizationMessage(ctx context.Context, params *sts.DecodeAuthorizationMessageInput, optFns ...func(*sts.Options)) (*sts.DecodeAuthorizationMessageOutput, error)
+}
+
+type STSProvider func(aws.Config) STSprovider
+
+func DefaultSTSProvider(cfg aws.Config) STSprovider {
+	stsClient := sts.NewFromConfig(cfg, func(o *sts.Options) {
+		o.EndpointResolverV2 = customEndpointResolver{}
+	})
+	return stsClient
 }

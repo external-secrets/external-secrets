@@ -14,8 +14,28 @@ limitations under the License.
 
 package api
 
+import (
+	"encoding/json"
+	"fmt"
+)
+
 type MachineIdentityUniversalAuthRefreshRequest struct {
 	AccessToken string `json:"accessToken"`
+}
+
+type InfisicalAPIError struct {
+	StatusCode int
+	Err        any
+	Message    any
+	Details    any
+}
+
+func (e *InfisicalAPIError) Error() string {
+	if e.Details != nil {
+		detailsJSON, _ := json.Marshal(e.Details)
+		return fmt.Sprintf("API error (%d): error=%v message=%v, details=%s", e.StatusCode, e.Err, e.Message, string(detailsJSON))
+	}
+	return fmt.Sprintf("API error (%d): error=%v message=%v", e.StatusCode, e.Err, e.Message)
 }
 
 type MachineIdentityDetailsResponse struct {
@@ -25,37 +45,12 @@ type MachineIdentityDetailsResponse struct {
 	TokenType         string `json:"tokenType"`
 }
 
-type MachineIdentityUniversalAuthLoginRequest struct {
-	ClientID     string `json:"clientId"`
-	ClientSecret string `json:"clientSecret"`
-}
-
-type RevokeMachineIdentityAccessTokenRequest struct {
-	AccessToken string `json:"accessToken"`
-}
-
 type RevokeMachineIdentityAccessTokenResponse struct {
 	Message string `json:"message"`
 }
 
-type GetSecretByKeyV3Request struct {
-	EnvironmentSlug        string `json:"environment"`
-	ProjectSlug            string `json:"workspaceSlug"`
-	SecretPath             string `json:"secretPath"`
-	SecretKey              string `json:"secretKey"`
-	ExpandSecretReferences bool   `json:"expandSecretReferences"`
-}
-
 type GetSecretByKeyV3Response struct {
 	Secret SecretsV3 `json:"secret"`
-}
-
-type GetSecretsV3Request struct {
-	EnvironmentSlug        string `json:"environment"`
-	ProjectSlug            string `json:"workspaceSlug"`
-	Recursive              bool   `json:"recursive"`
-	SecretPath             string `json:"secretPath"`
-	ExpandSecretReferences bool   `json:"expandSecretReferences"`
 }
 
 type GetSecretsV3Response struct {

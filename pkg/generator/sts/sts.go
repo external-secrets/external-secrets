@@ -20,9 +20,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/aws/aws-sdk-go/service/sts/stsiface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
@@ -31,6 +30,11 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	awsauth "github.com/external-secrets/external-secrets/pkg/provider/aws/auth"
 )
+
+// stsAPI defines the methods needed for the STS generator.
+type stsAPI interface {
+	GetSessionToken(ctx context.Context, params *sts.GetSessionTokenInput, optFns ...func(*sts.Options)) (*sts.GetSessionTokenOutput, error)
+}
 
 type Generator struct{}
 
@@ -59,11 +63,13 @@ func (g *Generator) generate(
 	if err != nil {
 		return nil, nil, fmt.Errorf(errParseSpec, err)
 	}
-	sess, err := awsauth.NewGeneratorSession(
+	if res.Spec.Auth.JWTAuth != nil {
+		return nil, nil, errors.New("jwt auth cannot be used for STS Session Token generation")
+	}
+	cfg, err := awsauth.NewGeneratorSession(
 		ctx,
 		esv1.AWSAuth{
 			SecretRef: (*esv1.AWSAuthSecretRef)(res.Spec.Auth.SecretRef),
-			JWTAuth:   (*esv1.AWSJWTAuth)(res.Spec.Auth.JWTAuth),
 		},
 		res.Spec.Role,
 		res.Spec.Region,
@@ -74,14 +80,14 @@ func (g *Generator) generate(
 	if err != nil {
 		return nil, nil, fmt.Errorf(errCreateSess, err)
 	}
-	client := stsFunc(sess)
+	api := stsFunc(cfg)
 	input := &sts.GetSessionTokenInput{}
 	if res.Spec.RequestParameters != nil {
 		input.DurationSeconds = res.Spec.RequestParameters.SessionDuration
 		input.TokenCode = res.Spec.RequestParameters.TokenCode
 		input.SerialNumber = res.Spec.RequestParameters.SerialNumber
 	}
-	out, err := client.GetSessionToken(input)
+	out, err := api.GetSessionToken(ctx, input)
 	if err != nil {
 		return nil, nil, fmt.Errorf(errGetToken, err)
 	}
@@ -101,10 +107,10 @@ func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, sta
 	return nil
 }
 
-type stsFactoryFunc func(aws *session.Session) stsiface.STSAPI
+type stsFactoryFunc func(cfg *aws.Config) stsAPI
 
-func stsFactory(aws *session.Session) stsiface.STSAPI {
-	return sts.New(aws)
+func stsFactory(cfg *aws.Config) stsAPI {
+	return sts.NewFromConfig(*cfg)
 }
 
 func parseSpec(data []byte) (*genv1alpha1.STSSessionToken, error) {

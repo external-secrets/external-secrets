@@ -16,6 +16,8 @@ package gitlab
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/http"
@@ -86,6 +88,33 @@ func (g *gitlabBase) getClient(ctx context.Context, provider *esv1.GitlabProvide
 	var opts []gitlab.ClientOptionFunc
 	if provider.URL != "" {
 		opts = append(opts, gitlab.WithBaseURL(provider.URL))
+	}
+
+	if len(provider.CABundle) > 0 || provider.CAProvider != nil {
+		caCertPool := x509.NewCertPool()
+		ca, err := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
+			CABundle:   provider.CABundle,
+			CAProvider: provider.CAProvider,
+			StoreKind:  g.storeKind,
+			Namespace:  g.namespace,
+			Client:     g.kube,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to read ca bundle: %w", err)
+		}
+		if ok := caCertPool.AppendCertsFromPEM(ca); !ok {
+			return nil, errors.New("failed to append ca bundle")
+		}
+
+		transport := &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs:    caCertPool,
+				MinVersion: tls.VersionTLS12,
+			},
+		}
+
+		httpClient := &http.Client{Transport: transport}
+		opts = append(opts, gitlab.WithHTTPClient(httpClient))
 	}
 
 	// ClientOptionFunc from the gitlab package can be mapped with the CRD

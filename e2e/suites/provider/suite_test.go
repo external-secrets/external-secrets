@@ -15,16 +15,19 @@ limitations under the License.
 package e2e
 
 import (
+	"context"
 	"testing"
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
+
 	// nolint
 	. "github.com/onsi/gomega"
 
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 	"github.com/external-secrets/external-secrets-e2e/framework/util"
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases"
+	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
@@ -42,6 +45,16 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 var _ = SynchronizedAfterSuite(func() {
 	// noop
 }, func() {
+	cfg := &addon.Config{}
+	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
+	By("Deleting any pending generator states")
+	generatorStates := &genv1alpha1.GeneratorStateList{}
+	err := cfg.CRClient.List(context.Background(), generatorStates)
+	Expect(err).ToNot(HaveOccurred())
+	for _, generatorState := range generatorStates.Items {
+		err = cfg.CRClient.Delete(context.Background(), &generatorState)
+		Expect(err).ToNot(HaveOccurred())
+	}
 	By("Cleaning up global addons")
 	addon.UninstallGlobalAddons()
 	if CurrentSpecReport().Failed() {

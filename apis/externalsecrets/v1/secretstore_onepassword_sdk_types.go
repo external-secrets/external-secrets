@@ -36,7 +36,7 @@ type IntegrationInfo struct {
 
 // OnePasswordSDKProvider configures a store to sync secrets using the 1Password sdk.
 type OnePasswordSDKProvider struct {
-	// Vault defines the vault's name to access. Do NOT add op:// prefix. This will be done automatically.
+	// Vault defines the vault's name or uuid to access. Do NOT add op:// prefix. This will be done automatically.
 	Vault string `json:"vault"`
 	// IntegrationInfo specifies the name and version of the integration built using the 1Password Go SDK.
 	// If you don't know which name and version to use, use `DefaultIntegrationName` and `DefaultIntegrationVersion`, respectively.
