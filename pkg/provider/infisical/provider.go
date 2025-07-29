@@ -32,10 +32,17 @@ import (
 )
 
 const (
-	machineIdentityLoginViaUniversalAuth = "MachineIdentityLoginViaUniversalAuth"
-	machineIdentityLoginViaAzureAuth     = "MachineIdentityLoginViaAzureAuth"
-	revokeAccessToken                    = "RevokeAccessToken"
+	machineIdentityLoginViaUniversalAuth         = "MachineIdentityLoginViaUniversalAuth"
+	machineIdentityLoginViaAzureAuth             = "MachineIdentityLoginViaAzureAuth"
+	machineIdentityLoginViaGcpIdTokenAuth        = "MachineIdentityLoginViaGcpIdTokenAuth"
+	machineIdentityLoginViaGcpServiceAccountAuth = "MachineIdentityLoginViaGcpServiceAccountAuth"
+	machineIdentityLoginViaJwtAuth               = "MachineIdentityLoginViaJwtAuth"
+	machineIdentityLoginViaLdapAuth              = "MachineIdentityLoginViaLdapAuth"
+	machineIdentityLoginViaOciAuth               = "MachineIdentityLoginViaOciAuth"
+	revokeAccessToken                            = "RevokeAccessToken"
 )
+
+const errSecretDataFormat = "failed to get secret data identityId %w"
 
 type Provider struct {
 	cancelSdkClient context.CancelFunc
@@ -113,6 +120,153 @@ func performAzureAuthLogin(ctx context.Context, store esv1.GenericStore, infisic
 	return nil
 }
 
+func performGcpIdTokenAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
+	gcpIdTokenAuthCredentials := infisicalSpec.Auth.GcpIdTokenAuthCredentials
+	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, gcpIdTokenAuthCredentials.IdentityID)
+	if err != nil {
+		return fmt.Errorf(errSecretDataFormat, err)
+	}
+
+	_, err = sdkClient.Auth().GcpIdTokenAuthLogin(identityID)
+	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaGcpIdTokenAuth, err)
+
+	if err != nil {
+		return fmt.Errorf("failed to authenticate via gcp id token auth %w", err)
+	}
+
+	return nil
+}
+
+func performGcpIamAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
+	gcpIamAuthCredentials := infisicalSpec.Auth.GcpIamAuthCredentials
+	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, gcpIamAuthCredentials.IdentityID)
+	if err != nil {
+		return fmt.Errorf(errSecretDataFormat, err)
+	}
+
+	serviceAccountKeyFilePath, err := GetStoreSecretData(ctx, store, kube, namespace, gcpIamAuthCredentials.ServiceAccountKeyFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to get secret data serviceAccountKeyFilePath %w", err)
+	}
+
+	_, err = sdkClient.Auth().GcpIamAuthLogin(identityID, serviceAccountKeyFilePath)
+	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaGcpServiceAccountAuth, err)
+
+	if err != nil {
+		return fmt.Errorf("failed to authenticate via gcp iam auth %w", err)
+	}
+
+	return nil
+}
+
+func performJwtAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
+	jwtAuthCredentials := infisicalSpec.Auth.JwtAuthCredentials
+	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, jwtAuthCredentials.IdentityID)
+	if err != nil {
+		return fmt.Errorf(errSecretDataFormat, err)
+	}
+
+	jwt, err := GetStoreSecretData(ctx, store, kube, namespace, jwtAuthCredentials.JWT)
+	if err != nil {
+		return fmt.Errorf("failed to get secret data jwt %w", err)
+	}
+
+	_, err = sdkClient.Auth().JwtAuthLogin(identityID, jwt)
+	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaJwtAuth, err)
+
+	if err != nil {
+		return fmt.Errorf("failed to authenticate via jwt auth %w", err)
+	}
+
+	return nil
+}
+
+func performLdapAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
+	ldapAuthCredentials := infisicalSpec.Auth.LdapAuthCredentials
+	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, ldapAuthCredentials.IdentityID)
+	if err != nil {
+		return fmt.Errorf(errSecretDataFormat, err)
+	}
+
+	ldapPassword, err := GetStoreSecretData(ctx, store, kube, namespace, ldapAuthCredentials.LDAPPassword)
+	if err != nil {
+		return fmt.Errorf("failed to get secret data ldapPassword %w", err)
+	}
+
+	ldapUsername, err := GetStoreSecretData(ctx, store, kube, namespace, ldapAuthCredentials.LDAPUsername)
+	if err != nil {
+		return fmt.Errorf("failed to get secret data ldapUsername %w", err)
+	}
+
+	_, err = sdkClient.Auth().LdapAuthLogin(identityID, ldapPassword, ldapUsername)
+	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaLdapAuth, err)
+
+	if err != nil {
+		return fmt.Errorf("failed to authenticate via ldap auth %w", err)
+	}
+
+	return nil
+}
+
+func performOciAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
+	ociAuthCredentials := infisicalSpec.Auth.OciAuthCredentials
+	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, ociAuthCredentials.IdentityID)
+	if err != nil {
+		return fmt.Errorf(errSecretDataFormat, err)
+	}
+
+	privateKey, err := GetStoreSecretData(ctx, store, kube, namespace, ociAuthCredentials.PrivateKey)
+	if err != nil {
+		return fmt.Errorf("failed to get secret data privateKey %w", err)
+	}
+
+	var privateKeyPassphrase *string = nil
+	if ociAuthCredentials.PrivateKeyPassphrase.Name != "" {
+		passphrase, err := GetStoreSecretData(ctx, store, kube, namespace, ociAuthCredentials.PrivateKeyPassphrase)
+		if err != nil {
+			return fmt.Errorf("failed to get secret data privateKeyPassphrase %w", err)
+		}
+		privateKeyPassphrase = &passphrase
+	}
+
+	fingerprint, err := GetStoreSecretData(ctx, store, kube, namespace, ociAuthCredentials.Fingerprint)
+	if err != nil {
+		return fmt.Errorf("failed to get secret data fingerprint %w", err)
+	}
+
+	userID, err := GetStoreSecretData(ctx, store, kube, namespace, ociAuthCredentials.UserID)
+	if err != nil {
+		return fmt.Errorf("failed to get secret data userId %w", err)
+	}
+
+	tenancyID, err := GetStoreSecretData(ctx, store, kube, namespace, ociAuthCredentials.TenancyID)
+	if err != nil {
+		return fmt.Errorf("failed to get secret data tenancyId %w", err)
+	}
+
+	region, err := GetStoreSecretData(ctx, store, kube, namespace, ociAuthCredentials.Region)
+	if err != nil {
+		return fmt.Errorf("failed to get secret data region %w", err)
+	}
+
+	_, err = sdkClient.Auth().OciAuthLogin(infisicalSdk.OciAuthLoginOptions{
+		IdentityID:  identityID,
+		PrivateKey:  privateKey,
+		Passphrase:  privateKeyPassphrase,
+		Fingerprint: fingerprint,
+		UserID:      userID,
+		TenancyID:   tenancyID,
+		Region:      region,
+	})
+	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaOciAuth, err)
+
+	if err != nil {
+		return fmt.Errorf("failed to authenticate via oci auth %w", err)
+	}
+
+	return nil
+}
+
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 
@@ -138,6 +292,16 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		loginFn = performUniversalAuthLogin
 	case infisicalSpec.Auth.AzureAuthCredentials != nil:
 		loginFn = performAzureAuthLogin
+	case infisicalSpec.Auth.GcpIdTokenAuthCredentials != nil:
+		loginFn = performGcpIdTokenAuthLogin
+	case infisicalSpec.Auth.GcpIamAuthCredentials != nil:
+		loginFn = performGcpIamAuthLogin
+	case infisicalSpec.Auth.JwtAuthCredentials != nil:
+		loginFn = performJwtAuthLogin
+	case infisicalSpec.Auth.LdapAuthCredentials != nil:
+		loginFn = performLdapAuthLogin
+	case infisicalSpec.Auth.OciAuthCredentials != nil:
+		loginFn = performOciAuthLogin
 	default:
 		cancelSdkClient()
 		return nil, errors.New("authentication method not found")
@@ -151,7 +315,6 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	return &Provider{
 		cancelSdkClient: cancelSdkClient,
 		sdkClient:       sdkClient,
-
 		apiScope: &InfisicalClientScope{
 			EnvironmentSlug:        infisicalSpec.SecretsScope.EnvironmentSlug,
 			ProjectSlug:            infisicalSpec.SecretsScope.ProjectSlug,
