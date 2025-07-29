@@ -616,23 +616,6 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretI
 	return err
 }
 
-// computeTagsToUpdate compares the current tags with the desired metaTags and returns a slice of ssmTypes.Tag
-// that should be set on the resource. It also returns a boolean indicating if any tag was added or modified.
-func computeTagsToUpdate(tags, metaTags map[string]string) ([]types.Tag, bool) {
-	result := make([]types.Tag, 0, len(metaTags))
-	modified := false
-	for k, v := range metaTags {
-		if _, exists := tags[k]; !exists || tags[k] != v {
-			modified = true
-		}
-		result = append(result, types.Tag{
-			Key:   utilpointer.To(k),
-			Value: utilpointer.To(v),
-		})
-	}
-	return result, modified
-}
-
 func (sm *SecretsManager) fetchWithBatch(ctx context.Context, filters []types.Filter, matcher *find.Matcher) (map[string][]byte, error) {
 	data := make(map[string][]byte)
 	var nextToken *string
@@ -767,4 +750,21 @@ func (sm *SecretsManager) constructMetadataWithDefaults(data *apiextensionsv1.JS
 	meta.Spec.Tags[managedBy] = externalSecrets
 
 	return meta, nil
+}
+
+// computeTagsToUpdate compares the current tags with the desired metaTags and returns a slice of ssmTypes.Tag
+// that should be set on the resource. It also returns a boolean indicating if any tag was added or modified.
+func computeTagsToUpdate(tags, metaTags map[string]string) ([]types.Tag, bool) {
+	result := make([]types.Tag, 0, len(metaTags))
+	modified := false
+	for k, v := range metaTags {
+		if _, exists := tags[k]; !exists || tags[k] != v {
+			modified = true
+		}
+		result = append(result, types.Tag{
+			Key:   utilpointer.To(k),
+			Value: utilpointer.To(v),
+		})
+	}
+	return result, modified
 }

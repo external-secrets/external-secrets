@@ -915,6 +915,7 @@ func TestSetSecret(t *testing.T) {
 					UntagResourceFn: fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil, func(input *awssm.UntagResourceInput) {
 						assert.Len(t, input.TagKeys, 1)
 						assert.Equal(t, []string{"team"}, input.TagKeys)
+						assert.NotContains(t, input.TagKeys, managedBy)
 					}),
 				},
 				pushSecretData: fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "", Metadata: &apiextensionsv1.JSON{
@@ -1718,6 +1719,87 @@ func TestConstructMetadataWithDefaults(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.expected, result)
 			}
+		})
+	}
+}
+
+func TestComputeTagsToUpdate(t *testing.T) {
+	tests := []struct {
+		name     string
+		tags     map[string]string
+		metaTags map[string]string
+		expected []types.Tag
+		modified bool
+	}{
+		{
+			name: "No tags to update",
+			tags: map[string]string{
+				"key1": "value1",
+				"key2": "value2",
+			},
+			metaTags: map[string]string{
+				"key1": "value1",
+				"key2": "value2",
+			},
+			expected: []types.Tag{
+				{Key: ptr.To("key1"), Value: ptr.To("value1")},
+				{Key: ptr.To("key2"), Value: ptr.To("value2")},
+			},
+			modified: false,
+		},
+		{
+			name: "Add new tag",
+			tags: map[string]string{
+				"key1": "value1",
+			},
+			metaTags: map[string]string{
+				"key1": "value1",
+				"key2": "value2",
+			},
+			expected: []types.Tag{
+				{Key: ptr.To("key1"), Value: ptr.To("value1")},
+				{Key: ptr.To("key2"), Value: ptr.To("value2")},
+			},
+			modified: true,
+		},
+		{
+			name: "Update existing tag value",
+			tags: map[string]string{
+				"key1": "value1",
+			},
+			metaTags: map[string]string{
+				"key1": "newValue",
+			},
+			expected: []types.Tag{
+				{Key: ptr.To("key1"), Value: ptr.To("newValue")},
+			},
+			modified: true,
+		},
+		{
+			name:     "Empty tags and metaTags",
+			tags:     map[string]string{},
+			metaTags: map[string]string{},
+			expected: []types.Tag{},
+			modified: false,
+		},
+		{
+			name: "Empty tags with non-empty metaTags",
+			tags: map[string]string{},
+			metaTags: map[string]string{
+				"key1": "value1",
+			},
+			expected: []types.Tag{
+				{Key: ptr.To("key1"), Value: ptr.To("value1")},
+			},
+			modified: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, modified := computeTagsToUpdate(tt.tags, tt.metaTags)
+			assert.ElementsMatch(t, tt.expected, result)
+			assert.Equal(t, tt.modified, modified)
 		})
 	}
 }

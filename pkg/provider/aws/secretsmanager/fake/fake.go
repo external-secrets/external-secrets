@@ -52,7 +52,7 @@ type BatchGetSecretValueFn func(context.Context, *awssm.BatchGetSecretValueInput
 type TagResourceFn func(context.Context, *awssm.TagResourceInput, ...func(*awssm.Options)) (*awssm.TagResourceOutput, error)
 type UntagResourceFn func(context.Context, *awssm.UntagResourceInput, ...func(*awssm.Options)) (*awssm.UntagResourceOutput, error)
 
-func (sm Client) CreateSecret(ctx context.Context, input *awssm.CreateSecretInput, options ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error) {
+func (sm *Client) CreateSecret(ctx context.Context, input *awssm.CreateSecretInput, options ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error) {
 	return sm.CreateSecretFn(ctx, input, options...)
 }
 
@@ -71,7 +71,7 @@ func NewCreateSecretFn(output *awssm.CreateSecretOutput, err error, expectedSecr
 	}
 }
 
-func (sm Client) DeleteSecret(ctx context.Context, input *awssm.DeleteSecretInput, opts ...func(*awssm.Options)) (*awssm.DeleteSecretOutput, error) {
+func (sm *Client) DeleteSecret(ctx context.Context, input *awssm.DeleteSecretInput, opts ...func(*awssm.Options)) (*awssm.DeleteSecretOutput, error) {
 	return sm.DeleteSecretFn(ctx, input, opts...)
 }
 
@@ -90,7 +90,7 @@ func NewGetSecretValueFn(output *awssm.GetSecretValueOutput, err error) GetSecre
 	}
 }
 
-func (sm Client) PutSecretValue(ctx context.Context, input *awssm.PutSecretValueInput, options ...func(*awssm.Options)) (*awssm.PutSecretValueOutput, error) {
+func (sm *Client) PutSecretValue(ctx context.Context, input *awssm.PutSecretValueInput, options ...func(*awssm.Options)) (*awssm.PutSecretValueOutput, error) {
 	return sm.PutSecretValueFn(ctx, input, options...)
 }
 
@@ -138,7 +138,7 @@ func NewPutSecretValueFn(output *awssm.PutSecretValueOutput, err error, expected
 	}
 }
 
-func (sm Client) DescribeSecret(ctx context.Context, input *awssm.DescribeSecretInput, options ...func(*awssm.Options)) (*awssm.DescribeSecretOutput, error) {
+func (sm *Client) DescribeSecret(ctx context.Context, input *awssm.DescribeSecretInput, options ...func(*awssm.Options)) (*awssm.DescribeSecretOutput, error) {
 	return sm.DescribeSecretFn(ctx, input, options...)
 }
 
@@ -201,10 +201,8 @@ func (sm *Client) TagResource(ctx context.Context, params *awssm.TagResourceInpu
 
 func NewTagResourceFn(output *awssm.TagResourceOutput, err error, aFunc ...func(input *awssm.TagResourceInput)) TagResourceFn {
 	return func(ctx context.Context, params *awssm.TagResourceInput, optFns ...func(*awssm.Options)) (*awssm.TagResourceOutput, error) {
-		if len(aFunc) > 0 {
-			for _, f := range aFunc {
-				f(params)
-			}
+		for _, f := range aFunc {
+			f(params)
 		}
 		return output, err
 	}
@@ -216,10 +214,8 @@ func (sm *Client) UntagResource(ctx context.Context, params *awssm.UntagResource
 
 func NewUntagResourceFn(output *awssm.UntagResourceOutput, err error, aFunc ...func(input *awssm.UntagResourceInput)) UntagResourceFn {
 	return func(ctx context.Context, params *awssm.UntagResourceInput, optFuncs ...func(*awssm.Options)) (*awssm.UntagResourceOutput, error) {
-		if len(aFunc) > 0 {
-			for _, f := range aFunc {
-				f(params)
-			}
+		for _, f := range aFunc {
+			f(params)
 		}
 		return output, err
 	}
