@@ -24,9 +24,8 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 27,
+  "id": null,
   "links": [],
-  "liveNow": false,
   "panels": [
     {
       "collapsed": false,
@@ -57,8 +56,7 @@
             "mode": "percentage",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "#EAB839",
@@ -78,6 +76,8 @@
       },
       "id": 118,
       "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -87,9 +87,10 @@
           "values": false
         },
         "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "showThresholdMarkers": true,
+        "sizing": "auto"
       },
-      "pluginVersion": "9.5.2",
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
@@ -122,8 +123,7 @@
             "mode": "percentage",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "#EAB839",
@@ -143,6 +143,8 @@
       },
       "id": 121,
       "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -152,9 +154,10 @@
           "values": false
         },
         "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "showThresholdMarkers": true,
+        "sizing": "auto"
       },
-      "pluginVersion": "9.5.2",
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
@@ -187,8 +190,7 @@
             "mode": "percentage",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "#EAB839",
@@ -208,6 +210,8 @@
       },
       "id": 119,
       "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -217,9 +221,10 @@
           "values": false
         },
         "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "showThresholdMarkers": true,
+        "sizing": "auto"
       },
-      "pluginVersion": "9.5.2",
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
@@ -252,8 +257,7 @@
             "mode": "percentage",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "#EAB839",
@@ -273,6 +277,8 @@
       },
       "id": 120,
       "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -282,9 +288,10 @@
           "values": false
         },
         "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "showThresholdMarkers": true,
+        "sizing": "auto"
       },
-      "pluginVersion": "9.5.2",
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
@@ -317,8 +324,7 @@
             "mode": "percentage",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "#EAB839",
@@ -338,6 +344,8 @@
       },
       "id": 122,
       "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -347,9 +355,10 @@
           "values": false
         },
         "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "showThresholdMarkers": true,
+        "sizing": "auto"
       },
-      "pluginVersion": "9.5.2",
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
@@ -382,8 +391,7 @@
             "mode": "percentage",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "#EAB839",
@@ -403,6 +411,8 @@
       },
       "id": 123,
       "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -412,9 +422,10 @@
           "values": false
         },
         "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "showThresholdMarkers": true,
+        "sizing": "auto"
       },
-      "pluginVersion": "9.5.2",
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
@@ -447,8 +458,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "#EAB839",
@@ -468,6 +478,8 @@
       },
       "id": 147,
       "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -477,9 +489,10 @@
           "values": false
         },
         "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "showThresholdMarkers": true,
+        "sizing": "auto"
       },
-      "pluginVersion": "9.5.2",
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
@@ -512,8 +525,7 @@
             "mode": "percentage",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "#EAB839",
@@ -533,6 +545,8 @@
       },
       "id": 145,
       "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -542,9 +556,10 @@
           "values": false
         },
         "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "showThresholdMarkers": true,
+        "sizing": "auto"
       },
-      "pluginVersion": "9.5.2",
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
@@ -577,8 +592,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "#EAB839",
@@ -598,6 +612,8 @@
       },
       "id": 146,
       "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -607,9 +623,10 @@
           "values": false
         },
         "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "showThresholdMarkers": true,
+        "sizing": "auto"
       },
-      "pluginVersion": "9.5.2",
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
@@ -642,8 +659,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "#EAB839",
@@ -663,6 +679,8 @@
       },
       "id": 148,
       "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -672,9 +690,10 @@
           "values": false
         },
         "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "showThresholdMarkers": true,
+        "sizing": "auto"
       },
-      "pluginVersion": "9.5.2",
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
@@ -707,8 +726,7 @@
             "mode": "percentage",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "#EAB839",
@@ -728,6 +746,8 @@
       },
       "id": 149,
       "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -737,9 +757,10 @@
           "values": false
         },
         "showThresholdLabels": false,
-        "showThresholdMarkers": true
+        "showThresholdMarkers": true,
+        "sizing": "auto"
       },
-      "pluginVersion": "9.5.2",
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
@@ -767,11 +788,13 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
@@ -780,6 +803,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -802,8 +826,7 @@
             "mode": "percentage",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "#EAB839",
@@ -830,11 +853,12 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
-      "pluginVersion": "9.5.2",
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
@@ -874,8 +898,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -930,7 +953,7 @@
         },
         "showHeader": true
       },
-      "pluginVersion": "9.5.2",
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
@@ -948,7 +971,6 @@
         }
       ],
       "title": "Not Ready ExternalSecrets  [15m]",
-      "transformations": [],
       "type": "table"
     },
     {
@@ -962,11 +984,13 @@
             "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
             "axisCenteredZero": false,
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
@@ -975,6 +999,7 @@
               "tooltip": false,
               "viz": false
             },
+            "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
@@ -996,8 +1021,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1023,10 +1047,12 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
+      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
@@ -1054,18 +1080,23 @@
       "id": 27,
       "panels": [
         {
-          "datasource": "$datasource",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
           "fieldConfig": {
             "defaults": {
               "color": {
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
                 "axisPlacement": "auto",
                 "barAlignment": 0,
+                "barWidthFactor": 0.6,
                 "drawStyle": "line",
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -1074,6 +1105,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -1095,8 +1127,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1111,7 +1142,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 16
+            "y": 23
           },
           "id": 53,
           "options": {
@@ -1122,13 +1153,18 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "single",
               "sort": "none"
             }
           },
+          "pluginVersion": "12.0.2",
           "targets": [
             {
-              "datasource": "$datasource",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "$datasource"
+              },
               "editorMode": "code",
               "expr": "sum(increase(controller_runtime_webhook_requests_total{service=~\".*external-secrets.*\"}[1m])) by (webhook)",
               "legendFormat": "__auto",
@@ -1140,18 +1176,23 @@
           "type": "timeseries"
         },
         {
-          "datasource": "$datasource",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
           "fieldConfig": {
             "defaults": {
               "color": {
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
                 "axisPlacement": "auto",
                 "barAlignment": 0,
+                "barWidthFactor": 0.6,
                 "drawStyle": "line",
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -1160,6 +1201,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -1181,8 +1223,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1197,7 +1238,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 16
+            "y": 23
           },
           "id": 67,
           "options": {
@@ -1208,13 +1249,18 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "single",
               "sort": "none"
             }
           },
+          "pluginVersion": "12.0.2",
           "targets": [
             {
-              "datasource": "$datasource",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "$datasource"
+              },
               "editorMode": "code",
               "expr": "sum(controller_runtime_webhook_requests_in_flight{service=~\".*external-secrets.*\"}) by (webhook)",
               "legendFormat": "__auto",
@@ -1226,18 +1272,23 @@
           "type": "timeseries"
         },
         {
-          "datasource": "$datasource",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
           "fieldConfig": {
             "defaults": {
               "color": {
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
                 "axisPlacement": "auto",
                 "barAlignment": 0,
+                "barWidthFactor": 0.6,
                 "drawStyle": "line",
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -1246,6 +1297,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -1267,8 +1319,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1283,7 +1334,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 24
+            "y": 31
           },
           "id": 80,
           "options": {
@@ -1294,13 +1345,18 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "single",
               "sort": "none"
             }
           },
+          "pluginVersion": "12.0.2",
           "targets": [
             {
-              "datasource": "$datasource",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "$datasource"
+              },
               "editorMode": "code",
               "expr": "sum(increase(controller_runtime_webhook_requests_total{service=~\".*external-secrets.*\"}[1m])) by (code)",
               "legendFormat": "__auto",
@@ -1312,7 +1368,10 @@
           "type": "timeseries"
         },
         {
-          "datasource": "$datasource",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
           "fieldConfig": {
             "defaults": {
               "custom": {
@@ -1332,12 +1391,16 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 24
+            "y": 31
           },
           "id": 54,
+          "maxDataPoints": 25,
           "options": {
             "calculate": false,
             "cellGap": 1,
+            "cellValues": {
+              "unit": "short"
+            },
             "color": {
               "exponent": 0.5,
               "fill": "dark-orange",
@@ -1360,20 +1423,26 @@
               "layout": "auto"
             },
             "tooltip": {
-              "show": true,
+              "mode": "single",
+              "showColorScale": false,
               "yHistogram": false
             },
             "yAxis": {
               "axisPlacement": "left",
-              "reverse": false
+              "reverse": false,
+              "unit": "s"
             }
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "12.0.2",
           "targets": [
             {
-              "datasource": "$datasource",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "$datasource"
+              },
               "editorMode": "code",
-              "expr": "sum(rate(controller_runtime_webhook_latency_seconds_bucket{service=~\".*external-secrets.*\"}[$__rate_interval])) by (le)",
+              "expr": "sum by (le) (rate(controller_runtime_webhook_latency_seconds_bucket{service=~\".*external-secrets.*\"}[$__rate_interval]))",
+              "format": "heatmap",
               "legendFormat": "{{le}}",
               "range": true,
               "refId": "A"
@@ -1397,18 +1466,23 @@
       "id": 17,
       "panels": [
         {
-          "datasource": "$datasource",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
           "fieldConfig": {
             "defaults": {
               "color": {
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
                 "axisPlacement": "auto",
                 "barAlignment": 0,
+                "barWidthFactor": 0.6,
                 "drawStyle": "line",
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -1417,6 +1491,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -1438,8 +1513,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1454,7 +1528,7 @@
             "h": 8,
             "w": 7,
             "x": 0,
-            "y": 17
+            "y": 40
           },
           "id": 2,
           "options": {
@@ -1465,13 +1539,18 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "single",
               "sort": "none"
             }
           },
+          "pluginVersion": "12.0.2",
           "targets": [
             {
-              "datasource": "$datasource",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "$datasource"
+              },
               "editorMode": "code",
               "expr": "sum(controller_runtime_active_workers{service=~\".*external-secrets.*\",controller=~\"$controller\"}) by (controller)",
               "legendFormat": "__auto",
@@ -1483,18 +1562,23 @@
           "type": "timeseries"
         },
         {
-          "datasource": "$datasource",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
           "fieldConfig": {
             "defaults": {
               "color": {
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
                 "axisPlacement": "auto",
                 "barAlignment": 0,
+                "barWidthFactor": 0.6,
                 "drawStyle": "line",
                 "fillOpacity": 0,
                 "gradientMode": "none",
@@ -1503,6 +1587,7 @@
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -1524,8 +1609,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1540,7 +1624,7 @@
             "h": 8,
             "w": 8,
             "x": 7,
-            "y": 17
+            "y": 40
           },
           "id": 37,
           "options": {
@@ -1551,13 +1635,18 @@
               "showLegend": true
             },
             "tooltip": {
+              "hideZeros": false,
               "mode": "single",
               "sort": "none"
             }
           },
+          "pluginVersion": "12.0.2",
           "targets": [
             {
-              "datasource": "$datasource",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "$datasource"
+              },
               "editorMode": "code",
               "expr": "sum(workqueue_depth{service=~\".*external-secrets.*\"}) by (name)",
               "legendFormat": "__auto",
@@ -1567,6 +1656,170 @@
           ],
           "title": "workqueue depth",
           "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisBorderShow": false,
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "barWidthFactor": 0.6,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "insertNulls": false,
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 9,
+            "x": 15,
+            "y": 40
+          },
+          "id": 15,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "hideZeros": false,
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "pluginVersion": "12.0.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "$datasource"
+              },
+              "editorMode": "code",
+              "expr": "sum(increase(externalsecret_provider_api_calls_count{service=~\".*external-secrets.*\"}[1m])) by(provider, call, status)",
+              "legendFormat": "{{provider}}/{{call}}={{status}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "API calls by provider",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green"
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 24,
+            "x": 0,
+            "y": 48
+          },
+          "id": 5,
+          "maxPerRow": 12,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "9.5.2",
+          "repeat": "controller",
+          "repeatDirection": "h",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "$datasource"
+              },
+              "editorMode": "code",
+              "expr": "sum(controller_runtime_max_concurrent_reconciles{service=~\".*external-secrets.*\",controller=\"$controller\"}) by (controller)",
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "max concurrent: $controller",
+          "type": "stat"
         },
         {
           "datasource": {
@@ -1613,8 +1866,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1627,158 +1879,9 @@
           },
           "gridPos": {
             "h": 8,
-            "w": 9,
-            "x": 15,
-            "y": 17
-          },
-          "id": 15,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "single",
-              "sort": "none"
-            }
-          },
-          "targets": [
-            {
-              "datasource": "$datasource",
-              "editorMode": "code",
-              "expr": "sum(increase(externalsecret_provider_api_calls_count{service=~\".*external-secrets.*\"}[1m])) by(provider, call, status)",
-              "legendFormat": "{{provider}}/{{call}}={{status}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "API calls by provider",
-          "type": "timeseries"
-        },
-        {
-          "datasource": "$datasource",
-          "description": "",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 6,
-            "w": 3.4285714285714284,
+            "w": 24,
             "x": 0,
-            "y": 25
-          },
-          "id": 5,
-          "maxPerRow": 12,
-          "options": {
-            "colorMode": "value",
-            "graphMode": "area",
-            "justifyMode": "auto",
-            "orientation": "auto",
-            "reduceOptions": {
-              "calcs": [
-                "lastNotNull"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "textMode": "auto"
-          },
-          "pluginVersion": "9.5.2",
-          "repeat": "controller",
-          "repeatDirection": "h",
-          "targets": [
-            {
-              "datasource": "$datasource",
-              "editorMode": "code",
-              "expr": "sum(controller_runtime_max_concurrent_reconciles{service=~\".*external-secrets.*\",controller=\"$controller\"}) by (controller)",
-              "legendFormat": "__auto",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "max concurrent: $controller",
-          "type": "stat"
-        },
-        {
-          "datasource": "$datasource",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 3.4285714285714284,
-            "x": 0,
-            "y": 31
+            "y": 54
           },
           "id": 3,
           "maxPerRow": 8,
@@ -1798,7 +1901,10 @@
           "repeatDirection": "h",
           "targets": [
             {
-              "datasource": "$datasource",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "$datasource"
+              },
               "editorMode": "code",
               "expr": "sum(increase(controller_runtime_reconcile_total{service=~\".*external-secrets.*\",controller=~\"$controller\"}[1m])) by (result)",
               "legendFormat": "__auto",
@@ -1810,7 +1916,10 @@
           "type": "timeseries"
         },
         {
-          "datasource": "$datasource",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
           "fieldConfig": {
             "defaults": {
               "custom": {
@@ -1828,11 +1937,12 @@
           },
           "gridPos": {
             "h": 8,
-            "w": 3.4285714285714284,
+            "w": 24,
             "x": 0,
-            "y": 39
+            "y": 62
           },
           "id": 39,
+          "maxDataPoints": 25,
           "maxPerRow": 8,
           "options": {
             "calculate": false,
@@ -1862,7 +1972,8 @@
               "layout": "auto"
             },
             "tooltip": {
-              "show": true,
+              "mode": "single",
+              "showColorScale": false,
               "yHistogram": false
             },
             "yAxis": {
@@ -1873,14 +1984,18 @@
               "unit": "s"
             }
           },
-          "pluginVersion": "9.5.2",
+          "pluginVersion": "12.0.2",
           "repeat": "controller",
           "repeatDirection": "h",
           "targets": [
             {
-              "datasource": "$datasource",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "$datasource"
+              },
               "editorMode": "code",
-              "expr": "rate(controller_runtime_reconcile_time_seconds_bucket{service=~\".*external-secrets.*\",controller=~\"$controller\"}[$__rate_interval])",
+              "expr": "sum by (le) (rate(controller_runtime_reconcile_time_seconds_bucket{service=~\".*external-secrets.*\",controller=~\"$controller\"}[$__rate_interval]))",
+              "format": "heatmap",
               "legendFormat": "{{le}}",
               "range": true,
               "refId": "A"
@@ -1895,43 +2010,28 @@
     }
   ],
   "refresh": "",
-  "revision": 1,
-  "schemaVersion": 38,
-  "style": "dark",
+  "schemaVersion": 41,
   "tags": [],
   "templating": {
     "list": [
       {
-        "current": {
-          "selected": false,
-          "text": "Prometheus",
-          "value": "Prometheus"
-        },
-        "hide": 0,
+        "current": {},
         "includeAll": false,
-        "multi": false,
         "name": "datasource",
         "options": [],
         "query": "prometheus",
-        "queryValue": "",
         "refresh": 1,
         "regex": "",
-        "skipUrlSync": false,
         "type": "datasource"
       },
       {
         "allValue": ".*",
-        "current": {
-          "selected": false,
-          "text": "All",
-          "value": "$__all"
-        },
+        "current": {},
         "datasource": {
           "type": "prometheus",
           "uid": "$datasource"
         },
         "definition": "label_values(controller_runtime_active_workers{service=~\".*external-secrets.*\"},  controller)",
-        "hide": 0,
         "includeAll": true,
         "multi": true,
         "name": "controller",
@@ -1942,8 +2042,6 @@
         },
         "refresh": 1,
         "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
         "type": "query"
       }
     ]
@@ -1956,6 +2054,6 @@
   "timezone": "",
   "title": "External Secrets Operator",
   "uid": "n4IdKaJVk",
-  "version": 9,
+  "version": 10,
   "weekStart": ""
 }

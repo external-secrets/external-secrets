@@ -9,6 +9,9 @@
             "properties": {
                 "enabled": {
                     "type": "boolean"
+                },
+                "namespaceOverride": {
+                    "type": "string"
                 }
             },
             "type": "object"
@@ -31,6 +34,9 @@
                     "type": "object"
                 },
                 "extraEnv": {
+                    "type": "array"
+                },
+                "extraInitContainers": {
                     "type": "array"
                 },
                 "extraVolumeMounts": {
@@ -313,6 +319,9 @@
             "type": "array"
         },
         "extraEnv": {
+            "type": "array"
+        },
+        "extraInitContainers": {
             "type": "array"
         },
         "extraObjects": {
@@ -727,6 +736,9 @@
                     "type": "object"
                 },
                 "extraEnv": {
+                    "type": "array"
+                },
+                "extraInitContainers": {
                     "type": "array"
                 },
                 "extraVolumeMounts": {

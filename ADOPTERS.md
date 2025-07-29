@@ -26,6 +26,7 @@
 - [PHOENIX MEDIA](https://www.phoenix-media.eu/)
 - [Polarpoint](https://www.polarpoint.io/)
 - [Radio France](https://www.radiofrance.fr/)
+- [Red Hat OpenShift](https://www.redhat.com/en/technologies/cloud-computing/openshift)
 - [Skeeled](https://www.skeeled.com/)
 - [Made People](https://madepeople.se/)
 - [Voiceflow](https://www.voiceflow.com/)

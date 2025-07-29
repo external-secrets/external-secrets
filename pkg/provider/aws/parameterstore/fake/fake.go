@@ -52,8 +52,13 @@ func (sm *Client) ListTagsForResource(ctx context.Context, input *ssm.ListTagsFo
 	return sm.ListTagsForResourceFn(ctx, input, options...)
 }
 
-func NewListTagsForResourceFn(output *ssm.ListTagsForResourceOutput, err error) ListTagsForResourceFn {
-	return func(context.Context, *ssm.ListTagsForResourceInput, ...func(*ssm.Options)) (*ssm.ListTagsForResourceOutput, error) {
+func NewListTagsForResourceFn(output *ssm.ListTagsForResourceOutput, err error, aFunc ...func(input *ssm.ListTagsForResourceInput)) ListTagsForResourceFn {
+	return func(_ context.Context, params *ssm.ListTagsForResourceInput, _ ...func(*ssm.Options)) (*ssm.ListTagsForResourceOutput, error) {
+		if len(aFunc) > 0 {
+			for _, f := range aFunc {
+				f(params)
+			}
+		}
 		return output, err
 	}
 }
@@ -98,8 +103,13 @@ func (sm *Client) PutParameter(ctx context.Context, input *ssm.PutParameterInput
 	return sm.PutParameterFn(ctx, input, options...)
 }
 
-func NewPutParameterFn(output *ssm.PutParameterOutput, err error) PutParameterFn {
-	return func(context.Context, *ssm.PutParameterInput, ...func(*ssm.Options)) (*ssm.PutParameterOutput, error) {
+func NewPutParameterFn(output *ssm.PutParameterOutput, err error, aFunc ...func(input *ssm.PutParameterInput)) PutParameterFn {
+	return func(_ context.Context, params *ssm.PutParameterInput, _ ...func(*ssm.Options)) (*ssm.PutParameterOutput, error) {
+		if len(aFunc) > 0 {
+			for _, f := range aFunc {
+				f(params)
+			}
+		}
 		return output, err
 	}
 }

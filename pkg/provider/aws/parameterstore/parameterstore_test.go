@@ -341,10 +341,15 @@ func TestPushSecret(t *testing.T) {
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
 				client: fakeps.Client{
-					PutParameterFn:           fakeps.NewPutParameterFn(putParameterOutput, nil),
-					GetParameterFn:           fakeps.NewGetParameterFn(getParameterOutput, nil),
-					DescribeParametersFn:     fakeps.NewDescribeParametersFn(describeParameterOutput, nil),
-					ListTagsForResourceFn:    fakeps.NewListTagsForResourceFn(validListTagsForResourceOutput, nil),
+					PutParameterFn: fakeps.NewPutParameterFn(putParameterOutput, nil, func(input *ssm.PutParameterInput) {
+						assert.Len(t, input.Tags, 1)
+						assert.Contains(t, input.Tags, managedByESO)
+					}),
+					GetParameterFn:       fakeps.NewGetParameterFn(getParameterOutput, nil),
+					DescribeParametersFn: fakeps.NewDescribeParametersFn(describeParameterOutput, nil),
+					ListTagsForResourceFn: fakeps.NewListTagsForResourceFn(validListTagsForResourceOutput, nil, func(input *ssm.ListTagsForResourceInput) {
+						assert.Equal(t, "/external-secrets/parameters/fake-key", input.ResourceId)
+					}),
 					RemoveTagsFromResourceFn: fakeps.NewRemoveTagsFromResourceFn(&ssm.RemoveTagsFromResourceOutput{}, nil),
 					AddTagsToResourceFn:      fakeps.NewAddTagsToResourceFn(&ssm.AddTagsToResourceOutput{}, nil),
 				},
@@ -590,7 +595,7 @@ func TestPushSecret(t *testing.T) {
 				err: errors.New("unable to compare 'sensitive' result, ensure to request a decrypted value"),
 			},
 		},
-		"SecretWithTags": {
+		"SecretPatchTags": {
 			reason: "test if we can configure tags for the secret",
 			args: args{
 				store: makeValidParameterStore().Spec.Provider.AWS,
@@ -607,7 +612,9 @@ func TestPushSecret(t *testing.T) {
 					}`),
 				},
 				client: fakeps.Client{
-					PutParameterFn: fakeps.NewPutParameterFn(putParameterOutput, nil),
+					PutParameterFn: fakeps.NewPutParameterFn(putParameterOutput, nil, func(input *ssm.PutParameterInput) {
+						assert.Len(t, input.Tags, 0)
+					}),
 					GetParameterFn: fakeps.NewGetParameterFn(&ssm.GetParameterOutput{
 						Parameter: &ssmtypes.Parameter{
 							Value: aws.String("some-value"),
