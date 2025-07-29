@@ -4129,7 +4129,7 @@
 
 <p>External Secrets Operator allows to retrieve secrets from a Kubernetes Cluster - this can be either a remote cluster or the local one where the operator runs in.</p>
 <p>A <code>SecretStore</code> points to a <strong>specific namespace</strong> in the target Kubernetes Cluster. You are able to retrieve all secrets from that particular namespace given you have the correct set of RBAC permissions.</p>
-<p>The <code>SecretStore</code> reconciler checks if you have read access for secrets in that namespace using <code>SelfSubjectRulesReview</code>. See below on how to set that up properly.</p>
+<p>The <code>SecretStore</code> reconciler checks if you have read access for secrets in that namespace using <code>SelfSubjectRulesReview</code> and will fallback to <code>SelfSubjectAccessReview</code> when that fails. See below on how to set that up properly.</p>
 <h3 id="external-secret-spec">External Secret Spec</h3>
 <p>This provider supports the use of the <code>Property</code> field. With it you point to the key of the remote secret. If you leave it empty it will json encode all key/value pairs.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
