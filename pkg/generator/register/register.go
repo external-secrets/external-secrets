@@ -26,6 +26,7 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/generator/mfa"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/password"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/quay"
+	_ "github.com/external-secrets/external-secrets/pkg/generator/sshkey"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/sts"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/uuid"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/vault"
