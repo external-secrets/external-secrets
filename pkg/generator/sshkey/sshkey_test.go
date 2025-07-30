@@ -151,7 +151,7 @@ func TestParseSpec(t *testing.T) {
 			expected: &genv1alpha1.SSHKey{
 				Spec: genv1alpha1.SSHKeySpec{
 					KeyType: "rsa",
-					KeySize: 2048,
+					KeySize: func() *int { i := 2048; return &i }(),
 					Comment: "test",
 				},
 			},
