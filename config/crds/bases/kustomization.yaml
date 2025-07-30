@@ -19,6 +19,7 @@ resources:
   - generators.external-secrets.io_mfas.yaml
   - generators.external-secrets.io_passwords.yaml
   - generators.external-secrets.io_quayaccesstokens.yaml
+  - generators.external-secrets.io_sshkeys.yaml
   - generators.external-secrets.io_stssessiontokens.yaml
   - generators.external-secrets.io_uuids.yaml
   - generators.external-secrets.io_vaultdynamicsecrets.yaml
