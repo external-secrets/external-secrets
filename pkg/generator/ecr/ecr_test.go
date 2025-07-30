@@ -54,7 +54,7 @@ func TestGenerate(t *testing.T) {
 		{
 			name: "nil spec",
 			args: args{
-				ctx:      context.Background(),
+				ctx: context.Background(),
 				jsonSpec: nil,
 			},
 			wantErr: true,
@@ -75,7 +75,7 @@ func TestGenerate(t *testing.T) {
 		{
 			name: "private ECR full spec",
 			args: args{
-				ctx:       context.Background(),
+				ctx: context.Background(),
 				namespace: "foobar",
 				kube: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
@@ -126,7 +126,7 @@ spec:
 		{
 			name: "public ECR full spec",
 			args: args{
-				ctx:       context.Background(),
+				ctx: context.Background(),
 				namespace: "foobar",
 				authTokenPublicFunc: func(in *ecrpublic.GetAuthorizationTokenInput) (*ecrpublic.GetAuthorizationTokenOutput, error) {
 					t := time.Unix(5678, 0)

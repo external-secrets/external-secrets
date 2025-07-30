@@ -51,7 +51,7 @@ func TestGenerate(t *testing.T) {
 		{
 			name: "nil spec",
 			args: args{
-				ctx:      context.Background(),
+				ctx: context.Background(),
 				jsonSpec: nil,
 			},
 			wantErr: true,
@@ -72,7 +72,7 @@ func TestGenerate(t *testing.T) {
 		{
 			name: "full spec",
 			args: args{
-				ctx:       context.Background(),
+				ctx: context.Background(),
 				namespace: "foobar",
 				kube: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
