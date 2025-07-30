@@ -157,6 +157,7 @@ spec:
                                       - GithubAccessToken
                                       - QuayAccessToken
                                       - Password
+                                      - SSHKey
                                       - STSSessionToken
                                       - UUID
                                       - VaultDynamicSecret
@@ -373,6 +374,7 @@ spec:
                                       - GithubAccessToken
                                       - QuayAccessToken
                                       - Password
+                                      - SSHKey
                                       - STSSessionToken
                                       - UUID
                                       - VaultDynamicSecret
@@ -1745,6 +1747,7 @@ spec:
                                 - GithubAccessToken
                                 - QuayAccessToken
                                 - Password
+                                - SSHKey
                                 - STSSessionToken
                                 - UUID
                                 - VaultDynamicSecret
@@ -11099,6 +11102,7 @@ spec:
                                   - GithubAccessToken
                                   - QuayAccessToken
                                   - Password
+                                  - SSHKey
                                   - STSSessionToken
                                   - UUID
                                   - VaultDynamicSecret
@@ -11315,6 +11319,7 @@ spec:
                                   - GithubAccessToken
                                   - QuayAccessToken
                                   - Password
+                                  - SSHKey
                                   - STSSessionToken
                                   - UUID
                                   - VaultDynamicSecret
@@ -12388,6 +12393,7 @@ spec:
                             - GithubAccessToken
                             - QuayAccessToken
                             - Password
+                            - SSHKey
                             - STSSessionToken
                             - UUID
                             - VaultDynamicSecret
