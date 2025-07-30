@@ -5,7 +5,7 @@ metadata:
 spec:
   refreshInterval: "30m"
   target:
-    name: ssh-key-secret
+    name: ssh-rsa-secret
   dataFrom:
     - sourceRef:
         generatorRef:
