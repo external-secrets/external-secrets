@@ -35,6 +35,14 @@ rules:
     - "update"
     - "patch"
   - apiGroups:
+    - ""
+    resources:
+    - "endpoints"
+    verbs:
+    - "list"
+    - "get"
+    - "watch"
+  - apiGroups:
     - "discovery.k8s.io"
     resources:
     - "endpointslices"
