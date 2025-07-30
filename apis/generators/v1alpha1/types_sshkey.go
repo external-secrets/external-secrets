@@ -20,19 +20,17 @@ import (
 
 // SSHKeySpec controls the behavior of the ssh key generator.
 type SSHKeySpec struct {
-	// KeyType specifies the SSH key type (rsa, ed25519, ecdsa, dsa)
-	// +kubebuilder:validation:Enum=rsa;ed25519;ecdsa;dsa
+	// KeyType specifies the SSH key type (rsa, ed25519)
+	// +kubebuilder:validation:Enum=rsa;ed25519
 	// +kubebuilder:default="rsa"
 	KeyType string `json:"keyType,omitempty"`
 
 	// KeySize specifies the key size for RSA keys (default: 2048)
 	// For RSA keys: 2048, 3072, 4096
-	// For ECDSA keys: 256, 384, 521
-	// Ignored for ed25519 and dsa keys
+	// Ignored for ed25519 keys
 	// +kubebuilder:validation:Minimum=256
 	// +kubebuilder:validation:Maximum=8192
-	// +kubebuilder:default=2048
-	KeySize int `json:"keySize,omitempty"`
+	KeySize *int `json:"keySize,omitempty"`
 
 	// Comment specifies an optional comment for the SSH key
 	Comment string `json:"comment,omitempty"`

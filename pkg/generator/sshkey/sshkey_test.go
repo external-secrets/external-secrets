@@ -81,6 +81,19 @@ func TestGenerate(t *testing.T) {
 			},
 		},
 		{
+			name:     "ed25519 key with explicit keySize (should be ignored)",
+			jsonSpec: &apiextensions.JSON{Raw: []byte(`{"spec":{"keyType":"ed25519","keySize":4096}}`)},
+			wantErr:  false,
+			validate: func(t *testing.T, result map[string][]byte) {
+				assert.Contains(t, result, "privateKey")
+				assert.Contains(t, result, "publicKey")
+				assert.True(t, len(result["privateKey"]) > 0)
+				assert.True(t, len(result["publicKey"]) > 0)
+				// Should contain ed25519 public key (keySize should be ignored)
+				assert.True(t, strings.HasPrefix(string(result["publicKey"]), "ssh-ed25519 "))
+			},
+		},
+		{
 			name:     "key with comment",
 			jsonSpec: &apiextensions.JSON{Raw: []byte(`{"spec":{"keyType":"rsa","comment":"test@example.com"}}`)},
 			wantErr:  false,

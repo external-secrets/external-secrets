@@ -3,6 +3,5 @@ kind: SSHKey
 metadata:
   name: example-ssh-key
 spec:
-  keyType: "rsa"
-  keySize: 2048
+  keyType: "ed25519"
   comment: "user@example.com"

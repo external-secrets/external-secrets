@@ -43,7 +43,7 @@ const (
 	errUnsupported = "unsupported key type: %s"
 )
 
-type generateFunc func(keyType string, keySize int, comment string) (privateKey, publicKey []byte, err error)
+type generateFunc func(keyType string, keySize *int, comment string) (privateKey, publicKey []byte, err error)
 
 func (g *Generator) Generate(_ context.Context, jsonSpec *apiextensions.JSON, _ client.Client, _ string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(
@@ -71,12 +71,7 @@ func (g *Generator) generate(jsonSpec *apiextensions.JSON, keyGen generateFunc) 
 		keyType = res.Spec.KeyType
 	}
 
-	keySize := defaultKeySize
-	if res.Spec.KeySize > 0 {
-		keySize = res.Spec.KeySize
-	}
-
-	privateKey, publicKey, err := keyGen(keyType, keySize, res.Spec.Comment)
+	privateKey, publicKey, err := keyGen(keyType, res.Spec.KeySize, res.Spec.Comment)
 	if err != nil {
 		return nil, nil, fmt.Errorf(errGenerateKey, err)
 	}
@@ -87,10 +82,14 @@ func (g *Generator) generate(jsonSpec *apiextensions.JSON, keyGen generateFunc) 
 	}, nil, nil
 }
 
-func generateSSHKey(keyType string, keySize int, comment string) (privateKey, publicKey []byte, err error) {
+func generateSSHKey(keyType string, keySize *int, comment string) (privateKey, publicKey []byte, err error) {
 	switch keyType {
 	case "rsa":
-		return generateRSAKey(keySize, comment)
+		bits := 2048
+		if keySize != nil {
+			bits = *keySize
+		}
+		return generateRSAKey(bits, comment)
 	case "ed25519":
 		return generateEd25519Key(comment)
 	default:

@@ -13,14 +13,22 @@ The SSHKey generator provides SSH key pairs that you can use for authentication 
 
 | Parameter | Description                                                        | Default | Required |
 | --------- | ------------------------------------------------------------------ | ------- | -------- |
-| keyType   | SSH key type (rsa, ed25519, ecdsa, dsa)                            | rsa     | No       |
+| keyType   | SSH key type (rsa, ed25519)                                        | rsa     | No       |
 | keySize   | Key size for RSA keys (2048, 3072, 4096); ignored for ed25519      | 2048    | No       |
 | comment   | Optional comment for the SSH key                                   | ""      | No       |
 
 ## Example Manifest
 
+Ed25519 SSH key (recommended):
+
 ```yaml
 {% include 'generator-sshkey.yaml' %}
+```
+
+RSA SSH key with custom size:
+
+```yaml
+{% include 'generator-sshkey-rsa.yaml' %}
 ```
 
 Example `ExternalSecret` that references the SSHKey generator:
@@ -38,12 +46,14 @@ This will generate a `Kind=Secret` with keys called 'privateKey' and 'publicKey'
 - Supports key sizes: 2048, 3072, 4096 bits
 - Default key size: 2048 bits
 - Good compatibility with older systems
+- Can specify custom keySize in the spec
 
 ### Ed25519 Keys
 
-- Fixed key size (keySize parameter ignored)
+- Fixed key size (keySize parameter ignored if specified)
 - Modern, secure, and efficient
 - Recommended for new deployments
+- Effective key size is always 256 bits (equivalent security to 3072-bit RSA)
 
 ## Security Considerations
 
