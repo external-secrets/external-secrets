@@ -195,7 +195,10 @@ func NewGeneratorSession(ctx context.Context, auth esv1.AWSAuth, role, region st
 			return nil, err
 		}
 	}
-	awscfg, _ := config.LoadDefaultConfig(ctx)
+	awscfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
 	if credsProvider != nil {
 		awscfg.Credentials = credsProvider
 	}
