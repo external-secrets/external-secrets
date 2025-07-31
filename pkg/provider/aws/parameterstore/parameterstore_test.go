@@ -1168,7 +1168,7 @@ func TestConstructMetadataWithDefaults(t *testing.T) {
 				"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
 				"kind": "PushSecretMetadata",
 				"spec": {
- 					"description": "adding managed-by tag explicitly",
+					"description": "adding managed-by tag explicitly",
 					"tags": {
 						"managed-by": "external-secrets",
 						"customKey": "customValue"
@@ -1226,6 +1226,24 @@ func TestComputeTagsToUpdate(t *testing.T) {
 			expected: []ssmtypes.Tag{
 				{Key: ptr.To("key1"), Value: ptr.To("value1")},
 				{Key: ptr.To("key2"), Value: ptr.To("value2")},
+			},
+			modified: false,
+		},
+		{
+			name: "No tags to update as managed-by tag is ignored",
+			tags: map[string]string{
+				"key1": "value1",
+				"key2": "value2",
+			},
+			metaTags: map[string]string{
+				"key1":    "value1",
+				"key2":    "value2",
+				managedBy: externalSecrets,
+			},
+			expected: []ssmtypes.Tag{
+				{Key: ptr.To("key1"), Value: ptr.To("value1")},
+				{Key: ptr.To("key2"), Value: ptr.To("value2")},
+				{Key: ptr.To(managedBy), Value: ptr.To(externalSecrets)},
 			},
 			modified: false,
 		},

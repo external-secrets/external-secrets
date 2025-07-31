@@ -16,6 +16,7 @@ package secretsmanager
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -30,6 +31,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1748,6 +1750,24 @@ func TestComputeTagsToUpdate(t *testing.T) {
 			modified: false,
 		},
 		{
+			name: "No tags to update as managed-by tag is ignored",
+			tags: map[string]string{
+				"key1": "value1",
+				"key2": "value2",
+			},
+			metaTags: map[string]string{
+				"key1":    "value1",
+				"key2":    "value2",
+				managedBy: externalSecrets,
+			},
+			expected: []types.Tag{
+				{Key: ptr.To("key1"), Value: ptr.To("value1")},
+				{Key: ptr.To("key2"), Value: ptr.To("value2")},
+				{Key: ptr.To(managedBy), Value: ptr.To(externalSecrets)},
+			},
+			modified: false,
+		},
+		{
 			name: "Add new tag",
 			tags: map[string]string{
 				"key1": "value1",
@@ -1800,6 +1820,113 @@ func TestComputeTagsToUpdate(t *testing.T) {
 			result, modified := computeTagsToUpdate(tt.tags, tt.metaTags)
 			assert.ElementsMatch(t, tt.expected, result)
 			assert.Equal(t, tt.modified, modified)
+		})
+	}
+}
+
+func TestPatchTags(t *testing.T) {
+	type call struct {
+		untagCalled bool
+		tagCalled   bool
+	}
+	tests := []struct {
+		name         string
+		existingTags map[string]string
+		metaTags     map[string]string
+		expectUntag  bool
+		expectTag    bool
+		assertsTag   func(input *awssm.TagResourceInput)
+		assertsUntag func(input *awssm.UntagResourceInput)
+	}{
+		{
+			name:         "no changes",
+			existingTags: map[string]string{"a": "1"},
+			metaTags:     map[string]string{"a": "1"},
+			expectUntag:  false,
+			expectTag:    false,
+			assertsTag: func(input *awssm.TagResourceInput) {
+				assert.Fail(t, "Expected TagResource to not be called")
+			},
+			assertsUntag: func(input *awssm.UntagResourceInput) {
+				assert.Fail(t, "Expected UntagResource to not be called")
+			},
+		},
+		{
+			name:         "update tag value",
+			existingTags: map[string]string{"a": "1"},
+			metaTags:     map[string]string{"a": "2"},
+			expectUntag:  false,
+			expectTag:    true,
+			assertsTag: func(input *awssm.TagResourceInput) {
+				assert.Contains(t, input.Tags, types.Tag{Key: ptr.To(managedBy), Value: ptr.To(externalSecrets)})
+				assert.Contains(t, input.Tags, types.Tag{Key: ptr.To("a"), Value: ptr.To("2")})
+			},
+			assertsUntag: func(input *awssm.UntagResourceInput) {
+				assert.Fail(t, "Expected UntagResource to not be called")
+			},
+		},
+		{
+			name:         "remove tag",
+			existingTags: map[string]string{"a": "1", "b": "2"},
+			metaTags:     map[string]string{"a": "1"},
+			expectUntag:  true,
+			expectTag:    false,
+			assertsTag: func(input *awssm.TagResourceInput) {
+				assert.Fail(t, "Expected TagResource to not be called")
+			},
+			assertsUntag: func(input *awssm.UntagResourceInput) {
+				assert.Equal(t, []string{"b"}, input.TagKeys)
+			},
+		},
+		{
+			name:         "add tags",
+			existingTags: map[string]string{"a": "1"},
+			metaTags:     map[string]string{"a": "1", "b": "2"},
+			expectUntag:  false,
+			expectTag:    true,
+			assertsTag: func(input *awssm.TagResourceInput) {
+				assert.Contains(t, input.Tags, types.Tag{Key: ptr.To(managedBy), Value: ptr.To(externalSecrets)})
+				assert.Contains(t, input.Tags, types.Tag{Key: ptr.To("a"), Value: ptr.To("1")})
+				assert.Contains(t, input.Tags, types.Tag{Key: ptr.To("b"), Value: ptr.To("2")})
+			},
+			assertsUntag: func(input *awssm.UntagResourceInput) {
+				assert.Fail(t, "Expected UntagResource to not be called")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			calls := call{}
+			fakeClient := &fakesm.Client{
+				TagResourceFn: fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil, func(input *awssm.TagResourceInput) {
+					tt.assertsTag(input)
+					calls.tagCalled = true
+				}),
+				UntagResourceFn: fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil, func(input *awssm.UntagResourceInput) {
+					tt.assertsUntag(input)
+					calls.untagCalled = true
+				}),
+			}
+
+			sm := &SecretsManager{client: fakeClient}
+			metaMap := map[string]interface{}{
+				"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+				"kind":       "PushSecretMetadata",
+				"spec": map[string]interface{}{
+					"description": "adding managed-by tag explicitly",
+					"tags":        tt.metaTags,
+				},
+			}
+			raw, err := json.Marshal(metaMap)
+			require.NoError(t, err)
+			meta := &apiextensionsv1.JSON{Raw: raw}
+
+			secretId := "secret"
+			err = sm.patchTags(context.Background(), meta, &secretId, tt.existingTags)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectUntag, calls.untagCalled)
+			assert.Equal(t, tt.expectTag, calls.tagCalled)
 		})
 	}
 }

@@ -580,20 +580,23 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretI
 		return err
 	}
 
-	meta, err := sm.constructMetadataWithDefaults(psd.GetMetadata())
-	if err != nil {
-		return err
-	}
-
 	currentTags := make(map[string]string, len(data.Tags))
 	for _, tag := range data.Tags {
 		currentTags[*tag.Key] = *tag.Value
 	}
+	return sm.patchTags(ctx, psd.GetMetadata(), awsSecret.ARN, currentTags)
+}
 
-	tagKeysToRemove := util.FindTagKeysToRemove(currentTags, meta.Spec.Tags)
+func (sm *SecretsManager) patchTags(ctx context.Context, metadata *apiextensionsv1.JSON, secretId *string, tags map[string]string) error {
+	meta, err := sm.constructMetadataWithDefaults(metadata)
+	if err != nil {
+		return err
+	}
+
+	tagKeysToRemove := util.FindTagKeysToRemove(tags, meta.Spec.Tags)
 	if len(tagKeysToRemove) > 0 {
 		_, err = sm.client.UntagResource(ctx, &awssm.UntagResourceInput{
-			SecretId: awsSecret.ARN,
+			SecretId: secretId,
 			TagKeys:  tagKeysToRemove,
 		})
 		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMUntagResource, err)
@@ -602,10 +605,10 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretI
 		}
 	}
 
-	tagsToUpdate, isModified := computeTagsToUpdate(currentTags, meta.Spec.Tags)
+	tagsToUpdate, isModified := computeTagsToUpdate(tags, meta.Spec.Tags)
 	if isModified {
 		_, err = sm.client.TagResource(ctx, &awssm.TagResourceInput{
-			SecretId: awsSecret.ARN,
+			SecretId: secretId,
 			Tags:     tagsToUpdate,
 		})
 		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMTagResource, err)
@@ -613,7 +616,7 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretI
 			return err
 		}
 	}
-	return err
+	return nil
 }
 
 func (sm *SecretsManager) fetchWithBatch(ctx context.Context, filters []types.Filter, matcher *find.Matcher) (map[string][]byte, error) {
@@ -759,7 +762,9 @@ func computeTagsToUpdate(tags, metaTags map[string]string) ([]types.Tag, bool) {
 	modified := false
 	for k, v := range metaTags {
 		if _, exists := tags[k]; !exists || tags[k] != v {
-			modified = true
+			if k != managedBy {
+				modified = true
+			}
 		}
 		result = append(result, types.Tag{
 			Key:   utilpointer.To(k),
