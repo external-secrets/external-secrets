@@ -137,17 +137,16 @@ func validateStore(ctx context.Context, namespace, controllerClass string, store
 	}
 	validationResult, err := cl.Validate()
 	if err != nil {
-		if validationResult != esapi.ValidationResultUnknown {
-			cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonValidationFailed, fmt.Sprintf(errUnableValidateStore, err))
-			SetExternalSecretCondition(store, *cond, gaugeVecGetter)
-			recorder.Event(store, v1.EventTypeWarning, esapi.ReasonValidationFailed, err.Error())
-			return fmt.Errorf(errValidationFailed, err)
-		} else {
-			cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionTrue, esapi.ReasonValidationUnknown, fmt.Sprintf(errValidationUnknown, err))
+		if validationResult == esapi.ValidationResultUnknown {
+         		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionTrue, esapi.ReasonValidationUnknown, fmt.Sprintf(errValidationUnknown, err))
 			SetExternalSecretCondition(store, *cond, gaugeVecGetter)
 			recorder.Event(store, v1.EventTypeWarning, esapi.ReasonValidationUnknown, err.Error())
 			return validationUnknownError
-		}
+		} 
+		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonValidationFailed, fmt.Sprintf(errUnableValidateStore, err))
+		SetExternalSecretCondition(store, *cond, gaugeVecGetter)
+		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonValidationFailed, err.Error())
+		return fmt.Errorf(errValidationFailed, err)
 	}
 
 	return nil
