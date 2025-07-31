@@ -302,7 +302,7 @@ func (pm *ParameterStore) setExisting(ctx context.Context, existing *ssm.GetPara
 		return err
 	}
 
-	tagKeysToRemove := findTagKeysToRemove(tags, metaTags)
+	tagKeysToRemove := util.FindTagKeysToRemove(tags, metaTags)
 	if len(tagKeysToRemove) > 0 {
 		_, err = pm.client.RemoveTagsFromResource(ctx, &ssm.RemoveTagsFromResourceInput{
 			ResourceId:   existing.Parameter.Name,
@@ -678,19 +678,6 @@ func (pm *ParameterStore) constructMetadataWithDefaults(data *apiextensionsv1.JS
 	return meta, nil
 }
 
-// findTagKeysToRemove returns a slice of tag keys that exist in the current tags
-// but are not present in the desired metaTags. These keys should be removed to
-// synchronize the tags with the desired state.
-func findTagKeysToRemove(tags, metaTags map[string]string) []string {
-	var diff []string
-	for key, _ := range tags {
-		if _, ok := metaTags[key]; !ok {
-			diff = append(diff, key)
-		}
-	}
-	return diff
-}
-
 // computeTagsToUpdate compares the current tags with the desired metaTags and returns a slice of ssmTypes.Tag
 // that should be set on the resource. It also returns a boolean indicating if any tag was added or modified.
 func computeTagsToUpdate(tags, metaTags map[string]string) ([]ssmTypes.Tag, bool) {
@@ -698,7 +685,9 @@ func computeTagsToUpdate(tags, metaTags map[string]string) ([]ssmTypes.Tag, bool
 	modified := false
 	for k, v := range metaTags {
 		if _, exists := tags[k]; !exists || tags[k] != v {
-			modified = true
+			if k != managedBy {
+				modified = true
+			}
 		}
 		result = append(result, ssmTypes.Tag{
 			Key:   ptr.To(k),
