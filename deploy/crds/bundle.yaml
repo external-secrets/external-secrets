@@ -157,6 +157,7 @@ spec:
                                       - GithubAccessToken
                                       - QuayAccessToken
                                       - Password
+                                      - SSHKey
                                       - STSSessionToken
                                       - UUID
                                       - VaultDynamicSecret
@@ -286,6 +287,8 @@ spec:
                               Used to rewrite secret Keys after getting them from the secret Provider
                               Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
                             items:
+                              maxProperties: 1
+                              minProperties: 1
                               properties:
                                 merge:
                                   description: |-
@@ -371,6 +374,7 @@ spec:
                                       - GithubAccessToken
                                       - QuayAccessToken
                                       - Password
+                                      - SSHKey
                                       - STSSessionToken
                                       - UUID
                                       - VaultDynamicSecret
@@ -902,6 +906,7 @@ spec:
                                       - GithubAccessToken
                                       - QuayAccessToken
                                       - Password
+                                      - SSHKey
                                       - STSSessionToken
                                       - UUID
                                       - VaultDynamicSecret
@@ -1030,6 +1035,8 @@ spec:
                               Used to rewrite secret Keys after getting them from the secret Provider
                               Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
                             items:
+                              maxProperties: 1
+                              minProperties: 1
                               properties:
                                 regexp:
                                   description: |-
@@ -1090,6 +1097,7 @@ spec:
                                       - GithubAccessToken
                                       - QuayAccessToken
                                       - Password
+                                      - SSHKey
                                       - STSSessionToken
                                       - UUID
                                       - VaultDynamicSecret
@@ -1739,6 +1747,7 @@ spec:
                                 - GithubAccessToken
                                 - QuayAccessToken
                                 - Password
+                                - SSHKey
                                 - STSSessionToken
                                 - UUID
                                 - VaultDynamicSecret
@@ -11220,6 +11229,7 @@ spec:
                                   - GithubAccessToken
                                   - QuayAccessToken
                                   - Password
+                                  - SSHKey
                                   - STSSessionToken
                                   - UUID
                                   - VaultDynamicSecret
@@ -11349,6 +11359,8 @@ spec:
                           Used to rewrite secret Keys after getting them from the secret Provider
                           Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
                         items:
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
                             merge:
                               description: |-
@@ -11434,6 +11446,7 @@ spec:
                                   - GithubAccessToken
                                   - QuayAccessToken
                                   - Password
+                                  - SSHKey
                                   - STSSessionToken
                                   - UUID
                                   - VaultDynamicSecret
@@ -11841,6 +11854,7 @@ spec:
                                   - GithubAccessToken
                                   - QuayAccessToken
                                   - Password
+                                  - SSHKey
                                   - STSSessionToken
                                   - UUID
                                   - VaultDynamicSecret
@@ -11969,6 +11983,8 @@ spec:
                           Used to rewrite secret Keys after getting them from the secret Provider
                           Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
                         items:
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
                             regexp:
                               description: |-
@@ -12029,6 +12045,7 @@ spec:
                                   - GithubAccessToken
                                   - QuayAccessToken
                                   - Password
+                                  - SSHKey
                                   - STSSessionToken
                                   - UUID
                                   - VaultDynamicSecret
@@ -12503,6 +12520,7 @@ spec:
                             - GithubAccessToken
                             - QuayAccessToken
                             - Password
+                            - SSHKey
                             - STSSessionToken
                             - UUID
                             - VaultDynamicSecret
@@ -22789,6 +22807,28 @@ spec:
                         - robotAccount
                         - serviceAccountRef
                       type: object
+                    sshKeySpec:
+                      description: SSHKeySpec controls the behavior of the ssh key generator.
+                      properties:
+                        comment:
+                          description: Comment specifies an optional comment for the SSH key
+                          type: string
+                        keySize:
+                          description: |-
+                            KeySize specifies the key size for RSA keys (default: 2048)
+                            For RSA keys: 2048, 3072, 4096
+                            Ignored for ed25519 keys
+                          maximum: 8192
+                          minimum: 256
+                          type: integer
+                        keyType:
+                          default: rsa
+                          description: KeyType specifies the SSH key type (rsa, ed25519)
+                          enum:
+                            - rsa
+                            - ed25519
+                          type: string
+                      type: object
                     stsSessionTokenSpec:
                       properties:
                         auth:
@@ -23932,6 +23972,7 @@ spec:
                     - GithubAccessToken
                     - QuayAccessToken
                     - Password
+                    - SSHKey
                     - STSSessionToken
                     - UUID
                     - VaultDynamicSecret
@@ -24952,6 +24993,76 @@ spec:
               required:
                 - robotAccount
                 - serviceAccountRef
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  labels:
+    external-secrets.io/component: controller
+  name: sshkeys.generators.external-secrets.io
+spec:
+  group: generators.external-secrets.io
+  names:
+    categories:
+      - external-secrets
+      - external-secrets-generators
+    kind: SSHKey
+    listKind: SSHKeyList
+    plural: sshkeys
+    singular: sshkey
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: SSHKey generates SSH key pairs.
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: SSHKeySpec controls the behavior of the ssh key generator.
+              properties:
+                comment:
+                  description: Comment specifies an optional comment for the SSH key
+                  type: string
+                keySize:
+                  description: |-
+                    KeySize specifies the key size for RSA keys (default: 2048)
+                    For RSA keys: 2048, 3072, 4096
+                    Ignored for ed25519 keys
+                  maximum: 8192
+                  minimum: 256
+                  type: integer
+                keyType:
+                  default: rsa
+                  description: KeyType specifies the SSH key type (rsa, ed25519)
+                  enum:
+                    - rsa
+                    - ed25519
+                  type: string
               type: object
           type: object
       served: true
