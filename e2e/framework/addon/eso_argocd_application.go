@@ -68,6 +68,7 @@ spec:
       selfHeal: true
     syncOptions:
     - CreateNamespace=true
+    - Replace=true
     - ServerSideApply=true
   source:
     chart: %s
