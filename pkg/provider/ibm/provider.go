@@ -50,13 +50,14 @@ const (
 	payloadConst      = "payload"
 	smAPIKeyConst     = "api_key"
 
-	errIBMClient                = "cannot setup new ibm client: %w"
-	errUninitializedIBMProvider = "provider IBM is not initialized"
-	errJSONSecretUnmarshal      = "unable to unmarshal secret: %w"
-	errJSONSecretMarshal        = "unable to marshal secret: %w"
-	errExtractingSecret         = "unable to extract the fetched secret %s of type %s while performing %s"
-	errNotImplemented           = "not implemented"
-	errKeyDoesNotExist          = "key %s does not exist in secret %s"
+	errIBMClient                 = "cannot setup new ibm client: %w"
+	errUninitializedIBMProvider  = "provider IBM is not initialized"
+	errJSONSecretUnmarshal       = "unable to unmarshal secret: %w"
+	errJSONSecretMarshal         = "unable to marshal secret: %w"
+	errExtractingSecret          = "unable to extract the fetched secret %s of type %s while performing %s"
+	errNotImplemented            = "not implemented"
+	errKeyDoesNotExist           = "key %s does not exist in secret %s"
+	containerAuthTokenPathEnvVar = "CONTAINER_AUTH_TOKEN_PATH"
 )
 
 var contextTimeout = time.Minute * 2
@@ -566,6 +567,11 @@ func (ibm *providerIBM) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
+func isDefaultToken(tokenLocation string) bool {
+	return tokenLocation == "/var/run/secrets/tokens/vault-token" ||
+		tokenLocation == "/var/run/secrets/tokens/sa-token" ||
+		tokenLocation == "/var/run/secrets/codeengine.cloud.ibm.com/compute-resource-token/token"
+}
 func (ibm *providerIBM) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	storeSpec := store.GetSpec()
 	ibmSpec := storeSpec.Provider.IBM
@@ -592,15 +598,18 @@ func (ibm *providerIBM) ValidateStore(store esv1.GenericStore) (admission.Warnin
 		if containerRef.Profile == "" {
 			return nil, errors.New("container auth profile cannot be empty")
 		}
-
+		warns := admission.Warnings{}
 		// proceed with container auth
+		if !isDefaultToken(containerRef.TokenLocation) {
+			warns = admission.Warnings{"setting up a custom token location is deprecated. use CONTAINER_AUTH_TOKEN_PATH env var instead."}
+		}
 		if containerRef.TokenLocation == "" {
 			containerRef.TokenLocation = "/var/run/secrets/tokens/vault-token"
 		}
 		if _, err := os.Open(containerRef.TokenLocation); err != nil {
-			return nil, fmt.Errorf("cannot read container auth token %s. %w", containerRef.TokenLocation, err)
+			return warns, fmt.Errorf("cannot read container auth token %s. %w", containerRef.TokenLocation, err)
 		}
-		return nil, nil
+		return warns, nil
 	}
 
 	// proceed with API Key Auth validation
@@ -641,16 +650,24 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1.GenericStore, 
 	if !utils.IsNil(containerAuth) && containerAuth.Profile != "" {
 		// container-based auth
 		containerAuthProfile := iStore.store.Auth.ContainerAuth.Profile
-		containerAuthToken := iStore.store.Auth.ContainerAuth.TokenLocation
-		containerAuthEndpoint := iStore.store.Auth.ContainerAuth.IAMEndpoint
+		containerAuthToken := os.Getenv(containerAuthTokenPathEnvVar)
+		// TODO - remove this after deprecation notice goes in
+		if containerAuthToken == "" && iStore.store.Auth.ContainerAuth.TokenLocation != "" {
+			containerAuthToken = iStore.store.Auth.ContainerAuth.TokenLocation
+		}
+		ep := iStore.store.Auth.ContainerAuth.IAMEndpoint
+		var containerAuthEndpoint string
+		switch ep {
+		case esv1.IBMIAMEndpointTest:
+			containerAuthEndpoint = "https://iam.test.cloud.ibm.com"
+		case esv1.IBMIAMEndpointPublic:
+		default:
+			containerAuthEndpoint = "https://iam.cloud.ibm.com"
+		}
 
 		if containerAuthToken == "" {
 			// API default path
 			containerAuthToken = "/var/run/secrets/tokens/vault-token"
-		}
-		if containerAuthEndpoint == "" {
-			// API default path
-			containerAuthEndpoint = "https://iam.cloud.ibm.com"
 		}
 
 		authenticator, err := core.NewContainerAuthenticatorBuilder().
