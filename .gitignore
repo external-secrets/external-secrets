@@ -68,3 +68,4 @@ terraform.rc
 
 tmp/
 tests/crds/*.yml
+.tilt-tmp
