@@ -3656,6 +3656,8 @@ spec:
                               - value
                             type: object
                           type: array
+                        validationResult:
+                          type: integer
                       required:
                         - data
                       type: object
@@ -13871,6 +13873,8 @@ spec:
                               - value
                             type: object
                           type: array
+                        validationResult:
+                          type: integer
                       required:
                         - data
                       type: object
