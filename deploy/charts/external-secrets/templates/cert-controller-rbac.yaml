@@ -43,6 +43,14 @@ rules:
     - "get"
     - "watch"
   - apiGroups:
+    - "discovery.k8s.io"
+    resources:
+    - "endpointslices"
+    verbs:
+    - "list"
+    - "get"
+    - "watch"
+  - apiGroups:
     - ""
     resources:
     - "events"
