@@ -3957,7 +3957,7 @@
 <div class="highlight"><pre><span></span><code>docker<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>Dockerfile.standalone<span class="w"> </span>-t<span class="w"> </span>my-org/external-secrets:latest<span class="w"> </span>.
 </code></pre></div></li>
 <li>Apply the <code>bundle.yaml</code>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>deploy/crds/bundle.yaml
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>deploy/crds/bundle.yaml<span class="w"> </span>--server-side
 </code></pre></div></li>
 <li>Modify your configs to use the image
 <div class="highlight"><pre><span></span><code><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Deployment</span>
