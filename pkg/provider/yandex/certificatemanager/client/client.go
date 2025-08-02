@@ -23,4 +23,5 @@ import (
 // Requests the content of the given certificate from Certificate Manager.
 type CertificateManagerClient interface {
 	GetCertificateContent(ctx context.Context, iamToken, certificateID, versionID string) (*api.GetCertificateContentResponse, error)
+	GetExCertificateContent(ctx context.Context, iamToken, folderID, name, versionID string) (*api.GetExCertificateContentResponse, error)
 }
