@@ -219,3 +219,12 @@ Render the securityContext based on the provided securityContext
 {{- end -}}
 {{- omit $adaptedContext "enabled" | toYaml -}}
 {{- end -}}
+
+{{/*
+Fail the install if a cluster scoped reconciler is enabled while its namespace scoped counterpart is disabled
+*/}}
+{{- define "external-secrets.reconciler-sanity-test" -}}
+{{- if and (not .Values.processPushSecret) .Values.processClusterPushSecret -}}
+  {{- fail "You have disabled processing of PushSecrets but not ClusterPushSecrets. This is an invalid configuration. ClusterPushSecret processing depends on processing of PushSecrets. Please either enable processing of PushSecrets, or disable processing of ClusterPushSecrets." }}
+{{- end -}}
+{{- end -}}
