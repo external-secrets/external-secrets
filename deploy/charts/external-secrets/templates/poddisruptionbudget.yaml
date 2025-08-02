@@ -2,7 +2,7 @@
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: {{ .Values.podDisruptionBudget.nameOverride | default (printf "%s-pdb" (include "external-secrets.fullname" . )) | quote }}
+  name: {{ include "external-secrets.pdbName" . | quote }}
   namespace: {{ template "external-secrets.namespace" . }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
