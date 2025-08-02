@@ -1,0 +1,22 @@
+{% raw %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: my-template-example
+spec:
+  # ...
+  target:
+    name: secret-to-be-created
+    template:
+      engineVersion: v2
+      templateFrom:
+      - target: Annotations
+        literal: "last-sync-for-user/{{ .user }}: {{ .now }}"
+  data:
+  - secretKey: user
+    remoteRef:
+      key: /grafana/user
+  - secretKey: password
+    remoteRef:
+      key: /grafana/password
+{% endraw %}
