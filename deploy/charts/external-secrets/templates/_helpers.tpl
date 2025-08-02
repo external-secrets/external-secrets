@@ -219,3 +219,15 @@ Render the securityContext based on the provided securityContext
 {{- end -}}
 {{- omit $adaptedContext "enabled" | toYaml -}}
 {{- end -}}
+
+{{- define "external-secrets.pdbName" -}}
+{{- .Values.podDisruptionBudget.nameOverride | default (printf "%s-pdb" (include "external-secrets.fullname" .)) }}
+{{- end }}
+
+{{- define "external-secrets.certControllerPdbName" -}}
+{{- .Values.certController.podDisruptionBudget.nameOverride | default (printf "%s-cert-controller-pdb" (include "external-secrets.fullname" .)) }}
+{{- end }}
+
+{{- define "external-secrets.webookPdbName" -}}
+{{- .Values.webhook.podDisruptionBudget.nameOverride | default (printf "%s-webhook-pdb" (include "external-secrets.fullname" .)) }}
+{{- end }}
