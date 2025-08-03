@@ -30,12 +30,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/feature"
 	"github.com/external-secrets/external-secrets/pkg/provider/aws/util"
 	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 // Config contains configuration to create a new AWS provider.
@@ -195,21 +195,23 @@ func NewGeneratorSession(ctx context.Context, auth esv1.AWSAuth, role, region st
 			return nil, err
 		}
 	}
-
-	config := aws.NewConfig()
+	awscfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
 	if credsProvider != nil {
-		config.Credentials = credsProvider
+		awscfg.Credentials = credsProvider
 	}
 	if region != "" {
-		config.Region = region
+		awscfg.Region = region
 	}
 
 	if role != "" {
-		stsclient := assumeRoler(*config)
-		config.Credentials = stscreds.NewAssumeRoleProvider(stsclient, role)
+		stsclient := assumeRoler(awscfg)
+		awscfg.Credentials = stscreds.NewAssumeRoleProvider(stsclient, role)
 	}
-	log.Info("using aws config", "region", config.Region, "credentials", config.Credentials)
-	return config, nil
+	log.Info("using aws config", "region", awscfg.Region, "credentials", awscfg.Credentials)
+	return &awscfg, nil
 }
 
 // credsFromSecretRef pulls access-key / secret-access-key from a secretRef to
@@ -297,8 +299,9 @@ func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region st
 		return nil, err
 	}
 
-	awscfg, err := config.LoadDefaultConfig(context.TODO(), config.WithAppID("external-secrets"), // Disable shared config files:
-		config.WithSharedConfigFiles([]string{}),
+	awscfg, err := config.LoadDefaultConfig(context.TODO(), config.WithAppID("external-secrets"),
+		config.WithRegion(region),
+		config.WithSharedConfigFiles([]string{}), // Disable shared config files:
 		config.WithSharedCredentialsFiles([]string{}))
 
 	if err != nil {
