@@ -220,14 +220,23 @@ Render the securityContext based on the provided securityContext
 {{- omit $adaptedContext "enabled" | toYaml -}}
 {{- end -}}
 
+{{/*
+Create the name of the pod disruption budget to use
+*/}}
 {{- define "external-secrets.pdbName" -}}
 {{- .Values.podDisruptionBudget.nameOverride | default (printf "%s-pdb" (include "external-secrets.fullname" .)) }}
 {{- end }}
 
+{{/*
+Create the name of the pod disruption budget to use in the cert controller
+*/}}
 {{- define "external-secrets.certControllerPdbName" -}}
 {{- .Values.certController.podDisruptionBudget.nameOverride | default (printf "%s-cert-controller-pdb" (include "external-secrets.fullname" .)) }}
 {{- end }}
 
+{{/*
+Create the name of the pod disruption budget to use in the webhook
+*/}}
 {{- define "external-secrets.webookPdbName" -}}
 {{- .Values.webhook.podDisruptionBudget.nameOverride | default (printf "%s-webhook-pdb" (include "external-secrets.fullname" .)) }}
 {{- end }}
