@@ -86,3 +86,16 @@ func ParameterTagsToJSONString(tags map[string]string) (string, error) {
 
 	return string(byteArr), nil
 }
+
+// FindTagKeysToRemove returns a slice of tag keys that exist in the current tags
+// but are not present in the desired metaTags. These keys should be removed to
+// synchronize the tags with the desired state.
+func FindTagKeysToRemove(tags, metaTags map[string]string) []string {
+	var diff []string
+	for key, _ := range tags {
+		if _, ok := metaTags[key]; !ok {
+			diff = append(diff, key)
+		}
+	}
+	return diff
+}

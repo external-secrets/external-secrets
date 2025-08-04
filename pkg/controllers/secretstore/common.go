@@ -132,7 +132,7 @@ func validateStore(ctx context.Context, namespace, controllerClass string, store
 		return fmt.Errorf(errStoreClient, err)
 	}
 	validationResult, err := cl.Validate()
-	if err != nil {
+  if err != nil {
 		if validationResult == esapi.ValidationResultUnknown {
 			cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionTrue, esapi.ReasonValidationUnknown, fmt.Sprintf(errValidationUnknown, err))
 			SetExternalSecretCondition(store, *cond, gaugeVecGetter)
