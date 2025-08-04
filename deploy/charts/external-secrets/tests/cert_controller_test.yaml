@@ -43,6 +43,8 @@ tests:
           path: spec.template.spec.initContainers[0].restartPolicy
           value: Always
   - it: should override the deployment strategy
+    templates:
+      - cert-controller-deployment.yaml
     set:
       certController.strategy:
         rollingUpdate:
