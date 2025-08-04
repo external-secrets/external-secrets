@@ -50,13 +50,13 @@ tests:
         rollingUpdate:
           maxSurge: 1
           maxUnavailable: 0
-    assert:
-      - equal:
-          path: spec.strategy.rollingUpdate.maxSurge
-          value: 1
-      - equal:
-          path: spec.strategy.rollingUpdate.maxUnavailable
-          value: 0
+    asserts:
+    - equal:
+        path: spec.strategy.rollingUpdate.maxSurge
+        value: 1
+    - equal:
+        path: spec.strategy.rollingUpdate.maxUnavailable
+        value: 0
   - it: should override securityContext
     set:
       certController.podSecurityContext:
