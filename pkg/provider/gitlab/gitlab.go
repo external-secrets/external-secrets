@@ -310,14 +310,16 @@ func (g *gitlabBase) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRem
 		return nil, err
 	}
 
-	err = g.ResolveGroupIds()
-	if err != nil {
+	if err := g.ResolveGroupIds(); err != nil {
 		return nil, err
 	}
 
 	var result []byte
 	if resp.StatusCode < 300 {
 		result, err = extractVariable(ref, data.Value)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	for i := len(g.store.GroupIDs) - 1; i >= 0; i-- {
