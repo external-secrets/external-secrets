@@ -22,6 +22,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -44,6 +45,7 @@ type SenhaseguraIsoSession struct {
 	Token                string
 	IgnoreSslCertificate bool
 	isoClient            ISOInterface
+	PrivateKey           string
 }
 
 /*
@@ -88,6 +90,21 @@ func (s *SenhaseguraIsoSession) IsoSessionFromSecretRef(ctx context.Context, pro
 		return &SenhaseguraIsoSession{}, err
 	}
 
+	privateKey := ""
+
+	if !reflect.ValueOf(provider.PrivateKey).IsZero() {
+		privateKey, err = resolvers.SecretKeyRef(
+			ctx,
+			kube,
+			store.GetKind(),
+			namespace,
+			&provider.PrivateKey,
+		)
+		if err != nil {
+			return &SenhaseguraIsoSession{}, err
+		}
+	}
+
 	isoToken, err := s.GetIsoToken(provider.Auth.ClientID, secret, provider.URL, provider.IgnoreSslCertificate)
 	if err != nil {
 		return &SenhaseguraIsoSession{}, err
@@ -98,6 +115,7 @@ func (s *SenhaseguraIsoSession) IsoSessionFromSecretRef(ctx context.Context, pro
 		Token:                isoToken,
 		IgnoreSslCertificate: provider.IgnoreSslCertificate,
 		isoClient:            &SenhaseguraIsoSession{},
+		PrivateKey:           privateKey,
 	}, nil
 }
 

@@ -54,4 +54,7 @@ type SenhaseguraProvider struct {
 	// IgnoreSslCertificate defines if SSL certificate must be ignored
 	// +kubebuilder:default=false
 	IgnoreSslCertificate bool `json:"ignoreSslCertificate,omitempty"`
+
+	/* Usage for cases in which the authorization by application encrypts sensitive data */
+	PrivateKey esmeta.SecretKeySelector `json:"privateKeySecretRef,omitempty"`
 }
