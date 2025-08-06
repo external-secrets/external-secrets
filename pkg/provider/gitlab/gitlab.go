@@ -48,6 +48,7 @@ const (
 	errPathNotImplemented           = "'find.path' is not implemented in the GitLab provider"
 	errJSONSecretUnmarshal          = "unable to unmarshal secret: %w"
 	errNotImplemented               = "not implemented"
+	errNotFound                     = "not found"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -304,42 +305,43 @@ func (g *gitlabBase) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRem
 		vopts = &gitlab.GetProjectVariableOptions{Filter: &gitlab.VariableFilter{EnvironmentScope: g.store.Environment}}
 	}
 
+	var result []byte
+
 	// _Note_: getVariables potentially alters vopts environment variable.
 	data, resp, err := g.getVariables(ref, vopts)
-	if err != nil && (resp == nil || resp.StatusCode != http.StatusNotFound) {
-		return nil, err
+	if err == nil {
+		if resp.StatusCode >= 300 {
+			return nil, fmt.Errorf("error getting key %s from GitLab: %s", ref.Key, resp.Status)
+		}
+		return extractVariable(ref, data.Value)
 	}
 
-	if err := g.ResolveGroupIds(); err != nil {
-		return nil, err
-	}
-
-	var result []byte
-	if resp.StatusCode < 300 {
-		result, err = extractVariable(ref, data.Value)
-		if err != nil {
+	// if the error is 404, try to get the secret from one of the groups (if any)
+	if resp != nil && resp.StatusCode == http.StatusNotFound {
+		// load groupIds from the `InheritFromGroups` property
+		if err := g.ResolveGroupIds(); err != nil {
 			return nil, err
 		}
+		for i := len(g.store.GroupIDs) - 1; i >= 0; i-- {
+			groupID := g.store.GroupIDs[i]
+			groupVar, resp, err := g.getGroupVariables(groupID, ref, gopts)
+			if err != nil {
+				// if the error is 404, try to get the secret from the next group
+				if resp != nil && resp.StatusCode == http.StatusNotFound {
+					continue
+				}
+				return nil, err
+			}
+			if resp.StatusCode >= 300 {
+				return nil, fmt.Errorf("error getting key %s from GitLab group: %s", ref.Key, resp.Status)
+			}
+			result, err = extractVariable(ref, groupVar.Value)
+			return result, err
+		}
+		// if no group variables were found, return an 404 error
+		return nil, errors.New(errNotFound)
 	}
 
-	for i := len(g.store.GroupIDs) - 1; i >= 0; i-- {
-		groupID := g.store.GroupIDs[i]
-		if result != nil {
-			return result, nil
-		}
-
-		groupVar, resp, err := g.getGroupVariables(groupID, ref, gopts)
-		if err != nil {
-			return nil, err
-		}
-		if resp != nil && resp.StatusCode < 300 {
-			result, _ = extractVariable(ref, groupVar.Value)
-		}
-	}
-
-	if result != nil {
-		return result, nil
-	}
 	return nil, err
 }
 
