@@ -48,7 +48,6 @@ const (
 	errPathNotImplemented           = "'find.path' is not implemented in the GitLab provider"
 	errJSONSecretUnmarshal          = "unable to unmarshal secret: %w"
 	errNotImplemented               = "not implemented"
-	errNotFound                     = "not found"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -308,8 +307,8 @@ func (g *gitlabBase) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRem
 	var result []byte
 
 	// _Note_: getVariables potentially alters vopts environment variable.
-	data, resp, err := g.getVariables(ref, vopts)
-	if err == nil {
+	data, resp, getErr := g.getVariables(ref, vopts)
+	if getErr == nil {
 		if resp.StatusCode >= 300 {
 			return nil, fmt.Errorf("error getting key %s from GitLab: %s", ref.Key, resp.Status)
 		}
@@ -339,10 +338,10 @@ func (g *gitlabBase) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRem
 			return result, err
 		}
 		// if no group variables were found, return an 404 error
-		return nil, errors.New(errNotFound)
+		return nil, getErr
 	}
 
-	return nil, err
+	return nil, getErr
 }
 
 func extractVariable(ref esv1.ExternalSecretDataRemoteRef, value string) ([]byte, error) {
