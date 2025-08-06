@@ -1,5 +1,5 @@
 Babel==2.17.0
-certifi==2025.7.14
+certifi==2025.8.3
 charset-normalizer==3.4.2
 click==8.1.8
 colorama==0.4.6
@@ -27,11 +27,11 @@ pathspec==0.12.1
 pep562==1.1
 platformdirs==4.3.8
 Pygments==2.19.2
-pymdown-extensions==10.16
+pymdown-extensions==10.16.1
 python-dateutil==2.9.0.post0
 PyYAML==6.0.2
 pyyaml_env_tag==1.1
-regex==2024.11.6
+regex==2025.7.34
 requests==2.32.4
 six==1.17.0
 termcolor==3.1.0

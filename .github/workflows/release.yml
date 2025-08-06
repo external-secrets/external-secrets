@@ -63,7 +63,6 @@ jobs:
           generate_release_notes: true
           body: |
             Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}`
-            NOTE - the following UBI images are not currently working (broken build process).
             Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi`
             Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi-boringssl`
         env:
