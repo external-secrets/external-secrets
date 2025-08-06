@@ -115,7 +115,9 @@ The command removes all the Kubernetes components associated with the chart and 
 | global.topologySpreadConstraints | list | `[]` |  |
 | grafanaDashboard.annotations | object | `{}` | Annotations that ConfigMaps can have to get configured in Grafana, See: sidecar.dashboards.folderAnnotation for specifying the dashboard folder. https://github.com/grafana/helm-charts/tree/main/charts/grafana |
 | grafanaDashboard.enabled | bool | `false` | If true creates a Grafana dashboard. |
+| grafanaDashboard.sidecarFolderLabel | string | `nil` | Lable Grafana uses to see if a folder is requested for the loaded dashboard. |
 | grafanaDashboard.sidecarLabel | string | `"grafana_dashboard"` | Label that ConfigMaps should have to be loaded as dashboards. |
+| grafanaDashboard.sidecarLabelFolderValue | string | `"external-secrets"` | Label value for defining which folder the dashboard should be in. |
 | grafanaDashboard.sidecarLabelValue | string | `"1"` | Label value that ConfigMaps should have to be loaded as dashboards. |
 | hostNetwork | bool | `false` | Run the controller on the host network |
 | image.flavour | string | `""` | The flavour of tag you want to use There are different image flavours available, like distroless and ubi. Please see GitHub release notes for image tags for these flavors. By default, the distroless image is used. |

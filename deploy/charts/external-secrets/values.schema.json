@@ -382,6 +382,12 @@
                 },
                 "sidecarLabelValue": {
                     "type": "string"
+                },
+                "sidecarFolderLabel": {
+                    "type": [ "null", "string" ]
+                },
+                "sidecarFolderLabelValue": {
+                    "type": "string"
                 }
             },
             "type": "object"

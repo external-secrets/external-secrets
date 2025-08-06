@@ -249,6 +249,12 @@ grafanaDashboard:
   # -- Label value that ConfigMaps should have to be loaded as dashboards.
   sidecarLabelValue: "1"
 
+  # -- Lable Grafana uses to see if a folder is requested for the loaded dashboard.
+  sidecarFolderLabel: NULL
+
+  # -- Label value for defining which folder the dashboard should be in.
+  sidecarLabelFolderValue: "external-secrets"
+
   # -- Annotations that ConfigMaps can have to get configured in Grafana,
   # See: sidecar.dashboards.folderAnnotation for specifying the dashboard folder.
   # https://github.com/grafana/helm-charts/tree/main/charts/grafana

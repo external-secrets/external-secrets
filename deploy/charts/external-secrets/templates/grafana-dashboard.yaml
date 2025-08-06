@@ -6,6 +6,9 @@ metadata:
   namespace: {{ include "external-secrets.namespace" . }}
   labels:
     {{ .Values.grafanaDashboard.sidecarLabel }}: {{ .Values.grafanaDashboard.sidecarLabelValue | quote }}
+    {{- if .Values.grafanaDashboard.sidecarFolderLabel }}
+    {{ .Values.grafanaDashboard.sidecarFolderLabel }}: {{ .Values.grafanaDashboard.sidecarFolderLabelValue | quote }}
+    {{- end }}
     {{- include "external-secrets.labels" . | nindent 4 }}
   {{- with .Values.grafanaDashboard.annotations }}
   annotations:
