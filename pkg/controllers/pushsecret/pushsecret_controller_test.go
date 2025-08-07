@@ -86,7 +86,7 @@ var _ = Describe("PushSecret controller", func() {
 		SecretName      = "test-secret"
 	)
 
-	var PushSecretNamespace string
+	var PushSecretNamespace, OtherNamespace string
 
 	// if we are in debug and need to increase the timeout for testing, we can do so by using an env var
 	if customTimeout := os.Getenv("TEST_CUSTOM_TIMEOUT_SEC"); customTimeout != "" {
@@ -98,6 +98,8 @@ var _ = Describe("PushSecret controller", func() {
 	BeforeEach(func() {
 		var err error
 		PushSecretNamespace, err = ctest.CreateNamespace("test-ns", k8sClient)
+		Expect(err).ToNot(HaveOccurred())
+		OtherNamespace, err = ctest.CreateNamespace("test-ns", k8sClient)
 		Expect(err).ToNot(HaveOccurred())
 		fakeProvider.Reset()
 
@@ -1121,6 +1123,56 @@ var _ = Describe("PushSecret controller", func() {
 			return checkCondition(ps.Status, expected)
 		}
 	}
+	// SecretStores in different namespace than PushSecret should not be selected.
+	secretStoreDifferentNamespace := func(tc *testCase) {
+		fakeProvider.SetSecretFn = func() error {
+			return nil
+		}
+		// Create the SecretStore in a different namespace
+		tc.store = &esv1.SecretStore{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "other-ns-store",
+				Namespace: OtherNamespace,
+				Labels: map[string]string{
+					"foo": "bar",
+				},
+			},
+			TypeMeta: metav1.TypeMeta{
+				Kind: "SecretStore",
+			},
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Fake: &esv1.FakeProvider{
+						Data: []esv1.FakeProviderData{},
+					},
+				},
+			},
+		}
+		// Use label selector to select SecretStores
+		tc.pushsecret.Spec.SecretStoreRefs = []v1alpha1.PushSecretStoreRef{
+			{
+				Kind: "SecretStore",
+				LabelSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"foo": "bar",
+					},
+				},
+			},
+		}
+		// Should not select the SecretStore in a different namespace
+		// (if so, it would fail to find it in the same namespace and be reflected in the status)
+		tc.assert = func(ps *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			// Assert that the status is never updated (no SecretStores found)
+			Consistently(func() bool {
+				err := k8sClient.Get(context.Background(), client.ObjectKeyFromObject(ps), ps)
+				if err != nil {
+					return false
+				}
+				return len(ps.Status.Conditions) == 0
+			}, timeout, interval).Should(BeTrue())
+			return true
+		}
+	}
 
 	DescribeTable("When reconciling a PushSecret",
 		func(tweaks ...testTweaks) {
@@ -1175,6 +1227,7 @@ var _ = Describe("PushSecret controller", func() {
 		Entry("should fail if no valid SecretStore", failNoSecretStore),
 		Entry("should fail if no valid ClusterSecretStore", failNoClusterStore),
 		Entry("should fail if NewClient fails", newClientFail),
+		Entry("should not sync to SecretStore in different namespace", secretStoreDifferentNamespace),
 	)
 })
 
