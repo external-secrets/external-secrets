@@ -304,6 +304,8 @@ type ExternalSecretDataFromRemoteRef struct {
 	SourceRef *StoreGeneratorSourceRef `json:"sourceRef,omitempty"`
 }
 
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
 type ExternalSecretRewrite struct {
 
 	// Used to merge key/values in one single Secret
@@ -482,7 +484,7 @@ type GeneratorRef struct {
 	APIVersion string `json:"apiVersion,omitempty"`
 
 	// Specify the Kind of the generator resource
-	// +kubebuilder:validation:Enum=ACRAccessToken;ClusterGenerator;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
+	// +kubebuilder:validation:Enum=ACRAccessToken;ClusterGenerator;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
 	Kind string `json:"kind"`
 
 	// Specify the name of the generator resource

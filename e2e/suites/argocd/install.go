@@ -34,7 +34,7 @@ func installArgo(cfg *addon.Config) {
 		Namespace:    "argocd",
 		ReleaseName:  "argocd",
 		Chart:        "argo-cd/argo-cd",
-		ChartVersion: "3.35.4",
+		ChartVersion: "8.2.5",
 		Repo: addon.ChartRepo{
 			Name: "argo-cd",
 			URL:  "https://argoproj.github.io/argo-helm",

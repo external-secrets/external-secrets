@@ -124,9 +124,15 @@ func validateStore(ctx context.Context, namespace, controllerClass string, store
 	}
 	validationResult, err := cl.Validate()
 	if err != nil && validationResult != esapi.ValidationResultUnknown {
-		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonValidationFailed, fmt.Sprintf(errUnableValidateStore, err))
+		// Use ReasonInvalidProviderConfig for validation errors that indicate
+		// invalid configuration (like empty server URL)
+		reason := esapi.ReasonValidationFailed
+		if validationResult == esapi.ValidationResultError {
+			reason = esapi.ReasonInvalidProviderConfig
+		}
+		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, reason, fmt.Sprintf(errUnableValidateStore, err))
 		SetExternalSecretCondition(store, *cond, gaugeVecGetter)
-		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonValidationFailed, err.Error())
+		recorder.Event(store, v1.EventTypeWarning, reason, err.Error())
 		return fmt.Errorf(errValidationFailed, err)
 	}
 

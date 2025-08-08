@@ -121,6 +121,10 @@
                     "properties": {},
                     "type": "object"
                 },
+                "strategy": {
+                    "properties": {},
+                    "type": "object"
+                },
                 "podDisruptionBudget": {
                     "properties": {
                         "enabled": {
@@ -317,6 +321,10 @@
         },
         "extraContainers": {
             "type": "array"
+        },
+        "strategy": {
+            "properties": {},
+            "type": "object"
         },
         "extraEnv": {
             "type": "array"
@@ -826,6 +834,10 @@
                     "type": "object"
                 },
                 "podAnnotations": {
+                    "properties": {},
+                    "type": "object"
+                },
+                "strategy": {
                     "properties": {},
                     "type": "object"
                 },

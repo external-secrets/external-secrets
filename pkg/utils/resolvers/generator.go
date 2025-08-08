@@ -212,6 +212,17 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 			},
 			Spec: *gen.Spec.Generator.PasswordSpec,
 		}, nil
+	case genv1alpha1.GeneratorKindSSHKey:
+		if gen.Spec.Generator.SSHKeySpec == nil {
+			return nil, fmt.Errorf("when kind is %s, SSHKeySpec must be set", gen.Spec.Kind)
+		}
+		return &genv1alpha1.SSHKey{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.SSHKeyKind,
+			},
+			Spec: *gen.Spec.Generator.SSHKeySpec,
+		}, nil
 	case genv1alpha1.GeneratorKindSTSSessionToken:
 		if gen.Spec.Generator.STSSessionTokenSpec == nil {
 			return nil, fmt.Errorf("when kind is %s, STSSessionTokenSpec must be set", gen.Spec.Kind)

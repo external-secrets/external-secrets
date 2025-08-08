@@ -66,3 +66,68 @@ func TestParameterTagsToJSONString(t *testing.T) {
 		})
 	}
 }
+
+func TestFindTagKeysToRemove(t *testing.T) {
+	tests := []struct {
+		name     string
+		tags     map[string]string
+		metaTags map[string]string
+		expected []string
+	}{
+		{
+			name: "No tags to remove",
+			tags: map[string]string{
+				"key1": "value1",
+				"key2": "value2",
+			},
+			metaTags: map[string]string{
+				"key1": "value1",
+				"key2": "value2",
+			},
+			expected: []string{},
+		},
+		{
+			name: "Some tags to remove",
+			tags: map[string]string{
+				"key1": "value1",
+				"key2": "value2",
+				"key3": "value3",
+			},
+			metaTags: map[string]string{
+				"key1": "value1",
+				"key2": "value2",
+			},
+			expected: []string{"key3"},
+		},
+		{
+			name: "All tags to remove",
+			tags: map[string]string{
+				"key1": "value1",
+				"key2": "value2",
+			},
+			metaTags: map[string]string{},
+			expected: []string{"key1", "key2"},
+		},
+		{
+			name:     "Empty tags and metaTags",
+			tags:     map[string]string{},
+			metaTags: map[string]string{},
+			expected: []string{},
+		},
+		{
+			name: "Empty metaTags with non-empty tags",
+			tags: map[string]string{
+				"key1": "value1",
+			},
+			metaTags: map[string]string{},
+			expected: []string{"key1"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := FindTagKeysToRemove(tt.tags, tt.metaTags)
+			assert.ElementsMatch(t, tt.expected, result)
+		})
+	}
+}

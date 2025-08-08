@@ -61,6 +61,7 @@ type GeneratorSpec struct {
 	GCRAccessTokenSpec        *GCRAccessTokenSpec        `json:"gcrAccessTokenSpec,omitempty"`
 	GithubAccessTokenSpec     *GithubAccessTokenSpec     `json:"githubAccessTokenSpec,omitempty"`
 	PasswordSpec              *PasswordSpec              `json:"passwordSpec,omitempty"`
+	SSHKeySpec                *SSHKeySpec                `json:"sshKeySpec,omitempty"`
 	STSSessionTokenSpec       *STSSessionTokenSpec       `json:"stsSessionTokenSpec,omitempty"`
 	UUIDSpec                  *UUIDSpec                  `json:"uuidSpec,omitempty"`
 	VaultDynamicSecretSpec    *VaultDynamicSecretSpec    `json:"vaultDynamicSecretSpec,omitempty"`

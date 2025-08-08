@@ -1,4 +1,5 @@
 {{- if .Values.createOperator }}
+{{- include "external-secrets.reconciler-sanity-test" . }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -16,6 +17,10 @@ spec:
   selector:
     matchLabels:
       {{- include "external-secrets.selectorLabels" . | nindent 6 }}
+  {{- with .Values.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
