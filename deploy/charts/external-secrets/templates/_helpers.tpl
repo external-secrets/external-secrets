@@ -221,6 +221,25 @@ Render the securityContext based on the provided securityContext
 {{- end -}}
 
 {{/*
+Create the name of the pod disruption budget to use
+*/}}
+{{- define "external-secrets.pdbName" -}}
+{{- .Values.podDisruptionBudget.nameOverride | default (printf "%s-pdb" (include "external-secrets.fullname" .)) }}
+{{- end }}
+
+{{/*
+Create the name of the pod disruption budget to use in the cert controller
+*/}}
+{{- define "external-secrets.certControllerPdbName" -}}
+{{- .Values.certController.podDisruptionBudget.nameOverride | default (printf "%s-cert-controller-pdb" (include "external-secrets.fullname" .)) }}
+{{- end }}
+
+{{/*
+Create the name of the pod disruption budget to use in the webhook
+*/}}
+{{- define "external-secrets.webhookPdbName" -}}
+{{- .Values.webhook.podDisruptionBudget.nameOverride | default (printf "%s-webhook-pdb" (include "external-secrets.fullname" .)) }}
+{{- end }}
 Fail the install if a cluster scoped reconciler is enabled while its namespace scoped counterpart is disabled
 */}}
 {{- define "external-secrets.reconciler-sanity-test" -}}

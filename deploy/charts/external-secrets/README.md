@@ -60,7 +60,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.nameOverride | string | `""` |  |
 | certController.nodeSelector | object | `{}` |  |
 | certController.podAnnotations | object | `{}` | Annotations to add to Pod |
-| certController.podDisruptionBudget | object | `{"enabled":false,"minAvailable":1}` | Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/ |
+| certController.podDisruptionBudget | object | `{"enabled":false,"minAvailable":1,"nameOverride":""}` | Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/ |
 | certController.podLabels | object | `{}` |  |
 | certController.podSecurityContext.enabled | bool | `true` |  |
 | certController.priorityClassName | string | `""` | Pod priority class name. |
@@ -136,7 +136,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | nodeSelector | object | `{}` |  |
 | openshiftFinalizers | bool | `true` | If true the OpenShift finalizer permissions will be added to RBAC |
 | podAnnotations | object | `{}` | Annotations to add to Pod |
-| podDisruptionBudget | object | `{"enabled":false,"minAvailable":1}` | Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/ |
+| podDisruptionBudget | object | `{"enabled":false,"minAvailable":1,"nameOverride":""}` | Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/ |
 | podLabels | object | `{}` |  |
 | podSecurityContext.enabled | bool | `true` |  |
 | podSpecExtra | object | `{}` | Any extra pod spec on the deployment |
@@ -215,7 +215,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.nameOverride | string | `""` |  |
 | webhook.nodeSelector | object | `{}` |  |
 | webhook.podAnnotations | object | `{}` | Annotations to add to Pod |
-| webhook.podDisruptionBudget | object | `{"enabled":false,"minAvailable":1}` | Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/ |
+| webhook.podDisruptionBudget | object | `{"enabled":false,"minAvailable":1,"nameOverride":""}` | Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/ |
 | webhook.podLabels | object | `{}` |  |
 | webhook.podSecurityContext.enabled | bool | `true` |  |
 | webhook.port | int | `10250` | The port the webhook will listen to |

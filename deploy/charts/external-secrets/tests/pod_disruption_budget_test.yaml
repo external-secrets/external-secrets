@@ -1,0 +1,19 @@
+suite: test pod distribution budget deployment
+templates:
+  - poddisruptionbudget.yaml
+tests:
+  - it: should set podDisruptionBudget to set value if given
+    set:
+      podDisruptionBudget.enabled: true
+      podDisruptionBudget.nameOverride: custom-overridden-name
+    asserts:
+      - equal:
+          path: metadata.name
+          value: custom-overridden-name
+  - it: should default podDisruptionBudget if not set
+    set:
+      podDisruptionBudget.enabled: true
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-pdb
