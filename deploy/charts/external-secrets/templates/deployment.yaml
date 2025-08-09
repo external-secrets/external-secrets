@@ -102,10 +102,17 @@ spec:
           - --metrics-addr=:{{ .Values.metrics.listen.port }}
           - --loglevel={{ .Values.log.level }}
           - --zap-time-encoding={{ .Values.log.timeEncoding }}
+          {{- if gt (.Values.livenessProbe.httpGet.port | int) 0 }}
+          - --live-addr={{ .Values.livenessProbe.address }}:{{ .Values.livenessProbe.httpGet.port }}
+          {{- end }}
           ports:
             - containerPort: {{ .Values.metrics.listen.port }}
               protocol: TCP
               name: metrics
+          {{- if gt (.Values.livenessProbe.httpGet.port | int) 0 }}
+          livenessProbe:
+          {{- toYaml .Values.livenessProbe | nindent 12 }}
+          {{- end }}
           {{- with .Values.extraEnv }}
           env:
             {{- toYaml . | nindent 12 }}
