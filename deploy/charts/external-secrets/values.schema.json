@@ -643,6 +643,14 @@
                 "enabled": {
                     "type": "boolean"
                 },
+                "renderMode": {
+                  "type": "string",
+                  "enum": [
+                    "skipIfMissing",
+                    "failIfMissing",
+                    "alwaysRender"
+                  ]
+                },
                 "honorLabels": {
                     "type": "boolean"
                 },

@@ -214,12 +214,9 @@ tests:
       - equal:
           path: spec.ports[1].name
           value: metrics
-  - it: should expose metrics port and metrics label when APIVersions is present and serviceMonitor is enabled
+  - it: should expose metrics port and metrics label when serviceMonitor is enabled
     set:
       serviceMonitor.enabled: true
-    capabilities:
-      apiVersions:
-        - "monitoring.coreos.com/v1"
     templates:
       - webhook-service.yaml
     asserts:
