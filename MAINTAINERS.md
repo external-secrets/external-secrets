@@ -25,7 +25,7 @@ describes governance guidelines and maintainer responsibilities.
 | Helm Chart & HA |  |
 | Operator & Day 2 Operations |  |
 | Security | TBD |
-| User Interface/Usability/User Experience | Meina Zhou (zhoumeina) |
+| User Interface/Usability/User Experience | |
 | Scale & Performance | |
 | Documentation |  |
 | Releases |  |
