@@ -1,12 +1,12 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
+    "type": "object",
     "properties": {
         "affinity": {
             "type": "object"
         },
         "bitwarden-sdk-server": {
-          "type": "object",
+            "type": "object",
             "properties": {
                 "enabled": {
                     "type": "boolean"
@@ -17,7 +17,7 @@
             }
         },
         "certController": {
-          "type": "object",
+            "type": "object",
             "properties": {
                 "affinity": {
                     "type": "object"
@@ -50,7 +50,7 @@
                     "type": "boolean"
                 },
                 "image": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "flavour": {
                             "type": "string"
@@ -70,7 +70,7 @@
                     "type": "array"
                 },
                 "log": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "level": {
                             "type": "string"
@@ -81,10 +81,10 @@
                     }
                 },
                 "metrics": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "listen": {
-                          "type": "object",
+                            "type": "object",
                             "properties": {
                                 "port": {
                                     "type": "integer"
@@ -92,7 +92,7 @@
                             }
                         },
                         "service": {
-                          "type": "object",
+                            "type": "object",
                             "properties": {
                                 "annotations": {
                                     "type": "object"
@@ -117,7 +117,7 @@
                     "type": "object"
                 },
                 "podDisruptionBudget": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "enabled": {
                             "type": "boolean"
@@ -128,8 +128,8 @@
                                 "string"
                             ]
                         },
-                      "nameOverride": {
-                        "type": "string"
+                        "nameOverride": {
+                            "type": "string"
                         }
                     }
                 },
@@ -137,7 +137,7 @@
                     "type": "object"
                 },
                 "podSecurityContext": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "enabled": {
                             "type": "boolean"
@@ -148,7 +148,7 @@
                     "type": "string"
                 },
                 "rbac": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "create": {
                             "type": "boolean"
@@ -156,7 +156,7 @@
                     }
                 },
                 "readinessProbe": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "address": {
                             "type": "string"
@@ -179,16 +179,16 @@
                     "type": "integer"
                 },
                 "securityContext": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "allowPrivilegeEscalation": {
                             "type": "boolean"
                         },
                         "capabilities": {
-                          "type": "object",
+                            "type": "object",
                             "properties": {
                                 "drop": {
-                                  "type": "array",
+                                    "type": "array",
                                     "items": {
                                         "type": "string"
                                     }
@@ -208,7 +208,7 @@
                             "type": "integer"
                         },
                         "seccompProfile": {
-                          "type": "object",
+                            "type": "object",
                             "properties": {
                                 "type": {
                                     "type": "string"
@@ -218,7 +218,7 @@
                     }
                 },
                 "serviceAccount": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "annotations": {
                             "type": "object"
@@ -237,7 +237,7 @@
                         }
                     }
                 },
-              "strategy": {
+                "strategy": {
                     "type": "object"
                 },
                 "tolerations": {
@@ -258,13 +258,13 @@
             "type": "string"
         },
         "crds": {
-          "type": "object",
+            "type": "object",
             "properties": {
                 "annotations": {
                     "type": "object"
                 },
                 "conversion": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "enabled": {
                             "type": "boolean"
@@ -328,16 +328,16 @@
             "type": "string"
         },
         "global": {
-          "type": "object",
+            "type": "object",
             "properties": {
                 "affinity": {
                     "type": "object"
                 },
                 "compatibility": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "openshift": {
-                          "type": "object",
+                            "type": "object",
                             "properties": {
                                 "adaptSecurityContext": {
                                     "type": "string"
@@ -358,7 +358,7 @@
             }
         },
         "grafanaDashboard": {
-          "type": "object",
+            "type": "object",
             "properties": {
                 "annotations": {
                     "type": "object"
@@ -378,7 +378,7 @@
             "type": "boolean"
         },
         "image": {
-          "type": "object",
+            "type": "object",
             "properties": {
                 "flavour": {
                     "type": "string"
@@ -404,7 +404,7 @@
             "type": "boolean"
         },
         "log": {
-          "type": "object",
+            "type": "object",
             "properties": {
                 "level": {
                     "type": "string"
@@ -415,10 +415,10 @@
             }
         },
         "metrics": {
-          "type": "object",
+            "type": "object",
             "properties": {
                 "listen": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "port": {
                             "type": "integer"
@@ -426,7 +426,7 @@
                     }
                 },
                 "service": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "annotations": {
                             "type": "object"
@@ -457,7 +457,7 @@
             "type": "object"
         },
         "podDisruptionBudget": {
-          "type": "object",
+            "type": "object",
             "properties": {
                 "enabled": {
                     "type": "boolean"
@@ -468,8 +468,8 @@
                         "string"
                     ]
                 },
-              "nameOverride": {
-                "type": "string"
+                "nameOverride": {
+                    "type": "string"
                 }
             }
         },
@@ -477,7 +477,7 @@
             "type": "object"
         },
         "podSecurityContext": {
-          "type": "object",
+            "type": "object",
             "properties": {
                 "enabled": {
                     "type": "boolean"
@@ -503,7 +503,7 @@
             "type": "boolean"
         },
         "rbac": {
-          "type": "object",
+            "type": "object",
             "properties": {
                 "aggregateToEdit": {
                     "type": "boolean"
@@ -515,7 +515,7 @@
                     "type": "boolean"
                 },
                 "servicebindings": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "create": {
                             "type": "boolean"
@@ -540,16 +540,16 @@
             "type": "boolean"
         },
         "securityContext": {
-          "type": "object",
+            "type": "object",
             "properties": {
                 "allowPrivilegeEscalation": {
                     "type": "boolean"
                 },
                 "capabilities": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "drop": {
-                          "type": "array",
+                            "type": "array",
                             "items": {
                                 "type": "string"
                             }
@@ -569,7 +569,7 @@
                     "type": "integer"
                 },
                 "seccompProfile": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "type": {
                             "type": "string"
@@ -579,7 +579,7 @@
             }
         },
         "service": {
-          "type": "object",
+            "type": "object",
             "properties": {
                 "ipFamilies": {
                     "type": "array"
@@ -590,7 +590,7 @@
             }
         },
         "serviceAccount": {
-          "type": "object",
+            "type": "object",
             "properties": {
                 "annotations": {
                     "type": "object"
@@ -610,7 +610,7 @@
             }
         },
         "serviceMonitor": {
-          "type": "object",
+            "type": "object",
             "properties": {
                 "additionalLabels": {
                     "type": "object"
@@ -638,7 +638,7 @@
                 }
             }
         },
-      "strategy": {
+        "strategy": {
             "type": "object"
         },
         "tolerations": {
@@ -648,7 +648,7 @@
             "type": "array"
         },
         "webhook": {
-          "type": "object",
+            "type": "object",
             "properties": {
                 "affinity": {
                     "type": "object"
@@ -663,13 +663,13 @@
                     "type": "string"
                 },
                 "certManager": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "addInjectorAnnotations": {
                             "type": "boolean"
                         },
                         "cert": {
-                          "type": "object",
+                            "type": "object",
                             "properties": {
                                 "annotations": {
                                     "type": "object"
@@ -681,7 +681,7 @@
                                     "type": "string"
                                 },
                                 "issuerRef": {
-                                  "type": "object",
+                                    "type": "object",
                                     "properties": {
                                         "group": {
                                             "type": "string"
@@ -738,7 +738,7 @@
                     "type": "boolean"
                 },
                 "image": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "flavour": {
                             "type": "string"
@@ -758,7 +758,7 @@
                     "type": "array"
                 },
                 "log": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "level": {
                             "type": "string"
@@ -772,10 +772,10 @@
                     "type": "string"
                 },
                 "metrics": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "listen": {
-                          "type": "object",
+                            "type": "object",
                             "properties": {
                                 "port": {
                                     "type": "integer"
@@ -783,7 +783,7 @@
                             }
                         },
                         "service": {
-                          "type": "object",
+                            "type": "object",
                             "properties": {
                                 "annotations": {
                                     "type": "object"
@@ -808,7 +808,7 @@
                     "type": "object"
                 },
                 "podDisruptionBudget": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "enabled": {
                             "type": "boolean"
@@ -819,8 +819,8 @@
                                 "string"
                             ]
                         },
-                      "nameOverride": {
-                        "type": "string"
+                        "nameOverride": {
+                            "type": "string"
                         }
                     }
                 },
@@ -828,7 +828,7 @@
                     "type": "object"
                 },
                 "podSecurityContext": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "enabled": {
                             "type": "boolean"
@@ -842,7 +842,7 @@
                     "type": "string"
                 },
                 "rbac": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "create": {
                             "type": "boolean"
@@ -850,7 +850,7 @@
                     }
                 },
                 "readinessProbe": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "address": {
                             "type": "string"
@@ -873,16 +873,16 @@
                     "type": "object"
                 },
                 "securityContext": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "allowPrivilegeEscalation": {
                             "type": "boolean"
                         },
                         "capabilities": {
-                          "type": "object",
+                            "type": "object",
                             "properties": {
                                 "drop": {
-                                  "type": "array",
+                                    "type": "array",
                                     "items": {
                                         "type": "string"
                                     }
@@ -902,7 +902,7 @@
                             "type": "integer"
                         },
                         "seccompProfile": {
-                          "type": "object",
+                            "type": "object",
                             "properties": {
                                 "type": {
                                     "type": "string"
@@ -912,7 +912,7 @@
                     }
                 },
                 "service": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "annotations": {
                             "type": "object"
@@ -932,7 +932,7 @@
                     }
                 },
                 "serviceAccount": {
-                  "type": "object",
+                    "type": "object",
                     "properties": {
                         "annotations": {
                             "type": "object"
@@ -951,7 +951,7 @@
                         }
                     }
                 },
-              "strategy": {
+                "strategy": {
                     "type": "object"
                 },
                 "tolerations": {
