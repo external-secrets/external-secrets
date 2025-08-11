@@ -9,24 +9,30 @@ on:
 permissions:
   contents: read
 
+env:
+  HAS_FOSSA_KEY: ${{ secrets.FOSSA_API_KEY != '' }}
+
 jobs:
   fossa-scan:
-    if: secrets.FOSSA_API_KEY != ''
     runs-on: ubuntu-latest
     steps:
       - uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
+        if: ${{ env.HAS_FOSSA_KEY == 'true' }}
         with:
           egress-policy: audit
       - name: "Checkout Code"
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        if: ${{ env.HAS_FOSSA_KEY == 'true' }}
 
       - name: "Run FOSSA Scan"
         uses: fossas/fossa-action@3ebcea1862c6ffbd5cf1b4d0bd6b3fe7bd6f2cac # main
+        if: ${{ env.HAS_FOSSA_KEY == 'true' }}
         with:
           api-key: ${{secrets.FOSSA_API_KEY}}
 
       - name: "Run FOSSA Test"
         uses: fossas/fossa-action@3ebcea1862c6ffbd5cf1b4d0bd6b3fe7bd6f2cac # main
+        if: ${{ env.HAS_FOSSA_KEY == 'true' }}
         with:
           api-key: ${{secrets.FOSSA_API_KEY}}
           run-tests: true
