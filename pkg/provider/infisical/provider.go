@@ -39,6 +39,9 @@ const (
 	machineIdentityLoginViaJwtAuth               = "MachineIdentityLoginViaJwtAuth"
 	machineIdentityLoginViaLdapAuth              = "MachineIdentityLoginViaLdapAuth"
 	machineIdentityLoginViaOciAuth               = "MachineIdentityLoginViaOciAuth"
+	machineIdentityLoginViaKubernetesAuth        = "MachineIdentityLoginViaKubernetesAuth"
+	machineIdentityLoginViaAwsAuth               = "MachineIdentityLoginViaAwsAuth"
+	machineIdentityLoginViaTokenAuth             = "MachineIdentityLoginViaTokenAuth"
 	revokeAccessToken                            = "RevokeAccessToken"
 )
 
@@ -267,6 +270,62 @@ func performOciAuthLogin(ctx context.Context, store esv1.GenericStore, infisical
 	return nil
 }
 
+func performKubernetesAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
+	kubernetesAuthCredentials := infisicalSpec.Auth.KubernetesAuthCredentials
+	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, kubernetesAuthCredentials.IdentityID)
+	if err != nil {
+		return fmt.Errorf(errSecretDataFormat, err)
+	}
+
+	serviceAccountTokenPath := ""
+	if kubernetesAuthCredentials.ServiceAccountTokenPath.Name != "" {
+		serviceAccountTokenPath, err = GetStoreSecretData(ctx, store, kube, namespace, kubernetesAuthCredentials.ServiceAccountTokenPath)
+
+		if err != nil {
+			return fmt.Errorf("failed to get secret data serviceAccountTokenPath %w", err)
+		}
+	}
+
+	_, err = sdkClient.Auth().KubernetesAuthLogin(identityID, serviceAccountTokenPath)
+	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaKubernetesAuth, err)
+
+	if err != nil {
+		return fmt.Errorf("failed to authenticate via kubernetes auth %w", err)
+	}
+
+	return nil
+}
+
+func performAwsAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
+	awsAuthCredentials := infisicalSpec.Auth.AwsAuthCredentials
+	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, awsAuthCredentials.IdentityID)
+	if err != nil {
+		return fmt.Errorf(errSecretDataFormat, err)
+	}
+
+	_, err = sdkClient.Auth().AwsIamAuthLogin(identityID)
+	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaAwsAuth, err)
+
+	if err != nil {
+		return fmt.Errorf("failed to authenticate via aws auth %w", err)
+	}
+
+	return nil
+}
+
+func performTokenAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
+	tokenAuthCredentials := infisicalSpec.Auth.TokenAuthCredentials
+	accessToken, err := GetStoreSecretData(ctx, store, kube, namespace, tokenAuthCredentials.AccessToken)
+	if err != nil {
+		return fmt.Errorf(errSecretDataFormat, err)
+	}
+
+	sdkClient.Auth().SetAccessToken(accessToken)
+	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaTokenAuth, err)
+
+	return nil
+}
+
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	storeSpec := store.GetSpec()
 
@@ -302,6 +361,12 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		loginFn = performLdapAuthLogin
 	case infisicalSpec.Auth.OciAuthCredentials != nil:
 		loginFn = performOciAuthLogin
+	case infisicalSpec.Auth.KubernetesAuthCredentials != nil:
+		loginFn = performKubernetesAuthLogin
+	case infisicalSpec.Auth.AwsAuthCredentials != nil:
+		loginFn = performAwsAuthLogin
+	case infisicalSpec.Auth.TokenAuthCredentials != nil:
+		loginFn = performTokenAuthLogin
 	default:
 		cancelSdkClient()
 		return nil, errors.New("authentication method not found")
