@@ -429,7 +429,7 @@ func (r *Reconciler) resolveSecrets(ctx context.Context, ps *esapi.PushSecret) (
 		}
 
 		var secretList v1.SecretList
-		err = r.List(ctx, &secretList, &client.ListOptions{LabelSelector: labelSelector})
+		err = r.List(ctx, &secretList, &client.ListOptions{LabelSelector: labelSelector, Namespace: ps.Namespace})
 		if err != nil {
 			return nil, err
 		}
