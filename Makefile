@@ -191,12 +191,12 @@ helm.build: helm.generate ## Build helm chart
 
 helm.schema.plugin:
 	@$(INFO) Installing helm-values-schema-json plugin
-	@helm plugin install https://github.com/losisin/helm-values-schema-json.git || true
+	@helm plugin install --version v2.2.1 https://github.com/losisin/helm-values-schema-json.git || true
 	@$(OK) Installed helm-values-schema-json plugin
 
 helm.schema.update: helm.schema.plugin
 	@$(INFO) Generating values.schema.json
-	@helm schema -input $(HELM_DIR)/values.yaml -output $(HELM_DIR)/values.schema.json
+	@helm schema --values $(HELM_DIR)/values.yaml --output $(HELM_DIR)/values.schema.json
 	@$(OK) Generated values.schema.json
 
 helm.generate:
