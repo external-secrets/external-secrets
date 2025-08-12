@@ -137,6 +137,8 @@ func (g *gitlabBase) getVariables(ref esv1.ExternalSecretDataRemoteRef, vopts *g
 	data, resp, err := g.projectVariablesClient.GetVariable(g.store.ProjectID, ref.Key, vopts)
 	metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectVariableGet, err)
 	if err != nil {
+		// if the store has a specific environment set and the variable is not found,
+		// we try to fetch the variable with an environment scope of "*"
 		if resp != nil && resp.StatusCode == http.StatusNotFound && !isEmptyOrWildcard(g.store.Environment) {
 			vopts.Filter.EnvironmentScope = "*"
 			data, resp, err = g.projectVariablesClient.GetVariable(g.store.ProjectID, ref.Key, vopts)
