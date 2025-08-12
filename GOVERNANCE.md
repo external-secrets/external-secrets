@@ -21,8 +21,26 @@ Secret](https://kubernetes.io/docs/concepts/configuration/secret/).
 * **Maintainers**: The ESO project leaders. They are responsible for the overall health and direction of the project; final reviewers of PRs and responsible for releases. Some Maintainers are responsible for one or more components within a project, acting as technical leads for that component. Maintainers are expected to contribute code and documentation, review PRs including ensuring quality of code, triage issues, proactively fix bugs, and perform maintenance tasks for these components.
 
 ### Maintainers
+Maintainers have the ability to merge code into the project. Anyone can become an External Secrets maintainer (see "Becoming a maintainer" below.)
+
+
+#### Expectations
+Maintainers are expected to:
+
+* Review pull requests, triage issues, and fix bugs in their areas of expertise, ensuring that all changes go through the project's code review and integration processes.
+* Monitor cncf-* emails and community channels, and help out when possible.
+* Rapidly respond to any time-sensitive security release processes.
+* Attend meetings with the ESO Community Meetings.
+* If a maintainer is no longer interested in or cannot perform the duties listed above, they should move themselves to emeritus status. If necessary, this can also occur through the decision-making process outlined below.
+
 
 New maintainers must be nominated by an existing maintainer(e.g. via [PR](https://github.com/external-secrets/external-secrets/pull/1591)) and must be elected by a supermajority of existing maintainers. Likewise, maintainers can be removed by a supermajority of the existing maintainers or can resign by notifying one of the maintainers.
+
+
+### Becoming a maintainer
+Anyone can become an External Secrets maintainer. Maintainers should be extremely proficient in Go; have relevant domain expertise; have the time and ability to meet the maintainer expectations above; and demonstrate the ability to work with the existing maintainers and project processes.
+
+To become a maintainer, start by expressing interest to existing maintainers. Existing maintainers will then ask you to demonstrate the qualifications above by contributing PRs, doing code reviews, and other such tasks under their guidance. After several months of working together, maintainers will decide whether to grant maintainer status.
 
 ### Supermajority
 
