@@ -194,6 +194,21 @@ serviceMonitor:
   # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
   enabled: false
 
+  # -- How should we react to missing CRD "`monitoring.coreos.com/v1/ServiceMonitor`"
+  #
+  # Possible values:
+  # - `skipIfMissing`: Only render ServiceMonitor resources if CRD is present, skip if missing.
+  # - `failIfMissing`: Fail Helm install if CRD is not present.
+  # - `alwaysRender` : Always render ServiceMonitor resources, do not check for CRD.
+
+  # @schema
+  # enum:
+  # - skipIfMissing
+  # - failIfMissing
+  # - alwaysRender
+  # @schema
+  renderMode: skipIfMissing   # @schema enum: [skipIfMissing, failIfMissing, alwaysRender]
+
   # -- namespace where you want to install ServiceMonitors
   namespace: ""
 
