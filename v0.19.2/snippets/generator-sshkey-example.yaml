@@ -1,0 +1,14 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: example-ssh-key
+spec:
+  refreshInterval: "30m"
+  target:
+    name: ssh-key-secret
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: SSHKey
+          name: example-ssh-key

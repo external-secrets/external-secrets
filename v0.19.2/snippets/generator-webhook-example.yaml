@@ -1,0 +1,14 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: "webhook"
+spec:
+  refreshInterval: "30m"
+  target:
+    name: webhook-secret
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: Webhook
+        name: "webhook"

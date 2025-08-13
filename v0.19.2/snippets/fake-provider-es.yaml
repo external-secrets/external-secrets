@@ -1,0 +1,20 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: example
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: fake
+    kind: ClusterSecretStore
+  target:
+    name: secret-to-be-created
+  data:
+  - secretKey: foo_bar
+    remoteRef:
+      key: /foo/bar
+      version: v1
+  dataFrom:
+  - extract:
+      key: /foo/baz
+      version: v1
