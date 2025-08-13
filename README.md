@@ -5,7 +5,7 @@
 
 ## Project Releases Paused Until Maintainer Team is Rebuilt ⚠️
 
-During the latest community meeting, the current maintainers of External Secrets Operator decided to pause official SemVer releases.
+The current maintainers of External Secrets Operator decided to pause official SemVer releases.
 
 Despite strong adoption and a growing user base, the project is currently maintained by a very small core team. This limited capacity makes it unsustainable to continue regular development, community support, and release management.
 
