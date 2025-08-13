@@ -4020,10 +4020,16 @@ As of version 0.14.x , this is the only kubernetes version that we will guarante
 </thead>
 <tbody>
 <tr>
+<td>0.19.x</td>
+<td>1.33</td>
+<td>August 2, 2025</td>
+<td>Release of 0.20</td>
+</tr>
+<tr>
 <td>0.18.x</td>
 <td>1.33</td>
 <td>July 17, 2025</td>
-<td>Release of 0.19</td>
+<td>August 2, 2025</td>
 </tr>
 <tr>
 <td>0.17.x</td>
@@ -4119,167 +4125,38 @@ As of version 0.14.x , this is the only kubernetes version that we will guarante
 </table>
 <h2 id="provider-stability-and-support-level">Provider Stability and Support Level</h2>
 <p>The following table describes the stability level of each provider and who's responsible.</p>
-<table>
-<thead>
-<tr>
-<th>Provider</th>
-<th>Stability</th>
-<th>Maintainer</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/aws-secrets-manager/">AWS Secrets Manager</a></td>
-<td>stable</td>
-<td><a href="https://github.com/external-secrets">external-secrets</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/aws-parameter-store/">AWS Parameter Store</a></td>
-<td>stable</td>
-<td><a href="https://github.com/external-secrets">external-secrets</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/hashicorp-vault/">Hashicorp Vault</a></td>
-<td>stable</td>
-<td><a href="https://github.com/external-secrets">external-secrets</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/google-secrets-manager/">GCP Secret Manager</a></td>
-<td>stable</td>
-<td><a href="https://github.com/external-secrets">external-secrets</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/azure-key-vault/">Azure Keyvault</a></td>
-<td>stable</td>
-<td><a href="https://github.com/external-secrets">external-secrets</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/ibm-secrets-manager/">IBM Cloud Secrets Manager</a></td>
-<td>stable</td>
-<td><a href="https://github.com/IdanAdar">@IdanAdar</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/kubernetes">Kubernetes</a></td>
-<td>beta</td>
-<td><a href="https://github.com/external-secrets">external-secrets</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/yandex-lockbox/">Yandex Lockbox</a></td>
-<td>alpha</td>
-<td><a href="https://github.com/AndreyZamyslov">@AndreyZamyslov</a> <a href="https://github.com/knelasevero">@knelasevero</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/gitlab-variables/">GitLab Variables</a></td>
-<td>alpha</td>
-<td><a href="https://github.com/Jabray5">@Jabray5</a></td>
-</tr>
-<tr>
-<td>Alibaba Cloud KMS</td>
-<td>alpha</td>
-<td><strong>UNMAINTAINED</strong></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/oracle-vault">Oracle Vault</a></td>
-<td>alpha</td>
-<td><strong>UNMAINTAINED</strong></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/akeyless">Akeyless</a></td>
-<td>stable</td>
-<td><a href="https://github.com/external-secrets">external-secrets</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/1password-automation">1Password</a></td>
-<td>alpha</td>
-<td><a href="https://github.com/Simspace">@SimSpaceCorp</a> <a href="https://github.com/snarlysodboxer">@snarlysodboxer</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/1password-sdk">1Password SDK</a></td>
-<td>alpha</td>
-<td><a href="https://github.com/Skarlso">@Skarlso</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/webhook">Generic Webhook</a></td>
-<td>alpha</td>
-<td><a href="https://github.com/willemm">@willemm</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/senhasegura-dsm">senhasegura DevOps Secrets Management (DSM)</a></td>
-<td>alpha</td>
-<td><a href="https://github.com/lfraga">@lfraga</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/doppler">Doppler SecretOps Platform</a></td>
-<td>alpha</td>
-<td><a href="https://github.com/ryan-blunden/">@ryan-blunden</a> <a href="https://github.com/nmanoogian/">@nmanoogian</a></td>
-</tr>
-<tr>
-<td><a href="https://www.keepersecurity.com/">Keeper Security</a></td>
-<td>alpha</td>
-<td><a href="https://github.com/ppodevlab">@ppodevlab</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/scaleway">Scaleway</a></td>
-<td>alpha</td>
-<td><a href="https://github.com/azert9/">@azert9</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/conjur">Conjur</a></td>
-<td>stable</td>
-<td><a href="https://github.com/davidh-cyberark/">@davidh-cyberark</a> <a href="https://github.com/szh">@szh</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/delinea">Delinea</a></td>
-<td>alpha</td>
-<td><a href="https://github.com/michaelsauter/">@michaelsauter</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/beyondtrust">Beyondtrust</a></td>
-<td>alpha</td>
-<td><a href="https://github.com/btfhernandez/">@btfhernandez</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/secretserver">SecretServer</a></td>
-<td>alpha</td>
-<td><a href="https://github.com/pacificcode/">@billhamilton</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/pulumi">Pulumi ESC</a></td>
-<td>alpha</td>
-<td><a href="https://github.com/dirien">@dirien</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/passbolt">Passbolt</a></td>
-<td>alpha</td>
-<td><strong>UNMAINTAINED</strong></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/infisical">Infisical</a></td>
-<td>alpha</td>
-<td><a href="https://github.com/akhilmhdh">@akhilmhdh</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/device42">Device42</a></td>
-<td>alpha</td>
-<td><strong>UNMAINTAINED</strong></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/bitwarden-secrets-manager">Bitwarden Secrets Manager</a></td>
-<td>alpha</td>
-<td><a href="https://github.com/Skarlso">@skarlso</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/previder">Previder</a></td>
-<td>stable</td>
-<td><a href="https://github.com/previder">@previder</a></td>
-</tr>
-<tr>
-<td><a href="https://external-secrets.io/latest/provider/cloudru">Cloud.ru</a></td>
-<td>alpha</td>
-<td><a href="https://github.com/default23">@default23</a></td>
-</tr>
-</tbody>
-</table>
+<p>| Provider | Stability | Maintainer |
+| -------- | --------: | ---------: |-------|--:--------------------------------------------------------------------------------------------------|
+| <a href="https://external-secrets.io/latest/provider/aws-secrets-manager/">AWS Secrets Manager</a>                    | stable    | <a href="https://github.com/external-secrets">external-secrets</a>                                             |
+| <a href="https://external-secrets.io/latest/provider/aws-parameter-store/">AWS Parameter Store</a>                    | stable    | <a href="https://github.com/external-secrets">external-secrets</a>                                             |
+| <a href="https://external-secrets.io/latest/provider/hashicorp-vault/">Hashicorp Vault</a>                            | stable    | <a href="https://github.com/external-secrets">external-secrets</a>                                             |
+| <a href="https://external-secrets.io/latest/provider/google-secrets-manager/">GCP Secret Manager</a>                  | stable    | <a href="https://github.com/external-secrets">external-secrets</a>                                             |
+| <a href="https://external-secrets.io/latest/provider/azure-key-vault/">Azure Keyvault</a>                             | stable    | <a href="https://github.com/external-secrets">external-secrets</a>                                             |
+| <a href="https://external-secrets.io/latest/provider/ibm-secrets-manager/">IBM Cloud Secrets Manager</a>              | stable    | <a href="https://github.com/IdanAdar">@IdanAdar</a>                                                            |
+| <a href="https://external-secrets.io/latest/provider/kubernetes">Kubernetes</a>                                       | beta      | <a href="https://github.com/external-secrets">external-secrets</a>                                             |
+| <a href="https://external-secrets.io/latest/provider/yandex-lockbox/">Yandex Lockbox</a>                              | alpha     | <a href="https://github.com/AndreyZamyslov">@AndreyZamyslov</a> <a href="https://github.com/knelasevero">@knelasevero</a> |
+| <a href="https://external-secrets.io/latest/provider/gitlab-variables/">GitLab Variables</a>                          | alpha     | <a href="https://github.com/Jabray5">@Jabray5</a>                                                              |
+| Alibaba Cloud KMS                                                                                          | alpha     | <strong>UNMAINTAINED</strong>                                                                                    |
+| <a href="https://external-secrets.io/latest/provider/oracle-vault">Oracle Vault</a>                                   | alpha     | <strong>UNMAINTAINED</strong>                                                                                    |
+| <a href="https://external-secrets.io/latest/provider/akeyless">Akeyless</a>                                           | stable    | <a href="https://github.com/external-secrets">external-secrets</a>                                             |
+| <a href="https://external-secrets.io/latest/provider/1password-automation">1Password</a>                              | alpha     | <a href="https://github.com/Simspace">@SimSpaceCorp</a> <a href="https://github.com/snarlysodboxer">@snarlysodboxer</a>   |
+| <a href="https://external-secrets.io/latest/provider/1password-sdk">1Password SDK</a>                                 | alpha     | <a href="https://github.com/Skarlso">@Skarlso</a>                                                              |
+| <a href="https://external-secrets.io/latest/provider/webhook">Generic Webhook</a>                                     | alpha     | <a href="https://github.com/willemm">@willemm</a>                                                              |
+| <a href="https://external-secrets.io/latest/provider/senhasegura-dsm">senhasegura DevOps Secrets Management (DSM)</a> | alpha     | <a href="https://github.com/lfraga">@lfraga</a>                                                                |
+| <a href="https://external-secrets.io/latest/provider/doppler">Doppler SecretOps Platform</a>                          | alpha     | <a href="https://github.com/ryan-blunden/">@ryan-blunden</a> <a href="https://github.com/nmanoogian/">@nmanoogian</a>     |
+| <a href="https://www.keepersecurity.com/">Keeper Security</a>                                                         | alpha     | <a href="https://github.com/ppodevlab">@ppodevlab</a>                                                          |
+| <a href="https://external-secrets.io/latest/provider/scaleway">Scaleway</a>                                           | alpha     | <a href="https://github.com/azert9/">@azert9</a>                                                               |
+| <a href="https://external-secrets.io/latest/provider/conjur">Conjur</a>                                               | stable    | <a href="https://github.com/davidh-cyberark/">@davidh-cyberark</a> <a href="https://github.com/szh">@szh</a>              |
+| <a href="https://external-secrets.io/latest/provider/delinea">Delinea</a>                                             | alpha     | <a href="https://github.com/michaelsauter/">@michaelsauter</a>                                                 |
+| <a href="https://external-secrets.io/latest/provider/beyondtrust">Beyondtrust</a>                                     | alpha     | <a href="https://github.com/btfhernandez/">@btfhernandez</a>                                                   |
+| <a href="https://external-secrets.io/latest/provider/secretserver">SecretServer</a>                                   | alpha     | <a href="https://github.com/pacificcode/">@billhamilton</a>                                                    |
+| <a href="https://external-secrets.io/latest/provider/pulumi">Pulumi ESC</a>                                           | alpha     | <a href="https://github.com/dirien">@dirien</a>                                                                |
+| <a href="https://external-secrets.io/latest/provider/passbolt">Passbolt</a>                                           | alpha     | <strong>UNMAINTAINED</strong>                                                                                    |
+| <a href="https://external-secrets.io/latest/provider/infisical">Infisical</a>                                         | alpha     | <a href="https://github.com/akhilmhdh">@akhilmhdh</a>                                                          |
+| <a href="https://external-secrets.io/latest/provider/device42">Device42</a>                                           | alpha     | <strong>UNMAINTAINED</strong>                                                                                    |
+| <a href="https://external-secrets.io/latest/provider/bitwarden-secrets-manager">Bitwarden Secrets Manager</a>         | alpha     | <a href="https://github.com/Skarlso">@skarlso</a>                                                              |
+| <a href="https://external-secrets.io/latest/provider/previder">Previder</a>                                           | stable    | <a href="https://github.com/previder">@previder</a>                                                            |
+| <a href="https://external-secrets.io/latest/provider/cloudru">Cloud.ru</a>                                            | alpha     | <a href="https://github.com/default23">@default23</a>                                                          |</p>
 <h2 id="provider-feature-support">Provider Feature Support</h2>
 <p>The following table show the support for features across different providers.</p>
 <table>
