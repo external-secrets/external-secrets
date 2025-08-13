@@ -379,3 +379,17 @@ spec:
       projectID: my-project
       location: us-east1 # uses regional secrets on us-east1
 ```
+
+## Secret Version Management
+
+### Latest Enabled Secret Fallback
+
+The Google Secret Manager provider includes a `getLatestEnabledSecret` flag that controls how the provider handles secret version fallbacks when the default "latest" version is unavailable.
+
+By default, when you request a secret without specifying a version, the provider attempts to fetch the "latest" version. If that version is in a DESTROYED or DISABLED state, the provider automatically falls back to fetching the latest enabled version.
+
+You can control this behavior using the `getLatestEnabledSecret` flag.
+
+**Note**: When using `getLatestEnabledSecret: true`, the service account requires additional permissions to list secret versions. You'll need to grant the `roles/secretmanager.viewer` role (which includes `secretmanager.versions.list`) or the specific `secretmanager.versions.list` permission in addition to the standard `secretmanager.secretAccessor` role.
+
+```

@@ -3956,6 +3956,10 @@ spec:
                                   type: object
                               type: object
                           type: object
+                        getLatestEnabledSecret:
+                          default: false
+                          description: GetLatestEnabledSecret if true, the latest enabled secret version will be fetched
+                          type: boolean
                         location:
                           description: Location optionally defines a location for a secret
                           type: string
@@ -15091,6 +15095,10 @@ spec:
                                   type: object
                               type: object
                           type: object
+                        getLatestEnabledSecret:
+                          default: false
+                          description: GetLatestEnabledSecret if true, the latest enabled secret version will be fetched
+                          type: boolean
                         location:
                           description: Location optionally defines a location for a secret
                           type: string

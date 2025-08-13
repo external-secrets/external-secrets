@@ -5267,6 +5267,18 @@ string
 <p>Location optionally defines a location for a secret</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>getLatestEnabledSecret</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>GetLatestEnabledSecret if true, the latest enabled secret version will be fetched</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.GCPWorkloadIdentity">GCPWorkloadIdentity

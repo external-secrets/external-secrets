@@ -502,7 +502,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	}
 	result, err := c.smClient.AccessSecretVersion(ctx, req)
 	if err != nil {
-		if version == defaultVersion {
+		if c.store.GetLatestEnabledSecret && ref.Version == "" {
 			if isErrSecretDestroyedOrDisabled(err) {
 				result, err = getLatestEnabledVersion(ctx, c.smClient, name)
 				if err != nil {
@@ -706,7 +706,7 @@ func getLatestEnabledVersion(ctx context.Context, client GoogleSecretManagerClie
 	latestVersion := &secretmanagerpb.SecretVersion{}
 	for {
 		version, err := iter.Next()
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if version.CreateTime.AsTime().After(latestCreateTime) {

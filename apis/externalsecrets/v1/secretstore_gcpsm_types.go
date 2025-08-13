@@ -63,6 +63,11 @@ type GCPSMProvider struct {
 
 	// Location optionally defines a location for a secret
 	Location string `json:"location,omitempty"`
+
+	// GetLatestEnabledSecret if true, the latest enabled secret version will be fetched
+	// +optional
+	// +default=false
+	GetLatestEnabledSecret bool `json:"getLatestEnabledSecret,omitempty"`
 }
 
 // GCPWorkloadIdentityFederation holds the configurations required for generating federated access tokens.
