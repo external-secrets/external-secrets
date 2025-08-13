@@ -157,6 +157,7 @@ spec:
                                       - GithubAccessToken
                                       - QuayAccessToken
                                       - Password
+                                      - SSHKey
                                       - STSSessionToken
                                       - UUID
                                       - VaultDynamicSecret
@@ -373,6 +374,7 @@ spec:
                                       - GithubAccessToken
                                       - QuayAccessToken
                                       - Password
+                                      - SSHKey
                                       - STSSessionToken
                                       - UUID
                                       - VaultDynamicSecret
@@ -904,6 +906,7 @@ spec:
                                       - GithubAccessToken
                                       - QuayAccessToken
                                       - Password
+                                      - SSHKey
                                       - STSSessionToken
                                       - UUID
                                       - VaultDynamicSecret
@@ -1094,6 +1097,7 @@ spec:
                                       - GithubAccessToken
                                       - QuayAccessToken
                                       - Password
+                                      - SSHKey
                                       - STSSessionToken
                                       - UUID
                                       - VaultDynamicSecret
@@ -1743,6 +1747,7 @@ spec:
                                 - GithubAccessToken
                                 - QuayAccessToken
                                 - Password
+                                - SSHKey
                                 - STSSessionToken
                                 - UUID
                                 - VaultDynamicSecret
@@ -4015,6 +4020,39 @@ spec:
                         auth:
                           description: Auth configures how the Operator authenticates with the Infisical API
                           properties:
+                            awsAuthCredentials:
+                              properties:
+                                identityId:
+                                  description: |-
+                                    A reference to a specific 'key' within a Secret resource.
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - identityId
+                              type: object
                             azureAuthCredentials:
                               properties:
                                 identityId:
@@ -4232,6 +4270,67 @@ spec:
                               required:
                                 - identityId
                                 - jwt
+                              type: object
+                            kubernetesAuthCredentials:
+                              properties:
+                                identityId:
+                                  description: |-
+                                    A reference to a specific 'key' within a Secret resource.
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                serviceAccountTokenPath:
+                                  description: |-
+                                    A reference to a specific 'key' within a Secret resource.
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - identityId
                               type: object
                             ldapAuthCredentials:
                               properties:
@@ -4529,6 +4628,39 @@ spec:
                                 - region
                                 - tenancyId
                                 - userId
+                              type: object
+                            tokenAuthCredentials:
+                              properties:
+                                accessToken:
+                                  description: |-
+                                    A reference to a specific 'key' within a Secret resource.
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - accessToken
                               type: object
                             universalAuthCredentials:
                               properties:
@@ -11097,6 +11229,7 @@ spec:
                                   - GithubAccessToken
                                   - QuayAccessToken
                                   - Password
+                                  - SSHKey
                                   - STSSessionToken
                                   - UUID
                                   - VaultDynamicSecret
@@ -11313,6 +11446,7 @@ spec:
                                   - GithubAccessToken
                                   - QuayAccessToken
                                   - Password
+                                  - SSHKey
                                   - STSSessionToken
                                   - UUID
                                   - VaultDynamicSecret
@@ -11720,6 +11854,7 @@ spec:
                                   - GithubAccessToken
                                   - QuayAccessToken
                                   - Password
+                                  - SSHKey
                                   - STSSessionToken
                                   - UUID
                                   - VaultDynamicSecret
@@ -11910,6 +12045,7 @@ spec:
                                   - GithubAccessToken
                                   - QuayAccessToken
                                   - Password
+                                  - SSHKey
                                   - STSSessionToken
                                   - UUID
                                   - VaultDynamicSecret
@@ -12384,6 +12520,7 @@ spec:
                             - GithubAccessToken
                             - QuayAccessToken
                             - Password
+                            - SSHKey
                             - STSSessionToken
                             - UUID
                             - VaultDynamicSecret
@@ -14684,6 +14821,39 @@ spec:
                         auth:
                           description: Auth configures how the Operator authenticates with the Infisical API
                           properties:
+                            awsAuthCredentials:
+                              properties:
+                                identityId:
+                                  description: |-
+                                    A reference to a specific 'key' within a Secret resource.
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - identityId
+                              type: object
                             azureAuthCredentials:
                               properties:
                                 identityId:
@@ -14901,6 +15071,67 @@ spec:
                               required:
                                 - identityId
                                 - jwt
+                              type: object
+                            kubernetesAuthCredentials:
+                              properties:
+                                identityId:
+                                  description: |-
+                                    A reference to a specific 'key' within a Secret resource.
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                serviceAccountTokenPath:
+                                  description: |-
+                                    A reference to a specific 'key' within a Secret resource.
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - identityId
                               type: object
                             ldapAuthCredentials:
                               properties:
@@ -15198,6 +15429,39 @@ spec:
                                 - region
                                 - tenancyId
                                 - userId
+                              type: object
+                            tokenAuthCredentials:
+                              properties:
+                                accessToken:
+                                  description: |-
+                                    A reference to a specific 'key' within a Secret resource.
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - accessToken
                               type: object
                             universalAuthCredentials:
                               properties:
@@ -22543,6 +22807,28 @@ spec:
                         - robotAccount
                         - serviceAccountRef
                       type: object
+                    sshKeySpec:
+                      description: SSHKeySpec controls the behavior of the ssh key generator.
+                      properties:
+                        comment:
+                          description: Comment specifies an optional comment for the SSH key
+                          type: string
+                        keySize:
+                          description: |-
+                            KeySize specifies the key size for RSA keys (default: 2048)
+                            For RSA keys: 2048, 3072, 4096
+                            Ignored for ed25519 keys
+                          maximum: 8192
+                          minimum: 256
+                          type: integer
+                        keyType:
+                          default: rsa
+                          description: KeyType specifies the SSH key type (rsa, ed25519)
+                          enum:
+                            - rsa
+                            - ed25519
+                          type: string
+                      type: object
                     stsSessionTokenSpec:
                       properties:
                         auth:
@@ -23686,6 +23972,7 @@ spec:
                     - GithubAccessToken
                     - QuayAccessToken
                     - Password
+                    - SSHKey
                     - STSSessionToken
                     - UUID
                     - VaultDynamicSecret
@@ -24706,6 +24993,76 @@ spec:
               required:
                 - robotAccount
                 - serviceAccountRef
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  labels:
+    external-secrets.io/component: controller
+  name: sshkeys.generators.external-secrets.io
+spec:
+  group: generators.external-secrets.io
+  names:
+    categories:
+      - external-secrets
+      - external-secrets-generators
+    kind: SSHKey
+    listKind: SSHKeyList
+    plural: sshkeys
+    singular: sshkey
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: SSHKey generates SSH key pairs.
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: SSHKeySpec controls the behavior of the ssh key generator.
+              properties:
+                comment:
+                  description: Comment specifies an optional comment for the SSH key
+                  type: string
+                keySize:
+                  description: |-
+                    KeySize specifies the key size for RSA keys (default: 2048)
+                    For RSA keys: 2048, 3072, 4096
+                    Ignored for ed25519 keys
+                  maximum: 8192
+                  minimum: 256
+                  type: integer
+                keyType:
+                  default: rsa
+                  description: KeyType specifies the SSH key type (rsa, ed25519)
+                  enum:
+                    - rsa
+                    - ed25519
+                  type: string
               type: object
           type: object
       served: true

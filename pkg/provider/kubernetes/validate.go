@@ -101,5 +101,23 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 			return esv1.ValidationResultReady, nil
 		}
 	}
+
+	a := authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Resource:  "secrets",
+				Namespace: c.store.RemoteNamespace,
+				Verb:      "get",
+			},
+		},
+	}
+	accessReview, err := c.userAccessReviewClient.Create(ctx, &a, metav1.CreateOptions{})
+	if err != nil {
+		return esv1.ValidationResultUnknown, fmt.Errorf("could not verify if client is valid: %w", err)
+	}
+	if accessReview.Status.Allowed {
+		return esv1.ValidationResultReady, nil
+	}
+
 	return esv1.ValidationResultError, errors.New("client is not allowed to get secrets")
 }

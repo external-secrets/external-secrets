@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets
 
-go 1.24.4
+go 1.24.6
 
 replace github.com/Masterminds/sprig/v3 => github.com/external-secrets/sprig/v3 v3.3.0
 

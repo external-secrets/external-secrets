@@ -685,7 +685,9 @@ func computeTagsToUpdate(tags, metaTags map[string]string) ([]ssmTypes.Tag, bool
 	modified := false
 	for k, v := range metaTags {
 		if _, exists := tags[k]; !exists || tags[k] != v {
-			modified = true
+			if k != managedBy {
+				modified = true
+			}
 		}
 		result = append(result, ssmTypes.Tag{
 			Key:   ptr.To(k),
