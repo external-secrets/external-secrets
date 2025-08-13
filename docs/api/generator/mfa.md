@@ -38,4 +38,4 @@ timeLeft: 25
 
 !!! warning "Usage of the token might fail on first try if it JUST expired"
 It is possible that from requesting the token to actually using it, the token might be already out of date if timeLeft was
-very low to begin with. Therefor, the code that uses this token should allow for retries with new tokens.
+very low to begin with. Therefore, the code that uses this token should allow for retries with new tokens.

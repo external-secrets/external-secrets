@@ -100,7 +100,7 @@ createOperator: true
 # -- Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at
 # a time.
 concurrent: 1
-# -- Specifices Log Params to the External Secrets Operator
+# -- Specifies Log Params to the External Secrets Operator
 log:
   level: info
   timeEncoding: epoch
@@ -283,12 +283,12 @@ webhook:
   annotations: {}
   # -- Specifies whether a webhook deployment be created. If set to false, crds.conversion.enabled should also be set to false otherwise the kubeapi will be hammered because the conversion is looking for a webhook endpoint.
   create: true
-  # -- Specifices the time to check if the cert is valid
+  # -- Specifies the time to check if the cert is valid
   certCheckInterval: "5m"
-  # -- Specifices the lookaheadInterval for certificate validity
+  # -- Specifies the lookaheadInterval for certificate validity
   lookaheadInterval: ""
   replicaCount: 1
-  # -- Specifices Log Params to the Webhook
+  # -- Specifies Log Params to the Webhook
   log:
     level: info
     timeEncoding: epoch
@@ -476,7 +476,7 @@ certController:
   create: true
   requeueInterval: "5m"
   replicaCount: 1
-  # -- Specifices Log Params to the Certificate Controller
+  # -- Specifies Log Params to the Certificate Controller
   log:
     level: info
     timeEncoding: epoch

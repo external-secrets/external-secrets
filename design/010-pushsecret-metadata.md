@@ -150,7 +150,7 @@ spec:
 
 **PROS**
 - familiar structure for Kubernetes users, other projectes use that pattern already
-- we may be able to re-use existing tooling, e.g. for validating the structure and generating documentation
+- we may be able to reuse existing tooling, e.g. for validating the structure and generating documentation
 
 **CONS**
 - may confuse users if they encounter a nested custom resource
@@ -196,4 +196,4 @@ spec:
 - more concise, less boilerplate
 
 **CONS**
-- no ability to directly re-use existing tooling
+- no ability to directly reuse existing tooling
