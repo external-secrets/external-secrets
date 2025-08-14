@@ -42,7 +42,7 @@ type KubernetesProvider struct {
 
 	// Auth configures how secret-manager authenticates with a Kubernetes instance.
 	// +optional
-	Auth KubernetesAuth `json:"auth"`
+	Auth *KubernetesAuth `json:"auth,omitempty"`
 
 	// A reference to a secret that contains the auth information.
 	// +optional
