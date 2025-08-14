@@ -6762,6 +6762,90 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.NgrokProvider">NgrokProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiUrl</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>APIURL is the URL of the ngrok API.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>apiKey</code></br>
+<em>
+<a href="#external-secrets.io/v1.NgrokProviderSecretRef">
+NgrokProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>APIKey is the API Key used to authenticate with ngrok.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>vaultName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>VaultName is the name of the ngrok vault to use.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.NgrokProviderSecretRef">NgrokProviderSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.NgrokProvider">NgrokProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>SecretRef is a reference to a secret containing the ngrok API key.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.NoSecretError">NoSecretError
 </h3>
 <p>
@@ -8840,6 +8924,20 @@ VolcengineProvider
 <td>
 <em>(Optional)</em>
 <p>Volcengine configures this store to sync secrets using the Volcengine provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ngrok</code></br>
+<em>
+<a href="#external-secrets.io/v1.NgrokProvider">
+NgrokProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Ngrok configures this store to sync secrets using the ngrok provider.</p>
 </td>
 </tr>
 </tbody>
