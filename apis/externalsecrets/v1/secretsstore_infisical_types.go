@@ -77,6 +77,23 @@ type OciAuthCredentials struct {
 	Region esmeta.SecretKeySelector `json:"region"`
 }
 
+type KubernetesAuthCredentials struct {
+	// +kubebuilder:validation:Required
+	IdentityID esmeta.SecretKeySelector `json:"identityId"`
+	// +optional
+	ServiceAccountTokenPath esmeta.SecretKeySelector `json:"serviceAccountTokenPath"`
+}
+
+type AwsAuthCredentials struct {
+	// +kubebuilder:validation:Required
+	IdentityID esmeta.SecretKeySelector `json:"identityId"`
+}
+
+type TokenAuthCredentials struct {
+	// +kubebuilder:validation:Required
+	AccessToken esmeta.SecretKeySelector `json:"accessToken"`
+}
+
 type InfisicalAuth struct {
 	// +optional
 	UniversalAuthCredentials *UniversalAuthCredentials `json:"universalAuthCredentials,omitempty"`
@@ -92,6 +109,12 @@ type InfisicalAuth struct {
 	LdapAuthCredentials *LdapAuthCredentials `json:"ldapAuthCredentials,omitempty"`
 	// +optional
 	OciAuthCredentials *OciAuthCredentials `json:"ociAuthCredentials,omitempty"`
+	// +optional
+	KubernetesAuthCredentials *KubernetesAuthCredentials `json:"kubernetesAuthCredentials,omitempty"`
+	// +optional
+	AwsAuthCredentials *AwsAuthCredentials `json:"awsAuthCredentials,omitempty"`
+	// +optional
+	TokenAuthCredentials *TokenAuthCredentials `json:"tokenAuthCredentials,omitempty"`
 }
 
 type MachineIdentityScopeInWorkspace struct {

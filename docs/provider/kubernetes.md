@@ -2,7 +2,7 @@ External Secrets Operator allows to retrieve secrets from a Kubernetes Cluster -
 
 A `SecretStore` points to a **specific namespace** in the target Kubernetes Cluster. You are able to retrieve all secrets from that particular namespace given you have the correct set of RBAC permissions.
 
-The `SecretStore` reconciler checks if you have read access for secrets in that namespace using `SelfSubjectRulesReview`. See below on how to set that up properly.
+The `SecretStore` reconciler checks if you have read access for secrets in that namespace using `SelfSubjectRulesReview` and will fallback to `SelfSubjectAccessReview` when that fails. See below on how to set that up properly.
 
 ### External Secret Spec
 
