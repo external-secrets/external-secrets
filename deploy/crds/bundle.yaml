@@ -521,6 +521,10 @@ spec:
                                   additionalProperties:
                                     type: string
                                   type: object
+                                finalizers:
+                                  items:
+                                    type: string
+                                  type: array
                                 labels:
                                   additionalProperties:
                                     type: string
@@ -1851,6 +1855,10 @@ spec:
                               additionalProperties:
                                 type: string
                               type: object
+                            finalizers:
+                              items:
+                                type: string
+                              type: array
                             labels:
                               additionalProperties:
                                 type: string
@@ -11593,6 +11601,10 @@ spec:
                               additionalProperties:
                                 type: string
                               type: object
+                            finalizers:
+                              items:
+                                type: string
+                              type: array
                             labels:
                               additionalProperties:
                                 type: string
@@ -12624,6 +12636,10 @@ spec:
                           additionalProperties:
                             type: string
                           type: object
+                        finalizers:
+                          items:
+                            type: string
+                          type: array
                         labels:
                           additionalProperties:
                             type: string
