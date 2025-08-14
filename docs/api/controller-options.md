@@ -37,7 +37,7 @@ The core controller is invoked without a subcommand and can be configured with t
 
 ## Cert Controller Flags
 
-| Name                       | Type     | Default                  | Descripton                                                                                                            |
+| Name                       | Type     | Default                  | Description                                                                                                            |
 | -------------------------- | -------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
 | `--crd-requeue-interval`   | duration | 5m0s                     | Time duration between reconciling CRDs for new certs                                                                  |
 | `--enable-leader-election` | boolean  | false                    | Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager. |

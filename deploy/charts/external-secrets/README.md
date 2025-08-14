@@ -52,7 +52,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.image.repository | string | `"oci.external-secrets.io/external-secrets/external-secrets"` |  |
 | certController.image.tag | string | `""` |  |
 | certController.imagePullSecrets | list | `[]` |  |
-| certController.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifices Log Params to the Certificate Controller |
+| certController.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the Certificate Controller |
 | certController.metrics.listen.port | int | `8080` |  |
 | certController.metrics.service.annotations | object | `{}` | Additional service annotations |
 | certController.metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
@@ -126,7 +126,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | imagePullSecrets | list | `[]` |  |
 | installCRDs | bool | `true` | If set, install and upgrade CRDs through helm chart. |
 | leaderElect | bool | `false` | If true, external-secrets will perform leader election between instances to ensure no more than one instance of external-secrets operates at a time. |
-| log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifices Log Params to the External Secrets Operator |
+| log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the External Secrets Operator |
 | metrics.listen.port | int | `8080` |  |
 | metrics.service.annotations | object | `{}` | Additional service annotations |
 | metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
@@ -181,7 +181,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | topologySpreadConstraints | list | `[]` |  |
 | webhook.affinity | object | `{}` |  |
 | webhook.annotations | object | `{}` | Annotations to place on validating webhook configuration. |
-| webhook.certCheckInterval | string | `"5m"` | Specifices the time to check if the cert is valid |
+| webhook.certCheckInterval | string | `"5m"` | Specifies the time to check if the cert is valid |
 | webhook.certDir | string | `"/tmp/certs"` |  |
 | webhook.certManager.addInjectorAnnotations | bool | `true` | Automatically add the cert-manager.io/inject-ca-from annotation to the webhooks and CRDs. As long as you have the cert-manager CA Injector enabled, this will automatically setup your webhook's CA to the one used by cert-manager. See https://cert-manager.io/docs/concepts/ca-injector |
 | webhook.certManager.cert.annotations | object | `{}` | Add extra annotations to the Certificate resource. |
@@ -206,8 +206,8 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.image.repository | string | `"oci.external-secrets.io/external-secrets/external-secrets"` |  |
 | webhook.image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
 | webhook.imagePullSecrets | list | `[]` |  |
-| webhook.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifices Log Params to the Webhook |
-| webhook.lookaheadInterval | string | `""` | Specifices the lookaheadInterval for certificate validity |
+| webhook.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the Webhook |
+| webhook.lookaheadInterval | string | `""` | Specifies the lookaheadInterval for certificate validity |
 | webhook.metrics.listen.port | int | `8080` |  |
 | webhook.metrics.service.annotations | object | `{}` | Additional service annotations |
 | webhook.metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
