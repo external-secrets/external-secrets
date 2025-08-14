@@ -91,6 +91,9 @@ processClusterPushSecret: true
 # -- if true, the operator will process cluster store. Else, it will ignore them.
 processClusterStore: true
 
+# -- if true, theoperator will process cluster generator. Else, it will ignore them.
+processClusterGenerator: true
+
 # -- if true, the operator will process push secret. Else, it will ignore them.
 processPushSecret: true
 
