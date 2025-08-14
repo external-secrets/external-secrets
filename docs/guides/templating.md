@@ -130,7 +130,7 @@ You can achieve that by using the `filterPEM` function to extract a specific typ
 {% include 'filterpem-template-v2-external-secret.yaml' %}
 ```
 
-In case you have a secret that contains a (partial) certificate chain you can extract the `leaf`, `intermediate` or `root` certificate(s) using the `filterCertChain` function. See the following example on how to use the `filterPEM` and `filterCertChain` functions together to split the certificate chain into a `tls.crt` part only containting the leaf certificate and a `ca.crt` part with all the intermediate certificates.
+In case you have a secret that contains a (partial) certificate chain you can extract the `leaf`, `intermediate` or `root` certificate(s) using the `filterCertChain` function. See the following example on how to use the `filterPEM` and `filterCertChain` functions together to split the certificate chain into a `tls.crt` part only containing the leaf certificate and a `ca.crt` part with all the intermediate certificates.
 
 ```yaml
 {% include 'filtercertchain-template-v2-external-secret.yaml' %}
