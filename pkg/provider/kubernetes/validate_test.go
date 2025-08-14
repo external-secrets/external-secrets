@@ -83,7 +83,7 @@ func TestValidateStore(t *testing.T) {
 							Server: esv1.KubernetesServer{
 								CABundle: []byte("1234"),
 							},
-							Auth: esv1.KubernetesAuth{
+							Auth: &esv1.KubernetesAuth{
 								Cert: &esv1.CertAuth{
 									ClientCert: v1.SecretKeySelector{
 										Name: "",
@@ -146,7 +146,7 @@ func TestValidateStore(t *testing.T) {
 							Server: esv1.KubernetesServer{
 								CABundle: []byte("1234"),
 							},
-							Auth: esv1.KubernetesAuth{
+							Auth: &esv1.KubernetesAuth{
 								Cert: &esv1.CertAuth{
 									ClientCert: v1.SecretKeySelector{
 										Name: "foobar",
@@ -169,7 +169,7 @@ func TestValidateStore(t *testing.T) {
 							Server: esv1.KubernetesServer{
 								CABundle: []byte("1234"),
 							},
-							Auth: esv1.KubernetesAuth{
+							Auth: &esv1.KubernetesAuth{
 								Cert: &esv1.CertAuth{
 									ClientCert: v1.SecretKeySelector{
 										Name:      "foobar",
@@ -193,7 +193,7 @@ func TestValidateStore(t *testing.T) {
 							Server: esv1.KubernetesServer{
 								CABundle: []byte("1234"),
 							},
-							Auth: esv1.KubernetesAuth{
+							Auth: &esv1.KubernetesAuth{
 								Token: &esv1.TokenAuth{
 									BearerToken: v1.SecretKeySelector{
 										Name: "",
@@ -215,7 +215,7 @@ func TestValidateStore(t *testing.T) {
 							Server: esv1.KubernetesServer{
 								CABundle: []byte("1234"),
 							},
-							Auth: esv1.KubernetesAuth{
+							Auth: &esv1.KubernetesAuth{
 								Token: &esv1.TokenAuth{
 									BearerToken: v1.SecretKeySelector{
 										Name: "foobar",
@@ -238,7 +238,7 @@ func TestValidateStore(t *testing.T) {
 							Server: esv1.KubernetesServer{
 								CABundle: []byte("1234"),
 							},
-							Auth: esv1.KubernetesAuth{
+							Auth: &esv1.KubernetesAuth{
 								Token: &esv1.TokenAuth{
 									BearerToken: v1.SecretKeySelector{
 										Name:      "foobar",
@@ -262,7 +262,7 @@ func TestValidateStore(t *testing.T) {
 							Server: esv1.KubernetesServer{
 								CABundle: []byte("1234"),
 							},
-							Auth: esv1.KubernetesAuth{
+							Auth: &esv1.KubernetesAuth{
 								ServiceAccount: &v1.ServiceAccountSelector{
 									Name:      "foobar",
 									Namespace: pointer.To("foobar"),
@@ -283,7 +283,7 @@ func TestValidateStore(t *testing.T) {
 							Server: esv1.KubernetesServer{
 								CABundle: []byte("1234"),
 							},
-							Auth: esv1.KubernetesAuth{
+							Auth: &esv1.KubernetesAuth{
 								ServiceAccount: &v1.ServiceAccountSelector{
 									Name: "foobar",
 								},
@@ -367,7 +367,7 @@ func TestValidate(t *testing.T) {
 			fields: fields{
 				storeKind: esv1.ClusterSecretStoreKind,
 				store: &esv1.KubernetesProvider{
-					Auth: esv1.KubernetesAuth{
+					Auth: &esv1.KubernetesAuth{
 						ServiceAccount: &v1.ServiceAccountSelector{
 							Name: "foobar",
 						},

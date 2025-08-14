@@ -2247,7 +2247,11 @@ func (in *KubernetesAuthCredentials) DeepCopy() *KubernetesAuthCredentials {
 func (in *KubernetesProvider) DeepCopyInto(out *KubernetesProvider) {
 	*out = *in
 	in.Server.DeepCopyInto(&out.Server)
-	in.Auth.DeepCopyInto(&out.Auth)
+	if in.Auth != nil {
+		in, out := &in.Auth, &out.Auth
+		*out = new(KubernetesAuth)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.AuthRef != nil {
 		in, out := &in.AuthRef, &out.AuthRef
 		*out = new(apismetav1.SecretKeySelector)
