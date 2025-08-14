@@ -4143,7 +4143,7 @@ This failure may cascade down to the controller or any other user of <code>kube-
 )
 </code></pre></div></p>
 <h4 id="controller-reconcile-error">Controller Reconcile Error</h4>
-<p>The controller should be able to reconcile resources without errors. When errors occurr secret delivery may be impacted which could cascade down to the secret consuming applications.</p>
+<p>The controller should be able to reconcile resources without errors. When errors occur secret delivery may be impacted which could cascade down to the secret consuming applications.</p>
 <div class="highlight"><pre><span></span><code>sum(increase(
   controller_runtime_reconcile_total{service=~&quot;external-secrets.*&quot;,controller=~&quot;$controller&quot;,result=&quot;error&quot;}[1m])
 ) by (result)

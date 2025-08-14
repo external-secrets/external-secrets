@@ -3939,16 +3939,16 @@
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">all-keys-example-secret</span><span class="w">  </span><span class="c1"># name of the GCPSM secret</span>
 </code></pre></div>
-Here, "example" is the name of the external secret that will be created in our cluster.  <br />
-Whereas, "secret-to-be-created" is the name of Kubernetes secrets that will be created.  <br />
-Note: Since these secrets are namespace-based resources, you can also explicitly specify the "namespace" under the "metadata" block of the above external secret file.  <br />
-when we use, </p>
+Here, "example" is the name of the external secret that will be created in our cluster.
+Whereas, "secret-to-be-created" is the name of Kubernetes secrets that will be created.
+Note: Since these secrets are namespace-based resources, you can also explicitly specify the "namespace" under the "metadata" block of the above external secret file.
+when we use,</p>
 <p><div class="highlight"><pre><span></span><code>  dataFrom:
   - extract:
       key: all-keys-example-secret
 </code></pre></div>
-We get all the key-value pairs present over the remote secret store (GCP or AWS or Azure) and can pass either all or a few key-values as environment variables.  <br />
-Please note that, "all-keys-example-secret" is the name of your secret present on GCP/AWS secrets manager/Azure    </p>
+We get all the key-value pairs present over the remote secret store (GCP or AWS or Azure) and can pass either all or a few key-values as environment variables.
+Please note that, "all-keys-example-secret" is the name of your secret present on GCP/AWS secrets manager/Azure</p>
 <p>We can pass a few secrets as env variables as below:
 <div class="highlight"><pre><span></span><code>        env:
           - name: key1
@@ -3963,15 +3963,15 @@ Please note that, "all-keys-example-secret" is the name of your secret present o
                 name: secret-to-be-created
                 key: surname
 </code></pre></div></p>
-<p>Here,  <br />
-\&lt;key1&gt; and \<key2> are the names of keys that will be created and passed as env variables.  <br />
-\&lt;secret-to-be-created&gt;: is the name of your Kubernetes secret created by you.  <br />
-\&lt;username&gt; and \<surname>: is the particular key in the secrets manager whose value you want to pass.  <br />
+<p>Here,
+\&lt;key1&gt; and \<key2> are the names of keys that will be created and passed as env variables.
+\&lt;secret-to-be-created&gt;: is the name of your Kubernetes secret created by you.
+\&lt;username&gt; and \<surname>: is the particular key in the secrets manager whose value you want to pass.
 To check both values we can run:
 <div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; -o jsonpath=&#39;{.data.username}&#39; | base64 -d
 kubectl get secret secret-to-be-created -n &lt;namespace&gt; -o jsonpath=&#39;{.data.surname}&#39; | base64 -d
 </code></pre></div></p>
-<p>Also, if you have a large number of secrets and you want to pass all of them as enviromnent variables, then either you can replicate the above steps in your deployment file for all the keys or you can use the envFrom block as below:    </p>
+<p>Also, if you have a large number of secrets and you want to pass all of them as environment variables, then either you can replicate the above steps in your deployment file for all the keys or you can use the envFrom block as below:</p>
 <div class="highlight"><pre><span></span><code>    spec:
       containers:
       - command:

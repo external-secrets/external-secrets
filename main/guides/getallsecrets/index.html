@@ -4023,7 +4023,7 @@ This will match any secrets containing all of the metadata labels in the <code>t
 <h3 id="avoiding-name-conflicts">Avoiding name conflicts</h3>
 <p>By default, kubernetes Secrets accepts only a given range of characters. <code>Find</code> operations will automatically replace any not allowed character with a <code>_</code>. So if we have a given secret <code>a_c</code> and <code>a/c</code> would lead to a naming conflict.</p>
 <p>If you happen to have a case where a conflict is happening, you can use the <code>rewrite</code> block to apply a regexp on one of the find operations (for more information please refer to <a href="../datafrom-rewrite/">Rewriting Keys from DataFrom</a>).</p>
-<p>You can also set  <code>dataFrom.find.conversionStrategy: Unicode</code> to reduce the collistion probability. When using <code>Unicode</code>, any invalid character will be replaced by its unicode, in the form of <code>_UXXXX_</code>. In this case, the available kubernetes keys would be <code>a_c</code> and <code>a_U2215_c</code>, hence avoiding most of possible conflicts.</p>
+<p>You can also set  <code>dataFrom.find.conversionStrategy: Unicode</code> to reduce the collision probability. When using <code>Unicode</code>, any invalid character will be replaced by its unicode, in the form of <code>_UXXXX_</code>. In this case, the available kubernetes keys would be <code>a_c</code> and <code>a_U2215_c</code>, hence avoiding most of possible conflicts.</p>
 <div class="admonition note">
 <p class="admonition-title">PRs welcome</p>
 <p>Some providers might not have the implementation needed for fetching multiple secrets. If that's your case, please feel free to contribute!</p>

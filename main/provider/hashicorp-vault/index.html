@@ -4673,7 +4673,7 @@ trade-offs. Depending on the authentication method you need to adapt your enviro
 <strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>tokenSecretRef</code> with the namespace where the secret resides.</p>
 <h4 id="approle-authentication-example">AppRole authentication example</h4>
 <p><a href="https://www.vaultproject.io/docs/auth/approle">AppRole authentication</a> reads the secret id from a
-<code>Kind=Secret</code> and uses the specified <code>roleId</code> to aquire a temporary token to fetch secrets.</p>
+<code>Kind=Secret</code> and uses the specified <code>roleId</code> to acquire a temporary token to fetch secrets.</p>
 <p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
