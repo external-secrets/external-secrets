@@ -13,7 +13,9 @@ External Secrets Operator may authenticate to OCI Vault using User Principal, [I
 
 To specify the authenticating principal in a secret store, set the `spec.provider.oracle.principalType` value. Note that the value of `principalType` defaults `InstancePrincipal` if not set.
 
+```yaml
 {% include 'oracle-principal-type.yaml' %}
+```
 
 ### User Principal Authentication
 
