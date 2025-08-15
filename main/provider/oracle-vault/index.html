@@ -4107,15 +4107,16 @@
 <h2 id="authentication">Authentication</h2>
 <p>External Secrets Operator may authenticate to OCI Vault using User Principal, <a href="https://blogs.oracle.com/developers/post/accessing-the-oracle-cloud-infrastructure-api-using-instance-principals">Instance Principal</a>, or <a href="https://blogs.oracle.com/cloud-infrastructure/post/oke-workload-identity-greater-control-access">Workload Identity</a>.</p>
 <p>To specify the authenticating principal in a secret store, set the <code>spec.provider.oracle.principalType</code> value. Note that the value of <code>principalType</code> defaults <code>InstancePrincipal</code> if not set.</p>
-<p>apiVersion: external-secrets.io/v1
-kind: SecretStore
-metadata:
-  name: my-secret-store
-spec:
-  provider:
-    oracle:
-      # May be UserPrincipal, InstancePrincipal, or Workload
-      principalType: <Principal Type></p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-secret-store</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">oracle</span><span class="p">:</span>
+<span class="w">      </span><span class="c1"># May be UserPrincipal, InstancePrincipal, or Workload</span>
+<span class="w">      </span><span class="nt">principalType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;Principal Type&gt;</span>
+</code></pre></div>
 <h3 id="user-principal-authentication">User Principal Authentication</h3>
 <p>For user principal authentication, region, user OCID, tenancy OCID, private key, and fingerprint are required.
 The private key and fingerprint must be supplied in a Kubernetes secret, while the user OCID, tenancy OCID, and region should be set in the secret store.</p>
