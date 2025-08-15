@@ -83,6 +83,9 @@ type ExternalSecretTemplateMetadata struct {
 
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
+
+	// +optional
+	Finalizers []string `json:"finalizers,omitempty"`
 }
 
 // ExternalSecretTemplate defines a blueprint for the created Secret resource.
