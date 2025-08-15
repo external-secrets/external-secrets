@@ -127,9 +127,10 @@ The command removes all the Kubernetes components associated with the chart and 
 | installCRDs | bool | `true` | If set, install and upgrade CRDs through helm chart. |
 | leaderElect | bool | `false` | If true, external-secrets will perform leader election between instances to ensure no more than one instance of external-secrets operates at a time. |
 | livenessProbe.address | string | `""` | Address for liveness probe. |
+| livenessProbe.enabled | bool | `false` | Enabled determines if the liveness probe should be used or not. By default it's disabled. |
 | livenessProbe.failureThreshold | int | `5` | Number of consecutive probe failures that should occur before considering the probe as failed. |
-| livenessProbe.httpGet | object | `{"path":"/healthz","port":0}` | Handler for liveness probe. |
-| livenessProbe.httpGet.port | int | `0` | Set this value to 8082 to active liveness probes. |
+| livenessProbe.httpGet | object | `{"path":"/healthz","port":"8082"}` | Handler for liveness probe. |
+| livenessProbe.httpGet.port | string | `"8082"` | Set this value to 8082 to active liveness probes. |
 | livenessProbe.initialDelaySeconds | int | `10` | Delay in seconds for the container to start before performing the initial probe. |
 | livenessProbe.periodSeconds | int | `10` | Period in seconds for K8s to start performing probes. |
 | livenessProbe.successThreshold | int | `1` | Number of successful probes to mark probe successful. |

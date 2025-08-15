@@ -409,6 +409,9 @@
                 "address": {
                     "type": "string"
                 },
+                "enabled": {
+                    "type": "boolean"
+                },
                 "failureThreshold": {
                     "type": "integer"
                 },
@@ -419,7 +422,7 @@
                             "type": "string"
                         },
                         "port": {
-                            "type": "integer"
+                            "type": "string"
                         }
                     }
                 },

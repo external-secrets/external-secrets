@@ -258,6 +258,8 @@ grafanaDashboard:
   annotations: {}
 
 livenessProbe:
+  # -- Enabled determines if the liveness probe should be used or not. By default it's disabled.
+  enabled: false
   # -- Address for liveness probe.
   address: ""
   # -- Specify the maximum amount of time to wait for a probe to respond before considering it fails.
@@ -273,7 +275,7 @@ livenessProbe:
   # -- Handler for liveness probe.
   httpGet:
     # -- Set this value to 8082 to active liveness probes.
-    port: 0
+    port: "8082"
     path: /healthz
 
 nodeSelector: {}
