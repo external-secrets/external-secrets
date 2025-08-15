@@ -7,7 +7,7 @@ changelog:
       - skip-changelog
 
   categories:
-    - title: What's Changed
+    - title: General
       labels:
         - "*"
       exclude:
