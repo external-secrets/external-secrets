@@ -272,7 +272,8 @@ livenessProbe:
   initialDelaySeconds: 10
   # -- Handler for liveness probe.
   httpGet:
-    port: 0 # -- Set this value to 8082 to active liveness probes.
+    # -- Set this value to 8082 to active liveness probes.
+    port: 0
     path: /healthz
 
 nodeSelector: {}
