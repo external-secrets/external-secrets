@@ -257,6 +257,9 @@ grafanaDashboard:
   # https://github.com/grafana/helm-charts/tree/main/charts/grafana
   annotations: {}
 
+  # -- Extra labels to add to the Grafana dashboard ConfigMap.
+  extraLabels: {}
+
 nodeSelector: {}
 
 tolerations: []

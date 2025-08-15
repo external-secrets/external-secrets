@@ -7,6 +7,9 @@ metadata:
   labels:
     {{ .Values.grafanaDashboard.sidecarLabel }}: {{ .Values.grafanaDashboard.sidecarLabelValue | quote }}
     {{- include "external-secrets.labels" . | nindent 4 }}
+    {{- with .Values.grafanaDashboard.extraLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
   {{- with .Values.grafanaDashboard.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
