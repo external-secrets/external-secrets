@@ -100,7 +100,7 @@ createOperator: true
 # -- Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at
 # a time.
 concurrent: 1
-# -- Specifices Log Params to the External Secrets Operator
+# -- Specifies Log Params to the External Secrets Operator
 log:
   level: info
   timeEncoding: epoch
@@ -160,6 +160,9 @@ extraContainers: []
 
 # -- Annotations to add to Deployment
 deploymentAnnotations: {}
+
+ # -- Set deployment strategy
+strategy: {}
 
 # -- Annotations to add to Pod
 podAnnotations: {}
@@ -269,6 +272,7 @@ priorityClassName: ""
 podDisruptionBudget:
   enabled: false
   minAvailable: 1    # @schema type:[integer, string]
+  nameOverride: ""
   # maxUnavailable: "50%"
 
 # -- Run the controller on the host network
@@ -279,12 +283,12 @@ webhook:
   annotations: {}
   # -- Specifies whether a webhook deployment be created. If set to false, crds.conversion.enabled should also be set to false otherwise the kubeapi will be hammered because the conversion is looking for a webhook endpoint.
   create: true
-  # -- Specifices the time to check if the cert is valid
+  # -- Specifies the time to check if the cert is valid
   certCheckInterval: "5m"
-  # -- Specifices the lookaheadInterval for certificate validity
+  # -- Specifies the lookaheadInterval for certificate validity
   lookaheadInterval: ""
   replicaCount: 1
-  # -- Specifices Log Params to the Webhook
+  # -- Specifies Log Params to the Webhook
   log:
     level: info
     timeEncoding: epoch
@@ -370,6 +374,9 @@ webhook:
 
   affinity: {}
 
+  # -- Set deployment strategy
+  strategy: {}
+
     # -- Pod priority class name.
   priorityClassName: ""
 
@@ -377,6 +384,7 @@ webhook:
   podDisruptionBudget:
     enabled: false
     minAvailable: 1    # @schema type:[integer, string]
+    nameOverride: ""
     # maxUnavailable: "50%"
 
   metrics:
@@ -468,7 +476,7 @@ certController:
   create: true
   requeueInterval: "5m"
   replicaCount: 1
-  # -- Specifices Log Params to the Certificate Controller
+  # -- Specifies Log Params to the Certificate Controller
   log:
     level: info
     timeEncoding: epoch
@@ -506,6 +514,9 @@ certController:
 
   affinity: {}
 
+  # -- Set deployment strategy
+  strategy: {}
+
   # -- Run the certController on the host network
   hostNetwork: false
 
@@ -516,6 +527,7 @@ certController:
   podDisruptionBudget:
     enabled: false
     minAvailable: 1    # @schema type:[integer, string]
+    nameOverride: ""
     # maxUnavailable: "50%"
 
   metrics:

@@ -293,7 +293,7 @@ A static token is stored in a `Kind=Secret` and is used to authenticate with vau
 #### AppRole authentication example
 
 [AppRole authentication](https://www.vaultproject.io/docs/auth/approle) reads the secret id from a
-`Kind=Secret` and uses the specified `roleId` to aquire a temporary token to fetch secrets.
+`Kind=Secret` and uses the specified `roleId` to acquire a temporary token to fetch secrets.
 
 ```yaml
 {% include 'vault-approle-store.yaml' %}

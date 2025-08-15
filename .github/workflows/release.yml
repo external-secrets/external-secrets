@@ -63,7 +63,6 @@ jobs:
           generate_release_notes: true
           body: |
             Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}`
-            NOTE - the following UBI images are not currently working (broken build process).
             Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi`
             Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi-boringssl`
         env:
@@ -119,7 +118,7 @@ jobs:
         run: go mod download
 
       - name: Login to Docker
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}

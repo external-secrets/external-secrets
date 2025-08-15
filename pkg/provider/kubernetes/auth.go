@@ -44,6 +44,10 @@ func (c *Client) getAuth(ctx context.Context) (*rest.Config, error) {
 		return clientcmd.RESTConfigFromKubeConfig(cfg)
 	}
 
+	if c.store.Auth == nil {
+		return nil, errors.New("no auth provider given")
+	}
+
 	if c.store.Server.URL == "" {
 		return nil, errors.New("no server URL provided")
 	}

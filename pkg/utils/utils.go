@@ -39,6 +39,7 @@ import (
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -58,8 +59,10 @@ const (
 )
 
 var (
-	errKeyNotFound = errors.New("key not found")
-	unicodeRegex   = regexp.MustCompile(`_U([0-9a-fA-F]{4,5})_`)
+	errAddressesNotReady      = errors.New("addresses not ready")
+	errEndpointSlicesNotReady = errors.New("endpointSlice objects not ready")
+	errKeyNotFound            = errors.New("key not found")
+	unicodeRegex              = regexp.MustCompile(`_U([0-9a-fA-F]{4,5})_`)
 )
 
 // JSONMarshal takes an interface and returns a new escaped and encoded byte slice.
@@ -827,4 +830,30 @@ func getCertFromConfigMap(ctx context.Context, namespace string, c client.Client
 	}
 
 	return []byte(val), nil
+}
+
+func CheckEndpointSlicesReady(ctx context.Context, c client.Client, svcName, svcNamespace string) error {
+	var sliceList discoveryv1.EndpointSliceList
+	err := c.List(ctx, &sliceList,
+		client.InNamespace(svcNamespace),
+		client.MatchingLabels{"kubernetes.io/service-name": svcName},
+	)
+	if err != nil {
+		return err
+	}
+	if len(sliceList.Items) == 0 {
+		return errEndpointSlicesNotReady
+	}
+	readyAddresses := 0
+	for _, slice := range sliceList.Items {
+		for _, ep := range slice.Endpoints {
+			if ep.Conditions.Ready != nil && *ep.Conditions.Ready {
+				readyAddresses += len(ep.Addresses)
+			}
+		}
+	}
+	if readyAddresses == 0 {
+		return errAddressesNotReady
+	}
+	return nil
 }

@@ -42,7 +42,21 @@ tests:
       - equal:
           path: spec.template.spec.initContainers[0].restartPolicy
           value: Always
-
+  - it: should override the deployment strategy
+    templates:
+      - cert-controller-deployment.yaml
+    set:
+      certController.strategy:
+        rollingUpdate:
+          maxSurge: 1
+          maxUnavailable: 0
+    asserts:
+    - equal:
+        path: spec.strategy.rollingUpdate.maxSurge
+        value: 1
+    - equal:
+        path: spec.strategy.rollingUpdate.maxUnavailable
+        value: 0
   - it: should override securityContext
     set:
       certController.podSecurityContext:

@@ -35,7 +35,18 @@ for o in objects:
 updated_install = encode_yaml_stream(objects)
 
 # Apply the updated yaml to the cluster.
-k8s_yaml(updated_install, allow_duplicates = True)
+# Create the directory and write the file
+local('mkdir -p .tilt-tmp')
+local('cat > .tilt-tmp/external-secrets-modified.yaml', stdin=updated_install)
+
+# Now use k8s_custom_deploy to apply it
+k8s_custom_deploy(
+    'external-secrets',
+    apply_cmd='kubectl apply --server-side -f .tilt-tmp/external-secrets-modified.yaml -o yaml',
+    delete_cmd='kubectl delete --ignore-not-found -f .tilt-tmp/external-secrets-modified.yaml',
+    deps=['bin/deploy/manifests/external-secrets.yaml'],
+    image_deps=['oci.external-secrets.io/external-secrets/external-secrets']
+)
 
 load('ext://restart_process', 'docker_build_with_restart')
 
