@@ -4631,6 +4631,18 @@ map[string]string
 <td>
 </td>
 </tr>
+<tr>
+<td>
+<code>validationResult</code></br>
+<em>
+<a href="#external-secrets.io/v1.ValidationResult">
+ValidationResult
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.FakeProviderData">FakeProviderData
@@ -9320,6 +9332,10 @@ External Secrets meta/v1.SecretKeySelector
 </table>
 <h3 id="external-secrets.io/v1.ValidationResult">ValidationResult
 (<code>byte</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.FakeProvider">FakeProvider</a>)
+</p>
 <p>
 </p>
 <table>
