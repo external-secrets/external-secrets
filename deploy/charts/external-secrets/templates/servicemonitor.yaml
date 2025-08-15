@@ -1,4 +1,5 @@
-{{- if and ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) .Values.serviceMonitor.enabled -}}
+{{- $shouldRenderStr := include "external-secrets.shouldRenderServiceMonitor" . | trim }}
+{{- if and .Values.serviceMonitor.enabled (eq $shouldRenderStr "true") }}
 apiVersion: "monitoring.coreos.com/v1"
 kind: ServiceMonitor
 metadata:
