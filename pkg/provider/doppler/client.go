@@ -58,6 +58,7 @@ type Client struct {
 	store     *esv1.DopplerProvider
 	namespace string
 	storeKind string
+	cache     map[string]*dClient.CacheEntry
 }
 
 // SecretsClientInterface defines the required Doppler Client methods.
