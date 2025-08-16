@@ -501,21 +501,16 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 		Name: name,
 	}
 	result, err := c.smClient.AccessSecretVersion(ctx, req)
+	if err != nil && c.store.GetLatestEnabledSecret &&
+		ref.Version == "" && isErrSecretDestroyedOrDisabled(err) {
+		// if the secret is destroyed or disabled, and we are configured to get the latest enabled secret,
+		// we need to get the latest enabled secret
+		result, err = getLatestEnabledVersion(ctx, c.smClient, name)
+	}
 	if err != nil {
-		if c.store.GetLatestEnabledSecret && ref.Version == "" {
-			if isErrSecretDestroyedOrDisabled(err) {
-				result, err = getLatestEnabledVersion(ctx, c.smClient, name)
-				if err != nil {
-					metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAccessSecretVersion, err)
-					err = parseError(err)
-					return nil, fmt.Errorf(errClientGetSecretAccess, err)
-				}
-			}
-		} else {
-			metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAccessSecretVersion, err)
-			err = parseError(err)
-			return nil, fmt.Errorf(errClientGetSecretAccess, err)
-		}
+		metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAccessSecretVersion, err)
+		err = parseError(err)
+		return nil, fmt.Errorf(errClientGetSecretAccess, err)
 	}
 
 	if ref.Property == "" {
