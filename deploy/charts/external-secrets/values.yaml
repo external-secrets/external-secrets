@@ -1,7 +1,18 @@
+---
 global:
   nodeSelector: {}
   tolerations: []
   topologySpreadConstraints: []
+  #  - maxSkew: 1
+  #    topologyKey: topology.kubernetes.io/zone
+  #    whenUnsatisfiable: ScheduleAnyway
+  #    matchLabelKeys:
+  #      - pod-template-hash
+  #  - maxSkew: 1
+  #    topologyKey: kubernetes.io/hostname
+  #    whenUnsatisfiable: DoNotSchedule
+  #    matchLabelKeys:
+  #      - pod-template-hash
   affinity: {}
   compatibility:
     openshift:
