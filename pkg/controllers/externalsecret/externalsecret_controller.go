@@ -50,7 +50,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	esv1beta1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1beta1"
-	ctrlerrors "github.com/external-secrets/external-secrets/pkg/controllers/errors"
 	// Metrics.
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
@@ -65,6 +64,7 @@ import (
 
 const (
 	fieldOwnerTemplate = "externalsecrets.external-secrets.io/%v"
+	ExternalSecretFinalizer = "externalsecrets.external-secrets.io/externalsecret-cleanup"
 
 	// condition messages for "SecretSynced" reason.
 	msgSynced       = "secret synced"
@@ -173,10 +173,48 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		return ctrl.Result{}, err
 	}
 
-	// skip reconciliation if deletion timestamp is set on external secret
+	// Handle deletion with finalizer
 	if !externalSecret.GetDeletionTimestamp().IsZero() {
-		log.V(1).Info("skipping ExternalSecret, it is marked for deletion")
+		if controllerutil.ContainsFinalizer(externalSecret, ExternalSecretFinalizer) {
+			// Check namespace exists before cleaning up
+			var namespace v1.Namespace
+			if err := r.Get(ctx, types.NamespacedName{Name: externalSecret.Namespace}, &namespace); err != nil {
+				if apierrors.IsNotFound(err) {
+					// Namespace is gone, just remove finalizer
+					controllerutil.RemoveFinalizer(externalSecret, ExternalSecretFinalizer)
+					if err := r.Update(ctx, externalSecret); err != nil {
+						log.Error(err, "failed to remove finalizer")
+						return ctrl.Result{}, err
+					}
+					return ctrl.Result{}, nil
+				}
+				return ctrl.Result{}, err
+			}
+			
+			// Clean up managed secrets if needed
+			if err := r.cleanupManagedSecrets(ctx, externalSecret); err != nil {
+				log.Error(err, "failed to cleanup managed secrets")
+				return ctrl.Result{}, err
+			}
+			
+			// Remove finalizer
+			controllerutil.RemoveFinalizer(externalSecret, ExternalSecretFinalizer)
+			if err := r.Update(ctx, externalSecret); err != nil {
+				log.Error(err, "failed to remove finalizer")
+				return ctrl.Result{}, err
+			}
+		}
+		log.V(1).Info("ExternalSecret deleted")
 		return ctrl.Result{}, nil
+	}
+	
+	// Add finalizer if not present
+	if !controllerutil.ContainsFinalizer(externalSecret, ExternalSecretFinalizer) {
+		controllerutil.AddFinalizer(externalSecret, ExternalSecretFinalizer)
+		if err := r.Update(ctx, externalSecret); err != nil {
+			log.Error(err, "failed to add finalizer")
+			return ctrl.Result{}, err
+		}
 	}
 
 	// if extended metrics is enabled, refine the time series vector
@@ -514,11 +552,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			return ctrl.Result{}, nil
 		}
 
-		if ctrlerrors.IsNamespaceGone(err) {
-			err = nil
-		} else {
-			r.markAsFailed(msgErrorUpdateSecret, err, externalSecret, syncCallsError.With(resourceLabels))
-		}
+		r.markAsFailed(msgErrorUpdateSecret, err, externalSecret, syncCallsError.With(resourceLabels))
 		return ctrl.Result{}, err
 	}
 
@@ -906,6 +940,31 @@ func isSecretValid(existingSecret *v1.Secret) bool {
 	}
 
 	return true
+}
+
+// cleanupManagedSecrets cleans up secrets managed by this ExternalSecret
+func (r *Reconciler) cleanupManagedSecrets(ctx context.Context, es *esv1beta1.ExternalSecret) error {
+	// Get the target secret name
+	secretName := es.Spec.Target.Name
+	if secretName == "" {
+		secretName = es.Name
+	}
+	
+	// Check if deletion policy is Delete
+	if es.Spec.Target.DeletionPolicy == esv1beta1.DeletionPolicyDelete {
+		// Delete the managed secret
+		secret := &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secretName,
+				Namespace: es.Namespace,
+			},
+		}
+		if err := r.Delete(ctx, secret); err != nil && !apierrors.IsNotFound(err) {
+			return fmt.Errorf("failed to delete managed secret: %w", err)
+		}
+	}
+	
+	return nil
 }
 
 // SetupWithManager returns a new controller builder that will be started by the provided Manager.
