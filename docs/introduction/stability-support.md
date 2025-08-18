@@ -40,8 +40,8 @@ As of version 0.14.x , this is the only kubernetes version that we will guarante
 
 The following table describes the stability level of each provider and who's responsible.
 
-| Provider | Stability | Maintainer |
-| -------- | --------: | ---------: |-------|--:--------------------------------------------------------------------------------------------------|
+| Provider | Stability | Maintainer                                                                                                                                                                                            |
+| -------- | --------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | [AWS Secrets Manager](https://external-secrets.io/latest/provider/aws-secrets-manager/)                    | stable    | [external-secrets](https://github.com/external-secrets)                                             |
 | [AWS Parameter Store](https://external-secrets.io/latest/provider/aws-parameter-store/)                    | stable    | [external-secrets](https://github.com/external-secrets)                                             |
 | [Hashicorp Vault](https://external-secrets.io/latest/provider/hashicorp-vault/)                            | stable    | [external-secrets](https://github.com/external-secrets)                                             |
@@ -72,7 +72,7 @@ The following table describes the stability level of each provider and who's res
 | [Bitwarden Secrets Manager](https://external-secrets.io/latest/provider/bitwarden-secrets-manager)         | alpha     | [@skarlso](https://github.com/Skarlso)                                                              |
 | [Previder](https://external-secrets.io/latest/provider/previder)                                           | stable    | [@previder](https://github.com/previder)                                                            |
 | [Cloud.ru](https://external-secrets.io/latest/provider/cloudru)                                            | alpha     | [@default23](https://github.com/default23)                                                          |
-
+| [ngrok](https://external-secrets.io/latest/provider/ngrok)                                                 | alpha     | [@jonstacks](https://github.com/jonstacks)                                                          |
 
 ## Provider Feature Support
 
@@ -110,6 +110,7 @@ The following table show the support for features across different providers.
 | Bitwarden Secrets Manager |      x       |              |                      |                         |        x         |      x      |              x              |
 | Previder                  |      x       |              |                      |                         |        x         |             |                             |
 | Cloud.ru                  |      x       |      x       |                      |            x            |        x         |             |              x              |
+| ngrok                     |              |              |                      |                         |        x         |      x      |                             |
 
 ## Support Policy
 
