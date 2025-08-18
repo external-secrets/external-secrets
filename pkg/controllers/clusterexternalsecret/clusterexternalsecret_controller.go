@@ -108,6 +108,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if err := r.Update(ctx, &clusterExternalSecret); err != nil {
 			return ctrl.Result{}, err
 		}
+		// Let the update trigger a new reconciliation
+		return ctrl.Result{}, nil
 	}
 
 	p := client.MergeFrom(clusterExternalSecret.DeepCopy())
@@ -169,7 +171,7 @@ func (r *Reconciler) reconcile(ctx context.Context, log logr.Logger, clusterExte
 	for _, err := range failedNamespaces {
 		if apierrors.IsConflict(err) {
 			log.V(1).Info("conflict detected, requeuing immediately")
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{RequeueAfter: 0}, nil
 		}
 	}
 
@@ -252,38 +254,50 @@ func (r *Reconciler) cleanupExternalSecrets(ctx context.Context, log logr.Logger
 		esName = clusterExternalSecret.ObjectMeta.Name
 	}
 
+	var errs []error
 	for _, ns := range clusterExternalSecret.Status.ProvisionedNamespaces {
 		// Remove namespace finalizer first
 		var namespace v1.Namespace
 		if err := r.Get(ctx, types.NamespacedName{Name: ns}, &namespace); err != nil {
 			if apierrors.IsNotFound(err) {
+				// Namespace already deleted, that's ok
 				continue
 			}
-			return err
+			errs = append(errs, fmt.Errorf("failed to get namespace %s: %w", ns, err))
+			continue
 		}
 
+		// Remove the namespace finalizer that tracks this CES
+		// The finalizer name includes the CES name to allow multiple CES resources
+		// to provision into the same namespace independently
 		finalizer := "externalsecrets.external-secrets.io/ces-" + clusterExternalSecret.Name
 		if controllerutil.ContainsFinalizer(&namespace, finalizer) {
 			// Fetch the latest namespace to avoid conflicts
 			latestNs := &v1.Namespace{}
 			if err := r.Get(ctx, types.NamespacedName{Name: namespace.Name}, latestNs); err != nil {
 				if !apierrors.IsNotFound(err) {
-					log.Error(err, "failed to get latest namespace", "namespace", ns)
+					errs = append(errs, fmt.Errorf("failed to get latest namespace %s: %w", ns, err))
 				}
 			} else {
 				controllerutil.RemoveFinalizer(latestNs, finalizer)
-				if err := r.Update(ctx, latestNs); err != nil && !apierrors.IsNotFound(err) && !apierrors.IsConflict(err) {
-					log.Error(err, "failed to remove namespace finalizer", "namespace", ns)
+				if err := r.Update(ctx, latestNs); err != nil {
+					// Ignore NotFound (namespace deleted) and Conflict (will retry)
+					if !apierrors.IsNotFound(err) && !apierrors.IsConflict(err) {
+						errs = append(errs, fmt.Errorf("failed to remove finalizer from namespace %s: %w", ns, err))
+					}
 				}
 			}
 		}
 
 		// Delete ExternalSecret
 		if err := r.deleteExternalSecret(ctx, esName, clusterExternalSecret.Name, ns); err != nil {
-			log.Error(err, "failed to delete ExternalSecret", "namespace", ns)
+			errs = append(errs, fmt.Errorf("failed to delete ExternalSecret in namespace %s: %w", ns, err))
 		}
 	}
 
+	if len(errs) > 0 {
+		return fmt.Errorf("cleanup encountered %d errors: %v", len(errs), errs)
+	}
 	return nil
 }
 
