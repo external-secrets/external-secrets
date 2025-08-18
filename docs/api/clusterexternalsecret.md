@@ -13,6 +13,20 @@ Below is an example of the `ClusterExternalSecret` in use.
 {% include 'full-cluster-external-secret.yaml' %}
 ```
 
+## Synchronizing corresponding ExternalSecrets
+
+Regular refreshes can be controlled using the `refreshPolicy` and
+`refreshInterval` fields. Adhoc synchronizations can be triggered by
+setting, updating or deleting the annotation `external-secrets.io/force-sync`
+on the ClusterExternalSecret:
+
+```
+kubectl annotate ces my-ces external-secrets.io/force-sync=$(date +%s) --overwrite
+```
+
+Changes to this annotation will be synchronized to all ExternalSecrets
+owned by the ClusterExternalSecret.
+
 ## Deprecations
 
 ### namespaceSelector
