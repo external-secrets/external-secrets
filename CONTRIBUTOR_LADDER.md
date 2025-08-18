@@ -35,8 +35,8 @@ Regular contributors engaged with the project for at least **3 months**.
 
 ---
 
-### 3) Reviewer (per Specialty)
-Experienced contributors who review changes in **one or more specialties**.
+### 3) Reviewer
+Experienced contributors who review changes.
 
 **Requirements**
 - Member for at least **3 months**.
@@ -45,17 +45,17 @@ Experienced contributors who review changes in **one or more specialties**.
 
 **Privileges**
 - Listed as `reviewer` in the relevant `OWNERS` files.
-- May use `/lgtm` on PRs within the specialty.
+- May use `/lgtm` on PRs.
 - Eligible for **Approver** nomination.
 
 ---
 
-### 4) Approver (per Specialty)
-Trusted contributors with **merge/approve authority** in their specialty.
+### 4) Approver
+Trusted contributors with **merge/approve authority**.
 
 **Requirements**
 - Reviewer for at least **3 months**.
-- Multiple significant approvals/landed changes in the specialty.
+- Multiple significant approvals/landed changes.
 - Demonstrated understanding of project-wide implications.
 
 **Privileges**
@@ -69,7 +69,7 @@ Trusted contributors with **merge/approve authority** in their specialty.
 Project leaders with governance, release, and cross-specialty responsibility.
 
 **Requirements**
-- Approver for at least **6 months** in one or more specialties.
+- Approver for at least **6 months**.
 - Demonstrated leadership, reliability, and constructive collaboration.
 - Nominated and approved by a **supermajority** of Maintainers.
 
@@ -78,44 +78,12 @@ Project leaders with governance, release, and cross-specialty responsibility.
 - Release management authority.
 - Representation in CNCF processes.
 
-> A contributor may hold different roles across specialties (e.g., **Approver** in Providers and **Reviewer** in CI).
-
----
-
-## Specialty Tracks
-
-Specialties define scope for `reviewer`/`approver` permissions and expectations. Ownership is documented in `OWNERS` files.
-
-### CI / Infrastructure
-Focus: GitHub Actions, build/test pipelines, images, release automation.
-- **Reviewer**: Reviews CI changes, enforces reproducibility, flags flaky tests.
-- **Approver**: Owns pipeline stability, approves release workflow changes.
-
-### Testing
-Focus: Unit/integration/E2E tests, frameworks, fixtures, test data.
-- **Reviewer**: Ensures adequate coverage and quality in PRs, promotes testability.
-- **Approver**: Sets testing strategy, guards test harness stability and performance.
-
-### Core Controllers
-Focus: CRDs, reconciliation logic, API evolution, performance.
-- **Reviewer**: Reviews controller/CRD changes, ensures API consistency and backward compatibility.
-- **Approver**: Owns core designs affecting controller behavior and APIs.
-
-### Providers
-Focus: Provider integrations (AWS, Vault, GCP, Azure, CyberArk, etc.).
-- **Reviewer**: Reviews provider-specific code and conformance to provider guidelines.
-- **Approver**: Owns lifecycle and quality of one or more providers; coordinates breaking changes.
-
-### Security
-Focus: Vulnerability handling, dependency hygiene, threat modeling, secure coding.
-- **Reviewer**: Reviews PRs for security impact; flags risky patterns.
-- **Approver**: Leads security releases and coordinates disclosure/patch processes.
-
 ---
 
 ## Interim Roles
 
-In some cases, Maintainers may create **interim roles** for **Member** or **Reviewer** positions in a given specialty.  
+In some cases, Maintainers may create **interim roles** for **Member**, **Reviewer** or **Approver** positions.  
+
 These are **temporary training-oriented roles** designed to help contributors gain the experience needed to meet the full role requirements.
 
 ### Purpose
@@ -124,17 +92,12 @@ These are **temporary training-oriented roles** designed to help contributors ga
 - Reduce barriers for new contributors to join governance roles.
 
 ### Scope
-- Available only for **Member** and **Reviewer** levels (including per-specialty Reviewers).
 - Limited to a **maximum of three (3) months**.
-- Specialty and scope are explicitly documented in `OWNERS` files and/or a public tracking issue.
-- Interim roles per specialty can accumulate (e.g. a contributor can be an interim reviewer on CI and on Providers at the same time). This is to allow a fast path to upskill future project-wide maintainers.
-
-#### Approver exclusion
-
-Approvers on any specialty may never be interim. This is to prevent abuse of the interim role system, and to consolidate the needed trust between the other maintainers & approvers for the different elements of the codebase.
+- **Approver** interim roles must be elected by super majority.
+- Non Renewable.
 
 ### Limits
-- There can only be a maximum of two interim roles per specialty (two CI members; two CI reviewers; two CI interim approvers; two provider Members; two provider Reviewers; two provider interim Approvers).
+- There can only be a maximum of three interim roles.
 
 ### Examples
 - **Interim Member**: Has fewer than 8 substantive contributions but commits to achieve them within 3 months.
@@ -143,7 +106,7 @@ Approvers on any specialty may never be interim. This is to prevent abuse of the
 ### Process
 1. Maintainers discuss and vote on the need for an interim role (lazy consensus).
 2. Scope and duration are defined clearly (specialty, responsibilities, expected milestones).
-3. Nomination of interim roles is done by lazy consensus.
+3. Nomination of interim roles is done by lazy consensus (except for interim approvers).
 4. Interim roles are granted for a maximum of three months.
 5. Interim status is reviewed at the end of the period:
    - If requirements are met → promotion to the permanent role.
