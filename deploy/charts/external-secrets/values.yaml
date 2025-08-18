@@ -103,7 +103,7 @@ createOperator: true
 # -- Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at
 # a time.
 concurrent: 1
-# -- Specifices Log Params to the External Secrets Operator
+# -- Specifies Log Params to the External Secrets Operator
 log:
   level: info
   timeEncoding: epoch
@@ -260,6 +260,27 @@ grafanaDashboard:
   # https://github.com/grafana/helm-charts/tree/main/charts/grafana
   annotations: {}
 
+livenessProbe:
+  # -- Enabled determines if the liveness probe should be used or not. By default it's disabled.
+  enabled: false
+  # -- Address for liveness probe.
+  address: ""
+  # -- Specify the maximum amount of time to wait for a probe to respond before considering it fails.
+  timeoutSeconds: 5
+  # -- Number of consecutive probe failures that should occur before considering the probe as failed.
+  failureThreshold: 5
+  # -- Period in seconds for K8s to start performing probes.
+  periodSeconds: 10
+  # -- Number of successful probes to mark probe successful.
+  successThreshold: 1
+  # -- Delay in seconds for the container to start before performing the initial probe.
+  initialDelaySeconds: 10
+  # -- Handler for liveness probe.
+  httpGet:
+    # -- Set this value to 8082 to active liveness probes.
+    port: "8082"
+    path: /healthz
+
 nodeSelector: {}
 
 tolerations: []
@@ -286,12 +307,12 @@ webhook:
   annotations: {}
   # -- Specifies whether a webhook deployment be created. If set to false, crds.conversion.enabled should also be set to false otherwise the kubeapi will be hammered because the conversion is looking for a webhook endpoint.
   create: true
-  # -- Specifices the time to check if the cert is valid
+  # -- Specifies the time to check if the cert is valid
   certCheckInterval: "5m"
-  # -- Specifices the lookaheadInterval for certificate validity
+  # -- Specifies the lookaheadInterval for certificate validity
   lookaheadInterval: ""
   replicaCount: 1
-  # -- Specifices Log Params to the Webhook
+  # -- Specifies Log Params to the Webhook
   log:
     level: info
     timeEncoding: epoch
@@ -479,7 +500,7 @@ certController:
   create: true
   requeueInterval: "5m"
   replicaCount: 1
-  # -- Specifices Log Params to the Certificate Controller
+  # -- Specifies Log Params to the Certificate Controller
   log:
     level: info
     timeEncoding: epoch
