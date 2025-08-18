@@ -140,8 +140,6 @@ func (w *Webhook) GetTemplateData(ctx context.Context, ref *esv1.ExternalSecretD
 	if err := w.getTemplatedSecrets(ctx, secrets, data); err != nil {
 		return nil, err
 	}
-	fmt.Print("---------->")
-	fmt.Print(data)
 	return data, nil
 }
 
