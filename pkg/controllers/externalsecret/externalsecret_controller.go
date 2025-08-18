@@ -65,7 +65,7 @@ const (
 	fieldOwnerTemplate    = "externalsecrets.external-secrets.io/%v"
 	fieldOwnerTemplateSha = "externalsecrets.external-secrets.io/sha3/%x"
 
-	// ExternalSecretFinalizer is the finalizer for ExternalSecret resources
+	// ExternalSecretFinalizer is the finalizer for ExternalSecret resources.
 	ExternalSecretFinalizer = "externalsecrets.external-secrets.io/externalsecret-cleanup"
 
 	// condition messages for "SecretSynced" reason.
