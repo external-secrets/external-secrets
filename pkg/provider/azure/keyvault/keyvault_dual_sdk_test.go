@@ -26,31 +26,31 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-// TestFeatureFlagRouting tests that the UseAzureSDK feature flag correctly routes to the appropriate implementation
+// TestFeatureFlagRouting tests that the UseAzureSDK feature flag correctly routes to the appropriate implementation.
 func TestFeatureFlagRouting(t *testing.T) {
 	testCases := []struct {
-		name           string
-		useAzureSDK    *bool
-		expectNewSDK   bool
-		description    string
+		name         string
+		useAzureSDK  *bool
+		expectNewSDK bool
+		description  string
 	}{
 		{
-			name:        "default_legacy_sdk",
-			useAzureSDK: nil,
+			name:         "default_legacy_sdk",
+			useAzureSDK:  nil,
 			expectNewSDK: false,
-			description: "When UseAzureSDK is nil (default), should use legacy SDK",
+			description:  "When UseAzureSDK is nil (default), should use legacy SDK",
 		},
 		{
-			name:        "explicit_legacy_sdk",
-			useAzureSDK: ptr.To(false),
+			name:         "explicit_legacy_sdk",
+			useAzureSDK:  ptr.To(false),
 			expectNewSDK: false,
-			description: "When UseAzureSDK is explicitly false, should use legacy SDK",
+			description:  "When UseAzureSDK is explicitly false, should use legacy SDK",
 		},
 		{
-			name:        "explicit_new_sdk",
-			useAzureSDK: ptr.To(true),
+			name:         "explicit_new_sdk",
+			useAzureSDK:  ptr.To(true),
 			expectNewSDK: true,
-			description: "When UseAzureSDK is true, should use new SDK",
+			description:  "When UseAzureSDK is true, should use new SDK",
 		},
 	}
 
@@ -88,7 +88,7 @@ func TestFeatureFlagRouting(t *testing.T) {
 	}
 }
 
-// TestClientInitialization tests that both client initialization paths work correctly
+// TestClientInitialization tests that both client initialization paths work correctly.
 func TestClientInitialization(t *testing.T) {
 	// Create test secret with credentials
 	secret := &corev1.Secret{
@@ -117,7 +117,7 @@ func TestClientInitialization(t *testing.T) {
 			description:         "Legacy client initialization should not panic",
 		},
 		{
-			name:                "new_sdk_client_init", 
+			name:                "new_sdk_client_init",
 			useAzureSDK:         ptr.To(true),
 			expectedErrorPrefix: "", // May succeed or fail with auth errors, but should not panic
 			description:         "New SDK client initialization should not panic",
@@ -164,7 +164,7 @@ func TestClientInitialization(t *testing.T) {
 
 			azure := &Azure{}
 			_, err := azure.NewClient(context.Background(), store, fakeClient, "test-namespace")
-			
+
 			// We expect errors due to authentication issues in tests, but no panics
 			// The important thing is that the code paths are exercised without crashing
 			if err != nil {
@@ -174,7 +174,7 @@ func TestClientInitialization(t *testing.T) {
 	}
 }
 
-// TestConfigurationValidation tests that the feature flag is properly validated and accepted
+// TestConfigurationValidation tests that the feature flag is properly validated and accepted.
 func TestConfigurationValidation(t *testing.T) {
 	testCases := []struct {
 		name        string
@@ -239,16 +239,14 @@ func TestConfigurationValidation(t *testing.T) {
 				if len(warnings) > 0 {
 					t.Logf("Validation warnings for %s: %v", tc.description, warnings)
 				}
-			} else {
-				if err == nil {
-					t.Errorf("Expected validation to fail for %s, but it passed", tc.description)
-				}
+			} else if err == nil {
+				t.Errorf("Expected validation to fail for %s, but it passed", tc.description)
 			}
 		})
 	}
 }
 
-// TestBackwardCompatibility ensures that existing configurations continue to work
+// TestBackwardCompatibility ensures that existing configurations continue to work.
 func TestBackwardCompatibility(t *testing.T) {
 	// Test that existing configurations without UseAzureSDK still work
 	provider := &esv1.AzureKVProvider{
@@ -295,7 +293,7 @@ func TestBackwardCompatibility(t *testing.T) {
 	}
 }
 
-// TestAzureStackCloudConfiguration tests Azure Stack Cloud configuration validation
+// TestAzureStackCloudConfiguration tests Azure Stack Cloud configuration validation.
 func TestAzureStackCloudConfiguration(t *testing.T) {
 	testCases := []struct {
 		name          string
@@ -312,17 +310,17 @@ func TestAzureStackCloudConfiguration(t *testing.T) {
 			envType:     esv1.AzureEnvironmentAzureStackCloud,
 			customConfig: &esv1.AzureCustomCloudConfig{
 				ActiveDirectoryEndpoint: "https://login.microsoftonline.com/",
-				KeyVaultEndpoint:       ptr.To("https://vault.local.azurestack.external/"),
-				KeyVaultDNSSuffix:      ptr.To(".vault.local.azurestack.external"),
+				KeyVaultEndpoint:        ptr.To("https://vault.local.azurestack.external/"),
+				KeyVaultDNSSuffix:       ptr.To(".vault.local.azurestack.external"),
 			},
 			expectError: false,
 			description: "Azure Stack with new SDK and custom config should be valid",
 		},
 		{
-			name:        "azure_stack_without_custom_config",
-			useAzureSDK: ptr.To(true),
-			envType:     esv1.AzureEnvironmentAzureStackCloud,
-			customConfig: nil,
+			name:          "azure_stack_without_custom_config",
+			useAzureSDK:   ptr.To(true),
+			envType:       esv1.AzureEnvironmentAzureStackCloud,
+			customConfig:  nil,
 			expectError:   true,
 			expectedError: "CustomCloudConfig is required when EnvironmentType is AzureStackCloud",
 			description:   "Azure Stack without custom config should fail",
@@ -372,12 +370,12 @@ func TestAzureStackCloudConfiguration(t *testing.T) {
 			description:   "Custom config with non-AzureStack environment should fail",
 		},
 		{
-			name:        "public_cloud_without_custom_config",
-			useAzureSDK: ptr.To(true),
-			envType:     esv1.AzureEnvironmentPublicCloud,
+			name:         "public_cloud_without_custom_config",
+			useAzureSDK:  ptr.To(true),
+			envType:      esv1.AzureEnvironmentPublicCloud,
 			customConfig: nil,
-			expectError: false,
-			description: "Public cloud without custom config should be valid",
+			expectError:  false,
+			description:  "Public cloud without custom config should be valid",
 		},
 	}
 
@@ -430,7 +428,7 @@ func TestAzureStackCloudConfiguration(t *testing.T) {
 	}
 }
 
-// TestGetCloudConfiguration tests the cloud configuration resolution
+// TestGetCloudConfiguration tests the cloud configuration resolution.
 func TestGetCloudConfiguration(t *testing.T) {
 	testCases := []struct {
 		name          string
@@ -467,10 +465,10 @@ func TestGetCloudConfiguration(t *testing.T) {
 			name: "azure_stack_with_config",
 			provider: &esv1.AzureKVProvider{
 				EnvironmentType: esv1.AzureEnvironmentAzureStackCloud,
-				UseAzureSDK:    ptr.To(true),
+				UseAzureSDK:     ptr.To(true),
 				CustomCloudConfig: &esv1.AzureCustomCloudConfig{
 					ActiveDirectoryEndpoint: "https://login.local.azurestack.external/",
-					KeyVaultEndpoint:       ptr.To("https://vault.local.azurestack.external/"),
+					KeyVaultEndpoint:        ptr.To("https://vault.local.azurestack.external/"),
 				},
 			},
 			expectError: false,
@@ -480,7 +478,7 @@ func TestGetCloudConfiguration(t *testing.T) {
 			name: "azure_stack_without_new_sdk",
 			provider: &esv1.AzureKVProvider{
 				EnvironmentType: esv1.AzureEnvironmentAzureStackCloud,
-				UseAzureSDK:    ptr.To(false),
+				UseAzureSDK:     ptr.To(false),
 				CustomCloudConfig: &esv1.AzureCustomCloudConfig{
 					ActiveDirectoryEndpoint: "https://login.local.azurestack.external/",
 				},
@@ -493,7 +491,7 @@ func TestGetCloudConfiguration(t *testing.T) {
 			name: "azure_stack_without_config",
 			provider: &esv1.AzureKVProvider{
 				EnvironmentType: esv1.AzureEnvironmentAzureStackCloud,
-				UseAzureSDK:    ptr.To(true),
+				UseAzureSDK:     ptr.To(true),
 			},
 			expectError:   true,
 			expectedError: "CustomCloudConfig is required when EnvironmentType is AzureStackCloud",
