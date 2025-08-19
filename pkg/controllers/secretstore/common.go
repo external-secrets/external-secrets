@@ -27,6 +27,8 @@ import (
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/metrics"
+
+	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
 )
 
 const (
@@ -38,6 +40,9 @@ const (
 
 	msgStoreValidated     = "store validated"
 	msgStoreNotMaintained = "store isn't currently maintained. Please plan and prepare accordingly."
+
+	// Finalizer for SecretStores when they have PushSecrets with DeletionPolicy=Delete
+	secretStoreFinalizer = "secretstore.externalsecrets.io/finalizer"
 )
 
 type Opts struct {
