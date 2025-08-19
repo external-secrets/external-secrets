@@ -57,7 +57,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kubeC
 	}
 
 	if store.GetKind() == esv1.ClusterSecretStoreKind && doesConfigDependOnNamespace(cfg) {
-		return nil, errors.New("when using a ClusterSecretStore, namespaces must be explicitly set")
+		return nil, errors.New("referent authentication isn't implemented in this provider")
 	}
 
 	apiKey, err := loadAPIKeySecret(ctx, cfg.APIKey, kubeClient, store.GetKind(), namespace)
