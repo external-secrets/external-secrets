@@ -88,7 +88,7 @@ func (r *ClusterStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request
 
 // handleClusterSecretStoreFinalizer manages the finalizer for ClusterSecretStores
 // It adds a finalizer when there are PushSecrets with DeletionPolicy=Delete that reference this store
-// and removes it when there are no such PushSecrets
+// and removes it when there are no such PushSecrets.
 func (r *ClusterStoreReconciler) handleClusterSecretStoreFinalizer(ctx context.Context, css *esapi.ClusterSecretStore, log logr.Logger) error {
 	// Check if this ClusterSecretStore is referenced by any PushSecrets with DeletionPolicy=Delete
 	hasPushSecretsWithDeletePolicy, err := r.hasPushSecretsWithDeletePolicy(ctx, css)
@@ -136,7 +136,7 @@ func (r *ClusterStoreReconciler) handleClusterSecretStoreFinalizer(ctx context.C
 }
 
 // hasPushSecretsWithDeletePolicy checks if there are any PushSecrets with DeletionPolicy=Delete
-// that reference this ClusterSecretStore using the controller-runtime index
+// that reference this ClusterSecretStore using the controller-runtime index.
 func (r *ClusterStoreReconciler) hasPushSecretsWithDeletePolicy(ctx context.Context, css *esapi.ClusterSecretStore) (bool, error) {
 	storeName := css.GetName()
 
@@ -213,7 +213,7 @@ func (r *ClusterStoreReconciler) SetupWithManager(mgr ctrl.Manager, opts control
 		Complete(r)
 }
 
-// findClusterSecretStoresForPushSecret finds ClusterSecretStores that should be reconciled when a PushSecret changes
+// findClusterSecretStoresForPushSecret finds ClusterSecretStores that should be reconciled when a PushSecret changes.
 func (r *ClusterStoreReconciler) findClusterSecretStoresForPushSecret(ctx context.Context, obj client.Object) []ctrlreconcile.Request {
 	ps := obj.(*esv1alpha1.PushSecret)
 	var requests []ctrlreconcile.Request
@@ -239,7 +239,7 @@ func (r *ClusterStoreReconciler) findClusterSecretStoresForPushSecret(ctx contex
 }
 
 // shouldReconcileClusterSecretStoreForPushSecret determines if a ClusterSecretStore should be reconciled
-// when a PushSecret changes, based on whether the PushSecret references this store
+// when a PushSecret changes, based on whether the PushSecret references this store.
 func shouldReconcileClusterSecretStoreForPushSecret(store *esapi.ClusterSecretStore, ps *esv1alpha1.PushSecret) bool {
 	// Check if this PushSecret has pushed to this store
 	storeKey := fmt.Sprintf("%s/%s", esapi.ClusterSecretStoreKind, store.Name)

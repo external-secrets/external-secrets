@@ -88,7 +88,7 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 // handleSecretStoreFinalizer manages the finalizer for SecretStores
 // It adds a finalizer when there are PushSecrets with DeletionPolicy=Delete that reference this store
-// and removes it when there are no such PushSecrets
+// and removes it when there are no such PushSecrets.
 func (r *StoreReconciler) handleSecretStoreFinalizer(ctx context.Context, ss *esapi.SecretStore, log logr.Logger) error {
 	// Check if this SecretStore is referenced by any PushSecrets with DeletionPolicy=Delete
 	hasPushSecretsWithDeletePolicy, err := r.hasPushSecretsWithDeletePolicy(ctx, ss)
@@ -136,7 +136,7 @@ func (r *StoreReconciler) handleSecretStoreFinalizer(ctx context.Context, ss *es
 }
 
 // hasPushSecretsWithDeletePolicy checks if there are any PushSecrets with DeletionPolicy=Delete
-// that reference this SecretStore using the controller-runtime index
+// that reference this SecretStore using the controller-runtime index.
 func (r *StoreReconciler) hasPushSecretsWithDeletePolicy(ctx context.Context, ss *esapi.SecretStore) (bool, error) {
 	storeName := ss.GetName()
 	storeNamespace := ss.GetNamespace()
@@ -217,7 +217,7 @@ func (r *StoreReconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Opt
 		Complete(r)
 }
 
-// findSecretStoresForPushSecret finds SecretStores that should be reconciled when a PushSecret changes
+// findSecretStoresForPushSecret finds SecretStores that should be reconciled when a PushSecret changes.
 func (r *StoreReconciler) findSecretStoresForPushSecret(ctx context.Context, obj client.Object) []ctrlreconcile.Request {
 	ps := obj.(*esv1alpha1.PushSecret)
 	var requests []ctrlreconcile.Request
@@ -244,7 +244,7 @@ func (r *StoreReconciler) findSecretStoresForPushSecret(ctx context.Context, obj
 }
 
 // shouldReconcileSecretStoreForPushSecret determines if a SecretStore should be reconciled
-// when a PushSecret changes, based on whether the PushSecret references this store
+// when a PushSecret changes, based on whether the PushSecret references this store.
 func shouldReconcileSecretStoreForPushSecret(store *esapi.SecretStore, ps *esv1alpha1.PushSecret) bool {
 	// Check if this PushSecret has pushed to this store
 	storeKey := fmt.Sprintf("%s/%s", esapi.SecretStoreKind, store.Name)

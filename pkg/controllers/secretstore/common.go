@@ -41,7 +41,7 @@ const (
 	msgStoreValidated     = "store validated"
 	msgStoreNotMaintained = "store isn't currently maintained. Please plan and prepare accordingly."
 
-	// Finalizer for SecretStores when they have PushSecrets with DeletionPolicy=Delete
+	// Finalizer for SecretStores when they have PushSecrets with DeletionPolicy=Delete.
 	secretStoreFinalizer = "secretstore.externalsecrets.io/finalizer"
 )
 
