@@ -530,6 +530,9 @@
         "processClusterExternalSecret": {
             "type": "boolean"
         },
+        "processClusterGenerator": {
+            "type": "boolean"
+        },
         "processClusterPushSecret": {
             "type": "boolean"
         },
