@@ -40,8 +40,8 @@ As of version 0.14.x , this is the only kubernetes version that we will guarante
 
 The following table describes the stability level of each provider and who's responsible.
 
-| Provider | Stability | Maintainer |
-| -------- | --------: | ---------: |-------|--:--------------------------------------------------------------------------------------------------|
+| Provider | Stability | Maintainer                                                                                                                                                                                            |
+| -------- | --------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | [AWS Secrets Manager](https://external-secrets.io/latest/provider/aws-secrets-manager/)                    | stable    | [external-secrets](https://github.com/external-secrets)                                             |
 | [AWS Parameter Store](https://external-secrets.io/latest/provider/aws-parameter-store/)                    | stable    | [external-secrets](https://github.com/external-secrets)                                             |
 | [Hashicorp Vault](https://external-secrets.io/latest/provider/hashicorp-vault/)                            | stable    | [external-secrets](https://github.com/external-secrets)                                             |
