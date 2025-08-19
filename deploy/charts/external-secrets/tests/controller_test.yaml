@@ -100,3 +100,20 @@ tests:
       - equal:
           path: spec.strategy.rollingUpdate.maxUnavailable
           value: 0
+  - it: should add livenessProbe if define
+    set:
+      livenessProbe:
+        enabled: true
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 10
+        failureThreshold: 10
+        successThreshold: 10
+        httpGet:
+          path: /healthz
+          port: "8080"
+          scheme: HTTP
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].livenessProbe.httpGet.port
+          value: "8080"

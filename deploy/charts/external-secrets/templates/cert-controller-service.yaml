@@ -1,4 +1,9 @@
-{{- if and .Values.certController.create ( or .Values.certController.metrics.service.enabled ( and ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) .Values.serviceMonitor.enabled )) (not .Values.webhook.certManager.enabled) }}
+{{- $shouldRenderStr := include "external-secrets.shouldRenderServiceMonitor" . | trim }}
+{{- if and .Values.certController.create
+         (or .Values.certController.metrics.service.enabled
+             (and (eq $shouldRenderStr "true")
+                  .Values.serviceMonitor.enabled))
+         (not .Values.webhook.certManager.enabled) }}
 apiVersion: v1
 kind: Service
 metadata:
