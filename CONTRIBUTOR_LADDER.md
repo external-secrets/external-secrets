@@ -24,9 +24,9 @@ Anyone making contributions of any kind (code, docs, tests, CI configs, security
 Regular contributors engaged with the project for at least **3 months**.
 
 **Requirements**
-- Nominated by a **Member** or above.
-- Sponsored by **two Maintainers**.
-- ~**8+** substantive contributions (code, docs, tests, reviews, triage) in the last 3 months.
+- Self nomination by the contributor via a Github Issue.
+- Must be Sponsored by **two Maintainers** (sponsorship ask must happen within the github issue by tagging the sponsors).
+- substantive contributions (code, docs, tests, reviews, triage) in the last 3 months.
 
 **Privileges**
 - Added to the GitHub `members` team.
@@ -35,41 +35,28 @@ Regular contributors engaged with the project for at least **3 months**.
 
 ---
 
-### 3) Reviewer
-Experienced contributors who review changes.
+### 3) Reviewer (per Specialty)
+Experienced contributors who review changes in **one or more specialties**.
 
 **Requirements**
 - Member for at least **3 months**.
 - Regular, high-quality reviews in the specialty.
-- ~**20+** meaningful PR reviews over the last 3 months (or equivalent specialty output).
+- ~several meaningful PR reviews over the last 3 months (or equivalent specialty output).
 
 **Privileges**
 - Listed as `reviewer` in the relevant `OWNERS` files.
-- May use `/lgtm` on PRs.
-- Eligible for **Approver** nomination.
-
----
-
-### 4) Approver
-Trusted contributors with **merge/approve authority**.
-
-**Requirements**
-- Reviewer for at least **3 months**.
-- Multiple significant approvals/landed changes.
-- Demonstrated understanding of project-wide implications.
-
-**Privileges**
-- Listed as `approver` in relevant `OWNERS` files.
-- Can approve and merge PRs within the specialty.
+- May use `/lgtm` on PRs within the specialty.
 - Eligible for **Maintainer** nomination.
 
+> A contributor may hold different roles across specialties (e.g., **Reviewer** in CI, **Member** in Core Controllers).
+
 ---
 
-### 5) Maintainer (Project-Wide)
+### 4) Maintainer (Project-Wide)
 Project leaders with governance, release, and cross-specialty responsibility.
 
 **Requirements**
-- Approver for at least **6 months**.
+- Reviewer for at least **6 months** in one or more specialties.
 - Demonstrated leadership, reliability, and constructive collaboration.
 - Nominated and approved by a **supermajority** of Maintainers.
 
@@ -80,10 +67,31 @@ Project leaders with governance, release, and cross-specialty responsibility.
 
 ---
 
+## Specialty Tracks
+
+Specialties define scope for `reviewer` permissions and expectations. 
+
+### CI / Infrastructure
+Focus: GitHub Actions, build/test pipelines, images, release automation.
+Activity: Reviews CI changes, enforces reproducibility, flags flaky tests.
+
+### Testing
+Focus: Unit/integration/E2E tests, frameworks, fixtures, test data.
+Activity: Ensures adequate coverage and quality in PRs, promotes testability.
+
+### Core Controllers
+Focus: CRDs, reconciliation logic, API evolution, performance.
+Activity: Reviews controller/CRD changes, ensures API consistency and backward compatibility.
+
+### Providers
+Focus: Provider integrations (AWS, Vault, GCP, Azure, CyberArk, etc.).
+Activity: Reviews provider-specific code and conformance to provider guidelines; coordinates breaking changes (for providers that aren't `stable` graded).
+
+---
+
 ## Interim Roles
 
-In some cases, Maintainers may create **interim roles** for **Member**, **Reviewer** or **Approver** positions.  
-
+In some cases, Maintainers may create **interim roles** for **Member** or **Reviewer** positions in a given specialty.  
 These are **temporary training-oriented roles** designed to help contributors gain the experience needed to meet the full role requirements.
 
 ### Purpose
@@ -92,12 +100,17 @@ These are **temporary training-oriented roles** designed to help contributors ga
 - Reduce barriers for new contributors to join governance roles.
 
 ### Scope
+- Available only for **Member** and **Reviewer** levels (including per-specialty Reviewers).
 - Limited to a **maximum of three (3) months**.
-- **Approver** interim roles must be elected by super majority.
-- Non Renewable.
+- Specialty and scope are explicitly documented in `OWNERS` files and/or a public tracking issue.
+- Interim roles per specialty can accumulate (e.g. a contributor can be an interim reviewer on CI and on Providers at the same time). This is to allow a fast path to upskill future project-wide maintainers.
+- Interim roles are not eligible for advancement to permanent roles (an interim reviewer cannot be eligible to be a maintainer).
+- Anyone can be nominated to an interim position.
+- Anyone effectivated after its interim period does not need to cover requirements from lower positions (e.g. an effectivated interim reviewer on CI does not need to have the criteria of being an effective CI member)
+- Any time spent on an interim role counts as participation to the project towards the requirements of the permanent role.
 
 ### Limits
-- There can only be a maximum of three interim roles.
+- There can only be a maximum of two interim roles per specialty (two CI members; two CI reviewers; two provider Members; two provider Reviewers; ...).
 
 ### Examples
 - **Interim Member**: Has fewer than 8 substantive contributions but commits to achieve them within 3 months.
@@ -106,7 +119,7 @@ These are **temporary training-oriented roles** designed to help contributors ga
 ### Process
 1. Maintainers discuss and vote on the need for an interim role (lazy consensus).
 2. Scope and duration are defined clearly (specialty, responsibilities, expected milestones).
-3. Nomination of interim roles is done by lazy consensus (except for interim approvers).
+3. Nomination of interim roles is done by lazy consensus.
 4. Interim roles are granted for a maximum of three months.
 5. Interim status is reviewed at the end of the period:
    - If requirements are met → promotion to the permanent role.
@@ -115,6 +128,35 @@ These are **temporary training-oriented roles** designed to help contributors ga
 ### Handling abuse
 
 Interim roles are not a substitute for permanent roles. If a contributor is abusing the interim role system, they may be demoted to their previous role.
+
+---
+
+## Member Abuse
+
+Abuse of project resources is a serious violation of our community standards and will not be tolerated. This includes but is not limited to:
+
+* Using project infrastructure for unauthorized activities like cryptocurrency mining.
+* Misusing project funds or financial resources.
+* Gaining unauthorized access to or damaging project infrastructure.
+* Willingly engaging in activities that are against the Code of Conduct.
+* Willingly introducing malwares or viruses to the project's infrastructure or codebase.
+* Any other activity that jeopardizes the project's resources, reputation, or community members.
+
+### Procedure for Handling Abuse
+
+1.  **Immediate Revocation of Privileges**: If abuse is suspected, any maintainer can  immediately revoke the member's access to all project infrastructure and resources to prevent further damage. This is a precautionary measure and not a final judgment.
+
+2.  **Investigation**: The maintainers will conduct a private investigation to gather all relevant facts and evidence. The accused member will be given an opportunity to respond to the allegations.
+
+3.  **Decision**: Based on the investigation, the maintainers will determine if a violation has occurred.
+
+4.  **Consequences**: If a violation is confirmed, consequences will be applied, which may include:
+    *   Permanent removal from the project.
+    *   Reporting the user to GitHub and other relevant platforms.
+    *   In cases of financial misuse or illegal activities, reporting to law enforcement authorities.
+
+All actions taken will be documented. The privacy of all individuals involved will be respected throughout the process.
+
 
 ---
 
@@ -129,12 +171,11 @@ Interim roles are not a substitute for permanent roles. If a contributor is abus
 
 ## Inactivity
 
-A role holder may be considered inactive if they have not actively contributed in their specialty or general project responsibilities for **six (6) consecutive months**.
+A **Reviewer** or **Maintainer** role holder may be considered inactive if they have not actively contributed or performed general project responsibilities for **six (6) consecutive months**.
 
 ### Measurement Sources
 - GitHub activity: merged PRs, PR reviews, issue triage/comments.
 - Participation in community calls or asynchronous design discussions.
-- Specialty-specific metrics (e.g., CI job maintenance, provider updates, security disclosures).
 
 ### Triggering Process
 1. **Detection**  
@@ -148,6 +189,9 @@ A role holder may be considered inactive if they have not actively contributed i
    - If there is no response or no significant activity within the grace period, proceed.
 4. **Decision**  
    - Demotion is decided by **lazy consensus** of Maintainers, or **supermajority** if contested.
+5. **Scope**
+   - Self elected demotions can be to any inferior level. e.g. a maintainer may self demote to a member, if they wish so. 
+   - Demotion via inactivity fully removes the role holder from the organization.
 5. **Documentation**  
    - Update `OWNERS`, GitHub teams, and governance records.  
    - Former Maintainers are listed as **Emeritus**.
