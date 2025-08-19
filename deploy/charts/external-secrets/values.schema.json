@@ -673,6 +673,14 @@
                 "relabelings": {
                     "type": "array"
                 },
+                "renderMode": {
+                    "type": "string",
+                    "enum": [
+                        "skipIfMissing",
+                        "failIfMissing",
+                        "alwaysRender"
+                    ]
+                },
                 "scrapeTimeout": {
                     "type": "string"
                 }
