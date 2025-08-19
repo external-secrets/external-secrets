@@ -139,7 +139,7 @@ func validateStore(ctx context.Context, namespace, controllerClass string, store
 			recorder.Event(store, v1.EventTypeWarning, esapi.ReasonValidationUnknown, err.Error())
 			return validationUnknownError
 		}
-		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonValidationFailed, fmt.Sprintf(errUnableValidateStore, err))
+		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonInvalidProviderConfig, fmt.Sprintf(errUnableValidateStore, err))
 		SetExternalSecretCondition(store, *cond, gaugeVecGetter)
 		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonValidationFailed, err.Error())
 		return fmt.Errorf(errValidationFailed, err)
