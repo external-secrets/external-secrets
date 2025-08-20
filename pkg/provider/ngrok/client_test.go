@@ -348,6 +348,8 @@ func TestClientPushSecret(t *testing.T) {
 				secret, err := client.getSecretByVaultNameAndSecretName(t.Context(), "existing-vault", "my-ngrok-secret")
 				assert.NoError(t, err)
 				assert.NotNil(t, secret)
+				assert.Equal(t, defaultDescription, secret.Description)
+				assert.Equal(t, `{"_sha256":"cd42404d52ad55ccfa9aca4adc828aa5800ad9d385a0671fbcbf724118320619"}`, secret.Metadata)
 			},
 		},
 	}
