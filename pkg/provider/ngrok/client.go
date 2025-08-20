@@ -76,19 +76,15 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 
 	// First, get the vault by name. If it doesn't exist, create it.
 	vault, err := c.getVaultByName(ctx, c.vaultName)
-	if err != nil {
-		if !errors.Is(err, errVaultDoesNotExist) {
-			return err
-		}
-
+	if errors.Is(err, errVaultDoesNotExist) {
 		// Create the vault if it does not exist
 		vault, err = c.vaultClient.Create(ctx, &ngrok.VaultCreate{
 			Name:        c.vaultName,
 			Description: defaultDescription,
 		})
-		if err != nil {
-			return fmt.Errorf("failed to create vault: %w", err)
-		}
+	}
+	if err != nil {
+		return err
 	}
 
 	// Prepare the secret data for pushing
