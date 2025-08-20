@@ -127,10 +127,11 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 func (c *client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 	// Implementation for checking if a secret exists in ngrok
 	secret, err := c.getSecretByVaultNameAndSecretName(ctx, c.vaultName, ref.GetRemoteKey())
+	if errors.Is(err, errVaultDoesNotExist) || errors.Is(err, errVaultSecretDoesNotExist) {
+		return false, nil
+	}
+
 	if err != nil {
-		if errors.Is(err, errVaultDoesNotExist) || errors.Is(err, errVaultSecretDoesNotExist) {
-			return false, nil
-		}
 		return false, fmt.Errorf("error fetching secret: %w", err)
 	}
 
