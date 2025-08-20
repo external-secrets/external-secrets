@@ -72,11 +72,11 @@ type Reconciler struct {
 	ControllerClass string
 }
 
-func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
+func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opts controller.Options) error {
 	r.recorder = mgr.GetEventRecorderFor("pushsecret")
 
 	// Index PushSecrets by the stores they have pushed to (for finalizer management)
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &esapi.PushSecret{}, "status.syncedPushSecrets", func(obj client.Object) []string {
+	if err := mgr.GetFieldIndexer().IndexField(ctx, &esapi.PushSecret{}, "status.syncedPushSecrets", func(obj client.Object) []string {
 		ps := obj.(*esapi.PushSecret)
 		var storeNames []string
 
@@ -102,7 +102,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 	}
 
 	// Index PushSecrets by deletionPolicy for quick filtering
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &esapi.PushSecret{}, "spec.deletionPolicy", func(obj client.Object) []string {
+	if err := mgr.GetFieldIndexer().IndexField(ctx, &esapi.PushSecret{}, "spec.deletionPolicy", func(obj client.Object) []string {
 		ps := obj.(*esapi.PushSecret)
 		return []string{string(ps.Spec.DeletionPolicy)}
 	}); err != nil {
@@ -213,7 +213,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// Filter out SecretStores that are being deleted to avoid finalizer conflicts
-	activeSecretStores := make(map[esapi.PushSecretStoreRef]esv1.GenericStore)
+	activeSecretStores := make(map[esapi.PushSecretStoreRef]esv1.GenericStore, len(secretStores))
 	for ref, store := range secretStores {
 		// Skip stores that are being deleted
 		if !store.GetDeletionTimestamp().IsZero() {

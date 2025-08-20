@@ -248,7 +248,7 @@ var rootCmd = &cobra.Command{
 				ControllerClass: controllerClass,
 				RestConfig:      mgr.GetConfig(),
 				RequeueInterval: time.Hour,
-			}).SetupWithManager(mgr, controller.Options{
+			}).SetupWithManager(cmd.Context(), mgr, controller.Options{
 				MaxConcurrentReconciles: concurrent,
 				RateLimiter:             ctrlcommon.BuildRateLimiter(),
 			}); err != nil {
