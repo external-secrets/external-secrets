@@ -16,12 +16,14 @@ package ngrok
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 
 	"github.com/ngrok/ngrok-api-go/v7"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -205,12 +207,10 @@ func TestClientDeleteSecret(t *testing.T) {
 
 func TestClientSecretExists(t *testing.T) {
 	type testCase struct {
-		name            string
-		clientVaultName string
-		vaults          []*ngrok.Vault
-		secrets         []*ngrok.Secret
-		ref             esv1.PushSecretRemoteRef
-		exists          bool
+		name           string
+		testClientOpts []testClientOpt
+		ref            esv1.PushSecretRemoteRef
+		exists         bool
 	}
 	tests := []testCase{
 		{
@@ -222,15 +222,17 @@ func TestClientSecretExists(t *testing.T) {
 		},
 		{
 			name: "when the vault exists but the secret does not",
+			testClientOpts: []testClientOpt{
+				WithVaultName("existing-vault"),
+				WithVaults(
+					&ngrok.Vault{
+						ID:   "vault_1",
+						Name: "existing-vault",
+					},
+				),
+			},
 			ref: pushSecretRemoteRef{
 				remoteKey: "nonexistent-secret",
-			},
-			clientVaultName: "existing-vault",
-			vaults: []*ngrok.Vault{
-				{
-					ID:   "vault_1",
-					Name: "existing-vault",
-				},
 			},
 			exists: false,
 		},
@@ -239,19 +241,21 @@ func TestClientSecretExists(t *testing.T) {
 			ref: pushSecretRemoteRef{
 				remoteKey: "i-exist",
 			},
-			clientVaultName: "existing-vault",
-			vaults: []*ngrok.Vault{
-				{
-					ID:   "vault_1",
-					Name: "existing-vault",
-				},
-			},
-			secrets: []*ngrok.Secret{
-				{
-					ID:    "secret_1",
-					Vault: ngrok.Ref{ID: "vault_1", URI: "vaults/vault_1"},
-					Name:  "i-exist",
-				},
+			testClientOpts: []testClientOpt{
+				WithVaultName("existing-vault"),
+				WithVaults(
+					&ngrok.Vault{
+						ID:   "vault_1",
+						Name: "existing-vault",
+					},
+				),
+				WithSecrets(
+					&ngrok.Secret{
+						ID:    "secret_1",
+						Vault: ngrok.Ref{ID: "vault_1", URI: "vaults/vault_1"},
+						Name:  "i-exist",
+					},
+				),
 			},
 			exists: true,
 		},
@@ -259,17 +263,7 @@ func TestClientSecretExists(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			opts := []testClientOpt{}
-			if tc.clientVaultName != "" {
-				opts = append(opts, WithVaultName(tc.clientVaultName))
-			}
-			if len(tc.vaults) > 0 {
-				opts = append(opts, WithVaults(tc.vaults...))
-			}
-			if len(tc.secrets) > 0 {
-				opts = append(opts, WithSecrets(tc.secrets...))
-			}
-			client := newTestClient(opts...)
+			client := newTestClient(tc.testClientOpts...)
 
 			exists, err := client.SecretExists(t.Context(), tc.ref)
 			assert.NoError(t, err)
@@ -280,12 +274,12 @@ func TestClientSecretExists(t *testing.T) {
 
 func TestClientPushSecret(t *testing.T) {
 	type testCase struct {
-		name      string
-		vaultName string
-		secret    *corev1.Secret
-		data      esv1.PushSecretData
-		err       error
-		validate  func(t *testing.T, client *client)
+		name           string
+		testClientOpts []testClientOpt
+		secret         *corev1.Secret
+		data           esv1.PushSecretData
+		err            error
+		validate       func(t *testing.T, client *client)
 	}
 	testCases := []testCase{
 		{
@@ -298,8 +292,10 @@ func TestClientPushSecret(t *testing.T) {
 			err: errCannotPushNilSecret,
 		},
 		{
-			name:      "it creates a vault if it does not exist",
-			vaultName: "should-create-vault",
+			name: "it creates a vault if it does not exist",
+			testClientOpts: []testClientOpt{
+				WithVaultName("should-create-vault"),
+			},
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "my-secret",
@@ -311,21 +307,17 @@ func TestClientPushSecret(t *testing.T) {
 			data: v1alpha1.PushSecretData{},
 			err:  nil,
 			validate: func(t *testing.T, client *client) {
-				iter := client.vaultClient.List(nil)
-				for iter.Next(t.Context()) {
-					if iter.Err() != nil {
-						t.Fatalf("failed to list vaults: %v", iter.Err())
-					}
-
-					// We should expect the vault to be created
-					vault := iter.Item()
-					assert.Equal(t, "should-create-vault", vault.Name)
-				}
+				v, err := client.getVaultByName(t.Context(), "should-create-vault")
+				assert.NoError(t, err)
+				assert.NotNil(t, v)
+				assert.Equal(t, "should-create-vault", v.Name)
 			},
 		},
 		{
-			name:      "it pushes a secret to an existing vault",
-			vaultName: "existing-vault",
+			name: "it pushes a secret to an existing vault",
+			testClientOpts: []testClientOpt{
+				WithVaultName("existing-vault"),
+			},
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "my-secret",
@@ -352,15 +344,106 @@ func TestClientPushSecret(t *testing.T) {
 				assert.Equal(t, `{"_sha256":"cd42404d52ad55ccfa9aca4adc828aa5800ad9d385a0671fbcbf724118320619"}`, secret.Metadata)
 			},
 		},
+		{
+			name: "it updates an existing secret in a vault",
+			testClientOpts: []testClientOpt{
+				WithVaultName("existing-vault"),
+				WithVaults(
+					&ngrok.Vault{
+						ID:   "vault_12345",
+						Name: "existing-vault",
+					},
+				),
+				WithSecrets(
+					&ngrok.Secret{
+						ID: "secret_abc123",
+						Vault: ngrok.Ref{
+							ID:  "vault_12345",
+							URI: "vaults/vault_12345",
+						},
+						Name:        "my-ngrok-secret",
+						Description: "old-description",
+					},
+				),
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "my-secret",
+				},
+				Data: map[string][]byte{
+					"key": []byte("new-value"),
+				},
+			},
+			data: v1alpha1.PushSecretData{
+				Match: v1alpha1.PushSecretMatch{
+					SecretKey: "key",
+					RemoteRef: v1alpha1.PushSecretRemoteRef{
+						RemoteKey: "my-ngrok-secret",
+					},
+				},
+			},
+			err: nil,
+			validate: func(t *testing.T, client *client) {
+				secret, err := client.getSecretByVaultNameAndSecretName(t.Context(), "existing-vault", "my-ngrok-secret")
+				assert.NoError(t, err)
+				assert.NotNil(t, secret)
+				assert.Equal(t, "secret_abc123", secret.ID)
+				assert.Equal(t, defaultDescription, secret.Description)
+			},
+		},
+		{
+			name: "it supports push metadata",
+			testClientOpts: []testClientOpt{
+				WithVaultName("existing-vault"),
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "my-secret",
+				},
+				Data: map[string][]byte{
+					"key": []byte("another_sha256_value"),
+				},
+			},
+			data: v1alpha1.PushSecretData{
+				Match: v1alpha1.PushSecretMatch{
+					SecretKey: "key",
+					RemoteRef: v1alpha1.PushSecretRemoteRef{
+						RemoteKey: "my-ngrok-secret",
+					},
+				},
+				Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`
+apiVersion: kubernetes.external-secrets.io/v1alpha1
+kind: PushSecretMetadata
+spec:
+  metadata:
+    environment: production
+    team: frontend
+  description: "my custom description"`),
+				},
+			},
+			err: nil,
+			validate: func(t *testing.T, client *client) {
+				// Check if the secret was created in the vault
+				secret, err := client.getSecretByVaultNameAndSecretName(t.Context(), "existing-vault", "my-ngrok-secret")
+				assert.NoError(t, err)
+				assert.NotNil(t, secret)
+				assert.Equal(t, "my custom description", secret.Description)
+
+				// Parse the metadata JSON
+				var metadata map[string]string
+				err = json.Unmarshal([]byte(secret.Metadata), &metadata)
+				assert.NoError(t, err)
+				assert.Equal(t, "production", metadata["environment"])
+				assert.Equal(t, "frontend", metadata["team"])
+				assert.Equal(t, "42a9a7ec259f39a1e89a180fc8b6b1bd9079dbae5778f84459320b963693ccef", metadata["_sha256"])
+			},
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			opts := []testClientOpt{}
-			if tc.vaultName != "" {
-				opts = append(opts, WithVaultName(tc.vaultName))
-			}
-			client := newTestClient(opts...)
+			client := newTestClient(tc.testClientOpts...)
 
 			err := client.PushSecret(t.Context(), tc.secret, tc.data)
 
@@ -382,55 +465,49 @@ func TestClientValidate(t *testing.T) {
 	errListingSecrets := errors.New("failed to list secrets")
 
 	type testCase struct {
-		name    string
-		secrets []*ngrok.Secret
-		listErr error
+		name           string
+		testClientOpts []testClientOpt
 
 		result esv1.ValidationResult
 		err    error
 	}
 	testCases := []testCase{
 		{
-			name:    "valid client, no secrets",
-			secrets: []*ngrok.Secret{},
-			listErr: nil,
-			result:  esv1.ValidationResultReady,
-			err:     nil,
+			name:           "valid client, no secrets",
+			testClientOpts: []testClientOpt{},
+			result:         esv1.ValidationResultReady,
+			err:            nil,
 		},
 		{
 			name: "valid client, with secrets",
-			secrets: []*ngrok.Secret{
-				{
-					ID: "secret_" + fake.GenerateRandomString(20),
-					Vault: ngrok.Ref{
-						ID:  "vault_" + fake.GenerateRandomString(20),
-						URI: "vaults/vault_" + fake.GenerateRandomString(20),
+			testClientOpts: []testClientOpt{
+				WithSecrets(
+					&ngrok.Secret{
+						ID: "secret_" + fake.GenerateRandomString(20),
+						Vault: ngrok.Ref{
+							ID:  "vault_" + fake.GenerateRandomString(20),
+							URI: "vaults/vault_" + fake.GenerateRandomString(20),
+						},
+						Name: "my-secret",
 					},
-					Name: "my-secret",
-				},
+				),
 			},
-			listErr: nil,
-			result:  esv1.ValidationResultReady,
-			err:     nil,
+			result: esv1.ValidationResultReady,
+			err:    nil,
 		},
 		{
-			name:    "error listing secrets",
-			secrets: nil,
-			listErr: errListingSecrets,
-			result:  esv1.ValidationResultError,
-			err:     errListingSecrets,
+			name: "error listing secrets",
+			testClientOpts: []testClientOpt{
+				WithSecretsListError(errListingSecrets),
+			},
+			result: esv1.ValidationResultError,
+			err:    errListingSecrets,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			opts := []testClientOpt{
-				WithSecretsListError(tc.listErr),
-			}
-			if len(tc.secrets) > 0 {
-				opts = append(opts, WithSecrets(tc.secrets...))
-			}
-			client := newTestClient(opts...)
+			client := newTestClient(tc.testClientOpts...)
 
 			result, err := client.Validate()
 			assert.Equal(t, result, tc.result)
