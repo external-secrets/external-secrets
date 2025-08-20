@@ -6762,6 +6762,38 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.NgrokAuth">NgrokAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.NgrokProvider">NgrokProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiKey</code></br>
+<em>
+<a href="#external-secrets.io/v1.NgrokProviderSecretRef">
+NgrokProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>APIKey is the API Key used to authenticate with ngrok. See <a href="https://ngrok.com/docs/api/#authentication">https://ngrok.com/docs/api/#authentication</a></p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.NgrokProvider">NgrokProvider
 </h3>
 <p>
@@ -6769,6 +6801,8 @@ External Secrets meta/v1.SecretKeySelector
 <a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
+<p>NgrokProvider configures a store to sync secrets with a ngrok vault to use in traffic policies.
+See: <a href="https://ngrok.com/blog-post/secrets-for-traffic-policy">https://ngrok.com/blog-post/secrets-for-traffic-policy</a></p>
 </p>
 <table>
 <thead>
@@ -6791,15 +6825,15 @@ string
 </tr>
 <tr>
 <td>
-<code>apiKey</code></br>
+<code>auth</code></br>
 <em>
-<a href="#external-secrets.io/v1.NgrokProviderSecretRef">
-NgrokProviderSecretRef
+<a href="#external-secrets.io/v1.NgrokAuth">
+NgrokAuth
 </a>
 </em>
 </td>
 <td>
-<p>APIKey is the API Key used to authenticate with ngrok.</p>
+<p>Auth configures how the ngrok provider authenticates with the ngrok API.</p>
 </td>
 </tr>
 <tr>
@@ -6819,7 +6853,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.NgrokProvider">NgrokProvider</a>)
+<a href="#external-secrets.io/v1.NgrokAuth">NgrokAuth</a>)
 </p>
 <p>
 </p>
