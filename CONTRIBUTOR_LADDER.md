@@ -63,7 +63,8 @@ Project leaders with governance, release, and cross-specialty responsibility.
 **Privileges**
 - GitHub admin rights as needed.
 - Release management authority.
-- Representation in CNCF processes.
+- OSC / FOSSA Administrator
+- Representation within CNCF.
 
 ---
 
@@ -91,7 +92,7 @@ Activity: Reviews provider-specific code and conformance to provider guidelines;
 
 ## Interim Roles
 
-In some cases, Maintainers may create **interim roles** for **Member** or **Reviewer** positions in a given specialty.  
+In some cases, Maintainers may create **interim roles** for **Members**, **Reviewers** in a given specialty or **Maintainers**.  
 These are **temporary training-oriented roles** designed to help contributors gain the experience needed to meet the full role requirements.
 
 ### Purpose
@@ -100,8 +101,7 @@ These are **temporary training-oriented roles** designed to help contributors ga
 - Reduce barriers for new contributors to join governance roles.
 
 ### Scope
-- Available only for **Member** and **Reviewer** levels (including per-specialty Reviewers).
-- Limited to a **maximum of three (3) months**.
+- Limited to a **maximum of three (3) months** for **Members** and **Reviewers**, and **a maximum of six (6) months** for **Maintainers**.
 - Specialty and scope are explicitly documented in `OWNERS` files and/or a public tracking issue.
 - Interim roles per specialty can accumulate (e.g. a contributor can be an interim reviewer on CI and on Providers at the same time). This is to allow a fast path to upskill future project-wide maintainers.
 - Interim roles are not eligible for advancement to permanent roles (an interim reviewer cannot be eligible to be a maintainer).
@@ -110,17 +110,27 @@ These are **temporary training-oriented roles** designed to help contributors ga
 - Any time spent on an interim role counts as participation to the project towards the requirements of the permanent role.
 
 ### Limits
-- There can only be a maximum of two interim roles per specialty (two CI members; two CI reviewers; two provider Members; two provider Reviewers; ...).
+- There can only be a maximum of two interim roles per specialty (two CI members; two CI reviewers; two provider Members; two provider Reviewers; two interim Maintainers).
+
+#### Interim Maintainer Role Limits
+- Interim Maintainers approval need super majority approval.
+- Interim Maintainers will not have access to projects' infrastructure credentials
+- Interim Maintainers will not have access to projects' Open Source Collective
+- Interim Maintainers cannot represent external-secrets for CNCF (they will not be registered as maintainers with the CNCF)
+- Interim Maintainers will not have ownership over the organization's github repository.
+- While discritionary, an interim maintainer nomination must still be approved by a super majority of permanent maintainers.
+Criteria for an interim maintainer position includes contribution/maintenance on other CNCF projects and a commitment to the external-secrets project.
 
 ### Examples
 - **Interim Member**: Has fewer than 8 substantive contributions but commits to achieve them within 3 months.
 - **Interim Reviewer**: Has not yet reviewed 20+ PRs but is actively being mentored to do so.
+- **Interim Maintainer**: Key contributor from other CNCF projects willing to help out; has not yet met the criteria for a permanent role but is committed to the project. Emeritus maintainers wanting to return to the project.
 
 ### Process
 1. Maintainers discuss and vote on the need for an interim role (lazy consensus).
 2. Scope and duration are defined clearly (specialty, responsibilities, expected milestones).
 3. Nomination of interim roles is done by lazy consensus.
-4. Interim roles are granted for a maximum of three months.
+4. Interim roles are granted for its maximum duration.
 5. Interim status is reviewed at the end of the period:
    - If requirements are met → promotion to the permanent role.
    - If not met → revert to previous role; contributor may try again later.
@@ -144,7 +154,7 @@ Abuse of project resources is a serious violation of our community standards and
 
 ### Procedure for Handling Abuse
 
-1.  **Immediate Revocation of Privileges**: If abuse is suspected, any maintainer can  immediately revoke the member's access to all project infrastructure and resources to prevent further damage. This is a precautionary measure and not a final judgment.
+1.  **Immediate Revocation of Privileges**: If abuse is suspected, any permanent maintainer can  immediately revoke the member's access to all project infrastructure and resources to prevent further damage. This is a precautionary measure and not a final judgment.
 
 2.  **Investigation**: The maintainers will conduct a private investigation to gather all relevant facts and evidence. The accused member will be given an opportunity to respond to the allegations.
 

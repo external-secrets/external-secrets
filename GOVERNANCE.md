@@ -18,7 +18,7 @@ Secret](https://kubernetes.io/docs/concepts/configuration/secret/).
 
 - **Users**: People who use ESO and engage via GitHub, Slack, or mailing lists.
 - **Contributors**: Anyone who makes contributions (code, docs, tests, reviews, triage, discussions).
-- **Reviewers / Approvers / Maintainers**: Governance roles with defined responsibilities, privileges, and promotion
+- **Reviewers / Maintainers**: Governance roles with defined responsibilities, privileges, and promotion
   processes described in the [Contributor Ladder](CONTRIBUTOR_LADDER.md).
 
 Maintainers are project leaders responsible for overall health, technical direction, and release management.
@@ -51,12 +51,13 @@ Voting rights vary by decision type:
 
 | Decision Type                                  | Eligible Voters                              |
 |------------------------------------------------|----------------------------------------------|
-| **Governance changes**                         | All Maintainers                              |
-| **Adding/removing Maintainers**                | All Maintainers                              |
-| **Technical decisions within a specialty**     | Approvers and Maintainers for that specialty |
+| **Governance changes**                         | Permanent Maintainers                        |
+| **Adding/removing Maintainers**                | Permanent Maintainers                        |
+| **Technical decisions within a specialty**     | All Reviewers and Maintainers                |
 | **Project-wide technical direction**           | All Maintainers                              |
-| **Security incident decisions**                | Security Approvers and Maintainers           |
-| **Interim role appointments (Member/Reviewer)**| Maintainers                                  |
+| **Security incident decisions**                | All Maintainers                              |
+| **Interim role appointments (Member/Reviewer)**| Permanent Maintainers                        |
+| **Interim role appointment (Maintainer)**      | Permanent Maintainers                        |
 
 **Notes:**
 - Interim role holders do **not** vote in role promotions/demotions.
