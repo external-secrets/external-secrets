@@ -22,27 +22,22 @@ It complements the automation in [`CODEOWNERS`](./CODEOWNERS) and the roles defi
 
 ### 1) CI / Infrastructure
 - **Paths**: `.github/`, `scripts/`, `build/`
-- **Approvers**: `@external-secrets/ci-approvers`
 - **Reviewers**: `@external-secrets/ci-reviewers`
 
 ### 2) Testing
 - **Paths**: `test/`, `tests/`, `hack/`
-- **Approvers**: `@external-secrets/testing-approvers`
 - **Reviewers**: `@external-secrets/testing-reviewers`
 
 ### 3) Core Controllers
 - **Paths**: `apis/`, `pkg/controllers/`
-- **Approvers**: `@external-secrets/core-approvers`
 - **Reviewers**: `@external-secrets/core-reviewers`
 
 ### 4) Providers
 - **Paths**: `pkg/provider/` (and subfolders like `aws/`, `gcp/`, `azure/`, `vault/`, `cyberark/`), and their respective API files.
-- **Approvers**: `@external-secrets/providers-approvers`
 - **Reviewers**: `@external-secrets/providers-reviewers`
 
 ### 5) Security
 - **Paths**: `security/`, `docs/security/`
-- **Approvers**: `@external-secrets/security-approvers`
 - **Reviewers**: `@external-secrets/security-reviewers`
 
 ---

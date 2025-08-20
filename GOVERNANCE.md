@@ -61,8 +61,8 @@ Voting rights vary by decision type:
 
 **Notes:**
 - Interim role holders do **not** vote in role promotions/demotions.
-- Company voting limits apply: maintainers/approvers from the same declared employer have **two** combined votes - regardless if they contribute individually or representing their employer. An exception to this rule is for voting to add/remove maintainers. In this case, a company voting limit is of **one** vote.
-- If more than two maintainers/approvers from the same declared employer cannot reach consensus for their vote (e.g. 3 in favour, 2 against), both the employer's votes are recorded as **abstain**.
+- Company voting limits apply: maintainers/reviewers from the same declared employer have **two** combined votes - regardless if they contribute individually or representing their employer. An exception to this rule is for voting to add/remove maintainers. In this case, a company voting limit is of **one** vote.
+- If more than two maintainers/reviewers from the same declared employer cannot reach consensus for their vote (e.g. 3 in favour, 2 against), both the employer's votes are recorded as **abstain**.
 
 ---
 
