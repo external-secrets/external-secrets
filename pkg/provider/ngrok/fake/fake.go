@@ -146,23 +146,34 @@ func (m *SecretsClient) WithUpdateError(err error) *SecretsClient {
 
 // Update updates an existing secret and returns it. If an error is set, it will return that error instead of the secret.
 func (m *SecretsClient) Update(_ context.Context, secret *ngrok.SecretUpdate) (*ngrok.Secret, error) {
-	ts := time.Now()
-	for i, s := range m.secrets {
-		if s.ID != secret.ID {
-			continue
-		}
-
-		s.UpdatedAt = ts.Format(time.RFC3339)
-		if secret.Description != nil {
-			s.Description = *secret.Description
-		}
-		if secret.Metadata != nil {
-			s.Metadata = *secret.Metadata
-		}
-
-		return m.secrets[i], m.updateErr
+	if m.updateErr != nil {
+		return nil, m.updateErr
 	}
-	return nil, &ngrok.Error{StatusCode: 404, Msg: "Secret not found"}
+
+	// Check if the secret exists
+	s, ok := m.secrets[secret.ID]
+	if !ok {
+		return nil, &ngrok.Error{StatusCode: 404, Msg: "Secret not found"}
+	}
+
+	// Update the secret with the new values
+	ts := time.Now()
+	s.UpdatedAt = ts.Format(time.RFC3339)
+	if secret.Description != nil {
+		s.Description = *secret.Description
+	}
+	if secret.Metadata != nil {
+		s.Metadata = *secret.Metadata
+	}
+	return &ngrok.Secret{
+		ID:          s.ID,
+		URI:         s.URI,
+		CreatedAt:   s.CreatedAt,
+		UpdatedAt:   s.UpdatedAt,
+		Description: s.Description,
+		Name:        s.Name,
+		Vault:       s.Vault,
+	}, m.updateErr
 }
 
 // WithDeleteError sets an error to be returned when Delete is called.
@@ -175,6 +186,10 @@ func (m *SecretsClient) WithDeleteError(err error) *SecretsClient {
 // Delete deletes a secret by its ID. If an error is set, it will return that error instead of deleting the secret.
 // If the secret does not exist, it returns an error.
 func (m *SecretsClient) Delete(_ context.Context, secretID string) error {
+	if m.deleteErr != nil {
+		return m.deleteErr
+	}
+
 	_, ok := m.secrets[secretID]
 	if !ok {
 		return &ngrok.Error{StatusCode: 404, Msg: "Secret not found"}
