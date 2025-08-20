@@ -27,11 +27,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	ctrlreconcile "sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -208,11 +206,6 @@ func (r *StoreReconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Opt
 		Watches(
 			&esv1alpha1.PushSecret{},
 			handler.EnqueueRequestsFromMapFunc(r.findSecretStoresForPushSecret),
-			builder.WithPredicates(predicate.NewPredicateFuncs(func(obj client.Object) bool {
-				// Only watch PushSecrets with DeletionPolicy=Delete
-				ps := obj.(*esv1alpha1.PushSecret)
-				return ps.Spec.DeletionPolicy == esv1alpha1.PushSecretDeletionPolicyDelete
-			})),
 		).
 		Complete(r)
 }

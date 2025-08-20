@@ -149,7 +149,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	p := client.MergeFrom(ps.DeepCopy())
 	defer func() {
-		if err := r.Client.Status().Patch(ctx, &ps, p); err != nil {
+		err := r.Client.Status().Patch(ctx, &ps, p)
+		if err != nil && !apierrors.IsNotFound(err) {
 			log.Error(err, errPatchStatus)
 		}
 	}()
