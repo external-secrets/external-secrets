@@ -34,11 +34,12 @@ var (
 	defaultAPIURL = "https://api.ngrok.com"
 	userAgent     = "external-secrets"
 
-	errInvalidStore     = errors.New("invalid store")
-	errInvalidStoreSpec = errors.New("invalid store spec")
-	errInvalidStoreProv = errors.New("invalid store provider")
-	errInvalidNgrokProv = errors.New("invalid ngrok provider")
-	errInvalidAPIURL    = errors.New("invalid API URL")
+	errInvalidStore              = errors.New("invalid store")
+	errInvalidStoreSpec          = errors.New("invalid store spec")
+	errInvalidStoreProv          = errors.New("invalid store provider")
+	errInvalidNgrokProv          = errors.New("invalid ngrok provider")
+	errInvalidAuthAPIKeyRequired = errors.New("ngrok provider auth APIKey is required")
+	errInvalidAPIURL             = errors.New("invalid API URL")
 )
 
 type Provider struct{}
@@ -60,7 +61,11 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kubeC
 		return nil, errors.New("referent authentication isn't implemented in this provider")
 	}
 
-	apiKey, err := loadAPIKeySecret(ctx, cfg.APIKey, kubeClient, store.GetKind(), namespace)
+	if cfg.Auth.APIKey == nil {
+		return nil, errInvalidAuthAPIKeyRequired
+	}
+
+	apiKey, err := loadAPIKeySecret(ctx, cfg.Auth.APIKey, kubeClient, store.GetKind(), namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +103,8 @@ func loadAPIKeySecret(ctx context.Context, ref *esv1.NgrokProviderSecretRef, kub
 }
 
 func doesConfigDependOnNamespace(cfg *esv1.NgrokProvider) bool {
-	return cfg.APIKey.SecretRef != nil && cfg.APIKey.SecretRef.Namespace == nil
+	ref := cfg.Auth.APIKey
+	return ref != nil && ref.SecretRef != nil && ref.SecretRef.Namespace == nil
 }
 
 func getConfig(store esv1.GenericStore) (*esv1.NgrokProvider, error) {

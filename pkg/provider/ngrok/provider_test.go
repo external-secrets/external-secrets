@@ -116,10 +116,12 @@ func TestProviderValidateStore(t *testing.T) {
 					Provider: &esv1.SecretStoreProvider{
 						Ngrok: &esv1.NgrokProvider{
 							VaultName: "test-vault",
-							APIKey: &esv1.NgrokProviderSecretRef{
-								SecretRef: &v1.SecretKeySelector{
-									Key:  "apiKey",
-									Name: "ngrok-credentials",
+							Auth: esv1.NgrokAuth{
+								APIKey: &esv1.NgrokProviderSecretRef{
+									SecretRef: &v1.SecretKeySelector{
+										Key:  "apiKey",
+										Name: "ngrok-credentials",
+									},
 								},
 							},
 						},
@@ -182,10 +184,12 @@ func TestProviderNewClient(t *testing.T) {
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Ngrok: &esv1.NgrokProvider{
-							APIKey: &esv1.NgrokProviderSecretRef{
-								SecretRef: &v1.SecretKeySelector{
-									Key:  "API_KEY",
-									Name: "ngrok-credentials",
+							Auth: esv1.NgrokAuth{
+								APIKey: &esv1.NgrokProviderSecretRef{
+									SecretRef: &v1.SecretKeySelector{
+										Key:  "API_KEY",
+										Name: "ngrok-credentials",
+									},
 								},
 							},
 						},

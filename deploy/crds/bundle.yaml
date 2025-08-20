@@ -5164,45 +5164,51 @@ spec:
                     ngrok:
                       description: Ngrok configures this store to sync secrets using the ngrok provider.
                       properties:
-                        apiKey:
-                          description: APIKey is the API Key used to authenticate with ngrok.
-                          properties:
-                            secretRef:
-                              description: SecretRef is a reference to a secret containing the ngrok API key.
-                              properties:
-                                key:
-                                  description: |-
-                                    A key in the referenced Secret.
-                                    Some instances of this field may be defaulted, in others it may be required.
-                                  maxLength: 253
-                                  minLength: 1
-                                  pattern: ^[-._a-zA-Z0-9]+$
-                                  type: string
-                                name:
-                                  description: The name of the Secret resource being referred to.
-                                  maxLength: 253
-                                  minLength: 1
-                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
-                                  type: string
-                                namespace:
-                                  description: |-
-                                    The namespace of the Secret resource being referred to.
-                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
-                                  maxLength: 63
-                                  minLength: 1
-                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
-                                  type: string
-                              type: object
-                          type: object
                         apiUrl:
                           default: https://api.ngrok.com
                           description: APIURL is the URL of the ngrok API.
                           type: string
+                        auth:
+                          description: Auth configures how the ngrok provider authenticates with the ngrok API.
+                          maxProperties: 1
+                          minProperties: 1
+                          properties:
+                            apiKey:
+                              description: APIKey is the API Key used to authenticate with ngrok. See https://ngrok.com/docs/api/#authentication
+                              properties:
+                                secretRef:
+                                  description: SecretRef is a reference to a secret containing the ngrok API key.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              type: object
+                          type: object
                         vaultName:
                           description: VaultName is the name of the ngrok vault to use.
                           type: string
                       required:
-                        - apiKey
+                        - auth
                         - vaultName
                       type: object
                     onboardbase:
@@ -16325,45 +16331,51 @@ spec:
                     ngrok:
                       description: Ngrok configures this store to sync secrets using the ngrok provider.
                       properties:
-                        apiKey:
-                          description: APIKey is the API Key used to authenticate with ngrok.
-                          properties:
-                            secretRef:
-                              description: SecretRef is a reference to a secret containing the ngrok API key.
-                              properties:
-                                key:
-                                  description: |-
-                                    A key in the referenced Secret.
-                                    Some instances of this field may be defaulted, in others it may be required.
-                                  maxLength: 253
-                                  minLength: 1
-                                  pattern: ^[-._a-zA-Z0-9]+$
-                                  type: string
-                                name:
-                                  description: The name of the Secret resource being referred to.
-                                  maxLength: 253
-                                  minLength: 1
-                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
-                                  type: string
-                                namespace:
-                                  description: |-
-                                    The namespace of the Secret resource being referred to.
-                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
-                                  maxLength: 63
-                                  minLength: 1
-                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
-                                  type: string
-                              type: object
-                          type: object
                         apiUrl:
                           default: https://api.ngrok.com
                           description: APIURL is the URL of the ngrok API.
                           type: string
+                        auth:
+                          description: Auth configures how the ngrok provider authenticates with the ngrok API.
+                          maxProperties: 1
+                          minProperties: 1
+                          properties:
+                            apiKey:
+                              description: APIKey is the API Key used to authenticate with ngrok. See https://ngrok.com/docs/api/#authentication
+                              properties:
+                                secretRef:
+                                  description: SecretRef is a reference to a secret containing the ngrok API key.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              type: object
+                          type: object
                         vaultName:
                           description: VaultName is the name of the ngrok vault to use.
                           type: string
                       required:
-                        - apiKey
+                        - auth
                         - vaultName
                       type: object
                     onboardbase:
