@@ -62,10 +62,14 @@ func (m *VaultClient) WithCreateError(err error) *VaultClient {
 
 // Create creates a new vault and returns it. If an error is set, it will return that error instead of the vault.
 func (m *VaultClient) Create(_ context.Context, vault *ngrok.VaultCreate) (*ngrok.Vault, error) {
+	ts := time.Now()
 	newVault := &ngrok.Vault{
 		ID:          "vault_" + GenerateRandomString(20),
 		Name:        vault.Name,
 		Description: vault.Description,
+		Metadata:    vault.Metadata,
+		CreatedAt:   ts.Format(time.RFC3339),
+		UpdatedAt:   ts.Format(time.RFC3339),
 	}
 	m.vaults[newVault.ID] = newVault
 	return newVault, m.createErr
@@ -116,6 +120,7 @@ func (m *SecretsClient) WithCreateError(err error) *SecretsClient {
 
 // Create creates a new secret and returns it. If an error is set, it will return that error instead of the secret.
 func (m *SecretsClient) Create(_ context.Context, secret *ngrok.SecretCreate) (*ngrok.Secret, error) {
+	ts := time.Now()
 	newSecret := &ngrok.Secret{
 		ID: "secret_" + GenerateRandomString(20),
 		Vault: ngrok.Ref{
@@ -124,6 +129,9 @@ func (m *SecretsClient) Create(_ context.Context, secret *ngrok.SecretCreate) (*
 		},
 		Name:        secret.Name,
 		Description: secret.Description,
+		Metadata:    secret.Metadata,
+		CreatedAt:   ts.Format(time.RFC3339),
+		UpdatedAt:   ts.Format(time.RFC3339),
 	}
 	m.secrets[newSecret.ID] = newSecret
 	return newSecret, m.createErr
@@ -138,14 +146,20 @@ func (m *SecretsClient) WithUpdateError(err error) *SecretsClient {
 
 // Update updates an existing secret and returns it. If an error is set, it will return that error instead of the secret.
 func (m *SecretsClient) Update(_ context.Context, secret *ngrok.SecretUpdate) (*ngrok.Secret, error) {
+	ts := time.Now()
 	for i, s := range m.secrets {
 		if s.ID != secret.ID {
 			continue
 		}
 
+		s.UpdatedAt = ts.Format(time.RFC3339)
 		if secret.Description != nil {
 			s.Description = *secret.Description
 		}
+		if secret.Metadata != nil {
+			s.Metadata = *secret.Metadata
+		}
+
 		return m.secrets[i], m.updateErr
 	}
 	return nil, &ngrok.Error{StatusCode: 404, Msg: "Secret not found"}
