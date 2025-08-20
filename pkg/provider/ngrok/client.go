@@ -37,7 +37,7 @@ const (
 )
 
 var (
-	errWriteOnlyOperations     = errors.New("not implemented - the ngrok provider supports write-only operations")
+	errWriteOnlyOperations     = errors.New("not implemented - the ngrok provider only supports write operations")
 	errVaultDoesNotExist       = errors.New("vault does not exist")
 	errVaultSecretDoesNotExist = errors.New("vault secret does not exist")
 	errCannotPushNilSecret     = errors.New("cannot push nil secret")
