@@ -41,7 +41,7 @@ Experienced contributors who review changes in **one or more specialties**.
 **Requirements**
 - Member for at least **3 months**.
 - Regular, high-quality reviews in the specialty.
-- ~several meaningful PR reviews over the last 3 months (or equivalent specialty output).
+- several meaningful PR reviews over the last 3 months (or equivalent specialty output).
 
 **Privileges**
 - Listed as `reviewer` in the relevant `OWNERS` files.
