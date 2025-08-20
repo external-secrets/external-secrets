@@ -58,4 +58,4 @@ pkg/provider/yandex/          @external-secrets/provider-yandex-reviewers
 
 
 # --- Maintainers (project-wide) ---
-*                            @external-secrets/maintainers
+*                            @external-secrets/maintainers @external-secrets/interim-maintainers
