@@ -22,11 +22,15 @@ import (
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/metrics"
 
 	_ "github.com/external-secrets/external-secrets/pkg/provider/register"
@@ -59,6 +63,17 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 		return ctrl.Result{}, nil
 	}
 
+	updated, err := handleFinalizer(ctx, cl, ss, log)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if updated {
+		log.V(1).Info("updating resource with finalizer changes")
+		if err := cl.Update(ctx, ss); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	requeueInterval := opts.RequeueInterval
 
 	if ss.GetSpec().RefreshInterval != 0 {
@@ -77,7 +92,7 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 	// validateStore modifies the store conditions
 	// we have to patch the status
 	log.V(1).Info("validating")
-	err := validateStore(ctx, req.Namespace, opts.ControllerClass, ss, cl, opts.GaugeVecGetter, opts.Recorder)
+	err = validateStore(ctx, req.Namespace, opts.ControllerClass, ss, cl, opts.GaugeVecGetter, opts.Recorder)
 	if err != nil {
 		log.Error(err, "unable to validate store")
 		return ctrl.Result{}, err
@@ -152,4 +167,120 @@ func ShouldProcessStore(store esapi.GenericStore, class string) bool {
 	}
 
 	return false
+}
+
+// handleFinalizer manages the finalizer for ClusterSecretStores and SecretStores.
+// It adds a finalizer when there are PushSecrets with DeletionPolicy=Delete that reference this store
+// and removes it when there are no such PushSecrets.
+func handleFinalizer(ctx context.Context, cl client.Client, store esapi.GenericStore, log logr.Logger) (bool, error) {
+
+	hasPushSecretsWithDeletePolicy, err := hasPushSecretsWithDeletePolicy(ctx, cl, store)
+	if err != nil {
+		return false, fmt.Errorf("failed to check PushSecrets: %w", err)
+	}
+
+	// If the store is being deleted and has the finalizer, check if we can remove it
+	if !store.GetObjectMeta().DeletionTimestamp.IsZero() {
+		if store.ContainsFinalizer(secretStoreFinalizer) {
+			if hasPushSecretsWithDeletePolicy {
+				log.Info("cannot remove finalizer, there are still PushSecrets with DeletionPolicy=Delete that reference this store")
+				return false, nil
+			}
+			store.RemoveFinalizer(secretStoreFinalizer)
+			log.Info(fmt.Sprintf("removed finalizer from %s", store.GetKind()))
+			return true, nil
+		}
+		return false, nil
+	}
+
+	// If not being deleted, manage the finalizer based on whether there are PushSecrets with Delete policy
+	if hasPushSecretsWithDeletePolicy {
+		store.AddFinalizer(secretStoreFinalizer)
+		log.Info(fmt.Sprintf("added finalizer to %s due to PushSecrets with DeletionPolicy=Delete", store.GetKind()))
+
+	} else {
+		store.RemoveFinalizer(secretStoreFinalizer)
+		log.Info(fmt.Sprintf("removed finalizer from %s, no PushSecrets with DeletionPolicy=Delete found", store.GetKind()))
+	}
+
+	return true, nil
+}
+
+// hasPushSecretsWithDeletePolicy checks if there are any PushSecrets with DeletionPolicy=Delete
+// that reference this SecretStore using the controller-runtime index.
+func hasPushSecretsWithDeletePolicy(ctx context.Context, cl client.Client, store esapi.GenericStore) (bool, error) {
+	storeName := store.GetName()
+	storeKind := store.GetKind()
+
+	var storeNamespace string
+	if storeKind == esapi.SecretStoreKind {
+		storeNamespace = store.GetNamespace()
+	}
+
+	listOpts := &client.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector("status.syncedPushSecrets", storeName),
+	}
+	if storeNamespace != "" {
+		listOpts.Namespace = storeNamespace
+	}
+
+	var pushSecretList esv1alpha1.PushSecretList
+	if err := cl.List(ctx, &pushSecretList, listOpts); err != nil {
+		return false, fmt.Errorf("failed to list PushSecrets by store index: %w", err)
+	}
+
+	// Check if any of these PushSecrets have DeletionPolicy=Delete
+	for _, ps := range pushSecretList.Items {
+		if ps.Spec.DeletionPolicy == esv1alpha1.PushSecretDeletionPolicyDelete {
+			// Verify the store reference matches
+			storeKey := fmt.Sprintf("%s/%s", storeKind, storeName)
+			if _, hasPushed := ps.Status.SyncedPushSecrets[storeKey]; hasPushed {
+				return true, nil
+			}
+		}
+	}
+
+	// Also check for PushSecrets that reference this store by name or labelSelector
+	// but haven't pushed to it yet (for initial finalizer setup)
+	listOpts = &client.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector("spec.deletionPolicy", string(esv1alpha1.PushSecretDeletionPolicyDelete)),
+	}
+	if storeNamespace != "" {
+		listOpts.Namespace = storeNamespace
+	}
+	if err := cl.List(ctx, &pushSecretList, listOpts); err != nil {
+		return false, fmt.Errorf("failed to list PushSecrets by deletionPolicy: %w", err)
+	}
+
+	for _, ps := range pushSecretList.Items {
+		// Check if this PushSecret references our store
+		for _, storeRef := range ps.Spec.SecretStoreRefs {
+			if storeRef.Name == storeName {
+				// Check if kind matches
+				if storeRef.Kind == storeKind ||
+					(storeRef.Kind == "" && storeKind == esapi.SecretStoreKind) ||
+					(storeRef.Kind == "" && storeKind == esapi.ClusterSecretStoreKind) {
+					return true, nil
+				}
+			}
+		}
+
+		// Check labelSelector match
+		for _, storeRef := range ps.Spec.SecretStoreRefs {
+			if storeRef.LabelSelector != nil &&
+				(storeRef.Kind == storeKind ||
+					(storeRef.Kind == "" && storeKind == esapi.SecretStoreKind) ||
+					(storeRef.Kind == "" && storeKind == esapi.ClusterSecretStoreKind)) {
+				selector, err := metav1.LabelSelectorAsSelector(storeRef.LabelSelector)
+				if err != nil {
+					continue
+				}
+				if selector.Matches(labels.Set(store.GetLabels())) {
+					return true, nil
+				}
+			}
+		}
+	}
+
+	return false, nil
 }
