@@ -81,7 +81,7 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 		// in case of validation status unknown, validateStore will mark
 		// the store as ready but we should show ReasonValidationUnknown
 		if errors.Is(err, validationUnknownError) {
-			return ctrl.Result{RequeueAfter: requeueInterval}, err
+			return ctrl.Result{RequeueAfter: requeueInterval}, nil
 		}
 		return ctrl.Result{}, err
 	}
