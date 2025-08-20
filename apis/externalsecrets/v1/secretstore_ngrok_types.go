@@ -20,18 +20,28 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// NgrokProvider configures a store to sync secrets with a ngrok vault to use in traffic policies.
+// See: https://ngrok.com/blog-post/secrets-for-traffic-policy
 type NgrokProvider struct {
 	// APIURL is the URL of the ngrok API.
 	// +kubebuilder:default="https://api.ngrok.com"
 	APIURL string `json:"apiUrl,omitempty"`
 
-	// APIKey is the API Key used to authenticate with ngrok.
+	// Auth configures how the ngrok provider authenticates with the ngrok API.
 	// +kubebuilder:validation:Required
-	APIKey *NgrokProviderSecretRef `json:"apiKey"`
+	Auth NgrokAuth `json:"auth"`
 
 	// VaultName is the name of the ngrok vault to use.
 	// +kubebuilder:validation:Required
 	VaultName string `json:"vaultName"`
+}
+
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
+type NgrokAuth struct {
+	// APIKey is the API Key used to authenticate with ngrok. See https://ngrok.com/docs/api/#authentication
+	// +optional
+	APIKey *NgrokProviderSecretRef `json:"apiKey,omitempty"`
 }
 
 type NgrokProviderSecretRef struct {
