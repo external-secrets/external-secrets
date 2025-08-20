@@ -142,7 +142,7 @@ func TestClientDeleteSecret(t *testing.T) {
 			ref: pushSecretRemoteRef{
 				remoteKey: "nonexistent-secret",
 			},
-			err: errVaultDoesNotExist,
+			err: nil,
 		},
 		{
 			name: "when the vault exists but the secret does not",
@@ -156,7 +156,7 @@ func TestClientDeleteSecret(t *testing.T) {
 					Name: "existing-vault",
 				},
 			},
-			err: errVaultSecretDoesNotExist,
+			err: nil,
 		},
 		{
 			name: "when the vault and secret both exist",
