@@ -5204,12 +5204,18 @@ spec:
                                   type: object
                               type: object
                           type: object
-                        vaultName:
-                          description: VaultName is the name of the ngrok vault to use.
-                          type: string
+                        vault:
+                          description: Vault configures the ngrok vault to sync secrets with.
+                          properties:
+                            name:
+                              description: Name is the name of the ngrok vault to sync secrets with.
+                              type: string
+                          required:
+                            - name
+                          type: object
                       required:
                         - auth
-                        - vaultName
+                        - vault
                       type: object
                     onboardbase:
                       description: Onboardbase configures this store to sync secrets using the Onboardbase provider
@@ -16371,12 +16377,18 @@ spec:
                                   type: object
                               type: object
                           type: object
-                        vaultName:
-                          description: VaultName is the name of the ngrok vault to use.
-                          type: string
+                        vault:
+                          description: Vault configures the ngrok vault to sync secrets with.
+                          properties:
+                            name:
+                              description: Name is the name of the ngrok vault to sync secrets with.
+                              type: string
+                          required:
+                            - name
+                          type: object
                       required:
                         - auth
-                        - vaultName
+                        - vault
                       type: object
                     onboardbase:
                       description: Onboardbase configures this store to sync secrets using the Onboardbase provider

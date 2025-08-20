@@ -31,9 +31,9 @@ type NgrokProvider struct {
 	// +kubebuilder:validation:Required
 	Auth NgrokAuth `json:"auth"`
 
-	// VaultName is the name of the ngrok vault to use.
+	// Vault configures the ngrok vault to sync secrets with.
 	// +kubebuilder:validation:Required
-	VaultName string `json:"vaultName"`
+	Vault NgrokVault `json:"vault"`
 }
 
 // +kubebuilder:validation:MinProperties=1
@@ -42,6 +42,12 @@ type NgrokAuth struct {
 	// APIKey is the API Key used to authenticate with ngrok. See https://ngrok.com/docs/api/#authentication
 	// +optional
 	APIKey *NgrokProviderSecretRef `json:"apiKey,omitempty"`
+}
+
+type NgrokVault struct {
+	// Name is the name of the ngrok vault to sync secrets with.
+	// +kubebuilder:validation:Required
+	Name string `json:"name"`
 }
 
 type NgrokProviderSecretRef struct {
