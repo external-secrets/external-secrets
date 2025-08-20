@@ -17,6 +17,7 @@ package secretstore
 import (
 	"context"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"k8s.io/client-go/kubernetes/scheme"
@@ -81,12 +82,11 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
-	Expect(err).ToNot(HaveOccurred())
+	k8sClient = k8sManager.GetClient()
 	Expect(k8sClient).ToNot(BeNil())
 
 	err = (&StoreReconciler{
-		Client:          k8sClient,
+		Client:          k8sManager.GetClient(),
 		Scheme:          k8sManager.GetScheme(),
 		Log:             ctrl.Log.WithName("controllers").WithName("SecretStore"),
 		ControllerClass: defaultControllerClass,
@@ -96,8 +96,34 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
+	// O código para adicionar o índice está no lugar certo.
+	// Ele modifica o k8sManager ANTES de ele ser iniciado.
+	err = k8sManager.GetFieldIndexer().IndexField(context.Background(), &esv1alpha1.PushSecret{}, "status.syncedPushSecrets", func(obj client.Object) []string {
+		ps := obj.(*esv1alpha1.PushSecret)
+		var storeNames []string
+		if ps.Spec.DeletionPolicy != esv1alpha1.PushSecretDeletionPolicyDelete {
+			return nil
+		}
+		for storeKey := range ps.Status.SyncedPushSecrets {
+			if strings.Contains(storeKey, "/") {
+				parts := strings.SplitN(storeKey, "/", 2)
+				if len(parts) == 2 {
+					storeNames = append(storeNames, parts[1])
+				}
+			}
+		}
+		return storeNames
+	})
+	Expect(err).ToNot(HaveOccurred())
+
+	err = k8sManager.GetFieldIndexer().IndexField(context.Background(), &esv1alpha1.PushSecret{}, "spec.deletionPolicy", func(obj client.Object) []string {
+		ps := obj.(*esv1alpha1.PushSecret)
+		return []string{string(ps.Spec.DeletionPolicy)}
+	})
+	Expect(err).ToNot(HaveOccurred())
+
 	err = (&ClusterStoreReconciler{
-		Client:          k8sClient,
+		Client:          k8sManager.GetClient(),
 		Scheme:          k8sManager.GetScheme(),
 		ControllerClass: defaultControllerClass,
 		Log:             ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
