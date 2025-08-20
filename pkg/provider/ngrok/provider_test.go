@@ -115,7 +115,9 @@ func TestProviderValidateStore(t *testing.T) {
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Ngrok: &esv1.NgrokProvider{
-							VaultName: "test-vault",
+							Vault: esv1.NgrokVault{
+								Name: "test-vault",
+							},
 							Auth: esv1.NgrokAuth{
 								APIKey: &esv1.NgrokProviderSecretRef{
 									SecretRef: &v1.SecretKeySelector{
