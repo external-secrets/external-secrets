@@ -16,6 +16,10 @@ It complements the automation in [`CODEOWNERS`](./CODEOWNERS) and the roles defi
 - Teams: **@external-secrets/maintainers**
 - Scope: entire repository; final escalation point.
 
+## Interim Maintainers (project-wide)
+- Teams: **@external-secrets/interim-maintainers**
+- Scope: entire repository;
+
 ---
 
 ## Specialties & Paths
