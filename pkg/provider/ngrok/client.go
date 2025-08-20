@@ -182,8 +182,7 @@ func (c *client) GetAllSecrets(ctx context.Context, _ esv1.ExternalSecretFind) (
 	return nil, errWriteOnlyOperations
 }
 
-func (c *client) Close(ctx context.Context) error {
-	ctx.Done()
+func (c *client) Close(_ context.Context) error {
 	return nil
 }
 
