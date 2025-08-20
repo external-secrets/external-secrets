@@ -80,10 +80,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	}
 
 	// Prepare the secret data for pushing
-	value, err := json.Marshal(secret.Data)
-	if err != nil {
-		return fmt.Errorf("json.Marshal failed with error: %w", err)
-	}
+	var value []byte
 
 	// If key is specified, get the value from the secret data
 	if data.GetSecretKey() != "" {
@@ -91,6 +88,11 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		value, ok = secret.Data[data.GetSecretKey()]
 		if !ok {
 			return fmt.Errorf("key %s not found in secret", data.GetSecretKey())
+		}
+	} else { // otherwise, marshal the entire secret data as JSON
+		value, err = json.Marshal(secret.Data)
+		if err != nil {
+			return fmt.Errorf("json.Marshal failed with error: %w", err)
 		}
 	}
 
