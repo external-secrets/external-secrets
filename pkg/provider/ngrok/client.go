@@ -167,6 +167,11 @@ func (c *client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef)
 // DeleteSecret deletes a secret from ngrok by its reference.
 func (c *client) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
 	secret, err := c.getSecretByVaultNameAndSecretName(ctx, c.vaultName, ref.GetRemoteKey())
+	if errors.Is(err, errVaultDoesNotExist) || errors.Is(err, errVaultSecretDoesNotExist) {
+		// If the secret or vault do not exist, we can consider it deleted.
+		return nil
+	}
+
 	if err != nil {
 		return err
 	}
