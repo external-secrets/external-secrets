@@ -57,6 +57,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{- define "external-secrets-webhook.labels" -}}
+{{- $shouldRenderStr := include "external-secrets.shouldRenderServiceMonitor" . | trim }}
 helm.sh/chart: {{ include "external-secrets.chart" . }}
 {{ include "external-secrets-webhook.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
@@ -66,7 +67,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- with .Values.commonLabels }}
 {{ toYaml . }}
 {{- end }}
-{{- if and ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) .Values.serviceMonitor.enabled }}
+{{- if and .Values.serviceMonitor.enabled (eq $shouldRenderStr "true") }}
 app.kubernetes.io/metrics: "webhook"
 {{- with .Values.webhook.service.labels }}
 {{ toYaml . }}
@@ -97,6 +98,7 @@ app.kubernetes.io/metrics: "webhook"
 {{- end }}
 
 {{- define "external-secrets-cert-controller.labels" -}}
+{{- $shouldRenderStr := include "external-secrets.shouldRenderServiceMonitor" . | trim }}
 helm.sh/chart: {{ include "external-secrets.chart" . }}
 {{ include "external-secrets-cert-controller.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
@@ -106,7 +108,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- with .Values.commonLabels }}
 {{ toYaml . }}
 {{- end }}
-{{- if and ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) .Values.serviceMonitor.enabled }}
+{{- if and .Values.serviceMonitor.enabled (eq $shouldRenderStr "true") }}
 app.kubernetes.io/metrics: "cert-controller"
 {{- end }}
 {{- end }}
@@ -246,4 +248,27 @@ Fail the install if a cluster scoped reconciler is enabled while its namespace s
 {{- if and (not .Values.processPushSecret) .Values.processClusterPushSecret -}}
   {{- fail "You have disabled processing of PushSecrets but not ClusterPushSecrets. This is an invalid configuration. ClusterPushSecret processing depends on processing of PushSecrets. Please either enable processing of PushSecrets, or disable processing of ClusterPushSecrets." }}
 {{- end -}}
+{{- end -}}
+
+{{/*
+Decide whether to render the ServiceMonitor resource.
+*/}}
+{{- define "external-secrets.shouldRenderServiceMonitor" -}}
+  {{- $mode := .Values.serviceMonitor.renderMode | default "skipIfMissing" -}}
+  {{- if eq $mode "alwaysRender" -}}
+    true
+  {{- else if eq $mode "skipIfMissing" -}}
+    {{- if has "monitoring.coreos.com/v1/ServiceMonitor" .Capabilities.APIVersions -}}
+      true
+    {{- else -}}
+      false
+    {{- end -}}
+  {{- else if eq $mode "failIfMissing" -}}
+    {{- if not (has "monitoring.coreos.com/v1/ServiceMonitor" .Capabilities.APIVersions) -}}
+      {{- fail "ServiceMonitor CRD is required but not present in the cluster. See https://github.com/prometheus-operator/prometheus-operator/blob/main/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml or the settings for .Values.serviceMonitor.renderMode to suppress this error." -}}
+    {{- end -}}
+    true
+  {{- else -}}
+    {{- fail (printf "Invalid renderMode '%s'. Must be one of: skipIfMissing, failIfMissing, alwaysRender." $mode) -}}
+  {{- end -}}
 {{- end -}}

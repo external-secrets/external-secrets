@@ -1,3 +1,4 @@
+{{- $shouldRenderStr := include "external-secrets.shouldRenderServiceMonitor" . | trim }}
 external-secrets has been deployed successfully in namespace {{ template "external-secrets.namespace" . }}!
 
 In order to begin using ExternalSecrets, you will need to set up a SecretStore
@@ -5,3 +6,7 @@ or ClusterSecretStore resource (for example, by creating a 'vault' SecretStore).
 
 More information on the different types of SecretStores and how to configure them
 can be found in our Github: {{ .Chart.Home }}
+
+{{- if and .Values.serviceMonitor.enabled (eq $shouldRenderStr "false") -}}
+WARNING: ServiceMonitors were not deployed due to missing CRD monitoring.coreos.com/v1/ServiceMonitor
+{{- end -}}
