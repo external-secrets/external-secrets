@@ -16,6 +16,8 @@ package ngrok
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -23,9 +25,11 @@ import (
 
 	"github.com/ngrok/ngrok-api-go/v7"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/utils/ptr"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
 const (
@@ -38,6 +42,14 @@ var (
 	errVaultSecretDoesNotExist = errors.New("vault secret does not exist")
 	errCannotPushNilSecret     = errors.New("cannot push nil secret")
 )
+
+type PushSecretMetadataSpec struct {
+	// The description of the secret in the ngrok API.
+	Description string `json:"description,omitempty"`
+	// Custom metadata to be merged with generated metadata for the secret in the ngrok API.
+	// This metadata is different from Kubernetes metadata.
+	Metadata map[string]string `json:"metadata,omitempty"`
+}
 
 type VaultClient interface {
 	Create(context.Context, *ngrok.VaultCreate) (*ngrok.Vault, error)
@@ -96,6 +108,20 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		}
 	}
 
+	// Calculate the checksum of the value to add to metadata
+	valueChecksum := sha256.Sum256(value)
+
+	psmd, err := parseAndDefaultMetadata(data.GetMetadata())
+	if err != nil {
+		return fmt.Errorf("failed to parse push secret metadata: %w", err)
+	}
+
+	psmd.Metadata["_sha256"] = hex.EncodeToString(valueChecksum[:])
+	metadataJSON, err := json.Marshal(psmd.Metadata)
+	if err != nil {
+		return fmt.Errorf("failed to marshal metadata for ngrok api: %w", err)
+	}
+
 	// Check if the secret already exists in the vault
 	existingSecret, err := c.getSecretByVaultAndName(ctx, *vault, data.GetRemoteKey())
 	if err != nil {
@@ -108,8 +134,8 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 			VaultID:     vault.ID,
 			Name:        data.GetRemoteKey(),
 			Value:       string(value),
-			Metadata:    data.GetMetadata().String(),
-			Description: defaultDescription,
+			Metadata:    string(metadataJSON),
+			Description: psmd.Description,
 		})
 		return err
 	}
@@ -118,8 +144,8 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	_, err = c.secretsClient.Update(ctx, &ngrok.SecretUpdate{
 		ID:          existingSecret.ID,
 		Value:       ptr.To(string(value)),
-		Metadata:    ptr.To(data.GetMetadata().String()),
-		Description: ptr.To(string(defaultDescription)),
+		Metadata:    ptr.To(string(metadataJSON)),
+		Description: ptr.To(psmd.Description),
 	})
 	return err
 }
@@ -236,4 +262,30 @@ func (c *client) getSecretByVaultNameAndSecretName(ctx context.Context, vaultNam
 	}
 
 	return c.getSecretByVaultAndName(ctx, *vault, secretName)
+}
+
+func parseAndDefaultMetadata(data *v1.JSON) (PushSecretMetadataSpec, error) {
+	def := PushSecretMetadataSpec{
+		Description: defaultDescription,
+		Metadata:    make(map[string]string),
+	}
+
+	res, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](data)
+	if err != nil {
+		return def, err
+	}
+
+	if res == nil {
+		return def, nil
+	}
+
+	if res.Spec.Description != "" {
+		def.Description = res.Spec.Description
+	}
+
+	if res.Spec.Metadata != nil {
+		def.Metadata = res.Spec.Metadata
+	}
+
+	return def, nil
 }
