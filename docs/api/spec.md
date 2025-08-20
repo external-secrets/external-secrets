@@ -6838,13 +6838,15 @@ NgrokAuth
 </tr>
 <tr>
 <td>
-<code>vaultName</code></br>
+<code>vault</code></br>
 <em>
-string
+<a href="#external-secrets.io/v1.NgrokVault">
+NgrokVault
+</a>
 </em>
 </td>
 <td>
-<p>VaultName is the name of the ngrok vault to use.</p>
+<p>Vault configures the ngrok vault to sync secrets with.</p>
 </td>
 </tr>
 </tbody>
@@ -6876,6 +6878,35 @@ External Secrets meta/v1.SecretKeySelector
 </td>
 <td>
 <p>SecretRef is a reference to a secret containing the ngrok API key.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.NgrokVault">NgrokVault
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.NgrokProvider">NgrokProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name is the name of the ngrok vault to sync secrets with.</p>
 </td>
 </tr>
 </tbody>

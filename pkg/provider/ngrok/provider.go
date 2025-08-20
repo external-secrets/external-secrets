@@ -82,7 +82,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kubeC
 	return &client{
 		vaultClient:   vaultClient,
 		secretsClient: secretsClient,
-		vaultName:     cfg.VaultName,
+		vaultName:     cfg.Vault.Name,
 	}, nil
 }
 
