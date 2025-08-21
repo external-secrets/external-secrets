@@ -31,7 +31,7 @@ docker build -f Dockerfile.standalone -t my-org/external-secrets:latest .
 ```
 1. Apply the `bundle.yaml`
 ```shell
-kubectl apply -f deploy/crds/bundle.yaml
+kubectl apply -f deploy/crds/bundle.yaml --server-side
 ```
 1. Modify your configs to use the image
 ```yaml

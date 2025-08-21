@@ -16,6 +16,7 @@ replicaCount: 1
 
 bitwarden-sdk-server:
   enabled: false
+  namespaceOverride: ""
 
 # -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
 revisionHistoryLimit: 10
@@ -90,6 +91,9 @@ processClusterPushSecret: true
 # -- if true, the operator will process cluster store. Else, it will ignore them.
 processClusterStore: true
 
+# -- if true, the operator will process cluster generator. Else, it will ignore them.
+processClusterGenerator: true
+
 # -- if true, the operator will process push secret. Else, it will ignore them.
 processPushSecret: true
 
@@ -99,7 +103,7 @@ createOperator: true
 # -- Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at
 # a time.
 concurrent: 1
-# -- Specifices Log Params to the External Secrets Operator
+# -- Specifies Log Params to the External Secrets Operator
 log:
   level: info
   timeEncoding: epoch
@@ -151,11 +155,17 @@ extraObjects: []
 ## -- Extra volumes to mount to the container.
 extraVolumeMounts: []
 
+## -- Extra init containers to add to the pod.
+extraInitContainers: []
+
 ## -- Extra containers to add to the pod.
 extraContainers: []
 
 # -- Annotations to add to Deployment
 deploymentAnnotations: {}
+
+ # -- Set deployment strategy
+strategy: {}
 
 # -- Annotations to add to Pod
 podAnnotations: {}
@@ -186,6 +196,21 @@ resources: {}
 serviceMonitor:
   # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
   enabled: false
+
+  # -- How should we react to missing CRD "`monitoring.coreos.com/v1/ServiceMonitor`"
+  #
+  # Possible values:
+  # - `skipIfMissing`: Only render ServiceMonitor resources if CRD is present, skip if missing.
+  # - `failIfMissing`: Fail Helm install if CRD is not present.
+  # - `alwaysRender` : Always render ServiceMonitor resources, do not check for CRD.
+
+  # @schema
+  # enum:
+  # - skipIfMissing
+  # - failIfMissing
+  # - alwaysRender
+  # @schema
+  renderMode: skipIfMissing   # @schema enum: [skipIfMissing, failIfMissing, alwaysRender]
 
   # -- namespace where you want to install ServiceMonitors
   namespace: ""
@@ -250,6 +275,27 @@ grafanaDashboard:
   # https://github.com/grafana/helm-charts/tree/main/charts/grafana
   annotations: {}
 
+livenessProbe:
+  # -- Enabled determines if the liveness probe should be used or not. By default it's disabled.
+  enabled: false
+  # -- Address for liveness probe.
+  address: ""
+  # -- Specify the maximum amount of time to wait for a probe to respond before considering it fails.
+  timeoutSeconds: 5
+  # -- Number of consecutive probe failures that should occur before considering the probe as failed.
+  failureThreshold: 5
+  # -- Period in seconds for K8s to start performing probes.
+  periodSeconds: 10
+  # -- Number of successful probes to mark probe successful.
+  successThreshold: 1
+  # -- Delay in seconds for the container to start before performing the initial probe.
+  initialDelaySeconds: 10
+  # -- Handler for liveness probe.
+  httpGet:
+    # -- Set this value to 8082 to active liveness probes.
+    port: "8082"
+    path: /healthz
+
 nodeSelector: {}
 
 tolerations: []
@@ -265,6 +311,7 @@ priorityClassName: ""
 podDisruptionBudget:
   enabled: false
   minAvailable: 1    # @schema type:[integer, string]
+  nameOverride: ""
   # maxUnavailable: "50%"
 
 # -- Run the controller on the host network
@@ -275,12 +322,12 @@ webhook:
   annotations: {}
   # -- Specifies whether a webhook deployment be created. If set to false, crds.conversion.enabled should also be set to false otherwise the kubeapi will be hammered because the conversion is looking for a webhook endpoint.
   create: true
-  # -- Specifices the time to check if the cert is valid
+  # -- Specifies the time to check if the cert is valid
   certCheckInterval: "5m"
-  # -- Specifices the lookaheadInterval for certificate validity
+  # -- Specifies the lookaheadInterval for certificate validity
   lookaheadInterval: ""
   replicaCount: 1
-  # -- Specifices Log Params to the Webhook
+  # -- Specifies Log Params to the Webhook
   log:
     level: info
     timeEncoding: epoch
@@ -366,6 +413,9 @@ webhook:
 
   affinity: {}
 
+  # -- Set deployment strategy
+  strategy: {}
+
     # -- Pod priority class name.
   priorityClassName: ""
 
@@ -373,6 +423,7 @@ webhook:
   podDisruptionBudget:
     enabled: false
     minAvailable: 1    # @schema type:[integer, string]
+    nameOverride: ""
     # maxUnavailable: "50%"
 
   metrics:
@@ -403,6 +454,9 @@ webhook:
 
     ## -- Map of extra arguments to pass to container.
   extraArgs: {}
+
+    ## -- Extra init containers to add to the pod.
+  extraInitContainers: []
 
     ## -- Extra volumes to pass to pod.
   extraVolumes: []
@@ -461,7 +515,7 @@ certController:
   create: true
   requeueInterval: "5m"
   replicaCount: 1
-  # -- Specifices Log Params to the Certificate Controller
+  # -- Specifies Log Params to the Certificate Controller
   log:
     level: info
     timeEncoding: epoch
@@ -499,6 +553,9 @@ certController:
 
   affinity: {}
 
+  # -- Set deployment strategy
+  strategy: {}
+
   # -- Run the certController on the host network
   hostNetwork: false
 
@@ -509,6 +566,7 @@ certController:
   podDisruptionBudget:
     enabled: false
     minAvailable: 1    # @schema type:[integer, string]
+    nameOverride: ""
     # maxUnavailable: "50%"
 
   metrics:
@@ -538,6 +596,8 @@ certController:
     ## -- Map of extra arguments to pass to container.
   extraArgs: {}
 
+    ## -- Extra init containers to add to the pod.
+  extraInitContainers: []
 
     ## -- Extra volumes to pass to pod.
   extraVolumes: []

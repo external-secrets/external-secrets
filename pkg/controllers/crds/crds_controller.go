@@ -33,6 +33,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -53,9 +54,7 @@ const (
 	certValidityDuration = 10 * 365 * 24 * time.Hour
 	LookaheadInterval    = 90 * 24 * time.Hour
 
-	errResNotReady       = "resource not ready: %s"
-	errSubsetsNotReady   = "subsets not ready"
-	errAddressesNotReady = "addresses not ready"
+	errResNotReady = "resource not ready: %s"
 )
 
 type Reconciler struct {
@@ -151,7 +150,7 @@ func (r *Reconciler) ReadyCheck(_ *http.Request) error {
 	if err := r.checkCRDs(); err != nil {
 		return err
 	}
-	return r.checkEndpoints()
+	return utils.CheckEndpointSlicesReady(context.TODO(), r.Client, r.SvcName, r.SvcNamespace)
 }
 
 func (r *Reconciler) checkCRDs() error {
@@ -162,24 +161,6 @@ func (r *Reconciler) checkCRDs() error {
 		if !rdy {
 			return fmt.Errorf(errResNotReady, res)
 		}
-	}
-	return nil
-}
-
-func (r *Reconciler) checkEndpoints() error {
-	var eps corev1.Endpoints
-	err := r.Get(context.TODO(), types.NamespacedName{
-		Name:      r.SvcName,
-		Namespace: r.SvcNamespace,
-	}, &eps)
-	if err != nil {
-		return err
-	}
-	if len(eps.Subsets) == 0 {
-		return errors.New(errSubsetsNotReady)
-	}
-	if len(eps.Subsets[0].Addresses) == 0 {
-		return errors.New(errAddressesNotReady)
 	}
 	return nil
 }

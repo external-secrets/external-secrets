@@ -16,30 +16,32 @@ During a minor version support time, we cover:
 We do not do test coverage for any other kubernetes version than the ones running on our test suites.
 As of version 0.14.x , this is the only kubernetes version that we will guarantee support for.
 
-| ESO Version | Kubernetes Version | Release Date | End of Life     |
-| ----------- | ------------------ | ------------ | --------------- |
-| 0.17.x      | 1.33               | May 14, 2025  | Release of 0.18 |
-| 0.16.x      | 1.32               | Apr 14, 2025  | May 14, 2025    |
-| 0.15.x      | 1.32               | Mar 19, 2025  | Apr 14, 2025    |
-| 0.14.x      | 1.32               | Feb 4, 2025  | Mar 19, 2025    |
-| 0.13.x      | 1.19 → 1.31        | Jan 21, 2025 | Feb 4, 2025     |
-| 0.12.x      | 1.19 → 1.31        | Dec 24, 2024 | Jan 21, 2025    |
-| 0.11.x      | 1.19 → 1.31        | Dec 2, 2024  | Dec 24, 2024    |
-| 0.10.x      | 1.19 → 1.31        | Aug 3, 2024  | Dec 24, 2024    |
-| 0.9.x       | 1.19 → 1.30        | Jun 22, 2023 | Dec 2, 2024     |
-| 0.8.x       | 1.19 → 1.28        | Mar 16, 2023 | Aug 3, 2024     |
-| 0.7.x       | 1.19 → 1.26        | Dec 11, 2022 | Jun 22, 2023    |
-| 0.6.x       | 1.19 → 1.24        | Oct 9, 2022  | Mar 16, 2023    |
-| 0.5.x       | 1.19 → 1.24        | Apr 6, 2022  | Dec 11, 2022    |
-| 0.4.x       | 1.16 → 1.24        | Feb 2, 2022  | Oct 9, 2022     |
-| 0.3.x       | 1.16 → 1.24        | Jul 25, 2021 | Apr 6, 2022     |
+| ESO Version | Kubernetes Version | Release Date   | End of Life     |
+| ----------- | ------------------ | -------------- | --------------- |
+| 0.19.x      | 1.33               | August 2, 2025 | Release of 0.20 |
+| 0.18.x      | 1.33               | July 17, 2025  | August 2, 2025  |
+| 0.17.x      | 1.33               | May 14, 2025   | July 17, 2025   |
+| 0.16.x      | 1.32               | Apr 14, 2025   | May 14, 2025    |
+| 0.15.x      | 1.32               | Mar 19, 2025   | Apr 14, 2025    |
+| 0.14.x      | 1.32               | Feb 4, 2025    | Mar 19, 2025    |
+| 0.13.x      | 1.19 → 1.31        | Jan 21, 2025   | Feb 4, 2025     |
+| 0.12.x      | 1.19 → 1.31        | Dec 24, 2024   | Jan 21, 2025    |
+| 0.11.x      | 1.19 → 1.31        | Dec 2, 2024    | Dec 24, 2024    |
+| 0.10.x      | 1.19 → 1.31        | Aug 3, 2024    | Dec 24, 2024    |
+| 0.9.x       | 1.19 → 1.30        | Jun 22, 2023   | Dec 2, 2024     |
+| 0.8.x       | 1.19 → 1.28        | Mar 16, 2023   | Aug 3, 2024     |
+| 0.7.x       | 1.19 → 1.26        | Dec 11, 2022   | Jun 22, 2023    |
+| 0.6.x       | 1.19 → 1.24        | Oct 9, 2022    | Mar 16, 2023    |
+| 0.5.x       | 1.19 → 1.24        | Apr 6, 2022    | Dec 11, 2022    |
+| 0.4.x       | 1.16 → 1.24        | Feb 2, 2022    | Oct 9, 2022     |
+| 0.3.x       | 1.16 → 1.24        | Jul 25, 2021   | Apr 6, 2022     |
 
 ## Provider Stability and Support Level
 
 The following table describes the stability level of each provider and who's responsible.
 
-| Provider                                                                                                   | Stability | Maintainer                                                                                          |
-|------------------------------------------------------------------------------------------------------------|-:-:-------|--:--------------------------------------------------------------------------------------------------|
+| Provider | Stability | Maintainer                                                                                                                                                                                            |
+| -------- | --------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | [AWS Secrets Manager](https://external-secrets.io/latest/provider/aws-secrets-manager/)                    | stable    | [external-secrets](https://github.com/external-secrets)                                             |
 | [AWS Parameter Store](https://external-secrets.io/latest/provider/aws-parameter-store/)                    | stable    | [external-secrets](https://github.com/external-secrets)                                             |
 | [Hashicorp Vault](https://external-secrets.io/latest/provider/hashicorp-vault/)                            | stable    | [external-secrets](https://github.com/external-secrets)                                             |
@@ -77,7 +79,7 @@ The following table describes the stability level of each provider and who's res
 The following table show the support for features across different providers.
 
 | Provider                  | find by name | find by tags | metadataPolicy Fetch | referent authentication | store validation | push secret | DeletionPolicy Merge/Delete |
-|---------------------------|:------------:|:------------:|:--------------------:|:-----------------------:|:----------------:|:-----------:|:---------------------------:|
+| ------------------------- | :----------: | :----------: | :------------------: | :---------------------: | :--------------: | :---------: | :-------------------------: |
 | AWS Secrets Manager       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | AWS Parameter Store       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Hashicorp Vault           |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
