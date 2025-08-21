@@ -104,7 +104,10 @@ These are **temporary training-oriented roles** designed to help contributors ga
 - Limited to a **maximum of three (3) months** for **Members** and **Reviewers**, and **a maximum of six (6) months** for **Maintainers**.
 - Specialty and scope are explicitly documented in `OWNERS` files and/or a public tracking issue.
 - Interim roles per specialty can accumulate (e.g. a contributor can be an interim reviewer on CI and on Providers at the same time). This is to allow a fast path to upskill future project-wide maintainers.
-- Interim roles are not eligible for advancement to permanent roles (an interim reviewer cannot be eligible to be a maintainer).
+- Interim roles are not eligible for advancement to permanent roles:
+   - Interim Member is not elegible for a permanent reviewer role;
+   - Interim reviewer is not elegible for a permanent maintainer role; 
+   This is to prevent abuse of the interim system to get permanent roles easily by promoting interim members to them
 - Anyone can be nominated to an interim position.
 - Anyone effectivated after its interim period does not need to cover requirements from lower positions (e.g. an effectivated interim reviewer on CI does not need to have the criteria of being an effective CI member)
 - Any time spent on an interim role counts as participation to the project towards the requirements of the permanent role.
@@ -113,7 +116,7 @@ These are **temporary training-oriented roles** designed to help contributors ga
 - There can only be a maximum of two interim roles per specialty (two CI members; two CI reviewers; two provider Members; two provider Reviewers; two interim Maintainers).
 
 #### Interim Maintainer Role Limits
-- Interim Maintainers approval need super majority approval.
+- An Interim Maintainer election needs super majority approval of Permanent Maintainers.
 - Interim Maintainers will not have access to projects' infrastructure credentials
 - Interim Maintainers will not have access to projects' Open Source Collective
 - Interim Maintainers cannot represent external-secrets for CNCF (they will not be registered as maintainers with the CNCF)
@@ -172,7 +175,7 @@ All actions taken will be documented. The privacy of all individuals involved wi
 
 ## Advancement Process
 
-1. **Nomination** by an eligible community member (Member+).
+1. **Nomination** by an eligible community member (Member or Higher) via a github issue.
 2. **Sponsorship** by two role holders at the **target level or higher** (within the specialty where applicable).
 3. **Review** of activity and behavior (quality, reliability, collaboration, responsiveness).
 4. **Decision** by lazy consensus of the relevant group (or **supermajority** if contested).
@@ -200,14 +203,41 @@ A **Reviewer** or **Maintainer** role holder may be considered inactive if they 
 4. **Decision**  
    - Demotion is decided by **lazy consensus** of Maintainers, or **supermajority** if contested.
 5. **Scope**
-   - Self elected demotions can be to any inferior level. e.g. a maintainer may self demote to a member, if they wish so. 
    - Demotion via inactivity fully removes the role holder from the organization.
 5. **Documentation**  
    - Update `OWNERS`, GitHub teams, and governance records.  
-   - Former Maintainers are listed as **Emeritus**.
+   - Former Members may be listed as **Emeritus**.
 
 ### Reinstatement
 A contributor can be reinstated at their previous level via the standard advancement process. Prior history is considered favorably.
+
+---
+
+## Emeritus Status
+Emeritus status recognizes former Maintainers, Reviewers, or Members who have made substantial and lasting contributions to the External Secrets project but are stepping down from active responsibilities.
+
+### Eligibility
+
+* Must have held a permanent role (Member, Reviewer, or Maintainer) **for at least twelve (12) consecutive months**.
+* Demonstrated sustained, high-quality contributions and collaboration.
+* Voluntarily stepping down, retiring, or transitioning out of active participation on good terms.
+
+### Privileges
+
+* Public recognition on project website, documentation, and GitHub OWNERS or CONTRIBUTORS files.
+* Optionally listed in governance and community records as Emeritus Maintainer / Reviewer / Member.
+* Maintains access to project communications for discussion and mentorship purposes (read-only on GitHub teams if desired).
+* Eligible to provide mentorship or advisory support to new contributors.
+* Invited to participate in major project decisions informally, without voting authority.
+
+### Limitations
+* No administrative or write access to repositories, releases, or infrastructure.
+* Emeritus status is honorary and does not confer any formal responsibilities or authority.
+
+### Purpose
+* Honor and recognize long-term contributions.
+* Preserve institutional knowledge and mentorship potential.
+* Encourage continued engagement with the community without requiring full role responsibilities.
 
 ---
 
