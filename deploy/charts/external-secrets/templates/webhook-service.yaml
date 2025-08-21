@@ -1,4 +1,5 @@
 {{- if and .Values.webhook.create .Values.webhook.service.enabled }}
+{{- $shouldRenderStr := include "external-secrets.shouldRenderServiceMonitor" . | trim }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -21,15 +22,17 @@ spec:
   {{- end }}
   ports:
   - port: 443
-    targetPort: {{ .Values.webhook.port }}
+    targetPort: webhook
     protocol: TCP
     name: webhook
-  {{- if or .Values.webhook.metrics.service.enabled ( and ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) .Values.serviceMonitor.enabled ) }}
+{{- if or .Values.webhook.metrics.service.enabled 
+         (and .Values.serviceMonitor.enabled 
+              (eq $shouldRenderStr "true")) }}
   - port: {{ .Values.webhook.metrics.service.port }}
     protocol: TCP
     targetPort: metrics
     name: metrics
-  {{- end }}
+{{- end }}
   selector:
     {{- include "external-secrets-webhook.selectorLabels" . | nindent 4 }}
 {{- end }}

@@ -20,7 +20,7 @@ Otherwise the `latest` documentation will point to the older version. Also avoid
 1. Update `version` and/or `appVersion` in `Chart.yaml` and run `make helm.docs helm.update.appversion helm.test.update helm.test`
 1. push to branch and open pr
 1. run `/ok-to-test-managed` commands for all cloud providers
-1. merge PR if everyhing is green
+1. merge PR if everything is green
 1. CI picks up the new chart version and creates a new GitHub Release for it
 1. create/merge into release branch
     1. on a `minor` release: create a new branch `release-x.y`

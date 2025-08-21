@@ -25,7 +25,7 @@ set up a local environment with Docker Desktop and how to deploy ESO and Conjur 
 
 ## [Tutorial: Getting Started with External Secrets Operator on Kubernetes using AWS Secrets Manager](https://ptuladhar3.medium.com/getting-started-with-external-secrets-operator-on-kubernetes-using-aws-secrets-manager-6dc403d9630c)
 
-Puru writes about getting started using ESO with AWS Secrets Manager. He uses illustrations to explain ESO to new users and get's you to quickly start using ESO, as article is easy to follow along. [Getting Started with External Secrets Operator on Kubernetes using AWS Secrets Manager](https://ptuladhar3.medium.com/getting-started-with-external-secrets-operator-on-kubernetes-using-aws-secrets-manager-6dc403d9630c)
+Puru writes about getting started using ESO with AWS Secrets Manager. He uses illustrations to explain ESO to new users and gets you to quickly start using ESO, as article is easy to follow along. [Getting Started with External Secrets Operator on Kubernetes using AWS Secrets Manager](https://ptuladhar3.medium.com/getting-started-with-external-secrets-operator-on-kubernetes-using-aws-secrets-manager-6dc403d9630c)
 
 ## [Tutorial: How to Set External-Secrets with Azure KeyVault](https://blog.container-solutions.com/tutorial-external-secrets-with-azure-keyvault)
 
@@ -75,7 +75,7 @@ Emin writes about the Push Secret feature of ESO and how this new feature revers
 
 ## [GCP Secret Manager with self-hosted Kubernetes](https://medium.com/@jjlakis/gcp-secret-manager-with-self-hosted-kubernetes-db35d01d65f0)
 
-Jacek writes about bringing GCP secrets to on-premises cluster through External Secrets Operator intergration with workload identity.
+Jacek writes about bringing GCP secrets to on-premises cluster through External Secrets Operator integration with workload identity.
 
 ## [Injecting AWS Secrets in a Kubernetes Cluster with External Secrets Operator](https://blog.devops.dev/injecting-external-secrets-in-a-kubernetes-cluster-1e9bbe0f0d5b)
 

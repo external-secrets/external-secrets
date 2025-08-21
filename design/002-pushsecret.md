@@ -165,7 +165,7 @@ status:
 ```
 
 ### Behavior
-When checking PushSecret for the Source Secret, check existing labels for SecretStore reference of that particular Secret. If this SecretStore reference is an object in PushSecret SecretStore lists, a SecretSyncError should be emited as we cannot sync the secret to the same SecretStore.
+When checking PushSecret for the Source Secret, check existing labels for SecretStore reference of that particular Secret. If this SecretStore reference is an object in PushSecret SecretStore lists, a SecretSyncError should be emitted as we cannot sync the secret to the same SecretStore.
 
 If the SecretStores are all fine or if the Secret has no labels (secret created by user / another tool), for Each SecretStore, get the SyncState of this store (New, SecretSynced, SecretSyncedErr).
 

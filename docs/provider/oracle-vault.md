@@ -13,7 +13,9 @@ External Secrets Operator may authenticate to OCI Vault using User Principal, [I
 
 To specify the authenticating principal in a secret store, set the `spec.provider.oracle.principalType` value. Note that the value of `principalType` defaults `InstancePrincipal` if not set.
 
+```yaml
 {% include 'oracle-principal-type.yaml' %}
+```
 
 ### User Principal Authentication
 
@@ -29,7 +31,7 @@ Select tenancy in the top right to see your tenancy OCID as shown below.
 Select your user in the top right to see your user OCID as shown below.
 ![region-details](../pictures/screenshot_user_OCID.png)
 
-Your fingerprint will be attatched to your API key, once it has been generated. Private keys can be created or uploaded on the same page as the your user OCID.
+Your fingerprint will be attached to your API key, once it has been generated. Private keys can be created or uploaded on the same page as the your user OCID.
 ![fingerprint-details](../pictures/screenshot_fingerprint.png)
 
 Once you click "Add API Key" you will be shown the following, where you can download the key in the necessary PEM format for API requests. Creating a private key will automatically generate a fingerprint.
@@ -90,7 +92,7 @@ kubectl get secret oracle-secret-to-create -o jsonpath='{.data.dev-secret-test}'
 
 ## PushSecrets and retrieving multiple secrets.
 When using [PushSecrets](https://external-secrets.io/latest/guides/pushsecrets/), the compartment OCID and encryption key OCID must be specified in the
-Oracle SecretStore. You can find your compartment and encrpytion key OCIDs in the OCI console.
+Oracle SecretStore. You can find your compartment and encryption key OCIDs in the OCI console.
 
 If [retrieving multiple secrets](https://external-secrets.io/latest/guides/getallsecrets/) by tag or regex, only the compartment OCID must be specified.
 
