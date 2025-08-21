@@ -63,4 +63,26 @@ var _ = Describe("[azure]", Label("azure", "keyvault", "cert"), func() {
 		})
 	})
 
+	It("should sync keyvault objects with type=cert using new SDK", func() {
+		ff(func(tc *framework.TestCase) {
+			secretKey := "azkv-cert-new-sdk"
+
+			tc.ExpectedSecret = &v1.Secret{
+				Type: v1.SecretTypeOpaque,
+				Data: map[string][]byte{
+					secretKey: certBytes,
+				},
+			}
+			tc.ExternalSecret.Spec.SecretStoreRef.Name = tc.Framework.Namespace.Name + "-new-sdk"
+			tc.ExternalSecret.Spec.Data = []esv1.ExternalSecretData{
+				{
+					SecretKey: secretKey,
+					RemoteRef: esv1.ExternalSecretDataRemoteRef{
+						Key: "cert/" + certName,
+					},
+				},
+			}
+		})
+	})
+
 })

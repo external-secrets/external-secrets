@@ -30,10 +30,10 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azcertificates"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
-	"time"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"time"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
@@ -514,7 +514,7 @@ func buildWorkloadIdentityCredential(ctx context.Context, az *Azure, cloudConfig
 	return azidentity.NewClientAssertionCredential(tenantID, clientID, getAssertion, opts)
 }
 
-// canDeleteWithNewSDK checks if a resource can be deleted based on tags and error status
+// canDeleteWithNewSDK checks if a resource can be deleted based on tags and error status.
 func canDeleteWithNewSDK(tags map[string]*string, err error) (bool, error) {
 	if err != nil {
 		var respErr *azcore.ResponseError
@@ -534,13 +534,13 @@ func canDeleteWithNewSDK(tags map[string]*string, err error) (bool, error) {
 	if tags == nil {
 		return false, nil
 	}
-	
+
 	managedByTag, exists := tags[managedBy]
 	if !exists || managedByTag == nil || *managedByTag != managerLabel {
 		// Not managed by external-secrets, don't delete
 		return false, nil
 	}
-	
+
 	return true, nil
 }
 
@@ -548,12 +548,12 @@ func canDeleteWithNewSDK(tags map[string]*string, err error) (bool, error) {
 func (a *Azure) deleteKeyVaultSecretWithNewSDK(ctx context.Context, secretName string) error {
 	secret, err := a.secretsClient.GetSecret(ctx, secretName, "", nil)
 	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
-	
+
 	ok, err := canDeleteWithNewSDK(secret.Tags, err)
 	if err != nil {
 		return fmt.Errorf("error getting secret %v: %w", secretName, err)
 	}
-	
+
 	if ok {
 		_, err = a.secretsClient.DeleteSecret(ctx, secretName, nil)
 		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVDeleteSecret, err)
@@ -567,12 +567,12 @@ func (a *Azure) deleteKeyVaultSecretWithNewSDK(ctx context.Context, secretName s
 func (a *Azure) deleteKeyVaultCertificateWithNewSDK(ctx context.Context, certName string) error {
 	cert, err := a.certsClient.GetCertificate(ctx, certName, "", nil)
 	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetCertificate, err)
-	
+
 	ok, err := canDeleteWithNewSDK(cert.Tags, err)
 	if err != nil {
 		return fmt.Errorf("error getting certificate %v: %w", certName, err)
 	}
-	
+
 	if ok {
 		_, err = a.certsClient.DeleteCertificate(ctx, certName, nil)
 		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVDeleteCertificate, err)
@@ -586,12 +586,12 @@ func (a *Azure) deleteKeyVaultCertificateWithNewSDK(ctx context.Context, certNam
 func (a *Azure) deleteKeyVaultKeyWithNewSDK(ctx context.Context, keyName string) error {
 	key, err := a.keysClient.GetKey(ctx, keyName, "", nil)
 	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetKey, err)
-	
+
 	ok, err := canDeleteWithNewSDK(key.Tags, err)
 	if err != nil {
 		return fmt.Errorf("error getting key %v: %w", keyName, err)
 	}
-	
+
 	if ok {
 		_, err = a.keysClient.DeleteKey(ctx, keyName, nil)
 		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVDeleteKey, err)

@@ -683,9 +683,6 @@ func (a *Azure) setKeyVaultKey(ctx context.Context, secretName string, value []b
 	return nil
 }
 
-
-
-
 func getSecretKey(secret *corev1.Secret, data esv1.PushSecretData) ([]byte, error) {
 	if data.GetSecretKey() != "" {
 		return secret.Data[data.GetSecretKey()], nil
@@ -809,7 +806,6 @@ func (a *Azure) getAllSecretsWithLegacySDK(ctx context.Context, ref esv1.Externa
 	return secretsMap, nil
 }
 
-
 // Retrieves a tag value if specified and all tags in JSON format if not.
 func getSecretTag(tags map[string]*string, property string) ([]byte, error) {
 	if property == "" {
@@ -913,7 +909,6 @@ func (a *Azure) getSecretTagsWithLegacySDK(ctx context.Context, ref esv1.Externa
 	}
 	return secretTagsData, nil
 }
-
 
 // Implements store.Client.GetSecretMap Interface.
 // New version of GetSecretMap.

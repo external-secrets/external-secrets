@@ -25,6 +25,7 @@ import (
 const (
 	withStaticCredentials = "with static credentials"
 	withReferentAuth      = "with referent auth"
+	withNewSDK            = "with new SDK"
 )
 
 // keyvault type=secret should behave just like any other secret store.
@@ -47,6 +48,22 @@ var _ = Describe("[azure]", Label("azure", "keyvault", "secret"), func() {
 		framework.Compose(withStaticCredentials, f, common.JSONDataWithoutTargetName, useStaticCredentials),
 
 		framework.Compose(withStaticCredentials, f, common.SimpleDataSync, useReferentAuth),
+
+		// New SDK tests
+		framework.Compose(withNewSDK, f, common.SimpleDataSync, useNewSDK),
+		framework.Compose(withNewSDK, f, common.NestedJSONWithGJSON, useNewSDK),
+		framework.Compose(withNewSDK, f, common.JSONDataFromSync, useNewSDK),
+		framework.Compose(withNewSDK, f, common.JSONDataFromRewrite, useNewSDK),
+		framework.Compose(withNewSDK, f, common.JSONDataWithProperty, useNewSDK),
+		framework.Compose(withNewSDK, f, common.JSONDataWithTemplate, useNewSDK),
+		framework.Compose(withNewSDK, f, common.DockerJSONConfig, useNewSDK),
+		framework.Compose(withNewSDK, f, common.DataPropertyDockerconfigJSON, useNewSDK),
+		framework.Compose(withNewSDK, f, common.SSHKeySync, useNewSDK),
+		framework.Compose(withNewSDK, f, common.SSHKeySyncDataProperty, useNewSDK),
+		framework.Compose(withNewSDK, f, common.SyncWithoutTargetName, useNewSDK),
+		framework.Compose(withNewSDK, f, common.JSONDataWithoutTargetName, useNewSDK),
+		
+		framework.Compose(withNewSDK, f, common.SimpleDataSync, useReferentAuthNewSDK),
 	)
 })
 
@@ -56,5 +73,14 @@ func useStaticCredentials(tc *framework.TestCase) {
 
 func useReferentAuth(tc *framework.TestCase) {
 	tc.ExternalSecret.Spec.SecretStoreRef.Name = referentAuthName(tc.Framework)
+	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esapi.ClusterSecretStoreKind
+}
+
+func useNewSDK(tc *framework.TestCase) {
+	tc.ExternalSecret.Spec.SecretStoreRef.Name = tc.Framework.Namespace.Name + "-new-sdk"
+}
+
+func useReferentAuthNewSDK(tc *framework.TestCase) {
+	tc.ExternalSecret.Spec.SecretStoreRef.Name = referentAuthName(tc.Framework) + "-new-sdk"
 	tc.ExternalSecret.Spec.SecretStoreRef.Kind = esapi.ClusterSecretStoreKind
 }
