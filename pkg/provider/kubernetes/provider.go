@@ -142,6 +142,10 @@ func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, ctrlC
 }
 
 func isReferentSpec(prov *esv1.KubernetesProvider) bool {
+	if prov.Auth == nil {
+		return false
+	}
+
 	if prov.Auth.Cert != nil {
 		if prov.Auth.Cert.ClientCert.Namespace == nil {
 			return true

@@ -52,7 +52,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.image.repository | string | `"oci.external-secrets.io/external-secrets/external-secrets"` |  |
 | certController.image.tag | string | `""` |  |
 | certController.imagePullSecrets | list | `[]` |  |
-| certController.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifices Log Params to the Certificate Controller |
+| certController.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the Certificate Controller |
 | certController.metrics.listen.port | int | `8080` |  |
 | certController.metrics.service.annotations | object | `{}` | Additional service annotations |
 | certController.metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
@@ -127,7 +127,16 @@ The command removes all the Kubernetes components associated with the chart and 
 | imagePullSecrets | list | `[]` |  |
 | installCRDs | bool | `true` | If set, install and upgrade CRDs through helm chart. |
 | leaderElect | bool | `false` | If true, external-secrets will perform leader election between instances to ensure no more than one instance of external-secrets operates at a time. |
-| log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifices Log Params to the External Secrets Operator |
+| livenessProbe.address | string | `""` | Address for liveness probe. |
+| livenessProbe.enabled | bool | `false` | Enabled determines if the liveness probe should be used or not. By default it's disabled. |
+| livenessProbe.failureThreshold | int | `5` | Number of consecutive probe failures that should occur before considering the probe as failed. |
+| livenessProbe.httpGet | object | `{"path":"/healthz","port":"8082"}` | Handler for liveness probe. |
+| livenessProbe.httpGet.port | string | `"8082"` | Set this value to 8082 to active liveness probes. |
+| livenessProbe.initialDelaySeconds | int | `10` | Delay in seconds for the container to start before performing the initial probe. |
+| livenessProbe.periodSeconds | int | `10` | Period in seconds for K8s to start performing probes. |
+| livenessProbe.successThreshold | int | `1` | Number of successful probes to mark probe successful. |
+| livenessProbe.timeoutSeconds | int | `5` | Specify the maximum amount of time to wait for a probe to respond before considering it fails. |
+| log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the External Secrets Operator |
 | metrics.listen.port | int | `8080` |  |
 | metrics.service.annotations | object | `{}` | Additional service annotations |
 | metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
@@ -143,6 +152,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | podSpecExtra | object | `{}` | Any extra pod spec on the deployment |
 | priorityClassName | string | `""` | Pod priority class name. |
 | processClusterExternalSecret | bool | `true` | if true, the operator will process cluster external secret. Else, it will ignore them. |
+| processClusterGenerator | bool | `true` | if true, the operator will process cluster generator. Else, it will ignore them. |
 | processClusterPushSecret | bool | `true` | if true, the operator will process cluster push secret. Else, it will ignore them. |
 | processClusterStore | bool | `true` | if true, the operator will process cluster store. Else, it will ignore them. |
 | processPushSecret | bool | `true` | if true, the operator will process push secret. Else, it will ignore them. |
@@ -176,13 +186,14 @@ The command removes all the Kubernetes components associated with the chart and 
 | serviceMonitor.metricRelabelings | list | `[]` | Metric relabel configs to apply to samples before ingestion. [Metric Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#metric_relabel_configs) |
 | serviceMonitor.namespace | string | `""` | namespace where you want to install ServiceMonitors |
 | serviceMonitor.relabelings | list | `[]` | Relabel configs to apply to samples before ingestion. [Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config) |
+| serviceMonitor.renderMode | string | `"skipIfMissing"` | How should we react to missing CRD "`monitoring.coreos.com/v1/ServiceMonitor`" Possible values: - `skipIfMissing`: Only render ServiceMonitor resources if CRD is present, skip if missing. - `failIfMissing`: Fail Helm install if CRD is not present. - `alwaysRender` : Always render ServiceMonitor resources, do not check for CRD. @schema enum: - skipIfMissing - failIfMissing - alwaysRender @schema |
 | serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | strategy | object | `{}` | Set deployment strategy |
 | tolerations | list | `[]` |  |
 | topologySpreadConstraints | list | `[]` |  |
 | webhook.affinity | object | `{}` |  |
 | webhook.annotations | object | `{}` | Annotations to place on validating webhook configuration. |
-| webhook.certCheckInterval | string | `"5m"` | Specifices the time to check if the cert is valid |
+| webhook.certCheckInterval | string | `"5m"` | Specifies the time to check if the cert is valid |
 | webhook.certDir | string | `"/tmp/certs"` |  |
 | webhook.certManager.addInjectorAnnotations | bool | `true` | Automatically add the cert-manager.io/inject-ca-from annotation to the webhooks and CRDs. As long as you have the cert-manager CA Injector enabled, this will automatically setup your webhook's CA to the one used by cert-manager. See https://cert-manager.io/docs/concepts/ca-injector |
 | webhook.certManager.cert.annotations | object | `{}` | Add extra annotations to the Certificate resource. |
@@ -207,8 +218,8 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.image.repository | string | `"oci.external-secrets.io/external-secrets/external-secrets"` |  |
 | webhook.image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
 | webhook.imagePullSecrets | list | `[]` |  |
-| webhook.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifices Log Params to the Webhook |
-| webhook.lookaheadInterval | string | `""` | Specifices the lookaheadInterval for certificate validity |
+| webhook.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the Webhook |
+| webhook.lookaheadInterval | string | `""` | Specifies the lookaheadInterval for certificate validity |
 | webhook.metrics.listen.port | int | `8080` |  |
 | webhook.metrics.service.annotations | object | `{}` | Additional service annotations |
 | webhook.metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |

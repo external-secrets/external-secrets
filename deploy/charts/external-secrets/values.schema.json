@@ -406,6 +406,43 @@
         "leaderElect": {
             "type": "boolean"
         },
+        "livenessProbe": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "enabled": {
+                    "type": "boolean"
+                },
+                "failureThreshold": {
+                    "type": "integer"
+                },
+                "httpGet": {
+                    "type": "object",
+                    "properties": {
+                        "path": {
+                            "type": "string"
+                        },
+                        "port": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "initialDelaySeconds": {
+                    "type": "integer"
+                },
+                "periodSeconds": {
+                    "type": "integer"
+                },
+                "successThreshold": {
+                    "type": "integer"
+                },
+                "timeoutSeconds": {
+                    "type": "integer"
+                }
+            }
+        },
         "log": {
             "type": "object",
             "properties": {
@@ -494,6 +531,9 @@
             "type": "string"
         },
         "processClusterExternalSecret": {
+            "type": "boolean"
+        },
+        "processClusterGenerator": {
             "type": "boolean"
         },
         "processClusterPushSecret": {
@@ -635,6 +675,14 @@
                 },
                 "relabelings": {
                     "type": "array"
+                },
+                "renderMode": {
+                    "type": "string",
+                    "enum": [
+                        "skipIfMissing",
+                        "failIfMissing",
+                        "alwaysRender"
+                    ]
                 },
                 "scrapeTimeout": {
                     "type": "string"
