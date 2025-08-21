@@ -52,8 +52,9 @@ type Data struct {
 }
 type Config map[string]*Data
 type Provider struct {
-	config   Config
-	database map[string]Config
+	config           Config
+	database         map[string]Config
+	validationResult *esv1.ValidationResult
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
@@ -90,7 +91,8 @@ func (p *Provider) NewClient(_ context.Context, store esv1.GenericStore, _ clien
 	}
 	p.database[store.GetName()] = cfg
 	return &Provider{
-		config: cfg,
+		config:           cfg,
+		validationResult: c.ValidationResult,
 	}, nil
 }
 
@@ -224,6 +226,9 @@ func (p *Provider) Close(_ context.Context) error {
 }
 
 func (p *Provider) Validate() (esv1.ValidationResult, error) {
+	if p.validationResult != nil && *p.validationResult != esv1.ValidationResultReady {
+		return *p.validationResult, errors.New("unable to validate")
+	}
 	return esv1.ValidationResultReady, nil
 }
 
