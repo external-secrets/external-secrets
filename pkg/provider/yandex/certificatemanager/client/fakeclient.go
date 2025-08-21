@@ -17,9 +17,9 @@ package client
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
@@ -56,6 +56,7 @@ type FakeCertificateManagerServer struct {
 
 	tokenExpirationDuration time.Duration
 	clock                   clock.Clock
+	logger                  logr.Logger
 }
 
 type certificateKey struct {
@@ -113,7 +114,7 @@ func (s *FakeCertificateManagerServer) CreateCertificate(authorizedKey *iamkey.K
 	s.versionMap[versionKey{certificateID, versionID}] = versionValue{content}
 
 	if _, exists := s.folderAndNameMap[folderAndNameKey{folderID, name}]; exists {
-		fmt.Println("ERROR: On the fake server, you cannot add two certificates with the same name in the same folder.")
+		s.logger.Error(nil, "ERROR: On the fake server, you cannot add two certificates with the same name in the same folder.")
 	}
 
 	s.folderAndNameMap[folderAndNameKey{folderID, name}] = folderAndNameValue{certificateID}
