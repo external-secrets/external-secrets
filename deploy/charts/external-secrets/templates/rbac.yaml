@@ -123,6 +123,15 @@ rules:
     - "get"
     - "list"
     - "watch"
+  {{- if .Values.processClusterExternalSecret }}
+  - apiGroups:
+    - ""
+    resources:
+    - "namespaces"
+    verbs:
+    - "update"
+    - "patch"
+  {{- end }}
   - apiGroups:
     - ""
     resources:

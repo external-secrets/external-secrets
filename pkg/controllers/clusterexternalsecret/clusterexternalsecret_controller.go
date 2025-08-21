@@ -60,6 +60,8 @@ const (
 	errNamespacesFailed     = "one or more namespaces failed"
 
 	// ClusterExternalSecretFinalizer is the finalizer for ClusterExternalSecret resources.
+	// This finalizer ensures that all ExternalSecrets created by the ClusterExternalSecret
+	// are properly cleaned up before the ClusterExternalSecret is deleted, preventing orphaned resources.
 	ClusterExternalSecretFinalizer = "externalsecrets.external-secrets.io/clusterexternalsecret-cleanup"
 )
 
@@ -85,30 +87,35 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// Handle deletion with finalizer
+	// When a ClusterExternalSecret is being deleted, we need to ensure all created ExternalSecrets
+	// and namespace finalizers are cleaned up to prevent resource leaks and namespace deletion blocking.
 	if clusterExternalSecret.DeletionTimestamp != nil {
 		if controllerutil.ContainsFinalizer(&clusterExternalSecret, ClusterExternalSecretFinalizer) {
-			// Cleanup ExternalSecrets before removing finalizer
+			// Cleanup ExternalSecrets and remove namespace finalizers before removing CES finalizer
 			if err := r.cleanupExternalSecrets(ctx, log, &clusterExternalSecret); err != nil {
 				log.Error(err, "failed to cleanup ExternalSecrets")
 				return ctrl.Result{}, err
 			}
 
-			// Remove finalizer
+			// Remove finalizer from ClusterExternalSecret
 			controllerutil.RemoveFinalizer(&clusterExternalSecret, ClusterExternalSecretFinalizer)
 			if err := r.Update(ctx, &clusterExternalSecret); err != nil {
 				return ctrl.Result{}, err
 			}
+			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, nil
 	}
 
 	// Add finalizer if it doesn't exist
+	// This ensures the ClusterExternalSecret cannot be deleted until we've cleaned up all
+	// ExternalSecrets it created and removed our finalizers from namespaces.
 	if !controllerutil.ContainsFinalizer(&clusterExternalSecret, ClusterExternalSecretFinalizer) {
 		controllerutil.AddFinalizer(&clusterExternalSecret, ClusterExternalSecretFinalizer)
 		if err := r.Update(ctx, &clusterExternalSecret); err != nil {
 			return ctrl.Result{}, err
 		}
-		// Let the update trigger a new reconciliation
+		// Return immediately after update to let the change propagate
 		return ctrl.Result{}, nil
 	}
 
@@ -248,6 +255,12 @@ func (r *Reconciler) removeOldSecrets(ctx context.Context, log logr.Logger, clus
 	return nil
 }
 
+// cleanupExternalSecrets removes all ExternalSecrets created by this ClusterExternalSecret
+// and removes the namespace finalizers we added. This uses a dual-finalizer strategy:
+// 1. ClusterExternalSecret has a finalizer to ensure cleanup happens
+// 2. Each namespace gets a CES-specific finalizer to prevent deletion race conditions
+// The namespace finalizer is named with the CES name to allow multiple CES resources
+// to provision into the same namespace independently.
 func (r *Reconciler) cleanupExternalSecrets(ctx context.Context, log logr.Logger, clusterExternalSecret *esv1.ClusterExternalSecret) error {
 	esName := clusterExternalSecret.Status.ExternalSecretName
 	if esName == "" {
@@ -267,9 +280,10 @@ func (r *Reconciler) cleanupExternalSecrets(ctx context.Context, log logr.Logger
 			continue
 		}
 
-		// Remove the namespace finalizer that tracks this CES
+		// Remove the namespace finalizer that tracks this specific CES.
 		// The finalizer name includes the CES name to allow multiple CES resources
-		// to provision into the same namespace independently
+		// to provision into the same namespace independently without conflicts.
+		// This prevents the namespace from being deleted while we're still managing resources in it.
 		finalizer := "externalsecrets.external-secrets.io/ces-" + clusterExternalSecret.Name
 		if controllerutil.ContainsFinalizer(&namespace, finalizer) {
 			// Fetch the latest namespace to avoid conflicts
@@ -321,7 +335,10 @@ func (r *Reconciler) createOrUpdateExternalSecret(ctx context.Context, clusterEx
 		return nil
 	}
 
-	// Add finalizer to namespace to prevent deletion while CES is bound
+	// Add finalizer to namespace to prevent deletion race conditions.
+	// This ensures the namespace cannot be deleted while we're still managing ExternalSecrets in it.
+	// The finalizer is CES-specific (includes CES name) to allow multiple CES resources
+	// to independently manage resources in the same namespace.
 	finalizer := "externalsecrets.external-secrets.io/ces-" + clusterExternalSecret.Name
 	if !controllerutil.ContainsFinalizer(&namespace, finalizer) {
 		// Fetch the latest namespace to avoid conflicts
