@@ -78,25 +78,19 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	// Index PushSecrets by the stores they have pushed to (for finalizer management)
 	if err := mgr.GetFieldIndexer().IndexField(ctx, &esapi.PushSecret{}, "status.syncedPushSecrets", func(obj client.Object) []string {
 		ps := obj.(*esapi.PushSecret)
-		var storeNames []string
 
 		// Only index PushSecrets with DeletionPolicy=Delete for efficiency
 		if ps.Spec.DeletionPolicy != esapi.PushSecretDeletionPolicyDelete {
-			return storeNames
+			return nil
 		}
 
-		// Extract store names from syncedPushSecrets map
 		// Format is typically "Kind/Name" (e.g., "SecretStore/store1", "ClusterSecretStore/clusterstore1")
+		storeKeys := make([]string, 0, len(ps.Status.SyncedPushSecrets))
 		for storeKey := range ps.Status.SyncedPushSecrets {
-			// Extract just the store name from the key
-			if strings.Contains(storeKey, "/") {
-				parts := strings.SplitN(storeKey, "/", 2)
-				if len(parts) == 2 {
-					storeNames = append(storeNames, parts[1])
-				}
-			}
+			storeKeys = append(storeKeys, storeKey)
+
 		}
-		return storeNames
+		return storeKeys
 	}); err != nil {
 		return err
 	}

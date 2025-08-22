@@ -16,7 +16,6 @@ package v1
 
 import (
 	"fmt"
-	"slices"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -42,10 +41,6 @@ type GenericStore interface {
 	GetStatus() SecretStoreStatus
 	SetStatus(status SecretStoreStatus)
 	Copy() GenericStore
-
-	AddFinalizer(finalizer string)
-	RemoveFinalizer(finalizer string)
-	ContainsFinalizer(finalizer string) bool
 }
 
 // +kubebuilder:object:root:false
@@ -84,33 +79,6 @@ func (c *SecretStore) Copy() GenericStore {
 	return c.DeepCopy()
 }
 
-// GetFinalizers adds a finalizer to the SecretStore's finalizers if it does not already exist.
-func (c *SecretStore) AddFinalizer(finalizer string) {
-	finalizers := c.GetFinalizers()
-	if slices.Contains(finalizers, finalizer) {
-		return
-	}
-	c.SetFinalizers(append(finalizers, finalizer))
-}
-
-// RemoveFinalizer removes a finalizer from the SecretStore's finalizers.
-func (c *SecretStore) RemoveFinalizer(finalizer string) {
-	finalizers := c.GetFinalizers()
-	newFinalizers := []string{}
-	for _, f := range finalizers {
-		if f != finalizer {
-			newFinalizers = append(newFinalizers, f)
-		}
-	}
-	c.SetFinalizers(newFinalizers)
-}
-
-// ContainsFinalizer checks if the finalizer is present in the SecretStore's finalizers.
-func (c *SecretStore) ContainsFinalizer(finalizer string) bool {
-	finalizers := c.GetFinalizers()
-	return slices.Contains(finalizers, finalizer)
-}
-
 // +kubebuilder:object:root:false
 // +kubebuilder:object:generate:false
 var _ GenericStore = &ClusterSecretStore{}
@@ -145,29 +113,4 @@ func (c *ClusterSecretStore) GetNamespacedName() string {
 
 func (c *ClusterSecretStore) GetKind() string {
 	return ClusterSecretStoreKind
-}
-
-func (c *ClusterSecretStore) AddFinalizer(finalizer string) {
-	finalizers := c.GetFinalizers()
-	if slices.Contains(finalizers, finalizer) {
-		return
-	}
-	c.SetFinalizers(append(finalizers, finalizer))
-}
-
-func (c *ClusterSecretStore) RemoveFinalizer(finalizer string) {
-	finalizers := c.GetFinalizers()
-	newFinalizers := []string{}
-	for _, f := range finalizers {
-		if f != finalizer {
-			newFinalizers = append(newFinalizers, f)
-		}
-	}
-	c.SetFinalizers(newFinalizers)
-}
-
-// ContainsFinalizer checks if the finalizer is present in the ClusterSecretStore's finalizers.
-func (c *ClusterSecretStore) ContainsFinalizer(finalizer string) bool {
-	finalizers := c.GetFinalizers()
-	return slices.Contains(finalizers, finalizer)
 }
