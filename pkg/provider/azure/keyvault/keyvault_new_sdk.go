@@ -211,14 +211,14 @@ func (a *Azure) setKeyVaultKeyWithNewSDK(ctx context.Context, secretName string,
 	return nil
 }
 
-// isValidSecret checks if a secret is valid and enabled
+// isValidSecret checks if a secret is valid and enabled.
 func (a *Azure) isValidSecret(secret *azsecrets.SecretProperties) bool {
 	return secret.ID != nil &&
 		secret.Attributes != nil &&
 		*secret.Attributes.Enabled
 }
 
-// secretMatchesTags checks if secret matches required tags
+// secretMatchesTags checks if secret matches required tags.
 func (a *Azure) secretMatchesTags(secret *azsecrets.SecretProperties, requiredTags map[string]string) bool {
 	if len(requiredTags) == 0 {
 		return true
@@ -232,7 +232,7 @@ func (a *Azure) secretMatchesTags(secret *azsecrets.SecretProperties, requiredTa
 	return true
 }
 
-// secretMatchesNamePattern checks if secret name matches the regex pattern
+// secretMatchesNamePattern checks if secret name matches the regex pattern.
 func (a *Azure) secretMatchesNamePattern(secretName string, nameRef *esv1.FindName) bool {
 	if nameRef == nil || nameRef.RegExp == "" {
 		return true
@@ -242,7 +242,7 @@ func (a *Azure) secretMatchesNamePattern(secretName string, nameRef *esv1.FindNa
 	return isMatch
 }
 
-// processSecretsPage processes a single page of secrets from the list operation
+// processSecretsPage processes a single page of secrets from the list operation.
 func (a *Azure) processSecretsPage(ctx context.Context, secrets []*azsecrets.SecretProperties, ref esv1.ExternalSecretFind, secretsMap map[string][]byte) error {
 	for _, secret := range secrets {
 		if !a.isValidSecret(secret) {
