@@ -211,12 +211,69 @@ func (a *Azure) setKeyVaultKeyWithNewSDK(ctx context.Context, secretName string,
 	return nil
 }
 
+// isValidSecret checks if a secret is valid and enabled
+func (a *Azure) isValidSecret(secret *azsecrets.SecretProperties) bool {
+	return secret.ID != nil &&
+		secret.Attributes != nil &&
+		*secret.Attributes.Enabled
+}
+
+// secretMatchesTags checks if secret matches required tags
+func (a *Azure) secretMatchesTags(secret *azsecrets.SecretProperties, requiredTags map[string]string) bool {
+	if len(requiredTags) == 0 {
+		return true
+	}
+
+	for k, v := range requiredTags {
+		if val, ok := secret.Tags[k]; !ok || val == nil || *val != v {
+			return false
+		}
+	}
+	return true
+}
+
+// secretMatchesNamePattern checks if secret name matches the regex pattern
+func (a *Azure) secretMatchesNamePattern(secretName string, nameRef *esv1.FindName) bool {
+	if nameRef == nil || nameRef.RegExp == "" {
+		return true
+	}
+
+	isMatch, _ := regexp.MatchString(nameRef.RegExp, secretName)
+	return isMatch
+}
+
+// processSecretsPage processes a single page of secrets from the list operation
+func (a *Azure) processSecretsPage(ctx context.Context, secrets []*azsecrets.SecretProperties, ref esv1.ExternalSecretFind, secretsMap map[string][]byte) error {
+	for _, secret := range secrets {
+		if !a.isValidSecret(secret) {
+			continue
+		}
+
+		if !a.secretMatchesTags(secret, ref.Tags) {
+			continue
+		}
+
+		secretName := secret.ID.Name()
+		if !a.secretMatchesNamePattern(secretName, ref.Name) {
+			continue
+		}
+
+		// Get the secret value
+		secretResp, err := a.secretsClient.GetSecret(ctx, secretName, "", nil)
+		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
+		if err != nil {
+			return parseNewSDKError(err)
+		}
+
+		if secretResp.Value != nil {
+			secretsMap[secretName] = []byte(*secretResp.Value)
+		}
+	}
+	return nil
+}
+
 func (a *Azure) getAllSecretsWithNewSDK(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	secretsMap := make(map[string][]byte)
-	checkTags := len(ref.Tags) > 0
-	checkName := ref.Name != nil && ref.Name.RegExp != ""
-
-	// List secrets using new SDK - this returns a pager
 	pager := a.secretsClient.NewListSecretPropertiesPager(nil)
 
 	for pager.More() {
@@ -226,46 +283,8 @@ func (a *Azure) getAllSecretsWithNewSDK(ctx context.Context, ref esv1.ExternalSe
 			return nil, parseNewSDKError(err)
 		}
 
-		for _, secret := range page.Value {
-			if secret.ID == nil || secret.Attributes == nil || !*secret.Attributes.Enabled {
-				continue
-			}
-
-			// Check tags if specified
-			if checkTags {
-				tagsFound := true
-				for k, v := range ref.Tags {
-					if val, ok := secret.Tags[k]; !ok || val == nil || *val != v {
-						tagsFound = false
-						break
-					}
-				}
-				if !tagsFound {
-					continue
-				}
-			}
-
-			// Extract secret name from ID
-			secretName := secret.ID.Name()
-
-			// Check name pattern if specified
-			if checkName {
-				matches, _ := regexp.MatchString(ref.Name.RegExp, secretName)
-				if !matches {
-					continue
-				}
-			}
-
-			// Get the secret value
-			secretResp, err := a.secretsClient.GetSecret(ctx, secretName, "", nil)
-			metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
-			if err != nil {
-				return nil, parseNewSDKError(err)
-			}
-
-			if secretResp.Value != nil {
-				secretsMap[secretName] = []byte(*secretResp.Value)
-			}
+		if err := a.processSecretsPage(ctx, page.Value, ref, secretsMap); err != nil {
+			return nil, err
 		}
 	}
 	return secretsMap, nil
