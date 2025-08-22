@@ -17,13 +17,11 @@ package secretsmanager
 import (
 	"bytes"
 	"context"
-	"crypto/sha3"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awssm "github.com/aws/aws-sdk-go-v2/service/secretsmanager"
@@ -72,7 +70,7 @@ type SecretsManager struct {
 	cache        map[string]*awssm.GetSecretValueOutput
 	config       *esv1.SecretsManager
 	prefix       string
-	now          int64
+	newUUID      func() string
 }
 
 // SMInterface is a subset of the smiface api.
@@ -275,42 +273,6 @@ func (sm *SecretsManager) getNewSecretValue(value []byte, property string, exist
 	}
 	value, _ = sjson.SetBytes([]byte(currentSecret), property, value)
 	return value, nil
-}
-
-// `now` serves to provide a reproducible uuid for testing purposes.
-func bumpVersionNumber(id *string, now int64) (*string, error) {
-	if id == nil {
-		output := initialVersion
-		return &output, nil
-	}
-
-	if _, err := uuid.Parse(*id); err != nil {
-		return nil, fmt.Errorf("expected secret version in AWS SSM to be a UUID but got '%s'", *id)
-	}
-
-	// create a seed hash
-	hasher := sha3.New256()
-	unix := time.Now().Unix()
-	if now != 0 {
-		unix = now
-	}
-
-	if _, err := fmt.Fprintf(hasher, "%s", *id); err != nil {
-		return nil, err
-	}
-	if _, err := fmt.Fprintf(hasher, "%d", unix); err != nil {
-		return nil, err
-	}
-	hash := hasher.Sum(nil)
-
-	// trim to 16 bytes
-	newVersion, err := uuid.FromBytes(hash[:16])
-	if err != nil {
-		return nil, err
-	}
-
-	s := newVersion.String()
-	return &s, nil
 }
 
 func isManagedByESO(data *awssm.DescribeSecretOutput) bool {
@@ -578,11 +540,11 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretA
 
 	newVersionNumber := initialVersion
 	if awsSecret != nil {
-		bumpedVersionNumber, err := bumpVersionNumber(awsSecret.VersionId, sm.now)
-		if err != nil {
-			return err
+		if sm.newUUID == nil {
+			newVersionNumber = uuid.NewString()
+		} else {
+			newVersionNumber = sm.newUUID()
 		}
-		newVersionNumber = *bumpedVersionNumber
 	}
 	input := &awssm.PutSecretValueInput{
 		SecretId:           &secretArn,
