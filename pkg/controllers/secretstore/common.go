@@ -26,9 +26,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlreconcile "sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -302,4 +304,91 @@ func hasPushSecretsWithDeletePolicy(ctx context.Context, cl client.Client, store
 	}
 
 	return false, nil
+}
+
+// findStoresForPushSecret finds SecretStores or ClusterSecretStores that should be reconciled when a PushSecret changes.
+func findStoresForPushSecret(ctx context.Context, c client.Client, obj client.Object, storeList client.ObjectList) []ctrlreconcile.Request {
+	ps, ok := obj.(*esv1alpha1.PushSecret)
+	if !ok {
+		return nil
+	}
+
+	var isClusterScoped bool
+	switch storeList.(type) {
+	case *esapi.ClusterSecretStoreList:
+		isClusterScoped = true
+	case *esapi.SecretStoreList:
+		isClusterScoped = false
+	default:
+		return nil
+	}
+
+	listOpts := make([]client.ListOption, 0)
+	if !isClusterScoped {
+		listOpts = append(listOpts, client.InNamespace(ps.GetNamespace()))
+	}
+
+	if err := c.List(ctx, storeList, listOpts...); err != nil {
+		return nil
+	}
+
+	requests := make([]ctrlreconcile.Request, 0)
+	var stores []esapi.GenericStore
+
+	switch sl := storeList.(type) {
+	case *esapi.SecretStoreList:
+		for i := range sl.Items {
+			stores = append(stores, &sl.Items[i])
+		}
+	case *esapi.ClusterSecretStoreList:
+		for i := range sl.Items {
+			stores = append(stores, &sl.Items[i])
+		}
+	}
+
+	for _, store := range stores {
+		if shouldReconcileSecretStoreForPushSecret(store, ps) {
+			req := ctrlreconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name: store.GetName(),
+				},
+			}
+			if !isClusterScoped {
+				req.NamespacedName.Namespace = store.GetNamespace()
+			}
+			requests = append(requests, req)
+		}
+	}
+
+	return requests
+}
+
+// shouldReconcileSecretStoreForPushSecret determines if a SecretStore should be reconciled
+// when a PushSecret changes, based on whether the PushSecret references this store.
+func shouldReconcileSecretStoreForPushSecret(store esapi.GenericStore, ps *esv1alpha1.PushSecret) bool {
+	// Check if this PushSecret has pushed to this store
+	storeKey := fmt.Sprintf("%s/%s", store.GetKind(), store.GetName())
+	if _, hasPushed := ps.Status.SyncedPushSecrets[storeKey]; hasPushed {
+		return true
+	}
+	// Also check if the PushSecret references this store in its spec
+	for _, storeRef := range ps.Spec.SecretStoreRefs {
+		refKind := storeRef.Kind
+		if refKind == "" {
+			refKind = esapi.SecretStoreKind
+		}
+
+		if storeRef.Name == store.GetName() && (storeRef.Kind == "" || (storeRef.Kind == esapi.SecretStoreKind || storeRef.Kind == esapi.ClusterSecretStoreKind)) {
+			return true
+		}
+		// Check labelSelector match
+		if storeRef.LabelSelector != nil && storeRef.Kind == esapi.SecretStoreKind {
+			selector, err := metav1.LabelSelectorAsSelector(storeRef.LabelSelector)
+			if err == nil && selector.Matches(labels.Set(store.GetLabels())) {
+				return true
+			}
+		}
+	}
+
+	return false
 }

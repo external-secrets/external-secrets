@@ -16,15 +16,11 @@ package secretstore
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -87,56 +83,9 @@ func (r *ClusterStoreReconciler) SetupWithManager(mgr ctrl.Manager, opts control
 		For(&esapi.ClusterSecretStore{}).
 		Watches(
 			&esv1alpha1.PushSecret{},
-			handler.EnqueueRequestsFromMapFunc(r.findClusterSecretStoresForPushSecret),
+			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []ctrlreconcile.Request {
+				return findStoresForPushSecret(ctx, r.Client, obj, &esapi.ClusterSecretStoreList{})
+			}),
 		).
 		Complete(r)
-}
-
-// findClusterSecretStoresForPushSecret finds ClusterSecretStores that should be reconciled when a PushSecret changes.
-func (r *ClusterStoreReconciler) findClusterSecretStoresForPushSecret(ctx context.Context, obj client.Object) []ctrlreconcile.Request {
-	ps := obj.(*esv1alpha1.PushSecret)
-	var requests []ctrlreconcile.Request
-
-	// Get all ClusterSecretStores
-	var clusterSecretStoreList esapi.ClusterSecretStoreList
-	if err := r.List(ctx, &clusterSecretStoreList); err != nil {
-		return requests
-	}
-
-	// Check which ClusterSecretStores this PushSecret references
-	for _, store := range clusterSecretStoreList.Items {
-		if shouldReconcileClusterSecretStoreForPushSecret(&store, ps) {
-			requests = append(requests, ctrlreconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name: store.Name,
-				},
-			})
-		}
-	}
-
-	return requests
-}
-
-// shouldReconcileClusterSecretStoreForPushSecret determines if a ClusterSecretStore should be reconciled
-// when a PushSecret changes, based on whether the PushSecret references this store.
-func shouldReconcileClusterSecretStoreForPushSecret(store *esapi.ClusterSecretStore, ps *esv1alpha1.PushSecret) bool {
-	// Check if this PushSecret has pushed to this store
-	storeKey := fmt.Sprintf("%s/%s", esapi.ClusterSecretStoreKind, store.Name)
-	_, hasPushed := ps.Status.SyncedPushSecrets[storeKey]
-
-	// Also check if the PushSecret references this store in its spec
-	for _, storeRef := range ps.Spec.SecretStoreRefs {
-		if storeRef.Name == store.Name && storeRef.Kind == esapi.ClusterSecretStoreKind {
-			return true
-		}
-		// Check labelSelector match
-		if storeRef.LabelSelector != nil && storeRef.Kind == esapi.ClusterSecretStoreKind {
-			selector, err := metav1.LabelSelectorAsSelector(storeRef.LabelSelector)
-			if err == nil && selector.Matches(labels.Set(store.Labels)) {
-				return true
-			}
-		}
-	}
-
-	return hasPushed
 }
