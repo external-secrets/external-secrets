@@ -173,37 +173,48 @@ func ShouldProcessStore(store esapi.GenericStore, class string) bool {
 // It adds a finalizer when there are PushSecrets with DeletionPolicy=Delete that reference this store
 // and removes it when there are no such PushSecrets.
 func handleFinalizer(ctx context.Context, cl client.Client, store esapi.GenericStore, log logr.Logger) (bool, error) {
-
 	hasPushSecretsWithDeletePolicy, err := hasPushSecretsWithDeletePolicy(ctx, cl, store)
 	if err != nil {
 		return false, fmt.Errorf("failed to check PushSecrets: %w", err)
 	}
 
+	hasFinalizer := store.ContainsFinalizer(secretStoreFinalizer)
+	storeKind := store.GetKind()
+
 	// If the store is being deleted and has the finalizer, check if we can remove it
 	if !store.GetObjectMeta().DeletionTimestamp.IsZero() {
-		if store.ContainsFinalizer(secretStoreFinalizer) {
-			if hasPushSecretsWithDeletePolicy {
-				log.Info("cannot remove finalizer, there are still PushSecrets with DeletionPolicy=Delete that reference this store")
-				return false, nil
-			}
-			store.RemoveFinalizer(secretStoreFinalizer)
-			log.Info(fmt.Sprintf("removed finalizer from %s", store.GetKind()))
-			return true, nil
+		if !hasFinalizer {
+			return false, nil
 		}
+
+		if hasPushSecretsWithDeletePolicy {
+			log.Info("cannot remove finalizer, there are still PushSecrets with DeletionPolicy=Delete that reference this store")
+			return false, nil
+		}
+
+		store.RemoveFinalizer(secretStoreFinalizer)
+		log.Info(fmt.Sprintf("removed finalizer from %s during deletion", storeKind))
+		return true, nil
+	}
+
+	// If the store is not being deleted, manage the finalizer based on PushSecrets
+	if hasFinalizer == hasPushSecretsWithDeletePolicy {
 		return false, nil
 	}
 
-	// If not being deleted, manage the finalizer based on whether there are PushSecrets with Delete policy
-	if hasPushSecretsWithDeletePolicy {
+	if hasPushSecretsWithDeletePolicy && !hasFinalizer {
 		store.AddFinalizer(secretStoreFinalizer)
-		log.Info(fmt.Sprintf("added finalizer to %s due to PushSecrets with DeletionPolicy=Delete", store.GetKind()))
-
-	} else {
-		store.RemoveFinalizer(secretStoreFinalizer)
-		log.Info(fmt.Sprintf("removed finalizer from %s, no PushSecrets with DeletionPolicy=Delete found", store.GetKind()))
+		log.Info(fmt.Sprintf("added finalizer to %s due to PushSecrets with DeletionPolicy=Delete", storeKind))
+		return true, nil
 	}
 
-	return true, nil
+	if !hasPushSecretsWithDeletePolicy && hasFinalizer {
+		store.RemoveFinalizer(secretStoreFinalizer)
+		log.Info(fmt.Sprintf("removed finalizer from %s, no more PushSecrets with DeletionPolicy=Delete", storeKind))
+		return true, nil
+	}
+
+	return false, nil
 }
 
 // hasPushSecretsWithDeletePolicy checks if there are any PushSecrets with DeletionPolicy=Delete
@@ -217,12 +228,23 @@ func hasPushSecretsWithDeletePolicy(ctx context.Context, cl client.Client, store
 		storeNamespace = store.GetNamespace()
 	}
 
-	listOpts := &client.ListOptions{
-		FieldSelector: fields.OneTermEqualSelector("status.syncedPushSecrets", storeName),
+	isKindMatch := func(refKind string) bool {
+		if refKind == storeKind {
+			return true
+		}
+		return refKind == "" && (storeKind == esapi.SecretStoreKind || storeKind == esapi.ClusterSecretStoreKind)
 	}
-	if storeNamespace != "" {
-		listOpts.Namespace = storeNamespace
+
+	buildListOpts := func(namespace string) *client.ListOptions {
+		opts := &client.ListOptions{}
+		if namespace != "" {
+			opts.Namespace = namespace
+		}
+		return opts
 	}
+
+	listOpts := buildListOpts(storeNamespace)
+	listOpts.FieldSelector = fields.OneTermEqualSelector("status.syncedPushSecrets", storeName)
 
 	var pushSecretList esv1alpha1.PushSecretList
 	if err := cl.List(ctx, &pushSecretList, listOpts); err != nil {
@@ -242,38 +264,26 @@ func hasPushSecretsWithDeletePolicy(ctx context.Context, cl client.Client, store
 
 	// Also check for PushSecrets that reference this store by name or labelSelector
 	// but haven't pushed to it yet (for initial finalizer setup)
-	listOpts = &client.ListOptions{
-		FieldSelector: fields.OneTermEqualSelector("spec.deletionPolicy", string(esv1alpha1.PushSecretDeletionPolicyDelete)),
-	}
-	if storeNamespace != "" {
-		listOpts.Namespace = storeNamespace
-	}
+	listOpts = buildListOpts(storeNamespace)
+	listOpts.FieldSelector = fields.OneTermEqualSelector("spec.deletionPolicy", string(esv1alpha1.PushSecretDeletionPolicyDelete))
+
 	if err := cl.List(ctx, &pushSecretList, listOpts); err != nil {
 		return false, fmt.Errorf("failed to list PushSecrets by deletionPolicy: %w", err)
 	}
 
 	for _, ps := range pushSecretList.Items {
-		// Check if this PushSecret references our store
+		// Check if this PushSecret references our store by name or labelSelector
 		for _, storeRef := range ps.Spec.SecretStoreRefs {
-			if storeRef.Name == storeName {
-				// Check if kind matches
-				if storeRef.Kind == storeKind ||
-					(storeRef.Kind == "" && storeKind == esapi.SecretStoreKind) ||
-					(storeRef.Kind == "" && storeKind == esapi.ClusterSecretStoreKind) {
-					return true, nil
-				}
+			// Check name match
+			if storeRef.Name == storeName && isKindMatch(storeRef.Kind) {
+				return true, nil
 			}
-		}
 
-		// Check labelSelector match
-		for _, storeRef := range ps.Spec.SecretStoreRefs {
-			if storeRef.LabelSelector != nil &&
-				(storeRef.Kind == storeKind ||
-					(storeRef.Kind == "" && storeKind == esapi.SecretStoreKind) ||
-					(storeRef.Kind == "" && storeKind == esapi.ClusterSecretStoreKind)) {
+			// Check labelSelector match
+			if storeRef.LabelSelector != nil && isKindMatch(storeRef.Kind) {
 				selector, err := metav1.LabelSelectorAsSelector(storeRef.LabelSelector)
 				if err != nil {
-					continue
+					continue // Skip invalid selectors
 				}
 				if selector.Matches(labels.Set(store.GetLabels())) {
 					return true, nil
