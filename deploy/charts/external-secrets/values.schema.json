@@ -366,6 +366,9 @@
                 "enabled": {
                     "type": "boolean"
                 },
+                "extraLabels": {
+                    "type": "object"
+                },
                 "sidecarLabel": {
                     "type": "string"
                 },
