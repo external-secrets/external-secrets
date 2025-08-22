@@ -16,7 +16,8 @@ package v1
 
 // FakeProvider configures a fake provider that returns static values.
 type FakeProvider struct {
-	Data []FakeProviderData `json:"data"`
+	Data             []FakeProviderData `json:"data"`
+	ValidationResult *ValidationResult  `json:"validationResult,omitempty"`
 }
 
 type FakeProviderData struct {
