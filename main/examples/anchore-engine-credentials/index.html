@@ -3404,13 +3404,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installing-with-helm" class="md-nav__link">
+  <a href="#installation-with-helm" class="md-nav__link">
     <span class="md-ellipsis">
-      Installing with Helm
+      Installation with Helm
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Installing with Helm">
+    <nav class="md-nav" aria-label="Installation with Helm">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -3937,13 +3937,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#installing-with-helm" class="md-nav__link">
+  <a href="#installation-with-helm" class="md-nav__link">
     <span class="md-ellipsis">
-      Installing with Helm
+      Installation with Helm
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Installing with Helm">
+    <nav class="md-nav" aria-label="Installation with Helm">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -3989,16 +3989,18 @@
 
 
 <h1 id="getting-started">Getting started</h1>
-<p>Anchore Engine is an open-source project that provides a centralized service for inspection, analysis, and certification of container images. With Kubernetes, it also brings nice features like preventing unscanned images from being deployed into your clusters</p>
-<h2 id="installing-with-helm">Installing with Helm</h2>
-<p>There are several parts of the installation that require credentials these being :-</p>
-<p>ANCHORE_ADMIN_USERNAME
-ANCHORE_ADMIN_PASSWORD
-ANCHORE_DB_PASSWORD
-db-url
-db-user
-postgres-password</p>
-<p>Creating the following external secret ensure the credentials are drawn from the backend provider of choice. The example shown here works with Hashicorp Vault and AWS Secrets Manager providers.</p>
+<p><strong>Anchore Engine</strong> is an open-source platform that provides centralized inspection, analysis, and certification of container images. When integrated with Kubernetes, it adds powerful features—such as preventing unscanned images from being deployed into your clusters.</p>
+<h2 id="installation-with-helm">Installation with Helm</h2>
+<p>There are several parts of the installation that require credentials these being:</p>
+<ul>
+<li><code>ANCHORE_ADMIN_USERNAME</code></li>
+<li><code>ANCHORE_ADMIN_PASSWORD</code></li>
+<li><code>ANCHORE_DB_PASSWORD</code></li>
+<li><code>db-url</code></li>
+<li><code>db-user</code></li>
+<li><code>postgres-password</code></li>
+</ul>
+<p>You can use an <strong>ExternalSecret</strong> to automatically fetch these credentials from your preferred backend provider. The following examples demonstrate how to configure it with <strong>HashiCorp Vault</strong> and <strong>AWS Secrets Manager</strong>.</p>
 <h4 id="hashicorp-vault">Hashicorp Vault</h4>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
