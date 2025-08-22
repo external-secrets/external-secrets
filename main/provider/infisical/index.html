@@ -4074,6 +4074,10 @@
 <p>In order for the operator to fetch secrets from Infisical, it needs to first authenticate with Infisical.</p>
 <p>To authenticate, you can use <a href="https://infisical.com/docs/documentation/platform/identities/universal-auth">Universal Auth</a> from <a href="https://infisical.com/docs/documentation/platform/identities/machine-identities">Machine identities</a>.</p>
 <p>Follow the <a href="https://infisical.com/docs/documentation/platform/identities/universal-auth">guide here</a> to learn how to create and obtain a pair of Client Secret and Client ID.</p>
+<div class="admonition note inline end">
+<p class="admonition-title">Note</p>
+<p>Infisical requires <code>system:auth-delegator</code> for authentication. Please follow the <a href="https://infisical.com/docs/documentation/platform/identities/kubernetes-auth#guide">guide here</a> to add the required role.</p>
+</div>
 <h2 id="storing-your-machine-identity-secrets">Storing Your Machine Identity Secrets</h2>
 <p>Once you have generated a pair of <code>Client ID</code> and <code>Client Secret</code>, you will need to store these credentials in your cluster as a Kubernetes secret.</p>
 <div class="admonition note inline end">
