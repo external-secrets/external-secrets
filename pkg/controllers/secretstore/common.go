@@ -63,13 +63,13 @@ type Opts struct {
 	RequeueInterval time.Duration
 }
 
-func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl client.Client, log logr.Logger, opts Opts) (ctrl.Result, error) {
+func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl client.Client, isPushSecretEnable bool, log logr.Logger, opts Opts) (ctrl.Result, error) {
 	if !ShouldProcessStore(ss, opts.ControllerClass) {
 		log.V(1).Info("skip store")
 		return ctrl.Result{}, nil
 	}
 
-	updated, err := handleFinalizer(ctx, cl, ss, log)
+	updated, err := handleFinalizer(ctx, cl, ss, log, isPushSecretEnable)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -183,7 +183,11 @@ func ShouldProcessStore(store esapi.GenericStore, class string) bool {
 // handleFinalizer manages the finalizer for ClusterSecretStores and SecretStores.
 // It adds a finalizer when there are PushSecrets with DeletionPolicy=Delete that reference this store
 // and removes it when there are no such PushSecrets.
-func handleFinalizer(ctx context.Context, cl client.Client, store esapi.GenericStore, log logr.Logger) (bool, error) {
+func handleFinalizer(ctx context.Context, cl client.Client, store esapi.GenericStore, log logr.Logger, isPushSecretEnable bool) (bool, error) {
+	if !isPushSecretEnable {
+		log.V(1).Info("skipping finalizer management, PushSecret feature is disabled")
+		return false, nil
+	}
 	hasPushSecretsWithDeletePolicy, err := hasPushSecretsWithDeletePolicy(ctx, cl, store)
 	if err != nil {
 		return false, fmt.Errorf("failed to check PushSecrets: %w", err)

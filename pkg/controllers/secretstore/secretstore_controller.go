@@ -40,11 +40,12 @@ import (
 // StoreReconciler reconciles a SecretStore object.
 type StoreReconciler struct {
 	client.Client
-	Log             logr.Logger
-	Scheme          *runtime.Scheme
-	recorder        record.EventRecorder
-	RequeueInterval time.Duration
-	ControllerClass string
+	Log               logr.Logger
+	Scheme            *runtime.Scheme
+	recorder          record.EventRecorder
+	RequeueInterval   time.Duration
+	ControllerClass   string
+	PushSecretEnabled bool
 }
 
 func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -66,7 +67,7 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, err
 	}
 
-	return reconcile(ctx, req, &ss, r.Client, log, Opts{
+	return reconcile(ctx, req, &ss, r.Client, r.PushSecretEnabled, log, Opts{
 		ControllerClass: r.ControllerClass,
 		GaugeVecGetter:  ssmetrics.GetGaugeVec,
 		Recorder:        r.recorder,
@@ -84,7 +85,10 @@ func (r *StoreReconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Opt
 		Watches(
 			&esv1alpha1.PushSecret{},
 			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []ctrlreconcile.Request {
-				return findStoresForPushSecret(ctx, r.Client, obj, &esapi.SecretStoreList{})
+				if r.PushSecretEnabled {
+					return findStoresForPushSecret(ctx, r.Client, obj, &esapi.SecretStoreList{})
+				}
+				return nil
 			}),
 		).
 		Complete(r)

@@ -86,10 +86,11 @@ var _ = BeforeSuite(func() {
 	Expect(k8sClient).ToNot(BeNil())
 
 	err = (&StoreReconciler{
-		Client:          k8sManager.GetClient(),
-		Scheme:          k8sManager.GetScheme(),
-		Log:             ctrl.Log.WithName("controllers").WithName("SecretStore"),
-		ControllerClass: defaultControllerClass,
+		Client:            k8sManager.GetClient(),
+		Scheme:            k8sManager.GetScheme(),
+		Log:               ctrl.Log.WithName("controllers").WithName("SecretStore"),
+		ControllerClass:   defaultControllerClass,
+		PushSecretEnabled: true, // enable PushSecret feature for testing
 	}).SetupWithManager(k8sManager, controller.Options{
 		MaxConcurrentReconciles: 1,
 		RateLimiter:             ctrlcommon.BuildRateLimiter(),
@@ -123,10 +124,11 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&ClusterStoreReconciler{
-		Client:          k8sManager.GetClient(),
-		Scheme:          k8sManager.GetScheme(),
-		ControllerClass: defaultControllerClass,
-		Log:             ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
+		Client:            k8sManager.GetClient(),
+		Scheme:            k8sManager.GetScheme(),
+		ControllerClass:   defaultControllerClass,
+		Log:               ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
+		PushSecretEnabled: true, // enable PushSecret feature for testing
 	}).SetupWithManager(k8sManager, controller.Options{
 		MaxConcurrentReconciles: 1,
 		RateLimiter:             ctrlcommon.BuildRateLimiter(),

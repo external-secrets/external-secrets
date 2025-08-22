@@ -40,11 +40,12 @@ import (
 // ClusterStoreReconciler reconciles a SecretStore object.
 type ClusterStoreReconciler struct {
 	client.Client
-	Log             logr.Logger
-	Scheme          *runtime.Scheme
-	ControllerClass string
-	RequeueInterval time.Duration
-	recorder        record.EventRecorder
+	Log               logr.Logger
+	Scheme            *runtime.Scheme
+	ControllerClass   string
+	RequeueInterval   time.Duration
+	recorder          record.EventRecorder
+	PushSecretEnabled bool
 }
 
 func (r *ClusterStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -66,7 +67,7 @@ func (r *ClusterStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
-	return reconcile(ctx, req, &css, r.Client, log, Opts{
+	return reconcile(ctx, req, &css, r.Client, r.PushSecretEnabled, log, Opts{
 		ControllerClass: r.ControllerClass,
 		GaugeVecGetter:  cssmetrics.GetGaugeVec,
 		Recorder:        r.recorder,
@@ -84,7 +85,10 @@ func (r *ClusterStoreReconciler) SetupWithManager(mgr ctrl.Manager, opts control
 		Watches(
 			&esv1alpha1.PushSecret{},
 			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []ctrlreconcile.Request {
-				return findStoresForPushSecret(ctx, r.Client, obj, &esapi.ClusterSecretStoreList{})
+				if r.PushSecretEnabled {
+					return findStoresForPushSecret(ctx, r.Client, obj, &esapi.ClusterSecretStoreList{})
+				}
+				return nil
 			}),
 		).
 		Complete(r)
