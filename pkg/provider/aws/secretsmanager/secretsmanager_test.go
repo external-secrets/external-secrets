@@ -472,9 +472,9 @@ func TestSetSecret(t *testing.T) {
 	}
 
 	initialVersion := "00000000-0000-0000-0000-000000000001"
-	defaultUpdatedVersion := "00000000-0000-0000-0000-000000000003"
+	defaultUpdatedVersion := "0a5fa3d1-b7fd-b05c-663c-4aee4f29cc93"
 	randomUUIDVersion := "c2812e8d-84ce-4858-abec-7163d8ab312b"
-	randomUUIDVersionIncremented := "c2812e8d-84ce-4858-abec-7163d8ab312c"
+	randomUUIDVersionIncremented := "7b13f614-7acb-e0ae-2988-cb66a3013e6a"
 	unparsableVersion := "IAM UNPARSABLE"
 
 	secretValueOutput := &awssm.GetSecretValueOutput{
@@ -991,6 +991,7 @@ func TestSetSecret(t *testing.T) {
 			sm := SecretsManager{
 				client: &tc.args.client,
 				prefix: tc.args.store.Prefix,
+				now:    1, // force a version seed
 			}
 
 			err := sm.PushSecret(context.Background(), fakeSecret, tc.args.pushSecretData)
