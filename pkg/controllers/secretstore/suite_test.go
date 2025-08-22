@@ -96,8 +96,7 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	// O código para adicionar o índice está no lugar certo.
-	// Ele modifica o k8sManager ANTES de ele ser iniciado.
+	// Index PushSecret status.syncedPushSecrets to find all stores that have synced a specific PushSecret.
 	err = k8sManager.GetFieldIndexer().IndexField(context.Background(), &esv1alpha1.PushSecret{}, "status.syncedPushSecrets", func(obj client.Object) []string {
 		ps := obj.(*esv1alpha1.PushSecret)
 		var storeNames []string
@@ -116,6 +115,7 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
+	// Index PushSecret spec.deletionPolicy to find all PushSecrets with deletionPolicy: Delete.
 	err = k8sManager.GetFieldIndexer().IndexField(context.Background(), &esv1alpha1.PushSecret{}, "spec.deletionPolicy", func(obj client.Object) []string {
 		ps := obj.(*esv1alpha1.PushSecret)
 		return []string{string(ps.Spec.DeletionPolicy)}
