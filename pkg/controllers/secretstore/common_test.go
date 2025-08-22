@@ -166,6 +166,43 @@ var _ = Describe("SecretStore Controller", func() {
 
 		}
 
+		// an unknown store validation result should be reflected
+		// in the store status condition
+		validationUnknown := func(tc *testCase) {
+			spc := tc.store.GetSpec()
+			spc.Provider.Vault = nil
+			validationResultUnknown := esapi.ValidationResultUnknown
+			spc.Provider.Fake = &esapi.FakeProvider{
+				Data:             []esapi.FakeProviderData{},
+				ValidationResult: &validationResultUnknown,
+			}
+
+			tc.assert = func() {
+				Eventually(func() bool {
+					ss := tc.store.Copy()
+					err := k8sClient.Get(context.Background(), types.NamespacedName{
+						Name:      defaultStoreName,
+						Namespace: ss.GetNamespace(),
+					}, ss)
+					if err != nil {
+						return false
+					}
+
+					if len(ss.GetStatus().Conditions) != 1 {
+						return false
+					}
+
+					return ss.GetStatus().Conditions[0].Reason == esapi.ReasonValidationUnknown &&
+						ss.GetStatus().Conditions[0].Type == esapi.SecretStoreReady &&
+						ss.GetStatus().Conditions[0].Status == corev1.ConditionTrue &&
+						hasEvent(tc.store.GetTypeMeta().Kind, ss.GetName(), esapi.ReasonValidationUnknown)
+				}).
+					WithTimeout(time.Second * 5).
+					WithPolling(time.Second).
+					Should(BeTrue())
+			}
+		}
+
 		DescribeTable("Provider Configuration", func(muts ...func(tc *testCase)) {
 			for _, mut := range muts {
 				mut(test)
@@ -179,12 +216,14 @@ var _ = Describe("SecretStore Controller", func() {
 			Entry("[namespace] should ignore stores with non-matching controller class", ignoreControllerClass),
 			Entry("[namespace] valid provider should have status=ready", validProvider),
 			Entry("[namespace] valid provider should have capabilities=ReadWrite", readWrite),
+			Entry("[cluster] validation unknown status should set ValidationUnknown condition", validationUnknown),
 
 			// Cluster store tests
 			Entry("[cluster] invalid provider should set InvalidStore condition", invalidProvider, useClusterStore),
 			Entry("[cluster] should ignore stores with non-matching controller class", ignoreControllerClass, useClusterStore),
 			Entry("[cluster] valid provider should have status=ready", validProvider, useClusterStore),
 			Entry("[cluster] valid provider should have capabilities=ReadWrite", readWrite, useClusterStore),
+			Entry("[cluster] validation unknown status should set ValidationUnknown condition", validationUnknown, useClusterStore),
 		)
 	})
 
