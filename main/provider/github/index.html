@@ -2836,11 +2836,11 @@
         <li class="md-nav__item">
   <a href="#github" class="md-nav__link">
     <span class="md-ellipsis">
-      Github
+      GitHub
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Github">
+    <nav class="md-nav" aria-label="GitHub">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -3942,11 +3942,11 @@
         <li class="md-nav__item">
   <a href="#github" class="md-nav__link">
     <span class="md-ellipsis">
-      Github
+      GitHub
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Github">
+    <nav class="md-nav" aria-label="GitHub">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -4002,10 +4002,10 @@
 
   <h1>Github Actions Secrets</h1>
 
-<h2 id="github">Github</h2>
-<p>External Secrets Operator integrates with Github to sync Kubernetes secrets with <a href="https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions">Github Actions secrets</a>.</p>
+<h2 id="github">GitHub</h2>
+<p>External Secrets Operator integrates with GitHub to sync Kubernetes secrets with <a href="https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions">GitHub Actions secrets</a>.</p>
 <h3 id="configuring-github-provider">Configuring Github provider</h3>
-<p>The Github API requires to install the ESO app to your Github organisation in order to use the Github provider features.</p>
+<p>The GitHub API requires to install the ESO app to your GitHub organisation in order to use the Github provider features.</p>
 <h3 id="configuring-the-secret-store">Configuring the secret store</h3>
 <p>Verify that <code>github</code> provider is listed in the <code>Kind=SecretStore</code>. The properties <code>appID</code>, <code>installationID</code>, <code>organization</code> are required to register the provider. In addition, authentication has to be provided.</p>
 <p>Optionally, to target <code>repository</code> and <code>environment</code> secrets, the fields <code>repository</code> and <code>environment</code> need also to be added.</p>
@@ -4031,7 +4031,7 @@
 </code></pre></div>
 <p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>accessToken</code> with the namespace where the secret resides.</p>
 <h3 id="pushing-to-an-external-secret">Pushing to an external secret</h3>
-<p>To sync a Kubernetes secret with an external Github secret we need to create a PushSecret, this means a <code>Kind=PushSecret</code> is needed.</p>
+<p>To sync a Kubernetes secret with an external GitHub secret we need to create a PushSecret, this means a <code>Kind=PushSecret</code> is needed.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
