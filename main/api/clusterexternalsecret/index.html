@@ -931,6 +931,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#synchronizing-corresponding-externalsecrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Synchronizing corresponding ExternalSecrets
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#deprecations" class="md-nav__link">
     <span class="md-ellipsis">
       Deprecations
@@ -3940,6 +3949,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#synchronizing-corresponding-externalsecrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      Synchronizing corresponding ExternalSecrets
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#deprecations" class="md-nav__link">
     <span class="md-ellipsis">
       Deprecations
@@ -4082,6 +4100,15 @@ If there is a conflict with an existing resource the controller will error out.<
 <span class="w">    </span><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;True&quot;</span>
 <span class="w">    </span><span class="nt">lastTransitionTime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2022-01-12T12:33:02Z&quot;</span>
 </code></pre></div>
+<h2 id="synchronizing-corresponding-externalsecrets">Synchronizing corresponding ExternalSecrets</h2>
+<p>Regular refreshes can be controlled using the <code>refreshPolicy</code> and
+<code>refreshInterval</code> fields. Adhoc synchronizations can be triggered by
+setting, updating or deleting the annotation <code>external-secrets.io/force-sync</code>
+on the ClusterExternalSecret:</p>
+<div class="highlight"><pre><span></span><code>kubectl annotate ces my-ces external-secrets.io/force-sync=$(date +%s) --overwrite
+</code></pre></div>
+<p>Changes to this annotation will be synchronized to all ExternalSecrets
+owned by the ClusterExternalSecret.</p>
 <h2 id="deprecations">Deprecations</h2>
 <h3 id="namespaceselector">namespaceSelector</h3>
 <p>The field <code>namespaceSelector</code> has been deprecated in favor of <code>namespaceSelectors</code> and will be removed in a future

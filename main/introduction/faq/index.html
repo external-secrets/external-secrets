@@ -4031,6 +4031,10 @@
 You just need to change an annotation, label or the spec of the resource:</p>
 <div class="highlight"><pre><span></span><code>kubectl annotate es my-es force-sync=$(date +%s) --overwrite
 </code></pre></div>
+<p>For ClusterExternalSecrets you can refresh all corresponding ExternalSecrets by changing
+the <code>external-secrets.io/force-sync</code> annotation on the ClusterExternalSecret resource:</p>
+<div class="highlight"><pre><span></span><code>kubectl annotate ces my-ces external-secrets.io/force-sync=$(date +%s) --overwrite
+</code></pre></div>
 <h2 id="how-do-i-know-when-my-secret-was-last-synced">How do I know when my secret was last synced?</h2>
 <p>The last synchronization timestamp of an ExternalSecret can be retrieved from the field <code>refreshTime</code>.</p>
 <div class="highlight"><pre><span></span><code>kubectl get es my-external-secret -o yaml | grep refreshTime
