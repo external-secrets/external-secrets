@@ -24,7 +24,7 @@ will build and push the artifact to ghcr.
 
 Bug Fixes will be merged onto each release branch individually.
 This is achieved by creating separate PRs from a corresponding branch of the release
-(e.g. bug fixes targetting `release-1.0` should be created from `release-1.0` branch).
+(e.g. bug fixes targeting `release-1.0` should be created from `release-1.0` branch).
 Once approved and merged into `main` or `release-x.y`, ou build pipeline will build and push the artifact to ghcr
 
 ## Process

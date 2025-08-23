@@ -96,13 +96,16 @@ rules:
     - "generators.external-secrets.io"
     resources:
     - "acraccesstokens"
+    {{- if .Values.processClusterGenerator }}
     - "clustergenerators"
+    {{- end }}
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
     - "githubaccesstokens"
     - "quayaccesstokens"
     - "passwords"
+    - "sshkeys"
     - "stssessiontokens"
     - "uuids"
     - "vaultdynamicsecrets"
@@ -217,13 +220,16 @@ rules:
     - "generators.external-secrets.io"
     resources:
     - "acraccesstokens"
+    {{- if .Values.processClusterGenerator }}
     - "clustergenerators"
+    {{- end }}
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
     - "githubaccesstokens"
     - "quayaccesstokens"
     - "passwords"
+    - "sshkeys"
     - "vaultdynamicsecrets"
     - "webhooks"
     - "grafanas"
@@ -277,13 +283,16 @@ rules:
     - "generators.external-secrets.io"
     resources:
     - "acraccesstokens"
+    {{- if .Values.processClusterGenerator }}
     - "clustergenerators"
+    {{- end }}
     - "ecrauthorizationtokens"
     - "fakes"
     - "gcraccesstokens"
     - "githubaccesstokens"
     - "quayaccesstokens"
     - "passwords"
+    - "sshkeys"
     - "vaultdynamicsecrets"
     - "webhooks"
     - "grafanas"

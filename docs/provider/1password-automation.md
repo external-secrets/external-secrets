@@ -28,7 +28,7 @@ _**The 1Password API calls the entries in vaults 'Items'. These docs use the sam
 * Ordered vaults
     * Specify an ordered list of vaults in a SecretStore and the value will be sourced from the first vault with a matching Item.
     * If no matching Item is found, an error is returned.
-    * This supports having a default or shared set of values that can also be overriden for specific environments.
+    * This supports having a default or shared set of values that can also be overridden for specific environments.
 * `dataFrom`:
     * `find.path` is equated to Item Title.
     * `find.name.regexp` is equated to field Labels.

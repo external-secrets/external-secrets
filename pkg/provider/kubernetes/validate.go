@@ -46,7 +46,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		k8sSpec.Server.CAProvider.Namespace != nil {
 		return nil, errors.New("CAProvider.namespace must be empty with SecretStore")
 	}
-	if k8sSpec.Auth.Cert != nil {
+	if k8sSpec.Auth != nil && k8sSpec.Auth.Cert != nil {
 		if k8sSpec.Auth.Cert.ClientCert.Name == "" {
 			return nil, errors.New("ClientCert.Name cannot be empty")
 		}
@@ -57,7 +57,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 			return nil, err
 		}
 	}
-	if k8sSpec.Auth.Token != nil {
+	if k8sSpec.Auth != nil && k8sSpec.Auth.Token != nil {
 		if k8sSpec.Auth.Token.BearerToken.Name == "" {
 			return nil, errors.New("BearerToken.Name cannot be empty")
 		}
@@ -68,7 +68,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 			return nil, err
 		}
 	}
-	if k8sSpec.Auth.ServiceAccount != nil {
+	if k8sSpec.Auth != nil && k8sSpec.Auth.ServiceAccount != nil {
 		if err := utils.ValidateReferentServiceAccountSelector(store, *k8sSpec.Auth.ServiceAccount); err != nil {
 			return nil, err
 		}
@@ -101,5 +101,23 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 			return esv1.ValidationResultReady, nil
 		}
 	}
+
+	a := authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Resource:  "secrets",
+				Namespace: c.store.RemoteNamespace,
+				Verb:      "get",
+			},
+		},
+	}
+	accessReview, err := c.userAccessReviewClient.Create(ctx, &a, metav1.CreateOptions{})
+	if err != nil {
+		return esv1.ValidationResultUnknown, fmt.Errorf("could not verify if client is valid: %w", err)
+	}
+	if accessReview.Status.Allowed {
+		return esv1.ValidationResultReady, nil
+	}
+
 	return esv1.ValidationResultError, errors.New("client is not allowed to get secrets")
 }

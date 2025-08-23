@@ -165,7 +165,7 @@ spec:
       data:
         config.yml: |
           endpoints:
-          - https://{{ .data.user }}:{{ .data.password }}@api.exmaple.com
+          - https://{{ .data.user }}:{{ .data.password }}@api.example.com
 
       # Uses an existing template from configmap
       # Secret is fetched, merged and templated within the referenced configMap data

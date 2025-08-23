@@ -96,7 +96,7 @@ Only one `templateFrom` entry can be set if its type is `target: Manifest`.
   * `creationPolicy`, `updatePolicy`, and `deletionPolicy` must be compatible when `target != Secret`
   * One of the two must be implemented:
     * a feature flag `--unsafe-allow-non-secret-targets` must be set to allow this feature. If not set, `template.manifest` should cause error to the reconciliation.
-    * Feature is always eniabled - but Warnings must be emited whenever `target.manifest` is used pointing to the use of sensitive information on open manifests.
+    * Feature is always enabled - but Warnings must be emitted whenever `target.manifest` is used pointing to the use of sensitive information on open manifests.
       * Warnings should be disabled with feature flags
 * deployment:
   * Extra RBAC options must be available on helm values (to allow the usage of this feature)

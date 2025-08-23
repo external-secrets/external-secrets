@@ -33,7 +33,7 @@ And secret data is:
 token: dG9rZW4=
 ```
 
-Therefor if there is a PushSecret or an ExternalSecret object that the user would like to test the template for,
+Therefore if there is a PushSecret or an ExternalSecret object that the user would like to test the template for,
 simply put it into a file along with the data it's using, and run this command.
 
 The output will be something like this:

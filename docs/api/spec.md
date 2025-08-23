@@ -796,6 +796,36 @@ NTLMProtocol
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.AwsAuthCredentials">AwsAuthCredentials
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.InfisicalAuth">InfisicalAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>identityId</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.AzureAuthCredentials">AzureAuthCredentials
 </h3>
 <p>
@@ -4601,6 +4631,18 @@ map[string]string
 <td>
 </td>
 </tr>
+<tr>
+<td>
+<code>validationResult</code></br>
+<em>
+<a href="#external-secrets.io/v1.ValidationResult">
+ValidationResult
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.FakeProviderData">FakeProviderData
@@ -4950,6 +4992,78 @@ string
 <em>(Optional)</em>
 <p>ClusterProjectID is the project ID of the cluster
 If not specified, it fetches information from the metadata server</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.GcpIamAuthCredentials">GcpIamAuthCredentials
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.InfisicalAuth">InfisicalAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>identityId</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountKeyFilePath</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.GcpIdTokenAuthCredentials">GcpIdTokenAuthCredentials
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.InfisicalAuth">InfisicalAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>identityId</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -5544,6 +5658,110 @@ AzureAuthCredentials
 <em>(Optional)</em>
 </td>
 </tr>
+<tr>
+<td>
+<code>gcpIdTokenAuthCredentials</code></br>
+<em>
+<a href="#external-secrets.io/v1.GcpIdTokenAuthCredentials">
+GcpIdTokenAuthCredentials
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>gcpIamAuthCredentials</code></br>
+<em>
+<a href="#external-secrets.io/v1.GcpIamAuthCredentials">
+GcpIamAuthCredentials
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>jwtAuthCredentials</code></br>
+<em>
+<a href="#external-secrets.io/v1.JwtAuthCredentials">
+JwtAuthCredentials
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>ldapAuthCredentials</code></br>
+<em>
+<a href="#external-secrets.io/v1.LdapAuthCredentials">
+LdapAuthCredentials
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>ociAuthCredentials</code></br>
+<em>
+<a href="#external-secrets.io/v1.OciAuthCredentials">
+OciAuthCredentials
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubernetesAuthCredentials</code></br>
+<em>
+<a href="#external-secrets.io/v1.KubernetesAuthCredentials">
+KubernetesAuthCredentials
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>awsAuthCredentials</code></br>
+<em>
+<a href="#external-secrets.io/v1.AwsAuthCredentials">
+AwsAuthCredentials
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>tokenAuthCredentials</code></br>
+<em>
+<a href="#external-secrets.io/v1.TokenAuthCredentials">
+TokenAuthCredentials
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.InfisicalProvider">InfisicalProvider
@@ -5640,6 +5858,48 @@ string
 </td>
 <td>
 <p>Version defaults to &ldquo;v1.0.0&rdquo;.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.JwtAuthCredentials">JwtAuthCredentials
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.InfisicalAuth">InfisicalAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>identityId</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>jwt</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -5741,6 +6001,49 @@ External Secrets meta/v1.ServiceAccountSelector
 <td>
 <em>(Optional)</em>
 <p>points to a service account that should be used for authentication</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.KubernetesAuthCredentials">KubernetesAuthCredentials
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.InfisicalAuth">InfisicalAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>identityId</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountTokenPath</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
 </td>
 </tr>
 </tbody>
@@ -5870,6 +6173,60 @@ CAProvider
 <td>
 <em>(Optional)</em>
 <p>see: <a href="https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider">https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.LdapAuthCredentials">LdapAuthCredentials
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.InfisicalAuth">InfisicalAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>identityId</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>ldapPassword</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>ldapUsername</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -6022,6 +6379,109 @@ desired secret. This is used for deletionPolicy.</p>
 <p>NotModifiedError to signal that the webhook received no changes,
 and it should just return without doing anything.</p>
 </p>
+<h3 id="external-secrets.io/v1.OciAuthCredentials">OciAuthCredentials
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.InfisicalAuth">InfisicalAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>identityId</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>privateKey</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>privateKeyPassphrase</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>fingerprint</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>userId</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>tenancyId</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.OnboardbaseAuthSecretRef">OnboardbaseAuthSecretRef
 </h3>
 <p>
@@ -8798,6 +9258,36 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.TokenAuthCredentials">TokenAuthCredentials
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.InfisicalAuth">InfisicalAuth</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessToken</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.UniversalAuthCredentials">UniversalAuthCredentials
 </h3>
 <p>
@@ -8842,6 +9332,10 @@ External Secrets meta/v1.SecretKeySelector
 </table>
 <h3 id="external-secrets.io/v1.ValidationResult">ValidationResult
 (<code>byte</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.FakeProvider">FakeProvider</a>)
+</p>
 <p>
 </p>
 <table>

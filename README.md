@@ -2,6 +2,39 @@
     <img src="assets/eso-logo-large.png" width="30%" align="center" alt="external-secrets">
 </p>
 
+
+## Project Releases Paused Until Maintainer Team is Rebuilt ⚠️
+
+The current maintainers of External Secrets Operator decided to pause official SemVer releases.
+
+Despite strong adoption and a growing user base, the project is currently maintained by a very small core team. This limited capacity makes it unsustainable to continue regular development, community support, and release management.
+
+To ensure the long-term health of the project, we are temporarily pausing all official releases - including new features, patches, and published container images - until we have at least five consistent, long-term community maintainers.
+
+### What does this mean?
+
+✅ We will continue reviewing and merging community PRs.
+
+✅ Contributions will be available on the main branch.
+
+❌ We will not provide support via GitHub Discussions, Slack, or issue comments.
+
+❌ We will not publish any new releases (major, minor, or patch), including 0.19.x and 1.0.x.
+
+
+
+### How You Can Help
+
+If your company or team relies on External Secrets Operator, please consider contributing back - especially if you work for an organization with a defined open source strategy.
+
+➡️ To get involved, please fill out [this form](https://forms.gle/utsekWEBwrfo1dHs8).
+
+You can also check out the [Governance document](https://github.com/external-secrets/external-secrets/blob/main/GOVERNANCE.md) or join the [GitHub Issue](https://github.com/external-secrets/external-secrets/issues/5084) for more context.
+
+We truly regret having to take this step, but it's necessary to raise awareness among the many organizations relying on External Secrets in production. We need your support to continue moving the project forward.
+
+Thank you for your understanding and for being part of this community.
+
 # External Secrets
 
 ![ci](https://github.com/external-secrets/external-secrets/actions/workflows/ci.yml/badge.svg?branch=main)

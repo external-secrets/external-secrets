@@ -42,7 +42,21 @@ tests:
       - equal:
           path: spec.template.spec.initContainers[0].restartPolicy
           value: Always
-
+  - it: should override the deployment strategy
+    templates:
+      - cert-controller-deployment.yaml
+    set:
+      certController.strategy:
+        rollingUpdate:
+          maxSurge: 1
+          maxUnavailable: 0
+    asserts:
+    - equal:
+        path: spec.strategy.rollingUpdate.maxSurge
+        value: 1
+    - equal:
+        path: spec.strategy.rollingUpdate.maxUnavailable
+        value: 0
   - it: should override securityContext
     set:
       certController.podSecurityContext:
@@ -131,7 +145,7 @@ tests:
       serviceMonitor.enabled: true
     capabilities:
       apiVersions:
-        - "monitoring.coreos.com/v1"
+        - "monitoring.coreos.com/v1/ServiceMonitor"
     templates:
       - cert-controller-service.yaml
     asserts:
@@ -140,6 +154,35 @@ tests:
       - equal:
           path: metadata.labels["app.kubernetes.io/metrics"]
           value: "cert-controller"
+  - it: should render service with metrics label when APIVersions are not present, serviceMonitor is enabled, and serviceMonitor.renderMode is alwaysRender
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: alwaysRender
+    templates:
+      - cert-controller-service.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.labels["app.kubernetes.io/metrics"]
+          value: "cert-controller"
+  - it: should fail if APIVersions is missing, serviceMonitor is enabled, and serviceMonitor.renderMode is failIfMissing
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: failIfMissing
+    templates:
+      - cert-controller-service.yaml
+    asserts:
+      - failedTemplate: {}
+  - it: should not render service when APIVersions is not present, serviceMonitor is enabled, and and serviceMonitor.renderMode is skipIfMissing
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: skipIfMissing
+    templates:
+      - cert-controller-service.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
   - it: should not render service when APIVersions is not present but serviceMonitor is enabled
     set:
       serviceMonitor.enabled: true
@@ -153,7 +196,7 @@ tests:
       serviceMonitor.enabled: false
     capabilities:
       apiVersions:
-        - "monitoring.coreos.com/v1"
+        - "monitoring.coreos.com/v1/ServiceMonitor"
     templates:
       - cert-controller-service.yaml
     asserts:

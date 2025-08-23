@@ -16,12 +16,9 @@ We have identified the following areas of work. This is subject to change while 
     * ✓ end to end testing with ArgoCD and Flux
     * ✓ end to end testing for all project maintained providers
 * API enhancements
-    * consolidate provider fields
     * ✓ dataFrom key rewrites
-    * provider versioning strategy
     * ✓ pushing secrets to a provider
 * Documentation Improvements
-    * Troubleshooting Guides
     * ✓ FAQ
     * ✓ review multi tenancy docs
     * ✓ security model for infosec teams

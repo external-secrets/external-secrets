@@ -417,28 +417,33 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			secret.Data = make(map[string][]byte)
 		}
 
-		// get the list of keys that are managed by this ExternalSecret
-		keys, err := getManagedDataKeys(secret, externalSecret.Name)
-		if err != nil {
-			return err
-		}
-
-		// remove any data keys that are managed by this ExternalSecret, so we can re-add them
-		// this ensures keys added by templates are not left behind when they are removed from the template
-		for _, key := range keys {
-			delete(secret.Data, key)
-		}
-
-		// WARNING: this will remove any labels or annotations managed by this ExternalSecret
-		//          so any updates to labels and annotations should be done AFTER this point
-		err = r.ApplyTemplate(ctx, externalSecret, secret, dataMap)
-		if err != nil {
-			return fmt.Errorf(errApplyTemplate, err)
-		}
-
 		// set the immutable flag on the secret if requested by the ExternalSecret
 		if externalSecret.Spec.Target.Immutable {
 			secret.Immutable = ptr.To(true)
+		}
+
+		// only apply the template if the secret is mutable or if the secret is new (has no UID)
+		// otherwise we would mutate an object that is immutable and already exists
+		objectDoesNotExistOrCanBeMutated := secret.GetUID() == "" || !externalSecret.Spec.Target.Immutable
+
+		if objectDoesNotExistOrCanBeMutated {
+			// get the list of keys that are managed by this ExternalSecret
+			keys, err := getManagedDataKeys(secret, externalSecret.Name)
+			if err != nil {
+				return err
+			}
+			// remove any data keys that are managed by this ExternalSecret, so we can re-add them
+			// this ensures keys added by templates are not left behind when they are removed from the template
+			for _, key := range keys {
+				delete(secret.Data, key)
+			}
+
+			// WARNING: this will remove any labels or annotations managed by this ExternalSecret
+			//          so any updates to labels and annotations should be done AFTER this point
+			err = r.ApplyTemplate(ctx, externalSecret, secret, dataMap)
+			if err != nil {
+				return fmt.Errorf(errApplyTemplate, err)
+			}
 		}
 
 		// we also use a label to keep track of the owner of the secret

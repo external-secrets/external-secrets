@@ -94,7 +94,7 @@ spec:
 
 #### `SecretStoreRef` vs. `SourceRef`
 
-In order to accomodate the generator implementation we need to enhance the `spec.secretStoreRef` functionality
+In order to accommodate the generator implementation we need to enhance the `spec.secretStoreRef` functionality
 and add `data[].sourceRef` and `dataFrom[].sourceRef` that allows a user to reference generator resources.
 This allows us to:
 
@@ -264,7 +264,7 @@ Cons:
 
 #### (2) with an intermediate GenerateRequest
 
-This is very similar to [cert-manager's external issuer API](https://cert-manager.io/docs/contributing/external-issuers/) that allows users to implement their own controller to issue certifiates.
+This is very similar to [cert-manager's external issuer API](https://cert-manager.io/docs/contributing/external-issuers/) that allows users to implement their own controller to issue certificates.
 We maintain some core generator controllers and leave the implementation of others up to the user.
 
 ```

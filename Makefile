@@ -162,7 +162,7 @@ manifests: helm.generate ## Generate manifests from helm chart
 	helm template external-secrets $(HELM_DIR) -f deploy/manifests/helm-values.yaml > $(OUTPUT_DIR)/deploy/manifests/external-secrets.yaml
 
 crds.install: generate ## Install CRDs into a cluster. This is for convenience
-	kubectl apply -f $(BUNDLE_DIR)
+	kubectl apply -f $(BUNDLE_DIR) --server-side
 
 crds.uninstall: ## Uninstall CRDs from a cluster. This is for convenience
 	kubectl delete -f $(BUNDLE_DIR)
@@ -191,12 +191,12 @@ helm.build: helm.generate ## Build helm chart
 
 helm.schema.plugin:
 	@$(INFO) Installing helm-values-schema-json plugin
-	@helm plugin install https://github.com/losisin/helm-values-schema-json.git || true
+	@helm plugin install --version v2.2.1 https://github.com/losisin/helm-values-schema-json.git || true
 	@$(OK) Installed helm-values-schema-json plugin
 
 helm.schema.update: helm.schema.plugin
 	@$(INFO) Generating values.schema.json
-	@helm schema -input $(HELM_DIR)/values.yaml -output $(HELM_DIR)/values.schema.json
+	@helm schema -f $(HELM_DIR)/values.yaml -o $(HELM_DIR)/values.schema.json
 	@$(OK) Generated values.schema.json
 
 helm.generate:

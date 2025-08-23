@@ -130,7 +130,7 @@ func TestSetAuth(t *testing.T) {
 							Key:  "cert",
 						},
 					},
-					Auth: esv1.KubernetesAuth{
+					Auth: &esv1.KubernetesAuth{
 						Token: &esv1.TokenAuth{
 							BearerToken: v1.SecretKeySelector{
 								Name:      "foobar",
@@ -180,7 +180,7 @@ func TestSetAuth(t *testing.T) {
 							Key:  "cert",
 						},
 					},
-					Auth: esv1.KubernetesAuth{
+					Auth: &esv1.KubernetesAuth{
 						Token: &esv1.TokenAuth{
 							BearerToken: v1.SecretKeySelector{
 								Name:      "foobar",
@@ -218,7 +218,7 @@ func TestSetAuth(t *testing.T) {
 						URL:      serverURL,
 						CABundle: []byte(caCert),
 					},
-					Auth: esv1.KubernetesAuth{
+					Auth: &esv1.KubernetesAuth{
 						Token: &esv1.TokenAuth{
 							BearerToken: v1.SecretKeySelector{
 								Name:      "foobar",
@@ -257,7 +257,7 @@ func TestSetAuth(t *testing.T) {
 						URL:      serverURL,
 						CABundle: []byte(caCert),
 					},
-					Auth: esv1.KubernetesAuth{
+					Auth: &esv1.KubernetesAuth{
 						Cert: &esv1.CertAuth{
 							ClientCert: v1.SecretKeySelector{
 								Name: "mycert",
@@ -297,7 +297,7 @@ func TestSetAuth(t *testing.T) {
 						URL:      serverURL,
 						CABundle: []byte(caCert),
 					},
-					Auth: esv1.KubernetesAuth{
+					Auth: &esv1.KubernetesAuth{
 						ServiceAccount: &v1.ServiceAccountSelector{
 							Name:      "my-sa",
 							Namespace: pointer.To("shouldnotberelevant"),
@@ -329,7 +329,7 @@ func TestSetAuth(t *testing.T) {
 					Server: esv1.KubernetesServer{
 						CABundle: []byte(caCert),
 					},
-					Auth: esv1.KubernetesAuth{
+					Auth: &esv1.KubernetesAuth{
 						ServiceAccount: &v1.ServiceAccountSelector{
 							Name:      "my-sa",
 							Namespace: pointer.To("shouldnotberelevant"),

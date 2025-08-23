@@ -1,6 +1,6 @@
 # This version of Dockerfile is for building without external dependencies.
 # Build a multi-platform image e.g. `docker buildx build --push --platform linux/arm64,linux/amd64 --tag external-secrets:dev --file Dockerfile.standalone .`
-FROM golang:1.24.5-alpine@sha256:ddf52008bce1be455fe2b22d780b6693259aaf97b16383b6372f4b22dd33ad66 AS builder
+FROM golang:1.24.6-alpine@sha256:c8c5f95d64aa79b6547f3b626eb84b16a7ce18a139e3e9ca19a8c078b85ba80d AS builder
 # Add metadata
 LABEL maintainer="cncf-externalsecretsop-maintainers@lists.cncf.io" \
       description="External Secrets Operator is a Kubernetes operator that integrates external secret management systems"
@@ -15,7 +15,7 @@ COPY . /app/
 RUN go build -o external-secrets main.go
 
 
-FROM gcr.io/distroless/static@sha256:b7b9a6953e7bed6baaf37329331051d7bdc1b99c885f6dbeb72d75b1baad54f9 AS app
+FROM gcr.io/distroless/static@sha256:2e114d20aa6371fd271f854aa3d6b2b7d2e70e797bb3ea44fb677afec60db22c AS app
 COPY --from=builder /app/external-secrets /bin/external-secrets
 
 # Run as UID for nobody

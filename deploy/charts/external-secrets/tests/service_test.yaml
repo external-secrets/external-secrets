@@ -15,12 +15,29 @@ tests:
       serviceMonitor.enabled: true
     capabilities:
       apiVersions:
-        - "monitoring.coreos.com/v1"
+        - "monitoring.coreos.com/v1/ServiceMonitor"
     templates:
       - service.yaml
     asserts:
       - hasDocuments:
           count: 1
+  - it: should fail if APIVersions is missing, serviceMonitor is enabled, and serviceMonitor.renderMode is failIfMissing
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: failIfMissing
+    templates:
+      - service.yaml
+    asserts:
+      - failedTemplate: {}
+  - it: should not render service when APIVersions is not present, serviceMonitor is enabled, and serviceMonitor.renderMode is skipIfMissing
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: skipIfMissing
+    templates:
+      - service.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
   - it: should not render service when APIVersions is not present but serviceMonitor is enabled
     set:
       serviceMonitor.enabled: true
@@ -34,7 +51,7 @@ tests:
       serviceMonitor.enabled: false
     capabilities:
       apiVersions:
-        - "monitoring.coreos.com/v1"
+        - "monitoring.coreos.com/v1/ServiceMonitor"
     templates:
       - service.yaml
     asserts:

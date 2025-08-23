@@ -6,7 +6,7 @@ These values can be used with the other features like `rewrite` or `template`. I
 
 ## Reference Custom Resource
 
-Generators can be defined as a custom resource and re-used across different ExternalSecrets. **Every invocation creates a new set of values**. I.e. you can not share the same value produced by a generator across different `ExternalSecrets` or `spec.dataFrom[]` entries.
+Generators can be defined as a custom resource and reused across different ExternalSecrets. **Every invocation creates a new set of values**. I.e. you can not share the same value produced by a generator across different `ExternalSecrets` or `spec.dataFrom[]` entries.
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -61,6 +61,7 @@ type GeneratorSpec struct {
 	GCRAccessTokenSpec        *GCRAccessTokenSpec        `json:"gcrAccessTokenSpec,omitempty"`
 	GithubAccessTokenSpec     *GithubAccessTokenSpec     `json:"githubAccessTokenSpec,omitempty"`
 	PasswordSpec              *PasswordSpec              `json:"passwordSpec,omitempty"`
+	SSHKeySpec                *SSHKeySpec                `json:"sshKeySpec,omitempty"`
 	STSSessionTokenSpec       *STSSessionTokenSpec       `json:"stsSessionTokenSpec,omitempty"`
 	UUIDSpec                  *UUIDSpec                  `json:"uuidSpec,omitempty"`
 	VaultDynamicSecretSpec    *VaultDynamicSecretSpec    `json:"vaultDynamicSecretSpec,omitempty"`

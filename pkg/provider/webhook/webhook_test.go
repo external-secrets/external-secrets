@@ -375,6 +375,26 @@ args:
 want:
   path: /api/getsecrets?folder=%2Fmyapp%2Fsecrets
   body: '{"folder": "/myapp/secrets"}'
+---
+case: namespace template in headers
+args:
+  url: /api/getsecret?id={{ .remoteRef.key }}
+  key: testkey
+  response: secret-value
+want:
+  path: /api/getsecret?id=testkey
+  err: ''
+  result: secret-value
+---
+case: namespace template in url
+args:
+  url: /api/getsecret?id={{ .remoteRef.key }}&namespace={{ .remoteRef.namespace }}
+  key: testkey
+  response: secret-value
+want:
+  path: /api/getsecret?id=testkey&namespace=testnamespace
+  err: ''
+  result: secret-value
 `
 
 func TestWebhookGetSecret(t *testing.T) {
@@ -669,8 +689,9 @@ func makeClusterSecretStore(url string, args args) *esv1.ClusterSecretStore {
 					URL:  url + args.URL,
 					Body: args.Body,
 					Headers: map[string]string{
-						"Content-Type": "application.json",
-						"X-SecretKey":  "{{ .remoteRef.key }}",
+						"Content-Type":           "application.json",
+						"X-SecretKey":            "{{ .remoteRef.key }}",
+						"X-Kubernetes-Namespace": "{{ .remoteRef.namespace }}",
 					},
 					Result: esv1.WebhookResult{
 						JSONPath: args.JSONPath,

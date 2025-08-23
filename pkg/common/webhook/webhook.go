@@ -122,15 +122,17 @@ func (w *Webhook) GetTemplateData(ctx context.Context, ref *esv1.ExternalSecretD
 	if ref != nil {
 		if urlEncode {
 			data["remoteRef"] = map[string]string{
-				"key":      url.QueryEscape(ref.Key),
-				"version":  url.QueryEscape(ref.Version),
-				"property": url.QueryEscape(ref.Property),
+				"key":       url.QueryEscape(ref.Key),
+				"version":   url.QueryEscape(ref.Version),
+				"property":  url.QueryEscape(ref.Property),
+				"namespace": w.Namespace,
 			}
 		} else {
 			data["remoteRef"] = map[string]string{
-				"key":      ref.Key,
-				"version":  ref.Version,
-				"property": ref.Property,
+				"key":       ref.Key,
+				"version":   ref.Version,
+				"property":  ref.Property,
+				"namespace": w.Namespace,
 			}
 		}
 	}
@@ -138,7 +140,6 @@ func (w *Webhook) GetTemplateData(ctx context.Context, ref *esv1.ExternalSecretD
 	if err := w.getTemplatedSecrets(ctx, secrets, data); err != nil {
 		return nil, err
 	}
-
 	return data, nil
 }
 

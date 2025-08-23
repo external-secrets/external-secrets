@@ -3,6 +3,9 @@
 # Script to add a new ESO version to the stability-support.md file
 # Usage: ./add_eso_version.sh <ESO_VERSION>
 
+# Set ROOT to the repository root (two levels up from this script)
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
 # Check if all required arguments are provided
 if [ $# -ne 1 ]; then
     echo "Usage: $0 <ESO_VERSION>"
@@ -47,15 +50,15 @@ TEMP_FILE=$(mktemp)
 # 2. Keep the previous version's release date intact
 # 3. Update only the End of Life date for the previous version
 awk -v new_line="$NEW_LINE" -v release_date="$RELEASE_DATE" '
-BEGIN { 
-    found_table = 0; 
-    added_new_line = 0; 
+BEGIN {
+    found_table = 0;
+    added_new_line = 0;
     in_eso_table = 0;
     updated_first_version = 0;
 }
 
 # Match the ESO Version table specifically (to avoid affecting other tables)
-/\| ESO Version \| Kubernetes Version \| Release Date \| End of Life/ { 
+/\| ESO Version \| Kubernetes Version \| Release Date[[:space:]]+\| End of Life/ {
     in_eso_table = 1;
     found_table = 1;
     print $0;
@@ -72,14 +75,14 @@ in_eso_table == 1 && /\| -+/ {
 
 # For the first version line after we added our new line, update only the End of Life
 added_new_line == 1 && in_eso_table == 1 && /\|.*\|.*\|.*\|/ && !updated_first_version {
-    # Extract the first three columns (up to and including Release Date)
-    # We need to capture the version, k8s version, and release date
-    match($0, /^(\| [^|]+ \| [^|]+ \| [^|]+ \|)/, parts);
-    first_part = parts[1];
-    
-    # Construct the updated line with the first three columns and the new End of Life
-    updated_line = first_part " " release_date "    |";
-    print updated_line;
+    # Split the line by | and reconstruct with new End of Life (which should be the release date of the new version)
+    split($0, fields, "|");
+    # fields[1] is empty, fields[2] is version, fields[3] is k8s version, fields[4] is release date
+    # Trim whitespace and format properly
+    gsub(/^ +| +$/, "", fields[2]);
+    gsub(/^ +| +$/, "", fields[3]);
+    gsub(/^ +| +$/, "", fields[4]);
+    printf "| %-10s | %-18s | %-14s | %s |\n", fields[2], fields[3], fields[4], release_date;
     updated_first_version = 1;
     next;
 }

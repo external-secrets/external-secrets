@@ -16,6 +16,7 @@ package fake
 
 import (
 	"context"
+	"sync"
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,7 +34,8 @@ type SetSecretCallArgs struct {
 
 // Client is a fake client for testing.
 type Client struct {
-	SetSecretArgs   map[string]SetSecretCallArgs
+	mu              *sync.RWMutex
+	pushSecretData  map[string]SetSecretCallArgs
 	NewFn           func(context.Context, esv1.GenericStore, client.Client, string) (esv1.SecretsClient, error)
 	GetSecretFn     func(context.Context, esv1.ExternalSecretDataRemoteRef) ([]byte, error)
 	GetSecretMapFn  func(context.Context, esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error)
@@ -46,6 +48,7 @@ type Client struct {
 // New returns a fake provider/client.
 func New() *Client {
 	v := &Client{
+		mu: &sync.RWMutex{},
 		GetSecretFn: func(context.Context, esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 			return nil, nil
 		},
@@ -64,7 +67,7 @@ func New() *Client {
 		DeleteSecretFn: func() error {
 			return nil
 		},
-		SetSecretArgs: map[string]SetSecretCallArgs{},
+		pushSecretData: map[string]SetSecretCallArgs{},
 	}
 
 	v.NewFn = func(context.Context, esv1.GenericStore, client.Client, string) (esv1.SecretsClient, error) {
@@ -85,11 +88,25 @@ func (v *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 }
 
 func (v *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
-	v.SetSecretArgs[data.GetRemoteKey()] = SetSecretCallArgs{
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	v.pushSecretData[data.GetRemoteKey()] = SetSecretCallArgs{
 		Value:     secret.Data[data.GetSecretKey()],
 		RemoteRef: data,
 	}
 	return v.SetSecretFn()
+}
+
+// GetPushSecretData safely retrieves the push secret data map for reading.
+func (v *Client) GetPushSecretData() map[string]SetSecretCallArgs {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+	// Create a copy to avoid race conditions
+	result := make(map[string]SetSecretCallArgs, len(v.pushSecretData))
+	for k, v := range v.pushSecretData {
+		result[k] = v
+	}
+	return result
 }
 
 func (v *Client) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
@@ -180,4 +197,7 @@ func (v *Client) Reset() {
 		string) (esv1.SecretsClient, error) {
 		return v, nil
 	})
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	v.pushSecretData = map[string]SetSecretCallArgs{}
 }
