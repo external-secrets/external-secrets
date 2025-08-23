@@ -75,7 +75,8 @@ type Reconciler struct {
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opts controller.Options) error {
 	r.recorder = mgr.GetEventRecorderFor("pushsecret")
 
-	// Index PushSecrets by the stores they have pushed to (for finalizer management)
+	// Index PushSecrets by the stores they have pushed to (for finalizer management on store deletion)
+	// Refer to common.go for more details on the index function
 	if err := mgr.GetFieldIndexer().IndexField(ctx, &esapi.PushSecret{}, "status.syncedPushSecrets", func(obj client.Object) []string {
 		ps := obj.(*esapi.PushSecret)
 

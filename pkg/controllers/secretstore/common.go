@@ -183,9 +183,9 @@ func ShouldProcessStore(store esapi.GenericStore, class string) bool {
 }
 
 // handleFinalizer manages the finalizer for ClusterSecretStores and SecretStores.
-// It adds a finalizer when there are PushSecrets with DeletionPolicy=Delete that reference this store
-// and removes it when there are no such PushSecrets.
 func handleFinalizer(ctx context.Context, cl client.Client, store esapi.GenericStore, log logr.Logger, isPushSecretEnable bool) (finalizersUpdated bool, err error) {
+	// It adds a finalizer when there are PushSecrets with DeletionPolicy=Delete that reference this store
+	// and removes it when there are no such PushSecrets.
 	if !isPushSecretEnable {
 		log.V(1).Info("skipping finalizer management, PushSecret feature is disabled")
 		return false, nil
@@ -231,70 +231,89 @@ func handleFinalizer(ctx context.Context, cl client.Client, store esapi.GenericS
 // hasPushSecretsWithDeletePolicy checks if there are any PushSecrets with DeletionPolicy=Delete
 // that reference this SecretStore using the controller-runtime index.
 func hasPushSecretsWithDeletePolicy(ctx context.Context, cl client.Client, store esapi.GenericStore) (bool, error) {
-	storeName := store.GetName()
-	storeKind := store.GetKind()
-
-	var storeNamespace string
-	if storeKind == esapi.SecretStoreKind {
-		storeNamespace = store.GetNamespace()
+	// Search for PushSecrets that have already synced from this store.
+	found, err := hasSyncedPushSecrets(ctx, cl, store)
+	if err != nil {
+		return false, fmt.Errorf("failed to check for synced push secrets: %w", err)
+	}
+	if found {
+		return true, nil
 	}
 
-	isKindMatch := func(refKind string) bool {
-		if refKind == storeKind {
-			return true
-		}
-		return refKind == "" && (storeKind == esapi.SecretStoreKind || storeKind == esapi.ClusterSecretStoreKind)
+	// Search for PushSecrets that reference this store, but may not have synced yet.
+	found, err = hasUnsyncedPushSecretRefs(ctx, cl, store)
+	if err != nil {
+		return false, fmt.Errorf("failed to check for unsynced push secret refs: %w", err)
 	}
 
-	buildListOpts := func(namespace string) *client.ListOptions {
-		opts := &client.ListOptions{}
-		if namespace != "" {
-			opts.Namespace = namespace
-		}
-		return opts
+	return found, nil
+}
+
+// hasSyncedPushSecrets uses the 'status.syncedPushSecrets' index from PushSecrets to efficiently find
+// PushSecrets with DeletionPolicy=Delete that have already been synced from the given store.
+func hasSyncedPushSecrets(ctx context.Context, cl client.Client, store esapi.GenericStore) (bool, error) {
+	storeKey := fmt.Sprintf("%s/%s", store.GetKind(), store.GetName())
+
+	opts := &client.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector("status.syncedPushSecrets", storeKey),
 	}
 
-	storeKeyToFind := fmt.Sprintf("%s/%s", storeKind, storeName)
-	listOpts := buildListOpts(storeNamespace)
-	listOpts.FieldSelector = fields.OneTermEqualSelector("status.syncedPushSecrets", storeKeyToFind)
+	if store.GetKind() == esapi.SecretStoreKind {
+		opts.Namespace = store.GetNamespace()
+	}
 
 	var pushSecretList esv1alpha1.PushSecretList
-	if err := cl.List(ctx, &pushSecretList, listOpts); err != nil {
-		return false, fmt.Errorf("failed to list PushSecrets by store index: %w", err)
+	if err := cl.List(ctx, &pushSecretList, opts); err != nil {
+		return false, err
 	}
 
-	// Check if any of these PushSecrets have DeletionPolicy=Delete
+	// If any PushSecrets are found, return true. The index ensures they have DeletionPolicy=Delete.
+	if len(pushSecretList.Items) > 0 {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// hasUnsyncedPushSecretRefs searches for all PushSecrets with DeletionPolicy=Delete
+// and checks if any of them reference the given store (by name or labelSelector).
+// This is necessary for cases where the reference exists, but synchronization has not occurred yet.
+func hasUnsyncedPushSecretRefs(ctx context.Context, cl client.Client, store esapi.GenericStore) (bool, error) {
+	storeKind := store.GetKind()
+	storeName := store.GetName()
+
+	opts := &client.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector("spec.deletionPolicy", string(esv1alpha1.PushSecretDeletionPolicyDelete)),
+	}
+
+	if store.GetKind() == esapi.SecretStoreKind {
+		opts.Namespace = store.GetNamespace()
+	}
+
+	var pushSecretList esv1alpha1.PushSecretList
+	if err := cl.List(ctx, &pushSecretList, opts); err != nil {
+		return false, err
+	}
+
 	for _, ps := range pushSecretList.Items {
-		if ps.Spec.DeletionPolicy == esv1alpha1.PushSecretDeletionPolicyDelete {
-			// Verify the store reference matches
-			if _, hasPushed := ps.Status.SyncedPushSecrets[storeKeyToFind]; hasPushed {
+		for _, ref := range ps.Spec.SecretStoreRefs {
+
+			// Checks if the Kind of the reference is compatible with the store's Kind.
+			// A reference with an empty Kind is compatible with both (SecretStore and ClusterSecretStore).
+			kindMatches := (ref.Kind == storeKind) || (ref.Kind == "" && (storeKind == esapi.SecretStoreKind || storeKind == esapi.ClusterSecretStoreKind))
+			if !kindMatches {
+				return false, nil
+			}
+
+			if ref.Name == storeName {
 				return true, nil
 			}
-		}
-	}
 
-	// Also check for PushSecrets that reference this store by name or labelSelector
-	// but haven't pushed to it yet (for initial finalizer setup)
-	listOpts = buildListOpts(storeNamespace)
-	listOpts.FieldSelector = fields.OneTermEqualSelector("spec.deletionPolicy", string(esv1alpha1.PushSecretDeletionPolicyDelete))
-
-	if err := cl.List(ctx, &pushSecretList, listOpts); err != nil {
-		return false, fmt.Errorf("failed to list PushSecrets by deletionPolicy: %w", err)
-	}
-
-	for _, ps := range pushSecretList.Items {
-		// Check if this PushSecret references our store by name or labelSelector
-		for _, storeRef := range ps.Spec.SecretStoreRefs {
-			// Check name match
-			if storeRef.Name == storeName && isKindMatch(storeRef.Kind) {
-				return true, nil
-			}
-
-			// Check labelSelector match
-			if storeRef.LabelSelector != nil && isKindMatch(storeRef.Kind) {
-				selector, err := metav1.LabelSelectorAsSelector(storeRef.LabelSelector)
+			if ref.LabelSelector != nil {
+				selector, err := metav1.LabelSelectorAsSelector(ref.LabelSelector)
+				// Skips invalid selectors.
 				if err != nil {
-					continue // Skip invalid selectors
+					return false, nil
 				}
 				if selector.Matches(labels.Set(store.GetLabels())) {
 					return true, nil
