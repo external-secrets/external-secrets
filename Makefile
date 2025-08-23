@@ -181,7 +181,7 @@ helm.docs: ## Generate helm docs
 	@cd $(HELM_DIR); \
 	$(DOCKER) run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) docker.io/jnorwood/helm-docs:v1.7.0
 
-HELM_VERSION ?= $(shell helm show chart $(HELM_DIR) | grep 'version:' | sed 's/version: //g')
+HELM_VERSION ?= $(shell helm show chart $(HELM_DIR) | grep '^version:' | sed 's/version: //g')
 
 helm.build: helm.generate ## Build helm chart
 	@$(INFO) helm package
