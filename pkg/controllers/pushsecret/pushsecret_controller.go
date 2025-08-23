@@ -89,7 +89,6 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		storeKeys := make([]string, 0, len(ps.Status.SyncedPushSecrets))
 		for storeKey := range ps.Status.SyncedPushSecrets {
 			storeKeys = append(storeKeys, storeKey)
-
 		}
 		return storeKeys
 	}); err != nil {

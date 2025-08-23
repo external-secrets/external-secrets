@@ -23,9 +23,7 @@ import (
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -279,9 +277,6 @@ func hasSyncedPushSecrets(ctx context.Context, cl client.Client, store esapi.Gen
 // and checks if any of them reference the given store (by name or labelSelector).
 // This is necessary for cases where the reference exists, but synchronization has not occurred yet.
 func hasUnsyncedPushSecretRefs(ctx context.Context, cl client.Client, store esapi.GenericStore) (bool, error) {
-	storeKind := store.GetKind()
-	storeName := store.GetName()
-
 	opts := &client.ListOptions{
 		FieldSelector: fields.OneTermEqualSelector("spec.deletionPolicy", string(esv1alpha1.PushSecretDeletionPolicyDelete)),
 	}
@@ -296,28 +291,9 @@ func hasUnsyncedPushSecretRefs(ctx context.Context, cl client.Client, store esap
 	}
 
 	for _, ps := range pushSecretList.Items {
-		for _, ref := range ps.Spec.SecretStoreRefs {
-
-			// Checks if the Kind of the reference is compatible with the store's Kind.
-			// A reference with an empty Kind is compatible with both (SecretStore and ClusterSecretStore).
-			kindMatches := (ref.Kind == storeKind) || (ref.Kind == "" && (storeKind == esapi.SecretStoreKind || storeKind == esapi.ClusterSecretStoreKind))
-			if !kindMatches {
-				return false, nil
-			}
-
-			if ref.Name == storeName {
+		for _, storeRef := range ps.Spec.SecretStoreRefs {
+			if storeMatchesRef(store, storeRef) {
 				return true, nil
-			}
-
-			if ref.LabelSelector != nil {
-				selector, err := metav1.LabelSelectorAsSelector(ref.LabelSelector)
-				// Skips invalid selectors.
-				if err != nil {
-					return false, nil
-				}
-				if selector.Matches(labels.Set(store.GetLabels())) {
-					return true, nil
-				}
 			}
 		}
 	}
@@ -380,34 +356,4 @@ func findStoresForPushSecret(ctx context.Context, c client.Client, obj client.Ob
 	}
 
 	return requests
-}
-
-// shouldReconcileSecretStoreForPushSecret determines if a SecretStore should be reconciled
-// when a PushSecret changes, based on whether the PushSecret references this store.
-func shouldReconcileSecretStoreForPushSecret(store esapi.GenericStore, ps *esv1alpha1.PushSecret) bool {
-	// Check if this PushSecret has pushed to this store
-	storeKey := fmt.Sprintf("%s/%s", store.GetKind(), store.GetName())
-	if _, hasPushed := ps.Status.SyncedPushSecrets[storeKey]; hasPushed {
-		return true
-	}
-	// Also check if the PushSecret references this store in its spec
-	for _, storeRef := range ps.Spec.SecretStoreRefs {
-		refKind := storeRef.Kind
-		if refKind == "" {
-			refKind = esapi.SecretStoreKind
-		}
-
-		if storeRef.Name == store.GetName() && (storeRef.Kind == "" || (storeRef.Kind == esapi.SecretStoreKind || storeRef.Kind == esapi.ClusterSecretStoreKind)) {
-			return true
-		}
-		// Check labelSelector match
-		if storeRef.LabelSelector != nil && storeRef.Kind == esapi.SecretStoreKind {
-			selector, err := metav1.LabelSelectorAsSelector(storeRef.LabelSelector)
-			if err == nil && selector.Matches(labels.Set(store.GetLabels())) {
-				return true
-			}
-		}
-	}
-
-	return false
 }
