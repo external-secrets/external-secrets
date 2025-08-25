@@ -43,10 +43,10 @@ The proposal is a new CRD for both SecretStores and Generators that unifies all 
 While changing the provider interface for both SecretStores and Generators itself is a non goal, it might be needed to accomodate this proposal.
 
 ### SecretStore
-SecretStore manifests looks very much like our original implementation. Provider configuration resides on `spec.provider` field. 
+SecretStore manifests looks very much like our original implementation. Provider configuration goes to their specific CRD manifests. 
 ```yaml
 apiVersion: secretstore.external-secrets.io/v2alpha1
-kind: AWSSecretManager
+kind: SecretStore
 metadata:
   name: my-aws-store
   namespace: default
@@ -57,30 +57,49 @@ spec:
     maxRetries: 3
     retryInterval: 10s
   providerConfig:
-    type: InTree/OutOfTree
-    address: http+unix:///path/to/socket.sock
+    address: http+unix:///path/to/aws.sock
+    providerRef:
+      name: my-aws-store
+      namespace: default
+      kind: AWSSecretManager
+    auth:
+      clientCertificate: {}
+      serviceAccountRef: {}
+      spiffeRef: {}
   cachingPolicy: ProviderDefined/Secrets/Auth/All/None
   cacheConfig: # if Caching Policy is Secrets/Auth/All 
       ttl: 1m
       maxEntries: 100
   gatingPolicy: Enabled/Disabled
+---
+apiVersion: provider.secretstore.external-secrets.io/v2alpha1
+kind: AWSSecretManager
+metadata:
+  name: my-aws-store
+  namespace: default
+status:
+  #... Same status as we already have
+spec:
   provider: ## same as current secretstore.Provider field
-      role: arn:aws:iam::123456789012:role/external-secrets
-      region: eu-central-1
-      auth:
-        secretRef:
-          accessKeyIDSecretRef:
-            name: awssm-secret
-            key: access-key
-            # note: namespace key in here is always blank. and removed from manifests
-          secretAccessKeySecretRef:
-            name: awssm-secret
-            key: secret-access-key    
+    role: arn:aws:iam::123456789012:role/external-secrets
+    region: eu-central-1
+    auth:
+      secretRef:
+        accessKeyIDSecretRef:
+          name: awssm-secret
+          key: access-key
+          # note: namespace key in here is always blank. and removed from manifests
+        secretAccessKeySecretRef:
+          name: awssm-secret
+          key: secret-access-key    
 ```
 New fields would be:
 * gatingPolicy - per SecretStore, explicit behavior for `enablefloodGate` flag (currently at controller level only)
 * cachingPolicy - as to document per SecretStore what's the caching strategy (cachingScope, ttl, maxEntries). As some secretStores do not have this control in place. `ProviderDefined` policy means whatever the provider defines as the best practice.
-* providerConfig (this name is terrible) - whether this is an InTree or OutOfTree provider. if OutOfTree, we don't expect any of the `Provider` Interface to be implemented, and instead just delegate to the outOfTree provider that a new job needs to be executed to fetch a given Secret. It is the provider responsibility to then Read the CRDs and any other references to it to reply with a valid `map[string][]byte`
+
+Notes:
+* Provider groups are not reconciled by External-Secrets. They are reconciled and managed by external controllers representing each provider;
+* Each Provider must implement the `ProviderV2` interface (see below)
 
 ### ClusterSecretStore
 As a part of this design, the ClusterSecretStore will fundamentally change to be a providerless-type of store:
@@ -96,17 +115,17 @@ spec:
     maxRetries: 3
     retryInterval: 10s
   providerConfig:
-    type: InTree/OutOfTree
     address: http+unix:///path/to/socket.sock
+    providerRef: # Forwarded to the provider at the Address above
+      name: my-aws-store
+      namespace: default
+      kind: AWSSecretManager
+    auth: {} # same as SecretStore
   cachingPolicy: ProviderDefined/Secrets/Auth/All/None
   cacheConfig: # if Caching Policy is Secrets/Auth/All 
       ttl: 1m
       maxEntries: 100
   gatingPolicy: Enabled/Disabled
-  providerRef:
-    name: my-aws-store
-    namespace: default
-    kind: AWSSecretManager
   authenticationScope: ProviderNamespace/ManifestNamespace
   conditions:
   - namespaceSelector: {}
@@ -131,8 +150,11 @@ spec:
   refreshInterval: 1m
   controller: dev
   providerConfig:
-    type: InTree/OutOfTree
     address: http+unix:///path/to/socket.sock
+    providerRef: # Forwarded to the provider at the Address above
+      name: password-gen
+      namespace: default
+      kind: Password
   statePolicy: Track/Ignore # track or ignore GeneratorStates
   stateSpec: # field to inject custom annotations/labels, configuration to the GeneratorState Spec
     garbageCollectionDeadline: "5m" # value to use for this specific generator:
@@ -141,12 +163,18 @@ spec:
       #anything to be added by the user to the state - as to control state creation/deletion with custom logic.
       #this is an extension point for custom logic the user wants to provide.
     gatingPolicy: Enabled/Disabled #introducing floodgating for generators
-  provider: ## generator spec
-    digits: 5
-    symbols: 5
-    symbolCharacters: "-_$@"
-    noUpper: false
-    allowRepeat: true
+---
+apiVersion: provider.generator.external-secrets.io/v2alpha1
+kind: Password
+metadata:
+  name: password-gen
+  namespace: default
+spec:
+  digits: 5
+  symbols: 5
+  symbolCharacters: "-_$@"
+  noUpper: false
+  allowRepeat: true
 ```
 New fields would be:
 * refreshInterval - allowing Generators to benefit reconciliation for configuration mistakes;
@@ -168,8 +196,11 @@ spec:
   refreshInterval: 1m
   controller: dev
   providerConfig:
-    type: InTree/OutOfTree
     address: http+unix:///path/to/socket.sock
+    providerRef: # Forwarded to the provider at the Address above
+      name: password-gen
+      namespace: default
+      kind: Password
   statePolicy: Track/Ignore # track or ignore GeneratorStates
   stateSpec: # field to inject custom annotations/labels, configuration to the GeneratorState Spec
     garbageCollectionDeadline: "5m" # value to use for this specific generator:
@@ -178,15 +209,47 @@ spec:
       #anything to be added by the user to the state - as to control state creation/deletion with custom logic.
       #this is an extension point for custom logic the user wants to provide.
   gatingPolicy: Enabled/Disabled #introducing floodgating for generators
-  providerRef:
-    name: my-password-generator
-    namespace: default
-    kind: Password
   authenticationNamespace: ProviderReference/ManifestReference
   conditions: # just like we have for ClusterSecretStores
   - namespaceSelector: {}
     namespaces: []
     namespaceRegexes: []
+```
+
+
+### Changes to `ExternalSecret`/ `PushSecret`
+In order to make this change compatible with the existing implementations of `ExternalSecret`/`PushSecret`, the proposed changes to them are limited to `SecretStoreRef`, which should now accomodate a `apiVersion` field. This field will allow us to add conditional logic to use the new interfaces described below or to keep the current behavior leveraging `SecretStore/v1` and `Generators/v1alpha1`.
+
+There will be no need to change the support for `Generators`, only to add conditionals on the controller runtime.
+
+(While I know conditionals are bad, I don't think we can pull this off without them - these interfaces are not compatible from what I could think of)
+
+### New Interfaces
+
+In order to achieve this proposed design, we need to add a new interface for which providers must implement.
+
+The signature is basically changed to include the SecretStoreSpec/GeneratorSpec, as some combination of it will be needed to be processed at the provider level and at ESO level (like e.g. caching olicy or Referent Authentication)
+
+
+#### ProviderV2
+```
+GetSecret(SecretStoreSpec, ExternalSecretDataRemoteRef) ([]byte, error)
+
+PushSecret(SecretStoreSpec, *corev1.Secret, PushSecretData) error
+DeleteSecret(SecretStoreSpec, PushSecretRemoteRef) error
+SecretExists(SecretStoreSpec, PushSecretRemoteRef) (bool, error)
+GetAllSecrets(SecretStoreSpec, ExternalSecretFind) (map[string][]byte, error)
+
+Validate(SecretStoreSpec) (admission.Warnings, error)
+
+Capabilities(SecretStoreSpec) SecretStoreCapabilities
+```
+
+#### GeneratorV2
+
+```
+Generate(GeneratorSpec) (map[string][]byte, GeneratorProviderState, error)
+Cleanup(GeneratorSpec, GeneratorProviderState) error
 ```
 
 ## Consequences
