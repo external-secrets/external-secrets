@@ -91,6 +91,16 @@ func NewReadMetadataWithContextFn(secret map[string]any, err error) ReadWithData
 		return buildMetadataResponse(secret, err)
 	}
 }
+
+func NewReadWithDataAndMetadataFn(dataSecret, metadataSecret map[string]any, dataErr, metadataErr error) ReadWithDataWithContextFn {
+	return func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
+		// Check if this is a metadata path request
+		if strings.Contains(path, "/metadata/") {
+			return buildMetadataResponse(metadataSecret, metadataErr)
+		}
+
+		// This is a data path request
+		return buildDataResponse(dataSecret, dataErr)
 	}
 }
 
