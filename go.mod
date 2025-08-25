@@ -92,7 +92,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/cloudru-tech/iam-sdk v1.0.4
 	github.com/cloudru-tech/secret-manager-sdk v1.1.1
-	github.com/cyberark/conjur-api-go v0.13.3
+	github.com/cyberark/conjur-api-go v0.13.1
 	github.com/fortanix/sdkms-client-go v0.4.1
 	github.com/go-openapi/strfmt v0.23.0
 	github.com/golang-jwt/jwt/v5 v5.3.0

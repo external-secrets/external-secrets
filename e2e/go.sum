@@ -177,8 +177,8 @@ github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDk
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
 github.com/cncf/udpa/go v0.0.0-20200629203442-efcf912fb354/go.mod h1:WmhPx2Nbnhtbo57+VJT5O0JRkEi1Wbu0z5j0R8u5Hbk=
 github.com/cncf/udpa/go v0.0.0-20201120205902-5459f2c99403/go.mod h1:WmhPx2Nbnhtbo57+VJT5O0JRkEi1Wbu0z5j0R8u5Hbk=
-github.com/cyberark/conjur-api-go v0.13.3 h1:XJ7q1TOWJxi+zZZWB6aouOh6Ucie2hGsEUUoOmuTCbU=
-github.com/cyberark/conjur-api-go v0.13.3/go.mod h1:puGQ9GN98LepLTlRt7CaLm3DkQVmsGrih/TBA3bw2J0=
+github.com/cyberark/conjur-api-go v0.13.1 h1:TbiRhzaSo+5RaY0PAMFfQwEeX4nVdg6dxcsZnHd7kGY=
+github.com/cyberark/conjur-api-go v0.13.1/go.mod h1:CkyIKa99RyfYk0wqDUQwJ9P2XkgzQplv9CrdS1YyQSA=
 github.com/danieljoos/wincred v1.2.2 h1:774zMFJrqaeYCK2W57BgAem/MLi6mtSE47MB6BOJ0i0=
 github.com/danieljoos/wincred v1.2.2/go.mod h1:w7w4Utbrz8lqeMbDAK0lkNJUv5sAOkFi7nd/ogr0Uh8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
