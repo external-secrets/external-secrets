@@ -11,7 +11,7 @@ This section describes how to set up the Bitwarden Secrets Manager provider for 
 
 ### Prerequisites
 
-In order for the bitwarden provider to work, we need a second service. This service is the [Bitwarden SDK Server](https://github.com/external-secrets/bitwarden-sdk-server).
+In order for the Bitwarden provider to work, we need a second service. This service is the [Bitwarden SDK Server](https://github.com/external-secrets/bitwarden-sdk-server).
 The Bitwarden SDK is Rust based and requires CGO enabled. In order to not restrict the capabilities of ESO, and the image
 size ( the bitwarden Rust SDK libraries are over 150MB in size ) it has been decided to create a soft wrapper
 around the SDK that runs as a separate service providing ESO with a light REST API to pull secrets through.
@@ -108,6 +108,37 @@ spec:
     remoteRef:
       key: "secret-name"
 ```
+
+#### DataFrom
+
+When using dataFrom like this:
+
+```yaml
+  dataFrom:
+  - find:
+      conversionStrategy: Default
+      decodingStrategy: None
+      name:
+        regexp: db_
+```
+
+Note that the secrets in the map will end up something like this:
+
+```
+$ kubectl get secret secret-to-be-created -o jsonpath='{.data}'|jq
+{
+"2989464a-03c2-4ced-9fe2-b34400aca42d": "bG9jYWxob3N0OjEyMzQ1",
+"98c18ddb-314e-463c-97c3-b34400ac6593": "dWFzZXJuYW1lMQ==",
+"c917a790-76bc-49ca-b303-b34400ac8035": "UGFzc1dvcmQx",
+}
+```
+
+The finder uses the ID of the key instead of the name because in Bitwarden, having the same key/name for a secret inside the same project
+is a _VALID_ option. Meaning, potentially, a secret could overwrite another secret in the secret data map.
+
+Hence, the ID of the secret is used when listing all secrets. This is inconvenient because now we can hardly
+refer to these secrets anymore from code. Hence, it is advised to use a rewrite rule with templates or
+to avoid using dataFrom field.
 
 ### Push Secret
 
