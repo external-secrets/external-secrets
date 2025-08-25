@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - release-*
     paths:
       - 'deploy/charts/**'
       - 'deploy/crds/**'
@@ -70,7 +69,7 @@ jobs:
         if: steps.list-changed.outputs.changed == 'true'
         run: make helm.test
   release:
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release-')
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: write  # for helm/chart-releaser-action to push chart release and create a release
       packages: write  # to push OCI chart package to GitHub Registry
