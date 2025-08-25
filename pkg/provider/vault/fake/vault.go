@@ -59,29 +59,38 @@ func NewDeleteWithContextFn(secret map[string]any, err error) DeleteWithContextF
 	}
 }
 
+func buildDataResponse(secret map[string]any, err error) (*vault.Secret, error) {
+	if secret == nil {
+		return nil, err
+	}
+	return &vault.Secret{Data: secret}, err
+}
+
+func buildMetadataResponse(secret map[string]any, err error) (*vault.Secret, error) {
+	if secret == nil {
+		return nil, err
+	}
+	// If the secret already has the expected metadata structure, return as-is
+	if _, hasCustomMetadata := secret["custom_metadata"]; hasCustomMetadata {
+		return &vault.Secret{Data: secret}, err
+	}
+	// Otherwise, wrap in custom_metadata for backwards compatibility
+	metadata := make(map[string]any)
+	metadata["custom_metadata"] = secret
+	return &vault.Secret{Data: metadata}, err
+}
+
 func NewReadWithContextFn(secret map[string]any, err error) ReadWithDataWithContextFn {
 	return func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
-		if secret == nil {
-			return nil, err
-		}
-		vault := &vault.Secret{
-			Data: secret,
-		}
-		return vault, err
+		return buildDataResponse(secret, err)
 	}
 }
 
 func NewReadMetadataWithContextFn(secret map[string]any, err error) ReadWithDataWithContextFn {
 	return func(ctx context.Context, path string, data map[string][]string) (*vault.Secret, error) {
-		if secret == nil {
-			return nil, err
-		}
-		metadata := make(map[string]any)
-		metadata["custom_metadata"] = secret
-		vault := &vault.Secret{
-			Data: metadata,
-		}
-		return vault, err
+		return buildMetadataResponse(secret, err)
+	}
+}
 	}
 }
 
