@@ -28,10 +28,10 @@ type YandexLockboxCAProvider struct {
 	Certificate esmeta.SecretKeySelector `json:"certSecretRef,omitempty"`
 }
 
-// ByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID
+// ByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID.
 type ByID struct{}
 
-// ByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name
+// ByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name.
 type ByName struct {
 	// The folder to fetch secrets from
 	FolderID string `json:"folderID"`
