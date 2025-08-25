@@ -429,6 +429,7 @@ var _ = Describe("PushSecret controller", func() {
 						Annotations: map[string]string{
 							"hihi": "ga",
 						},
+						Finalizers: []string{"example.com/finalizer"},
 					},
 					Type:          v1.SecretTypeOpaque,
 					EngineVersion: esv1.TemplateEngineV2,
@@ -493,6 +494,7 @@ var _ = Describe("PushSecret controller", func() {
 						Annotations: map[string]string{
 							"hihi": "ga",
 						},
+						Finalizers: []string{"example.com/finalizer"},
 					},
 					Type:          v1.SecretTypeOpaque,
 					EngineVersion: esv1.TemplateEngineV2,
