@@ -1555,7 +1555,7 @@ External Secrets meta/v1.SecretKeySelector
 <a href="#external-secrets.io/v1.FetchingPolicy">FetchingPolicy</a>)
 </p>
 <p>
-<p>ByID configures the provider to interpret the <code>data.secretKey.remoteRef.key</code> field in ExternalSecret as secret ID</p>
+<p>ByID configures the provider to interpret the <code>data.secretKey.remoteRef.key</code> field in ExternalSecret as secret ID.</p>
 </p>
 <h3 id="external-secrets.io/v1.ByName">ByName
 </h3>
@@ -1564,7 +1564,7 @@ External Secrets meta/v1.SecretKeySelector
 <a href="#external-secrets.io/v1.FetchingPolicy">FetchingPolicy</a>)
 </p>
 <p>
-<p>ByName configures the provider to interpret the <code>data.secretKey.remoteRef.key</code> field in ExternalSecret as secret name</p>
+<p>ByName configures the provider to interpret the <code>data.secretKey.remoteRef.key</code> field in ExternalSecret as secret name.</p>
 </p>
 <table>
 <thead>
