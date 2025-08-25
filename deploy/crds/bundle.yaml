@@ -6798,17 +6798,23 @@ spec:
                                   type: string
                               type: object
                           type: object
-                        fetchByID:
-                          description: FetchByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as certificate ID
-                          type: object
-                        fetchByName:
-                          description: FetchByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as certificate name
+                        fetching:
+                          description: FetchingPolicy configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as certificate ID or certificate name
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
-                            folderID:
-                              description: The folder to fetch secrets from
-                              type: string
-                          required:
-                            - folderID
+                            byID:
+                              description: ByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID
+                              type: object
+                            byName:
+                              description: ByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name
+                              properties:
+                                folderID:
+                                  description: The folder to fetch secrets from
+                                  type: string
+                              required:
+                                - folderID
+                              type: object
                           type: object
                       required:
                         - auth
@@ -6881,17 +6887,23 @@ spec:
                                   type: string
                               type: object
                           type: object
-                        fetchByID:
-                          description: FetchByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID
-                          type: object
-                        fetchByName:
-                          description: FetchByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name
+                        fetching:
+                          description: FetchingPolicy configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID or secret name
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
-                            folderID:
-                              description: The folder to fetch secrets from
-                              type: string
-                          required:
-                            - folderID
+                            byID:
+                              description: ByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID
+                              type: object
+                            byName:
+                              description: ByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name
+                              properties:
+                                folderID:
+                                  description: The folder to fetch secrets from
+                                  type: string
+                              required:
+                                - folderID
+                              type: object
                           type: object
                       required:
                         - auth
@@ -17642,17 +17654,23 @@ spec:
                                   type: string
                               type: object
                           type: object
-                        fetchByID:
-                          description: FetchByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as certificate ID
-                          type: object
-                        fetchByName:
-                          description: FetchByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as certificate name
+                        fetching:
+                          description: FetchingPolicy configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as certificate ID or certificate name
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
-                            folderID:
-                              description: The folder to fetch secrets from
-                              type: string
-                          required:
-                            - folderID
+                            byID:
+                              description: ByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID
+                              type: object
+                            byName:
+                              description: ByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name
+                              properties:
+                                folderID:
+                                  description: The folder to fetch secrets from
+                                  type: string
+                              required:
+                                - folderID
+                              type: object
                           type: object
                       required:
                         - auth
@@ -17725,17 +17743,23 @@ spec:
                                   type: string
                               type: object
                           type: object
-                        fetchByID:
-                          description: FetchByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID
-                          type: object
-                        fetchByName:
-                          description: FetchByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name
+                        fetching:
+                          description: FetchingPolicy configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID or secret name
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
-                            folderID:
-                              description: The folder to fetch secrets from
-                              type: string
-                          required:
-                            - folderID
+                            byID:
+                              description: ByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID
+                              type: object
+                            byName:
+                              description: ByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name
+                              properties:
+                                folderID:
+                                  description: The folder to fetch secrets from
+                                  type: string
+                              required:
+                                - folderID
+                              type: object
                           type: object
                       required:
                         - auth
