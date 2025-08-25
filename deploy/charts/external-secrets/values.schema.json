@@ -493,6 +493,9 @@
         "openshiftFinalizers": {
             "type": "boolean"
         },
+        "systemAuthDelegator": {
+            "type": "boolean"
+        },
         "podAnnotations": {
             "type": "object"
         },
