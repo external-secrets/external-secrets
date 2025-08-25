@@ -3964,7 +3964,7 @@
 Otherwise the <code>latest</code> documentation will point to the older version. Also avoid to release both versions at the same time to avoid race conditions in the CI pipeline (updating docs, GitHub Release, helm chart release).</p>
 <ol>
 <li>Run <code>Create Release</code> Action to create a new release, pass in the desired version number to release.<ol>
-<li>choose the right <code>branch</code> to execute the action: use <code>main</code> when creating a new release. Use <code>release-x.y</code> when you want to bump a LTS release.</li>
+<li>choose the right <code>branch</code> to execute the action: use <code>main</code> when creating a new release.</li>
 <li>⚠️ make sure that CI on the relevant branch has completed the docker build/push jobs. Otherwise an old image will be promoted.</li>
 </ol>
 </li>
@@ -3978,11 +3978,6 @@ Otherwise the <code>latest</code> documentation will point to the older version.
 <li>run <code>/ok-to-test-managed</code> commands for all cloud providers</li>
 <li>merge PR if everything is green</li>
 <li>CI picks up the new chart version and creates a new GitHub Release for it</li>
-<li>create/merge into release branch<ol>
-<li>on a <code>minor</code> release: create a new branch <code>release-x.y</code></li>
-<li>on a <code>patch</code> release: merge main into <code>release-x.y</code></li>
-</ol>
-</li>
 </ol>
 
 
