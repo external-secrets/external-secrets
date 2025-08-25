@@ -28,11 +28,20 @@ type YandexLockboxCAProvider struct {
 	Certificate esmeta.SecretKeySelector `json:"certSecretRef,omitempty"`
 }
 
-type FetchByID struct{}
+// ByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID
+type ByID struct{}
 
-type FetchByName struct {
+// ByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name
+type ByName struct {
 	// The folder to fetch secrets from
 	FolderID string `json:"folderID"`
+}
+
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
+type FetchingPolicy struct {
+	ByID   *ByID   `json:"byID,omitempty"`
+	ByName *ByName `json:"byName,omitempty"`
 }
 
 // YandexLockboxProvider Configures a store to sync secrets using the Yandex Lockbox provider.
@@ -48,11 +57,7 @@ type YandexLockboxProvider struct {
 	// +optional
 	CAProvider *YandexLockboxCAProvider `json:"caProvider,omitempty"`
 
-	// FetchByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID
+	// FetchingPolicy configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID or secret name
 	// +optional
-	FetchByID *FetchByID `json:"fetchByID,omitempty"`
-
-	// FetchByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name
-	// +optional
-	FetchByName *FetchByName `json:"fetchByName,omitempty"`
+	FetchingPolicy *FetchingPolicy `json:"fetching,omitempty"`
 }

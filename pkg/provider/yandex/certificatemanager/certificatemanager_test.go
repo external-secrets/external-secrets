@@ -672,7 +672,7 @@ func TestGetSecretMapByVersionID(t *testing.T) {
 	)
 }
 
-func TestGetSecretWithFetchByNameWithoutProperty(t *testing.T) {
+func TestGetSecretWithByNameFetchingPolicyWithoutProperty(t *testing.T) {
 	ctx := context.Background()
 	namespace := uuid.NewString()
 	authorizedKey := newFakeAuthorizedKey()
@@ -711,7 +711,7 @@ func TestGetSecretWithFetchByNameWithoutProperty(t *testing.T) {
 	)
 }
 
-func TestGetSecretWithFetchByNameWithProperty(t *testing.T) {
+func TestGetSecretWithByNameFetchingPolicyWithProperty(t *testing.T) {
 	ctx := context.Background()
 	namespace := uuid.NewString()
 	authorizedKey := newFakeAuthorizedKey()
@@ -766,7 +766,7 @@ func TestGetSecretWithFetchByNameWithProperty(t *testing.T) {
 	)
 }
 
-func TestGetSecretWithFetchByNameAndVersionID(t *testing.T) {
+func TestGetSecretWithByNameFetchingPolicyAndVersionID(t *testing.T) {
 	ctx := context.Background()
 	namespace := uuid.NewString()
 	authorizedKey := newFakeAuthorizedKey()
@@ -830,7 +830,7 @@ func TestGetSecretWithFetchByNameAndVersionID(t *testing.T) {
 	)
 }
 
-func TestGetSecretWithFetchByNameUnauthorized(t *testing.T) {
+func TestGetSecretWithByNameFetchingPolicyUnauthorized(t *testing.T) {
 	ctx := context.Background()
 	namespace := uuid.NewString()
 	authorizedKeyA := newFakeAuthorizedKey()
@@ -861,7 +861,7 @@ func TestGetSecretWithFetchByNameUnauthorized(t *testing.T) {
 	tassert.EqualError(t, err, errSecretPayloadPermissionDenied)
 }
 
-func TestGetSecretWithFetchByNameNotFound(t *testing.T) {
+func TestGetSecretWithByNameFetchingPolicyNotFound(t *testing.T) {
 	ctx := context.Background()
 	namespace := uuid.NewString()
 	authorizedKey := newFakeAuthorizedKey()
@@ -893,7 +893,7 @@ func TestGetSecretWithFetchByNameNotFound(t *testing.T) {
 	tassert.EqualError(t, err, errSecretPayloadVersionNotFound)
 }
 
-func TestGetSecretWithFetchByNameWithoutFolderID(t *testing.T) {
+func TestGetSecretWithByNameFetchingPolicyWithoutFolderID(t *testing.T) {
 	ctx := context.Background()
 	namespace := uuid.NewString()
 	authorizedKey := newFakeAuthorizedKey()
@@ -908,10 +908,10 @@ func TestGetSecretWithFetchByNameWithoutFolderID(t *testing.T) {
 	store := newYandexCertificateManagerSecretStoreWithFetchByName("", namespace, authorizedKeySecretName, authorizedKeySecretKey, "")
 	provider := newCertificateManagerProvider(fakeClock, fakeCertificateManagerServer)
 	_, err = provider.NewClient(ctx, store, k8sClient, namespace)
-	tassert.EqualError(t, err, "folderID is required when FetchByName is set")
+	tassert.EqualError(t, err, "folderID is required when fetching policy is 'byName'")
 }
 
-func TestGetSecretWithFetchByIDWithoutProperty(t *testing.T) {
+func TestGetSecretWithByIDFetchingPolicyWithoutProperty(t *testing.T) {
 	ctx := context.Background()
 	namespace := uuid.NewString()
 	authorizedKey := newFakeAuthorizedKey()
@@ -947,7 +947,7 @@ func TestGetSecretWithFetchByIDWithoutProperty(t *testing.T) {
 		strings.TrimSpace(string(data)),
 	)
 }
-func TestGetSecretWithBothFetchByIDAndFetchByName(t *testing.T) {
+func TestGetSecretWithInvalidFetchingPolicy(t *testing.T) {
 	ctx := context.Background()
 	namespace := uuid.NewString()
 	authorizedKey := newFakeAuthorizedKey()
@@ -974,9 +974,9 @@ func TestGetSecretWithBothFetchByIDAndFetchByName(t *testing.T) {
 							Key:  authorizedKeySecretKey,
 						},
 					},
-					FetchByID: &esv1.FetchByID{},
-					FetchByName: &esv1.FetchByName{
-						FolderID: "folderId",
+					FetchingPolicy: &esv1.FetchingPolicy{
+						ByID:   nil,
+						ByName: nil,
 					},
 				},
 			},
@@ -985,7 +985,7 @@ func TestGetSecretWithBothFetchByIDAndFetchByName(t *testing.T) {
 
 	provider := newCertificateManagerProvider(fakeClock, fakeCertificateManagerServer)
 	_, err = provider.NewClient(ctx, store, k8sClient, namespace)
-	tassert.EqualError(t, err, "invalid Yandex Certificate Manager SecretStore resource: both FetchByID and FetchByName are set")
+	tassert.EqualError(t, err, "invalid Yandex Certificate Manager SecretStore: requires either 'byName' or 'byID' policy")
 }
 
 // helper functions
@@ -1041,8 +1041,10 @@ func newYandexCertificateManagerSecretStoreWithFetchByName(apiEndpoint, namespac
 							Key:  authorizedKeySecretKey,
 						},
 					},
-					FetchByName: &esv1.FetchByName{
-						FolderID: folderID,
+					FetchingPolicy: &esv1.FetchingPolicy{
+						ByName: &esv1.ByName{
+							FolderID: folderID,
+						},
 					},
 				},
 			},
@@ -1065,7 +1067,9 @@ func newYandexCertificateManagerSecretStoreWithFetchByID(apiEndpoint, namespace,
 							Key:  authorizedKeySecretKey,
 						},
 					},
-					FetchByID: &esv1.FetchByID{},
+					FetchingPolicy: &esv1.FetchingPolicy{
+						ByID: &esv1.ByID{},
+					},
 				},
 			},
 		},

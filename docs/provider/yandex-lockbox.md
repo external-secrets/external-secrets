@@ -40,8 +40,9 @@ spec:
 
     # Optionally, to enable fetching secrets by name:
     #
-    # fetchByName: # place "fetchByName:" on the same level as "auth:"
-    #   folderId: ***** # ID of the folder to fetch secrets from
+    # fetching: # place "fetching:" on the same level as "auth:"
+    #   byName:
+    #     folderId: ***** # ID of the folder to fetch secrets from
 ```
 
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in all `authorizedKeySecretRef` with the namespace where the secret resides.
@@ -82,7 +83,7 @@ spec:
   data:
   - secretKey: password # the target k8s secret key
     remoteRef:
-      key: ***** # either ID or name of the secret, depending on FetchByID / FetchByName
+      key: ***** # either ID or name of the secret, depending on fetching policy byID / byName
       property: password # (optional) payload entry key of lockbox-secret
 ```
 
