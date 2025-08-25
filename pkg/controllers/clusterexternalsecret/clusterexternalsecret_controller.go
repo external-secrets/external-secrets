@@ -261,7 +261,7 @@ func (r *Reconciler) removeOldSecrets(ctx context.Context, log logr.Logger, clus
 // 2. Each namespace gets a CES-specific finalizer to prevent deletion race conditions
 // The namespace finalizer is named with the CES name to allow multiple CES resources
 // to provision into the same namespace independently.
-func (r *Reconciler) cleanupExternalSecrets(ctx context.Context, log logr.Logger, clusterExternalSecret *esv1.ClusterExternalSecret) error {
+func (r *Reconciler) cleanupExternalSecrets(ctx context.Context, _ logr.Logger, clusterExternalSecret *esv1.ClusterExternalSecret) error {
 	esName := clusterExternalSecret.Status.ExternalSecretName
 	if esName == "" {
 		esName = clusterExternalSecret.ObjectMeta.Name
