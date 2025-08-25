@@ -6804,10 +6804,10 @@ spec:
                           minProperties: 1
                           properties:
                             byID:
-                              description: ByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID
+                              description: ByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID.
                               type: object
                             byName:
-                              description: ByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name
+                              description: ByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name.
                               properties:
                                 folderID:
                                   description: The folder to fetch secrets from
@@ -6893,10 +6893,10 @@ spec:
                           minProperties: 1
                           properties:
                             byID:
-                              description: ByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID
+                              description: ByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID.
                               type: object
                             byName:
-                              description: ByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name
+                              description: ByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name.
                               properties:
                                 folderID:
                                   description: The folder to fetch secrets from
@@ -17660,10 +17660,10 @@ spec:
                           minProperties: 1
                           properties:
                             byID:
-                              description: ByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID
+                              description: ByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID.
                               type: object
                             byName:
-                              description: ByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name
+                              description: ByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name.
                               properties:
                                 folderID:
                                   description: The folder to fetch secrets from
@@ -17749,10 +17749,10 @@ spec:
                           minProperties: 1
                           properties:
                             byID:
-                              description: ByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID
+                              description: ByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID.
                               type: object
                             byName:
-                              description: ByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name
+                              description: ByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name.
                               properties:
                                 folderID:
                                   description: The folder to fetch secrets from
