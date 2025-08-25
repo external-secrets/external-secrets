@@ -11,7 +11,9 @@ We support authentication with Microsoft Entra identities that can be used as Wo
 
 Since the [AAD Pod Identity](https://azure.github.io/aad-pod-identity/docs/) is deprecated, it is recommended to use the [Workload Identity](https://azure.github.io/azure-workload-identity) authentication.
 
-We support connecting to different cloud flavours azure supports: `PublicCloud`, `USGovernmentCloud`, `ChinaCloud` and `GermanCloud`. You have to specify the `environmentType` and point to the correct cloud flavour. This defaults to `PublicCloud`.
+We support connecting to different cloud flavours azure supports: `PublicCloud`, `USGovernmentCloud`, `ChinaCloud`, `GermanCloud` and `AzureStackCloud` (for Azure Stack Hub/Edge). You have to specify the `environmentType` and point to the correct cloud flavour. This defaults to `PublicCloud`.
+
+For Azure Stack Hub or Azure Stack Edge environments, you must also provide custom cloud configuration. See the [Azure Stack Configuration](#azure-stack-configuration) section below.
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -97,6 +99,48 @@ The following example demonstrates using the secretRef field to directly deliver
 ```yaml
 {% include 'azkv-workload-identity-secretref.yaml' %}
 ```
+
+### Azure Stack Configuration
+
+External Secrets Operator supports Azure Stack Hub and Azure Stack Edge through custom cloud configuration. This feature requires using the new Azure SDK.
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: SecretStore
+metadata:
+  name: azure-stack-backend
+spec:
+  provider:
+    azurekv:
+      vaultUrl: "https://my-vault.vault.local.azurestack.external/"
+      # REQUIRED: Must be set to AzureStackCloud for custom environments
+      environmentType: AzureStackCloud
+      # REQUIRED: Must be true for Azure Stack (legacy SDK doesn't support custom clouds)
+      useAzureSDK: true
+      # REQUIRED: Custom cloud endpoints for your Azure Stack deployment
+      customCloudConfig:
+        # Azure Active Directory endpoint for authentication
+        activeDirectoryEndpoint: "https://login.microsoftonline.com/"
+        # Optional: Key Vault endpoint if different from vaultUrl domain
+        keyVaultEndpoint: "https://vault.local.azurestack.external/"
+        # Optional: Resource Manager endpoint for resource operations
+        resourceManagerEndpoint: "https://management.local.azurestack.external/"
+      # ... rest of authentication configuration (Service Principal example)
+      authType: ServicePrincipal
+      tenantId: "your-tenant-id"
+      authSecretRef:
+        clientId:
+          name: azure-secret
+          key: client-id
+        clientSecret:
+          name: azure-secret
+          key: client-secret
+```
+
+**Important Notes:**
+- `useAzureSDK: true` is mandatory for Azure Stack environments
+- The `customCloudConfig` is only valid when `environmentType: AzureStackCloud`
+- Contact your Azure Stack administrator for the correct endpoint URLs
 
 ### Update secret store
 Be sure the `azurekv` provider is listed in the `Kind=SecretStore`
