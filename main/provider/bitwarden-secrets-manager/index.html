@@ -2597,6 +2597,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#datafrom" class="md-nav__link">
+    <span class="md-ellipsis">
+      DataFrom
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4088,6 +4097,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#datafrom" class="md-nav__link">
+    <span class="md-ellipsis">
+      DataFrom
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4138,7 +4156,7 @@ This is different from <a href="https://bitwarden.com/products/personal/">Bitwar
 To integrate with Bitwarden <strong>Password Manager</strong>, reference the <a href="../../examples/bitwarden/">example documentation</a>.</p>
 </div>
 <h3 id="prerequisites">Prerequisites</h3>
-<p>In order for the bitwarden provider to work, we need a second service. This service is the <a href="https://github.com/external-secrets/bitwarden-sdk-server">Bitwarden SDK Server</a>.
+<p>In order for the Bitwarden provider to work, we need a second service. This service is the <a href="https://github.com/external-secrets/bitwarden-sdk-server">Bitwarden SDK Server</a>.
 The Bitwarden SDK is Rust based and requires CGO enabled. In order to not restrict the capabilities of ESO, and the image
 size ( the bitwarden Rust SDK libraries are over 150MB in size ) it has been decided to create a soft wrapper
 around the SDK that runs as a separate service providing ESO with a light REST API to pull secrets through.</p>
@@ -4232,6 +4250,28 @@ that no other project's secrets can be modified accidentally <em>or</em> intenti
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret-name&quot;</span>
 </code></pre></div>
+<h4 id="datafrom">DataFrom</h4>
+<p>When using dataFrom like this:</p>
+<div class="highlight"><pre><span></span><code><span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">conversionStrategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Default</span>
+<span class="w">      </span><span class="nt">decodingStrategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">None</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">db_</span>
+</code></pre></div>
+<p>Note that the secrets in the map will end up something like this:</p>
+<div class="highlight"><pre><span></span><code>$ kubectl get secret secret-to-be-created -o jsonpath=&#39;{.data}&#39;|jq
+{
+&quot;2989464a-03c2-4ced-9fe2-b34400aca42d&quot;: &quot;bG9jYWxob3N0OjEyMzQ1&quot;,
+&quot;98c18ddb-314e-463c-97c3-b34400ac6593&quot;: &quot;dWFzZXJuYW1lMQ==&quot;,
+&quot;c917a790-76bc-49ca-b303-b34400ac8035&quot;: &quot;UGFzc1dvcmQx&quot;,
+}
+</code></pre></div>
+<p>The finder uses the ID of the key instead of the name because in Bitwarden, having the same key/name for a secret inside the same project
+is a <em>VALID</em> option. Meaning, potentially, a secret could overwrite another secret in the secret data map.</p>
+<p>Hence, the ID of the secret is used when listing all secrets. This is inconvenient because now we can hardly
+refer to these secrets anymore from code. Hence, it is advised to use a rewrite rule with templates or
+to avoid using dataFrom field.</p>
 <h3 id="push-secret">Push Secret</h3>
 <p>Pushing a secret is also implemented. Pushing a secret requires even more restrictions because Bitwarden Secrets Manager
 allows creating the same secret with the same key multiple times. In order to avoid overwriting, or potentially, returning
