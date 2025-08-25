@@ -277,7 +277,7 @@ func (r *Reconciler) cleanupExternalSecrets(ctx context.Context, log logr.Logger
 	return nil
 }
 
-// getExternalSecretName returns the name to use for ExternalSecrets
+// getExternalSecretName returns the name to use for ExternalSecrets.
 func (r *Reconciler) getExternalSecretName(clusterExternalSecret *esv1.ClusterExternalSecret) string {
 	if clusterExternalSecret.Status.ExternalSecretName != "" {
 		return clusterExternalSecret.Status.ExternalSecretName
@@ -285,8 +285,8 @@ func (r *Reconciler) getExternalSecretName(clusterExternalSecret *esv1.ClusterEx
 	return clusterExternalSecret.ObjectMeta.Name
 }
 
-// cleanupNamespaceResources handles cleanup for a single namespace
-func (r *Reconciler) cleanupNamespaceResources(ctx context.Context, log logr.Logger, clusterExternalSecret *esv1.ClusterExternalSecret, namespaceName string, esName string) error {
+// cleanupNamespaceResources handles cleanup for a single namespace.
+func (r *Reconciler) cleanupNamespaceResources(ctx context.Context, log logr.Logger, clusterExternalSecret *esv1.ClusterExternalSecret, namespaceName, esName string) error {
 	// Get the namespace
 	namespace, err := r.getNamespace(ctx, namespaceName)
 	if err != nil {
@@ -310,14 +310,14 @@ func (r *Reconciler) cleanupNamespaceResources(ctx context.Context, log logr.Log
 	return nil
 }
 
-// getNamespace fetches a namespace by name
+// getNamespace fetches a namespace by name.
 func (r *Reconciler) getNamespace(ctx context.Context, name string) (*v1.Namespace, error) {
 	var namespace v1.Namespace
 	err := r.Get(ctx, types.NamespacedName{Name: name}, &namespace)
 	return &namespace, err
 }
 
-// removeNamespaceFinalizer removes the CES-specific finalizer from a namespace
+// removeNamespaceFinalizer removes the CES-specific finalizer from a namespace.
 func (r *Reconciler) removeNamespaceFinalizer(ctx context.Context, log logr.Logger, namespace *v1.Namespace, cesName string) error {
 	finalizer := r.buildCESFinalizer(cesName)
 
@@ -328,13 +328,13 @@ func (r *Reconciler) removeNamespaceFinalizer(ctx context.Context, log logr.Logg
 	return r.updateNamespaceRemoveFinalizer(ctx, log, namespace.Name, finalizer)
 }
 
-// buildCESFinalizer creates the finalizer name for a CES
+// buildCESFinalizer creates the finalizer name for a CES.
 func (r *Reconciler) buildCESFinalizer(cesName string) string {
 	return "externalsecrets.external-secrets.io/ces-" + cesName
 }
 
-// updateNamespaceRemoveFinalizer removes a finalizer from a namespace with conflict handling
-func (r *Reconciler) updateNamespaceRemoveFinalizer(ctx context.Context, log logr.Logger, namespaceName string, finalizer string) error {
+// updateNamespaceRemoveFinalizer removes a finalizer from a namespace with conflict handling.
+func (r *Reconciler) updateNamespaceRemoveFinalizer(ctx context.Context, log logr.Logger, namespaceName, finalizer string) error {
 	// Fetch the latest namespace to avoid conflicts
 	namespace, err := r.getNamespace(ctx, namespaceName)
 	if err != nil {
@@ -393,8 +393,8 @@ func (r *Reconciler) createOrUpdateExternalSecret(ctx context.Context, clusterEx
 	return nil
 }
 
-// ensureNamespaceFinalizer adds a CES-specific finalizer to the namespace if it doesn't exist
-// This prevents the namespace from being deleted while we're managing ExternalSecrets in it
+// ensureNamespaceFinalizer adds a CES-specific finalizer to the namespace if it doesn't exist.
+// This prevents the namespace from being deleted while we're managing ExternalSecrets in it.
 func (r *Reconciler) ensureNamespaceFinalizer(ctx context.Context, namespace *v1.Namespace, cesName string) error {
 	finalizer := r.buildCESFinalizer(cesName)
 
@@ -405,8 +405,8 @@ func (r *Reconciler) ensureNamespaceFinalizer(ctx context.Context, namespace *v1
 	return r.addNamespaceFinalizer(ctx, namespace.Name, finalizer)
 }
 
-// addNamespaceFinalizer adds a finalizer to a namespace with conflict handling
-func (r *Reconciler) addNamespaceFinalizer(ctx context.Context, namespaceName string, finalizer string) error {
+// addNamespaceFinalizer adds a finalizer to a namespace with conflict handling.
+func (r *Reconciler) addNamespaceFinalizer(ctx context.Context, namespaceName, finalizer string) error {
 	// Fetch the latest namespace to avoid conflicts
 	namespace, err := r.getNamespace(ctx, namespaceName)
 	if err != nil {
