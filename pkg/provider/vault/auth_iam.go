@@ -35,13 +35,13 @@ import (
 )
 
 const (
-	defaultAWSRegion                = "us-east-1"
-	defaultAWSAuthMountPath         = "aws"
-	errIrsaTokenEnvVarNotFoundOnPod = "expected env variable: %s not found on controller's pod"
-	errIrsaTokenFileNotFoundOnPod   = "web identity token file not found at %s location: %w"
-	errIrsaTokenFileNotReadable     = "could not read the web identity token from the file %s: %w"
-	errIrsaTokenNotValidJWT         = "could not parse web identity token available at %s. not a valid jwt?: %w"
-	errPodInfoNotFoundOnToken       = "could not find pod identity info on token %s: %w"
+	defaultAWSRegion              = "us-east-1"
+	defaultAWSAuthMountPath       = "aws"
+	errNoAWSAuthMethodFound       = "no AWS authentication method found: expected either IRSA or Pod Identity"
+	errIrsaTokenFileNotFoundOnPod = "web identity token file not found at %s location: %w"
+	errIrsaTokenFileNotReadable   = "could not read the web identity token from the file %s: %w"
+	errIrsaTokenNotValidJWT       = "could not parse web identity token available at %s. not a valid jwt?: %w"
+	errPodInfoNotFoundOnToken     = "could not find pod identity info on token %s: %w"
 )
 
 func setIamAuthToken(ctx context.Context, v *client, jwtProvider util.JwtProviderFactory, assumeRoler vaultiamauth.STSProvider) (bool, error) {
@@ -158,12 +158,28 @@ func (c *client) getAuthMountPathOrDefault(path string) string {
 }
 
 func (c *client) getControllerPodCredentials(ctx context.Context, region string, k kclient.Client, jwtProvider util.JwtProviderFactory) (*credentials.Credentials, error) {
-	// Checking if controller pod's service account is IRSA enabled and Web Identity token is available on pod
-	tokenFile, ok := os.LookupEnv(vaultiamauth.AWSWebIdentityTokenFileEnvVar)
-	if !ok {
-		return nil, fmt.Errorf(errIrsaTokenEnvVarNotFoundOnPod, vaultiamauth.AWSWebIdentityTokenFileEnvVar) // No Web Identity(IRSA) token found on pod
+	// First try IRSA (Web Identity Token) - checking if controller pod's service account is IRSA enabled
+	tokenFile, hasIrsaToken := os.LookupEnv(vaultiamauth.AWSWebIdentityTokenFileEnvVar)
+	if hasIrsaToken {
+		logger.V(1).Info("using IRSA token for authentication")
+		return c.getCredsFromIRSAToken(ctx, tokenFile, region, k, jwtProvider)
 	}
 
+	// Check for Pod Identity environment variables.
+	_, hasPodIdentityURI := os.LookupEnv(vaultiamauth.AWSContainerCredentialsFullURIEnvVar)
+	_, hasPodIdentityToken := os.LookupEnv(vaultiamauth.AWSContainerAuthorizationTokenFileEnvVar)
+
+	if hasPodIdentityURI && hasPodIdentityToken {
+		logger.V(1).Info("using Pod Identity for authentication")
+		// Return nil to let AWS SDK v1 container credential provider handle Pod Identity automatically
+		return nil, nil
+	}
+
+	// No IRSA or Pod Identity found.
+	return nil, fmt.Errorf(errNoAWSAuthMethodFound)
+}
+
+func (c *client) getCredsFromIRSAToken(ctx context.Context, tokenFile, region string, k kclient.Client, jwtProvider util.JwtProviderFactory) (*credentials.Credentials, error) {
 	// IRSA enabled service account, let's check that the jwt token filemount and file exists
 	if _, err := os.Stat(tokenFile); err != nil {
 		return nil, fmt.Errorf(errIrsaTokenFileNotFoundOnPod, tokenFile, err)
