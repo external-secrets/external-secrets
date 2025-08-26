@@ -2840,6 +2840,21 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="PushSecret">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#check-and-set-cas-for-pushsecret" class="md-nav__link">
+    <span class="md-ellipsis">
+      Check-And-Set (CAS) for PushSecret
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -4352,6 +4367,21 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="PushSecret">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#check-and-set-cas-for-pushsecret" class="md-nav__link">
+    <span class="md-ellipsis">
+      Check-And-Set (CAS) for PushSecret
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -5077,6 +5107,34 @@ To use PushSecret, you need to give <code>create</code>, <code>read</code> and <
 <span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">foo</span>
 </code></pre></div>
 <p>Note that in this example, we are generating two secrets in the target vault with the same structure but using different input formats.</p>
+<h4 id="check-and-set-cas-for-pushsecret">Check-And-Set (CAS) for PushSecret</h4>
+<p>Vault KV v2 supports Check-And-Set operations to prevent unintentional overwrites when multiple clients modify the same secret. When CAS is enabled in your Vault configuration, External Secrets Operator can be configured to include the required version parameter in write operations.</p>
+<p>To enable CAS support, add the <code>checkAndSet</code> configuration to your Vault provider:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vault-backend</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">vault</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">server</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://my.vault.server:8200&quot;</span>
+<span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret&quot;</span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;v2&quot;</span><span class="w">  </span><span class="c1"># CAS only works with KV v2</span>
+<span class="w">      </span><span class="nt">checkAndSet</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">required</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">  </span><span class="c1"># Enable CAS for all write operations</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="c1"># ... authentication config</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">CAS Requirements</p>
+<ul>
+<li>CAS is only supported with Vault KV v2 stores</li>
+<li>When <code>checkAndSet.required</code> is true, all PushSecret operations will include version information</li>
+<li>For new secrets, External Secrets Operator uses CAS version 0</li>
+<li>For existing secrets, it automatically retrieves the current version before updating</li>
+<li>CAS helps prevent conflicts when multiple External Secrets instances manage the same secrets</li>
+</ul>
+</div>
 <h3 id="vault-enterprise">Vault Enterprise</h3>
 <h4 id="eventual-consistency-and-performance-standby-nodes">Eventual Consistency and Performance Standby Nodes</h4>
 <p>When using Vault Enterprise with <a href="https://www.vaultproject.io/docs/enterprise/consistency#performance-standby-nodes">performance standby nodes</a>,
