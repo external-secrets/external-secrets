@@ -67,8 +67,10 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	if err != nil && !errors.Is(err, esv1.NoSecretError{}) {
 		return err
 	}
-	// If the secret exists (err == nil), we should check if it is managed by external-secrets
-	if err == nil {
+
+	secretExists := err == nil
+	// If the secret exists, we should check if it is managed by external-secrets
+	if secretExists {
 		metadata, err := c.readSecretMetadata(ctx, data.GetRemoteKey())
 		if err != nil {
 			return err
@@ -122,6 +124,18 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	if c.store.Version == esv1.VaultKVStoreV2 {
 		secretToPush = map[string]any{
 			"data": secretVal,
+		}
+
+		// Add CAS options if required
+		if c.store.CheckAndSet != nil && c.store.CheckAndSet.Required {
+			casVersion, casErr := c.getCASVersion(ctx, data.GetRemoteKey(), secretExists)
+			if casErr != nil {
+				return fmt.Errorf("failed to get CAS version: %w", casErr)
+			}
+
+			secretToPush["options"] = map[string]any{
+				"cas": casVersion,
+			}
 		}
 	}
 	if err != nil {
@@ -196,4 +210,59 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 		}
 	}
 	return nil
+}
+
+// getCASVersion retrieves the current version of the secret for check-and-set operations.
+// Returns:
+//   - 0 for new secrets (CAS version 0 means "create only if doesn't exist")
+//   - N for existing secrets (CAS version N means "update only if current version is N")
+func (c *client) getCASVersion(ctx context.Context, remoteKey string, secretExists bool) (int, error) {
+	// For new secrets, use CAS version 0 (create only if doesn't exist)
+	if !secretExists {
+		return 0, nil
+	}
+
+	// For existing secrets, read the full metadata to get current version
+	metaPath, err := c.buildMetadataPath(remoteKey)
+	if err != nil {
+		return 0, fmt.Errorf("failed to build metadata path: %w", err)
+	}
+
+	secret, err := c.logical.ReadWithDataWithContext(ctx, metaPath, nil)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read metadata: %w", err)
+	}
+
+	if secret == nil || secret.Data == nil {
+		// If no metadata found for an existing secret, assume this is version 1.
+		// This can happen with older secrets that were created before version tracking.
+		// Vault KV v2 secrets start at version 1 (not 0) when first created.
+		return 1, nil
+	}
+
+	return getCurrentVersionFromMetadata(secret.Data)
+}
+
+func getCurrentVersionFromMetadata(data map[string]any) (int, error) {
+	var err error
+	if currentVersion, ok := data["current_version"]; ok {
+		switch v := currentVersion.(type) {
+		case int:
+			return v, nil
+		case float64:
+			return int(v), nil
+		case json.Number:
+			if intVal, err := v.Int64(); err == nil {
+				return int(intVal), nil
+			}
+			return 0, fmt.Errorf("failed to convert json.Number to int: %w", err)
+		default:
+			return 0, fmt.Errorf("unexpected type for current_version: %T", currentVersion)
+		}
+	}
+
+	// If metadata exists but no current_version found, assume this is version 1.
+	// This handles edge cases with legacy secrets or incomplete metadata.
+	// Vault KV v2 secrets start at version 1, so this is the safest assumption.
+	return 1, nil
 }

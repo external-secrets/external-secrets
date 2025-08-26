@@ -664,6 +664,124 @@ func TestPushSecret(t *testing.T) {
 				err: nil,
 			},
 		},
+		"CASRequiredNewSecretKV2": {
+			reason: "CAS required: new secret should be created with cas=0",
+			args: args{
+				store: makeValidSecretStoreWithCASRequired(esv1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
+					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]any{
+						"options": map[string]any{
+							"cas": 0,
+						},
+						"data": map[string]any{fakeKey: fakeValue},
+					}),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"CASRequiredExistingSecretKV2": {
+			reason: "CAS required: existing secret should be updated with current version",
+			args: args{
+				store: makeValidSecretStoreWithCASRequired(esv1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithDataAndMetadataFn(
+						map[string]any{
+							"data": map[string]any{
+								"existing": "value",
+							},
+						},
+						map[string]any{
+							"custom_metadata": map[string]any{
+								managedBy: managedByESO,
+							},
+							"current_version": 3,
+						},
+						nil, nil,
+					),
+					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]any{
+						"options": map[string]any{
+							"cas": 3,
+						},
+						"data": map[string]any{fakeKey: fakeValue},
+					}),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"CASRequiredPropertyUpdateKV2": {
+			reason: "CAS required: property update should use current version",
+			value:  []byte("property-value"),
+			data:   &testingfake.PushSecretData{SecretKey: "secret-key", RemoteKey: "secret", Property: "new-prop"},
+			args: args{
+				store: makeValidSecretStoreWithCASRequired(esv1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithDataAndMetadataFn(
+						map[string]any{
+							"data": map[string]any{
+								"existing": "value",
+							},
+						},
+						map[string]any{
+							"custom_metadata": map[string]any{
+								managedBy: managedByESO,
+							},
+							"current_version": 2,
+						},
+						nil, nil,
+					),
+					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]any{
+						"options": map[string]any{
+							"cas": 2,
+						},
+						"data": map[string]any{
+							"existing": "value",
+							"new-prop": "property-value",
+						},
+					}),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"CASNotRequiredKV2": {
+			reason: "CAS not required: should work without CAS options",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
+					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]any{
+						"data": map[string]any{fakeKey: fakeValue},
+					}),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"CASIgnoredKV1": {
+			reason: "CAS ignored for KV v1: should work without CAS options even when required",
+			args: args{
+				store: makeValidSecretStoreWithCASRequired(esv1.VaultKVStoreV1).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
+					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]any{
+						fakeKey: fakeValue,
+						"custom_metadata": map[string]string{
+							managedBy: managedByESO,
+						},
+					}),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
 	}
 
 	for name, tc := range tests {
@@ -699,4 +817,12 @@ func TestPushSecret(t *testing.T) {
 			}
 		})
 	}
+}
+
+func makeValidSecretStoreWithCASRequired(version esv1.VaultKVStoreVersion) *esv1.SecretStore {
+	store := makeValidSecretStoreWithVersion(version)
+	store.Spec.Provider.Vault.CheckAndSet = &esv1.VaultCheckAndSet{
+		Required: true,
+	}
+	return store
 }
