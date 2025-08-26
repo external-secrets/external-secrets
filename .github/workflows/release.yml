@@ -8,7 +8,7 @@ on:
         required: true
         default: 'v0.1.0'
       source_ref:
-        description: 'source ref to publish from. E.g.: main or release-x.y'
+        description: 'source ref to publish from. E.g.: main'
         required: true
         default: 'main'
 

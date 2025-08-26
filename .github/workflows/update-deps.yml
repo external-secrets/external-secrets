@@ -29,9 +29,7 @@ jobs:
           ref: ${{ github.event.inputs.ref }}
       - name: set branches output
         id: branches
-        # outputs the second to most recent `release-x.y` branches plus `main` as JSON
-        run: |
-          echo "branches=$(git branch -a | grep -E "remotes/origin/(main|release-)" | sed 's/  remotes\/origin\///' | sort -V | tail -2 | head -1 | jq -R -s -c 'split("\n") | map(select(length > 0)) | . + ["main"]')" >> $GITHUB_OUTPUT
+        run: echo "branches=[\"main\"]" >> $GITHUB_OUTPUT
 
   update-dependencies:
     permissions:
