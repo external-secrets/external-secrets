@@ -90,6 +90,12 @@ type VaultProvider struct {
 	// Headers to be added in Vault request
 	// +optional
 	Headers map[string]string `json:"headers,omitempty"`
+
+	// CheckAndSet defines the Check-And-Set (CAS) settings for PushSecret operations.
+	// Only applies to Vault KV v2 stores. When enabled, write operations must include
+	// the current version of the secret to prevent unintentional overwrites.
+	// +optional
+	CheckAndSet *VaultCheckAndSet `json:"checkAndSet,omitempty"`
 }
 
 // VaultClientTLS is the configuration used for client side related TLS communication,
@@ -370,4 +376,12 @@ type VaultUserPassAuth struct {
 	// method
 	// +optional
 	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+}
+
+// VaultCheckAndSet defines the Check-And-Set (CAS) settings for Vault KV v2 PushSecret operations.
+type VaultCheckAndSet struct {
+	// Required when true, all write operations must include a check-and-set parameter.
+	// This helps prevent unintentional overwrites of secrets.
+	// +optional
+	Required bool `json:"required,omitempty"`
 }
