@@ -334,6 +334,9 @@ type VaultCertAuth struct {
 }
 
 // VaultIamAuth authenticates with Vault using the Vault's AWS IAM authentication method. Refer: https://developer.hashicorp.com/vault/docs/auth/aws
+//
+// When JWTAuth and SecretRef are not specified, the provider will use the controller pod's
+// identity to authenticate with AWS. This supports both IRSA and EKS Pod Identity.
 type VaultIamAuth struct {
 	// Path where the AWS auth method is enabled in Vault, e.g: "aws"
 	// +optional
@@ -357,9 +360,6 @@ type VaultIamAuth struct {
 	// Specify a service account with IRSA enabled
 	// +optional
 	JWTAuth *VaultAwsJWTAuth `json:"jwt,omitempty"`
-	// When JWTAuth and SecretRef are not specified, the provider will use the controller pod's
-	// identity to authenticate with AWS. This supports both IRSA and EKS Pod Identity.
-	// +optional
 }
 
 // VaultUserPassAuth authenticates with Vault using UserPass authentication method,

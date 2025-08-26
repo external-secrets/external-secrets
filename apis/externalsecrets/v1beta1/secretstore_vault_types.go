@@ -351,9 +351,6 @@ type VaultIamAuth struct {
 	// Specify a service account with IRSA enabled
 	// +optional
 	JWTAuth *VaultAwsJWTAuth `json:"jwt,omitempty"`
-	// When JWTAuth and SecretRef are not specified, the provider will use the controller pod's
-	// identity to authenticate with AWS. This supports both IRSA and EKS Pod Identity.
-	// +optional
 }
 
 // VaultUserPassAuth authenticates with Vault using UserPass authentication method,
