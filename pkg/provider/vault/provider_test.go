@@ -200,6 +200,32 @@ func makeValidSecretStoreWithIamAuthSecret() *esv1.SecretStore {
 	}
 }
 
+func makeValidSecretStoreWithIamAuthControllerPod() *esv1.SecretStore {
+	return &esv1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "vault-store",
+			Namespace: "default",
+		},
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Vault: &esv1.VaultProvider{
+					Server:  "https://vault.example.com:8200",
+					Path:    &secretStorePath,
+					Version: esv1.VaultKVStoreV2,
+					Auth: &esv1.VaultAuth{
+						Iam: &esv1.VaultIamAuth{
+							Path:   "aws",
+							Region: "us-east-1",
+							Role:   "vault-role",
+							// No JWTAuth or SecretRef - will use controller pod identity
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 type secretStoreTweakFn func(s *esv1.SecretStore)
 
 func makeSecretStore(tweaks ...secretStoreTweakFn) *esv1.SecretStore {
@@ -686,6 +712,19 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 			},
 			want: want{},
 		},
+		"IamAuthControllerPodNoEnvVars": {
+			reason: "Should return error when IAM controller pod auth has no AWS environment variables",
+			args: args{
+				store:         makeValidSecretStoreWithIamAuthControllerPod(),
+				ns:            "default",
+				kube:          clientfake.NewClientBuilder().Build(),
+				corev1:        utilfake.NewCreateTokenMock().WithToken("ok"),
+				newClientFunc: fake.ClientWithLoginMock,
+			},
+			want: want{
+				err: errors.New(errNoAWSAuthMethodFound),
+			},
+		},
 	}
 
 	for name, tc := range cases {
@@ -706,6 +745,38 @@ func vaultTest(t *testing.T, _ string, tc testCase) {
 	if diff := cmp.Diff(tc.want.err, err, EquateErrors()); diff != "" {
 		t.Errorf("\n%s\nvault.New(...): -want error, +got error:\n%s", tc.reason, diff)
 	}
+}
+
+func TestGetControllerPodCredentials(t *testing.T) {
+	client := &client{storeKind: esv1.SecretStoreKind}
+	ctx := context.Background()
+	region := "us-east-1"
+	kube := clientfake.NewClientBuilder().Build()
+
+	t.Run("PodIdentityEnvVars", func(t *testing.T) {
+		t.Setenv("AWS_CONTAINER_CREDENTIALS_FULL_URI", "http://169.254.170.23/v1/credentials")
+		t.Setenv("AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE", "/var/run/secrets/token")
+
+		creds, err := client.getControllerPodCredentials(ctx, region, kube, nil)
+
+		// Should succeed and return nil (indicating AWS SDK should handle it)
+		if err != nil {
+			t.Errorf("Expected no error, got: %v", err)
+		}
+		if creds != nil {
+			t.Errorf("Expected nil credentials for Pod Identity, got: %v", creds)
+		}
+	})
+
+	t.Run("NoEnvVars", func(t *testing.T) {
+		// No environment variables set
+		_, err := client.getControllerPodCredentials(ctx, region, kube, nil)
+
+		expectedErr := fmt.Errorf(errNoAWSAuthMethodFound)
+		if diff := cmp.Diff(expectedErr, err, EquateErrors()); diff != "" {
+			t.Errorf("TestGetControllerPodCredentials/NoEnvVars: -want error, +got error:\n%s", diff)
+		}
+	})
 }
 
 func TestCache(t *testing.T) {
