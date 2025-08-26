@@ -181,7 +181,7 @@ func (c *client) getControllerPodCredentials(ctx context.Context, region string,
 
 func (c *client) getCredsFromIRSAToken(ctx context.Context, tokenFile, region string, k kclient.Client, jwtProvider util.JwtProviderFactory) (*credentials.Credentials, error) {
 	// IRSA enabled service account, let's check that the jwt token filemount and file exists
-	if _, err := os.Stat(tokenFile); err != nil {
+	if _, err := os.Stat(filepath.Clean(tokenFile)); err != nil {
 		return nil, fmt.Errorf(errIrsaTokenFileNotFoundOnPod, tokenFile, err)
 	}
 
