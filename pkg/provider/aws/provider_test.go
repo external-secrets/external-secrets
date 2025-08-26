@@ -521,7 +521,7 @@ func TestValidRetryInput(t *testing.T) {
 			"ak":  []byte("OK"),
 		},
 	}).Build()
-	provider := func(aws.Config) awsauth.STSprovider { return nil }
+	provider := func(*aws.Config) awsauth.STSprovider { return nil }
 
 	_, err := newClient(ctx, spec, kube, "default", provider)
 

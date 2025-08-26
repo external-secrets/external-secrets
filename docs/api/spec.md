@@ -4631,6 +4631,18 @@ map[string]string
 <td>
 </td>
 </tr>
+<tr>
+<td>
+<code>validationResult</code></br>
+<em>
+<a href="#external-secrets.io/v1.ValidationResult">
+ValidationResult
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.FakeProviderData">FakeProviderData
@@ -9484,6 +9496,10 @@ External Secrets meta/v1.SecretKeySelector
 <h3 id="external-secrets.io/v1.ValidationResult">ValidationResult
 (<code>byte</code> alias)</p></h3>
 <p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.FakeProvider">FakeProvider</a>)
+</p>
+<p>
 </p>
 <table>
 <thead>
@@ -9925,6 +9941,38 @@ External Secrets meta/v1.SecretKeySelector
 <em>(Optional)</em>
 <p>SecretRef to a key in a Secret resource containing client private key to
 authenticate with Vault using the Cert authentication method</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.VaultCheckAndSet">VaultCheckAndSet
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.VaultProvider">VaultProvider</a>)
+</p>
+<p>
+<p>VaultCheckAndSet defines the Check-And-Set (CAS) settings for Vault KV v2 PushSecret operations.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>required</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Required when true, all write operations must include a check-and-set parameter.
+This helps prevent unintentional overwrites of secrets.</p>
 </td>
 </tr>
 </tbody>
@@ -10569,6 +10617,22 @@ map[string]string
 <td>
 <em>(Optional)</em>
 <p>Headers to be added in Vault request</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>checkAndSet</code></br>
+<em>
+<a href="#external-secrets.io/v1.VaultCheckAndSet">
+VaultCheckAndSet
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CheckAndSet defines the Check-And-Set (CAS) settings for PushSecret operations.
+Only applies to Vault KV v2 stores. When enabled, write operations must include
+the current version of the secret to prevent unintentional overwrites.</p>
 </td>
 </tr>
 </tbody>

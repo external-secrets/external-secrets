@@ -45,6 +45,7 @@ const (
 	errInvalidClientTLSCert   = "invalid ClientTLS.ClientCert: %w"
 	errInvalidClientTLSSecret = "invalid ClientTLS.SecretRef: %w"
 	errInvalidClientTLS       = "when provided, both ClientTLS.ClientCert and ClientTLS.SecretRef should be provided"
+	errCASNotSupportedInKVv1  = "checkAndSet is not supported with Vault KV version v1"
 )
 
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
@@ -162,6 +163,14 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	} else if vaultProvider.ClientTLS.CertSecretRef != nil || vaultProvider.ClientTLS.KeySecretRef != nil {
 		return nil, errors.New(errInvalidClientTLS)
 	}
+
+	// Validate CAS configuration
+	if vaultProvider.CheckAndSet != nil && vaultProvider.CheckAndSet.Required {
+		if vaultProvider.Version == esv1.VaultKVStoreV1 {
+			return nil, errors.New(errCASNotSupportedInKVv1)
+		}
+	}
+
 	return nil, nil
 }
 

@@ -215,39 +215,64 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 	}
 
 	secretName := sm.prefix + psd.GetRemoteKey()
-	secretValue := awssm.GetSecretValueInput{
-		SecretId: &secretName,
-	}
-
-	secretInput := awssm.DescribeSecretInput{
-		SecretId: &secretName,
-	}
-
-	awsSecret, err := sm.client.GetSecretValue(ctx, &secretValue)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
-
-	if psd.GetProperty() != "" {
-		currentSecret := sm.retrievePayload(awsSecret)
-		if currentSecret != "" && !gjson.Valid(currentSecret) {
-			return errors.New("PushSecret for aws secrets manager with a pushSecretData property requires a json secret")
-		}
-		value, _ = sjson.SetBytes([]byte(currentSecret), psd.GetProperty(), value)
-	}
-
+	describeSecretInput := awssm.DescribeSecretInput{SecretId: &secretName}
+	describeSecretOutput, err := sm.client.DescribeSecret(ctx, &describeSecretInput)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDescribeSecret, err)
 	var aerr smithy.APIError
 	if err != nil {
 		if ok := errors.As(err, &aerr); !ok {
 			return err
 		}
-
 		if aerr.ErrorCode() == ResourceNotFoundException {
-			return sm.createSecretWithContext(ctx, secretName, psd, value)
+			finalValue, err := sm.getNewSecretValue(value, psd.GetProperty(), nil)
+			if err != nil {
+				return err
+			}
+			return sm.createSecretWithContext(ctx, secretName, psd, finalValue)
 		}
+		return err
+	} else if !isManagedByESO(describeSecretOutput) {
+		return errors.New("secret not managed by external-secrets")
+	}
 
+	if len(describeSecretOutput.VersionIdsToStages) == 0 {
+		finalValue, err := sm.getNewSecretValue(value, psd.GetProperty(), nil)
+		if err != nil {
+			return err
+		}
+		return sm.putSecretValueWithContext(ctx, secretName, nil, psd, finalValue, describeSecretOutput.Tags)
+	}
+
+	getSecretValueInput := awssm.GetSecretValueInput{SecretId: &secretName}
+	getSecretValueOutput, err := sm.client.GetSecretValue(ctx, &getSecretValueInput)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
+	if err != nil {
 		return err
 	}
 
-	return sm.putSecretValueWithContext(ctx, secretInput, awsSecret, psd, value)
+	finalValue, err := sm.getNewSecretValue(value, psd.GetProperty(), getSecretValueOutput)
+	if err != nil {
+		return err
+	}
+	return sm.putSecretValueWithContext(ctx, secretName, getSecretValueOutput, psd, finalValue, describeSecretOutput.Tags)
+}
+
+func (sm *SecretsManager) getNewSecretValue(value []byte, property string, existingSecret *awssm.GetSecretValueOutput) ([]byte, error) {
+	if property == "" {
+		return value, nil
+	}
+
+	if existingSecret == nil {
+		value, _ = sjson.SetBytes([]byte{}, property, value)
+		return value, nil
+	}
+
+	currentSecret := sm.retrievePayload(existingSecret)
+	if currentSecret != "" && !gjson.Valid(currentSecret) {
+		return nil, errors.New("PushSecret for aws secrets manager with a pushSecretData property requires a json secret")
+	}
+	value, _ = sjson.SetBytes([]byte(currentSecret), property, value)
+	return value, nil
 }
 
 func padOrTrim(b []byte) []byte {
@@ -543,27 +568,23 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 	return err
 }
 
-func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretInput awssm.DescribeSecretInput, awsSecret *awssm.GetSecretValueOutput, psd esv1.PushSecretData, value []byte) error {
-	data, err := sm.client.DescribeSecret(ctx, &secretInput)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDescribeSecret, err)
-	if err != nil {
-		return err
-	}
-	if !isManagedByESO(data) {
-		return errors.New("secret not managed by external-secrets")
-	}
-	if awsSecret != nil && bytes.Equal(awsSecret.SecretBinary, value) || utils.CompareStringAndByteSlices(awsSecret.SecretString, value) {
+func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretArn string, awsSecret *awssm.GetSecretValueOutput, psd esv1.PushSecretData, value []byte, tags []types.Tag) error {
+	if awsSecret != nil && (bytes.Equal(awsSecret.SecretBinary, value) || utils.CompareStringAndByteSlices(awsSecret.SecretString, value)) {
 		return nil
 	}
 
-	newVersionNumber, err := bumpVersionNumber(awsSecret.VersionId)
-	if err != nil {
-		return err
+	newVersionNumber := initialVersion
+	if awsSecret != nil {
+		bumpedVersionNumber, err := bumpVersionNumber(awsSecret.VersionId)
+		if err != nil {
+			return err
+		}
+		newVersionNumber = *bumpedVersionNumber
 	}
 	input := &awssm.PutSecretValueInput{
-		SecretId:           awsSecret.ARN,
+		SecretId:           &secretArn,
 		SecretBinary:       value,
-		ClientRequestToken: newVersionNumber,
+		ClientRequestToken: aws.String(newVersionNumber),
 	}
 	secretPushFormat, err := utils.FetchValueFromMetadata(SecretPushFormatKey, psd.GetMetadata(), SecretPushFormatBinary)
 	if err != nil {
@@ -580,11 +601,11 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretI
 		return err
 	}
 
-	currentTags := make(map[string]string, len(data.Tags))
-	for _, tag := range data.Tags {
+	currentTags := make(map[string]string, len(tags))
+	for _, tag := range tags {
 		currentTags[*tag.Key] = *tag.Value
 	}
-	return sm.patchTags(ctx, psd.GetMetadata(), awsSecret.ARN, currentTags)
+	return sm.patchTags(ctx, psd.GetMetadata(), &secretArn, currentTags)
 }
 
 func (sm *SecretsManager) patchTags(ctx context.Context, metadata *apiextensionsv1.JSON, secretId *string, tags map[string]string) error {

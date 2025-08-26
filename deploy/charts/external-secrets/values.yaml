@@ -275,6 +275,9 @@ grafanaDashboard:
   # https://github.com/grafana/helm-charts/tree/main/charts/grafana
   annotations: {}
 
+  # -- Extra labels to add to the Grafana dashboard ConfigMap.
+  extraLabels: {}
+
 livenessProbe:
   # -- Enabled determines if the liveness probe should be used or not. By default it's disabled.
   enabled: false

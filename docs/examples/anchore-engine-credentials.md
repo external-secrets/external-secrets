@@ -1,20 +1,20 @@
 # Getting started
 
-Anchore Engine is an open-source project that provides a centralized service for inspection, analysis, and certification of container images. With Kubernetes, it also brings nice features like preventing unscanned images from being deployed into your clusters
+**Anchore Engine** is an open-source platform that provides centralized inspection, analysis, and certification of container images. When integrated with Kubernetes, it adds powerful features—such as preventing unscanned images from being deployed into your clusters.
 
-## Installing with Helm
+## Installation with Helm
 
-There are several parts of the installation that require credentials these being :-
+There are several parts of the installation that require credentials these being:
 
-ANCHORE_ADMIN_USERNAME
-ANCHORE_ADMIN_PASSWORD
-ANCHORE_DB_PASSWORD
-db-url
-db-user
-postgres-password
+- `ANCHORE_ADMIN_USERNAME`
+- `ANCHORE_ADMIN_PASSWORD`
+- `ANCHORE_DB_PASSWORD`
+- `db-url`
+- `db-user`
+- `postgres-password`
 
+You can use an **ExternalSecret** to automatically fetch these credentials from your preferred backend provider. The following examples demonstrate how to configure it with **HashiCorp Vault** and **AWS Secrets Manager**.
 
-Creating the following external secret ensure the credentials are drawn from the backend provider of choice. The example shown here works with Hashicorp Vault and AWS Secrets Manager providers.
 
 #### Hashicorp Vault
 

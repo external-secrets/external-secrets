@@ -264,6 +264,7 @@ const (
 	ReasonInvalidStore          = "InvalidStoreConfiguration"
 	ReasonInvalidProviderConfig = "InvalidProviderConfig"
 	ReasonValidationFailed      = "ValidationFailed"
+	ReasonValidationUnknown     = "ValidationUnknown"
 	ReasonStoreValid            = "Valid"
 	StoreUnmaintained           = "StoreUnmaintained"
 )

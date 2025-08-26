@@ -807,7 +807,110 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 					},
 				}
 			},
-		}))
+		}),
+		Entry("Should propagate the force-sync annotation", testCase{
+			namespaces: []v1.Namespace{
+				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
+			},
+			clusterExternalSecret: func(namespaces []v1.Namespace) esv1.ClusterExternalSecret {
+				ces := defaultClusterExternalSecret()
+				ces.Annotations = map[string]string{esv1.AnnotationForceSync: "true"}
+				ces.Spec.NamespaceSelector = &metav1.LabelSelector{
+					MatchLabels: map[string]string{metadataLabelName: namespaces[0].Name},
+				}
+				return *ces
+			},
+			expectedClusterExternalSecret: func(namespaces []v1.Namespace, created esv1.ClusterExternalSecret) esv1.ClusterExternalSecret {
+				return esv1.ClusterExternalSecret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        created.Name,
+						Annotations: map[string]string{esv1.AnnotationForceSync: "true"},
+					},
+					Spec: created.Spec,
+					Status: esv1.ClusterExternalSecretStatus{
+						ExternalSecretName:    created.Name,
+						ProvisionedNamespaces: []string{namespaces[0].Name},
+						Conditions: []esv1.ClusterExternalSecretStatusCondition{
+							{
+								Type:   esv1.ClusterExternalSecretReady,
+								Status: v1.ConditionTrue,
+							},
+						},
+					},
+				}
+			},
+			expectedExternalSecrets: func(namespaces []v1.Namespace, created esv1.ClusterExternalSecret) []esv1.ExternalSecret {
+				return []esv1.ExternalSecret{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace:   namespaces[0].Name,
+							Name:        created.Name,
+							Annotations: map[string]string{esv1.AnnotationForceSync: "true"},
+						},
+						Spec: created.Spec.ExternalSecretSpec,
+					},
+				}
+			},
+		}),
+		Entry("Should prune the force-sync annotation", testCase{
+			namespaces: []v1.Namespace{
+				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
+			},
+			clusterExternalSecret: func(namespaces []v1.Namespace) esv1.ClusterExternalSecret {
+				ces := defaultClusterExternalSecret()
+				ces.Annotations = map[string]string{esv1.AnnotationForceSync: "true"}
+				ces.Spec.NamespaceSelector = &metav1.LabelSelector{
+					MatchLabels: map[string]string{metadataLabelName: namespaces[0].Name},
+				}
+				return *ces
+			},
+			beforeCheck: func(ctx context.Context, namespaces []v1.Namespace, created esv1.ClusterExternalSecret) {
+				// Wait until the external secret is provisioned and has
+				// the force-sync annotation
+				var es esv1.ExternalSecret
+				Eventually(func(g Gomega) {
+					key := types.NamespacedName{Namespace: namespaces[0].Name, Name: created.Name}
+					g.Expect(k8sClient.Get(ctx, key, &es)).ShouldNot(HaveOccurred())
+					g.Expect(len(es.Annotations)).Should(Equal(1))
+					g.Expect(es.Spec).Should(Equal(created.Spec.ExternalSecretSpec))
+				}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
+
+				// Prune the force-sync annotation
+				copied := created.DeepCopy()
+				delete(copied.Annotations, esv1.AnnotationForceSync)
+				Expect(k8sClient.Patch(ctx, copied, crclient.MergeFrom(created.DeepCopy()))).ShouldNot(HaveOccurred())
+			},
+			expectedClusterExternalSecret: func(namespaces []v1.Namespace, created esv1.ClusterExternalSecret) esv1.ClusterExternalSecret {
+				return esv1.ClusterExternalSecret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: created.Name,
+					},
+					Spec: created.Spec,
+					Status: esv1.ClusterExternalSecretStatus{
+						ExternalSecretName:    created.Name,
+						ProvisionedNamespaces: []string{namespaces[0].Name},
+						Conditions: []esv1.ClusterExternalSecretStatusCondition{
+							{
+								Type:   esv1.ClusterExternalSecretReady,
+								Status: v1.ConditionTrue,
+							},
+						},
+					},
+				}
+			},
+			expectedExternalSecrets: func(namespaces []v1.Namespace, created esv1.ClusterExternalSecret) []esv1.ExternalSecret {
+				return []esv1.ExternalSecret{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: namespaces[0].Name,
+							Name:      created.Name,
+						},
+						Spec: created.Spec.ExternalSecretSpec,
+					},
+				}
+			},
+		}),
+	)
 })
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz")

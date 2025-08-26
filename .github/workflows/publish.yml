@@ -58,7 +58,7 @@ jobs:
           egress-policy: audit
 
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ inputs.ref }}
 
@@ -104,8 +104,8 @@ jobs:
           # rebuild-image
           if [ "${{ inputs.image-tag }}" != "" ]; then
             TAG="${{ inputs.image-tag }}${{ inputs.tag-suffix }}"
-          # main / release-x.y
-          elif [[ "$GITHUB_REF" == "refs/heads/main" || "$GITHUB_REF" =~ refs/heads/release-.*  ]]; then
+          # main
+          elif [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
             TAG=${GITHUB_REF#refs/heads/}${{ inputs.tag-suffix }}
           # Pull Request
           else
@@ -155,7 +155,7 @@ jobs:
         with:
           egress-policy: audit
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - name: Sign image
         if: env.IS_FORK != ''
         uses: ./.github/actions/sign

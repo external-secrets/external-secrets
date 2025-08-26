@@ -7,6 +7,13 @@ You just need to change an annotation, label or the spec of the resource:
 kubectl annotate es my-es force-sync=$(date +%s) --overwrite
 ```
 
+For ClusterExternalSecrets you can refresh all corresponding ExternalSecrets by changing
+the `external-secrets.io/force-sync` annotation on the ClusterExternalSecret resource:
+
+```
+kubectl annotate ces my-ces external-secrets.io/force-sync=$(date +%s) --overwrite
+```
+
 ## How do I know when my secret was last synced?
 
 

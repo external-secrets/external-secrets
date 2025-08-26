@@ -571,6 +571,8 @@ type ExternalSecret struct {
 const (
 	// AnnotationDataHash all secrets managed by an ExternalSecret have this annotation with the hash of their data.
 	AnnotationDataHash = "reconcile.external-secrets.io/data-hash"
+	// AnnotationForceSync all ExternalSecrets managed by a ClusterExternalSecret mirror the state and value of this annotation.
+	AnnotationForceSync = "external-secrets.io/force-sync"
 
 	// LabelManaged all secrets managed by an ExternalSecret will have this label equal to "true".
 	LabelManaged      = "reconcile.external-secrets.io/managed"

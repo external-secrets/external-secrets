@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - release-*
     paths:
       - 'deploy/charts/**'
       - 'deploy/crds/**'
@@ -25,7 +24,7 @@ jobs:
         with:
           egress-policy: audit
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
 
@@ -70,7 +69,7 @@ jobs:
         if: steps.list-changed.outputs.changed == 'true'
         run: make helm.test
   release:
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release-')
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: write  # for helm/chart-releaser-action to push chart release and create a release
       packages: write  # to push OCI chart package to GitHub Registry
@@ -84,7 +83,7 @@ jobs:
           egress-policy: audit
 
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
 

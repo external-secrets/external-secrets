@@ -103,7 +103,7 @@ func (r *Reconciler) reconcile(ctx context.Context, log logr.Logger, clusterExte
 	if esName == "" {
 		esName = clusterExternalSecret.ObjectMeta.Name
 	}
-	if prevName := clusterExternalSecret.Status.ExternalSecretName; prevName != esName {
+	if prevName := clusterExternalSecret.Status.ExternalSecretName; prevName != "" && prevName != esName {
 		// ExternalSecretName has changed, so remove the old ones
 		if err := r.removeOldSecrets(ctx, log, clusterExternalSecret, prevName); err != nil {
 			return ctrl.Result{}, err
@@ -215,6 +215,15 @@ func (r *Reconciler) createOrUpdateExternalSecret(ctx context.Context, clusterEx
 	mutateFunc := func() error {
 		externalSecret.Labels = esMetadata.Labels
 		externalSecret.Annotations = esMetadata.Annotations
+		if value, ok := clusterExternalSecret.Annotations[esv1.AnnotationForceSync]; ok {
+			if externalSecret.Annotations == nil {
+				externalSecret.Annotations = map[string]string{}
+			}
+			externalSecret.Annotations[esv1.AnnotationForceSync] = value
+		} else {
+			delete(externalSecret.Annotations, esv1.AnnotationForceSync)
+		}
+
 		externalSecret.Spec = clusterExternalSecret.Spec.ExternalSecretSpec
 
 		if err := controllerutil.SetControllerReference(clusterExternalSecret, externalSecret, r.Scheme); err != nil {
