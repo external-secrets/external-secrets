@@ -126,6 +126,6 @@ We provide assistance for deploying/upgrading etc. on a best-effort basis. You c
 
 Even though we have active maintainers and people assigned to this project, we kindly ask for patience when asking for support. We will try to get to priority issues as fast as possible, but there may be some delays.
 
-### Helm Chart Disclaimer
+### Helm Charts
 
 The Helm charts provided by this project are offered "as-is" and are primarily focused on providing a good user experience and ease of use. Hardened Helm charts are not a deliverable of this project. We encourage users to review the default chart values and customize them to meet their own security requirements and best practices.
