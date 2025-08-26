@@ -16,6 +16,7 @@ package vault
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -176,7 +177,7 @@ func (c *client) getControllerPodCredentials(ctx context.Context, region string,
 	}
 
 	// No IRSA or Pod Identity found.
-	return nil, fmt.Errorf(errNoAWSAuthMethodFound)
+	return nil, errors.New(errNoAWSAuthMethodFound)
 }
 
 func (c *client) getCredsFromIRSAToken(ctx context.Context, tokenFile, region string, k kclient.Client, jwtProvider util.JwtProviderFactory) (*credentials.Credentials, error) {
