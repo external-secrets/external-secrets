@@ -105,8 +105,11 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
-          echo "$GPG_PRIVATE_KEY" | gpg --dearmor --output keyring.gpg
-          echo -n "$GPG_PASSPHRASE" > passphrase-file.txt
+          gpg --dearmor --output keyring.gpg <(printf '%s' "$GPG_PRIVATE_KEY")
+          chmod 600 keyring.gpg
+
+          printf '%s' "$GPG_PASSPHRASE" > passphrase-file.txt
+          chmod 600 passphrase-file.txt
 
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@cae68fefc6b5f367a0275617c9f83181ba54714f # v1.7.0
