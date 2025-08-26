@@ -2147,6 +2147,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#6-harden-the-helm-chart" class="md-nav__link">
+    <span class="md-ellipsis">
+      6. Harden the Helm Chart
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4195,6 +4204,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#6-harden-the-helm-chart" class="md-nav__link">
+    <span class="md-ellipsis">
+      6. Harden the Helm Chart
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4454,6 +4472,20 @@ The core controller will issue error logs if the CRD is not installed but the re
 <span class="w">  </span><span class="nt">extraArgs</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">tls-ciphers</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256&quot;</span>
 </code></pre></div></p>
+<h3 id="6-harden-the-helm-chart">6. Harden the Helm Chart</h3>
+<p>The provided Helm chart is designed for ease of use and may not meet your organization's specific security requirements out-of-the-box. It is crucial to review the default Helm chart values and harden the configuration. Any misconfiguration caused by using the provided helm charts is not covered by our support policy - even if it leads to a security incident.</p>
+<p>Here are some examples of how you can harden the Helm chart:</p>
+<ul>
+<li>
+<p><strong>Scope RBAC Permissions</strong>: The default chart grants permissions to create service account tokens for any service account. You can restrict this by modifying the <code>ClusterRole</code> to only allow token creation for specific, known service accounts. This limits the operator's ability to impersonate other service accounts.</p>
+</li>
+<li>
+<p><strong>Use Tightly Scoped Deployments</strong>: If you don't need certain features, disable them. For example, you can prevent the injection of sidecar containers by using a custom appArmor profile, or an admission controller like Kyverno to enforce restrictions on your deployment.</p>
+</li>
+<li>
+<p><strong>Use it as a Dependency</strong>: Instead of deploying the chart directly, you can use it as a dependency in your own Helm chart. This allows you to extend its functionality and layer on your own security controls, such as <code>NetworkPolicies</code>, custom <code>RBAC</code> roles, and other security mechanisms that are specific to your environment.</p>
+</li>
+</ul>
 <h2 id="pod-security">Pod Security</h2>
 <p>The Pods of the External Secrets Operator have been configured to meet the <a href="https://kubernetes.io/docs/concepts/security/pod-security-standards/">Pod Security Standards</a>, specifically the restricted profile. This configuration ensures a strong security posture by implementing recommended best practices for hardening Pods, including those outlined in the <a href="https://media.defense.gov/2022/Aug/29/2003066362/-1/-1/0/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.PDF">NSA Kubernetes Hardening Guide</a>.</p>
 <p>By adhering to these standards, the External Secrets Operator benefits from a secure and resilient operating environment. The restricted profile has been set as the default configuration since version <code>v0.8.2</code>, and it is recommended to maintain this setting to align with the principle of least privilege.</p>
