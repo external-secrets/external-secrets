@@ -38,7 +38,7 @@ const (
 	defaultAWSRegion                = "us-east-1"
 	defaultAWSAuthMountPath         = "aws"
 	errIrsaTokenEnvVarNotFoundOnPod = "expected env variable: %s not found on controller's pod"
-	errIrsaTokenFileNotFoundOnPod   = "web ddentity token file not found at %s location: %w"
+	errIrsaTokenFileNotFoundOnPod   = "web identity token file not found at %s location: %w"
 	errIrsaTokenFileNotReadable     = "could not read the web identity token from the file %s: %w"
 	errIrsaTokenNotValidJWT         = "could not parse web identity token available at %s. not a valid jwt?: %w"
 	errPodInfoNotFoundOnToken       = "could not find pod identity info on token %s: %w"
@@ -60,14 +60,9 @@ func setIamAuthToken(ctx context.Context, v *client, jwtProvider util.JwtProvide
 func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1.VaultIamAuth, isClusterKind bool, k kclient.Client, n string, jwtProvider util.JwtProviderFactory, assumeRoler vaultiamauth.STSProvider) error {
 	jwtAuth := iamAuth.JWTAuth
 	secretRefAuth := iamAuth.SecretRef
-	regionAWS := defaultAWSRegion
-	awsAuthMountPath := defaultAWSAuthMountPath
-	if iamAuth.Region != "" {
-		regionAWS = iamAuth.Region
-	}
-	if iamAuth.Path != "" {
-		awsAuthMountPath = iamAuth.Path
-	}
+	regionAWS := c.getRegionOrDefault(iamAuth.Region)
+	awsAuthMountPath := c.getAuthMountPathOrDefault(iamAuth.Path)
+
 	var creds *credentials.Credentials
 	var err error
 	if jwtAuth != nil { // use credentials from a sa explicitly defined and referenced. Highest preference is given to this method/configuration.
@@ -86,43 +81,7 @@ func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1.Vaul
 	// Neither of jwtAuth or secretRefAuth defined. Last preference.
 	// Default to controller pod's identity
 	if jwtAuth == nil && secretRefAuth == nil {
-		// Checking if controller pod's service account is IRSA enabled and Web Identity token is available on pod
-		tokenFile, ok := os.LookupEnv(vaultiamauth.AWSWebIdentityTokenFileEnvVar)
-		if !ok {
-			return fmt.Errorf(errIrsaTokenEnvVarNotFoundOnPod, vaultiamauth.AWSWebIdentityTokenFileEnvVar) // No Web Identity(IRSA) token found on pod
-		}
-
-		// IRSA enabled service account, let's check that the jwt token filemount and file exists
-		if _, err := os.Stat(tokenFile); err != nil {
-			return fmt.Errorf(errIrsaTokenFileNotFoundOnPod, tokenFile, err)
-		}
-
-		// everything looks good so far, let's fetch the jwt token from AWS_WEB_IDENTITY_TOKEN_FILE
-		jwtByte, err := os.ReadFile(filepath.Clean(tokenFile))
-		if err != nil {
-			return fmt.Errorf(errIrsaTokenFileNotReadable, tokenFile, err)
-		}
-
-		// let's parse the jwt token
-		parser := jwt.NewParser(jwt.WithoutClaimsValidation())
-
-		token, _, err := parser.ParseUnverified(string(jwtByte), jwt.MapClaims{})
-		if err != nil {
-			return fmt.Errorf(errIrsaTokenNotValidJWT, tokenFile, err) // JWT token parser error
-		}
-
-		var ns string
-		var sa string
-
-		// let's fetch the namespace and serviceaccount from parsed jwt token
-		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			ns = claims["kubernetes.io"].(map[string]any)["namespace"].(string)
-			sa = claims["kubernetes.io"].(map[string]any)["serviceaccount"].(map[string]any)["name"].(string)
-		} else {
-			return fmt.Errorf(errPodInfoNotFoundOnToken, tokenFile, err)
-		}
-
-		creds, err = vaultiamauth.CredsFromControllerServiceAccount(ctx, sa, ns, regionAWS, k, jwtProvider)
+		creds, err = c.getControllerPodCredentials(ctx, regionAWS, k, jwtProvider)
 		if err != nil {
 			return err
 		}
@@ -182,4 +141,58 @@ func (c *client) requestTokenWithIamAuth(ctx context.Context, iamAuth *esv1.Vaul
 		return err
 	}
 	return nil
+}
+
+func (c *client) getRegionOrDefault(region string) string {
+	if region != "" {
+		return region
+	}
+	return defaultAWSRegion
+}
+
+func (c *client) getAuthMountPathOrDefault(path string) string {
+	if path != "" {
+		return path
+	}
+	return defaultAWSAuthMountPath
+}
+
+func (c *client) getControllerPodCredentials(ctx context.Context, region string, k kclient.Client, jwtProvider util.JwtProviderFactory) (*credentials.Credentials, error) {
+	// Checking if controller pod's service account is IRSA enabled and Web Identity token is available on pod
+	tokenFile, ok := os.LookupEnv(vaultiamauth.AWSWebIdentityTokenFileEnvVar)
+	if !ok {
+		return nil, fmt.Errorf(errIrsaTokenEnvVarNotFoundOnPod, vaultiamauth.AWSWebIdentityTokenFileEnvVar) // No Web Identity(IRSA) token found on pod
+	}
+
+	// IRSA enabled service account, let's check that the jwt token filemount and file exists
+	if _, err := os.Stat(tokenFile); err != nil {
+		return nil, fmt.Errorf(errIrsaTokenFileNotFoundOnPod, tokenFile, err)
+	}
+
+	// everything looks good so far, let's fetch the jwt token from AWS_WEB_IDENTITY_TOKEN_FILE
+	jwtByte, err := os.ReadFile(filepath.Clean(tokenFile))
+	if err != nil {
+		return nil, fmt.Errorf(errIrsaTokenFileNotReadable, tokenFile, err)
+	}
+
+	// let's parse the jwt token
+	parser := jwt.NewParser(jwt.WithoutClaimsValidation())
+
+	token, _, err := parser.ParseUnverified(string(jwtByte), jwt.MapClaims{})
+	if err != nil {
+		return nil, fmt.Errorf(errIrsaTokenNotValidJWT, tokenFile, err) // JWT token parser error
+	}
+
+	var ns string
+	var sa string
+
+	// let's fetch the namespace and serviceaccount from parsed jwt token
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		ns = claims["kubernetes.io"].(map[string]any)["namespace"].(string)
+		sa = claims["kubernetes.io"].(map[string]any)["serviceaccount"].(map[string]any)["name"].(string)
+	} else {
+		return nil, fmt.Errorf(errPodInfoNotFoundOnToken, tokenFile, err)
+	}
+
+	return vaultiamauth.CredsFromControllerServiceAccount(ctx, sa, ns, region, k, jwtProvider)
 }
