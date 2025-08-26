@@ -159,17 +159,17 @@ func (c *client) getAuthMountPathOrDefault(path string) string {
 
 func (c *client) getControllerPodCredentials(ctx context.Context, region string, k kclient.Client, jwtProvider util.JwtProviderFactory) (*credentials.Credentials, error) {
 	// First try IRSA (Web Identity Token) - checking if controller pod's service account is IRSA enabled
-	tokenFile, hasIrsaToken := os.LookupEnv(vaultiamauth.AWSWebIdentityTokenFileEnvVar)
-	if hasIrsaToken {
+	tokenFile := os.Getenv(vaultiamauth.AWSWebIdentityTokenFileEnvVar)
+	if tokenFile != "" {
 		logger.V(1).Info("using IRSA token for authentication")
 		return c.getCredsFromIRSAToken(ctx, tokenFile, region, k, jwtProvider)
 	}
 
 	// Check for Pod Identity environment variables.
-	_, hasPodIdentityURI := os.LookupEnv(vaultiamauth.AWSContainerCredentialsFullURIEnvVar)
-	_, hasPodIdentityToken := os.LookupEnv(vaultiamauth.AWSContainerAuthorizationTokenFileEnvVar)
+	podIdentityURI := os.Getenv(vaultiamauth.AWSContainerCredentialsFullURIEnvVar)
+	podIdentityToken := os.Getenv(vaultiamauth.AWSContainerAuthorizationTokenFileEnvVar)
 
-	if hasPodIdentityURI && hasPodIdentityToken {
+	if podIdentityURI != "" && podIdentityToken != "" {
 		logger.V(1).Info("using Pod Identity for authentication")
 		// Return nil to let AWS SDK v1 container credential provider handle Pod Identity automatically
 		return nil, nil
