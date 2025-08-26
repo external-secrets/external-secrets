@@ -9782,6 +9782,38 @@ authenticate with Vault using the Cert authentication method</p>
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.VaultCheckAndSet">VaultCheckAndSet
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.VaultProvider">VaultProvider</a>)
+</p>
+<p>
+<p>VaultCheckAndSet defines the Check-And-Set (CAS) settings for Vault KV v2 PushSecret operations.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>required</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Required when true, all write operations must include a check-and-set parameter.
+This helps prevent unintentional overwrites of secrets.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.VaultClientTLS">VaultClientTLS
 </h3>
 <p>
@@ -10422,6 +10454,22 @@ map[string]string
 <td>
 <em>(Optional)</em>
 <p>Headers to be added in Vault request</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>checkAndSet</code></br>
+<em>
+<a href="#external-secrets.io/v1.VaultCheckAndSet">
+VaultCheckAndSet
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CheckAndSet defines the Check-And-Set (CAS) settings for PushSecret operations.
+Only applies to Vault KV v2 stores. When enabled, write operations must include
+the current version of the secret to prevent unintentional overwrites.</p>
 </td>
 </tr>
 </tbody>
