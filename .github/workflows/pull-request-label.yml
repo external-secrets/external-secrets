@@ -31,16 +31,8 @@ jobs:
               "clean":"kind/cleanup",
               "design":"kind/design",
               "docs":"kind/documentation",
-              "test":"area/testing",
-              "perf":"area/performance"
-            }
-          SCOPE_TO_LABEL: |
-            {
-              "charts":"area/charts",
-              "release":"area/release",
-              "testing":"area/testing",
-              "security":"area/security",
-              "templating":"area/templating",
+              "test":"kind/testing",
+              "perf":"kind/performance"
             }
         with:
           script: |
@@ -48,9 +40,7 @@ jobs:
 
             // Parse mappings from environment variables
             const typeToLabel = JSON.parse(process.env.TYPE_TO_LABEL);
-            const scopeToLabel = JSON.parse(process.env.SCOPE_TO_LABEL);
             console.log("Type-to-Label Mapping:", typeToLabel);
-            console.log("Scope-to-Label Mapping:", scopeToLabel);
 
             // Dynamically generate allowed types
             const allowedTypes = Object.keys(typeToLabel).join('|');
@@ -94,11 +84,10 @@ jobs:
                 console.log(`No label found for type: ${type}`);
               }
 
-              // Add scope-based label if scope exists
-              if (scope && scopeToLabel[scope]) {
-                labels.push(scopeToLabel[scope]);
-              } else if (scope) {
-                console.log(`No label found for scope: ${scope}`);
+              // Add scope-based label. If no scope is provided, we don't add a label.
+              // This action will just fail if the label doesn't exist.
+              if (scope) {
+                labels.push(`area/${scope}`);
               }
 
               if (labels.length > 0) {
