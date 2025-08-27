@@ -22,6 +22,7 @@ jobs:
     steps:
       - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
         env:
+          # If extended, don't forget to also include it in the verification step verify-labels.
           TYPE_TO_LABEL: |
             {
               "feat":"kind/feature",
@@ -151,5 +152,5 @@ jobs:
       - name: PRs should have at least one qualifying label
         uses: docker://agilepathway/pull-request-label-checker:latest@sha256:14f5f3dfda922496d07d53494e2d2b42885165f90677a1c03d600059b7706a61
         with:
-          any_of: kind/chore,kind/bug,kind/feature,kind/dependency,kind/refactor,kind/design
+          any_of: kind/chore,kind/bug,kind/feature,kind/dependency,kind/refactor,kind/design,kind/documentation,kind/testing,kind/performance,kind/cleanup
           repo_token: ${{ secrets.GITHUB_TOKEN }}
