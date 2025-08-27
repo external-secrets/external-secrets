@@ -199,9 +199,35 @@ Once the Core Controller Pod can access the Secret Manager secret(s) through WIF
 ```yaml
 {% include 'gcpsm-wif-core-controller-secret-store.yaml' %}
 ```
+
+#### Explicitly specifying the GKE cluster's name and location
+
+When creating a `SecretStore` or `ClusterSecretStore` that uses WIF, the GKE cluster's name and location are automatically determined through the [GCP metadata server](https://cloud.google.com/compute/docs/metadata/overview).
+Alternatively, you can explicitly specify them.
+
+To do so, you'll need to know the following two values:
+
+* `CLUSTER_NAME`: The name of the GKE cluster.
+* `CLUSTER_LOCATION`: The location of the GKE cluster. For a regional cluster, this is the region. For a zonal cluster, this is the zone.
+
+You can optionally verify these values through the CLI:
+
+```shell
+gcloud container clusters describe $CLUSTER_NAME \
+  --project=$PROJECT_ID --location=$CLUSTER_LOCATION
+```
+
+If the three values are correct, this returns information about your GKE cluster.
+
+Then, you can create a `SecretStore` or `ClusterSecretStore` that explicitly specifies the cluster's name and location:
+
+```yaml
+{% include 'gcpsm-wif-sa-secret-store-with-explicit-name-and-location.yaml' %}
+```
+
 ### Authenticating with a GCP service account
 
-The `SecretStore` (or `ClusterSecretStore`) use a long-lived, static [GCP service account key](https://cloud.google.com/iam/docs/service-account-creds#key-types) to authenticate with GCP.
+The `SecretStore` (or `ClusterSecretStore`) uses a long-lived, static [GCP service account key](https://cloud.google.com/iam/docs/service-account-creds#key-types) to authenticate with GCP.
 This approach can be used on any Kubernetes cluster.
 
 To demonstrate this approach, we'll create a `SecretStore` in the `demo` namespace.
