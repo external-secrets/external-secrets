@@ -67,27 +67,19 @@ _For more information about WIF and Secret Manager permissions, refer to:_
 * _[Authenticate to Google Cloud APIs from GKE workloads](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) in the GKE documentation._
 * _[Access control with IAM](https://cloud.google.com/secret-manager/docs/access-control) in the Secret Manager documentation._
 
-To create a `SecretStore` that references a service account, in addition to the four values above, you need to know:
-
-* `CLUSTER_NAME`: The name of the GKE cluster.
-* `CLUSTER_LOCATION`: The location of the GKE cluster. For a regional cluster, this is the region. For a zonal cluster, this is the zone.
-
-You can optionally verify these values through the CLI:
-
-```shell
-gcloud container clusters describe $CLUSTER_NAME \
-  --project=$PROJECT_ID --location=$CLUSTER_LOCATION
-```
-
-If the three values are correct, this returns information about your cluster.
-
-Finally, create the `SecretStore`:
+Next, create a `SecretStore` that references the `demo-secrets-sa` Kubernetes service account:
 
 ```yaml
 {% include 'gcpsm-wif-iam-secret-store.yaml' %}
 ```
 
 In the case of a `ClusterSecretStore`, you additionally have to define the service account's `namespace` under `auth.workloadIdentity.serviceAccountRef`.
+
+Finally, you can create an `ExternalSecret` for the `demo-secret` that references this `SecretStore`:
+
+```yaml
+{% include 'gcpsm-wif-externalsecret.yaml' %}
+```
 
 #### Linking a Kubernetes service account to a GCP service account
 
@@ -158,27 +150,19 @@ _For more information about WIF and Secret Manager permissions, refer to:_
 * _[Authenticate to Google Cloud APIs from GKE workloads](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) in the GKE documentation._
 * _[Access control with IAM](https://cloud.google.com/secret-manager/docs/access-control) in the Secret Manager documentation._
 
-To create a `SecretStore` that references the Kubernetes service account, you need to know:
-
-* `CLUSTER_NAME`: The name of the GKE cluster.
-* `CLUSTER_LOCATION`: The location of the GKE cluster. For a regional cluster, this is the region. For a zonal cluster, this is the zone.
-
-You can optionally verify the information through the CLI:
-
-```shell
-gcloud container clusters describe $CLUSTER_NAME \
-  --project=$PROJECT_ID --location=$CLUSTER_LOCATION
-```
-
-If the three values are correct, this returns information about your cluster.
-
-Finally, create the `SecretStore`:
+Next, create a `SecretStore` that references the `demo-secrets-sa` Kubernetes service account:
 
 ```yaml
 {% include 'gcpsm-wif-sa-secret-store.yaml' %}
 ```
 
 In the case of a `ClusterSecretStore`, you additionally have to define the service account's `namespace` under `auth.workloadIdentity.serviceAccountRef`.
+
+Finally, you can create an `ExternalSecret` for the `demo-secret` that references this `SecretStore`:
+
+```yaml
+{% include 'gcpsm-wif-externalsecret.yaml' %}
+```
 
 #### Authorizing the Core Controller Pod
 
@@ -215,7 +199,6 @@ Once the Core Controller Pod can access the Secret Manager secret(s) through WIF
 ```yaml
 {% include 'gcpsm-wif-core-controller-secret-store.yaml' %}
 ```
-
 ### Authenticating with a GCP service account
 
 The `SecretStore` (or `ClusterSecretStore`) use a long-lived, static [GCP service account key](https://cloud.google.com/iam/docs/service-account-creds#key-types) to authenticate with GCP.
