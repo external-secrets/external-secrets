@@ -38,8 +38,9 @@ func adaptInput(store esv1.GenericStore) (*common.SecretsClientInput, error) {
 	}
 	storeSpecYandexLockbox := storeSpec.Provider.YandexLockbox
 
-	if storeSpecYandexLockbox.Auth.AuthorizedKey.Name == "" {
-		return nil, errors.New("invalid Yandex Lockbox SecretStore resource: missing AuthorizedKey Name")
+	var authorizedKey *esmeta.SecretKeySelector
+	if storeSpecYandexLockbox.Auth.AuthorizedKey.Name != "" {
+		authorizedKey = &storeSpecYandexLockbox.Auth.AuthorizedKey
 	}
 
 	var caCertificate *esmeta.SecretKeySelector
@@ -49,7 +50,7 @@ func adaptInput(store esv1.GenericStore) (*common.SecretsClientInput, error) {
 
 	return &common.SecretsClientInput{
 		APIEndpoint:   storeSpecYandexLockbox.APIEndpoint,
-		AuthorizedKey: storeSpecYandexLockbox.Auth.AuthorizedKey,
+		AuthorizedKey: authorizedKey,
 		CACertificate: caCertificate,
 	}, nil
 }

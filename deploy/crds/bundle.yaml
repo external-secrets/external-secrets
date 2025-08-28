@@ -6457,6 +6457,18 @@ spec:
                             - name
                             - type
                           type: object
+                        checkAndSet:
+                          description: |-
+                            CheckAndSet defines the Check-And-Set (CAS) settings for PushSecret operations.
+                            Only applies to Vault KV v2 stores. When enabled, write operations must include
+                            the current version of the secret to prevent unintentional overwrites.
+                          properties:
+                            required:
+                              description: |-
+                                Required when true, all write operations must include a check-and-set parameter.
+                                This helps prevent unintentional overwrites of secrets.
+                              type: boolean
+                          type: object
                         forwardInconsistent:
                           description: |-
                             ForwardInconsistent tells Vault to forward read-after-write requests to the Vault
@@ -17292,6 +17304,18 @@ spec:
                             - name
                             - type
                           type: object
+                        checkAndSet:
+                          description: |-
+                            CheckAndSet defines the Check-And-Set (CAS) settings for PushSecret operations.
+                            Only applies to Vault KV v2 stores. When enabled, write operations must include
+                            the current version of the secret to prevent unintentional overwrites.
+                          properties:
+                            required:
+                              description: |-
+                                Required when true, all write operations must include a check-and-set parameter.
+                                This helps prevent unintentional overwrites of secrets.
+                              type: boolean
+                          type: object
                         forwardInconsistent:
                           description: |-
                             ForwardInconsistent tells Vault to forward read-after-write requests to the Vault
@@ -23721,6 +23745,18 @@ spec:
                                 - name
                                 - type
                               type: object
+                            checkAndSet:
+                              description: |-
+                                CheckAndSet defines the Check-And-Set (CAS) settings for PushSecret operations.
+                                Only applies to Vault KV v2 stores. When enabled, write operations must include
+                                the current version of the secret to prevent unintentional overwrites.
+                              properties:
+                                required:
+                                  description: |-
+                                    Required when true, all write operations must include a check-and-set parameter.
+                                    This helps prevent unintentional overwrites of secrets.
+                                  type: boolean
+                              type: object
                             forwardInconsistent:
                               description: |-
                                 ForwardInconsistent tells Vault to forward read-after-write requests to the Vault
@@ -26102,6 +26138,18 @@ spec:
                       required:
                         - name
                         - type
+                      type: object
+                    checkAndSet:
+                      description: |-
+                        CheckAndSet defines the Check-And-Set (CAS) settings for PushSecret operations.
+                        Only applies to Vault KV v2 stores. When enabled, write operations must include
+                        the current version of the secret to prevent unintentional overwrites.
+                      properties:
+                        required:
+                          description: |-
+                            Required when true, all write operations must include a check-and-set parameter.
+                            This helps prevent unintentional overwrites of secrets.
+                          type: boolean
                       type: object
                     forwardInconsistent:
                       description: |-
