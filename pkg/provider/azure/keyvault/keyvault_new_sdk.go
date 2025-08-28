@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
@@ -33,7 +34,6 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"time"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
@@ -233,12 +233,19 @@ func (a *Azure) secretMatchesTags(secret *azsecrets.SecretProperties, requiredTa
 }
 
 // secretMatchesNamePattern checks if secret name matches the regex pattern.
+// Logs error and returns false if the regex is invalid to ensure failed matches are excluded.
 func (a *Azure) secretMatchesNamePattern(secretName string, nameRef *esv1.FindName) bool {
 	if nameRef == nil || nameRef.RegExp == "" {
 		return true
 	}
 
-	isMatch, _ := regexp.MatchString(nameRef.RegExp, secretName)
+	isMatch, err := regexp.MatchString(nameRef.RegExp, secretName)
+	if err != nil {
+		// Log invalid regex pattern and return false to exclude this secret
+		// This ensures that malformed regex patterns don't silently pass
+		fmt.Printf("invalid regex pattern %q: %v\n", nameRef.RegExp, err)
+		return false
+	}
 	return isMatch
 }
 
@@ -329,7 +336,7 @@ func getCloudConfiguration(provider *esv1.AzureKVProvider) (cloud.Configuration,
 	case esv1.AzureEnvironmentChinaCloud:
 		return cloud.AzureChina, nil
 	case esv1.AzureEnvironmentGermanCloud:
-		return cloud.AzureGovernment, nil // German cloud uses government endpoints
+		return cloud.Configuration{}, errors.New("Azure Germany (Microsoft Cloud Deutschland) was discontinued on October 29, 2021. Please use AzureStackCloud with custom configuration or migrate to public cloud regions")
 	case esv1.AzureEnvironmentAzureStackCloud:
 		// Azure Stack requires custom configuration
 		if provider.CustomCloudConfig == nil {
