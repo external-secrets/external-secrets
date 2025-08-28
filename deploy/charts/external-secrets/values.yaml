@@ -252,6 +252,15 @@ metrics:
 
   listen:
     port: 8080
+    secure:
+      enabled: false
+      # -- if those are not set or invalid, self-signed certs will be generated
+      # -- TLS cert directory path
+      certDir: /etc/tls
+      # -- TLS cert file path
+      certFile: /etc/tls/tls.crt
+      # -- TLS key file path
+      keyFile: /etc/tls/tls.key
 
   service:
     # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics

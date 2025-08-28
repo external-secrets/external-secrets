@@ -105,6 +105,12 @@ spec:
           {{- if .Values.livenessProbe.enabled }}
           - --live-addr={{ .Values.livenessProbe.address }}:{{ .Values.livenessProbe.httpGet.port }}
           {{- end }}
+          {{- if .Values.metrics.listen.secure.enabled }}
+          - --metrics-secure=true
+          - --metrics-cert-dir={{ .Values.metrics.listen.secure.certDir }}
+          - --metrics-cert-name={{ .Values.metrics.listen.secure.certFile }}
+          - --metrics-key-name={{ .Values.metrics.listen.secure.keyFile }}
+          {{- end }}
           ports:
             - containerPort: {{ .Values.metrics.listen.port }}
               protocol: TCP

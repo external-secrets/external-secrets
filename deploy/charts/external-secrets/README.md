@@ -138,6 +138,10 @@ The command removes all the Kubernetes components associated with the chart and 
 | livenessProbe.timeoutSeconds | int | `5` | Specify the maximum amount of time to wait for a probe to respond before considering it fails. |
 | log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the External Secrets Operator |
 | metrics.listen.port | int | `8080` |  |
+| metrics.listen.secure.certDir | string | `"/etc/tls"` | TLS cert directory path |
+| metrics.listen.secure.certFile | string | `"/etc/tls/tls.crt"` | TLS cert file path |
+| metrics.listen.secure.enabled | bool | `false` |  |
+| metrics.listen.secure.keyFile | string | `"/etc/tls/tls.key"` | TLS key file path |
 | metrics.service.annotations | object | `{}` | Additional service annotations |
 | metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
 | metrics.service.port | int | `8080` | Metrics service port to scrape |
