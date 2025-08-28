@@ -52,8 +52,8 @@ const (
 
 	errIBMClient                = "cannot setup new ibm client: %w"
 	errUninitializedIBMProvider = "provider IBM is not initialized"
-	errJSONSecretUnmarshal      = "unable to unmarshal secret: %w"
-	errJSONSecretMarshal        = "unable to marshal secret: %w"
+	errJSONSecretUnmarshal      = "unable to unmarshal secret from JSON: %w"
+	errJSONSecretMarshal        = "unable to marshal secret to JSON: %w"
 	errExtractingSecret         = "unable to extract the fetched secret %s of type %s while performing %s"
 	errNotImplemented           = "not implemented"
 	errKeyDoesNotExist          = "key %s does not exist in secret %s"

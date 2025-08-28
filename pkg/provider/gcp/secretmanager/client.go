@@ -56,7 +56,7 @@ const (
 	errUnableCreateGCPSMClient      = "failed to create GCP secretmanager client: %w"
 	errUninitalizedGCPProvider      = "provider GCP is not initialized"
 	errClientGetSecretAccess        = "unable to access Secret from SecretManager Client: %w"
-	errJSONSecretUnmarshal          = "unable to unmarshal secret: %w"
+	errJSONSecretUnmarshal          = "unable to unmarshal secret from JSON: %w"
 
 	errInvalidStore           = "invalid store"
 	errInvalidStoreSpec       = "invalid store spec"

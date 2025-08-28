@@ -31,7 +31,7 @@ const (
 	errMissingStoreSpec             = "store is missing spec"
 	errMissingProvider              = "storeSpec is missing provider"
 	errInvalidProvider              = "invalid provider spec. Missing Akeyless field in store %s"
-	errJSONSecretUnmarshal          = "unable to unmarshal secret: %w"
+	errJSONSecretUnmarshal          = "unable to unmarshal secret from JSON: %w"
 	errUninitalizedAkeylessProvider = "provider akeyless is not initialized"
 	errInvalidAkeylessURL           = "invalid akeyless GW API URL"
 	errInvalidAkeylessAccessIDName  = "missing akeyless accessID name"

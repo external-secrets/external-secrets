@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/big"
 	"slices"
 	"strings"
 
@@ -71,6 +70,7 @@ type SecretsManager struct {
 	cache        map[string]*awssm.GetSecretValueOutput
 	config       *esv1.SecretsManager
 	prefix       string
+	newUUID      func() string
 }
 
 // SMInterface is a subset of the smiface api.
@@ -273,41 +273,6 @@ func (sm *SecretsManager) getNewSecretValue(value []byte, property string, exist
 	}
 	value, _ = sjson.SetBytes([]byte(currentSecret), property, value)
 	return value, nil
-}
-
-func padOrTrim(b []byte) []byte {
-	l := len(b)
-	size := 16
-	if l == size {
-		return b
-	}
-	if l > size {
-		return b[l-size:]
-	}
-	tmp := make([]byte, size)
-	copy(tmp[size-l:], b)
-	return tmp
-}
-
-func bumpVersionNumber(id *string) (*string, error) {
-	if id == nil {
-		output := initialVersion
-		return &output, nil
-	}
-	n := new(big.Int)
-	oldVersion, ok := n.SetString(strings.ReplaceAll(*id, "-", ""), 16)
-	if !ok {
-		return nil, fmt.Errorf("expected secret version in AWS SSM to be a UUID but got '%s'", *id)
-	}
-	newVersionRaw := oldVersion.Add(oldVersion, big.NewInt(1)).Bytes()
-
-	newVersion, err := uuid.FromBytes(padOrTrim(newVersionRaw))
-	if err != nil {
-		return nil, err
-	}
-
-	s := newVersion.String()
-	return &s, nil
 }
 
 func isManagedByESO(data *awssm.DescribeSecretOutput) bool {
@@ -575,11 +540,11 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretA
 
 	newVersionNumber := initialVersion
 	if awsSecret != nil {
-		bumpedVersionNumber, err := bumpVersionNumber(awsSecret.VersionId)
-		if err != nil {
-			return err
+		if sm.newUUID == nil {
+			newVersionNumber = uuid.NewString()
+		} else {
+			newVersionNumber = sm.newUUID()
 		}
-		newVersionNumber = *bumpedVersionNumber
 	}
 	input := &awssm.PutSecretValueInput{
 		SecretId:           &secretArn,

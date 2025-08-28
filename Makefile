@@ -189,10 +189,24 @@ helm.build: helm.generate ## Build helm chart
 	@mv $(OUTPUT_DIR)/chart/external-secrets-$(HELM_VERSION).tgz $(OUTPUT_DIR)/chart/external-secrets.tgz
 	@$(OK) helm package
 
+HELM_SCHEMA_NAME := schema
+HELM_SCHEMA_VER  := 2.2.1
+HELM_SCHEMA_URL  := https://github.com/losisin/helm-values-schema-json.git
+
 helm.schema.plugin:
-	@$(INFO) Installing helm-values-schema-json plugin
-	@helm plugin install --version v2.2.1 https://github.com/losisin/helm-values-schema-json.git || true
-	@$(OK) Installed helm-values-schema-json plugin
+	@v=$$(helm plugin list | awk '$$1=="$(HELM_SCHEMA_NAME)"{print $$2}'); \
+	if [ -z "$$v" ]; then \
+		$(INFO) "Installing $(HELM_SCHEMA_NAME) v$(HELM_SCHEMA_VER)"; \
+		helm plugin install --version $(HELM_SCHEMA_VER) $(HELM_SCHEMA_URL); \
+		$(OK) "Installed $(HELM_SCHEMA_NAME) v$(HELM_SCHEMA_VER)"; \
+	elif [ "$$v" != "$(HELM_SCHEMA_VER)" ]; then \
+		$(INFO) "Found $(HELM_SCHEMA_NAME) $$v. Reinstalling v$(HELM_SCHEMA_VER)"; \
+		helm plugin remove $(HELM_SCHEMA_NAME); \
+		helm plugin install --version $(HELM_SCHEMA_VER) $(HELM_SCHEMA_URL); \
+		$(OK) "Reinstalled $(HELM_SCHEMA_NAME) v$(HELM_SCHEMA_VER)"; \
+	else \
+		$(OK) "$(HELM_SCHEMA_NAME) already at v$(HELM_SCHEMA_VER)"; \
+	fi
 
 helm.schema.update: helm.schema.plugin
 	@$(INFO) Generating values.schema.json

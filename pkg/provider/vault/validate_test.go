@@ -26,8 +26,10 @@ const fakeValidationValue = "fake-value"
 
 func TestValidateStore(t *testing.T) {
 	type args struct {
-		auth      esv1.VaultAuth
-		clientTLS esv1.VaultClientTLS
+		auth        esv1.VaultAuth
+		clientTLS   esv1.VaultClientTLS
+		version     esv1.VaultKVStoreVersion
+		checkAndSet *esv1.VaultCheckAndSet
 	}
 
 	tests := []struct {
@@ -248,6 +250,57 @@ func TestValidateStore(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "valid CAS config with KV v2",
+			args: args{
+				auth: esv1.VaultAuth{
+					AppRole: &esv1.VaultAppRole{
+						RoleRef: &esmeta.SecretKeySelector{
+							Name: fakeValidationValue,
+						},
+					},
+				},
+				version: esv1.VaultKVStoreV2,
+				checkAndSet: &esv1.VaultCheckAndSet{
+					Required: true,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid CAS config with KV v1",
+			args: args{
+				auth: esv1.VaultAuth{
+					AppRole: &esv1.VaultAppRole{
+						RoleRef: &esmeta.SecretKeySelector{
+							Name: fakeValidationValue,
+						},
+					},
+				},
+				version: esv1.VaultKVStoreV1,
+				checkAndSet: &esv1.VaultCheckAndSet{
+					Required: true,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "CAS config not required is valid with any version",
+			args: args{
+				auth: esv1.VaultAuth{
+					AppRole: &esv1.VaultAppRole{
+						RoleRef: &esmeta.SecretKeySelector{
+							Name: fakeValidationValue,
+						},
+					},
+				},
+				version: esv1.VaultKVStoreV1,
+				checkAndSet: &esv1.VaultCheckAndSet{
+					Required: false,
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -259,8 +312,10 @@ func TestValidateStore(t *testing.T) {
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Vault: &esv1.VaultProvider{
-							Auth:      &auth,
-							ClientTLS: tt.args.clientTLS,
+							Auth:        &auth,
+							ClientTLS:   tt.args.clientTLS,
+							Version:     tt.args.version,
+							CheckAndSet: tt.args.checkAndSet,
 						},
 					},
 				},
