@@ -493,9 +493,6 @@
         "openshiftFinalizers": {
             "type": "boolean"
         },
-        "systemAuthDelegator": {
-            "type": "boolean"
-        },
         "podAnnotations": {
             "type": "object"
         },
@@ -694,6 +691,9 @@
         },
         "strategy": {
             "type": "object"
+        },
+        "systemAuthDelegator": {
+            "type": "boolean"
         },
         "tolerations": {
             "type": "array"
