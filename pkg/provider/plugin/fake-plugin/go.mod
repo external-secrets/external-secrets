@@ -1,19 +1,19 @@
-module github.com/external-secrets/external-secrets/example/fake-plugin
+module fake-plugin
 
-go 1.24.4
-
-// Use the local external-secrets module
-replace github.com/external-secrets/external-secrets => ../..
+go 1.24.6
 
 require (
-	github.com/external-secrets/external-secrets v0.0.0-00010101000000-000000000000
-	google.golang.org/grpc v1.73.0
+	github.com/external-secrets/external-secrets v0.0.0
+	google.golang.org/grpc v1.74.2
 )
 
 require (
-	golang.org/x/net v0.41.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/text v0.26.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
-	google.golang.org/protobuf v1.36.6 // indirect
+	go.opentelemetry.io/otel/sdk/metric v1.37.0 // indirect
+	golang.org/x/net v0.43.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/text v0.28.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250826171959-ef028d996bc1 // indirect
+	google.golang.org/protobuf v1.36.8 // indirect
 )
+
+replace github.com/external-secrets/external-secrets => ../../../..
