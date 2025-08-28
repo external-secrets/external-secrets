@@ -22,7 +22,7 @@ This Document describes a design proposal for SecretStores and Generators on its
 
 ## Motivation
 
-Currently, There are a number of features that cannot be easily done with the current codebase / CRD structure for SecretStores and Generators, including:
+Currently, there are a number of features that cannot be easily done with the codebase / CRD structure for SecretStores and Generators, including:  
 
 * Different Provider Versioning;
 * Allowing first-class support for out-of-tree providers;
@@ -66,10 +66,6 @@ spec:
       clientCertificate: {}
       serviceAccountRef: {}
       spiffeRef: {}
-  cachingPolicy: ProviderDefined/Secrets/Auth/All/None
-  cacheConfig: # if Caching Policy is Secrets/Auth/All 
-      ttl: 1m
-      maxEntries: 100
   gatingPolicy: Enabled/Disabled
 ---
 apiVersion: provider.secretstore.external-secrets.io/v2alpha1
@@ -80,7 +76,6 @@ metadata:
 status:
   #... Same status as we already have
 spec:
-  provider: ## same as current secretstore.Provider field
     role: arn:aws:iam::123456789012:role/external-secrets
     region: eu-central-1
     auth:
@@ -95,7 +90,6 @@ spec:
 ```
 New fields would be:
 * gatingPolicy - per SecretStore, explicit behavior for `enablefloodGate` flag (currently at controller level only)
-* cachingPolicy - as to document per SecretStore what's the caching strategy (cachingScope, ttl, maxEntries). As some secretStores do not have this control in place. `ProviderDefined` policy means whatever the provider defines as the best practice.
 
 Notes:
 * Provider groups are not reconciled by External-Secrets. They are reconciled and managed by external controllers representing each provider;
@@ -121,10 +115,6 @@ spec:
       namespace: default
       kind: AWSSecretManager
     auth: {} # same as SecretStore
-  cachingPolicy: ProviderDefined/Secrets/Auth/All/None
-  cacheConfig: # if Caching Policy is Secrets/Auth/All 
-      ttl: 1m
-      maxEntries: 100
   gatingPolicy: Enabled/Disabled
   authenticationScope: ProviderNamespace/ManifestNamespace
   conditions:
@@ -142,7 +132,7 @@ Note: Common field on the ClusterSecretStore with the SecretStore ones could be 
 ### Generator
 ```yaml
 apiVersion: generator.external-secrets.io/v2alpha1
-kind: Password
+kind: Generator
 metadata:
   name: my-password
   namespace: default
@@ -252,10 +242,67 @@ Generate(GeneratorSpec) (map[string][]byte, GeneratorProviderState, error)
 Cleanup(GeneratorSpec, GeneratorProviderState) error
 ```
 
+## Out-of-Tree Providers Maintenance
+
+### Deployment
+
+Out-of-tree providers would be self-contained projects, each with its own dedicated Git repository, container images, issue trackers, and Helm chart. We might decide that some providers will still be released under `external-secrets` organization, or not (we can decide this afterwards). This model simplifies distribution and versioning, allowing providers to evolve independently of the core External Secrets Operator (ESO).
+
+The user's responsibility is to deploy two main components:
+1.  The core External Secrets Operator.
+2.  The Helm chart for each out-of-tree provider they intend to use.
+
+Communication between ESO and the provider occurs over a standard Kubernetes `Service`. The `providerConfig.address` field in the `SecretStore` manifest will point to this service endpoint. We explicitly discourage co-locating providers in the same pod as ESO to maintain strict security and resource isolation boundaries.
+
+### Governance
+
+To foster a healthy ecosystem of community-maintained providers, a clear governance model is essential. We propose:
+
+*   **Repository Structure**: A new GitHub repository for each provider (e.g., `external-secrets-provider-aws`) will house the code for each provider.
+*   **Provider Lifecycle**: A promotion-based lifecycle (e.g., `experimental` -> `stable`) will be used to signal the maturity and stability of each provider.
+*   **Ownership and Contribution**: Each provider will have dedicated `CODEOWNERS`. Contributions will follow a standard pull-request workflow, ensuring quality and consistency.
+*  **Community Providers on specific repository**: Community providers could all exist on a `external-secrets-provider-community` 
+
+This structure provides a clear path for community contributions while ensuring a baseline of quality and security for all official out-of-tree providers.
+
+## Migration Strategy
+
+A phased migration is recommended to ensure a smooth transition from `v1` to `v2` SecretStores without disrupting existing workflows.
+
+### Phase 1: Early Adoption via a Plugin Provider
+
+To facilitate early adoption and gather feedback, we can introduce a special `plugin` provider within the existing `SecretStore/v1` definition. This `plugin` provider acts as a client, forwarding requests to a `v2` provider running out-of-tree. This allows users to test and use `v2` providers with their existing `v1` resources, gaining the benefits of the new model while preparing for a full migration. There is already a draft PR in place that addresses the plugin consumer (though using a different interface than the one proposed here)
+
+### Phase 2: Full Migration
+
+Once users are comfortable with the `v2` providers, they can perform a full migration by following these steps:
+
+1.  **Define `v2` Resources**: Create the new `v2` `SecretStore` and `Generator` CRDs, pointing them to the out-of-tree provider deployments / CRs.
+2.  **Update `ExternalSecret` Manifests**: Modify existing `ExternalSecret` resources to use the new API version (`secretStoreRef.apiVersion: ecretstore.external-secrets.io/v2alpha1`) and reference the `v2` stores.
+3.  **Decommission `v1` Stores**: After all `ExternalSecret` resources have been migrated, the old `v1` `SecretStores` can be safely removed - potentially removing `SecretStore/v1` CRDs.
+
+This approach provides a clear and safe migration path, allowing users to adopt the more secure, flexible, and maintainable `v2` architecture at their own pace.
+
+#### Phase3 : Use edicated builds
+We provide dedicated eso builds that already reduces the code footprint for early adopters by not having `SecretStore/v1` and `pkg/provider` code registered. This allows users to fully migrate by not having the package dependencies of our in-tree system 
+
 ## Consequences
 
-TO DO
+*   **Increased Operational Responsibility for Users**: Users will be responsible for deploying and managing the lifecycle of each out-of-tree provider they use, in addition to the core ESO operator. This adds an operational step but provides greater control over provider versions.
+*   **New CRDs and Learning Curve**: The introduction of `v2` CRDs requires users to learn a new API. Clear documentation and a seamless migration path are critical to mitigate this.
+*   **Development and Release Overhead**: Maintaining separate repositories, issue trackers, and release pipelines for each provider introduces complexity for maintainers compared to a monolithic release.
+*   **Improved Security and Isolation**: Decoupling providers into separate processes enhances security. A vulnerability in one provider is less likely to impact the core operator or other providers.
+*   **Distributed Maintenance Overhead**: Community can now decide if they want to maintain providers themselves or make them available as part of External Secrets providers (today more than half of our open feature requests are provider-specific)
+*   **Independent Versioning and Flexibility**: Providers can be updated, patched, or rolled back independently of the core operator, allowing users to adopt new provider features or fixes more quickly.
 
 ## Acceptance Criteria
 
-TO DO
+*   **CRDs Implemented**: The new `SecretStore/v2alpha1`, `ClusterSecretStore/v2alpha1`, `Generator/v2alpha1`, and `ClusterGenerator/v2alpha1` CRDs are implemented and functional.
+*   **Test Out-of-Tree Provider**: At least one test out-of-tree provider (e.g., Fake) is created, can be deployed via its own Helm chart, and successfully serves secrets to ESO using the `v2` interface.
+*   **Functional Out-of-Tree Provider**: At least one reference out-of-tree provider (e.g., for AWS, GCP, or Vault) is created, can be deployed via its own Helm chart, and successfully serves secrets to ESO using the `v2` interface.
+*   **`ExternalSecret` Compatibility**: The `ExternalSecret` controller can reconcile secrets using a `storeRef` that points to a `v2` `SecretStore` by specifying the new `apiVersion`.
+*   **Validated Migration Path**: The `v1` `plugin` provider is implemented and allows an existing `SecretStore/v1` to successfully fetch secrets from a `v2` out-of-tree provider.
+*   **Cluster Scoped Resources**: `ClusterSecretStore/v2alpha1` and `ClusterGenerator/v2alpha1` are fully functional and can delegate authentication and secret operations to their namespaced `v2` counterparts.
+*   **Dedicated Builds**: A dedicated, slimmed-down build of ESO is available that excludes all `v1` CRDs and in-tree provider code, offering a reduced footprint for new deployments or fully migrated users.
+*   **End-to-End Testing**: Comprehensive end-to-end tests are written to validate the functionality of `v2` stores, generators, the migration path, and cluster-scoped resources.
+*   **Documentation**: The official documentation is updated to include guides for deploying out-of-tree providers, using the new `v2` CRDs, and following the migration strategy.
