@@ -202,11 +202,12 @@ Once the Core Controller Pod can access the Secret Manager secret(s) through WIF
 
 #### Explicitly specifying the GKE cluster's name and location
 
-When creating a `SecretStore` or `ClusterSecretStore` that uses WIF, the GKE cluster's name and location are automatically determined through the [GCP metadata server](https://cloud.google.com/compute/docs/metadata/overview).
-Alternatively, you can explicitly specify them.
+When creating a `SecretStore` or `ClusterSecretStore` that uses WIF, the GKE cluster's project ID, name, and location are automatically determined through the [GCP metadata server](https://cloud.google.com/compute/docs/metadata/overview).
+Alternatively, you can explicitly specify some or all of these values.
 
-To do so, you'll need to know the following two values:
+For a fully specified configuration, you'll need to know the following three values:
 
+* `CLUSTER_PROJECT_ID`: The ID of GCP project that contains the GKE cluster.
 * `CLUSTER_NAME`: The name of the GKE cluster.
 * `CLUSTER_LOCATION`: The location of the GKE cluster. For a regional cluster, this is the region. For a zonal cluster, this is the zone.
 
@@ -214,12 +215,12 @@ You can optionally verify these values through the CLI:
 
 ```shell
 gcloud container clusters describe $CLUSTER_NAME \
-  --project=$PROJECT_ID --location=$CLUSTER_LOCATION
+  --project=$CLUSTER_PROJECT_ID --location=$CLUSTER_LOCATION
 ```
 
 If the three values are correct, this returns information about your GKE cluster.
 
-Then, you can create a `SecretStore` or `ClusterSecretStore` that explicitly specifies the cluster's name and location:
+Then, you can create a `SecretStore` or `ClusterSecretStore` that explicitly specifies the cluster's project ID, name, and location:
 
 ```yaml
 {% include 'gcpsm-wif-sa-secret-store-with-explicit-name-and-location.yaml' %}
