@@ -709,6 +709,9 @@
         "strategy": {
             "type": "object"
         },
+        "systemAuthDelegator": {
+            "type": "boolean"
+        },
         "tolerations": {
             "type": "array"
         },

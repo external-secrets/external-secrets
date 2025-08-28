@@ -30,7 +30,7 @@ import (
 
 const (
 	DoRequestError         = "error: do request: %w"
-	errJSONSecretUnmarshal = "unable to unmarshal secret: %w"
+	errJSONSecretUnmarshal = "unable to unmarshal secret from JSON: %w"
 )
 
 type HTTPClient interface {

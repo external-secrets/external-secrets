@@ -10,6 +10,9 @@ To authenticate, you can use [Universal Auth](https://infisical.com/docs/documen
 
 Follow the [guide here](https://infisical.com/docs/documentation/platform/identities/universal-auth) to learn how to create and obtain a pair of Client Secret and Client ID.
 
+!!! note inline end
+    Infisical requires `system:auth-delegator` for authentication. Please follow the [guide here](https://infisical.com/docs/documentation/platform/identities/kubernetes-auth#guide) to add the required role.
+
 ## Storing Your Machine Identity Secrets
 
 Once you have generated a pair of `Client ID` and `Client Secret`, you will need to store these credentials in your cluster as a Kubernetes secret.
