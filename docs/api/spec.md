@@ -1548,6 +1548,45 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.ByID">ByID
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.FetchingPolicy">FetchingPolicy</a>)
+</p>
+<p>
+<p>ByID configures the provider to interpret the <code>data.secretKey.remoteRef.key</code> field in ExternalSecret as secret ID.</p>
+</p>
+<h3 id="external-secrets.io/v1.ByName">ByName
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.FetchingPolicy">FetchingPolicy</a>)
+</p>
+<p>
+<p>ByName configures the provider to interpret the <code>data.secretKey.remoteRef.key</code> field in ExternalSecret as secret name.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>folderID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The folder to fetch secrets from</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.CAProvider">CAProvider
 </h3>
 <p>
@@ -4686,6 +4725,49 @@ string
 <code>version</code></br>
 <em>
 string
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.FetchingPolicy">FetchingPolicy
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.YandexCertificateManagerProvider">YandexCertificateManagerProvider</a>, 
+<a href="#external-secrets.io/v1.YandexLockboxProvider">YandexLockboxProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>byID</code></br>
+<em>
+<a href="#external-secrets.io/v1.ByID">
+ByID
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>byName</code></br>
+<em>
+<a href="#external-secrets.io/v1.ByName">
+ByName
+</a>
 </em>
 </td>
 <td>
@@ -10961,6 +11043,20 @@ YandexCertificateManagerCAProvider
 <p>The provider for the CA bundle to use to validate Yandex.Cloud server certificate.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>fetching</code></br>
+<em>
+<a href="#external-secrets.io/v1.FetchingPolicy">
+FetchingPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>FetchingPolicy configures the provider to interpret the <code>data.secretKey.remoteRef.key</code> field in ExternalSecret as certificate ID or certificate name</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.YandexLockboxAuth">YandexLockboxAuth
@@ -11079,6 +11175,20 @@ YandexLockboxCAProvider
 <td>
 <em>(Optional)</em>
 <p>The provider for the CA bundle to use to validate Yandex.Cloud server certificate.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>fetching</code></br>
+<em>
+<a href="#external-secrets.io/v1.FetchingPolicy">
+FetchingPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>FetchingPolicy configures the provider to interpret the <code>data.secretKey.remoteRef.key</code> field in ExternalSecret as secret ID or secret name</p>
 </td>
 </tr>
 </tbody>
