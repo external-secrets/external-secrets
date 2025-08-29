@@ -10907,60 +10907,6 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1.YandexCertificateManagerAuth">YandexCertificateManagerAuth
-</h3>
-<p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>authorizedKeySecretRef</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>The authorized key used for authentication</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1.YandexCertificateManagerCAProvider">YandexCertificateManagerCAProvider
-</h3>
-<p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>certSecretRef</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-</td>
-</tr>
-</tbody>
-</table>
 <h3 id="external-secrets.io/v1.YandexCertificateManagerProvider">YandexCertificateManagerProvider
 </h3>
 <p>
@@ -11000,7 +10946,7 @@ YandexAuth
 </em>
 </td>
 <td>
-<p>Auth defines the information necessary to authenticate against Yandex Certificate Manager</p>
+<p>Auth defines the information necessary to authenticate against Yandex.Cloud</p>
 </td>
 </tr>
 <tr>
@@ -11058,7 +11004,7 @@ YandexAuth
 </em>
 </td>
 <td>
-<p>Auth defines the information necessary to authenticate against Yandex Certificate Manager</p>
+<p>Auth defines the information necessary to authenticate against Yandex.Cloud</p>
 </td>
 </tr>
 <tr>

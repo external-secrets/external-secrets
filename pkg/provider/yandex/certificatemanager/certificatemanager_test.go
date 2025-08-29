@@ -57,7 +57,7 @@ func TestNewClient(t *testing.T) {
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				YandexCertificateManager: &esv1.YandexCertificateManagerProvider{
-					Auth: esv1.YandexCertificateManagerAuth{
+					Auth: esv1.YandexAuth{
 						AuthorizedKey: esmeta.SecretKeySelector{
 							Key:  authorizedKeySecretKey,
 							Name: authorizedKeySecretName,

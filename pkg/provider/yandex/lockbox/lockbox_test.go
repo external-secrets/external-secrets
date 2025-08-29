@@ -57,7 +57,7 @@ func TestNewClient(t *testing.T) {
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				YandexLockbox: &esv1.YandexLockboxProvider{
-					Auth: esv1.YandexLockboxAuth{
+					Auth: esv1.YandexAuth{
 						AuthorizedKey: esmeta.SecretKeySelector{
 							Key:  authorizedKeySecretKey,
 							Name: authorizedKeySecretName,
