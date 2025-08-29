@@ -20,7 +20,7 @@ type YandexLockboxProvider struct {
 	// +optional
 	APIEndpoint string `json:"apiEndpoint,omitempty"`
 
-	// Auth defines the information necessary to authenticate against Yandex Certificate Manager
+	// Auth defines the information necessary to authenticate against Yandex.Cloud
 	Auth YandexAuth `json:"auth"`
 
 	// The provider for the CA bundle to use to validate Yandex.Cloud server certificate.
