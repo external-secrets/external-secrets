@@ -51,6 +51,7 @@ func TestGenerate(t *testing.T) {
 		{
 			name: "nil spec",
 			args: args{
+				ctx:      context.Background(),
 				jsonSpec: nil,
 			},
 			wantErr: true,
@@ -58,6 +59,7 @@ func TestGenerate(t *testing.T) {
 		{
 			name: "invalid json",
 			args: args{
+				ctx: context.Background(),
 				tokenFunc: func(ctx context.Context, input *sts.GetSessionTokenInput, optFns ...func(*sts.Options)) (*sts.GetSessionTokenOutput, error) {
 					return nil, errors.New("boom")
 				},
@@ -70,6 +72,7 @@ func TestGenerate(t *testing.T) {
 		{
 			name: "full spec",
 			args: args{
+				ctx:       context.Background(),
 				namespace: "foobar",
 				kube: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{

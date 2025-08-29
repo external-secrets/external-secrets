@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/big"
 	"slices"
 	"strings"
 
@@ -71,6 +70,7 @@ type SecretsManager struct {
 	cache        map[string]*awssm.GetSecretValueOutput
 	config       *esv1.SecretsManager
 	prefix       string
+	newUUID      func() string
 }
 
 // SMInterface is a subset of the smiface api.
@@ -83,6 +83,8 @@ type SMInterface interface {
 	PutSecretValue(ctx context.Context, params *awssm.PutSecretValueInput, optFuncs ...func(*awssm.Options)) (*awssm.PutSecretValueOutput, error)
 	DescribeSecret(ctx context.Context, params *awssm.DescribeSecretInput, optFuncs ...func(*awssm.Options)) (*awssm.DescribeSecretOutput, error)
 	DeleteSecret(ctx context.Context, params *awssm.DeleteSecretInput, optFuncs ...func(*awssm.Options)) (*awssm.DeleteSecretOutput, error)
+	TagResource(ctx context.Context, params *awssm.TagResourceInput, optFuncs ...func(*awssm.Options)) (*awssm.TagResourceOutput, error)
+	UntagResource(ctx context.Context, params *awssm.UntagResourceInput, optFuncs ...func(*awssm.Options)) (*awssm.UntagResourceOutput, error)
 }
 
 const (
@@ -95,7 +97,7 @@ const (
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager")
 
 // New creates a new SecretsManager client.
-func New(ctx context.Context, cfg *aws.Config, secretsManagerCfg *esv1.SecretsManager, prefix string, referentAuth bool) (*SecretsManager, error) {
+func New(_ context.Context, cfg *aws.Config, secretsManagerCfg *esv1.SecretsManager, prefix string, referentAuth bool) (*SecretsManager, error) {
 	return &SecretsManager{
 		cfg: cfg,
 		client: awssm.NewFromConfig(*cfg, func(o *awssm.Options) {
@@ -213,74 +215,64 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 	}
 
 	secretName := sm.prefix + psd.GetRemoteKey()
-	secretValue := awssm.GetSecretValueInput{
-		SecretId: &secretName,
-	}
-
-	secretInput := awssm.DescribeSecretInput{
-		SecretId: &secretName,
-	}
-
-	awsSecret, err := sm.client.GetSecretValue(ctx, &secretValue)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
-
-	if psd.GetProperty() != "" {
-		currentSecret := sm.retrievePayload(awsSecret)
-		if currentSecret != "" && !gjson.Valid(currentSecret) {
-			return errors.New("PushSecret for aws secrets manager with a pushSecretData property requires a json secret")
-		}
-		value, _ = sjson.SetBytes([]byte(currentSecret), psd.GetProperty(), value)
-	}
-
+	describeSecretInput := awssm.DescribeSecretInput{SecretId: &secretName}
+	describeSecretOutput, err := sm.client.DescribeSecret(ctx, &describeSecretInput)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDescribeSecret, err)
 	var aerr smithy.APIError
 	if err != nil {
 		if ok := errors.As(err, &aerr); !ok {
 			return err
 		}
-
 		if aerr.ErrorCode() == ResourceNotFoundException {
-			return sm.createSecretWithContext(ctx, secretName, psd, value)
+			finalValue, err := sm.getNewSecretValue(value, psd.GetProperty(), nil)
+			if err != nil {
+				return err
+			}
+			return sm.createSecretWithContext(ctx, secretName, psd, finalValue)
 		}
+		return err
+	} else if !isManagedByESO(describeSecretOutput) {
+		return errors.New("secret not managed by external-secrets")
+	}
 
+	if len(describeSecretOutput.VersionIdsToStages) == 0 {
+		finalValue, err := sm.getNewSecretValue(value, psd.GetProperty(), nil)
+		if err != nil {
+			return err
+		}
+		return sm.putSecretValueWithContext(ctx, secretName, nil, psd, finalValue, describeSecretOutput.Tags)
+	}
+
+	getSecretValueInput := awssm.GetSecretValueInput{SecretId: &secretName}
+	getSecretValueOutput, err := sm.client.GetSecretValue(ctx, &getSecretValueInput)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
+	if err != nil {
 		return err
 	}
 
-	return sm.putSecretValueWithContext(ctx, secretInput, awsSecret, psd, value)
-}
-
-func padOrTrim(b []byte) []byte {
-	l := len(b)
-	size := 16
-	if l == size {
-		return b
-	}
-	if l > size {
-		return b[l-size:]
-	}
-	tmp := make([]byte, size)
-	copy(tmp[size-l:], b)
-	return tmp
-}
-
-func bumpVersionNumber(id *string) (*string, error) {
-	if id == nil {
-		output := initialVersion
-		return &output, nil
-	}
-	n := new(big.Int)
-	oldVersion, ok := n.SetString(strings.ReplaceAll(*id, "-", ""), 16)
-	if !ok {
-		return nil, fmt.Errorf("expected secret version in AWS SSM to be a UUID but got '%s'", *id)
-	}
-	newVersionRaw := oldVersion.Add(oldVersion, big.NewInt(1)).Bytes()
-
-	newVersion, err := uuid.FromBytes(padOrTrim(newVersionRaw))
+	finalValue, err := sm.getNewSecretValue(value, psd.GetProperty(), getSecretValueOutput)
 	if err != nil {
-		return nil, err
+		return err
+	}
+	return sm.putSecretValueWithContext(ctx, secretName, getSecretValueOutput, psd, finalValue, describeSecretOutput.Tags)
+}
+
+func (sm *SecretsManager) getNewSecretValue(value []byte, property string, existingSecret *awssm.GetSecretValueOutput) ([]byte, error) {
+	if property == "" {
+		return value, nil
 	}
 
-	s := newVersion.String()
-	return &s, nil
+	if existingSecret == nil {
+		value, _ = sjson.SetBytes([]byte{}, property, value)
+		return value, nil
+	}
+
+	currentSecret := sm.retrievePayload(existingSecret)
+	if currentSecret != "" && !gjson.Valid(currentSecret) {
+		return nil, errors.New("PushSecret for aws secrets manager with a pushSecretData property requires a json secret")
+	}
+	value, _ = sjson.SetBytes([]byte(currentSecret), property, value)
+	return value, nil
 }
 
 func isManagedByESO(data *awssm.DescribeSecretOutput) bool {
@@ -513,12 +505,7 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 		return fmt.Errorf("failed to parse push secret metadata: %w", err)
 	}
 
-	tags := []types.Tag{
-		{
-			Key:   utilpointer.To(managedBy),
-			Value: utilpointer.To(externalSecrets),
-		},
-	}
+	tags := make([]types.Tag, 0)
 
 	for k, v := range mdata.Spec.Tags {
 		tags = append(tags, types.Tag{
@@ -546,27 +533,23 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 	return err
 }
 
-func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretInput awssm.DescribeSecretInput, awsSecret *awssm.GetSecretValueOutput, psd esv1.PushSecretData, value []byte) error {
-	data, err := sm.client.DescribeSecret(ctx, &secretInput)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDescribeSecret, err)
-	if err != nil {
-		return err
-	}
-	if !isManagedByESO(data) {
-		return errors.New("secret not managed by external-secrets")
-	}
-	if awsSecret != nil && bytes.Equal(awsSecret.SecretBinary, value) || utils.CompareStringAndByteSlices(awsSecret.SecretString, value) {
+func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretArn string, awsSecret *awssm.GetSecretValueOutput, psd esv1.PushSecretData, value []byte, tags []types.Tag) error {
+	if awsSecret != nil && (bytes.Equal(awsSecret.SecretBinary, value) || utils.CompareStringAndByteSlices(awsSecret.SecretString, value)) {
 		return nil
 	}
 
-	newVersionNumber, err := bumpVersionNumber(awsSecret.VersionId)
-	if err != nil {
-		return err
+	newVersionNumber := initialVersion
+	if awsSecret != nil {
+		if sm.newUUID == nil {
+			newVersionNumber = uuid.NewString()
+		} else {
+			newVersionNumber = sm.newUUID()
+		}
 	}
 	input := &awssm.PutSecretValueInput{
-		SecretId:           awsSecret.ARN,
+		SecretId:           &secretArn,
 		SecretBinary:       value,
-		ClientRequestToken: newVersionNumber,
+		ClientRequestToken: aws.String(newVersionNumber),
 	}
 	secretPushFormat, err := utils.FetchValueFromMetadata(SecretPushFormatKey, psd.GetMetadata(), SecretPushFormatBinary)
 	if err != nil {
@@ -579,8 +562,47 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretI
 
 	_, err = sm.client.PutSecretValue(ctx, input)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutSecretValue, err)
+	if err != nil {
+		return err
+	}
 
-	return err
+	currentTags := make(map[string]string, len(tags))
+	for _, tag := range tags {
+		currentTags[*tag.Key] = *tag.Value
+	}
+	return sm.patchTags(ctx, psd.GetMetadata(), &secretArn, currentTags)
+}
+
+func (sm *SecretsManager) patchTags(ctx context.Context, metadata *apiextensionsv1.JSON, secretId *string, tags map[string]string) error {
+	meta, err := sm.constructMetadataWithDefaults(metadata)
+	if err != nil {
+		return err
+	}
+
+	tagKeysToRemove := util.FindTagKeysToRemove(tags, meta.Spec.Tags)
+	if len(tagKeysToRemove) > 0 {
+		_, err = sm.client.UntagResource(ctx, &awssm.UntagResourceInput{
+			SecretId: secretId,
+			TagKeys:  tagKeysToRemove,
+		})
+		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMUntagResource, err)
+		if err != nil {
+			return err
+		}
+	}
+
+	tagsToUpdate, isModified := computeTagsToUpdate(tags, meta.Spec.Tags)
+	if isModified {
+		_, err = sm.client.TagResource(ctx, &awssm.TagResourceInput{
+			SecretId: secretId,
+			Tags:     tagsToUpdate,
+		})
+		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMTagResource, err)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (sm *SecretsManager) fetchWithBatch(ctx context.Context, filters []types.Filter, matcher *find.Matcher) (map[string][]byte, error) {
@@ -711,7 +733,29 @@ func (sm *SecretsManager) constructMetadataWithDefaults(data *apiextensionsv1.JS
 		if _, exists := meta.Spec.Tags[managedBy]; exists {
 			return nil, fmt.Errorf("error parsing tags in metadata: Cannot specify a '%s' tag", managedBy)
 		}
+	} else {
+		meta.Spec.Tags = make(map[string]string)
 	}
+	meta.Spec.Tags[managedBy] = externalSecrets
 
 	return meta, nil
+}
+
+// computeTagsToUpdate compares the current tags with the desired metaTags and returns a slice of ssmTypes.Tag
+// that should be set on the resource. It also returns a boolean indicating if any tag was added or modified.
+func computeTagsToUpdate(tags, metaTags map[string]string) ([]types.Tag, bool) {
+	result := make([]types.Tag, 0, len(metaTags))
+	modified := false
+	for k, v := range metaTags {
+		if _, exists := tags[k]; !exists || tags[k] != v {
+			if k != managedBy {
+				modified = true
+			}
+		}
+		result = append(result, types.Tag{
+			Key:   utilpointer.To(k),
+			Value: utilpointer.To(v),
+		})
+	}
+	return result, modified
 }

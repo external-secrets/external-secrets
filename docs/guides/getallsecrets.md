@@ -36,7 +36,7 @@ By default, kubernetes Secrets accepts only a given range of characters. `Find` 
 
 If you happen to have a case where a conflict is happening, you can use the `rewrite` block to apply a regexp on one of the find operations (for more information please refer to [Rewriting Keys from DataFrom](datafrom-rewrite.md)).
 
-You can also set  `dataFrom.find.conversionStrategy: Unicode` to reduce the collistion probability. When using `Unicode`, any invalid character will be replaced by its unicode, in the form of `_UXXXX_`. In this case, the available kubernetes keys would be `a_c` and `a_U2215_c`, hence avoiding most of possible conflicts.
+You can also set  `dataFrom.find.conversionStrategy: Unicode` to reduce the collision probability. When using `Unicode`, any invalid character will be replaced by its unicode, in the form of `_UXXXX_`. In this case, the available kubernetes keys would be `a_c` and `a_U2215_c`, hence avoiding most of possible conflicts.
 
 
 

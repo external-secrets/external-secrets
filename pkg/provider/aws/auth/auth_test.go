@@ -100,7 +100,7 @@ func TestNewSession(t *testing.T) {
 		},
 		{
 			name: "configure aws using environment variables + assume role",
-			stsProvider: func(cfg aws.Config) STSprovider {
+			stsProvider: func(cfg *aws.Config) STSprovider {
 				return &fakesess.AssumeRoler{
 					AssumeRoleFunc: func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error) {
 						assert.Equal(t, *input.RoleArn, "foo-bar-baz")
@@ -416,7 +416,7 @@ func TestNewSession(t *testing.T) {
 		},
 		{
 			name: "configure aws using environment variables + assume role + check external id",
-			stsProvider: func(cfg aws.Config) STSprovider {
+			stsProvider: func(cfg *aws.Config) STSprovider {
 				return &fakesess.AssumeRoler{
 					AssumeRoleFunc: func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error) {
 						assert.Equal(t, *input.ExternalId, "12345678")
@@ -609,7 +609,7 @@ func TestSMAssumeRole(t *testing.T) {
 				},
 			},
 		},
-		AssumeRoler: func(cfg aws.Config) STSprovider {
+		AssumeRoler: func(cfg *aws.Config) STSprovider {
 			// check if the correct temporary credentials were used
 			creds, err := cfg.Credentials.Retrieve(context.Background())
 			assert.Nil(t, err)
@@ -646,4 +646,175 @@ func ErrorContains(out error, want string) bool {
 		return false
 	}
 	return strings.Contains(out.Error(), want)
+}
+
+func TestNewGeneratorSession_DefaultCredentialChain(t *testing.T) {
+	cfg, err := NewGeneratorSession(context.Background(), esv1.AWSAuth{}, "", "us-east-1", clientfake.NewClientBuilder().Build(), "test-ns", DefaultSTSProvider, DefaultJWTProvider)
+	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
+	assert.Equal(t, "us-east-1", cfg.Region)
+}
+
+func TestNewGeneratorSession_CredentialProviderPriority(t *testing.T) {
+	ctx := context.Background()
+	k8sClient := clientfake.NewClientBuilder().Build()
+
+	assert.NoError(t, k8sClient.Create(ctx, &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "aws-creds", Namespace: "test-ns"},
+		Data: map[string][]byte{
+			"access-key": []byte("SECRET_KEY_ID"),
+			"secret-key": []byte("SECRET_ACCESS_KEY"),
+		},
+	}))
+
+	assert.NoError(t, k8sClient.Create(ctx, &v1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "test-sa",
+			Namespace:   "test-ns",
+			Annotations: map[string]string{roleARNAnnotation: "arn:aws:iam::123456789012:role/test-role"},
+		},
+	}))
+
+	jwtProviderCalled := false
+	cfg, err := NewGeneratorSession(ctx, esv1.AWSAuth{
+		JWTAuth: &esv1.AWSJWTAuth{
+			ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "test-sa"},
+		},
+		SecretRef: &esv1.AWSAuthSecretRef{
+			AccessKeyID:     esmeta.SecretKeySelector{Name: "aws-creds", Key: "access-key"},
+			SecretAccessKey: esmeta.SecretKeySelector{Name: "aws-creds", Key: "secret-key"},
+		},
+	}, "", "us-east-1", k8sClient, "test-ns", DefaultSTSProvider, func(name, namespace, roleArn string, aud []string, region string) (aws.CredentialsProvider, error) {
+		jwtProviderCalled = true
+		assert.Equal(t, "test-sa", name)
+		assert.Equal(t, "test-ns", namespace)
+		assert.Equal(t, "arn:aws:iam::123456789012:role/test-role", roleArn)
+		return fakesess.CredentialsProvider{
+			RetrieveFunc: func() (aws.Credentials, error) {
+				return aws.Credentials{
+					AccessKeyID:     "JWT_ACCESS_KEY",
+					SecretAccessKey: "JWT_SECRET_KEY",
+					SessionToken:    "JWT_SESSION_TOKEN",
+					Source:          "jwt",
+				}, nil
+			},
+		}, nil
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
+	assert.True(t, jwtProviderCalled)
+
+	creds, err := cfg.Credentials.Retrieve(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, "SECRET_KEY_ID", creds.AccessKeyID)
+	assert.Equal(t, "SECRET_ACCESS_KEY", creds.SecretAccessKey)
+}
+
+func TestNewGeneratorSession_OnlySecretRef(t *testing.T) {
+	ctx := context.Background()
+	k8sClient := clientfake.NewClientBuilder().Build()
+
+	assert.NoError(t, k8sClient.Create(ctx, &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "aws-creds", Namespace: "test-ns"},
+		Data: map[string][]byte{
+			"access-key": []byte("SECRET_KEY_ID"),
+			"secret-key": []byte("SECRET_ACCESS_KEY"),
+		},
+	}))
+
+	cfg, err := NewGeneratorSession(ctx, esv1.AWSAuth{
+		SecretRef: &esv1.AWSAuthSecretRef{
+			AccessKeyID:     esmeta.SecretKeySelector{Name: "aws-creds", Key: "access-key"},
+			SecretAccessKey: esmeta.SecretKeySelector{Name: "aws-creds", Key: "secret-key"},
+		},
+	}, "", "us-east-1", k8sClient, "test-ns", DefaultSTSProvider, DefaultJWTProvider)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
+
+	creds, err := cfg.Credentials.Retrieve(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, "SECRET_KEY_ID", creds.AccessKeyID)
+	assert.Equal(t, "SECRET_ACCESS_KEY", creds.SecretAccessKey)
+}
+
+func TestNewGeneratorSession_RegionConfiguration(t *testing.T) {
+	ctx := context.Background()
+	k8sClient := clientfake.NewClientBuilder().Build()
+
+	testCases := []struct {
+		name           string
+		region         string
+		expectedRegion string
+	}{
+		{"region specified", "us-east-1", "us-east-1"},
+		{"empty region uses default", "", ""},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg, err := NewGeneratorSession(ctx, esv1.AWSAuth{}, "", tc.region, k8sClient, "test-ns", DefaultSTSProvider, DefaultJWTProvider)
+			assert.NoError(t, err)
+			assert.NotNil(t, cfg)
+			if tc.expectedRegion != "" {
+				assert.Equal(t, tc.expectedRegion, cfg.Region)
+			}
+		})
+	}
+}
+
+func TestNewGeneratorSession_AssumeRoleWithDefaultCredentials(t *testing.T) {
+	t.Setenv("AWS_ACCESS_KEY_ID", "BASE_ACCESS_KEY")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "BASE_SECRET_KEY")
+
+	stsProviderCalled := false
+	cfg, err := NewGeneratorSession(context.Background(), esv1.AWSAuth{}, "arn:aws:iam::123456789012:role/assumed-role", "us-east-1", clientfake.NewClientBuilder().Build(), "test-ns", func(cfg *aws.Config) STSprovider {
+		stsProviderCalled = true
+		creds, err := cfg.Credentials.Retrieve(context.Background())
+		assert.NoError(t, err)
+		assert.Equal(t, "BASE_ACCESS_KEY", creds.AccessKeyID)
+		return &fakesess.AssumeRoler{
+			AssumeRoleFunc: func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error) {
+				assert.Equal(t, "arn:aws:iam::123456789012:role/assumed-role", *input.RoleArn)
+				return &sts.AssumeRoleOutput{
+					AssumedRoleUser: &ststypes.AssumedRoleUser{
+						Arn:           aws.String("arn:aws:sts::123456789012:assumed-role/assumed-role/session"),
+						AssumedRoleId: aws.String("AROA123456"),
+					},
+					Credentials: &ststypes.Credentials{
+						AccessKeyId:     aws.String("ASSUMED_ACCESS_KEY"),
+						SecretAccessKey: aws.String("ASSUMED_SECRET_KEY"),
+						SessionToken:    aws.String("ASSUMED_SESSION_TOKEN"),
+						Expiration:      aws.Time(time.Now().Add(time.Hour)),
+					},
+				}, nil
+			},
+		}
+	}, DefaultJWTProvider)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
+	assert.True(t, stsProviderCalled)
+
+	creds, err := cfg.Credentials.Retrieve(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, "ASSUMED_ACCESS_KEY", creds.AccessKeyID)
+	assert.Equal(t, "ASSUMED_SECRET_KEY", creds.SecretAccessKey)
+	assert.Equal(t, "ASSUMED_SESSION_TOKEN", creds.SessionToken)
+}
+
+func TestNewGeneratorSession_DefaultCredentialChainFallback(t *testing.T) {
+	t.Setenv("AWS_ACCESS_KEY_ID", "ENV_ACCESS_KEY")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "ENV_SECRET_KEY")
+	t.Setenv("AWS_SESSION_TOKEN", "ENV_SESSION_TOKEN")
+
+	cfg, err := NewGeneratorSession(context.Background(), esv1.AWSAuth{}, "", "us-east-1", clientfake.NewClientBuilder().Build(), "test-ns", DefaultSTSProvider, DefaultJWTProvider)
+	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
+
+	creds, err := cfg.Credentials.Retrieve(context.Background())
+	assert.NoError(t, err)
+	assert.NotEmpty(t, creds.AccessKeyID)
+	assert.NotEmpty(t, creds.SecretAccessKey)
 }

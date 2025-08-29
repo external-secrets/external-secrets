@@ -154,7 +154,7 @@ After applying `GetAllSecrets` or `GetSecretMap`, a rewrite logic is applied by 
 
 It would not be trivial to replace a specific set of existing characters for new characters with this strategy. This could be implemented with a `replace` method afterwards.
 
-There are also some known limitations to golang regexp library, which implementes RE2. Some of the known limitations include:
+There are also some known limitations to golang regexp library, which implements RE2. Some of the known limitations include:
 * Lack of ability to do lookaheads or lookbehinds
 * Lack of negation expressions
 * Lack of support to conditionl branches.

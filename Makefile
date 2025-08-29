@@ -162,7 +162,7 @@ manifests: helm.generate ## Generate manifests from helm chart
 	helm template external-secrets $(HELM_DIR) -f deploy/manifests/helm-values.yaml > $(OUTPUT_DIR)/deploy/manifests/external-secrets.yaml
 
 crds.install: generate ## Install CRDs into a cluster. This is for convenience
-	kubectl apply -f $(BUNDLE_DIR)
+	kubectl apply -f $(BUNDLE_DIR) --server-side
 
 crds.uninstall: ## Uninstall CRDs from a cluster. This is for convenience
 	kubectl delete -f $(BUNDLE_DIR)
@@ -181,7 +181,7 @@ helm.docs: ## Generate helm docs
 	@cd $(HELM_DIR); \
 	$(DOCKER) run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) docker.io/jnorwood/helm-docs:v1.7.0
 
-HELM_VERSION ?= $(shell helm show chart $(HELM_DIR) | grep 'version:' | sed 's/version: //g')
+HELM_VERSION ?= $(shell helm show chart $(HELM_DIR) | grep '^version:' | sed 's/version: //g')
 
 helm.build: helm.generate ## Build helm chart
 	@$(INFO) helm package
@@ -189,14 +189,28 @@ helm.build: helm.generate ## Build helm chart
 	@mv $(OUTPUT_DIR)/chart/external-secrets-$(HELM_VERSION).tgz $(OUTPUT_DIR)/chart/external-secrets.tgz
 	@$(OK) helm package
 
+HELM_SCHEMA_NAME := schema
+HELM_SCHEMA_VER  := 2.2.1
+HELM_SCHEMA_URL  := https://github.com/losisin/helm-values-schema-json.git
+
 helm.schema.plugin:
-	@$(INFO) Installing helm-values-schema-json plugin
-	@helm plugin install https://github.com/losisin/helm-values-schema-json.git || true
-	@$(OK) Installed helm-values-schema-json plugin
+	@v=$$(helm plugin list | awk '$$1=="$(HELM_SCHEMA_NAME)"{print $$2}'); \
+	if [ -z "$$v" ]; then \
+		$(INFO) "Installing $(HELM_SCHEMA_NAME) v$(HELM_SCHEMA_VER)"; \
+		helm plugin install --version $(HELM_SCHEMA_VER) $(HELM_SCHEMA_URL); \
+		$(OK) "Installed $(HELM_SCHEMA_NAME) v$(HELM_SCHEMA_VER)"; \
+	elif [ "$$v" != "$(HELM_SCHEMA_VER)" ]; then \
+		$(INFO) "Found $(HELM_SCHEMA_NAME) $$v. Reinstalling v$(HELM_SCHEMA_VER)"; \
+		helm plugin remove $(HELM_SCHEMA_NAME); \
+		helm plugin install --version $(HELM_SCHEMA_VER) $(HELM_SCHEMA_URL); \
+		$(OK) "Reinstalled $(HELM_SCHEMA_NAME) v$(HELM_SCHEMA_VER)"; \
+	else \
+		$(OK) "$(HELM_SCHEMA_NAME) already at v$(HELM_SCHEMA_VER)"; \
+	fi
 
 helm.schema.update: helm.schema.plugin
 	@$(INFO) Generating values.schema.json
-	@helm schema -input $(HELM_DIR)/values.yaml -output $(HELM_DIR)/values.schema.json
+	@helm schema -f $(HELM_DIR)/values.yaml -o $(HELM_DIR)/values.schema.json
 	@$(OK) Generated values.schema.json
 
 helm.generate:

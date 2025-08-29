@@ -16,7 +16,7 @@ jobs:
     # Only run for PRs, not issue comments
     if: ${{ github.event.issue.pull_request }}
     steps:
-    - uses: step-security/harden-runner@002fdce3c6a235733a90a27c80493a3241e56863 # v2.12.1
+    - uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
       with:
         egress-policy: audit
     # Generate a GitHub App installation access token from an App ID and private key

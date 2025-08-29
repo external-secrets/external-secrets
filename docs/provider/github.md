@@ -1,10 +1,10 @@
-## Github
+## GitHub
 
-External Secrets Operator integrates with Github to sync Kubernetes secrets with [Github Actions secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions).
+External Secrets Operator integrates with GitHub to sync Kubernetes secrets with [GitHub Actions secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions).
 
 ### Configuring Github provider
 
-The Github API requires to install the ESO app to your Github organisation in order to use the Github provider features.
+The GitHub API requires to install the ESO app to your GitHub organisation in order to use the Github provider features.
 
 ### Configuring the secret store
 
@@ -20,7 +20,7 @@ Optionally, to target `repository` and `environment` secrets, the fields `reposi
 
 ### Pushing to an external secret
 
-To sync a Kubernetes secret with an external Github secret we need to create a PushSecret, this means a `Kind=PushSecret` is needed.
+To sync a Kubernetes secret with an external GitHub secret we need to create a PushSecret, this means a `Kind=PushSecret` is needed.
 
 ```yaml
 {% include 'github-push-secret.yaml' %}

@@ -24,12 +24,16 @@ const (
 	CallAWSSMPutSecretValue      = "PutSecretValue"
 	CallAWSSMListSecrets         = "ListSecrets"
 	CallAWSSMBatchGetSecretValue = "BatchGetSecretValue"
+	CallAWSSMUntagResource       = "UntagResource"
+	CallAWSSMTagResource         = "TagResource"
 
 	ProviderAWSPS                = "AWS/ParameterStore"
 	CallAWSPSGetParameter        = "GetParameter"
 	CallAWSPSPutParameter        = "PutParameter"
 	CallAWSPSDeleteParameter     = "DeleteParameter"
 	CallAWSPSDescribeParameter   = "DescribeParameter"
+	CallAWSPSRemoveTagsParameter = "RemoveTagsFromResource"
+	CallAWSPSAddTagsParameter    = "AddTagsToResource"
 	CallAWSPSListTagsForResource = "ListTagsForResource"
 
 	ProviderAzureKV              = "Azure/KeyVault"

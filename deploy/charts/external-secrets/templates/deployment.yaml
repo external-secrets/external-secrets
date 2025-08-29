@@ -1,4 +1,5 @@
 {{- if .Values.createOperator }}
+{{- include "external-secrets.reconciler-sanity-test" . }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -16,6 +17,10 @@ spec:
   selector:
     matchLabels:
       {{- include "external-secrets.selectorLabels" . | nindent 6 }}
+  {{- with .Values.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -44,7 +49,7 @@ spec:
       containers:
         - name: {{ .Chart.Name }}
           {{- with .Values.securityContext }}
-           {{- if and (.enabled) (gt (keys . | len) 1) }}
+          {{- if and (.enabled) (gt (keys . | len) 1) }}
           securityContext:
             {{- include "external-secrets.renderSecurityContext" (dict "securityContext" . "context" $) | nindent 12 }}
           {{- end }}
@@ -97,10 +102,23 @@ spec:
           - --metrics-addr=:{{ .Values.metrics.listen.port }}
           - --loglevel={{ .Values.log.level }}
           - --zap-time-encoding={{ .Values.log.timeEncoding }}
+          {{- if .Values.livenessProbe.enabled }}
+          - --live-addr={{ .Values.livenessProbe.address }}:{{ .Values.livenessProbe.httpGet.port }}
+          {{- end }}
+          {{- if .Values.metrics.listen.secure.enabled }}
+          - --metrics-secure=true
+          - --metrics-cert-dir={{ .Values.metrics.listen.secure.certDir }}
+          - --metrics-cert-name={{ .Values.metrics.listen.secure.certFile }}
+          - --metrics-key-name={{ .Values.metrics.listen.secure.keyFile }}
+          {{- end }}
           ports:
             - containerPort: {{ .Values.metrics.listen.port }}
               protocol: TCP
               name: metrics
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+          {{- toYaml .Values.livenessProbe | nindent 12 }}
+          {{- end }}
           {{- with .Values.extraEnv }}
           env:
             {{- toYaml . | nindent 12 }}
@@ -116,6 +134,10 @@ spec:
         {{- if .Values.extraContainers }}
           {{ toYaml .Values.extraContainers | nindent 8 }}
         {{- end }}
+      {{- with .Values.extraInitContainers }}
+      initContainers:
+        {{- tpl (toYaml . | nindent 8) $ }}
+      {{- end }}
       dnsPolicy: {{ .Values.dnsPolicy }}
       {{- if .Values.dnsConfig }}
       dnsConfig:
