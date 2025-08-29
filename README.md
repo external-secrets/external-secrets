@@ -2,6 +2,7 @@
     <img src="assets/eso-logo-large.png" width="30%" align="center" alt="external-secrets">
 </p>
 
+CHANGE
 
 ## Project Releases Paused Until Maintainer Team is Rebuilt ⚠️
 
