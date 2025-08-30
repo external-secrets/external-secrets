@@ -17,6 +17,7 @@ package aws
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"testing"
 
@@ -538,4 +539,55 @@ func ErrorContains(out error, want string) bool {
 		return false
 	}
 	return strings.Contains(out.Error(), want)
+}
+
+func TestInjectKubeContext(t *testing.T) {
+	tests := []struct {
+		name      string
+		tags      []*esv1.Tag
+		namespace string
+		storeName string
+		expected  []*esv1.Tag
+	}{
+		{
+			name:      "should add namespace and store tags",
+			tags:      nil,
+			namespace: "test-namespace",
+			storeName: "test-store",
+			expected: []*esv1.Tag{
+				{Key: "esoNamespace", Value: "test-namespace"},
+				{Key: "esoStoreName", Value: "test-store"},
+			},
+		},
+		{
+			name: "should preserve existing tags and add namespace/store tags",
+			tags: []*esv1.Tag{
+				{Key: "existing-tag", Value: "existing-value"},
+			},
+			namespace: "test-namespace",
+			storeName: "test-store",
+			expected: []*esv1.Tag{
+				{Key: "existing-tag", Value: "existing-value"},
+				{Key: "esoNamespace", Value: "test-namespace"},
+				{Key: "esoStoreName", Value: "test-store"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := injectKubeContext(tt.tags, tt.namespace, tt.storeName)
+
+			sortTags(result)
+			sortTags(tt.expected)
+
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func sortTags(tags []*esv1.Tag) {
+	sort.Slice(tags, func(i, j int) bool {
+		return tags[i].Key < tags[j].Key
+	})
 }
