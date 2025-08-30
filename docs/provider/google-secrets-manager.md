@@ -182,7 +182,7 @@ In the case of a `ClusterSecretStore`, you additionally have to define the servi
 
 #### Authorizing the Core Controller Pod
 
-Instead of managing authentication at the `SecretStore` and `ClusterSecretStore` level, you can give the [Core Controller](../api/components/) Pod's service account access to Secret Manager secrets using one of the two WIF approaches described in the previous sections.
+Instead of managing authentication at the `SecretStore` and `ClusterSecretStore` level, you can give the [Core Controller](../api/components.md) Pod's service account access to Secret Manager secrets using one of the two WIF approaches described in the previous sections.
 
 To demonstrate this approach, we'll assume you installed ESO using Helm into the `external-secrets` namespace, with `external-secrets` as the release name:
 
