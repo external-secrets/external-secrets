@@ -10843,11 +10843,12 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1.YandexCertificateManagerAuth">YandexCertificateManagerAuth
+<h3 id="external-secrets.io/v1.YandexAuth">YandexAuth
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.YandexCertificateManagerProvider">YandexCertificateManagerProvider</a>)
+<a href="#external-secrets.io/v1.YandexCertificateManagerProvider">YandexCertificateManagerProvider</a>, 
+<a href="#external-secrets.io/v1.YandexLockboxProvider">YandexLockboxProvider</a>)
 </p>
 <p>
 </p>
@@ -10875,11 +10876,12 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1.YandexCertificateManagerCAProvider">YandexCertificateManagerCAProvider
+<h3 id="external-secrets.io/v1.YandexCAProvider">YandexCAProvider
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.YandexCertificateManagerProvider">YandexCertificateManagerProvider</a>)
+<a href="#external-secrets.io/v1.YandexCertificateManagerProvider">YandexCertificateManagerProvider</a>, 
+<a href="#external-secrets.io/v1.YandexLockboxProvider">YandexLockboxProvider</a>)
 </p>
 <p>
 </p>
@@ -10938,89 +10940,27 @@ string
 <td>
 <code>auth</code></br>
 <em>
-<a href="#external-secrets.io/v1.YandexCertificateManagerAuth">
-YandexCertificateManagerAuth
+<a href="#external-secrets.io/v1.YandexAuth">
+YandexAuth
 </a>
 </em>
 </td>
 <td>
-<p>Auth defines the information necessary to authenticate against Yandex Certificate Manager</p>
+<p>Auth defines the information necessary to authenticate against Yandex.Cloud</p>
 </td>
 </tr>
 <tr>
 <td>
 <code>caProvider</code></br>
 <em>
-<a href="#external-secrets.io/v1.YandexCertificateManagerCAProvider">
-YandexCertificateManagerCAProvider
+<a href="#external-secrets.io/v1.YandexCAProvider">
+YandexCAProvider
 </a>
 </em>
 </td>
 <td>
 <em>(Optional)</em>
 <p>The provider for the CA bundle to use to validate Yandex.Cloud server certificate.</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1.YandexLockboxAuth">YandexLockboxAuth
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.YandexLockboxProvider">YandexLockboxProvider</a>)
-</p>
-<p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>authorizedKeySecretRef</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>The authorized key used for authentication</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1.YandexLockboxCAProvider">YandexLockboxCAProvider
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.YandexLockboxProvider">YandexLockboxProvider</a>)
-</p>
-<p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>certSecretRef</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
 </td>
 </tr>
 </tbody>
@@ -11058,21 +10998,21 @@ string
 <td>
 <code>auth</code></br>
 <em>
-<a href="#external-secrets.io/v1.YandexLockboxAuth">
-YandexLockboxAuth
+<a href="#external-secrets.io/v1.YandexAuth">
+YandexAuth
 </a>
 </em>
 </td>
 <td>
-<p>Auth defines the information necessary to authenticate against Yandex Lockbox</p>
+<p>Auth defines the information necessary to authenticate against Yandex.Cloud</p>
 </td>
 </tr>
 <tr>
 <td>
 <code>caProvider</code></br>
 <em>
-<a href="#external-secrets.io/v1.YandexLockboxCAProvider">
-YandexLockboxCAProvider
+<a href="#external-secrets.io/v1.YandexCAProvider">
+YandexCAProvider
 </a>
 </em>
 </td>
