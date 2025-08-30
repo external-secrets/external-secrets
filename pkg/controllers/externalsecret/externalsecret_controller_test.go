@@ -870,7 +870,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	}
 
 	// when using a template it should be used as a blueprint
-	// to construct a new secret: labels, annotations and type
+	// to construct a new secret: labels, annotations, finalizers and type
 	syncWithTemplate := func(tc *testCase) {
 		const secretVal = "someValue"
 		const tplStaticKey = "tplstatickey"
@@ -889,6 +889,9 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 				Annotations: map[string]string{
 					"hihi": "ga",
 				},
+				Finalizers: []string{
+					"example.com/finalizer",
+				},
 			},
 			Type:          v1.SecretTypeOpaque,
 			EngineVersion: esv1.TemplateEngineV2,
@@ -903,13 +906,16 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(string(secret.Data[targetProp])).To(Equal(expectedSecretVal))
 			Expect(string(secret.Data[tplStaticKey])).To(Equal(tplStaticVal))
 
-			// labels/annotations should be taken from the template
+			// labels/annotations/finalizers should be taken from the template
 			for k, v := range es.Spec.Target.Template.Metadata.Labels {
 				Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue(k, v))
 
 			}
 			for k, v := range es.Spec.Target.Template.Metadata.Annotations {
 				Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue(k, v))
+			}
+			for _, v := range es.Spec.Target.Template.Metadata.Finalizers {
+				Expect(secret.ObjectMeta.Finalizers).To(ContainElement(v))
 			}
 		}
 	}
@@ -1152,6 +1158,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Metadata: esv1.ExternalSecretTemplateMetadata{
 				Labels:      map[string]string{"foo": "bar"},
 				Annotations: map[string]string{"foo": "bar"},
+				Finalizers:  []string{"example.com/finalizer"},
 			},
 			Type: v1.SecretTypeOpaque,
 			Data: map[string]string{
@@ -1165,7 +1172,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(string(secret.Data[targetProp])).To(Equal(expectedSecretVal))
 			Expect(string(secret.Data[tplStaticKey])).To(Equal(tplStaticVal))
 
-			// labels/annotations should be taken from the template
+			// labels/annotations/finalizers should be taken from the template
 			for k, v := range es.Spec.Target.Template.Metadata.Labels {
 				Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue(k, v))
 
@@ -1175,6 +1182,10 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			// source annotations
 			for k, v := range es.Spec.Target.Template.Metadata.Annotations {
 				Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue(k, v))
+			}
+
+			for _, v := range es.Spec.Target.Template.Metadata.Finalizers {
+				Expect(secret.ObjectMeta.Finalizers).To(ContainElement(v))
 			}
 
 			cleanEs := tc.externalSecret.DeepCopy()
@@ -1218,6 +1229,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Metadata: esv1.ExternalSecretTemplateMetadata{
 				Labels:      map[string]string{"foo": "bar"},
 				Annotations: map[string]string{"foo": "bar"},
+				Finalizers:  []string{"example.com/finalizer"},
 			},
 		}
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
@@ -1225,13 +1237,17 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			// check values
 			Expect(string(secret.Data[targetProp])).To(Equal(secretVal))
 
-			// labels/annotations should be taken from the template
+			// labels/annotations/finalizers should be taken from the template
 			for k, v := range es.Spec.Target.Template.Metadata.Labels {
 				Expect(secret.ObjectMeta.Labels).To(HaveKeyWithValue(k, v))
 			}
 
 			for k, v := range es.Spec.Target.Template.Metadata.Annotations {
 				Expect(secret.ObjectMeta.Annotations).To(HaveKeyWithValue(k, v))
+			}
+
+			for _, v := range es.Spec.Target.Template.Metadata.Finalizers {
+				Expect(secret.ObjectMeta.Finalizers).To(ContainElement(v))
 			}
 		}
 	}
