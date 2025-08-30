@@ -208,6 +208,10 @@ type SecretStoreProvider struct {
 	// CloudruSM configures this store to sync secrets using the Cloud.ru Secret Manager provider
 	// +optional
 	CloudruSM *CloudruSMProvider `json:"cloudrusm,omitempty"`
+
+	// Ngrok configures this store to sync secrets using the ngrok provider.
+	// +optional
+	Ngrok *NgrokProvider `json:"ngrok,omitempty"`
 }
 
 type CAProviderType string
