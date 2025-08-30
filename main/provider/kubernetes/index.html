@@ -4501,7 +4501,7 @@ You may also define it inline as base64 encoded value using the <code>caBundle</
 <span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">remote-best-pokemon</span>
 <span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">best-pokemon</span>
 </code></pre></div>
-<p>To utilize the PushSecret feature effectively, the referenced <code>SecretStore</code> requires specific permissions on the target cluster. In particular it requires <code>create</code>, <code>read</code>, <code>update</code> and <code>delete</code> permissions on the Secret resource:</p>
+<p>To use the PushSecret feature effectively, the referenced <code>SecretStore</code> requires specific permissions on the target cluster. In particular, it requires <code>create</code>, <code>read</code>, <code>update</code> and <code>delete</code> permissions on the Secret resource:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rbac.authorization.k8s.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Role</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -4550,7 +4550,7 @@ You may also define it inline as base64 encoded value using the <code>caBundle</
 </code></pre></div>
 <h4 id="pushsecret-metadata">PushSecret Metadata</h4>
 <p>The Kubernetes provider is able to manage both <code>metadata.labels</code> and <code>metadata.annotations</code> of the secret on the target cluster.</p>
-<p>Users have different preferences on what metadata should be pushed. ESO by default pushes both labels and annotations to the target secret and merges them with the existing metadata.</p>
+<p>Users have different preferences on what metadata should be pushed. ESO, by default, pushes both labels and annotations to the target secret and merges them with the existing metadata.</p>
 <p>You can specify the metadata in the <code>spec.template.metadata</code> section if you want to decouple it from the existing secret.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
@@ -4571,7 +4571,7 @@ You may also define it inline as base64 encoded value using the <code>caBundle</
 <span class="w">        </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">backend_secrets</span>
 <span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mysql_connection_string</span>
 </code></pre></div>
-<p>Further, you can leverage the <code>.data[].metadata</code> section to fine-tine the behaviour of the metadata merge strategy. The metadata section is a versioned custom-resource <em>alike</em> structure, the behaviour is detailed below.</p>
+<p>Further, you can leverage the <code>.data[].metadata</code> section to fine-tine the behavior of the metadata merge strategy. The metadata section is a versioned custom-resource <em>similar</em> structure, the behavior is detailed below.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -4625,10 +4625,15 @@ You may also define it inline as base64 encoded value using the <code>caBundle</
 <td><code>map[string]string</code></td>
 <td>The annotations.</td>
 </tr>
+<tr>
+<td>remoteNamespace</td>
+<td>string</td>
+<td>The Namespace in which the remote Secret will created in if defined.</td>
+</tr>
 </tbody>
 </table>
 <h4 id="implementation-considerations">Implementation Considerations</h4>
-<p>When utilizing the PushSecret feature and configuring the permissions for the SecretStore, consider the following:</p>
+<p>When using the PushSecret feature and configuring the permissions for the SecretStore, consider the following:</p>
 <ul>
 <li>
 <p><strong>RBAC Configuration</strong>: Ensure that the Role-Based Access Control (RBAC) configuration for the SecretStore grants the appropriate permissions for creating, reading, and updating resources in the target cluster.</p>
