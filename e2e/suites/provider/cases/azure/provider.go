@@ -29,6 +29,7 @@ import (
 	// nolint
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilpointer "k8s.io/utils/pointer"
 
@@ -81,6 +82,8 @@ func newFromEnv(f *framework.Framework) *azureProvider {
 		})
 		prov.CreateSecretStore()
 		prov.CreateReferentSecretStore()
+		prov.CreateSecretStoreNewSDK()
+		prov.CreateReferentSecretStoreNewSDK()
 	})
 
 	return prov
@@ -258,6 +261,25 @@ func newProviderWithStaticCredentials(tenantID, vaultURL, secretName string) *es
 	}
 }
 
+func newProviderWithStaticCredentialsNewSDK(tenantID, vaultURL, secretName string) *esv1.AzureKVProvider {
+	useNewSDK := true
+	return &esv1.AzureKVProvider{
+		TenantID:     &tenantID,
+		VaultURL:     &vaultURL,
+		UseAzureSDK:  &useNewSDK,
+		AuthSecretRef: &esv1.AzureKVAuth{
+			ClientID: &esmeta.SecretKeySelector{
+				Name: staticSecretName,
+				Key:  credentialKeyClientID,
+			},
+			ClientSecret: &esmeta.SecretKeySelector{
+				Name: staticSecretName,
+				Key:  credentialKeyClientSecret,
+			},
+		},
+	}
+}
+
 func newProviderWithServiceAccount(tenantID, vaultURL string, authType esv1.AzureAuthType, serviceAccountName string, serviceAccountNamespace *string) *esv1.AzureKVProvider {
 	return &esv1.AzureKVProvider{
 		TenantID: &tenantID,
@@ -298,6 +320,37 @@ func (s *azureProvider) CreateSecretStore() {
 	Expect(err).ToNot(HaveOccurred())
 }
 
+func (s *azureProvider) CreateSecretStoreNewSDK() {
+	azureCreds := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      staticSecretName,
+			Namespace: s.framework.Namespace.Name,
+		},
+		StringData: map[string]string{
+			credentialKeyClientID:     s.clientID,
+			credentialKeyClientSecret: s.clientSecret,
+		},
+	}
+	err := s.framework.CRClient.Create(context.Background(), azureCreds)
+	// Ignore AlreadyExists error since CreateSecretStore() might have already created this secret
+	if err != nil && !apierrors.IsAlreadyExists(err) {
+		Expect(err).ToNot(HaveOccurred())
+	}
+	secretStore := &esv1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      s.framework.Namespace.Name + "-new-sdk",
+			Namespace: s.framework.Namespace.Name,
+		},
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				AzureKV: newProviderWithStaticCredentialsNewSDK(s.tenantID, s.vaultURL, staticSecretName),
+			},
+		},
+	}
+	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	Expect(err).ToNot(HaveOccurred())
+}
+
 func (s *azureProvider) CreateReferentSecretStore() {
 	azureCreds := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -319,6 +372,34 @@ func (s *azureProvider) CreateReferentSecretStore() {
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				AzureKV: newProviderWithStaticCredentials(s.tenantID, s.vaultURL, referentSecretName),
+			},
+		},
+	}
+	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	Expect(err).ToNot(HaveOccurred())
+}
+
+func (s *azureProvider) CreateReferentSecretStoreNewSDK() {
+	azureCreds := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      referentSecretName + "-new-sdk",
+			Namespace: s.framework.Namespace.Name,
+		},
+		StringData: map[string]string{
+			credentialKeyClientID:     s.clientID,
+			credentialKeyClientSecret: s.clientSecret,
+		},
+	}
+	err := s.framework.CRClient.Create(context.Background(), azureCreds)
+	Expect(err).ToNot(HaveOccurred())
+	secretStore := &esv1.ClusterSecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      referentAuthName(s.framework) + "-new-sdk",
+			Namespace: s.framework.Namespace.Name,
+		},
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				AzureKV: newProviderWithStaticCredentialsNewSDK(s.tenantID, s.vaultURL, referentSecretName + "-new-sdk"),
 			},
 		},
 	}

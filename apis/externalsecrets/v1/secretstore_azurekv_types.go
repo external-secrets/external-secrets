@@ -37,8 +37,8 @@ const (
 // AzureEnvironmentType specifies the Azure cloud environment endpoints to use for
 // connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint.
 // The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152
-// PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
-// +kubebuilder:validation:Enum=PublicCloud;USGovernmentCloud;ChinaCloud;GermanCloud
+// PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud, AzureStackCloud
+// +kubebuilder:validation:Enum=PublicCloud;USGovernmentCloud;ChinaCloud;GermanCloud;AzureStackCloud
 type AzureEnvironmentType string
 
 const (
@@ -46,7 +46,30 @@ const (
 	AzureEnvironmentUSGovernmentCloud AzureEnvironmentType = "USGovernmentCloud"
 	AzureEnvironmentChinaCloud        AzureEnvironmentType = "ChinaCloud"
 	AzureEnvironmentGermanCloud       AzureEnvironmentType = "GermanCloud"
+	AzureEnvironmentAzureStackCloud   AzureEnvironmentType = "AzureStackCloud"
 )
+
+// AzureCustomCloudConfig specifies custom cloud configuration for private Azure environments
+// IMPORTANT: Custom cloud configuration is ONLY supported when UseAzureSDK is true.
+// The legacy go-autorest SDK does not support custom cloud endpoints.
+type AzureCustomCloudConfig struct {
+	// ActiveDirectoryEndpoint is the AAD endpoint for authentication
+	// Required when using custom cloud configuration
+	// +kubebuilder:validation:Required
+	ActiveDirectoryEndpoint string `json:"activeDirectoryEndpoint"`
+
+	// KeyVaultEndpoint is the Key Vault service endpoint
+	// +optional
+	KeyVaultEndpoint *string `json:"keyVaultEndpoint,omitempty"`
+
+	// KeyVaultDNSSuffix is the DNS suffix for Key Vault URLs
+	// +optional
+	KeyVaultDNSSuffix *string `json:"keyVaultDNSSuffix,omitempty"`
+
+	// ResourceManagerEndpoint is the Azure Resource Manager endpoint
+	// +optional
+	ResourceManagerEndpoint *string `json:"resourceManagerEndpoint,omitempty"`
+}
 
 // Configures an store to sync secrets using Azure KV.
 type AzureKVProvider struct {
@@ -68,7 +91,8 @@ type AzureKVProvider struct {
 	// EnvironmentType specifies the Azure cloud environment endpoints to use for
 	// connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint.
 	// The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152
-	// PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
+	// PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud, AzureStackCloud
+	// Use AzureStackCloud when you need to configure custom Azure Stack Hub or Azure Stack Edge endpoints.
 	// +kubebuilder:default=PublicCloud
 	EnvironmentType AzureEnvironmentType `json:"environmentType,omitempty"`
 
@@ -84,6 +108,19 @@ type AzureKVProvider struct {
 	// If multiple Managed Identity is assigned to the pod, you can select the one to be used
 	// +optional
 	IdentityID *string `json:"identityId,omitempty"`
+
+	// UseAzureSDK enables the use of the new Azure SDK for Go (azcore-based) instead of the legacy go-autorest SDK.
+	// This is experimental and may have behavioral differences. Defaults to false (legacy SDK).
+	// +optional
+	// +kubebuilder:default=false
+	UseAzureSDK *bool `json:"useAzureSDK,omitempty"`
+
+	// CustomCloudConfig defines custom Azure Stack Hub or Azure Stack Edge endpoints.
+	// Required when EnvironmentType is AzureStackCloud.
+	// IMPORTANT: This feature REQUIRES UseAzureSDK to be set to true. Custom cloud
+	// configuration is not supported with the legacy go-autorest SDK.
+	// +optional
+	CustomCloudConfig *AzureCustomCloudConfig `json:"customCloudConfig,omitempty"`
 }
 
 // Configuration used to authenticate with Azure.
