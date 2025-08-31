@@ -16,110 +16,117 @@ Secret](https://kubernetes.io/docs/concepts/configuration/secret/).
 
 ## Community Roles
 
-* **Users:** Members that engage with the ESO community via any medium (Slack, WeChat, GitHub, mailing lists, etc.).
-* **Contributors:** Regular contributions to projects (documentation, code reviews, responding to issues, participation in proposal discussions, contributing code, etc.).
-* **Maintainers**: The ESO project leaders. They are responsible for the overall health and direction of the project; final reviewers of PRs and responsible for releases. Some Maintainers are responsible for one or more components within a project, acting as technical leads for that component. Maintainers are expected to contribute code and documentation, review PRs including ensuring quality of code, triage issues, proactively fix bugs, and perform maintenance tasks for these components.
+- **Users**: People who use ESO and engage via GitHub, Slack, or mailing lists.
+- **Contributors**: Anyone who makes contributions (code, docs, tests, reviews, triage, discussions).
+- **Reviewers / Maintainers**: Governance roles with defined responsibilities, privileges, and promotion
+  processes described in the [Contributor Ladder](CONTRIBUTOR_LADDER.md).
 
-### Maintainers
+Maintainers are project leaders responsible for overall health, technical direction, and release management.
 
-New maintainers must be nominated by an existing maintainer(e.g. via [PR](https://github.com/external-secrets/external-secrets/pull/1591)) and must be elected by a supermajority of existing maintainers. Likewise, maintainers can be removed by a supermajority of the existing maintainers or can resign by notifying one of the maintainers.
+---
 
-### Supermajority
+## Maintainers
 
-A supermajority is defined as two-thirds of members in the group.
-A supermajority of [Maintainers](#maintainers) is required for certain
-decisions as outlined above. Voting on decisions can happen on the mailing list, GitHub, Slack, email, or via a voting service, when appropriate. Maintainers can either vote "agree, yes, +1", "disagree, no, -1", or "abstain". A vote passes when supermajority is met. An abstain vote equals not voting at all.
+### Expectations
+Maintainers are expected to:
+- Review pull requests, triage issues, and fix bugs in their areas of expertise.
+- Monitor community channels and help users and contributors.
+- Respond rapidly to time-sensitive security issues.
+- Participate in ESO community meetings and asynchronous design/review discussions.
+- Follow the decision-making processes described in this document and in the Contributor Ladder.
 
-### Decision Making
+If a maintainer cannot fulfill these duties, they should move to **Emeritus** status. Maintainers may also be moved to
+Emeritus via the decision-making process.
 
-Ideally, all project decisions are resolved by consensus. If impossible, any
-maintainer may call a vote. Unless otherwise specified in this document, any
-vote will be decided by a supermajority of maintainers.
+### Adding or Removing Maintainers
+- **Addition**: A candidate is nominated by an existing maintainer and elected by a **supermajority** of current maintainers.
+- **Removal**: Removal requires a **supermajority** of current maintainers.
+- **Company voting**: Votes to nominate maintainers by contributors belonging to the same employer count as **one** collective vote. If they cannot reach internal consensus, that employer’s vote is recorded as **abstain**.
 
-Votes by maintainers belonging to the same company
-will count as one vote; e.g., 4 maintainers employed by fictional company **ESOtum** will
-only have **one** combined vote. If voting members from a given company do not
-agree, the company's vote is determined by a supermajority of voters from that
-company. If no supermajority is achieved, the company is considered to have
-abstained.
+---
+
+## Voting Eligibility
+
+Voting rights vary by decision type:
+
+| Decision Type                                  | Eligible Voters                              |
+|------------------------------------------------|----------------------------------------------|
+| **Governance changes**                         | Permanent Maintainers                        |
+| **Adding/removing Maintainers**                | Permanent Maintainers                        |
+| **Technical decisions within a specialty**     | All Reviewers and Maintainers                |
+| **Project-wide technical direction**           | All Maintainers                              |
+| **Security incident decisions**                | All Maintainers                              |
+| **Interim role appointments (Member/Reviewer)**| Permanent Maintainers                        |
+| **Interim role appointment (Maintainer)**      | Permanent Maintainers                        |
+
+**Notes:**
+- Interim role holders do **not** vote in role promotions/demotions.
+- Company voting limits apply: maintainers/reviewers from the same declared employer have **two** combined votes - regardless if they contribute individually or representing their employer. An exception to this rule is for voting to add/remove maintainers. In this case, a company voting limit is of **one** vote.
+- If more than two maintainers/reviewers from the same declared employer cannot reach consensus for their vote (e.g. 3 in favour, 2 against), both the employer's votes are recorded as **abstain**.
+
+---
+
+## Decision Making
+
+ESO strives for **consensus** via open discussion. When consensus cannot be reached, any eligible voter may call a vote.
+
+- **Supermajority**: Two-thirds (⅔) of eligible voters in the group.
+- **Venues**: Votes may occur on GitHub, email, Slack, community meetings, or a suitable voting service.
+- **Ballots**: “Agree/+1”, “Disagree/-1”, or “Abstain” (counts as no vote).
+
+---
 
 ## Proposal Process
 
-One of the most important aspects in any open source community is the concept
-of proposals. Large changes to the codebase and / or new features should be
-preceded by a proposal in our community repo. This process allows for all
-members of the community to weigh in on the concept (including the technical
-details), share their comments and ideas, and offer to help. It also ensures
-that members are not duplicating work or inadvertently stepping on toes by
-making large conflicting changes.
+Large or impactful changes should begin as proposals under the repository’s `design/` directory.
 
-The project roadmap is defined by accepted proposals.
+**Proposal requirements**
+- Objectives, use cases, and high-level technical approach.
+- Open discussion prior to implementation.
+- Use the proposal template at `design/000-template.md`.
 
-Proposals should cover the high-level objectives, use cases, and technical
-recommendations on how to implement. In general, the community member(s)
-interested in implementing the proposal should be either deeply engaged in the
-proposal process or be an author of the proposal.
+**Lifecycle labels**
+- **New** → **Reviewing** → **Accepted** or **Rejected**.
 
-The proposal should be documented as a separated markdown file pushed to the
-`design` folder in the [external-secrets repository](https://github.com/external-secrets/external-secrets/tree/main/design)
-repository via PR. The name of the file should follow the name pattern `<NUMBER-
-meaningful words joined by '-'>.md`, e.g:
-`000-clear-old-tags-with-policies.md`.
+The project roadmap is shaped by **Accepted** proposals.
 
-Use the [Proposal Template](design/000-template.md) as a starting point.
-
-### Proposal Lifecycle
-
-The proposal PR can be marked with different status labels to represent the
-status of the proposal:
-
-* **New**: Proposal is just created.
-* **Reviewing**: Proposal is under review and discussion.
-* **Accepted**: Proposal is reviewed and accepted (either by consensus or vote).
-* **Rejected**: Proposal is reviewed and rejected (either by consensus or vote).
+---
 
 ## Lazy Consensus
 
-The concept of [Lazy Consensus](http://en.osswiki.info/concepts/lazy_consensus) is practiced. Ideas
-and / or proposals should be shared by maintainers via
-GitHub with the appropriate maintainer groups (e.g.,
-`@external-secrets/maintainers`) tagged. Out of respect for other contributors,
-major changes should also be accompanied by a ping on Slack or a note on the
-ESO dev mailing list as appropriate. Author(s) of proposal, Pull Requests,
-issues, etc.  will give a time period of no less than five (5) working days for
-comment and remain cognizant of popular observed world holidays.
+ESO uses [Lazy Consensus](http://en.osswiki.info/concepts/lazy_consensus) for most decisions.
 
-Other maintainers may chime in and request additional time for review, but
-should remain cognizant of blocking progress and abstain from delaying
-progress unless absolutely needed. The expectation is that blocking progress
-is accompanied by a guarantee to review and respond to the relevant action(s)
-(proposals, PRs, issues, etc.) in short order.
+- PRs and proposals should allow **at least five (5) working days** for comments and consider global holidays.
+- Other maintainers may request additional time when justified and commit to a timely review.
 
+**Exclusions** (lazy consensus does **not** apply):
+- Removal of maintainers.
+- Any substantive governance changes.
 
-Lazy consensus does _not_ apply to the process of:
-
-* Removal of maintainers from ESO.
+---
 
 ## Updating Governance
 
-All substantive changes in Governance require a supermajority agreement by all maintainers.
+Substantive changes to this document require a **supermajority** of maintainers.
 
-## Example of Governance Process being enforced
+---
 
-### Case @shuheiktgw
+## Contributor Pathways & Specialties
 
-The PR linking to acceptance of new maintainer member Shuhei Kitagawa. Consensus was achieved. Kitagawa was accepted as
-a maintainer and added to the relevant Organization.
+Advancement pathways, responsibilities, privileges, and specialty areas (CI/Infra, Testing, Core Controllers, Providers, Security)
+are defined in the [Contributor Ladder](CONTRIBUTOR_LADDER.md).
 
-On June 12th, 2024 Kitagawa stepped down as maintainer. https://github.com/external-secrets/external-secrets/pull/3573 was
-created to remove him from the Maintainers file.
+---
 
-### Case @Skarlso
+## Security
 
-Skarlso (Gergely Brautigam) was added as a maintainer and organization member on 23th or October 2023. The corresponding PR: https://github.com/external-secrets/external-secrets/pull/2823.
+ESO follows responsible disclosure practices. Security-impacting issues should be reported via the documented security
+contact channels (see `SECURITY.md` if present or repository Security tab). Security fixes may be handled privately until
+a coordinated disclosure and release are ready.
 
-Lazy consensus was applied first in [Slack discussion](https://kubernetes.slack.com/archives/C047LA9MUPJ/p1698667596168189) on the external-secrets-dev channel, then in PR.
+---
 
-## CNCF Governance
+## CNCF Alignment
 
-This project abides by the [CNCF Code Of Conduct](https://github.com/cncf/foundation/blob/main/code-of-conduct.md).
+ESO governance aims for open, transparent, and vendor-neutral operation consistent with CNCF expectations. The
+[Contributor Ladder](CONTRIBUTOR_LADDER.md) provides clear pathways for community members to grow into leadership.

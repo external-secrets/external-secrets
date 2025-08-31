@@ -82,10 +82,12 @@ nav:
           - Github: api/generator/github.md
           - UUID: api/generator/uuid.md
           - MFA: api/generator/mfa.md
+          - SSHKey: api/generator/sshkey.md
       - Reference Docs:
           - API specification: api/spec.md
           - Controller Options: api/controller-options.md
           - Metrics: api/metrics.md
+          - Selectable Fields: api/selectable-fields.md
   - Guides:
       - Introduction: guides/introduction.md
       - External Secrets:

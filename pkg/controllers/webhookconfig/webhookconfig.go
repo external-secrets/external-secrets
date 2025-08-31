@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/external-secrets/external-secrets/pkg/utils"
 	"github.com/go-logr/logr"
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	v1 "k8s.io/api/core/v1"
@@ -84,11 +85,9 @@ func New(k8sClient client.Client, scheme *runtime.Scheme, leaderChan <-chan stru
 }
 
 const (
-	ReasonUpdateFailed   = "UpdateFailed"
-	errWebhookNotReady   = "webhook not ready"
-	errSubsetsNotReady   = "subsets not ready"
-	errAddressesNotReady = "addresses not ready"
-	errCACertNotReady    = "ca cert not yet ready"
+	ReasonUpdateFailed = "UpdateFailed"
+	errWebhookNotReady = "webhook not ready"
+	errCACertNotReady  = "ca cert not yet ready"
 
 	caCertName = "ca.crt"
 )
@@ -153,21 +152,8 @@ func (r *Reconciler) ReadyCheck(_ *http.Request) error {
 	if !r.webhookReady {
 		return errors.New(errWebhookNotReady)
 	}
-	var eps v1.Endpoints
-	err := r.Get(context.TODO(), types.NamespacedName{
-		Name:      r.SvcName,
-		Namespace: r.SvcNamespace,
-	}, &eps)
-	if err != nil {
-		return err
-	}
-	if len(eps.Subsets) == 0 {
-		return errors.New(errSubsetsNotReady)
-	}
-	if len(eps.Subsets[0].Addresses) == 0 {
-		return errors.New(errAddressesNotReady)
-	}
-	return nil
+
+	return utils.CheckEndpointSlicesReady(context.TODO(), r.Client, r.SvcName, r.SvcNamespace)
 }
 
 // reads the ca cert and updates the webhook config.

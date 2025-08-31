@@ -155,7 +155,7 @@ func TestNewClient(t *testing.T) {
 									URL:      "https://my.test.tld",
 									CABundle: []byte(testCertificate),
 								},
-								Auth: esv1.KubernetesAuth{
+								Auth: &esv1.KubernetesAuth{
 									Token: &esv1.TokenAuth{
 										BearerToken: v1.SecretKeySelector{
 											Name: "foo",
@@ -189,7 +189,7 @@ func TestNewClient(t *testing.T) {
 									CABundle: []byte(testCertificate),
 								},
 								RemoteNamespace: "remote",
-								Auth: esv1.KubernetesAuth{
+								Auth: &esv1.KubernetesAuth{
 									Token: &esv1.TokenAuth{
 										BearerToken: v1.SecretKeySelector{
 											Name:      "foo",
@@ -224,7 +224,7 @@ func TestNewClient(t *testing.T) {
 									CABundle: []byte(testCertificate),
 								},
 								RemoteNamespace: "remote",
-								Auth: esv1.KubernetesAuth{
+								Auth: &esv1.KubernetesAuth{
 									Token: &esv1.TokenAuth{
 										BearerToken: v1.SecretKeySelector{
 											Name:      "foo",

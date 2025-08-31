@@ -293,7 +293,7 @@ A static token is stored in a `Kind=Secret` and is used to authenticate with vau
 #### AppRole authentication example
 
 [AppRole authentication](https://www.vaultproject.io/docs/auth/approle) reads the secret id from a
-`Kind=Secret` and uses the specified `roleId` to aquire a temporary token to fetch secrets.
+`Kind=Secret` and uses the specified `roleId` to acquire a temporary token to fetch secrets.
 
 ```yaml
 {% include 'vault-approle-store.yaml' %}
@@ -429,6 +429,36 @@ Here is an example of how to set up `PushSecret`:
 ```
 
 Note that in this example, we are generating two secrets in the target vault with the same structure but using different input formats.
+
+#### Check-And-Set (CAS) for PushSecret
+
+Vault KV v2 supports Check-And-Set operations to prevent unintentional overwrites when multiple clients modify the same secret. When CAS is enabled in your Vault configuration, External Secrets Operator can be configured to include the required version parameter in write operations.
+
+To enable CAS support, add the `checkAndSet` configuration to your Vault provider:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: vault-backend
+spec:
+  provider:
+    vault:
+      server: "http://my.vault.server:8200"
+      path: "secret"
+      version: "v2"  # CAS only works with KV v2
+      checkAndSet:
+        required: true  # Enable CAS for all write operations
+      auth:
+        # ... authentication config
+```
+
+!!! note "CAS Requirements"
+    - CAS is only supported with Vault KV v2 stores
+    - When `checkAndSet.required` is true, all PushSecret operations will include version information
+    - For new secrets, External Secrets Operator uses CAS version 0
+    - For existing secrets, it automatically retrieves the current version before updating
+    - CAS helps prevent conflicts when multiple External Secrets instances manage the same secrets
 
 ### Vault Enterprise
 

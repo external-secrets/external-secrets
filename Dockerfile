@@ -1,4 +1,4 @@
-FROM gcr.io/distroless/static@sha256:d9f9472a8f4541368192d714a995eb1a99bab1f7071fc8bde261d7eda3b667d8
+FROM gcr.io/distroless/static@sha256:2e114d20aa6371fd271f854aa3d6b2b7d2e70e797bb3ea44fb677afec60db22c
 
 # Add metadata
 LABEL maintainer="cncf-externalsecretsop-maintainers@lists.cncf.io" \

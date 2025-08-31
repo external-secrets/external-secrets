@@ -103,7 +103,7 @@ histogram_quantile(0.99,
 ```
 
 #### Controller Reconcile Error
-The controller should be able to reconcile resources without errors. When errors occurr secret delivery may be impacted which could cascade down to the secret consuming applications.
+The controller should be able to reconcile resources without errors. When errors occur secret delivery may be impacted which could cascade down to the secret consuming applications.
 
 ```
 sum(increase(

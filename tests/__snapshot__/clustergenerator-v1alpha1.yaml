@@ -117,6 +117,10 @@ spec:
         name: string
         namespace: string
       url: string
+    sshKeySpec:
+      comment: string
+      keySize: 256
+      keyType: "rsa"
     stsSessionTokenSpec:
       auth:
         jwt:
@@ -296,4 +300,4 @@ spec:
           name: string
       timeout: string
       url: string
-  kind: "ACRAccessToken" # "ACRAccessToken", "ECRAuthorizationToken", "Fake", "GCRAccessToken", "GithubAccessToken", "QuayAccessToken", "Password", "STSSessionToken", "UUID", "VaultDynamicSecret", "Webhook", "Grafana"
+  kind: "ACRAccessToken" # "ACRAccessToken", "ECRAuthorizationToken", "Fake", "GCRAccessToken", "GithubAccessToken", "QuayAccessToken", "Password", "SSHKey", "STSSessionToken", "UUID", "VaultDynamicSecret", "Webhook", "Grafana"

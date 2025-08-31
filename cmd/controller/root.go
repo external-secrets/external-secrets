@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -61,7 +62,12 @@ var (
 	setupLog                              = ctrl.Log.WithName("setup")
 	dnsName                               string
 	certDir                               string
+	liveAddr                              string
 	metricsAddr                           string
+	metricsSecure                         bool
+	metricsCertDir                        string
+	metricsCertName                       string
+	metricsKeyName                        string
 	healthzAddr                           string
 	controllerClass                       string
 	enableLeaderElection                  bool
@@ -135,12 +141,19 @@ var rootCmd = &cobra.Command{
 			// dont cache any configmaps
 			clientCacheDisableFor = append(clientCacheDisableFor, &v1.ConfigMap{})
 		}
-
-		mgrOpts := ctrl.Options{
+		metricsOpts := server.Options{
+			BindAddress: metricsAddr,
+	 	}
+	 	if metricsSecure {
+			metricsOpts.SecureServing = true
+			metricsOpts.CertDir = metricsCertDir
+			metricsOpts.CertName = metricsCertName
+			metricsOpts.KeyName = metricsKeyName
+		}
+	 	mgrOpts := ctrl.Options{
 			Scheme: scheme,
-			Metrics: server.Options{
-				BindAddress: metricsAddr,
-			},
+			Metrics: metricsOpts,
+			HealthProbeBindAddress: liveAddr,
 			WebhookServer: webhook.NewServer(webhook.Options{
 				Port: 9443,
 			}),
@@ -287,6 +300,11 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
+		if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+			setupLog.Error(err, "unable to add controller healthz check")
+			os.Exit(1)
+		}
+
 		fs := feature.Features()
 		for _, f := range fs {
 			if f.Initialize == nil {
@@ -308,6 +326,10 @@ func Execute() {
 
 func init() {
 	rootCmd.Flags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	rootCmd.Flags().BoolVar(&metricsSecure, "metrics-secure", false, "Enable HTTPS for the metrics endpoint.")
+	rootCmd.Flags().StringVar(&metricsCertDir, "metrics-cert-dir", "", "Directory containing TLS certificate and key for metrics endpoint.")
+	rootCmd.Flags().StringVar(&metricsCertName, "metrics-cert-name", "tls.crt", "TLS certificate filename for metrics endpoint.")
+	rootCmd.Flags().StringVar(&metricsKeyName, "metrics-key-name", "tls.key", "TLS key filename for metrics endpoint.")
 	rootCmd.Flags().StringVar(&controllerClass, "controller-class", "default", "The controller is instantiated with a specific controller name and filters ES based on this property")
 	rootCmd.Flags().BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
@@ -315,6 +337,7 @@ func init() {
 	rootCmd.Flags().IntVar(&concurrent, "concurrent", 1, "The number of concurrent reconciles.")
 	rootCmd.Flags().Float32Var(&clientQPS, "client-qps", 50, "QPS configuration to be passed to rest.Client")
 	rootCmd.Flags().IntVar(&clientBurst, "client-burst", 100, "Maximum Burst allowed to be passed to rest.Client")
+	rootCmd.Flags().StringVar(&liveAddr, "live-addr", ":8082", "The address the live endpoint binds to.")
 	rootCmd.Flags().StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
 	rootCmd.Flags().StringVar(&zapTimeEncoding, "zap-time-encoding", "epoch", "Zap time encoding (one of 'epoch', 'millis', 'nano', 'iso8601', 'rfc3339' or 'rfc3339nano')")
 	rootCmd.Flags().StringVar(&namespace, "namespace", "", "watch external secrets scoped in the provided namespace only. ClusterSecretStore can be used but only work if it doesn't reference resources from other namespaces")

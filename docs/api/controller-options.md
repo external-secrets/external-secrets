@@ -31,6 +31,7 @@ The core controller is invoked without a subcommand and can be configured with t
 | `--help`                                      |          |         | help for external-secrets                                                                                                                                          |
 | `--loglevel`                                  | string   | info    | loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal                                                                                            |
 | `--zap-time-encoding`                         | string   | epoch   | loglevel to use, one of: epoch, millis, nano, iso8601, rfc3339, rfc3339nano                                                                                        |
+| `--live-addr`                                 | string   | :8082   | The address the live endpoint binds to                                                                                                                             |
 | `--metrics-addr`                              | string   | :8080   | The address the metric endpoint binds to.                                                                                                                          |
 | `--namespace`                                 | string   | -       | watch external secrets scoped in the provided namespace only. ClusterSecretStore can be used but only work if it doesn't reference resources from other namespaces |
 | `--store-requeue-interval`                    | duration | 5m0s    | Default Time duration between reconciling (Cluster)SecretStores                                                                                                    |
@@ -38,13 +39,13 @@ The core controller is invoked without a subcommand and can be configured with t
 ## Cert Controller Flags
 
 | Name                       | Type     | Default                  | Descripton                                                                                                            |
-| -------------------------- | -------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+|----------------------------|----------|--------------------------|-----------------------------------------------------------------------------------------------------------------------|
 | `--crd-requeue-interval`   | duration | 5m0s                     | Time duration between reconciling CRDs for new certs                                                                  |
 | `--enable-leader-election` | boolean  | false                    | Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager. |
 | `--healthz-addr`           | string   | :8081                    | The address the health endpoint binds to.                                                                             |
 | `--help`                   |          |                          | help for certcontroller                                                                                               |
 | `--loglevel`               | string   | info                     | loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal                                               |
-| `--zap-time-encoding`                                  | string   | epoch                          | time encoding to use, one of: epoch, millis, nano, iso8601, rfc3339, rfc3339nano                                                                                            |
+| `--zap-time-encoding`      | string   | epoch                    | time encoding to use, one of: epoch, millis, nano, iso8601, rfc3339, rfc3339nano                                      |
 | `--metrics-addr`           | string   | :8080                    | The address the metric endpoint binds to.                                                                             |
 | `--secret-name`            | string   | external-secrets-webhook | Secret to store certs for webhook                                                                                     |
 | `--secret-namespace`       | string   | default                  | namespace of the secret to store certs                                                                                |

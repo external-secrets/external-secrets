@@ -19,19 +19,17 @@ jobs:
       branches: ${{ steps.branches.outputs.branches }}
 
     steps:
-      - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+      - uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
         with:
           egress-policy: audit
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.ref }}
       - name: set branches output
         id: branches
-        # outputs the second to most recent `release-x.y` branches plus `main` as JSON
-        run: |
-          echo "branches=$(git branch -a | grep -E "remotes/origin/(main|release-)" | sed 's/  remotes\/origin\///' | sort -V | tail -2 | head -1 | jq -R -s -c 'split("\n") | map(select(length > 0)) | . + ["main"]')" >> $GITHUB_OUTPUT
+        run: echo "branches=[\"main\"]" >> $GITHUB_OUTPUT
 
   update-dependencies:
     permissions:
@@ -42,7 +40,7 @@ jobs:
       matrix:
         branch: ${{ fromJson(needs.branches.outputs.branches) }}
     steps:
-    - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+    - uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
       with:
         egress-policy: audit
     - name: Setup Go
@@ -58,7 +56,7 @@ jobs:
       with:
         app_id: ${{ secrets.APP_ID }}
         private_key: ${{ secrets.PRIVATE_KEY }}
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         token: ${{ steps.generate_token.outputs.token }}
         ref: ${{ matrix.branch }}

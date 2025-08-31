@@ -24,10 +24,13 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"maps"
 	"net"
 	"net/url"
 	"reflect"
 	"regexp"
+	"slices"
+	"sort"
 	"strconv"
 	"strings"
 	tpl "text/template"
@@ -36,6 +39,7 @@ import (
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -55,8 +59,10 @@ const (
 )
 
 var (
-	errKeyNotFound = errors.New("key not found")
-	unicodeRegex   = regexp.MustCompile(`_U([0-9a-fA-F]{4,5})_`)
+	errAddressesNotReady      = errors.New("addresses not ready")
+	errEndpointSlicesNotReady = errors.New("endpointSlice objects not ready")
+	errKeyNotFound            = errors.New("key not found")
+	unicodeRegex              = regexp.MustCompile(`_U([0-9a-fA-F]{4,5})_`)
 )
 
 // JSONMarshal takes an interface and returns a new escaped and encoded byte slice.
@@ -80,20 +86,109 @@ func RewriteMap(operations []esv1.ExternalSecretRewrite, in map[string][]byte) (
 	out := in
 	var err error
 	for i, op := range operations {
-		if op.Regexp != nil {
-			out, err = RewriteRegexp(*op.Regexp, out)
-			if err != nil {
-				return nil, fmt.Errorf("failed rewriting regexp operation[%v]: %w", i, err)
-			}
-		}
-		if op.Transform != nil {
-			out, err = RewriteTransform(*op.Transform, out)
-			if err != nil {
-				return nil, fmt.Errorf("failed rewriting transform operation[%v]: %w", i, err)
-			}
+		out, err = handleRewriteOperation(op, out)
+		if err != nil {
+			return nil, fmt.Errorf("failed rewrite operation[%v]: %w", i, err)
 		}
 	}
 	return out, nil
+}
+
+func handleRewriteOperation(op esv1.ExternalSecretRewrite, in map[string][]byte) (map[string][]byte, error) {
+	switch {
+	case op.Merge != nil:
+		return RewriteMerge(*op.Merge, in)
+	case op.Regexp != nil:
+		return RewriteRegexp(*op.Regexp, in)
+	case op.Transform != nil:
+		return RewriteTransform(*op.Transform, in)
+	default:
+		return in, nil
+	}
+}
+
+// RewriteMerge merges input values according to the operation's strategy and conflict policy.
+func RewriteMerge(operation esv1.ExternalSecretRewriteMerge, in map[string][]byte) (map[string][]byte, error) {
+	var out map[string][]byte
+
+	mergedMap, conflicts, err := merge(operation, in)
+	if err != nil {
+		return nil, err
+	}
+
+	if operation.ConflictPolicy != esv1.ExternalSecretRewriteMergeConflictPolicyIgnore {
+		if len(conflicts) > 0 {
+			return nil, fmt.Errorf("merge failed with conflicts: %v", strings.Join(conflicts, ", "))
+		}
+	}
+
+	switch operation.Strategy {
+	case esv1.ExternalSecretRewriteMergeStrategyExtract, "":
+		out = make(map[string][]byte)
+		for k, v := range mergedMap {
+			byteValue, err := GetByteValue(v)
+			if err != nil {
+				return nil, fmt.Errorf("merge failed with failed to convert value to []byte: %w", err)
+			}
+			out[k] = byteValue
+		}
+	case esv1.ExternalSecretRewriteMergeStrategyJSON:
+		out = make(map[string][]byte)
+		if operation.Into == "" {
+			return nil, fmt.Errorf("merge failed with missing 'into' field")
+		}
+		mergedBytes, err := JSONMarshal(mergedMap)
+		if err != nil {
+			return nil, fmt.Errorf("merge failed with failed to marshal merged map: %w", err)
+		}
+		maps.Copy(out, in)
+		out[operation.Into] = mergedBytes
+	}
+
+	return out, nil
+}
+
+// merge merges the input maps and returns the merged map and a list of conflicting keys.
+func merge(operation esv1.ExternalSecretRewriteMerge, in map[string][]byte) (map[string]any, []string, error) {
+	mergedMap := make(map[string]any)
+	conflicts := make([]string, 0)
+
+	// sort keys with priority keys at the end in their specified order
+	keys := sortKeysWithPriority(operation, in)
+
+	for _, key := range keys {
+		value, exists := in[key]
+		if !exists {
+			return nil, nil, fmt.Errorf("merge failed with key %q not found in input map", key)
+		}
+		var jsonMap map[string]any
+		if err := json.Unmarshal(value, &jsonMap); err != nil {
+			return nil, nil, fmt.Errorf("merge failed with failed to unmarshal JSON: %w", err)
+		}
+
+		for k, v := range jsonMap {
+			if _, conflict := mergedMap[k]; conflict {
+				conflicts = append(conflicts, k)
+			}
+			mergedMap[k] = v
+		}
+	}
+
+	return mergedMap, conflicts, nil
+}
+
+// sortKeysWithPriority sorts keys with priority keys at the end in their specified order.
+// Non-priority keys are sorted alphabetically and placed before priority keys.
+func sortKeysWithPriority(operation esv1.ExternalSecretRewriteMerge, in map[string][]byte) []string {
+	keys := make([]string, 0, len(in))
+	for k := range in {
+		if !slices.Contains(operation.Priority, k) {
+			keys = append(keys, k)
+		}
+	}
+	sort.Strings(keys)
+	keys = append(keys, operation.Priority...)
+	return keys
 }
 
 // RewriteRegexp rewrites a single Regexp Rewrite Operation.
@@ -101,7 +196,7 @@ func RewriteRegexp(operation esv1.ExternalSecretRewriteRegexp, in map[string][]b
 	out := make(map[string][]byte)
 	re, err := regexp.Compile(operation.Source)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("regexp failed with failed to compile: %w", err)
 	}
 	for key, value := range in {
 		newKey := re.ReplaceAllString(key, operation.Target)
@@ -120,7 +215,7 @@ func RewriteTransform(operation esv1.ExternalSecretRewriteTransform, in map[stri
 
 		result, err := transform(operation.Template, data)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("transform failed with failed to transform key: %w", err)
 		}
 
 		newKey := string(result)
@@ -735,4 +830,30 @@ func getCertFromConfigMap(ctx context.Context, namespace string, c client.Client
 	}
 
 	return []byte(val), nil
+}
+
+func CheckEndpointSlicesReady(ctx context.Context, c client.Client, svcName, svcNamespace string) error {
+	var sliceList discoveryv1.EndpointSliceList
+	err := c.List(ctx, &sliceList,
+		client.InNamespace(svcNamespace),
+		client.MatchingLabels{"kubernetes.io/service-name": svcName},
+	)
+	if err != nil {
+		return err
+	}
+	if len(sliceList.Items) == 0 {
+		return errEndpointSlicesNotReady
+	}
+	readyAddresses := 0
+	for _, slice := range sliceList.Items {
+		for _, ep := range slice.Endpoints {
+			if ep.Conditions.Ready != nil && *ep.Conditions.Ready {
+				readyAddresses += len(ep.Addresses)
+			}
+		}
+	}
+	if readyAddresses == 0 {
+		return errAddressesNotReady
+	}
+	return nil
 }

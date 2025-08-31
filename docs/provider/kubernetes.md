@@ -2,7 +2,7 @@ External Secrets Operator allows to retrieve secrets from a Kubernetes Cluster -
 
 A `SecretStore` points to a **specific namespace** in the target Kubernetes Cluster. You are able to retrieve all secrets from that particular namespace given you have the correct set of RBAC permissions.
 
-The `SecretStore` reconciler checks if you have read access for secrets in that namespace using `SelfSubjectRulesReview`. See below on how to set that up properly.
+The `SecretStore` reconciler checks if you have read access for secrets in that namespace using `SelfSubjectRulesReview` and will fallback to `SelfSubjectAccessReview` when that fails. See below on how to set that up properly.
 
 ### External Secret Spec
 
@@ -377,7 +377,7 @@ spec:
           property: best-pokemon
 ```
 
-To utilize the PushSecret feature effectively, the referenced `SecretStore` requires specific permissions on the target cluster. In particular it requires `create`, `read`, `update` and `delete` permissions on the Secret resource:
+To use the PushSecret feature effectively, the referenced `SecretStore` requires specific permissions on the target cluster. In particular, it requires `create`, `read`, `update` and `delete` permissions on the Secret resource:
 
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -434,7 +434,7 @@ spec:
 
 The Kubernetes provider is able to manage both `metadata.labels` and `metadata.annotations` of the secret on the target cluster.
 
-Users have different preferences on what metadata should be pushed. ESO by default pushes both labels and annotations to the target secret and merges them with the existing metadata.
+Users have different preferences on what metadata should be pushed. ESO, by default, pushes both labels and annotations to the target secret and merges them with the existing metadata.
 
 You can specify the metadata in the `spec.template.metadata` section if you want to decouple it from the existing secret.
 
@@ -461,7 +461,7 @@ spec:
 {% endraw %}
 ```
 
-Further, you can leverage the `.data[].metadata` section to fine-tine the behaviour of the metadata merge strategy. The metadata section is a versioned custom-resource _alike_ structure, the behaviour is detailed below.
+Further, you can leverage the `.data[].metadata` section to fine-tine the behavior of the metadata merge strategy. The metadata section is a versioned custom-resource _similar_ structure, the behavior is detailed below.
 
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
@@ -490,18 +490,17 @@ spec:
 
 ```
 
-
 | Field             | Type                                 | Description                                                                                                                                                                                                                                                                                                                                       |
-| ----------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|-------------------|--------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | sourceMergePolicy | string: `Merge`, `Replace`           | The sourceMergePolicy defines how the metadata of the source secret is merged. `Merge` will merge the metadata of the source secret with the  metadata defined in `.data[].metadata`. With `Replace`, the metadata in `.data[].metadata` replaces the source metadata.                                                                            |
 | targetMergePolicy | string: `Merge`, `Replace`, `Ignore` | The targetMergePolicy defines how ESO merges the metadata produced by the sourceMergePolicy with the target secret. With `Merge`, the source metadata is merged with the existing metadata from the target secret. `Replace` will replace the target metadata with the metadata defined in the source. `Ignore` leaves the target metadata as is. |
 | labels            | `map[string]string`                  | The labels.                                                                                                                                                                                                                                                                                                                                       |
 | annotations       | `map[string]string`                  | The annotations.                                                                                                                                                                                                                                                                                                                                  |
+| remoteNamespace   | string                               | The Namespace in which the remote Secret will created in if defined.                                                                                                                                                                                                                                                                              |
 
 #### Implementation Considerations
 
-When utilizing the PushSecret feature and configuring the permissions for the SecretStore, consider the following:
-
+When using the PushSecret feature and configuring the permissions for the SecretStore, consider the following:
 
 * **RBAC Configuration**: Ensure that the Role-Based Access Control (RBAC) configuration for the SecretStore grants the appropriate permissions for creating, reading, and updating resources in the target cluster.
 
