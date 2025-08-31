@@ -56,18 +56,18 @@ func TestFullPemToPkcs12(t *testing.T) {
 	}
 }
 
-func TestCertsToPkcs12(t *testing.T) {
+func TestPemTruststoreToPKCS12(t *testing.T) {
 	// Mock the random generator, to guarantee to always generate the same output
 	gopkcs12.Modern = gopkcs12.Modern.WithRand(MockRandomReader{})
 
-	out, err := certsToPkcs12Pass(certData+"\n"+otherCert, "password")
+	out, err := pemTruststoreToPKCS12Pass(certData+"\n"+otherCert, "password")
 	if err != nil {
-		t.Errorf("certsToPkcs12Pass() got error '%v', expected none", err)
+		t.Errorf("pemTruststoreToPKCS12Pass() got error '%v', expected none", err)
 		return
 	}
 
 	if out != expectedPfxCAs {
-		t.Errorf("certsToPkcs12Pass() got '%s', expected '%s'", out, expectedPfxCAs)
+		t.Errorf("pemTruststoreToPKCS12Pass() got '%s', expected '%s'", out, expectedPfxCAs)
 	}
 }
 

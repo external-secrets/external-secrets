@@ -156,11 +156,11 @@ func certsKeyToPkcs12(cert *x509.Certificate, key string, caCerts []*x509.Certif
 	return base64.StdEncoding.EncodeToString(pfx), nil
 }
 
-func certsToPkcs12(cert string) (string, error) {
-	return certsToPkcs12Pass(cert, "")
+func pemTruststoreToPKCS12(cert string) (string, error) {
+	return pemTruststoreToPKCS12Pass(cert, "")
 }
 
-func certsToPkcs12Pass(cert, password string) (string, error) {
+func pemTruststoreToPKCS12Pass(cert, password string) (string, error) {
 	caCerts, err := parseCaCerts([]byte(cert))
 	if err != nil {
 		return "", err
