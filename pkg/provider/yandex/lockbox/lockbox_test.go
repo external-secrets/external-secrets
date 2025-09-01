@@ -57,7 +57,7 @@ func TestNewClient(t *testing.T) {
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				YandexLockbox: &esv1.YandexLockboxProvider{
-					Auth: esv1.YandexLockboxAuth{
+					Auth: esv1.YandexAuth{
 						AuthorizedKey: esmeta.SecretKeySelector{
 							Key:  authorizedKeySecretKey,
 							Name: authorizedKeySecretName,
@@ -80,7 +80,7 @@ func TestNewClient(t *testing.T) {
 
 	const caCertificateSecretName = "caCertificateSecretName"
 	const caCertificateSecretKey = "caCertificateSecretKey"
-	store.Spec.Provider.YandexLockbox.CAProvider = &esv1.YandexLockboxCAProvider{
+	store.Spec.Provider.YandexLockbox.CAProvider = &esv1.YandexCAProvider{
 		Certificate: esmeta.SecretKeySelector{
 			Key:  caCertificateSecretKey,
 			Name: caCertificateSecretName,
@@ -620,7 +620,7 @@ func newYandexLockboxSecretStore(apiEndpoint, namespace, authorizedKeySecretName
 			Provider: &esv1.SecretStoreProvider{
 				YandexLockbox: &esv1.YandexLockboxProvider{
 					APIEndpoint: apiEndpoint,
-					Auth: esv1.YandexLockboxAuth{
+					Auth: esv1.YandexAuth{
 						AuthorizedKey: esmeta.SecretKeySelector{
 							Name: authorizedKeySecretName,
 							Key:  authorizedKeySecretKey,
