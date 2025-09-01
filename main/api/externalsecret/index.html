@@ -4234,6 +4234,10 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 <span class="w">      </span><span class="nt">metadata</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">annotations</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
 <span class="w">        </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+<span class="w">        </span><span class="c1"># The finalizers will be added to the Secret.</span>
+<span class="w">        </span><span class="c1"># It is expected that finalizers will be deleted with custom cleanup functionality.</span>
+<span class="w">        </span><span class="c1"># This is required when another chart depends on the Secret, and it is needed to prevent the Secret from being deleted too early.</span>
+<span class="w">        </span><span class="nt">finalizers</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
 
 <span class="w">      </span><span class="c1"># Use inline templates to construct your desired config file that contains your secret</span>
 <span class="w">      </span><span class="nt">data</span><span class="p">:</span>
