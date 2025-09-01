@@ -83,7 +83,7 @@ type GCPWorkloadIdentityFederation struct {
 
 	// audience is the Secure Token Service (STS) audience which contains the resource name for the workload identity pool and the provider identifier in that pool.
 	// If specified, Audience found in the external account credential config will be overridden with the configured value.
-	// audience must be provided when serviceAccountRef is to be used.
+	// audience must be provided when serviceAccountRef or awsSecurityCredentials is configured.
 	// +kubebuilder:validation:Optional
 	Audience string `json:"audience,omitempty"`
 
@@ -101,7 +101,7 @@ type ConfigMapReference struct {
 	// +kubebuilder:validation:MaxLength:=253
 	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	// +kubebuilder:validation:Required
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 
 	// namespace in which the configmap exists. If empty, configmap will looked up in local namespace.
 	// +kubebuilder:validation:MinLength:=1
@@ -110,12 +110,12 @@ type ConfigMapReference struct {
 	// +kubebuilder:validation:Optional
 	Namespace string `json:"namespace,omitempty"`
 
-	// key name holding the external account credential config. If empty, a key in the configmap will be used.
+	// key name holding the external account credential config.
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=253
 	// +kubebuilder:validation:Pattern:=^[-._a-zA-Z0-9]+$
-	// +kubebuilder:validation:Optional
-	Key string `json:"key,omitempty"`
+	// +kubebuilder:validation:Required
+	Key string `json:"key"`
 }
 
 // AwsCredentialsConfig holds the region and the Secret reference which contains the AWS credentials.
@@ -123,10 +123,10 @@ type AwsCredentialsConfig struct {
 	// region is for configuring the AWS region to be used.
 	// +kubebuilder:validation:MinLength:=1
 	// +kubebuilder:validation:MaxLength:=50
-	// +kubebuilder:validation:Pattern:=`^[a-z]{2}-[a-z-]+-[0-9]+$`
+	// +kubebuilder:validation:Pattern:=`^[a-z0-9-]+$`
 	// +kubebuilder:example:="ap-south-1"
 	// +kubebuilder:validation:Required
-	Region string `json:"region,omitempty"`
+	Region string `json:"region"`
 
 	// awsCredentialsSecretRef is the reference to the secret which holds the AWS credentials.
 	// Secret should be created with below names for keys
@@ -134,7 +134,7 @@ type AwsCredentialsConfig struct {
 	// - aws_secret_access_key: Secret Access Key, which is used to authenticate requests made to AWS services.
 	// - aws_session_token: Session Token, is the short-lived token to authenticate requests made to AWS services.
 	// +kubebuilder:validation:Required
-	AwsCredentialsSecretRef *SecretReference `json:"awsCredentialsSecretRef,omitempty"`
+	AwsCredentialsSecretRef *SecretReference `json:"awsCredentialsSecretRef"`
 }
 
 // SecretReference holds the details of a secret.
@@ -144,7 +144,7 @@ type SecretReference struct {
 	// +kubebuilder:validation:MaxLength:=253
 	// +kubebuilder:validation:Pattern:=^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
 	// +kubebuilder:validation:Required
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 
 	// namespace in which the secret exists. If empty, secret will looked up in local namespace.
 	// +kubebuilder:validation:MinLength:=1

@@ -3793,7 +3793,7 @@ spec:
                                   description: |-
                                     audience is the Secure Token Service (STS) audience which contains the resource name for the workload identity pool and the provider identifier in that pool.
                                     If specified, Audience found in the external account credential config will be overridden with the configured value.
-                                    audience must be provided when serviceAccountRef is to be used.
+                                    audience must be provided when serviceAccountRef or awsSecurityCredentials is configured.
                                   type: string
                                 awsSecurityCredentials:
                                   description: |-
@@ -3828,7 +3828,7 @@ spec:
                                       example: ap-south-1
                                       maxLength: 50
                                       minLength: 1
-                                      pattern: ^[a-z]{2}-[a-z-]+-[0-9]+$
+                                      pattern: ^[a-z0-9-]+$
                                       type: string
                                   required:
                                     - awsCredentialsSecretRef
@@ -3841,7 +3841,7 @@ spec:
                                     serviceAccountRef must be used by providing operators service account details.
                                   properties:
                                     key:
-                                      description: key name holding the external account credential config. If empty, a key in the configmap will be used.
+                                      description: key name holding the external account credential config.
                                       maxLength: 253
                                       minLength: 1
                                       pattern: ^[-._a-zA-Z0-9]+$
@@ -3859,6 +3859,7 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   required:
+                                    - key
                                     - name
                                   type: object
                                 externalTokenEndpoint:
@@ -14725,7 +14726,7 @@ spec:
                                   description: |-
                                     audience is the Secure Token Service (STS) audience which contains the resource name for the workload identity pool and the provider identifier in that pool.
                                     If specified, Audience found in the external account credential config will be overridden with the configured value.
-                                    audience must be provided when serviceAccountRef is to be used.
+                                    audience must be provided when serviceAccountRef or awsSecurityCredentials is configured.
                                   type: string
                                 awsSecurityCredentials:
                                   description: |-
@@ -14760,7 +14761,7 @@ spec:
                                       example: ap-south-1
                                       maxLength: 50
                                       minLength: 1
-                                      pattern: ^[a-z]{2}-[a-z-]+-[0-9]+$
+                                      pattern: ^[a-z0-9-]+$
                                       type: string
                                   required:
                                     - awsCredentialsSecretRef
@@ -14773,7 +14774,7 @@ spec:
                                     serviceAccountRef must be used by providing operators service account details.
                                   properties:
                                     key:
-                                      description: key name holding the external account credential config. If empty, a key in the configmap will be used.
+                                      description: key name holding the external account credential config.
                                       maxLength: 253
                                       minLength: 1
                                       pattern: ^[-._a-zA-Z0-9]+$
@@ -14791,6 +14792,7 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   required:
+                                    - key
                                     - name
                                   type: object
                                 externalTokenEndpoint:
@@ -22791,7 +22793,7 @@ spec:
                                   description: |-
                                     audience is the Secure Token Service (STS) audience which contains the resource name for the workload identity pool and the provider identifier in that pool.
                                     If specified, Audience found in the external account credential config will be overridden with the configured value.
-                                    audience must be provided when serviceAccountRef is to be used.
+                                    audience must be provided when serviceAccountRef or awsSecurityCredentials is configured.
                                   type: string
                                 awsSecurityCredentials:
                                   description: |-
@@ -22826,7 +22828,7 @@ spec:
                                       example: ap-south-1
                                       maxLength: 50
                                       minLength: 1
-                                      pattern: ^[a-z]{2}-[a-z-]+-[0-9]+$
+                                      pattern: ^[a-z0-9-]+$
                                       type: string
                                   required:
                                     - awsCredentialsSecretRef
@@ -22839,7 +22841,7 @@ spec:
                                     serviceAccountRef must be used by providing operators service account details.
                                   properties:
                                     key:
-                                      description: key name holding the external account credential config. If empty, a key in the configmap will be used.
+                                      description: key name holding the external account credential config.
                                       maxLength: 253
                                       minLength: 1
                                       pattern: ^[-._a-zA-Z0-9]+$
@@ -22857,6 +22859,7 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   required:
+                                    - key
                                     - name
                                   type: object
                                 externalTokenEndpoint:
@@ -24757,7 +24760,7 @@ spec:
                           description: |-
                             audience is the Secure Token Service (STS) audience which contains the resource name for the workload identity pool and the provider identifier in that pool.
                             If specified, Audience found in the external account credential config will be overridden with the configured value.
-                            audience must be provided when serviceAccountRef is to be used.
+                            audience must be provided when serviceAccountRef or awsSecurityCredentials is configured.
                           type: string
                         awsSecurityCredentials:
                           description: |-
@@ -24792,7 +24795,7 @@ spec:
                               example: ap-south-1
                               maxLength: 50
                               minLength: 1
-                              pattern: ^[a-z]{2}-[a-z-]+-[0-9]+$
+                              pattern: ^[a-z0-9-]+$
                               type: string
                           required:
                             - awsCredentialsSecretRef
@@ -24805,7 +24808,7 @@ spec:
                             serviceAccountRef must be used by providing operators service account details.
                           properties:
                             key:
-                              description: key name holding the external account credential config. If empty, a key in the configmap will be used.
+                              description: key name holding the external account credential config.
                               maxLength: 253
                               minLength: 1
                               pattern: ^[-._a-zA-Z0-9]+$
@@ -24823,6 +24826,7 @@ spec:
                               pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                               type: string
                           required:
+                            - key
                             - name
                           type: object
                         externalTokenEndpoint:

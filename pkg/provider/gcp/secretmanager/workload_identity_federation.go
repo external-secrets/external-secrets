@@ -181,28 +181,23 @@ func (w *workloadIdentityFederation) readCredConfig(ctx context.Context) (*exter
 	if w.isClusterKind && w.config.CredConfig.Namespace != "" {
 		key.Namespace = w.config.CredConfig.Namespace
 	}
+
 	cm := &corev1.ConfigMap{}
 	if err := w.kubeClient.Get(ctx, key, cm); err != nil {
 		return nil, fmt.Errorf("failed to fetch external acccount credentials configmap %q: %w", key, err)
 	}
 
-	configMapKey := w.config.CredConfig.Key
-	if w.config.CredConfig.Key == "" {
-		if len(cm.Data) == 0 {
-			return nil, fmt.Errorf("no external acccount credentials found in %q configmap", w.config.CredConfig.Name)
-		}
-		for configMapKey = range cm.Data {
-			break
-		}
-	}
-	credJSON, ok := cm.Data[configMapKey]
+	credKeyName := w.config.CredConfig.Key
+	credJSON, ok := cm.Data[credKeyName]
 	if !ok {
-		return nil, fmt.Errorf("missing key %q in configmap %q", configMapKey, w.config.CredConfig.Name)
+		return nil, fmt.Errorf("missing key %q in configmap %q", credKeyName, w.config.CredConfig.Name)
 	}
-
+	if credJSON == "" {
+		return nil, fmt.Errorf("key %q in configmap %q has empty value", credKeyName, w.config.CredConfig.Name)
+	}
 	credFile := &credentialsFile{}
 	if err := json.Unmarshal([]byte(credJSON), credFile); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal external acccount config in %q: %w", w.config.CredConfig.Name, err)
 	}
 
 	return w.generateExternalAccountConfig(ctx, credFile)

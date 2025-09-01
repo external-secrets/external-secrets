@@ -189,11 +189,12 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			expectTokenSource: true,
 		},
 		{
-			name: "cred configmap configured without a key",
+			name: "cred configmap configured non-existent key",
 			wifConfig: &esv1.GCPWorkloadIdentityFederation{
 				CredConfig: &esv1.ConfigMapReference{
 					Name:      testConfigMapName,
 					Namespace: testNamespace,
+					Key:       testConfigMapKey,
 				},
 			},
 			kubeObjects: []client.Object{
@@ -203,11 +204,11 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 						Namespace: testNamespace,
 					},
 					Data: map[string]string{
-						testConfigMapKey: createValidK8sExternalAccountConfig(testAudience),
+						"incorrect": createValidK8sExternalAccountConfig(testAudience),
 					},
 				},
 			},
-			expectTokenSource: true,
+			expectError: `missing key "config.json" in configmap "external-account-config"`,
 		},
 		{
 			name: "cred configmap configured with wrong key name",
@@ -237,6 +238,7 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 				CredConfig: &esv1.ConfigMapReference{
 					Name:      testConfigMapName,
 					Namespace: testNamespace,
+					Key:       testConfigMapKey,
 				},
 			},
 			kubeObjects: []client.Object{
@@ -339,7 +341,7 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 					},
 				},
 			},
-			expectError: "invalid character 'i' looking for beginning of value",
+			expectError: "failed to unmarshal external acccount config in \"external-account-config\": invalid character 'i' looking for beginning of value",
 		},
 		{
 			name: "successful with service account reference",
@@ -792,11 +794,12 @@ func TestReadCredConfig(t *testing.T) {
 		expectError string
 	}{
 		{
-			name: "cred configmap key is not configured",
+			name: "cred configmap has empty data",
 			config: &esv1.GCPWorkloadIdentityFederation{
 				CredConfig: &esv1.ConfigMapReference{
 					Name:      testConfigMapName,
 					Namespace: testNamespace,
+					Key:       testConfigMapKey,
 				},
 			},
 			kubeObjects: []client.Object{
@@ -806,30 +809,11 @@ func TestReadCredConfig(t *testing.T) {
 						Namespace: testNamespace,
 					},
 					Data: map[string]string{
-						"auto-detected-key": createValidK8sExternalAccountConfig(testAudience),
+						testConfigMapKey: "",
 					},
 				},
 			},
-			expectError: "",
-		},
-		{
-			name: "cred configmap has empty data",
-			config: &esv1.GCPWorkloadIdentityFederation{
-				CredConfig: &esv1.ConfigMapReference{
-					Name:      testConfigMapName,
-					Namespace: testNamespace,
-				},
-			},
-			kubeObjects: []client.Object{
-				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testConfigMapName,
-						Namespace: testNamespace,
-					},
-					Data: map[string]string{},
-				},
-			},
-			expectError: `no external acccount credentials found in "external-account-config" configmap`,
+			expectError: `key "config.json" in configmap "external-account-config" has empty value`,
 		},
 	}
 

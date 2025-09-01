@@ -267,6 +267,8 @@ spec:
           name: string
           namespace: string
           type: "Secret" # "Secret", "ConfigMap"
+        checkAndSet:
+          required: true
         forwardInconsistent: true
         headers: {}
         namespace: string

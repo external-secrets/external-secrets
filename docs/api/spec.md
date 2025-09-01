@@ -2645,7 +2645,7 @@ string
 </em>
 </td>
 <td>
-<p>key name holding the external account credential config. If empty, a key in the configmap will be used.</p>
+<p>key name holding the external account credential config.</p>
 </td>
 </tr>
 </tbody>
@@ -5178,7 +5178,7 @@ string
 <td>
 <p>audience is the Secure Token Service (STS) audience which contains the resource name for the workload identity pool and the provider identifier in that pool.
 If specified, Audience found in the external account credential config will be overridden with the configured value.
-audience must be provided when serviceAccountRef is to be used.</p>
+audience must be provided when serviceAccountRef or awsSecurityCredentials is configured.</p>
 </td>
 </tr>
 <tr>
