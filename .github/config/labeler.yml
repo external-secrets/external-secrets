@@ -1,0 +1,15 @@
+# see https://github.com/actions/labeler?tab=readme-ov-file#match-object to configure correctly
+kind/dependency:
+- any:
+  - head-branch: 'dependencies/*'
+  - head-branch: 'dependabot/*'
+  - changed-files:
+    - any-glob-to-any-file: ['go.mod', 'go.sum']
+component/github-actions:
+- any:
+  - changed-files:
+    - any-glob-to-any-file: ['.github/**']
+kind/documentation:
+- any:
+  - changed-files:
+    - any-glob-to-any-file: ['docs/**', 'examples/**']

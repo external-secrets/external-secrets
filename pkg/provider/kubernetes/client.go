@@ -151,6 +151,9 @@ func (c *Client) mergePushSecretData(remoteRef esv1.PushSecretData, remoteSecret
 	}
 	remoteSecret.ObjectMeta.Labels = targetLabels
 	remoteSecret.ObjectMeta.Annotations = targetAnnotations
+	if pushMeta != nil && pushMeta.Spec.RemoteNamespace != "" {
+		remoteSecret.ObjectMeta.Namespace = pushMeta.Spec.RemoteNamespace
+	}
 
 	// case 1: push the whole secret
 	if remoteRef.GetProperty() == "" {

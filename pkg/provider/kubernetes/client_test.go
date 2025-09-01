@@ -1353,6 +1353,45 @@ func TestPushSecret(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "create new secret with remote namespace",
+			fields: fields{
+				Client: &fakeClient{
+					t:         t,
+					secretMap: map[string]*v1.Secret{},
+				},
+			},
+			secret: &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mysec",
+					Namespace: "source-namespace",
+				},
+				Data: map[string][]byte{secretKey: []byte("bar")},
+			},
+			data: testingfake.PushSecretData{
+				SecretKey: secretKey,
+				RemoteKey: "mysec",
+				Property:  "secret",
+				Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1", "kind": "PushSecretMetadata", "spec": {"remoteNamespace": "target-namespace"}}`),
+				},
+			},
+			wantErr: false,
+			wantSecretMap: map[string]*v1.Secret{
+				"mysec": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "mysec",
+						Namespace:   "target-namespace",
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
+					},
+					Data: map[string][]byte{
+						"secret": []byte(`bar`),
+					},
+					Type: v1.SecretTypeOpaque,
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

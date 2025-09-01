@@ -26,8 +26,9 @@ type PushSecretMetadataSpec struct {
 	TargetMergePolicy targetMergePolicy `json:"targetMergePolicy,omitempty"`
 	SourceMergePolicy sourceMergePolicy `json:"sourceMergePolicy,omitempty"`
 
-	Labels      map[string]string `json:"labels,omitempty"`
-	Annotations map[string]string `json:"annotations,omitempty"`
+	Labels          map[string]string `json:"labels,omitempty"`
+	Annotations     map[string]string `json:"annotations,omitempty"`
+	RemoteNamespace string            `json:"remoteNamespace,omitempty"`
 }
 
 type targetMergePolicy string
