@@ -205,10 +205,22 @@ func (c *client) getCredsFromIRSAToken(ctx context.Context, tokenFile, region st
 
 	// let's fetch the namespace and serviceaccount from parsed jwt token
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		k8s, _ := claims["kubernetes.io"].(map[string]any)
-		ns, _ = k8s["namespace"].(string)
-		saMap, _ := k8s["serviceaccount"].(map[string]any)
-		sa, _ = saMap["name"].(string)
+		k8s, ok := claims["kubernetes.io"].(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf(errIrsaTokenNotValidJWT, tokenFile, err)
+		}
+		ns, ok = k8s["namespace"].(string)
+		if !ok {
+			return nil, fmt.Errorf(errIrsaTokenNotValidJWT, tokenFile, err)
+		}
+		saMap, ok := k8s["serviceaccount"].(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf(errIrsaTokenNotValidJWT, tokenFile, err)
+		}
+		sa, ok = saMap["name"].(string)
+		if !ok {
+			return nil, fmt.Errorf(errIrsaTokenNotValidJWT, tokenFile, err)
+		}
 	} else {
 		return nil, fmt.Errorf(errPodInfoNotFoundOnToken, tokenFile, err)
 	}
