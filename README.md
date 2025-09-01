@@ -15,11 +15,19 @@ To ensure the long-term health of the project, we are temporarily pausing all of
 
 ✅ We will continue reviewing and merging community PRs.
 
+✅ No CI Changes at all - Linting, Testing, e2e testing are all happening on every single pull request.
+
+✅ Security updates, patches, etc. will still be merged to the project (to the `main` branch)
+
 ✅ Contributions will be available on the main branch.
 
 ❌ We will not provide support via GitHub Discussions, Slack, or issue comments.
 
 ❌ We will not publish any new releases (major, minor, or patch), including 0.19.x and 1.0.x.
+
+  - This means no binaries, helm charts, attestation, etc. for any versioned release. Main branch and binaries produced with `main` tag will keep being bumped.
+
+❌ We will not publish any new patch releases even if for security updates (e.g. no `0.19.x` due to a new CVE on dependencies).
 
 
 
