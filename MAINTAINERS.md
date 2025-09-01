@@ -8,7 +8,7 @@ describes governance guidelines and maintainer responsibilities.
 | Maintainer | GitHub ID                                       | Affiliation |
 | --------------- |-------------------------------------------------| ----------- |
 | Lucas Severo Alves | [knelasevero](https://github.com/knelasevero)   | No Affiliation |
-| Gustavo Fernandes de Carvalho | [gusfcarvalho](https://github.com/gusfcarvalho) | No Affiliation |
+| Gustavo Fernandes de Carvalho | [gusfcarvalho](https://github.com/gusfcarvalho) | [External Secrets Inc](https://externalsecrets.com) |
 | Moritz Johner | [moolen](https://github.com/moolen)             | [Form3Tech](https://github.com/form3tech) |
 | Idan Adar | [IdanAdar](https://github.com/IdanAdar)         | [IBM](https://www.github.com/IBM/) |
 | Gergely Brautigam | [Skarlso](https://github.com/Skarlso)           | [Kubermatic](https://www.github.com/kubermatic/) |

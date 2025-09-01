@@ -13,8 +13,8 @@ env:
   GO_VERSION: '1.24'
   GINKGO_VERSION: 'v2.8.0'
   DOCKER_BUILDX_VERSION: 'v0.4.2'
-  KIND_VERSION: 'v0.17.0'
-  KIND_IMAGE: 'kindest/node:v1.26.0'
+  KIND_VERSION: 'v0.30.0'
+  KIND_IMAGE: 'kindest/node:v1.33.4'
 
   # Common users. We can't run a step 'if secrets.GHCR_USERNAME != ""' but we can run
   # a step 'if env.GHCR_USERNAME' != ""', so we copy these to succinctly test whether
@@ -69,7 +69,7 @@ jobs:
         egress-policy: audit
 
     - name: Branch based PR checkout
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
     - name: Fetch History
       run: git fetch --prune --unshallow
@@ -91,7 +91,7 @@ jobs:
 
     # Check out merge commit
     - name: Fork based /ok-to-test checkout
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       with:
         ref: '${{ env.TARGET_SHA }}'
 

@@ -563,6 +563,10 @@ type ExternalSecretStatus struct {
 // +kubebuilder:printcolumn:name="Refresh Interval",type=string,JSONPath=`.spec.refreshInterval`
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:selectablefield:JSONPath=`.spec.secretStoreRef.name`
+// +kubebuilder:selectablefield:JSONPath=`.spec.secretStoreRef.kind`
+// +kubebuilder:selectablefield:JSONPath=`.spec.target.name`
+// +kubebuilder:selectablefield:JSONPath=`.spec.refreshInterval`
 type ExternalSecret struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
