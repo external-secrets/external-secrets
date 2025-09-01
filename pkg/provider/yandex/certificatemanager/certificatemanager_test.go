@@ -968,7 +968,7 @@ func TestGetSecretWithInvalidFetchingPolicy(t *testing.T) {
 			Provider: &esv1.SecretStoreProvider{
 				YandexCertificateManager: &esv1.YandexCertificateManagerProvider{
 					APIEndpoint: "",
-					Auth: esv1.YandexCertificateManagerAuth{
+					Auth: esv1.YandexAuth{
 						AuthorizedKey: esmeta.SecretKeySelector{
 							Name: authorizedKeySecretName,
 							Key:  authorizedKeySecretKey,
@@ -1035,7 +1035,7 @@ func newYandexCertificateManagerSecretStoreWithFetchByName(apiEndpoint, namespac
 			Provider: &esv1.SecretStoreProvider{
 				YandexCertificateManager: &esv1.YandexCertificateManagerProvider{
 					APIEndpoint: apiEndpoint,
-					Auth: esv1.YandexCertificateManagerAuth{
+					Auth: esv1.YandexAuth{
 						AuthorizedKey: esmeta.SecretKeySelector{
 							Name: authorizedKeySecretName,
 							Key:  authorizedKeySecretKey,
@@ -1061,7 +1061,7 @@ func newYandexCertificateManagerSecretStoreWithFetchByID(apiEndpoint, namespace,
 			Provider: &esv1.SecretStoreProvider{
 				YandexCertificateManager: &esv1.YandexCertificateManagerProvider{
 					APIEndpoint: apiEndpoint,
-					Auth: esv1.YandexCertificateManagerAuth{
+					Auth: esv1.YandexAuth{
 						AuthorizedKey: esmeta.SecretKeySelector{
 							Name: authorizedKeySecretName,
 							Key:  authorizedKeySecretKey,

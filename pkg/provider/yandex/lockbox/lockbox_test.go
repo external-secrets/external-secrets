@@ -942,7 +942,7 @@ func TestGetSecretWithInvalidFetchingPolicy(t *testing.T) {
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				YandexLockbox: &esv1.YandexLockboxProvider{
-					Auth: esv1.YandexLockboxAuth{
+					Auth: esv1.YandexAuth{
 						AuthorizedKey: esmeta.SecretKeySelector{
 							Name: authorizedKeySecretName,
 							Key:  authorizedKeySecretKey,
@@ -1012,7 +1012,7 @@ func newYandexLockboxSecretStoreWithFetchByName(apiEndpoint, namespace, authoriz
 			Provider: &esv1.SecretStoreProvider{
 				YandexLockbox: &esv1.YandexLockboxProvider{
 					APIEndpoint: apiEndpoint,
-					Auth: esv1.YandexLockboxAuth{
+					Auth: esv1.YandexAuth{
 						AuthorizedKey: esmeta.SecretKeySelector{
 							Name: authorizedKeySecretName,
 							Key:  authorizedKeySecretKey,
@@ -1038,7 +1038,7 @@ func newYandexLockboxSecretStoreWithFetchByID(apiEndpoint, namespace, authorized
 			Provider: &esv1.SecretStoreProvider{
 				YandexLockbox: &esv1.YandexLockboxProvider{
 					APIEndpoint: apiEndpoint,
-					Auth: esv1.YandexLockboxAuth{
+					Auth: esv1.YandexAuth{
 						AuthorizedKey: esmeta.SecretKeySelector{
 							Name: authorizedKeySecretName,
 							Key:  authorizedKeySecretKey,
