@@ -79,17 +79,21 @@ func (r *ClusterStoreReconciler) Reconcile(ctx context.Context, req ctrl.Request
 func (r *ClusterStoreReconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 	r.recorder = mgr.GetEventRecorderFor("cluster-secret-store")
 
-	return ctrl.NewControllerManagedBy(mgr).
-		WithOptions(opts).
-		For(&esapi.ClusterSecretStore{}).
-		Watches(
-			&esv1alpha1.PushSecret{},
-			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []ctrlreconcile.Request {
-				if r.PushSecretEnabled {
+	builder := ctrl.NewControllerManagedBy(mgr)
+
+	if r.PushSecretEnabled {
+		return builder.WithOptions(opts).
+			For(&esapi.ClusterSecretStore{}).
+			Watches(
+				&esv1alpha1.PushSecret{},
+				handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []ctrlreconcile.Request {
 					return findStoresForPushSecret(ctx, r.Client, obj, &esapi.ClusterSecretStoreList{})
-				}
-				return nil
-			}),
-		).
+				}),
+			).
+			Complete(r)
+	}
+
+	return builder.WithOptions(opts).
+		For(&esapi.ClusterSecretStore{}).
 		Complete(r)
 }

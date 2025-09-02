@@ -22,7 +22,6 @@ import (
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -68,15 +67,18 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 		return ctrl.Result{}, nil
 	}
 
-	finalizersUpdated, err := handleFinalizer(ctx, cl, ss, log, isPushSecretEnable)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	if finalizersUpdated {
-		log.V(1).Info("updating resource with finalizer changes")
-		if err := cl.Update(ctx, ss); err != nil {
+	// Manage finalizer if PushSecret feature is enabled.
+	if isPushSecretEnabled {
+		finalizersUpdated, err := handleFinalizer(ctx, cl, ss)
+		if err != nil {
 			return ctrl.Result{}, err
+		}
+
+		if finalizersUpdated {
+			log.V(1).Info("updating resource with finalizer changes")
+			if err := cl.Update(ctx, ss); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 	}
 
@@ -90,7 +92,7 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 	p := client.MergeFrom(ss.Copy())
 	defer func() {
 		err := cl.Status().Patch(ctx, ss, p)
-		if err != nil && !apierrors.IsNotFound(err) {
+		if err != nil {
 			log.Error(err, errPatchStatus)
 		}
 	}()
@@ -98,7 +100,7 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 	// validateStore modifies the store conditions
 	// we have to patch the status
 	log.V(1).Info("validating")
-	err = validateStore(ctx, req.Namespace, opts.ControllerClass, ss, cl, opts.GaugeVecGetter, opts.Recorder)
+	err := validateStore(ctx, req.Namespace, opts.ControllerClass, ss, cl, opts.GaugeVecGetter, opts.Recorder)
 	if err != nil {
 		log.Error(err, "unable to validate store")
 		// in case of validation status unknown, validateStore will mark
@@ -181,13 +183,8 @@ func ShouldProcessStore(store esapi.GenericStore, class string) bool {
 }
 
 // handleFinalizer manages the finalizer for ClusterSecretStores and SecretStores.
-func handleFinalizer(ctx context.Context, cl client.Client, store esapi.GenericStore, log logr.Logger, isPushSecretEnable bool) (finalizersUpdated bool, err error) {
-	// It adds a finalizer when there are PushSecrets with DeletionPolicy=Delete that reference this store
-	// and removes it when there are no such PushSecrets.
-	if !isPushSecretEnable {
-		log.V(1).Info("skipping finalizer management, PushSecret feature is disabled")
-		return false, nil
-	}
+func handleFinalizer(ctx context.Context, cl client.Client, store esapi.GenericStore) (finalizersUpdated bool, err error) {
+	log := logr.FromContextOrDiscard(ctx)
 	hasPushSecretsWithDeletePolicy, err := hasPushSecretsWithDeletePolicy(ctx, cl, store)
 	if err != nil {
 		return false, fmt.Errorf("failed to check PushSecrets: %w", err)

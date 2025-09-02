@@ -79,17 +79,21 @@ func (r *StoreReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 func (r *StoreReconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
 	r.recorder = mgr.GetEventRecorderFor("secret-store")
 
-	return ctrl.NewControllerManagedBy(mgr).
-		WithOptions(opts).
-		For(&esapi.SecretStore{}).
-		Watches(
-			&esv1alpha1.PushSecret{},
-			handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []ctrlreconcile.Request {
-				if r.PushSecretEnabled {
+	builder := ctrl.NewControllerManagedBy(mgr)
+
+	if r.PushSecretEnabled {
+		return builder.WithOptions(opts).
+			For(&esapi.SecretStore{}).
+			Watches(
+				&esv1alpha1.PushSecret{},
+				handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, obj client.Object) []ctrlreconcile.Request {
 					return findStoresForPushSecret(ctx, r.Client, obj, &esapi.SecretStoreList{})
-				}
-				return nil
-			}),
-		).
+				}),
+			).
+			Complete(r)
+	}
+
+	return builder.WithOptions(opts).
+		For(&esapi.SecretStore{}).
 		Complete(r)
 }
