@@ -204,6 +204,7 @@ func JSONDataWithTemplate(f *framework.Framework) (string, func(*framework.TestC
 				Labels: map[string]string{
 					"example": "label",
 				},
+				Finalizers: []string{"example.com/finalizer"},
 			},
 			Data: map[string]string{
 				"my-data": "executed: {{ .one }}|{{ .two }}",

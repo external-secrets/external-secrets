@@ -51,6 +51,7 @@ type Provider struct {
 	cancelSdkClient context.CancelFunc
 	sdkClient       infisicalSdk.InfisicalClientInterface
 	apiScope        *InfisicalClientScope
+	authMethod      string
 }
 
 type InfisicalClientScope struct {
@@ -346,27 +347,38 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 
 	var loginFn func(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error
+	var authMethod string
 	switch {
 	case infisicalSpec.Auth.UniversalAuthCredentials != nil:
 		loginFn = performUniversalAuthLogin
+		authMethod = machineIdentityLoginViaUniversalAuth
 	case infisicalSpec.Auth.AzureAuthCredentials != nil:
 		loginFn = performAzureAuthLogin
+		authMethod = machineIdentityLoginViaAzureAuth
 	case infisicalSpec.Auth.GcpIdTokenAuthCredentials != nil:
 		loginFn = performGcpIdTokenAuthLogin
+		authMethod = machineIdentityLoginViaGcpIdTokenAuth
 	case infisicalSpec.Auth.GcpIamAuthCredentials != nil:
 		loginFn = performGcpIamAuthLogin
+		authMethod = machineIdentityLoginViaGcpServiceAccountAuth
 	case infisicalSpec.Auth.JwtAuthCredentials != nil:
 		loginFn = performJwtAuthLogin
+		authMethod = machineIdentityLoginViaJwtAuth
 	case infisicalSpec.Auth.LdapAuthCredentials != nil:
 		loginFn = performLdapAuthLogin
+		authMethod = machineIdentityLoginViaLdapAuth
 	case infisicalSpec.Auth.OciAuthCredentials != nil:
 		loginFn = performOciAuthLogin
+		authMethod = machineIdentityLoginViaOciAuth
 	case infisicalSpec.Auth.KubernetesAuthCredentials != nil:
 		loginFn = performKubernetesAuthLogin
+		authMethod = machineIdentityLoginViaKubernetesAuth
 	case infisicalSpec.Auth.AwsAuthCredentials != nil:
 		loginFn = performAwsAuthLogin
+		authMethod = machineIdentityLoginViaAwsAuth
 	case infisicalSpec.Auth.TokenAuthCredentials != nil:
 		loginFn = performTokenAuthLogin
+		authMethod = machineIdentityLoginViaTokenAuth
 	default:
 		cancelSdkClient()
 		return nil, errors.New("authentication method not found")
@@ -387,11 +399,18 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 			SecretPath:             secretPath,
 			ExpandSecretReferences: infisicalSpec.SecretsScope.ExpandSecretReferences,
 		},
+		authMethod: authMethod,
 	}, nil
 }
 
 func (p *Provider) Close(ctx context.Context) error {
 	p.cancelSdkClient()
+
+	// Don't revoke token if token auth was used
+	if p.authMethod == machineIdentityLoginViaTokenAuth {
+		return nil
+	}
+
 	err := p.sdkClient.Auth().RevokeAccessToken()
 	metrics.ObserveAPICall(constants.ProviderName, revokeAccessToken, err)
 

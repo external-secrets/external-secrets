@@ -1,0 +1,156 @@
+name: Pull Request Maintenance
+on:
+  pull_request_target:
+    # make sure that when the PR changes, we also update
+    types:
+      - opened
+      - edited
+      - synchronize
+      - reopened
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  conventional-commit-labeler:
+    name: Label PR based on Conventional Commit Specification
+    permissions:
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
+        env:
+          # If extended, don't forget to also include it in the verification step verify-labels.
+          TYPE_TO_LABEL: |
+            {
+              "feat":"kind/feature",
+              "fix":"kind/bug",
+              "chore":"kind/chore",
+              "ref":"kind/refactor",
+              "clean":"kind/cleanup",
+              "design":"kind/design",
+              "docs":"kind/documentation",
+              "test":"kind/testing",
+              "perf":"kind/performance"
+            }
+        with:
+          script: |
+            console.log("Verify that the PR title follows the Conventional Commit format");
+
+            // Parse mappings from environment variables
+            const typeToLabel = JSON.parse(process.env.TYPE_TO_LABEL);
+            console.log("Type-to-Label Mapping:", typeToLabel);
+
+            // Dynamically generate allowed types
+            const allowedTypes = Object.keys(typeToLabel).join('|');
+            console.log(`Allowed Types: ${allowedTypes}`);
+
+            const prTitle = context.payload.pull_request.title;
+            console.log(`PR Title: ${prTitle}`);
+
+            // We know this regex looks scary, but it's just to match the Conventional Commit format
+            // It parses out a Title into several named regex groups, which we can use to extract various semantic patterns:
+            // - type: The type of change (feat, fix, etc.)
+            // - scope: The scope of the change (optional and set in brackets)
+            // - breaking: A flag to indicate a breaking change (!)
+            // - subject: The subject of the change
+            // Example: feat(scope)!: add new feature
+            //          ^^^^ ^^^^^ ^  ^^^^^^^^^^^^^^^
+            //          type scope    subject
+            const regex = new RegExp(
+            `^(((Initial commit)|(Merge [^\\r\\n]+(\\s)[^\\r\\n]+((\\s)((\\s)[^\\r\\n]+)+)*(\\s)?)|^((?<type>${allowedTypes})(\\((?<scope>[\\w\\-]+)\\))?(?<breaking>!?): (?<subject>[^\\r\\n]+((\\s)((\\s)[^\\r\\n]+)+)*))(\\s)?)$)`
+            );
+            console.log(`Regex: ${regex}`);
+
+            const match = prTitle.match(regex);
+            console.log(`Match: ${match != null}`);
+
+            if (match && match.groups) {
+              const { type, scope, breaking } = match.groups;
+
+              // Initialize labels array
+              const labels = [];
+
+              if (breaking) {
+                console.log("Adding breaking change label");
+                labels.push(process.env.BREAKING_CHANGE_LABEL);
+              }
+
+              // Add type-based label
+              if (type && typeToLabel[type]) {
+                labels.push(typeToLabel[type]);
+              } else {
+                console.log(`No label found for type: ${type}`);
+              }
+
+              // Add scope-based label. If no scope is provided, we don't add a label.
+              // This action will just fail if the label doesn't exist.
+              if (scope) {
+                labels.push(`area/${scope}`);
+              }
+
+              if (labels.length > 0) {
+                console.log(`Adding labels: ${labels}`);
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.payload.pull_request.number,
+                  labels: labels,
+                });
+              } else {
+                console.log("No labels to add.");
+              }
+            } else {
+              console.log("Invalid PR title format. Make sure you named the PR after the specification at https://www.conventionalcommits.org/en/v1.0.0/#specification. Exiting...");
+              process.exit(1);
+            }
+  labeler:
+    name: Label PR based on Config
+    permissions:
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+        with:
+          sparse-checkout: |
+            .github/config/labeler.yml
+      - uses: actions/labeler@8558fd74291d67161a8a78ce36a881fa63b766a9 # v5
+        with:
+          configuration-path: .github/config/labeler.yml
+  size-labeler:
+    runs-on: ubuntu-latest
+    name: Label PR based on size
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: codelytv/pr-size-labeler@4ec67706cd878fbc1c8db0a5dcd28b6bb412e85a # v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          xs_label: 'size/xs'
+          xs_max_size: '10'
+          s_label: 'size/s'
+          s_max_size: '100'
+          m_label: 'size/m'
+          m_max_size: '500'
+          l_label: 'size/l'
+          l_max_size: '10000'
+          xl_label: 'size/xl'
+          fail_if_xl: 'false'
+          message_if_xl: >
+            This PR exceeds the recommended size of 10000 lines.
+            Please make sure you are NOT addressing multiple issues with one PR.
+            Note this PR might be rejected due to its size.
+  verify-labels:
+    needs: [labeler, size-labeler, conventional-commit-labeler]
+    name: verify labels
+    runs-on: ubuntu-latest
+    steps:
+      - name: PRs should have at least one qualifying label
+        uses: docker://agilepathway/pull-request-label-checker:latest@sha256:14f5f3dfda922496d07d53494e2d2b42885165f90677a1c03d600059b7706a61
+        with:
+          any_of: kind/chore,kind/bug,kind/feature,kind/dependency,kind/refactor,kind/design,kind/documentation,kind/testing,kind/performance,kind/cleanup
+          repo_token: ${{ secrets.GITHUB_TOKEN }}

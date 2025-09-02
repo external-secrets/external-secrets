@@ -83,6 +83,18 @@ webhook:
   extraArgs:
     tls-ciphers: "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256"
 ```
+### 6. Harden the Helm Chart
+
+The provided Helm chart is designed for ease of use and may not meet your organization's specific security requirements out-of-the-box. It is crucial to review the default Helm chart values and harden the configuration. Any misconfiguration caused by using the provided helm charts is not covered by our support policy - even if it leads to a security incident.
+
+Here are some examples of how you can harden the Helm chart:
+
+* **Scope RBAC Permissions**: The default chart grants permissions to create service account tokens for any service account. You can restrict this by modifying the `ClusterRole` to only allow token creation for specific, known service accounts. This limits the operator's ability to impersonate other service accounts.
+
+* **Use Tightly Scoped Deployments**: If you don't need certain features, disable them. For example, you can prevent the injection of sidecar containers by using a custom appArmor profile, or an admission controller like Kyverno to enforce restrictions on your deployment.
+
+* **Use it as a Dependency**: Instead of deploying the chart directly, you can use it as a dependency in your own Helm chart. This allows you to extend its functionality and layer on your own security controls, such as `NetworkPolicies`, custom `RBAC` roles, and other security mechanisms that are specific to your environment.
+
 ## Pod Security
 
 The Pods of the External Secrets Operator have been configured to meet the [Pod Security Standards](https://kubernetes.io/docs/concepts/security/pod-security-standards/), specifically the restricted profile. This configuration ensures a strong security posture by implementing recommended best practices for hardening Pods, including those outlined in the [NSA Kubernetes Hardening Guide](https://media.defense.gov/2022/Aug/29/2003066362/-1/-1/0/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.PDF).

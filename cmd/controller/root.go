@@ -64,6 +64,10 @@ var (
 	certDir                               string
 	liveAddr                              string
 	metricsAddr                           string
+	metricsSecure                         bool
+	metricsCertDir                        string
+	metricsCertName                       string
+	metricsKeyName                        string
 	healthzAddr                           string
 	controllerClass                       string
 	enableLeaderElection                  bool
@@ -137,12 +141,18 @@ var rootCmd = &cobra.Command{
 			// dont cache any configmaps
 			clientCacheDisableFor = append(clientCacheDisableFor, &v1.ConfigMap{})
 		}
-
-		mgrOpts := ctrl.Options{
+		metricsOpts := server.Options{
+			BindAddress: metricsAddr,
+	 	}
+	 	if metricsSecure {
+			metricsOpts.SecureServing = true
+			metricsOpts.CertDir = metricsCertDir
+			metricsOpts.CertName = metricsCertName
+			metricsOpts.KeyName = metricsKeyName
+		}
+	 	mgrOpts := ctrl.Options{
 			Scheme: scheme,
-			Metrics: server.Options{
-				BindAddress: metricsAddr,
-			},
+			Metrics: metricsOpts,
 			HealthProbeBindAddress: liveAddr,
 			WebhookServer: webhook.NewServer(webhook.Options{
 				Port: 9443,
@@ -318,6 +328,10 @@ func Execute() {
 
 func init() {
 	rootCmd.Flags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	rootCmd.Flags().BoolVar(&metricsSecure, "metrics-secure", false, "Enable HTTPS for the metrics endpoint.")
+	rootCmd.Flags().StringVar(&metricsCertDir, "metrics-cert-dir", "", "Directory containing TLS certificate and key for metrics endpoint.")
+	rootCmd.Flags().StringVar(&metricsCertName, "metrics-cert-name", "tls.crt", "TLS certificate filename for metrics endpoint.")
+	rootCmd.Flags().StringVar(&metricsKeyName, "metrics-key-name", "tls.key", "TLS key filename for metrics endpoint.")
 	rootCmd.Flags().StringVar(&controllerClass, "controller-class", "default", "The controller is instantiated with a specific controller name and filters ES based on this property")
 	rootCmd.Flags().BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+

@@ -83,6 +83,9 @@ type ExternalSecretTemplateMetadata struct {
 
 	// +optional
 	Labels map[string]string `json:"labels,omitempty"`
+
+	// +optional
+	Finalizers []string `json:"finalizers,omitempty"`
 }
 
 // ExternalSecretTemplate defines a blueprint for the created Secret resource.
@@ -560,6 +563,10 @@ type ExternalSecretStatus struct {
 // +kubebuilder:printcolumn:name="Refresh Interval",type=string,JSONPath=`.spec.refreshInterval`
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:selectablefield:JSONPath=`.spec.secretStoreRef.name`
+// +kubebuilder:selectablefield:JSONPath=`.spec.secretStoreRef.kind`
+// +kubebuilder:selectablefield:JSONPath=`.spec.target.name`
+// +kubebuilder:selectablefield:JSONPath=`.spec.refreshInterval`
 type ExternalSecret struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -571,6 +578,8 @@ type ExternalSecret struct {
 const (
 	// AnnotationDataHash all secrets managed by an ExternalSecret have this annotation with the hash of their data.
 	AnnotationDataHash = "reconcile.external-secrets.io/data-hash"
+	// AnnotationForceSync all ExternalSecrets managed by a ClusterExternalSecret mirror the state and value of this annotation.
+	AnnotationForceSync = "external-secrets.io/force-sync"
 
 	// LabelManaged all secrets managed by an ExternalSecret will have this label equal to "true".
 	LabelManaged      = "reconcile.external-secrets.io/managed"

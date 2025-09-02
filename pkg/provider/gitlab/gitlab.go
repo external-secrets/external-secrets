@@ -46,7 +46,7 @@ const (
 	errEnvironmentIsConstricted     = "'find.tags' is constrained by 'environment_scope' of the store"
 	errTagsOnlyEnvironmentSupported = "'find.tags' only supports 'environment_scope'"
 	errPathNotImplemented           = "'find.path' is not implemented in the GitLab provider"
-	errJSONSecretUnmarshal          = "unable to unmarshal secret: %w"
+	errJSONSecretUnmarshal          = "unable to unmarshal secret from JSON: %w"
 	errNotImplemented               = "not implemented"
 )
 
