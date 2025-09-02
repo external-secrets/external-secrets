@@ -42,7 +42,7 @@ const (
 	errIrsaTokenFileNotFoundOnPod = "web identity token file not found at %s location: %w"
 	errIrsaTokenFileNotReadable   = "could not read the web identity token from the file %s: %w"
 	errIrsaTokenNotValidJWT       = "could not parse web identity token available at %s. not a valid jwt?: %w"
-	errPodInfoNotFoundOnToken     = "could not find pod identity info on token %s: %w"
+	errIrsaTokenNotValidClaims    = "could not find pod identity info on token %s: %w"
 )
 
 func setIamAuthToken(ctx context.Context, v *client, jwtProvider util.JwtProviderFactory, assumeRoler vaultiamauth.STSProvider) (bool, error) {
@@ -204,25 +204,27 @@ func (c *client) getCredsFromIRSAToken(ctx context.Context, tokenFile, region st
 	var sa string
 
 	// let's fetch the namespace and serviceaccount from parsed jwt token
-	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		k8s, ok := claims["kubernetes.io"].(map[string]any)
-		if !ok {
-			return nil, fmt.Errorf(errIrsaTokenNotValidJWT, tokenFile, err)
-		}
-		ns, ok = k8s["namespace"].(string)
-		if !ok {
-			return nil, fmt.Errorf(errIrsaTokenNotValidJWT, tokenFile, err)
-		}
-		saMap, ok := k8s["serviceaccount"].(map[string]any)
-		if !ok {
-			return nil, fmt.Errorf(errIrsaTokenNotValidJWT, tokenFile, err)
-		}
-		sa, ok = saMap["name"].(string)
-		if !ok {
-			return nil, fmt.Errorf(errIrsaTokenNotValidJWT, tokenFile, err)
-		}
-	} else {
-		return nil, fmt.Errorf(errPodInfoNotFoundOnToken, tokenFile, err)
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, fmt.Errorf(errIrsaTokenNotValidClaims, tokenFile, err)
+	}
+
+	k8s, ok := claims["kubernetes.io"].(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf(errIrsaTokenNotValidClaims, tokenFile, err)
+	}
+
+	ns, ok = k8s["namespace"].(string)
+	if !ok {
+		return nil, fmt.Errorf(errIrsaTokenNotValidClaims, tokenFile, err)
+	}
+	saMap, ok := k8s["serviceaccount"].(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf(errIrsaTokenNotValidClaims, tokenFile, err)
+	}
+	sa, ok = saMap["name"].(string)
+	if !ok {
+		return nil, fmt.Errorf(errIrsaTokenNotValidClaims, tokenFile, err)
 	}
 
 	return vaultiamauth.CredsFromControllerServiceAccount(ctx, sa, ns, region, k, jwtProvider)
