@@ -62,7 +62,7 @@ type Opts struct {
 	RequeueInterval time.Duration
 }
 
-func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl client.Client, isPushSecretEnable bool, log logr.Logger, opts Opts) (ctrl.Result, error) {
+func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl client.Client, isPushSecretEnabled bool, log logr.Logger, opts Opts) (ctrl.Result, error) {
 	if !ShouldProcessStore(ss, opts.ControllerClass) {
 		log.V(1).Info("skip store")
 		return ctrl.Result{}, nil
@@ -266,11 +266,7 @@ func hasSyncedPushSecrets(ctx context.Context, cl client.Client, store esapi.Gen
 	}
 
 	// If any PushSecrets are found, return true. The index ensures they have DeletionPolicy=Delete.
-	if len(pushSecretList.Items) > 0 {
-		return true, nil
-	}
-
-	return false, nil
+	return len(pushSecretList.Items) > 0, nil
 }
 
 // hasUnsyncedPushSecretRefs searches for all PushSecrets with DeletionPolicy=Delete
