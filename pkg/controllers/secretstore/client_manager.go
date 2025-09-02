@@ -144,10 +144,18 @@ func (m *Manager) getStoredClient(ctx context.Context, storeProvider esv1.Provid
 	if !ok {
 		return nil
 	}
+	valGVK, err := m.client.GroupVersionKindFor(val.store)
+	if err != nil {
+		return nil
+	}
+	storeGVK, err := m.client.GroupVersionKindFor(store)
+	if err != nil {
+		return nil
+	}
 	storeName := fmt.Sprintf("%s/%s", store.GetNamespace(), store.GetName())
 	// return client if it points to the very same store
 	if val.store.GetObjectMeta().Generation == store.GetGeneration() &&
-		val.store.GetTypeMeta().Kind == store.GetTypeMeta().Kind &&
+		valGVK == storeGVK &&
 		val.store.GetName() == store.GetName() &&
 		val.store.GetNamespace() == store.GetNamespace() {
 		m.log.V(1).Info("reusing stored client",
