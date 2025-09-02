@@ -35,7 +35,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	cfg := &addon.Config{}
 	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
 	installFlux()
-	installESO(cfg)
+	installESO()
 	return nil
 }, func([]byte) {
 	// noop
