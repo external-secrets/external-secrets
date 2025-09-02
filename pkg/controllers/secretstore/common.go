@@ -33,10 +33,10 @@ import (
 const (
 	errStoreClient         = "could not get provider client: %w"
 	errValidationFailed    = "could not validate provider: %w"
-	errValidationUnknown   = "could not determine validation status: %s"
+	errValidationUnknown   = "could not determine validation status"
 	errPatchStatus         = "unable to patch status: %w"
 	errUnableCreateClient  = "unable to create client"
-	errUnableValidateStore = "unable to validate store: %s"
+	errUnableValidateStore = "unable to validate store"
 
 	msgStoreValidated     = "store validated"
 	msgStoreNotMaintained = "store isn't currently maintained. Please plan and prepare accordingly."
@@ -134,12 +134,12 @@ func validateStore(ctx context.Context, namespace, controllerClass string, store
 	validationResult, err := cl.Validate()
 	if err != nil {
 		if validationResult == esapi.ValidationResultUnknown {
-			cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionTrue, esapi.ReasonValidationUnknown, fmt.Sprintf(errValidationUnknown, err))
+			cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionTrue, esapi.ReasonValidationUnknown, errValidationUnknown)
 			SetExternalSecretCondition(store, *cond, gaugeVecGetter)
 			recorder.Event(store, v1.EventTypeWarning, esapi.ReasonValidationUnknown, err.Error())
 			return validationUnknownError
 		}
-		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonInvalidProviderConfig, fmt.Sprintf(errUnableValidateStore, err))
+		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonInvalidProviderConfig, errUnableValidateStore)
 		SetExternalSecretCondition(store, *cond, gaugeVecGetter)
 		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonInvalidProviderConfig, err.Error())
 		return fmt.Errorf(errValidationFailed, err)
