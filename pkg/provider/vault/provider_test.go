@@ -755,7 +755,6 @@ func TestGetControllerPodCredentials(t *testing.T) {
 
 	t.Run("PodIdentityEnvVars", func(t *testing.T) {
 		t.Setenv("AWS_CONTAINER_CREDENTIALS_FULL_URI", "http://169.254.170.23/v1/credentials")
-		t.Setenv("AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE", "/var/run/secrets/token")
 
 		creds, err := client.getControllerPodCredentials(ctx, region, kube, nil)
 
@@ -769,7 +768,7 @@ func TestGetControllerPodCredentials(t *testing.T) {
 	})
 
 	t.Run("NoEnvVars", func(t *testing.T) {
-		// No environment variables set
+		// Pod Identity URI is not set.
 		_, err := client.getControllerPodCredentials(ctx, region, kube, nil)
 
 		expectedErr := fmt.Errorf(errNoAWSAuthMethodFound)

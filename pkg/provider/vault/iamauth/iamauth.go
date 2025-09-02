@@ -54,10 +54,9 @@ const (
 	audienceAnnotation   = "eks.amazonaws.com/audience"
 	defaultTokenAudience = "sts.amazonaws.com"
 
-	STSEndpointEnv                           = "AWS_STS_ENDPOINT"
-	AWSWebIdentityTokenFileEnvVar            = "AWS_WEB_IDENTITY_TOKEN_FILE"
-	AWSContainerCredentialsFullURIEnvVar     = "AWS_CONTAINER_CREDENTIALS_FULL_URI"
-	AWSContainerAuthorizationTokenFileEnvVar = "AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE"
+	STSEndpointEnv                       = "AWS_STS_ENDPOINT"
+	AWSWebIdentityTokenFileEnvVar        = "AWS_WEB_IDENTITY_TOKEN_FILE"
+	AWSContainerCredentialsFullURIEnvVar = "AWS_CONTAINER_CREDENTIALS_FULL_URI"
 )
 
 // DefaultJWTProvider returns a credentials.Provider that calls the AssumeRoleWithWebidentity

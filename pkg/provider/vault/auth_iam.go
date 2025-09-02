@@ -168,9 +168,8 @@ func (c *client) getControllerPodCredentials(ctx context.Context, region string,
 
 	// Check for Pod Identity environment variables.
 	podIdentityURI := os.Getenv(vaultiamauth.AWSContainerCredentialsFullURIEnvVar)
-	podIdentityToken := os.Getenv(vaultiamauth.AWSContainerAuthorizationTokenFileEnvVar)
 
-	if podIdentityURI != "" && podIdentityToken != "" {
+	if podIdentityURI != "" {
 		logger.V(1).Info("using Pod Identity for authentication")
 		// Return nil to let AWS SDK v1 container credential provider handle Pod Identity automatically
 		return nil, nil
