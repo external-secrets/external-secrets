@@ -441,9 +441,19 @@ func TestSetSecret(t *testing.T) {
 		},
 	}
 
+	tagSecretOutputNoVersions := &awssm.DescribeSecretOutput{
+		ARN:  &arn,
+		Tags: externalSecretsTag,
+	}
+
+	defaultVersion := "00000000-0000-0000-0000-000000000002"
+
 	tagSecretOutput := &awssm.DescribeSecretOutput{
 		ARN:  &arn,
 		Tags: externalSecretsTag,
+		VersionIdsToStages: map[string][]string{
+			defaultVersion: {"AWSCURRENT"},
+		},
 	}
 
 	tagSecretOutputFaulty := &awssm.DescribeSecretOutput{
@@ -451,11 +461,20 @@ func TestSetSecret(t *testing.T) {
 		Tags: externalSecretsTagFaulty,
 	}
 
+	tagSecretOutputFrom := func(versionId string) *awssm.DescribeSecretOutput {
+		return &awssm.DescribeSecretOutput{
+			ARN:  &arn,
+			Tags: externalSecretsTag,
+			VersionIdsToStages: map[string][]string{
+				versionId: {"AWSCURRENT"},
+			},
+		}
+	}
+
 	initialVersion := "00000000-0000-0000-0000-000000000001"
-	defaultVersion := "00000000-0000-0000-0000-000000000002"
-	defaultUpdatedVersion := "00000000-0000-0000-0000-000000000003"
-	randomUUIDVersion := "c2812e8d-84ce-4858-abec-7163d8ab312b"
-	randomUUIDVersionIncremented := "c2812e8d-84ce-4858-abec-7163d8ab312c"
+	defaultUpdatedVersion := "6c70d57a-f53d-bf4d-9525-3503dd5abe8c"
+	randomUUIDVersion := "9d6202c2-c216-433e-a2f0-5836c4f025af"
+	randomUUIDVersionIncremented := "4346824b-7da1-4d82-addf-dee197fd5d71"
 	unparsableVersion := "IAM UNPARSABLE"
 
 	secretValueOutput := &awssm.GetSecretValueOutput{
@@ -468,6 +487,7 @@ func TestSetSecret(t *testing.T) {
 		SecretBinary: secretValue,
 		VersionId:    &defaultVersion,
 	}
+	blankDescribeSecretOutput := &awssm.DescribeSecretOutput{}
 
 	type params struct {
 		s       string
@@ -489,7 +509,6 @@ func TestSetSecret(t *testing.T) {
 			VersionId:    version,
 		}
 	}
-	blankSecretValueOutput := &awssm.GetSecretValueOutput{}
 
 	putSecretOutput := &awssm.PutSecretValueOutput{
 		ARN: &arn,
@@ -511,6 +530,7 @@ func TestSetSecret(t *testing.T) {
 		store          *esv1.AWSProvider
 		client         fakesm.Client
 		pushSecretData fake.PushSecretData
+		newUUID        string
 	}
 
 	type want struct {
@@ -527,7 +547,6 @@ func TestSetSecret(t *testing.T) {
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
 					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
-					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
 					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 					TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
@@ -539,13 +558,50 @@ func TestSetSecret(t *testing.T) {
 				err: nil,
 			},
 		},
+		"SetSecretSucceedsWithExistingSecretButNoSecretVersionsWithoutProperty": {
+			reason: "a secret can be pushed to aws secrets manager when it already exists but has no secret versions",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutputNoVersions, nil),
+					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
+						SecretBinary: []byte(`fake-value`),
+						Version:      aws.String(initialVersion),
+					}),
+					TagResourceFn:   fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+					UntagResourceFn: fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+				},
+				pushSecretData: pushSecretDataWithoutProperty,
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretSucceedsWithExistingSecretButNoSecretVersionsWithProperty": {
+			reason: "a secret can be pushed to aws secrets manager when it already exists but has no secret versions",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutputNoVersions, nil),
+					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
+						SecretBinary: []byte(`{"other-fake-property":"fake-value"}`),
+						Version:      aws.String(initialVersion),
+					}),
+					TagResourceFn:   fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+					UntagResourceFn: fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+				},
+				pushSecretData: pushSecretDataWithProperty,
+			},
+			want: want{
+				err: nil,
+			},
+		},
 		"SetSecretSucceedsWithoutSecretKey": {
 			reason: "a secret can be pushed to aws secrets manager without secret key",
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
 					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
-					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
 					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 					TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
@@ -563,7 +619,6 @@ func TestSetSecret(t *testing.T) {
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
 					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
-					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
 					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 					TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
@@ -581,7 +636,6 @@ func TestSetSecret(t *testing.T) {
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
 					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, &getSecretCorrectErr),
-					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
 					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 				},
@@ -596,7 +650,7 @@ func TestSetSecret(t *testing.T) {
 						}`)}},
 			},
 			want: want{
-				err: nil,
+				err: &getSecretCorrectErr,
 			},
 		},
 		"SetSecretSucceedsWithExistingSecretAndAdditionalTags": {
@@ -605,7 +659,6 @@ func TestSetSecret(t *testing.T) {
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
 					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
-					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
 					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 					TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
@@ -629,7 +682,7 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueFn: fakesm.NewGetSecretValueFn(blankSecretValueOutput, &getSecretCorrectErr),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(blankDescribeSecretOutput, &getSecretCorrectErr),
 					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
@@ -643,7 +696,7 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueFn: fakesm.NewGetSecretValueFn(blankSecretValueOutput, &getSecretCorrectErr),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(blankDescribeSecretOutput, &getSecretCorrectErr),
 					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil, []byte(`{"other-fake-property":"fake-value"}`)),
 				},
 				pushSecretData: pushSecretDataWithProperty,
@@ -655,7 +708,8 @@ func TestSetSecret(t *testing.T) {
 		"SetSecretWithPropertySucceedsWithExistingSecretAndNewPropertyBinary": {
 			reason: "when a pushSecretData property is specified, this property will be added to the sm secret if it is currently absent (sm secret is binary)",
 			args: args{
-				store: makeValidSecretStore().Spec.Provider.AWS,
+				newUUID: defaultUpdatedVersion,
+				store:   makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
 					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutputFrom(params{b: []byte((`{"fake-property":"fake-value"}`))}), nil),
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
@@ -675,13 +729,14 @@ func TestSetSecret(t *testing.T) {
 		"SetSecretWithPropertySucceedsWithExistingSecretAndRandomUUIDVersion": {
 			reason: "When a secret version is not specified, the client sets a random uuid by default. We should treat a version that can't be parsed to an int as not having a version",
 			args: args{
-				store: makeValidSecretStore().Spec.Provider.AWS,
+				store:   makeValidSecretStore().Spec.Provider.AWS,
+				newUUID: randomUUIDVersionIncremented,
 				client: fakesm.Client{
 					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutputFrom(params{
 						b:       []byte((`{"fake-property":"fake-value"}`)),
 						version: &randomUUIDVersion,
 					}), nil),
-					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutputFrom(randomUUIDVersion), nil),
 					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
 						SecretBinary: []byte(`{"fake-property":"fake-value","other-fake-property":"fake-value"}`),
 						Version:      &randomUUIDVersionIncremented,
@@ -696,9 +751,10 @@ func TestSetSecret(t *testing.T) {
 			},
 		},
 		"SetSecretWithPropertySucceedsWithExistingSecretAndVersionThatCantBeParsed": {
-			reason: "A manually set secret version doesn't have to be a UUID, we only support UUID secret versions though",
+			reason: "A manually set secret version doesn't have to be a UUID",
 			args: args{
-				store: makeValidSecretStore().Spec.Provider.AWS,
+				newUUID: unparsableVersion,
+				store:   makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
 					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutputFrom(params{
 						b:       []byte((`{"fake-property":"fake-value"}`)),
@@ -706,20 +762,23 @@ func TestSetSecret(t *testing.T) {
 					}), nil),
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
 					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil, fakesm.ExpectedPutSecretValueInput{
-						SecretBinary: []byte(`{"fake-property":"fake-value","other-fake-property":"fake-value"}`),
-						Version:      &initialVersion,
+						SecretBinary: []byte((`fake-value`)),
+						Version:      &unparsableVersion,
 					}),
+					TagResourceFn:   fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+					UntagResourceFn: fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
 				},
-				pushSecretData: pushSecretDataWithProperty,
+				pushSecretData: pushSecretDataWithoutProperty,
 			},
 			want: want{
-				err: fmt.Errorf("expected secret version in AWS SSM to be a UUID but got '%s'", unparsableVersion),
+				err: nil,
 			},
 		},
 		"SetSecretWithPropertySucceedsWithExistingSecretAndAbsentVersion": {
 			reason: "When a secret version is not specified, set it to 1",
 			args: args{
-				store: makeValidSecretStore().Spec.Provider.AWS,
+				newUUID: initialVersion,
+				store:   makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
 					GetSecretValueFn: fakesm.NewGetSecretValueFn(&awssm.GetSecretValueOutput{
 						ARN:          &arn,
@@ -742,7 +801,8 @@ func TestSetSecret(t *testing.T) {
 		"SetSecretWithPropertySucceedsWithExistingSecretAndNewPropertyString": {
 			reason: "when a pushSecretData property is specified, this property will be added to the sm secret if it is currently absent (sm secret is a string)",
 			args: args{
-				store: makeValidSecretStore().Spec.Provider.AWS,
+				newUUID: defaultUpdatedVersion,
+				store:   makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
 					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutputFrom(params{s: `{"fake-property":"fake-value"}`}), nil),
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
@@ -762,7 +822,8 @@ func TestSetSecret(t *testing.T) {
 		"SetSecretWithPropertySucceedsWithExistingSecretAndNewPropertyWithDot": {
 			reason: "when a pushSecretData property is specified, this property will be added to the sm secret if it is currently absent (pushSecretData property is a sub-object)",
 			args: args{
-				store: makeValidSecretStore().Spec.Provider.AWS,
+				newUUID: defaultUpdatedVersion,
+				store:   makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
 					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutputFrom(params{s: `{"fake-property":{"fake-property":"fake-value"}}`}), nil),
 					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
@@ -798,7 +859,7 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueFn: fakesm.NewGetSecretValueFn(blankSecretValueOutput, &getSecretCorrectErr),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(blankDescribeSecretOutput, &getSecretCorrectErr),
 					CreateSecretFn:   fakesm.NewCreateSecretFn(nil, noPermission),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
@@ -812,7 +873,7 @@ func TestSetSecret(t *testing.T) {
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueFn: fakesm.NewGetSecretValueFn(blankSecretValueOutput, noPermission),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(blankDescribeSecretOutput, noPermission),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -852,11 +913,11 @@ func TestSetSecret(t *testing.T) {
 			},
 		},
 		"SetSecretWrongGetSecretErrFails": {
-			reason: "GetSecretValueWithContext errors out when anything except awssm.ErrCodeResourceNotFoundException",
+			reason: "DescribeSecret errors out when anything except awssm.ErrCodeResourceNotFoundException",
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueFn: fakesm.NewGetSecretValueFn(blankSecretValueOutput, &getSecretWrongErr),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(blankDescribeSecretOutput, &getSecretWrongErr),
 				},
 				pushSecretData: pushSecretDataWithoutProperty,
 			},
@@ -941,8 +1002,9 @@ func TestSetSecret(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			sm := SecretsManager{
-				client: &tc.args.client,
-				prefix: tc.args.store.Prefix,
+				client:  &tc.args.client,
+				prefix:  tc.args.store.Prefix,
+				newUUID: func() string { return tc.args.newUUID },
 			}
 
 			err := sm.PushSecret(context.Background(), fakeSecret, tc.args.pushSecretData)

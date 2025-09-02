@@ -116,6 +116,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | global.topologySpreadConstraints | list | `[]` |  |
 | grafanaDashboard.annotations | object | `{}` | Annotations that ConfigMaps can have to get configured in Grafana, See: sidecar.dashboards.folderAnnotation for specifying the dashboard folder. https://github.com/grafana/helm-charts/tree/main/charts/grafana |
 | grafanaDashboard.enabled | bool | `false` | If true creates a Grafana dashboard. |
+| grafanaDashboard.extraLabels | object | `{}` | Extra labels to add to the Grafana dashboard ConfigMap. |
 | grafanaDashboard.sidecarLabel | string | `"grafana_dashboard"` | Label that ConfigMaps should have to be loaded as dashboards. |
 | grafanaDashboard.sidecarLabelValue | string | `"1"` | Label value that ConfigMaps should have to be loaded as dashboards. |
 | hostNetwork | bool | `false` | Run the controller on the host network |
@@ -137,6 +138,10 @@ The command removes all the Kubernetes components associated with the chart and 
 | livenessProbe.timeoutSeconds | int | `5` | Specify the maximum amount of time to wait for a probe to respond before considering it fails. |
 | log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the External Secrets Operator |
 | metrics.listen.port | int | `8080` |  |
+| metrics.listen.secure.certDir | string | `"/etc/tls"` | TLS cert directory path |
+| metrics.listen.secure.certFile | string | `"/etc/tls/tls.crt"` | TLS cert file path |
+| metrics.listen.secure.enabled | bool | `false` |  |
+| metrics.listen.secure.keyFile | string | `"/etc/tls/tls.key"` | TLS key file path |
 | metrics.service.annotations | object | `{}` | Additional service annotations |
 | metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
 | metrics.service.port | int | `8080` | Metrics service port to scrape |
@@ -151,6 +156,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | podSpecExtra | object | `{}` | Any extra pod spec on the deployment |
 | priorityClassName | string | `""` | Pod priority class name. |
 | processClusterExternalSecret | bool | `true` | if true, the operator will process cluster external secret. Else, it will ignore them. |
+| processClusterGenerator | bool | `true` | if true, the operator will process cluster generator. Else, it will ignore them. |
 | processClusterPushSecret | bool | `true` | if true, the operator will process cluster push secret. Else, it will ignore them. |
 | processClusterStore | bool | `true` | if true, the operator will process cluster store. Else, it will ignore them. |
 | processPushSecret | bool | `true` | if true, the operator will process push secret. Else, it will ignore them. |
@@ -184,8 +190,10 @@ The command removes all the Kubernetes components associated with the chart and 
 | serviceMonitor.metricRelabelings | list | `[]` | Metric relabel configs to apply to samples before ingestion. [Metric Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#metric_relabel_configs) |
 | serviceMonitor.namespace | string | `""` | namespace where you want to install ServiceMonitors |
 | serviceMonitor.relabelings | list | `[]` | Relabel configs to apply to samples before ingestion. [Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config) |
+| serviceMonitor.renderMode | string | `"skipIfMissing"` | How should we react to missing CRD "`monitoring.coreos.com/v1/ServiceMonitor`" Possible values: - `skipIfMissing`: Only render ServiceMonitor resources if CRD is present, skip if missing. - `failIfMissing`: Fail Helm install if CRD is not present. - `alwaysRender` : Always render ServiceMonitor resources, do not check for CRD. @schema enum: - skipIfMissing - failIfMissing - alwaysRender @schema |
 | serviceMonitor.scrapeTimeout | string | `"25s"` | Timeout if metrics can't be retrieved in given time interval |
 | strategy | object | `{}` | Set deployment strategy |
+| systemAuthDelegator | bool | `false` | If true the system:auth-delegator ClusterRole will be added to RBAC |
 | tolerations | list | `[]` |  |
 | topologySpreadConstraints | list | `[]` |  |
 | webhook.affinity | object | `{}` |  |

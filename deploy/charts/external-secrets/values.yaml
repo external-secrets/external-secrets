@@ -82,6 +82,9 @@ scopedRBAC: false
 # -- If true the OpenShift finalizer permissions will be added to RBAC
 openshiftFinalizers: true
 
+# -- If true the system:auth-delegator ClusterRole will be added to RBAC
+systemAuthDelegator: false
+
 # -- if true, the operator will process cluster external secret. Else, it will ignore them.
 processClusterExternalSecret: true
 
@@ -90,6 +93,9 @@ processClusterPushSecret: true
 
 # -- if true, the operator will process cluster store. Else, it will ignore them.
 processClusterStore: true
+
+# -- if true, the operator will process cluster generator. Else, it will ignore them.
+processClusterGenerator: true
 
 # -- if true, the operator will process push secret. Else, it will ignore them.
 processPushSecret: true
@@ -194,6 +200,21 @@ serviceMonitor:
   # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics
   enabled: false
 
+  # -- How should we react to missing CRD "`monitoring.coreos.com/v1/ServiceMonitor`"
+  #
+  # Possible values:
+  # - `skipIfMissing`: Only render ServiceMonitor resources if CRD is present, skip if missing.
+  # - `failIfMissing`: Fail Helm install if CRD is not present.
+  # - `alwaysRender` : Always render ServiceMonitor resources, do not check for CRD.
+
+  # @schema
+  # enum:
+  # - skipIfMissing
+  # - failIfMissing
+  # - alwaysRender
+  # @schema
+  renderMode: skipIfMissing   # @schema enum: [skipIfMissing, failIfMissing, alwaysRender]
+
   # -- namespace where you want to install ServiceMonitors
   namespace: ""
 
@@ -231,6 +252,15 @@ metrics:
 
   listen:
     port: 8080
+    secure:
+      enabled: false
+      # -- if those are not set or invalid, self-signed certs will be generated
+      # -- TLS cert directory path
+      certDir: /etc/tls
+      # -- TLS cert file path
+      certFile: /etc/tls/tls.crt
+      # -- TLS key file path
+      keyFile: /etc/tls/tls.key
 
   service:
     # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
@@ -256,6 +286,9 @@ grafanaDashboard:
   # See: sidecar.dashboards.folderAnnotation for specifying the dashboard folder.
   # https://github.com/grafana/helm-charts/tree/main/charts/grafana
   annotations: {}
+
+  # -- Extra labels to add to the Grafana dashboard ConfigMap.
+  extraLabels: {}
 
 livenessProbe:
   # -- Enabled determines if the liveness probe should be used or not. By default it's disabled.

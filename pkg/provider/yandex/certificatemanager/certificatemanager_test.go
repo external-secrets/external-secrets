@@ -47,6 +47,8 @@ const (
 func TestNewClient(t *testing.T) {
 	ctx := context.Background()
 	const namespace = "namespace"
+	const authorizedKeySecretName = "authorizedKeySecretName"
+	const authorizedKeySecretKey = "authorizedKeySecretKey"
 
 	store := &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
@@ -54,7 +56,14 @@ func TestNewClient(t *testing.T) {
 		},
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
-				YandexCertificateManager: &esv1.YandexCertificateManagerProvider{},
+				YandexCertificateManager: &esv1.YandexCertificateManagerProvider{
+					Auth: esv1.YandexAuth{
+						AuthorizedKey: esmeta.SecretKeySelector{
+							Key:  authorizedKeySecretKey,
+							Name: authorizedKeySecretName,
+						},
+					},
+				},
 			},
 		},
 	}
@@ -63,24 +72,6 @@ func TestNewClient(t *testing.T) {
 
 	k8sClient := clientfake.NewClientBuilder().Build()
 	secretClient, err := provider.NewClient(context.Background(), store, k8sClient, namespace)
-	tassert.EqualError(t, err, errMissingKey)
-	tassert.Nil(t, secretClient)
-
-	store.Spec.Provider.YandexCertificateManager.Auth = esv1.YandexCertificateManagerAuth{}
-	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
-	tassert.EqualError(t, err, errMissingKey)
-	tassert.Nil(t, secretClient)
-
-	store.Spec.Provider.YandexCertificateManager.Auth.AuthorizedKey = esmeta.SecretKeySelector{}
-	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
-	tassert.EqualError(t, err, errMissingKey)
-	tassert.Nil(t, secretClient)
-
-	const authorizedKeySecretName = "authorizedKeySecretName"
-	const authorizedKeySecretKey = "authorizedKeySecretKey"
-	store.Spec.Provider.YandexCertificateManager.Auth.AuthorizedKey.Name = authorizedKeySecretName
-	store.Spec.Provider.YandexCertificateManager.Auth.AuthorizedKey.Key = authorizedKeySecretKey
-	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
 	tassert.EqualError(t, err, "cannot get Kubernetes secret \"authorizedKeySecretName\" from namespace \"namespace\": secrets \"authorizedKeySecretName\" not found")
 	tassert.Nil(t, secretClient)
 
@@ -89,7 +80,7 @@ func TestNewClient(t *testing.T) {
 
 	const caCertificateSecretName = "caCertificateSecretName"
 	const caCertificateSecretKey = "caCertificateSecretKey"
-	store.Spec.Provider.YandexCertificateManager.CAProvider = &esv1.YandexCertificateManagerCAProvider{
+	store.Spec.Provider.YandexCertificateManager.CAProvider = &esv1.YandexCAProvider{
 		Certificate: esmeta.SecretKeySelector{
 			Key:  caCertificateSecretKey,
 			Name: caCertificateSecretName,
@@ -676,7 +667,7 @@ func newYandexCertificateManagerSecretStore(apiEndpoint, namespace, authorizedKe
 			Provider: &esv1.SecretStoreProvider{
 				YandexCertificateManager: &esv1.YandexCertificateManagerProvider{
 					APIEndpoint: apiEndpoint,
-					Auth: esv1.YandexCertificateManagerAuth{
+					Auth: esv1.YandexAuth{
 						AuthorizedKey: esmeta.SecretKeySelector{
 							Name: authorizedKeySecretName,
 							Key:  authorizedKeySecretKey,

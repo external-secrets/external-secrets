@@ -366,6 +366,9 @@
                 "enabled": {
                     "type": "boolean"
                 },
+                "extraLabels": {
+                    "type": "object"
+                },
                 "sidecarLabel": {
                     "type": "string"
                 },
@@ -459,6 +462,23 @@
                     "properties": {
                         "port": {
                             "type": "integer"
+                        },
+                        "secure": {
+                            "type": "object",
+                            "properties": {
+                                "certDir": {
+                                    "type": "string"
+                                },
+                                "certFile": {
+                                    "type": "string"
+                                },
+                                "enabled": {
+                                    "type": "boolean"
+                                },
+                                "keyFile": {
+                                    "type": "string"
+                                }
+                            }
                         }
                     }
                 },
@@ -528,6 +548,9 @@
             "type": "string"
         },
         "processClusterExternalSecret": {
+            "type": "boolean"
+        },
+        "processClusterGenerator": {
             "type": "boolean"
         },
         "processClusterPushSecret": {
@@ -670,6 +693,14 @@
                 "relabelings": {
                     "type": "array"
                 },
+                "renderMode": {
+                    "type": "string",
+                    "enum": [
+                        "skipIfMissing",
+                        "failIfMissing",
+                        "alwaysRender"
+                    ]
+                },
                 "scrapeTimeout": {
                     "type": "string"
                 }
@@ -677,6 +708,9 @@
         },
         "strategy": {
             "type": "object"
+        },
+        "systemAuthDelegator": {
+            "type": "boolean"
         },
         "tolerations": {
             "type": "array"

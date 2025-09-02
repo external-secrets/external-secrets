@@ -55,7 +55,7 @@ const (
 	errMissingRegion              = "missing Region"
 	errMissingFingerprint         = "missing Fingerprint"
 	errMissingVault               = "missing Vault"
-	errJSONSecretUnmarshal        = "unable to unmarshal secret: %w"
+	errJSONSecretUnmarshal        = "unable to unmarshal secret from JSON: %w"
 	errMissingKey                 = "missing Key in secret: %s"
 	errUnexpectedContent          = "unexpected secret bundle content"
 	errSettingOCIEnvVariables     = "unable to set OCI SDK environment variable %s: %w"

@@ -3,6 +3,7 @@
 <!-- Add yourself here if you are using ESO in your company or your project! -->
 
 - [Amadeus](https://amadeus.com/)
+- [Cisco](https://www.cisco.com/)
 - [Codefresh](https://codefresh.io/)
 - [Container Solutions](http://container-solutions.com/)
 - [DaangnPay](https://www.daangnpay.com/)
@@ -27,6 +28,7 @@
 - [Polarpoint](https://www.polarpoint.io/)
 - [Radio France](https://www.radiofrance.fr/)
 - [Red Hat OpenShift](https://www.redhat.com/en/technologies/cloud-computing/openshift)
+- [SAP](https://www.sap.com/)
 - [Skeeled](https://www.skeeled.com/)
 - [Made People](https://madepeople.se/)
 - [Voiceflow](https://www.voiceflow.com/)
