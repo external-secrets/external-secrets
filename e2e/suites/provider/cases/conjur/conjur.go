@@ -17,6 +17,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
+	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 )
 
@@ -26,60 +27,74 @@ const (
 	withJWTK8sHostID = "with jwt k8s hostid provider"
 )
 
-var _ = Describe("[conjur]", Label("conjur"), func() {
+var _ = Describe("[conjur]", Label("conjur"), Ordered, func() {
 	f := framework.New("eso-conjur")
-	prov := newConjurProvider(f)
+	conjur := addon.NewConjur()
+	prov := newConjurProvider(f, conjur)
+
+	BeforeAll(func() {
+		addon.InstallGlobalAddon(conjur)
+	})
 
 	DescribeTable("sync secrets",
 		framework.TableFuncWithExternalSecret(f, prov),
 		// use api key auth
-		framework.Compose(withTokenAuth, f, common.FindByName, useApiKeyAuth),
-		framework.Compose(withTokenAuth, f, common.FindByNameAndRewrite, useApiKeyAuth),
-		framework.Compose(withTokenAuth, f, common.FindByTag, useApiKeyAuth),
-		framework.Compose(withTokenAuth, f, common.SimpleDataSync, useApiKeyAuth),
-		framework.Compose(withTokenAuth, f, common.SyncWithoutTargetName, useApiKeyAuth),
-		framework.Compose(withTokenAuth, f, common.JSONDataFromSync, useApiKeyAuth),
-		framework.Compose(withTokenAuth, f, common.JSONDataFromRewrite, useApiKeyAuth),
-		framework.Compose(withTokenAuth, f, common.JSONDataWithProperty, useApiKeyAuth),
-		framework.Compose(withTokenAuth, f, common.JSONDataWithTemplate, useApiKeyAuth),
-		framework.Compose(withTokenAuth, f, common.DataPropertyDockerconfigJSON, useApiKeyAuth),
-		framework.Compose(withTokenAuth, f, common.JSONDataWithoutTargetName, useApiKeyAuth),
-		framework.Compose(withTokenAuth, f, common.DecodingPolicySync, useApiKeyAuth),
-		framework.Compose(withTokenAuth, f, common.JSONDataWithTemplateFromLiteral, useApiKeyAuth),
-		framework.Compose(withTokenAuth, f, common.TemplateFromConfigmaps, useApiKeyAuth),
-		framework.Compose(withTokenAuth, f, common.SSHKeySync, useApiKeyAuth),
-		framework.Compose(withTokenAuth, f, common.SSHKeySyncDataProperty, useApiKeyAuth),
-		framework.Compose(withTokenAuth, f, common.DockerJSONConfig, useApiKeyAuth),
-		framework.Compose(withTokenAuth, f, common.NestedJSONWithGJSON, useApiKeyAuth),
+		framework.Compose(withTokenAuth, f, common.FindByName, useApiKeyAuth(prov)),
+		framework.Compose(withTokenAuth, f, common.FindByNameAndRewrite, useApiKeyAuth(prov)),
+		framework.Compose(withTokenAuth, f, common.FindByTag, useApiKeyAuth(prov)),
+		framework.Compose(withTokenAuth, f, common.SimpleDataSync, useApiKeyAuth(prov)),
+		framework.Compose(withTokenAuth, f, common.SyncWithoutTargetName, useApiKeyAuth(prov)),
+		framework.Compose(withTokenAuth, f, common.JSONDataFromSync, useApiKeyAuth(prov)),
+		framework.Compose(withTokenAuth, f, common.JSONDataFromRewrite, useApiKeyAuth(prov)),
+		framework.Compose(withTokenAuth, f, common.JSONDataWithProperty, useApiKeyAuth(prov)),
+		framework.Compose(withTokenAuth, f, common.JSONDataWithTemplate, useApiKeyAuth(prov)),
+		framework.Compose(withTokenAuth, f, common.DataPropertyDockerconfigJSON, useApiKeyAuth(prov)),
+		framework.Compose(withTokenAuth, f, common.JSONDataWithoutTargetName, useApiKeyAuth(prov)),
+		framework.Compose(withTokenAuth, f, common.DecodingPolicySync, useApiKeyAuth(prov)),
+		framework.Compose(withTokenAuth, f, common.JSONDataWithTemplateFromLiteral, useApiKeyAuth(prov)),
+		framework.Compose(withTokenAuth, f, common.TemplateFromConfigmaps, useApiKeyAuth(prov)),
+		framework.Compose(withTokenAuth, f, common.SSHKeySync, useApiKeyAuth(prov)),
+		framework.Compose(withTokenAuth, f, common.SSHKeySyncDataProperty, useApiKeyAuth(prov)),
+		framework.Compose(withTokenAuth, f, common.DockerJSONConfig, useApiKeyAuth(prov)),
+		framework.Compose(withTokenAuth, f, common.NestedJSONWithGJSON, useApiKeyAuth(prov)),
 
 		// use jwt k8s provider
-		framework.Compose(withJWTK8s, f, common.FindByName, useJWTK8sProvider),
-		framework.Compose(withJWTK8s, f, common.FindByNameAndRewrite, useJWTK8sProvider),
-		framework.Compose(withJWTK8s, f, common.FindByTag, useJWTK8sProvider),
-		framework.Compose(withJWTK8s, f, common.SimpleDataSync, useJWTK8sProvider),
-		framework.Compose(withJWTK8s, f, common.SyncWithoutTargetName, useJWTK8sProvider),
-		framework.Compose(withJWTK8s, f, common.JSONDataFromSync, useJWTK8sProvider),
-		framework.Compose(withJWTK8s, f, common.JSONDataFromRewrite, useJWTK8sProvider),
+		framework.Compose(withJWTK8s, f, common.FindByName, useJWTK8sProvider(prov)),
+		framework.Compose(withJWTK8s, f, common.FindByNameAndRewrite, useJWTK8sProvider(prov)),
+		framework.Compose(withJWTK8s, f, common.FindByTag, useJWTK8sProvider(prov)),
+		framework.Compose(withJWTK8s, f, common.SimpleDataSync, useJWTK8sProvider(prov)),
+		framework.Compose(withJWTK8s, f, common.SyncWithoutTargetName, useJWTK8sProvider(prov)),
+		framework.Compose(withJWTK8s, f, common.JSONDataFromSync, useJWTK8sProvider(prov)),
+		framework.Compose(withJWTK8s, f, common.JSONDataFromRewrite, useJWTK8sProvider(prov)),
 
 		// use jwt k8s hostid provider
-		framework.Compose(withJWTK8sHostID, f, common.FindByName, useJWTK8sHostIDProvider),
-		framework.Compose(withJWTK8sHostID, f, common.FindByNameAndRewrite, useJWTK8sHostIDProvider),
-		framework.Compose(withJWTK8sHostID, f, common.FindByTag, useJWTK8sHostIDProvider),
-		framework.Compose(withJWTK8sHostID, f, common.SimpleDataSync, useJWTK8sHostIDProvider),
-		framework.Compose(withJWTK8sHostID, f, common.SyncWithoutTargetName, useJWTK8sHostIDProvider),
-		framework.Compose(withJWTK8sHostID, f, common.JSONDataFromSync, useJWTK8sHostIDProvider),
-		framework.Compose(withJWTK8sHostID, f, common.JSONDataFromRewrite, useJWTK8sHostIDProvider),
+		framework.Compose(withJWTK8sHostID, f, common.FindByName, useJWTK8sHostIDProvider(prov)),
+		framework.Compose(withJWTK8sHostID, f, common.FindByNameAndRewrite, useJWTK8sHostIDProvider(prov)),
+		framework.Compose(withJWTK8sHostID, f, common.FindByTag, useJWTK8sHostIDProvider(prov)),
+		framework.Compose(withJWTK8sHostID, f, common.SimpleDataSync, useJWTK8sHostIDProvider(prov)),
+		framework.Compose(withJWTK8sHostID, f, common.SyncWithoutTargetName, useJWTK8sHostIDProvider(prov)),
+		framework.Compose(withJWTK8sHostID, f, common.JSONDataFromSync, useJWTK8sHostIDProvider(prov)),
+		framework.Compose(withJWTK8sHostID, f, common.JSONDataFromRewrite, useJWTK8sHostIDProvider(prov)),
 	)
 })
 
-func useApiKeyAuth(tc *framework.TestCase) {
-	tc.ExternalSecret.Spec.SecretStoreRef.Name = tc.Framework.Namespace.Name
+func useApiKeyAuth(prov *conjurProvider) func(tc *framework.TestCase) {
+	return func(tc *framework.TestCase) {
+		prov.CreateApiKeyStore()
+		tc.ExternalSecret.Spec.SecretStoreRef.Name = tc.Framework.Namespace.Name
+	}
 }
 
-func useJWTK8sProvider(tc *framework.TestCase) {
-	tc.ExternalSecret.Spec.SecretStoreRef.Name = jwtK8sProviderName
+func useJWTK8sProvider(prov *conjurProvider) func(tc *framework.TestCase) {
+	return func(tc *framework.TestCase) {
+		prov.CreateJWTK8sStore()
+		tc.ExternalSecret.Spec.SecretStoreRef.Name = jwtK8sProviderName
+	}
 }
 
-func useJWTK8sHostIDProvider(tc *framework.TestCase) {
-	tc.ExternalSecret.Spec.SecretStoreRef.Name = jwtK8sHostIDProviderName
+func useJWTK8sHostIDProvider(prov *conjurProvider) func(tc *framework.TestCase) {
+	return func(tc *framework.TestCase) {
+		prov.CreateJWTK8sHostIDStore()
+		tc.ExternalSecret.Spec.SecretStoreRef.Name = jwtK8sHostIDProviderName
+	}
 }

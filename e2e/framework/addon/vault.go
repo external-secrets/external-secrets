@@ -28,15 +28,17 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
+	rbacv1 "k8s.io/api/rbac/v1"
+
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/golang-jwt/jwt/v4"
 	vault "github.com/hashicorp/vault/api"
 
-	// nolint
-	"github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -44,12 +46,13 @@ import (
 )
 
 type Vault struct {
-	chart        *HelmChart
-	Namespace    string
-	PodName      string
-	VaultClient  *vault.Client
-	VaultURL     string
-	VaultMtlsURL string
+	chart         *HelmChart
+	Namespace     string
+	PodName       string
+	VaultClient   *vault.Client
+	VaultURL      string
+	VaultMtlsURL  string
+	portForwarder *PortForward
 
 	RootToken          string
 	VaultServerCA      []byte
@@ -74,21 +77,24 @@ type Vault struct {
 
 const privatePemType = "RSA PRIVATE KEY"
 
-func NewVault(namespace string) *Vault {
-	repo := "hashicorp-" + namespace
+func NewVault() *Vault {
+	repo := "hashicorp-vault"
 	return &Vault{
 		chart: &HelmChart{
-			Namespace:    namespace,
-			ReleaseName:  fmt.Sprintf("vault-%s", namespace), // avoid cluster role collision
+			Namespace:    "vault",
+			ReleaseName:  "vault",
 			Chart:        fmt.Sprintf("%s/vault", repo),
-			ChartVersion: "0.11.0",
+			ChartVersion: "0.30.1",
 			Repo: ChartRepo{
 				Name: repo,
 				URL:  "https://helm.releases.hashicorp.com",
 			},
-			Values: []string{"/k8s/vault.values.yaml"},
+			Args: []string{
+				"--create-namespace",
+			},
+			Values: []string{filepath.Join(AssetDir(), "vault.values.yaml")},
 		},
-		Namespace: namespace,
+		Namespace: "vault",
 	}
 }
 
@@ -98,8 +104,33 @@ type OperatorInitResponse struct {
 }
 
 func (l *Vault) Install() error {
-	ginkgo.By("Installing vault in " + l.Namespace)
-	err := l.chart.Install()
+	// From Kubernetes 1.32+ on the oidc endpoint is not available to unauthenticated clients.
+	// We create this clusterrole to allow vault to access the oidc endpoint.
+	// see: https://github.com/ansible-collections/kubernetes.core/issues/868
+	crb := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "allow-anon-oidc",
+		},
+	}
+	_, err := controllerutil.CreateOrUpdate(context.Background(), l.chart.config.CRClient, crb, func() error {
+		crb.Subjects = []rbacv1.Subject{
+			{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind:     "User",
+				Name:     "system:anonymous",
+			},
+		}
+		crb.RoleRef = rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     "system:service-account-issuer-discovery",
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	err = l.chart.Install()
 	if err != nil {
 		return err
 	}
@@ -123,7 +154,7 @@ func (l *Vault) Install() error {
 }
 
 func (l *Vault) patchVaultService() error {
-	serviceName := fmt.Sprintf("vault-%s", l.Namespace)
+	serviceName := l.chart.ReleaseName
 	servicePatch := []byte(`[{"op": "add", "path": "/spec/ports/-", "value": { "name": "https-mtls", "port": 8210, "protocol": "TCP", "targetPort": 8210 }}]`)
 	clientSet := l.chart.config.KubeClientSet
 	_, err := clientSet.CoreV1().Services(l.Namespace).
@@ -132,27 +163,8 @@ func (l *Vault) patchVaultService() error {
 }
 
 func (l *Vault) initVault() error {
-	sec := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "vault-tls-config",
-			Namespace: l.Namespace,
-		},
-		Data: map[string][]byte{},
-	}
-
-	// vault-config contains vault init config and policies
-	files, err := os.ReadDir("/k8s/vault-config")
-	if err != nil {
-		return err
-	}
-	for _, f := range files {
-		name := f.Name()
-		data := mustReadFile(fmt.Sprintf("/k8s/vault-config/%s", name))
-		sec.Data[name] = data
-	}
-
 	// gen certificates and put them into the secret
-	serverRootPem, serverPem, serverKeyPem, clientRootPem, clientPem, clientKeyPem, err := genVaultCertificates(l.Namespace)
+	serverRootPem, serverPem, serverKeyPem, clientRootPem, clientPem, clientKeyPem, err := genVaultCertificates(l.Namespace, l.chart.ReleaseName)
 	if err != nil {
 		return fmt.Errorf("unable to gen vault certs: %w", err)
 	}
@@ -160,15 +172,6 @@ func (l *Vault) initVault() error {
 	if err != nil {
 		return fmt.Errorf("unable to generate vault jwt keys: %w", err)
 	}
-
-	// pass certs to secret
-	sec.Data["vault-server-ca.pem"] = serverRootPem
-	sec.Data["server-cert.pem"] = serverPem
-	sec.Data["server-cert-key.pem"] = serverKeyPem
-	sec.Data["vault-client-ca.pem"] = clientRootPem
-	sec.Data["es-client.pem"] = clientPem
-	sec.Data["es-client-key.pem"] = clientKeyPem
-	sec.Data["jwt-pubkey.pem"] = jwtPubkey
 
 	// make certs available to the struct
 	// so it can be used by the provider
@@ -187,13 +190,39 @@ func (l *Vault) initVault() error {
 	l.KubernetesAuthPath = "mykubernetes"              // see configure-vault.sh
 	l.KubernetesAuthRole = "external-secrets-operator" // see configure-vault.sh
 
-	ginkgo.By("Creating vault TLS secret")
-	err = l.chart.config.CRClient.Create(context.Background(), sec)
+	// vault-config contains vault init config and policies
+	files, err := os.ReadDir(fmt.Sprintf("%s/vault-config", AssetDir()))
+	if err != nil {
+		return err
+	}
+	sec := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "vault-tls-config",
+			Namespace: l.Namespace,
+		},
+		Data: map[string][]byte{},
+	}
+	_, err = controllerutil.CreateOrUpdate(context.Background(), l.chart.config.CRClient, sec, func() error {
+		sec.Data = map[string][]byte{}
+		for _, f := range files {
+			name := f.Name()
+			data := mustReadFile(fmt.Sprintf("%s/vault-config/%s", AssetDir(), name))
+			sec.Data[name] = data
+		}
+		sec.Data["vault-server-ca.pem"] = serverRootPem
+		sec.Data["server-cert.pem"] = serverPem
+		sec.Data["server-cert-key.pem"] = serverKeyPem
+		sec.Data["vault-client-ca.pem"] = clientRootPem
+		sec.Data["es-client.pem"] = clientPem
+		sec.Data["es-client-key.pem"] = clientKeyPem
+		sec.Data["jwt-pubkey.pem"] = jwtPubkey
+
+		return nil
+	})
 	if err != nil {
 		return err
 	}
 
-	ginkgo.By("Waiting for vault pods to be running")
 	pl, err := util.WaitForPodsRunning(l.chart.config.KubeClientSet, 1, l.Namespace, metav1.ListOptions{
 		LabelSelector: "app.kubernetes.io/name=vault",
 	})
@@ -202,7 +231,6 @@ func (l *Vault) initVault() error {
 	}
 	l.PodName = pl.Items[0].Name
 
-	ginkgo.By("Initializing vault")
 	out, err := util.ExecCmd(
 		l.chart.config.KubeClientSet,
 		l.chart.config.KubeConfig,
@@ -211,7 +239,6 @@ func (l *Vault) initVault() error {
 		return fmt.Errorf("error initializing vault: %w", err)
 	}
 
-	ginkgo.By("Parsing init response")
 	var res OperatorInitResponse
 	err = json.Unmarshal([]byte(out), &res)
 	if err != nil {
@@ -219,7 +246,6 @@ func (l *Vault) initVault() error {
 	}
 	l.RootToken = res.RootToken
 
-	ginkgo.By("Unsealing vault")
 	for _, k := range res.UnsealKeysB64 {
 		_, err = util.ExecCmd(
 			l.chart.config.KubeClientSet,
@@ -237,6 +263,17 @@ func (l *Vault) initVault() error {
 	if err != nil {
 		return fmt.Errorf("error waiting for vault to be ready: %w", err)
 	}
+
+	// This e2e test provider uses a local port-forwarded to talk to the vault API instead
+	// of using the kubernetes service. This allows us to run the e2e test suite locally.
+	l.portForwarder, err = NewPortForward(l.chart.config.KubeClientSet, l.chart.config.KubeConfig, "vault", l.chart.Namespace, 8200)
+	if err != nil {
+		return err
+	}
+	if err := l.portForwarder.Start(); err != nil {
+		return err
+	}
+
 	serverCA := l.VaultServerCA
 	caCertPool := x509.NewCertPool()
 	ok := caCertPool.AppendCertsFromPEM(serverCA)
@@ -244,9 +281,9 @@ func (l *Vault) initVault() error {
 		panic("unable to append server ca cert")
 	}
 	cfg := vault.DefaultConfig()
-	l.VaultURL = fmt.Sprintf("https://vault-%s.%s.svc.cluster.local:8200", l.Namespace, l.Namespace)
-	l.VaultMtlsURL = fmt.Sprintf("https://vault-%s.%s.svc.cluster.local:8210", l.Namespace, l.Namespace)
-	cfg.Address = l.VaultURL
+	l.VaultURL = fmt.Sprintf("https://%s.%s.svc.cluster.local:8200", l.chart.ReleaseName, l.Namespace)
+	l.VaultMtlsURL = fmt.Sprintf("https://%s.%s.svc.cluster.local:8210", l.chart.ReleaseName, l.Namespace)
+	cfg.Address = fmt.Sprintf("https://localhost:%d", l.portForwarder.localPort)
 	cfg.HttpClient.Transport.(*http.Transport).TLSClientConfig.RootCAs = caCertPool
 	l.VaultClient, err = vault.NewClient(cfg)
 	if err != nil {
@@ -258,7 +295,6 @@ func (l *Vault) initVault() error {
 }
 
 func (l *Vault) configureVault() error {
-	ginkgo.By("configuring vault")
 	cmd := `sh /etc/vault-config/configure-vault.sh %s`
 	_, err := util.ExecCmd(
 		l.chart.config.KubeClientSet,
@@ -307,7 +343,14 @@ func (l *Vault) Logs() error {
 }
 
 func (l *Vault) Uninstall() error {
-	return l.chart.Uninstall()
+	if l.portForwarder != nil {
+		l.portForwarder.Close()
+		l.portForwarder = nil
+	}
+	if err := l.chart.Uninstall(); err != nil {
+		return err
+	}
+	return l.chart.config.KubeClientSet.CoreV1().Namespaces().Delete(context.Background(), l.chart.Namespace, metav1.DeleteOptions{})
 }
 
 func (l *Vault) Setup(cfg *Config) error {
@@ -315,7 +358,7 @@ func (l *Vault) Setup(cfg *Config) error {
 }
 
 // nolint:gocritic
-func genVaultCertificates(namespace string) ([]byte, []byte, []byte, []byte, []byte, []byte, error) {
+func genVaultCertificates(namespace, serviceName string) ([]byte, []byte, []byte, []byte, []byte, []byte, error) {
 	// gen server ca + certs
 	serverRootCert, serverRootPem, serverRootKey, err := genCARoot()
 	if err != nil {
@@ -323,8 +366,8 @@ func genVaultCertificates(namespace string) ([]byte, []byte, []byte, []byte, []b
 	}
 	serverPem, serverKey, err := genPeerCert(serverRootCert, serverRootKey, "vault", []string{
 		"localhost",
-		"vault-" + namespace,
-		fmt.Sprintf("vault-%s.%s.svc.cluster.local", namespace, namespace)})
+		serviceName,
+		fmt.Sprintf("%s.%s.svc.cluster.local", serviceName, namespace)})
 	if err != nil {
 		return nil, nil, nil, nil, nil, nil, errors.New("unable to generate vault server cert")
 	}

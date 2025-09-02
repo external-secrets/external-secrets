@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	fluxhelm "github.com/fluxcd/helm-controller/api/v2beta1"
@@ -33,9 +34,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
+	"k8s.io/client-go/util/homedir"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	// nolint
@@ -276,32 +279,52 @@ func GetKubeSecret(client kubernetes.Interface, namespace, secretName string) (*
 }
 
 // NewConfig loads and returns the kubernetes credentials from the environment.
-// KUBECONFIG env var takes precedence and falls back to in-cluster config.
+// KUBECONFIG env var takes precedence, falls back to in-cluster config, then to default KUBECONFIG location.
 func NewConfig() (*restclient.Config, *kubernetes.Clientset, crclient.Client) {
-	var kubeConfig *restclient.Config
-	var err error
-	kcPath := os.Getenv("KUBECONFIG")
-	if kcPath != "" {
-		kubeConfig, err = clientcmd.BuildConfigFromFlags("", kcPath)
-		if err != nil {
-			Fail(err.Error())
-		}
-	} else {
-		kubeConfig, err = restclient.InClusterConfig()
-		if err != nil {
-			Fail(err.Error())
-		}
-	}
-
-	kubeClientSet, err := kubernetes.NewForConfig(kubeConfig)
+	cfg, err := BuildKubeConfig()
 	if err != nil {
 		Fail(err.Error())
 	}
 
-	CRClient, err := crclient.New(kubeConfig, crclient.Options{Scheme: scheme})
+	kubeClientSet, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
 		Fail(err.Error())
 	}
 
-	return kubeConfig, kubeClientSet, CRClient
+	CRClient, err := crclient.New(cfg, crclient.Options{Scheme: scheme})
+	if err != nil {
+		Fail(err.Error())
+	}
+
+	return cfg, kubeClientSet, CRClient
+}
+
+func BuildKubeConfig() (*rest.Config, error) {
+	// 1. If KUBECONFIG is explicitly set, use it
+	if kubeconfigEnv := os.Getenv("KUBECONFIG"); kubeconfigEnv != "" {
+		cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfigEnv)
+		if err == nil {
+			return cfg, nil
+		}
+		return nil, fmt.Errorf("failed to load KUBECONFIG=%s: %w", kubeconfigEnv, err)
+	}
+
+	// 2. Try default kubeconfig location (~/.kube/config)
+	if home := homedir.HomeDir(); home != "" {
+		kubeconfigPath := filepath.Join(home, ".kube", "config")
+		if _, err := os.Stat(kubeconfigPath); err == nil {
+			cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+			if err == nil {
+				return cfg, nil
+			}
+			return nil, fmt.Errorf("failed to load default kubeconfig: %w", err)
+		}
+	}
+
+	// 3. Fallback to in-cluster config
+	cfg, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load in-cluster config: %w", err)
+	}
+	return cfg, nil
 }

@@ -17,9 +17,13 @@ package addon
 import (
 	"context"
 	"crypto/rand"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
+	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,17 +46,23 @@ type Conjur struct {
 
 	AdminApiKey    string
 	ConjurServerCA []byte
+	portForwarder  *PortForward
 }
 
-func NewConjur(namespace string) *Conjur {
-	repo := "conjur-" + namespace
+func NewConjur() *Conjur {
+	repo := "conjur-conjur"
 	dataKey := generateConjurDataKey()
+
+	rootPem, rootKeyPEM, serverPem, serverKeyPem, err := genCertificates("conjur", "conjur-conjur-conjur-oss")
+	if err != nil {
+		ginkgo.Fail(err.Error())
+	}
 
 	return &Conjur{
 		dataKey: dataKey,
 		chart: &HelmChart{
-			Namespace:   namespace,
-			ReleaseName: fmt.Sprintf("conjur-%s", namespace), // avoid cluster role collision
+			Namespace:   "conjur",
+			ReleaseName: "conjur-conjur",
 			Chart:       fmt.Sprintf("%s/conjur-oss", repo),
 			// Use latest version of Conjur OSS. To pin to a specific version, uncomment the following line.
 			// ChartVersion: "2.0.7",
@@ -60,7 +70,14 @@ func NewConjur(namespace string) *Conjur {
 				Name: repo,
 				URL:  "https://cyberark.github.io/helm-charts",
 			},
-			Values: []string{"/k8s/conjur.values.yaml"},
+			Values: []string{filepath.Join(AssetDir(), "conjur.values.yaml")},
+			Args: []string{
+				"--create-namespace",
+				"--set", "ssl.caCert=" + base64.StdEncoding.EncodeToString(rootPem),
+				"--set", "ssl.caKey=" + base64.StdEncoding.EncodeToString(rootKeyPEM),
+				"--set", "ssl.cert=" + base64.StdEncoding.EncodeToString(serverPem),
+				"--set", "ssl.key=" + base64.StdEncoding.EncodeToString(serverKeyPem),
+			},
 			Vars: []StringTuple{
 				{
 					Key:   "dataKey",
@@ -68,7 +85,7 @@ func NewConjur(namespace string) *Conjur {
 				},
 			},
 		},
-		Namespace: namespace,
+		Namespace: "conjur",
 	}
 }
 
@@ -132,10 +149,21 @@ func (l *Conjur) initConjur() error {
 	// Therefore we need to split the output and only use the first line.
 	l.AdminApiKey = strings.Split(apiKey, "\n")[0]
 
+	// This e2e test provider uses a local port-forwarded to talk to the vault API instead
+	// of using the kubernetes service. This allows us to run the e2e test suite locally.
+	l.portForwarder, err = NewPortForward(l.chart.config.KubeClientSet, l.chart.config.KubeConfig,
+		"conjur-conjur-conjur-oss", l.chart.Namespace, 9443)
+	if err != nil {
+		return err
+	}
+	if err := l.portForwarder.Start(); err != nil {
+		return err
+	}
+
 	l.ConjurURL = fmt.Sprintf("https://conjur-%s-conjur-oss.%s.svc.cluster.local", l.Namespace, l.Namespace)
 	cfg := conjurapi.Config{
 		Account:      "default",
-		ApplianceURL: l.ConjurURL,
+		ApplianceURL: fmt.Sprintf("https://localhost:%d", l.portForwarder.localPort),
 		SSLCert:      string(l.ConjurServerCA),
 	}
 
@@ -247,12 +275,42 @@ func (l *Conjur) fetchJWKSandIssuer() (pubKeysJson string, issuer string, err er
 	return pubKeysJson, issuer, nil
 }
 
+// nolint:gocritic
+func genCertificates(namespace, serviceName string) ([]byte, []byte, []byte, []byte, error) {
+	// gen server ca + certs
+	rootCert, rootPem, rootKey, err := genCARoot()
+	if err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("unable to generate ca cert: %w", err)
+	}
+	serverPem, serverKey, err := genPeerCert(rootCert, rootKey, "vault", []string{
+		"localhost",
+		serviceName,
+		fmt.Sprintf("%s.%s.svc.cluster.local", serviceName, namespace)})
+	if err != nil {
+		return nil, nil, nil, nil, errors.New("unable to generate vault server cert")
+	}
+	serverKeyPem := pem.EncodeToMemory(&pem.Block{
+		Type:  privatePemType,
+		Bytes: x509.MarshalPKCS1PrivateKey(serverKey)},
+	)
+
+	rootKeyPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  privatePemType,
+		Bytes: x509.MarshalPKCS1PrivateKey(rootKey),
+	})
+
+	return rootPem, rootKeyPEM, serverPem, serverKeyPem, err
+}
+
 func (l *Conjur) Logs() error {
 	return l.chart.Logs()
 }
 
 func (l *Conjur) Uninstall() error {
-	return l.chart.Uninstall()
+	if err := l.chart.Uninstall(); err != nil {
+		return err
+	}
+	return l.chart.config.KubeClientSet.CoreV1().Namespaces().Delete(context.Background(), l.chart.Namespace, metav1.DeleteOptions{})
 }
 
 func (l *Conjur) Setup(cfg *Config) error {

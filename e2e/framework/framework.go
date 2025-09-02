@@ -18,13 +18,16 @@ import (
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
+	"go.uber.org/zap/zapcore"
 
 	// nolint
 	. "github.com/onsi/gomega"
 	api "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	ctrl "sigs.k8s.io/controller-runtime"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 	"github.com/external-secrets/external-secrets-e2e/framework/log"
@@ -94,14 +97,13 @@ func (f *Framework) AfterEach() {
 func (f *Framework) Install(a addon.Addon) {
 	f.Addons = append(f.Addons, a)
 
-	By("installing addon")
 	err := a.Setup(&addon.Config{
 		KubeConfig:    f.KubeConfig,
 		KubeClientSet: f.KubeClientSet,
 		CRClient:      f.CRClient,
 	})
 	Expect(err).NotTo(HaveOccurred())
-
+	defer GinkgoRecover()
 	err = a.Install()
 	Expect(err).NotTo(HaveOccurred())
 }
@@ -121,4 +123,14 @@ func Compose(descAppend string, f *Framework, fn func(f *Framework) (string, fun
 	te := Entry(desc+" "+descAppend, ifs...)
 
 	return te
+}
+
+// setup logger in controller-runtime to
+// prevent logging unrelated errors.
+func init() {
+	opts := zap.Options{
+		Level: zapcore.DebugLevel,
+	}
+	logger := zap.New(zap.UseFlagOptions(&opts))
+	ctrl.SetLogger(logger)
 }

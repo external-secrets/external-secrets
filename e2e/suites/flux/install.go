@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
@@ -42,12 +43,12 @@ func installFlux() {
 	Expect(err).ToNot(HaveOccurred(), string(out))
 }
 
-func installESO(cfg *addon.Config) {
+func installESO() {
 	By("installing helm http server")
 	addon.InstallGlobalAddon(&addon.HelmServer{
-		ChartDir:      "/k8s/deploy/charts/external-secrets",
+		ChartDir:      filepath.Join(addon.AssetDir(), "deploy/charts/external-secrets"),
 		ChartRevision: helmChartRevision,
-	}, cfg)
+	})
 
 	By("installing eso through flux helmrelease app")
 	tag := os.Getenv("VERSION")
@@ -79,5 +80,5 @@ func installESO(cfg *addon.Config) {
 			  }
 			}
 		  }`, tag, tag, tag),
-	}, cfg)
+	})
 }
