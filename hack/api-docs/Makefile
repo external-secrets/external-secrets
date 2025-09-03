@@ -66,7 +66,6 @@ build: image generate $(SOURCES)
 	    --mount type=bind,source=$(ROOT),target=/repo \
 		--sig-proxy=true \
 		--rm \
-		--user $(UID):$(GID) \
 		--env "GIT_COMMITTER_NAME=$(shell git config user.name)" \
 		--env "GIT_COMMITTER_EMAIL=$(shell git config user.email)" \
 		$(MKDOCS_IMAGE) \

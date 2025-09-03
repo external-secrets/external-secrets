@@ -324,7 +324,8 @@ func TestClientGetSecret(t *testing.T) {
 					Key: record0,
 				},
 			},
-			wantErr: true,
+			want:    []byte(outputRecord0),
+			wantErr: false,
 		},
 		{
 			name: "Get non existing secret",

@@ -143,16 +143,16 @@ var rootCmd = &cobra.Command{
 		}
 		metricsOpts := server.Options{
 			BindAddress: metricsAddr,
-	 	}
-	 	if metricsSecure {
+		}
+		if metricsSecure {
 			metricsOpts.SecureServing = true
 			metricsOpts.CertDir = metricsCertDir
 			metricsOpts.CertName = metricsCertName
 			metricsOpts.KeyName = metricsKeyName
 		}
-	 	mgrOpts := ctrl.Options{
-			Scheme: scheme,
-			Metrics: metricsOpts,
+		mgrOpts := ctrl.Options{
+			Scheme:                 scheme,
+			Metrics:                metricsOpts,
 			HealthProbeBindAddress: liveAddr,
 			WebhookServer: webhook.NewServer(webhook.Options{
 				Port: 9443,
