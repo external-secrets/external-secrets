@@ -26,7 +26,7 @@ import (
 	"cloud.google.com/go/compute/metadata"
 	iam "cloud.google.com/go/iam/credentials/apiv1"
 	"cloud.google.com/go/iam/credentials/apiv1/credentialspb"
-	secretmanager "cloud.google.com/go/secretmanager/apiv1"
+	gsmapiv1 "cloud.google.com/go/secretmanager/apiv1"
 	"github.com/googleapis/gax-go/v2"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/option"
@@ -55,6 +55,29 @@ const (
 	errGenAccessToken = "unable to generate gcp access token: %w"
 	errLookupIdentity = "unable to lookup workload identity: %w"
 	errNoProjectID    = "unable to find ProjectID in storeSpec"
+)
+
+var (
+	// defaultUniverseDomain is the domain which will be used in the STS token URL.
+	defaultUniverseDomain = "googleapis.com"
+
+	// workloadIdentitySubjectTokenType is the STS token type used in Oauth2.0 token exchange.
+	workloadIdentitySubjectTokenType = "urn:ietf:params:oauth:token-type:jwt"
+
+	// workloadIdentitySubjectTokenType is the STS token type used in Oauth2.0 token exchange with AWS.
+	workloadIdentitySubjectTokenTypeAWS = "urn:ietf:params:aws:token-type:aws4_request"
+
+	// workloadIdentityTokenGrantType is the grant type for OAuth 2.0 token exchange .
+	workloadIdentityTokenGrantType = "urn:ietf:params:oauth:grant-type:token-exchange"
+
+	// workloadIdentityRequestedTokenType is the requested type for OAuth 2.0 access token.
+	workloadIdentityRequestedTokenType = "urn:ietf:params:oauth:token-type:access_token"
+
+	// workloadIdentityTokenURL is the token service endpoint.
+	workloadIdentityTokenURL = "https://sts.googleapis.com/v1/token"
+
+	// workloadIdentityTokenInfoURL is the STS introspection service endpoint.
+	workloadIdentityTokenInfoURL = "https://sts.googleapis.com/v1/introspect"
 )
 
 // workloadIdentity holds all clients and generators needed
@@ -192,7 +215,7 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, auth esv1.GCPSMAuth,
 	}
 	gcpSAResp, err := w.iamClient.GenerateAccessToken(ctx, &credentialspb.GenerateAccessTokenRequest{
 		Name:  fmt.Sprintf("projects/-/serviceAccounts/%s", gcpSA),
-		Scope: secretmanager.DefaultAuthScopes(),
+		Scope: gsmapiv1.DefaultAuthScopes(),
 	}, gax.WithGRPCOptions(grpc.PerRPCCredentials(oauth.TokenSource{TokenSource: oauth2.StaticTokenSource(idBindToken)})))
 	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMGenerateAccessToken, err)
 	if err != nil {
@@ -277,12 +300,12 @@ func newIDBindTokenGenerator() idBindTokenGenerator {
 
 func (g *gcpIDBindTokenGenerator) Generate(ctx context.Context, client *http.Client, k8sToken, idPool, idProvider string) (*oauth2.Token, error) {
 	body, err := json.Marshal(map[string]string{
-		"grant_type":           "urn:ietf:params:oauth:grant-type:token-exchange",
-		"subject_token_type":   "urn:ietf:params:oauth:token-type:jwt",
-		"requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+		"grant_type":           workloadIdentityTokenGrantType,
+		"subject_token_type":   workloadIdentitySubjectTokenType,
+		"requested_token_type": workloadIdentityRequestedTokenType,
 		"subject_token":        k8sToken,
 		"audience":             fmt.Sprintf("identitynamespace:%s:%s", idPool, idProvider),
-		"scope":                "https://www.googleapis.com/auth/cloud-platform",
+		"scope":                CloudPlatformRole,
 	})
 	if err != nil {
 		return nil, err

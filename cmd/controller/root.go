@@ -143,16 +143,16 @@ var rootCmd = &cobra.Command{
 		}
 		metricsOpts := server.Options{
 			BindAddress: metricsAddr,
-	 	}
-	 	if metricsSecure {
+		}
+		if metricsSecure {
 			metricsOpts.SecureServing = true
 			metricsOpts.CertDir = metricsCertDir
 			metricsOpts.CertName = metricsCertName
 			metricsOpts.KeyName = metricsKeyName
 		}
-	 	mgrOpts := ctrl.Options{
-			Scheme: scheme,
-			Metrics: metricsOpts,
+		mgrOpts := ctrl.Options{
+			Scheme:                 scheme,
+			Metrics:                metricsOpts,
 			HealthProbeBindAddress: liveAddr,
 			WebhookServer: webhook.NewServer(webhook.Options{
 				Port: 9443,
@@ -191,11 +191,12 @@ var rootCmd = &cobra.Command{
 
 		ssmetrics.SetUpMetrics()
 		if err = (&secretstore.StoreReconciler{
-			Client:          mgr.GetClient(),
-			Log:             ctrl.Log.WithName("controllers").WithName("SecretStore"),
-			Scheme:          mgr.GetScheme(),
-			ControllerClass: controllerClass,
-			RequeueInterval: storeRequeueInterval,
+			Client:            mgr.GetClient(),
+			Log:               ctrl.Log.WithName("controllers").WithName("SecretStore"),
+			Scheme:            mgr.GetScheme(),
+			ControllerClass:   controllerClass,
+			RequeueInterval:   storeRequeueInterval,
+			PushSecretEnabled: enablePushSecretReconciler,
 		}).SetupWithManager(mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
 			RateLimiter:             ctrlcommon.BuildRateLimiter(),
@@ -206,11 +207,12 @@ var rootCmd = &cobra.Command{
 		if enableClusterStoreReconciler {
 			cssmetrics.SetUpMetrics()
 			if err = (&secretstore.ClusterStoreReconciler{
-				Client:          mgr.GetClient(),
-				Log:             ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
-				Scheme:          mgr.GetScheme(),
-				ControllerClass: controllerClass,
-				RequeueInterval: storeRequeueInterval,
+				Client:            mgr.GetClient(),
+				Log:               ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
+				Scheme:            mgr.GetScheme(),
+				ControllerClass:   controllerClass,
+				RequeueInterval:   storeRequeueInterval,
+				PushSecretEnabled: enablePushSecretReconciler,
 			}).SetupWithManager(mgr, controller.Options{
 				MaxConcurrentReconciles: concurrent,
 				RateLimiter:             ctrlcommon.BuildRateLimiter(),
@@ -258,7 +260,7 @@ var rootCmd = &cobra.Command{
 				ControllerClass: controllerClass,
 				RestConfig:      mgr.GetConfig(),
 				RequeueInterval: time.Hour,
-			}).SetupWithManager(mgr, controller.Options{
+			}).SetupWithManager(cmd.Context(), mgr, controller.Options{
 				MaxConcurrentReconciles: concurrent,
 				RateLimiter:             ctrlcommon.BuildRateLimiter(),
 			}); err != nil {
