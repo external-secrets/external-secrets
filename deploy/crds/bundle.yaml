@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: clusterexternalsecrets.external-secrets.io
@@ -521,6 +521,10 @@ spec:
                                   additionalProperties:
                                     type: string
                                   type: object
+                                finalizers:
+                                  items:
+                                    type: string
+                                  type: array
                                 labels:
                                   additionalProperties:
                                     type: string
@@ -1492,7 +1496,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: clusterpushsecrets.external-secrets.io
@@ -1851,6 +1855,10 @@ spec:
                               additionalProperties:
                                 type: string
                               type: object
+                            finalizers:
+                              items:
+                                type: string
+                              type: array
                             labels:
                               additionalProperties:
                                 type: string
@@ -2010,7 +2018,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: clustersecretstores.external-secrets.io
@@ -11218,7 +11226,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: externalsecrets.external-secrets.io
@@ -11720,6 +11728,10 @@ spec:
                               additionalProperties:
                                 type: string
                               type: object
+                            finalizers:
+                              items:
+                                type: string
+                              type: array
                             labels:
                               additionalProperties:
                                 type: string
@@ -12467,7 +12479,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: pushsecrets.external-secrets.io
@@ -12756,6 +12768,10 @@ spec:
                           additionalProperties:
                             type: string
                           type: object
+                        finalizers:
+                          items:
+                            type: string
+                          type: array
                         labels:
                           additionalProperties:
                             type: string
@@ -12943,7 +12959,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: secretstores.external-secrets.io
@@ -22151,7 +22167,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: acraccesstokens.generators.external-secrets.io
@@ -22358,7 +22374,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: clustergenerators.generators.external-secrets.io
@@ -24377,7 +24393,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: ecrauthorizationtokens.generators.external-secrets.io
@@ -24572,7 +24588,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: fakes.generators.external-secrets.io
@@ -24638,7 +24654,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: gcraccesstokens.generators.external-secrets.io
@@ -24884,7 +24900,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: generatorstates.generators.external-secrets.io
@@ -24987,7 +25003,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: githubaccesstokens.generators.external-secrets.io
@@ -25100,7 +25116,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: grafanas.generators.external-secrets.io
@@ -25232,7 +25248,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: mfas.generators.external-secrets.io
@@ -25325,7 +25341,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: passwords.generators.external-secrets.io
@@ -25413,7 +25429,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: quayaccesstokens.generators.external-secrets.io
@@ -25501,7 +25517,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: sshkeys.generators.external-secrets.io
@@ -25571,7 +25587,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: stssessiontokens.generators.external-secrets.io
@@ -25776,7 +25792,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: uuids.generators.external-secrets.io
@@ -25827,7 +25843,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: vaultdynamicsecrets.generators.external-secrets.io
@@ -26693,7 +26709,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: webhooks.generators.external-secrets.io

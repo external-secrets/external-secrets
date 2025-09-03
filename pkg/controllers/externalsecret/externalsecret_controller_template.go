@@ -20,6 +20,7 @@ import (
 	"maps"
 
 	v1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
@@ -35,7 +36,7 @@ import (
 // * secret via es.data or es.dataFrom (if template.MergePolicy is Merge, or there is no template)
 // * existing secret keys (if CreationPolicy is Merge).
 func (r *Reconciler) ApplyTemplate(ctx context.Context, es *esv1.ExternalSecret, secret *v1.Secret, dataMap map[string][]byte) error {
-	// update metadata (labels, annotations) of the secret
+	// update metadata (labels, annotations, finalizers) of the secret
 	if err := setMetadata(secret, es); err != nil {
 		return err
 	}
@@ -142,5 +143,15 @@ func setMetadata(secret *v1.Secret, es *esv1.ExternalSecret) error {
 	// copy labels and annotations from the template
 	utils.MergeStringMap(secret.ObjectMeta.Labels, es.Spec.Target.Template.Metadata.Labels)
 	utils.MergeStringMap(secret.ObjectMeta.Annotations, es.Spec.Target.Template.Metadata.Annotations)
+
+	// add finalizers from the template
+	if secret.ObjectMeta.DeletionTimestamp.IsZero() {
+		for _, finalizer := range es.Spec.Target.Template.Metadata.Finalizers {
+			if !controllerutil.ContainsFinalizer(secret, finalizer) {
+				controllerutil.AddFinalizer(secret, finalizer)
+			}
+		}
+	}
+
 	return nil
 }
