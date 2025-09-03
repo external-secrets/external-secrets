@@ -42,7 +42,7 @@ const (
 	errIrsaTokenFileNotFoundOnPod = "web identity token file not found at %s location: %w"
 	errIrsaTokenFileNotReadable   = "could not read the web identity token from the file %s: %w"
 	errIrsaTokenNotValidJWT       = "could not parse web identity token available at %s. not a valid jwt?: %w"
-	errIrsaTokenNotValidClaims    = "could not find pod identity info on token %s: %w"
+	errIrsaTokenNotValidClaims    = "could not find pod identity info on token %s"
 )
 
 func setIamAuthToken(ctx context.Context, v *client, jwtProvider util.JwtProviderFactory, assumeRoler vaultiamauth.STSProvider) (bool, error) {
@@ -205,25 +205,25 @@ func (c *client) getCredsFromIRSAToken(ctx context.Context, tokenFile, region st
 	// let's fetch the namespace and serviceaccount from parsed jwt token
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return nil, fmt.Errorf(errIrsaTokenNotValidClaims, tokenFile, err)
+		return nil, fmt.Errorf(errIrsaTokenNotValidClaims, tokenFile)
 	}
 
 	k8s, ok := claims["kubernetes.io"].(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf(errIrsaTokenNotValidClaims, tokenFile, err)
+		return nil, fmt.Errorf(errIrsaTokenNotValidClaims, tokenFile)
 	}
 
 	ns, ok = k8s["namespace"].(string)
 	if !ok {
-		return nil, fmt.Errorf(errIrsaTokenNotValidClaims, tokenFile, err)
+		return nil, fmt.Errorf(errIrsaTokenNotValidClaims, tokenFile)
 	}
 	saMap, ok := k8s["serviceaccount"].(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf(errIrsaTokenNotValidClaims, tokenFile, err)
+		return nil, fmt.Errorf(errIrsaTokenNotValidClaims, tokenFile)
 	}
 	sa, ok = saMap["name"].(string)
 	if !ok {
-		return nil, fmt.Errorf(errIrsaTokenNotValidClaims, tokenFile, err)
+		return nil, fmt.Errorf(errIrsaTokenNotValidClaims, tokenFile)
 	}
 
 	return vaultiamauth.CredsFromControllerServiceAccount(ctx, sa, ns, region, k, jwtProvider)
