@@ -4042,8 +4042,9 @@ then clone the repo:</p>
 <span class="nb">cd</span><span class="w"> </span>external-secrets
 </code></pre></div>
 <p><em>Note: many of the <code>make</code> commands use <a href="https://github.com/mikefarah/yq">yq</a>, version 4.2X.X or higher.</em></p>
-<p>Our helm chart is tested using <code>helm-unittest</code>. You will need it to run tests locally if you modify the helm chart. Install it with the following command:</p>
-<div class="highlight"><pre><span></span><code>$ helm plugin install https://github.com/helm-unittest/helm-unittest
+<p>Our helm chart is tested using <code>helm-unittest</code>. You will need it to run tests locally if you modify the helm chart.</p>
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span>helm.test
+make<span class="w"> </span>helm.test.update
 </code></pre></div>
 <h2 id="building-testing">Building &amp; Testing</h2>
 <p>The project uses the <code>make</code> build system. It'll run code generators, tests and
