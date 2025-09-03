@@ -3984,8 +3984,12 @@ cluster-wide. The purpose of this generator is that the user doesn't have to red
 the generator in every namespace. They could define it once in the cluster and then reference that
 in the consuming <code>ExternalSecret</code>.</p>
 <h2 id="limitations">Limitations</h2>
-<p>With this, the generator will still create objects in the namespace in which the referencing ES lives.
-That has not changed as of now. It will change in future modifications.</p>
+<ul>
+<li>The generator will continue to create objects in the same namespace as the referencing ExternalSecret (ES) object.
+  This behavior is subject to change in future updates.</li>
+<li>The objects referenced within the ClusterGenerator must also reside in the same namespace as the ES object that
+  references them. This is due to the inherent, namespace-scoped nature of the embedded generator types.</li>
+</ul>
 <h2 id="example-manifest">Example Manifest</h2>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterGenerator</span>

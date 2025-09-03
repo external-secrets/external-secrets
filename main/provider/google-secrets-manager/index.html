@@ -4384,7 +4384,7 @@ For example, the following CLI call grants it access to a secret <code>demo-secr
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">demo-secret</span>
 </code></pre></div>
 <h4 id="authorizing-the-core-controller-pod">Authorizing the Core Controller Pod</h4>
-<p>Instead of managing authentication at the <code>SecretStore</code> and <code>ClusterSecretStore</code> level, you can give the <a href="../api/components/">Core Controller</a> Pod's service account access to Secret Manager secrets using one of the two WIF approaches described in the previous sections.</p>
+<p>Instead of managing authentication at the <code>SecretStore</code> and <code>ClusterSecretStore</code> level, you can give the <a href="../../api/components/">Core Controller</a> Pod's service account access to Secret Manager secrets using one of the two WIF approaches described in the previous sections.</p>
 <p>To demonstrate this approach, we'll assume you installed ESO using Helm into the <code>external-secrets</code> namespace, with <code>external-secrets</code> as the release name:</p>
 <div class="highlight"><pre><span></span><code>helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>external-secrets<span class="w"> </span>https://charts.external-secrets.io
 helm<span class="w"> </span>install<span class="w"> </span>external-secrets<span class="w"> </span>external-secrets/external-secrets<span class="w"> </span><span class="se">\</span>
