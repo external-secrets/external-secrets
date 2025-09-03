@@ -6765,6 +6765,44 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
                               type: object
+                            jwt:
+                              description: Wlif authorization
+                              properties:
+                                serviceAccountRef:
+                                  description: Kubernetes service account reference
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                        then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                                yandexIamServiceAccountID:
+                                  description: Yandex Cloud service account ID
+                                  type: string
+                              required:
+                                - serviceAccountRef
+                                - yandexIamServiceAccountID
+                              type: object
                           type: object
                         caProvider:
                           description: The provider for the CA bundle to use to validate Yandex.Cloud server certificate.
@@ -6853,6 +6891,44 @@ spec:
                                   minLength: 1
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
+                              type: object
+                            jwt:
+                              description: Wlif authorization
+                              properties:
+                                serviceAccountRef:
+                                  description: Kubernetes service account reference
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                        then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                                yandexIamServiceAccountID:
+                                  description: Yandex Cloud service account ID
+                                  type: string
+                              required:
+                                - serviceAccountRef
+                                - yandexIamServiceAccountID
                               type: object
                           type: object
                         caProvider:
@@ -17621,6 +17697,44 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
                               type: object
+                            jwt:
+                              description: Wlif authorization
+                              properties:
+                                serviceAccountRef:
+                                  description: Kubernetes service account reference
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                        then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                                yandexIamServiceAccountID:
+                                  description: Yandex Cloud service account ID
+                                  type: string
+                              required:
+                                - serviceAccountRef
+                                - yandexIamServiceAccountID
+                              type: object
                           type: object
                         caProvider:
                           description: The provider for the CA bundle to use to validate Yandex.Cloud server certificate.
@@ -17709,6 +17823,44 @@ spec:
                                   minLength: 1
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
+                              type: object
+                            jwt:
+                              description: Wlif authorization
+                              properties:
+                                serviceAccountRef:
+                                  description: Kubernetes service account reference
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                        then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                                yandexIamServiceAccountID:
+                                  description: Yandex Cloud service account ID
+                                  type: string
+                              required:
+                                - serviceAccountRef
+                                - yandexIamServiceAccountID
                               type: object
                           type: object
                         caProvider:

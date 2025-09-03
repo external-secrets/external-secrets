@@ -43,6 +43,13 @@ func adaptInput(store esv1.GenericStore) (*common.SecretsClientInput, error) {
 		authorizedKey = &storeSpecYandexLockbox.Auth.AuthorizedKey
 	}
 
+	var yandexIamServiceAccountID string
+	var serviceAccountRef *esmeta.ServiceAccountSelector
+	if storeSpecYandexLockbox.Auth.WlifAuth != nil {
+		yandexIamServiceAccountID = storeSpecYandexLockbox.Auth.WlifAuth.YandexIamServiceAccountID
+		serviceAccountRef = &storeSpecYandexLockbox.Auth.WlifAuth.ServiceAccountRef
+	}
+
 	var caCertificate *esmeta.SecretKeySelector
 	if storeSpecYandexLockbox.CAProvider != nil {
 		caCertificate = &storeSpecYandexLockbox.CAProvider.Certificate
@@ -69,11 +76,13 @@ func adaptInput(store esv1.GenericStore) (*common.SecretsClientInput, error) {
 	}
 
 	return &common.SecretsClientInput{
-		APIEndpoint:     storeSpecYandexLockbox.APIEndpoint,
-		AuthorizedKey:   authorizedKey,
-		CACertificate:   caCertificate,
-		ResourceKeyType: resourceKeyType,
-		FolderID:        folderID,
+		APIEndpoint:               storeSpecYandexLockbox.APIEndpoint,
+		AuthorizedKey:             authorizedKey,
+		YandexIamServiceAccountID: yandexIamServiceAccountID,
+		ServiceAccountRef:         serviceAccountRef,
+		CACertificate:             caCertificate,
+		ResourceKeyType:           resourceKeyType,
+		FolderID:                  folderID,
 	}, nil
 }
 

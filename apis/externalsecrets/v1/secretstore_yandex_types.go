@@ -22,6 +22,10 @@ type YandexAuth struct {
 	// The authorized key used for authentication
 	// +optional
 	AuthorizedKey esmeta.SecretKeySelector `json:"authorizedKeySecretRef,omitempty"`
+
+	// Wlif authorization
+	// +optional
+	WlifAuth *WlifAuth `json:"jwt,omitempty"`
 }
 
 type YandexCAProvider struct {
@@ -42,4 +46,12 @@ type ByName struct {
 type FetchingPolicy struct {
 	ByID   *ByID   `json:"byID,omitempty"`
 	ByName *ByName `json:"byName,omitempty"`
+}
+
+type WlifAuth struct {
+	// Yandex Cloud service account ID
+	YandexIamServiceAccountID string `json:"yandexIamServiceAccountID"`
+
+	// Kubernetes service account reference
+	ServiceAccountRef esmeta.ServiceAccountSelector `json:"serviceAccountRef"`
 }

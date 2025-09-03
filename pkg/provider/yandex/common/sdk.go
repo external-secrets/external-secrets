@@ -19,6 +19,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/yandex-cloud/go-genproto/yandex/cloud/endpoint"
@@ -42,7 +43,7 @@ func NewGrpcConnection(
 		return nil, err
 	}
 
-	sdk, err := buildSDK(ctx, apiEndpoint, authorizedKey, tlsConfig)
+	sdk, err := buildSDKForServiceApiEndpoint(ctx, apiEndpoint, tlsConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -54,6 +55,7 @@ func NewGrpcConnection(
 		ApiEndpointId: apiEndpointID,
 	})
 	if err != nil {
+		fmt.Println("Error is here2")
 		return nil, err
 	}
 
@@ -127,6 +129,19 @@ func buildSDK(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key
 
 	sdk, err := ycsdk.Build(ctx, ycsdk.Config{
 		Credentials: creds,
+		Endpoint:    apiEndpoint,
+		TLSConfig:   tlsConfig,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return sdk, nil
+}
+func buildSDKForServiceApiEndpoint(ctx context.Context, apiEndpoint string, tlsConfig *tls.Config) (*ycsdk.SDK, error) {
+
+	sdk, err := ycsdk.Build(ctx, ycsdk.Config{
+		Credentials: ycsdk.NoCredentials{},
 		Endpoint:    apiEndpoint,
 		TLSConfig:   tlsConfig,
 	})
