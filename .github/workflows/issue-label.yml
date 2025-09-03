@@ -15,16 +15,11 @@ jobs:
       issues: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/first-interaction@753c925c8d1ac6fede23781875376600628d9b5d #v3
-        with:
-          issue-message: |
-              Welcome to the ESO project repository
       - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
         with:
           script: |
             console.log("Verify that the issue was created by a first time contributor");
             const labelName = "triage/pending-triage";
-            const labelColor = "38761d";
             const creator = context.payload.sender.login
             const owner = context.repo.owner;
             const repo = context.repo.repo;
@@ -39,20 +34,8 @@ jobs:
               console.log("User %s is already a contributor", creator);
               return;
             }
-            try {
-              await github.rest.issues.getLabel({ owner, repo, name: labelName });
-            } catch (e) {
-              if (e?.status !== 404) throw e;
-              await github.rest.issues.createLabel({
-                owner,
-                repo,
-                name: labelName,
-                color: labelColor,
-                description: "Automatically added to issues opened by first-time contributors"
-              });
-            }
             console.log("Adding label %s to issue number %d", labelName, context.issue.number)
-
+            
             await github.rest.issues.addLabels({
               issue_number: context.issue.number,
               owner: owner,
