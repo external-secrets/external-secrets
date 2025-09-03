@@ -1311,7 +1311,6 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 			},
 		})
 		// give a time for reconciler to remove finalizers before removing SecretStores
-		// TODO: Secret Stores should have finalizers bound to PushSecrets if DeletionPolicy == Delete
 		time.Sleep(2 * time.Second)
 		for _, psstore := range PushSecretStores {
 			k8sClient.Delete(context.Background(), &esv1.SecretStore{
