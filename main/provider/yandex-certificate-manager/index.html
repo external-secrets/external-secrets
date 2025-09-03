@@ -4061,6 +4061,12 @@ for secret management.</p>
 <span class="w">        </span><span class="nt">authorizedKeySecretRef</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">yc-auth</span>
 <span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">authorized-key</span>
+
+<span class="w">    </span><span class="c1"># Optionally, to enable fetching secrets by name:</span>
+<span class="w">    </span><span class="c1">#</span>
+<span class="w">    </span><span class="c1"># fetching: # place &quot;fetching:&quot; on the same level as &quot;auth:&quot;</span>
+<span class="w">    </span><span class="c1">#   byName:</span>
+<span class="w">    </span><span class="c1">#     folderId: ***** # ID of the folder to fetch certificates from</span>
 </code></pre></div></li>
 </ul>
 <p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in all <code>authorizedKeySecretRef</code> with the namespace where the secret resides.</p>
@@ -4096,11 +4102,11 @@ Run the following command to ensure that the correct access binding has been add
 <span class="w">  </span><span class="nt">data</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tls.crt</span><span class="w"> </span><span class="c1"># the target k8s secret key</span>
 <span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="err">*****</span><span class="w"> </span><span class="c1"># the certificate ID</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="err">*****</span><span class="w"> </span><span class="c1"># either ID or name of the certificate, depending on fetching policy byID / byName</span>
 <span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">chain</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tls.key</span><span class="w"> </span><span class="c1"># the target k8s secret key</span>
 <span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="err">*****</span><span class="w"> </span><span class="c1"># the certificate ID</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="err">*****</span><span class="w"> </span><span class="c1"># either ID or name of the certificate, depending on fetching policy byID / byName</span>
 <span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">privateKey</span>
 </code></pre></div>
 The following property values are possible:<ul>
