@@ -72,8 +72,36 @@ type Reconciler struct {
 	ControllerClass string
 }
 
-func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options) error {
+func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opts controller.Options) error {
 	r.recorder = mgr.GetEventRecorderFor("pushsecret")
+
+	// Index PushSecrets by the stores they have pushed to (for finalizer management on store deletion)
+	// Refer to common.go for more details on the index function
+	if err := mgr.GetFieldIndexer().IndexField(ctx, &esapi.PushSecret{}, "status.syncedPushSecrets", func(obj client.Object) []string {
+		ps := obj.(*esapi.PushSecret)
+
+		// Only index PushSecrets with DeletionPolicy=Delete for efficiency
+		if ps.Spec.DeletionPolicy != esapi.PushSecretDeletionPolicyDelete {
+			return nil
+		}
+
+		// Format is typically "Kind/Name" (e.g., "SecretStore/store1", "ClusterSecretStore/clusterstore1")
+		storeKeys := make([]string, 0, len(ps.Status.SyncedPushSecrets))
+		for storeKey := range ps.Status.SyncedPushSecrets {
+			storeKeys = append(storeKeys, storeKey)
+		}
+		return storeKeys
+	}); err != nil {
+		return err
+	}
+
+	// Index PushSecrets by deletionPolicy for quick filtering
+	if err := mgr.GetFieldIndexer().IndexField(ctx, &esapi.PushSecret{}, "spec.deletionPolicy", func(obj client.Object) []string {
+		ps := obj.(*esapi.PushSecret)
+		return []string{string(ps.Spec.DeletionPolicy)}
+	}); err != nil {
+		return err
+	}
 
 	return ctrl.NewControllerManagedBy(mgr).
 		WithOptions(opts).
@@ -115,7 +143,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	p := client.MergeFrom(ps.DeepCopy())
 	defer func() {
-		if err := r.Client.Status().Patch(ctx, &ps, p); err != nil {
+		err := r.Client.Status().Patch(ctx, &ps, p)
+		if err != nil && !apierrors.IsNotFound(err) {
 			log.Error(err, errPatchStatus)
 		}
 	}()
@@ -177,7 +206,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	secretStores, err = removeUnmanagedStores(ctx, req.Namespace, r, secretStores)
+	// Filter out SecretStores that are being deleted to avoid finalizer conflicts
+	activeSecretStores := make(map[esapi.PushSecretStoreRef]esv1.GenericStore, len(secretStores))
+	for ref, store := range secretStores {
+		// Skip stores that are being deleted
+		if !store.GetDeletionTimestamp().IsZero() {
+			log.Info("skipping SecretStore that is being deleted", "storeName", store.GetName(), "storeKind", store.GetKind())
+			continue
+		}
+		activeSecretStores[ref] = store
+	}
+
+	secretStores, err = removeUnmanagedStores(ctx, req.Namespace, r, activeSecretStores)
 	if err != nil {
 		r.markAsFailed(err.Error(), &ps, nil)
 		return ctrl.Result{}, err
