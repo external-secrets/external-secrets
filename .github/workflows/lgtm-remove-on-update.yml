@@ -1,0 +1,54 @@
+# Remove LGTM label when PR is updated
+name: Remove LGTM on Update
+on:
+  pull_request:
+    types: [synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  remove-lgtm:
+    permissions:
+      pull-requests: write  # for removing labels
+      issues: write        # for removing labels and adding comments
+    runs-on: ubuntu-latest
+    steps:
+    - name: Remove LGTM label if present
+      uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
+      with:
+        script: |
+          const prNumber = context.payload.pull_request.number;
+          const owner = context.repo.owner;
+          const repo = context.repo.repo;
+          
+          // Check if LGTM label exists
+          const labels = await github.rest.issues.listLabelsOnIssue({
+            owner, repo, issue_number: prNumber
+          });
+          
+          const hasLGTM = labels.data.some(l => l.name === 'lgtm');
+          if (!hasLGTM) {
+            console.log('No LGTM label found, nothing to remove');
+            return;
+          }
+          
+          // Remove LGTM label
+          try {
+            await github.rest.issues.removeLabel({
+              owner, repo, issue_number: prNumber, name: 'lgtm'
+            });
+            console.log('LGTM label removed');
+          } catch (error) {
+            console.log('Failed to remove LGTM label:', error.message);
+            return;
+          }
+          
+          // Add comment to notify about removal
+          await github.rest.issues.createComment({
+            owner, repo, issue_number: prNumber,
+            body: '🔄 LGTM label removed due to PR update. Re-approval required.'
+          });
+        # QUESTION FOR REVIEWER: Adding this comment might be overkill because 
+        # you already seen the label having been removed in the timeline, let 
+        # me know if you think it should be removed. 

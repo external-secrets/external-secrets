@@ -1,0 +1,285 @@
+# If someone with reviewer access comments "/lgtm" on a pull request, add lgtm label
+name: LGTM Command
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+jobs:
+  lgtm-command:
+    permissions:
+      pull-requests: write  # for peter-evans/slash-command-dispatch to create PR reaction
+      issues: write        # for adding labels and comments
+      contents: read       # for reading CODEOWNERS.md
+    runs-on: ubuntu-latest
+    # Only run for PRs, not issue comments
+    if: ${{ github.event.issue.pull_request }}
+    steps:
+    # Checkout repo to access CODEOWNERS.md
+    - name: Checkout repository
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      with:
+        sparse-checkout: |
+          CODEOWNERS.md
+
+    # Generate a GitHub App installation access token
+    - name: Generate token
+      id: generate_token
+      uses: actions/create-github-app-token@a8d616148505b5069dccd32f177bb87d7f39123b # v2.1.1
+      with:
+        app-id: ${{ secrets.APP_ID }}
+        private-key: ${{ secrets.PRIVATE_KEY }}
+        owner: ${{ github.repository_owner }}
+
+    - name: Slash Command Dispatch
+      uses: peter-evans/slash-command-dispatch@13bc09769d122a64f75aa5037256f6f2d78be8c4 # v4.0.0
+      with:
+        token: ${{ steps.generate_token.outputs.token }}
+        reaction-token: ${{ secrets.GITHUB_TOKEN }}
+        issue-type: pull-request
+        commands: lgtm
+        # QUESTION FOR REVIEWER: If I've understood correctly, we're limitted by the following 6 repo permission levels
+        # none, read, triage, write, maintain and admin.
+        # potentially you'll want to give 'triage' to the reviewers and that further hardens this workflow.
+        # Obviously we still have permission checks in the workflow itself, but would be nice to have this extra level of security.
+        permission: none
+
+    - name: Process LGTM Command
+      if: ${{ github.event.comment.body == '/lgtm' }}
+      uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
+      with:
+        github-token: ${{ steps.generate_token.outputs.token }}
+        script: |
+          const organization = 'external-secrets';
+          const lgtmLabelName = 'lgtm';
+          const fs = require('fs');
+
+          const commenter = context.payload.comment.user.login;
+          const prNumber = context.payload.issue.number;
+          const owner = context.repo.owner;
+          const repo = context.repo.repo;
+
+          // Parse CODEOWNERS.md file
+          let codeownersContent;
+          try {
+            codeownersContent = fs.readFileSync('CODEOWNERS.md', 'utf8');
+          } catch (error) {
+            return;
+          }
+
+          // Extract role mappings from CODEOWNERS.md (including * pattern)
+          const codeownerMappings = [];
+          let wildcardRoles = [];
+          codeownersContent.split('\n').forEach(line => {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith('#')) return;
+
+            const match = trimmed.match(/^(\S+)\s+(.+)$/);
+            if (match) {
+              const [, pattern, roles] = match;
+              const rolesList = roles.split(/\s+/).filter(r => r.startsWith('@'));
+
+              if (pattern === '*') {
+                wildcardRoles = rolesList;
+              } else {
+                codeownerMappings.push({
+                  pattern,
+                  roles: rolesList
+                });
+              }
+            }
+          });
+
+          // Extract maintainer roles from wildcardRoles
+          const maintainerRoles = wildcardRoles.map(role => role.replace(`@${organization}/`, ''));
+
+          // Early check: if user is a maintainer, approve immediately
+          let isMaintainer = false;
+
+          for (const role of maintainerRoles) {
+            try {
+              const response = await github.rest.teams.getMembershipForUserInOrg({
+                org: organization,
+                team_slug: role,
+                username: commenter
+              });
+              if (response.data.state === 'active') {
+                isMaintainer = true;
+                break;
+              }
+            } catch (error) {
+              // User not in this team, continue checking others
+            }
+          }
+
+          if (isMaintainer) {
+            // Check if LGTM label already exists
+            const labels = await github.rest.issues.listLabelsOnIssue({
+              owner, repo, issue_number: prNumber
+            });
+            if (!labels.data.some(l => l.name === lgtmLabelName)) {
+              await github.rest.issues.addLabels({
+                owner, repo, issue_number: prNumber, labels: [lgtmLabelName]
+              });
+            }
+
+            // Simple confirmation for maintainers (no role mentions)
+            await github.rest.issues.createComment({
+              owner, repo, issue_number: prNumber,
+              body: `✅ LGTM by @${commenter} (maintainer)`
+            });
+            return;
+          }
+
+          // Get changed files in PR
+          const filesResponse = await github.rest.pulls.listFiles({
+            owner, repo, pull_number: prNumber
+          });
+          const changedFiles = filesResponse.data.map(f => f.filename);
+
+          // Find all required reviewer roles for the changed files
+          // This includes hierarchical matching (e.g., pkg/provider/ matches pkg/provider/aws/file.go)
+          const requiredReviewerRoles = new Set();
+          let hasFilesWithoutSpecificOwners = false;
+
+          changedFiles.forEach(file => {
+            let hasSpecificOwner = false;
+            codeownerMappings.forEach(mapping => {
+              const { pattern, roles } = mapping;
+              // Match pattern (handle both exact matches and directory patterns)
+              // This handles hierarchical matching where broader patterns can cover more specific paths
+              if (file === pattern ||
+                  file.startsWith(pattern.endsWith('/') ? pattern : pattern + '/')) {
+                roles.forEach(role => requiredReviewerRoles.add(role));
+                hasSpecificOwner = true;
+              }
+            });
+
+            if (!hasSpecificOwner) {
+              hasFilesWithoutSpecificOwners = true;
+            }
+          });
+
+          // For files that only match the wildcard pattern, add wildcard roles
+          if (hasFilesWithoutSpecificOwners) {
+            wildcardRoles.forEach(role => {
+              requiredReviewerRoles.add(role);
+            });
+          }
+
+
+          // Find commenter's matching reviewer roles
+          const commenterReviewerRoles = new Set();
+          for (const role of requiredReviewerRoles) {
+            const roleSlug = role.replace(`@${organization}/`, '');
+            
+            try {
+              const response = await github.rest.teams.getMembershipForUserInOrg({
+                org: organization,
+                team_slug: roleSlug,
+                username: commenter
+              });
+              if (response.data.state === 'active') {
+                commenterReviewerRoles.add(role);
+              }
+            } catch (error) {
+              // User not in this role, continue checking others
+            }
+          }
+
+          // Check if user has any required reviewer role
+          if (commenterReviewerRoles.size === 0) {
+            const rolesList = Array.from(requiredReviewerRoles).join(', ');
+            await github.rest.issues.createComment({
+              owner, repo, issue_number: prNumber,
+              body: `@${commenter} You must be a member of one of the required reviewer roles to use /lgtm.\n\nRequired roles for this PR: ${rolesList}`
+            });
+            return;
+          }
+
+          // Check if LGTM label already exists
+          const labels = await github.rest.issues.listLabelsOnIssue({
+            owner, repo, issue_number: prNumber
+          });
+          
+          if (!labels.data.some(l => l.name === lgtmLabelName)) {
+            await github.rest.issues.addLabels({
+              owner, repo, issue_number: prNumber, labels: [lgtmLabelName]
+            });
+            // Added LGTM label
+          }
+
+          // Build confirmation message with role coverage info
+          const mentionRoles = wildcardRoles.join(' ');
+          let confirmationMessage = `${mentionRoles}\n\n✅ LGTM by @${commenter}`;
+
+          // Check for truly uncovered roles using pattern hierarchy
+          const uncoveredRoles = [];
+          for (const requiredRole of requiredReviewerRoles) {
+            let isCovered = commenterReviewerRoles.has(requiredRole);
+
+            // If not directly covered, check if any commenter role has a pattern that covers this required role's pattern
+            if (!isCovered) {
+              // Find the patterns for this required role
+              const requiredRolePatterns = codeownerMappings
+                .filter(mapping => mapping.roles.includes(requiredRole))
+                .map(mapping => mapping.pattern);
+
+              // Check if any commenter role has a pattern that is a parent of any required role pattern
+              for (const commenterRole of commenterReviewerRoles) {
+                const commenterRolePatterns = codeownerMappings
+                  .filter(mapping => mapping.roles.includes(commenterRole))
+                  .map(mapping => mapping.pattern);
+
+                // Check if any commenter pattern is a parent of any required pattern
+                for (const commenterPattern of commenterRolePatterns) {
+                  for (const requiredPattern of requiredRolePatterns) {
+                    const commenterPath = commenterPattern.endsWith('/') ? commenterPattern : commenterPattern + '/';
+                    const requiredPath = requiredPattern.endsWith('/') ? requiredPattern : requiredPattern + '/';
+
+                    // If required pattern starts with commenter pattern, it's hierarchically covered
+                    if (requiredPath.startsWith(commenterPath) && commenterPath !== requiredPath) {
+                      isCovered = true;
+                      break;
+                    }
+                  }
+                  if (isCovered) break;
+                }
+                if (isCovered) break;
+              }
+            }
+
+            if (!isCovered) {
+              uncoveredRoles.push(requiredRole);
+            }
+          }
+
+          // Show role coverage analysis
+          confirmationMessage += `\n\n**Review Coverage:**`;
+
+          if (uncoveredRoles.length > 0) {
+            confirmationMessage += `\n- Commenter has roles:`;
+            Array.from(commenterReviewerRoles).forEach(role => {
+              const roleName = role.replace(`@${organization}/`, '');
+              confirmationMessage += `\n  - ${roleName}`;
+            });
+            confirmationMessage += `\n- Required roles:`;
+            Array.from(requiredReviewerRoles).forEach(role => {
+              const roleName = role.replace(`@${organization}/`, '');
+              confirmationMessage += `\n  - ${roleName}`;
+            });
+            confirmationMessage += `\n- ❌ Additional review may be needed by:`;
+            uncoveredRoles.forEach(role => {
+              const roleName = role.replace(`@${organization}/`, '');
+              confirmationMessage += `\n  - ${roleName}`;
+            });
+          } else {
+            confirmationMessage += `\n- ✅ All required roles covered`;
+          }
+          
+          await github.rest.issues.createComment({
+            owner, repo, issue_number: prNumber,
+            body: confirmationMessage
+          });
