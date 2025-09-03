@@ -57,3 +57,26 @@ func (c *grpcLockboxClient) GetPayloadEntries(ctx context.Context, iamToken, sec
 	}
 	return payload.Entries, nil
 }
+
+func (c *grpcLockboxClient) GetExPayload(ctx context.Context, iamToken, folderID, name, versionID string) (map[string][]byte, error) {
+	request := &api.GetExRequest{
+		Identifier: &api.GetExRequest_FolderAndName{
+			FolderAndName: &api.FolderAndName{
+				FolderId:   folderID,
+				SecretName: name,
+			},
+		},
+		VersionId: versionID,
+	}
+
+	response, err := c.lockboxPayloadClient.GetEx(
+		ctx,
+		request,
+		grpc.PerRPCCredentials(common.PerRPCCredentials{IamToken: iamToken}),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.Entries, nil
+}
