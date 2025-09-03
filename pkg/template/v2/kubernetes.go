@@ -2,30 +2,39 @@ package template
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func GetSecretValue(secretName, namespace, keyName string) ([]byte, error) {
-	config, err := rest.InClusterConfig()
+// Error constants for Kubernetes operations
+var (
+	errCreatingConfig    = errors.New("error creating cluster configuration")
+	errCreatingClientset = errors.New("error creating Kubernetes clientset")
+	errFetchingSecret    = errors.New("error fetching secret")
+	errKeyNotFound       = errors.New("key not found in secret")
+)
+
+func getSecretKey(secretName, namespace, keyName string) (string, error) {
+	restCfg, err := ctrlcfg.GetConfig()
 	if err != nil {
-		return nil, fmt.Errorf("erro criando config: %w", err)
+		return "", fmt.Errorf("%w: %v", errCreatingConfig, err)
 	}
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err := kubernetes.NewForConfig(restCfg)
 	if err != nil {
-		return nil, fmt.Errorf("erro criando clientset: %w", err)
+		return "", fmt.Errorf("%w: %v", errCreatingClientset, err)
 	}
-	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.Background(), secretName, metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("erro ao buscar secret: %w", err)
+		return "", fmt.Errorf("%w: %v", errFetchingSecret, err)
 	}
 	val, ok := secret.Data[keyName]
 	if !ok {
-		return nil, fmt.Errorf("campo %s não encontrado na secret", keyName)
+		return "", fmt.Errorf("%w: %q", errKeyNotFound, keyName)
 	}
-	return val, nil
+	return string(val), nil
 }
