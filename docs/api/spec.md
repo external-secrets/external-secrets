@@ -826,6 +826,53 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.AwsCredentialsConfig">AwsCredentialsConfig
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.GCPWorkloadIdentityFederation">GCPWorkloadIdentityFederation</a>)
+</p>
+<p>
+<p>AwsCredentialsConfig holds the region and the Secret reference which contains the AWS credentials.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>region is for configuring the AWS region to be used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>awsCredentialsSecretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1.SecretReference">
+SecretReference
+</a>
+</em>
+</td>
+<td>
+<p>awsCredentialsSecretRef is the reference to the secret which holds the AWS credentials.
+Secret should be created with below names for keys
+- aws_access_key_id: Access Key ID, which is the unique identifier for the AWS account or the IAM user.
+- aws_secret_access_key: Secret Access Key, which is used to authenticate requests made to AWS services.
+- aws_session_token: Session Token, is the short-lived token to authenticate requests made to AWS services.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.AzureAuthCredentials">AzureAuthCredentials
 </h3>
 <p>
@@ -2547,6 +2594,58 @@ Kubernetes meta/v1.LabelSelector
 <td>
 <em>(Optional)</em>
 <p>Choose namespaces by using regex matching</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ConfigMapReference">ConfigMapReference
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.GCPWorkloadIdentityFederation">GCPWorkloadIdentityFederation</a>)
+</p>
+<p>
+<p>ConfigMapReference holds the details of a configmap.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>name of the configmap.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>namespace in which the configmap exists. If empty, configmap will looked up in local namespace.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>key</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>key name holding the external account credential config.</p>
 </td>
 </tr>
 </tbody>
@@ -4849,6 +4948,19 @@ GCPWorkloadIdentity
 <em>(Optional)</em>
 </td>
 </tr>
+<tr>
+<td>
+<code>workloadIdentityFederation</code></br>
+<em>
+<a href="#external-secrets.io/v1.GCPWorkloadIdentityFederation">
+GCPWorkloadIdentityFederation
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.GCPSMAuthSecretRef">GCPSMAuthSecretRef
@@ -5003,6 +5115,94 @@ string
 <em>(Optional)</em>
 <p>ClusterProjectID is the project ID of the cluster
 If not specified, it fetches information from the metadata server</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.GCPWorkloadIdentityFederation">GCPWorkloadIdentityFederation
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>)
+</p>
+<p>
+<p>GCPWorkloadIdentityFederation holds the configurations required for generating federated access tokens.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>credConfig</code></br>
+<em>
+<a href="#external-secrets.io/v1.ConfigMapReference">
+ConfigMapReference
+</a>
+</em>
+</td>
+<td>
+<p>credConfig holds the configmap reference containing the GCP external account credential configuration in JSON format and the key name containing the json data.
+For using Kubernetes cluster as the identity provider, use serviceAccountRef instead. Operators mounted serviceaccount token cannot be used as the token source, instead
+serviceAccountRef must be used by providing operators service account details.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<p>serviceAccountRef is the reference to the kubernetes ServiceAccount to be used for obtaining the tokens,
+when Kubernetes is configured as provider in workload identity pool.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>awsSecurityCredentials</code></br>
+<em>
+<a href="#external-secrets.io/v1.AwsCredentialsConfig">
+AwsCredentialsConfig
+</a>
+</em>
+</td>
+<td>
+<p>awsSecurityCredentials is for configuring AWS region and credentials to use for obtaining the access token,
+when using the AWS metadata server is not an option.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>audience</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>audience is the Secure Token Service (STS) audience which contains the resource name for the workload identity pool and the provider identifier in that pool.
+If specified, Audience found in the external account credential config will be overridden with the configured value.
+audience must be provided when serviceAccountRef or awsSecurityCredentials is configured.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>externalTokenEndpoint</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>externalTokenEndpoint is the endpoint explicitly set up to provide tokens, which will be matched against the
+credential_source.url in the provided credConfig. This field is merely to double-check the external token source
+URL is having the expected value.</p>
 </td>
 </tr>
 </tbody>
@@ -7599,6 +7799,47 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <em>(Optional)</em>
 <p>SecretRef references a key in a secret that will be used as value.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.SecretReference">SecretReference
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.AwsCredentialsConfig">AwsCredentialsConfig</a>)
+</p>
+<p>
+<p>SecretReference holds the details of a secret.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>name of the secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>namespace in which the secret exists. If empty, secret will looked up in local namespace.</p>
 </td>
 </tr>
 </tbody>
