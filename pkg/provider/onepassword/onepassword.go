@@ -27,6 +27,7 @@ import (
 
 	"github.com/1Password/connect-sdk-go/connect"
 	"github.com/1Password/connect-sdk-go/onepassword"
+	"github.com/cenkalti/backoff/v4"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/kube-openapi/pkg/validation/strfmt"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -499,7 +500,12 @@ func (provider *ProviderOnePassword) findItem(name string) (*onepassword.Item, e
 			return provider.client.GetItem(name, vault.ID)
 		}
 
-		items, err := provider.client.GetItemsByTitle(name, vault.ID)
+		var items []onepassword.Item
+		err = retryOn403(func() error {
+			var retryErr error
+			items, retryErr = provider.client.GetItemsByTitle(name, vault.ID)
+			return retryErr
+		})
 		if err != nil {
 			return nil, fmt.Errorf(errGetItem, err)
 		}
@@ -555,7 +561,12 @@ func (provider *ProviderOnePassword) getFields(item *onepassword.Item, property 
 }
 
 func (provider *ProviderOnePassword) getAllFields(item onepassword.Item, ref esv1.ExternalSecretFind, secretData map[string][]byte) error {
-	i, err := provider.client.GetItemByUUID(item.ID, item.Vault.ID)
+	var i *onepassword.Item
+	err := retryOn403(func() error {
+		var retryErr error
+		i, retryErr = provider.client.GetItemByUUID(item.ID, item.Vault.ID)
+		return retryErr
+	})
 	if err != nil {
 		return fmt.Errorf(errGetItem, err)
 	}
@@ -637,7 +648,12 @@ func (provider *ProviderOnePassword) getAllFiles(item onepassword.Item, ref esv1
 }
 
 func (provider *ProviderOnePassword) getAllByTags(vaultID string, ref esv1.ExternalSecretFind, secretData map[string][]byte) error {
-	items, err := provider.client.GetItems(vaultID)
+	var items []onepassword.Item
+	err := retryOn403(func() error {
+		var retryErr error
+		items, retryErr = provider.client.GetItems(vaultID)
+		return retryErr
+	})
 	if err != nil {
 		return fmt.Errorf(errGetItem, err)
 	}
@@ -670,7 +686,12 @@ func checkTags(source map[string]string, target []string) bool {
 }
 
 func (provider *ProviderOnePassword) getAllForVault(vaultID string, ref esv1.ExternalSecretFind, secretData map[string][]byte) error {
-	items, err := provider.client.GetItems(vaultID)
+	var items []onepassword.Item
+	err := retryOn403(func() error {
+		var retryErr error
+		items, retryErr = provider.client.GetItems(vaultID)
+		return retryErr
+	})
 	if err != nil {
 		return fmt.Errorf(errGetItem, err)
 	}
@@ -755,6 +776,42 @@ func countFieldsWithLabel(fieldLabel string, fields []*onepassword.ItemField) in
 	}
 
 	return count
+}
+
+func is403AuthError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	// sadly, we don't have an error's body from the onepassword http call to match on, so all we do is string match.
+	return strings.Contains(err.Error(), "status 403: Authorization")
+}
+
+func createRetryBackoff() *backoff.ExponentialBackOff {
+	b := backoff.NewExponentialBackOff()
+	b.InitialInterval = 100 * time.Millisecond
+	b.MaxElapsedTime = 300 * time.Millisecond
+	b.MaxInterval = 200 * time.Millisecond
+	b.Multiplier = 2.0
+	b.RandomizationFactor = 0.1
+	return b
+}
+
+// retryOn403 will retry the operation if it returns a 403 error.
+// For the reason, see: https://github.com/external-secrets/external-secrets/issues/4205
+func retryOn403(operation func() error) error {
+	b := createRetryBackoff()
+
+	return backoff.Retry(func() error {
+		err := operation()
+		if err != nil && is403AuthError(err) {
+			return err
+		}
+		if err != nil {
+			return backoff.Permanent(err)
+		}
+		return nil
+	}, b)
 }
 
 type orderedVault struct {

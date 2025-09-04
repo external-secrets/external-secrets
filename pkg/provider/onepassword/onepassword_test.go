@@ -2406,3 +2406,95 @@ func TestProviderOnePasswordPushSecret(t *testing.T) {
 		})
 	}
 }
+
+func TestRetryOn403(t *testing.T) {
+	tests := []struct {
+		name        string
+		err         error
+		shouldRetry bool
+		expectErr   bool
+	}{
+		{
+			name:        "403 auth error should retry",
+			err:         errors.New("status 403: Authorization failed"),
+			shouldRetry: true,
+			expectErr:   true,
+		},
+		{
+			name:        "other error should not retry",
+			err:         errors.New("status 500: Internal Server Error"),
+			shouldRetry: false,
+			expectErr:   true,
+		},
+		{
+			name:        "nil error should not retry",
+			err:         nil,
+			shouldRetry: false,
+			expectErr:   false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			callCount := 0
+			err := retryOn403(func() error {
+				callCount++
+				return tc.err
+			})
+
+			if tc.expectErr && err == nil {
+				t.Errorf("expected error but got none")
+			}
+			if !tc.expectErr && err != nil {
+				t.Errorf("expected no error but got: %v", err)
+			}
+
+			expectedCalls := 1
+			if tc.shouldRetry {
+				expectedCalls = 2 // Initial call + 1 retry (max 2 attempts within 300ms)
+			}
+			
+			if callCount < expectedCalls {
+				t.Errorf("expected at least %d calls but got %d", expectedCalls, callCount)
+			}
+		})
+	}
+}
+
+func TestIs403AuthError(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      error
+		expected bool
+	}{
+		{
+			name:     "nil error",
+			err:      nil,
+			expected: false,
+		},
+		{
+			name:     "403 auth error",
+			err:      errors.New("status 403: Authorization failed"),
+			expected: true,
+		},
+		{
+			name:     "other error",
+			err:      errors.New("status 500: Internal Server Error"),
+			expected: false,
+		},
+		{
+			name:     "partial match",
+			err:      errors.New("403: some other message"),
+			expected: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := is403AuthError(tc.err)
+			if result != tc.expected {
+				t.Errorf("expected %v but got %v", tc.expected, result)
+			}
+		})
+	}
+}
