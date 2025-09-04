@@ -27,8 +27,8 @@ import (
 
 	"github.com/1Password/connect-sdk-go/connect"
 	"github.com/1Password/connect-sdk-go/onepassword"
-	"github.com/cenkalti/backoff/v4"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/kube-openapi/pkg/validation/strfmt"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -87,6 +87,16 @@ var (
 	ErrExpectedOneItem = errors.New(errExpectedOneItemMsg)
 )
 
+// retryClient wraps a connect.Client with retry logic for 403 authorization errors.
+type retryClient struct {
+	client connect.Client
+}
+
+// newRetryClient creates a new retryClient that wraps the given connect.Client.
+func newRetryClient(client connect.Client) connect.Client {
+	return &retryClient{client: client}
+}
+
 // ProviderOnePassword is a provider for 1Password.
 type ProviderOnePassword struct {
 	vaults map[string]int
@@ -125,7 +135,7 @@ func (provider *ProviderOnePassword) NewClient(ctx context.Context, store esv1.G
 	if err != nil {
 		return nil, err
 	}
-	provider.client = connect.NewClientWithUserAgent(config.ConnectHost, token, userAgent)
+	provider.client = newRetryClient(connect.NewClientWithUserAgent(config.ConnectHost, token, userAgent))
 	provider.vaults = config.Vaults
 	return provider, nil
 }
@@ -500,12 +510,7 @@ func (provider *ProviderOnePassword) findItem(name string) (*onepassword.Item, e
 			return provider.client.GetItem(name, vault.ID)
 		}
 
-		var items []onepassword.Item
-		err = retryOn403(func() error {
-			var retryErr error
-			items, retryErr = provider.client.GetItemsByTitle(name, vault.ID)
-			return retryErr
-		})
+		items, err := provider.client.GetItemsByTitle(name, vault.ID)
 		if err != nil {
 			return nil, fmt.Errorf(errGetItem, err)
 		}
@@ -561,12 +566,7 @@ func (provider *ProviderOnePassword) getFields(item *onepassword.Item, property 
 }
 
 func (provider *ProviderOnePassword) getAllFields(item onepassword.Item, ref esv1.ExternalSecretFind, secretData map[string][]byte) error {
-	var i *onepassword.Item
-	err := retryOn403(func() error {
-		var retryErr error
-		i, retryErr = provider.client.GetItemByUUID(item.ID, item.Vault.ID)
-		return retryErr
-	})
+	i, err := provider.client.GetItemByUUID(item.ID, item.Vault.ID)
 	if err != nil {
 		return fmt.Errorf(errGetItem, err)
 	}
@@ -648,12 +648,7 @@ func (provider *ProviderOnePassword) getAllFiles(item onepassword.Item, ref esv1
 }
 
 func (provider *ProviderOnePassword) getAllByTags(vaultID string, ref esv1.ExternalSecretFind, secretData map[string][]byte) error {
-	var items []onepassword.Item
-	err := retryOn403(func() error {
-		var retryErr error
-		items, retryErr = provider.client.GetItems(vaultID)
-		return retryErr
-	})
+	items, err := provider.client.GetItems(vaultID)
 	if err != nil {
 		return fmt.Errorf(errGetItem, err)
 	}
@@ -686,12 +681,7 @@ func checkTags(source map[string]string, target []string) bool {
 }
 
 func (provider *ProviderOnePassword) getAllForVault(vaultID string, ref esv1.ExternalSecretFind, secretData map[string][]byte) error {
-	var items []onepassword.Item
-	err := retryOn403(func() error {
-		var retryErr error
-		items, retryErr = provider.client.GetItems(vaultID)
-		return retryErr
-	})
+	items, err := provider.client.GetItems(vaultID)
 	if err != nil {
 		return fmt.Errorf(errGetItem, err)
 	}
@@ -787,31 +777,161 @@ func is403AuthError(err error) bool {
 	return strings.Contains(err.Error(), "status 403: Authorization")
 }
 
-func createRetryBackoff() *backoff.ExponentialBackOff {
-	b := backoff.NewExponentialBackOff()
-	b.InitialInterval = 100 * time.Millisecond
-	b.MaxElapsedTime = 300 * time.Millisecond
-	b.MaxInterval = 200 * time.Millisecond
-	b.Multiplier = 2.0
-	b.RandomizationFactor = 0.1
-	return b
-}
-
 // retryOn403 will retry the operation if it returns a 403 error.
 // For the reason, see: https://github.com/external-secrets/external-secrets/issues/4205
 func retryOn403(operation func() error) error {
-	b := createRetryBackoff()
+	backoff := retry.DefaultBackoff
+	backoff.Duration = 100 * time.Millisecond
+	backoff.Steps = 3
 
-	return backoff.Retry(func() error {
-		err := operation()
-		if err != nil && is403AuthError(err) {
-			return err
-		}
-		if err != nil {
-			return backoff.Permanent(err)
-		}
-		return nil
-	}, b)
+	return retry.OnError(backoff, is403AuthError, operation)
+}
+
+// retryWithResult is a helper to wrap function calls that return a result and error.
+func retryWithResult[T any](fn func() (T, error)) (T, error) {
+	var result T
+	err := retryOn403(func() error {
+		var retryErr error
+		result, retryErr = fn()
+		return retryErr
+	})
+	return result, err
+}
+
+func (r *retryClient) GetVaults() ([]onepassword.Vault, error) {
+	return retryWithResult(r.client.GetVaults)
+}
+
+func (r *retryClient) GetVault(uuid string) (*onepassword.Vault, error) {
+	return retryWithResult(func() (*onepassword.Vault, error) {
+		return r.client.GetVault(uuid)
+	})
+}
+
+func (r *retryClient) GetVaultByUUID(uuid string) (*onepassword.Vault, error) {
+	return retryWithResult(func() (*onepassword.Vault, error) {
+		return r.client.GetVaultByUUID(uuid)
+	})
+}
+
+func (r *retryClient) GetVaultByTitle(title string) (*onepassword.Vault, error) {
+	return retryWithResult(func() (*onepassword.Vault, error) {
+		return r.client.GetVaultByTitle(title)
+	})
+}
+
+func (r *retryClient) GetVaultsByTitle(uuid string) ([]onepassword.Vault, error) {
+	return retryWithResult(func() ([]onepassword.Vault, error) {
+		return r.client.GetVaultsByTitle(uuid)
+	})
+}
+
+func (r *retryClient) GetItems(vaultQuery string) ([]onepassword.Item, error) {
+	return retryWithResult(func() ([]onepassword.Item, error) {
+		return r.client.GetItems(vaultQuery)
+	})
+}
+
+func (r *retryClient) GetItem(itemQuery, vaultQuery string) (*onepassword.Item, error) {
+	return retryWithResult(func() (*onepassword.Item, error) {
+		return r.client.GetItem(itemQuery, vaultQuery)
+	})
+}
+
+func (r *retryClient) GetItemByUUID(uuid, vaultQuery string) (*onepassword.Item, error) {
+	return retryWithResult(func() (*onepassword.Item, error) {
+		return r.client.GetItemByUUID(uuid, vaultQuery)
+	})
+}
+
+func (r *retryClient) GetItemByTitle(title, vaultQuery string) (*onepassword.Item, error) {
+	return retryWithResult(func() (*onepassword.Item, error) {
+		return r.client.GetItemByTitle(title, vaultQuery)
+	})
+}
+
+func (r *retryClient) GetItemsByTitle(title, vaultQuery string) ([]onepassword.Item, error) {
+	return retryWithResult(func() ([]onepassword.Item, error) {
+		return r.client.GetItemsByTitle(title, vaultQuery)
+	})
+}
+
+func (r *retryClient) CreateItem(item *onepassword.Item, vaultQuery string) (*onepassword.Item, error) {
+	return retryWithResult(func() (*onepassword.Item, error) {
+		return r.client.CreateItem(item, vaultQuery)
+	})
+}
+
+func (r *retryClient) UpdateItem(item *onepassword.Item, vaultQuery string) (*onepassword.Item, error) {
+	return retryWithResult(func() (*onepassword.Item, error) {
+		return r.client.UpdateItem(item, vaultQuery)
+	})
+}
+
+func (r *retryClient) DeleteItem(item *onepassword.Item, vaultQuery string) error {
+	return retryOn403(func() error {
+		return r.client.DeleteItem(item, vaultQuery)
+	})
+}
+
+func (r *retryClient) DeleteItemByID(itemUUID, vaultQuery string) error {
+	return retryOn403(func() error {
+		return r.client.DeleteItemByID(itemUUID, vaultQuery)
+	})
+}
+
+func (r *retryClient) DeleteItemByTitle(title, vaultQuery string) error {
+	return retryOn403(func() error {
+		return r.client.DeleteItemByTitle(title, vaultQuery)
+	})
+}
+
+func (r *retryClient) GetFiles(itemQuery, vaultQuery string) ([]onepassword.File, error) {
+	return retryWithResult(func() ([]onepassword.File, error) {
+		return r.client.GetFiles(itemQuery, vaultQuery)
+	})
+}
+
+func (r *retryClient) GetFile(uuid, itemQuery, vaultQuery string) (*onepassword.File, error) {
+	return retryWithResult(func() (*onepassword.File, error) {
+		return r.client.GetFile(uuid, itemQuery, vaultQuery)
+	})
+}
+
+func (r *retryClient) GetFileContent(file *onepassword.File) ([]byte, error) {
+	return retryWithResult(func() ([]byte, error) {
+		return r.client.GetFileContent(file)
+	})
+}
+
+func (r *retryClient) DownloadFile(file *onepassword.File, targetDirectory string, overwrite bool) (string, error) {
+	return retryWithResult(func() (string, error) {
+		return r.client.DownloadFile(file, targetDirectory, overwrite)
+	})
+}
+
+func (r *retryClient) LoadStructFromItemByUUID(config interface{}, itemUUID, vaultQuery string) error {
+	return retryOn403(func() error {
+		return r.client.LoadStructFromItemByUUID(config, itemUUID, vaultQuery)
+	})
+}
+
+func (r *retryClient) LoadStructFromItemByTitle(config interface{}, itemTitle, vaultQuery string) error {
+	return retryOn403(func() error {
+		return r.client.LoadStructFromItemByTitle(config, itemTitle, vaultQuery)
+	})
+}
+
+func (r *retryClient) LoadStructFromItem(config interface{}, itemQuery, vaultQuery string) error {
+	return retryOn403(func() error {
+		return r.client.LoadStructFromItem(config, itemQuery, vaultQuery)
+	})
+}
+
+func (r *retryClient) LoadStruct(config interface{}) error {
+	return retryOn403(func() error {
+		return r.client.LoadStruct(config)
+	})
 }
 
 type orderedVault struct {

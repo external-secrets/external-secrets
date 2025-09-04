@@ -2407,7 +2407,65 @@ func TestProviderOnePasswordPushSecret(t *testing.T) {
 	}
 }
 
-func TestRetryOn403(t *testing.T) {
+// mockClient implements connect.Client interface for testing.
+type mockClient struct {
+	getItemsFunc func(vaultQuery string) ([]onepassword.Item, error)
+}
+
+func (m *mockClient) GetVaults() ([]onepassword.Vault, error)                   { return nil, nil }
+func (m *mockClient) GetVault(uuid string) (*onepassword.Vault, error)          { return nil, nil }
+func (m *mockClient) GetVaultByUUID(uuid string) (*onepassword.Vault, error)    { return nil, nil }
+func (m *mockClient) GetVaultByTitle(title string) (*onepassword.Vault, error)  { return nil, nil }
+func (m *mockClient) GetVaultsByTitle(uuid string) ([]onepassword.Vault, error) { return nil, nil }
+func (m *mockClient) GetItems(vaultQuery string) ([]onepassword.Item, error) {
+	if m.getItemsFunc != nil {
+		return m.getItemsFunc(vaultQuery)
+	}
+	return nil, nil
+}
+func (m *mockClient) GetItem(itemQuery, vaultQuery string) (*onepassword.Item, error) {
+	return nil, nil
+}
+func (m *mockClient) GetItemByUUID(uuid, vaultQuery string) (*onepassword.Item, error) {
+	return nil, nil
+}
+func (m *mockClient) GetItemByTitle(title, vaultQuery string) (*onepassword.Item, error) {
+	return nil, nil
+}
+func (m *mockClient) GetItemsByTitle(title, vaultQuery string) ([]onepassword.Item, error) {
+	return nil, nil
+}
+func (m *mockClient) CreateItem(item *onepassword.Item, vaultQuery string) (*onepassword.Item, error) {
+	return nil, nil
+}
+func (m *mockClient) UpdateItem(item *onepassword.Item, vaultQuery string) (*onepassword.Item, error) {
+	return nil, nil
+}
+func (m *mockClient) DeleteItem(item *onepassword.Item, vaultQuery string) error { return nil }
+func (m *mockClient) DeleteItemByID(itemUUID, vaultQuery string) error           { return nil }
+func (m *mockClient) DeleteItemByTitle(title, vaultQuery string) error           { return nil }
+func (m *mockClient) GetFiles(itemQuery, vaultQuery string) ([]onepassword.File, error) {
+	return nil, nil
+}
+func (m *mockClient) GetFile(uuid, itemQuery, vaultQuery string) (*onepassword.File, error) {
+	return nil, nil
+}
+func (m *mockClient) GetFileContent(file *onepassword.File) ([]byte, error) { return nil, nil }
+func (m *mockClient) DownloadFile(file *onepassword.File, targetDirectory string, overwrite bool) (string, error) {
+	return "", nil
+}
+func (m *mockClient) LoadStructFromItemByUUID(config interface{}, itemUUID, vaultQuery string) error {
+	return nil
+}
+func (m *mockClient) LoadStructFromItemByTitle(config interface{}, itemTitle, vaultQuery string) error {
+	return nil
+}
+func (m *mockClient) LoadStructFromItem(config interface{}, itemQuery, vaultQuery string) error {
+	return nil
+}
+func (m *mockClient) LoadStruct(config interface{}) error { return nil }
+
+func TestRetryClient(t *testing.T) {
 	tests := []struct {
 		name        string
 		err         error
@@ -2437,10 +2495,15 @@ func TestRetryOn403(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			callCount := 0
-			err := retryOn403(func() error {
-				callCount++
-				return tc.err
-			})
+			mockClient := &mockClient{
+				getItemsFunc: func(vaultQuery string) ([]onepassword.Item, error) {
+					callCount++
+					return nil, tc.err
+				},
+			}
+
+			retryClient := newRetryClient(mockClient)
+			_, err := retryClient.GetItems("test-vault")
 
 			if tc.expectErr && err == nil {
 				t.Errorf("expected error but got none")
@@ -2451,9 +2514,9 @@ func TestRetryOn403(t *testing.T) {
 
 			expectedCalls := 1
 			if tc.shouldRetry {
-				expectedCalls = 2 // Initial call + 1 retry (max 2 attempts within 300ms)
+				expectedCalls = 3 // Initial call + 2 retries (3 steps configured in retry backoff)
 			}
-			
+
 			if callCount < expectedCalls {
 				t.Errorf("expected at least %d calls but got %d", expectedCalls, callCount)
 			}
