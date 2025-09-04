@@ -16,7 +16,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 
 	api "github.com/yandex-cloud/go-genproto/yandex/cloud/lockbox/v1"
 	"github.com/yandex-cloud/go-sdk/iamkey"
@@ -30,16 +29,16 @@ type grpcLockboxClient struct {
 	lockboxPayloadClient api.PayloadServiceClient
 }
 
-func NewGrpcLockboxClient(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (LockboxClient, error) {
+func NewGrpcLockboxClient(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte, iamToken *common.IamToken) (LockboxClient, error) {
 	conn, err := common.NewGrpcConnection(
 		ctx,
 		apiEndpoint,
 		"lockbox-payload", // taken from https://api.cloud.yandex.net/endpoints
 		authorizedKey,
 		caCertificate,
+		iamToken,
 	)
 	if err != nil {
-		fmt.Println("Error is here")
 		return nil, err
 	}
 	return &grpcLockboxClient{api.NewPayloadServiceClient(conn)}, nil

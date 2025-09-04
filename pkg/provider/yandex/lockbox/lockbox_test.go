@@ -972,7 +972,7 @@ func newLockboxProvider(clock clock.Clock, fakeLockboxServer *client.FakeLockbox
 		ctrl.Log.WithName("provider").WithName("yandex").WithName("lockbox"),
 		clock,
 		adaptInput,
-		func(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (common.SecretGetter, error) {
+		func(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte, iamToken *common.IamToken) (common.SecretGetter, error) {
 			return newLockboxSecretGetter(client.NewFakeLockboxClient(fakeLockboxServer))
 		},
 		func(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (*common.IamToken, error) {

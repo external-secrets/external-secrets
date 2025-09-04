@@ -37,13 +37,14 @@ func NewGrpcConnection(
 	apiEndpointID string, // an ID from https://api.cloud.yandex.net/endpoints
 	authorizedKey *iamkey.Key,
 	caCertificate []byte,
+	iamToken *IamToken,
 ) (*grpc.ClientConn, error) {
 	tlsConfig, err := tlsConfig(caCertificate)
 	if err != nil {
 		return nil, err
 	}
 
-	sdk, err := buildSDKForServiceApiEndpoint(ctx, apiEndpoint, tlsConfig)
+	sdk, err := buildSDK(ctx, apiEndpoint, authorizedKey, tlsConfig, iamToken)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +56,6 @@ func NewGrpcConnection(
 		ApiEndpointId: apiEndpointID,
 	})
 	if err != nil {
-		fmt.Println("Error is here2")
 		return nil, err
 	}
 
@@ -86,7 +86,7 @@ func NewIamToken(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.
 		return nil, err
 	}
 
-	sdk, err := buildSDK(ctx, apiEndpoint, authorizedKey, tlsConfig)
+	sdk, err := buildSDK(ctx, apiEndpoint, authorizedKey, tlsConfig, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func tlsConfig(caCertificate []byte) (*tls.Config, error) {
 	return tlsConfig, nil
 }
 
-func buildSDK(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, tlsConfig *tls.Config) (*ycsdk.SDK, error) {
+func buildSDK(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, tlsConfig *tls.Config, iamToken *IamToken) (*ycsdk.SDK, error) {
 	var creds ycsdk.Credentials
 	if authorizedKey != nil {
 		var err error
@@ -123,25 +123,15 @@ func buildSDK(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key
 		if err != nil {
 			return nil, err
 		}
+	} else if iamToken != nil {
+		fmt.Println("True")
+		creds = ycsdk.NewIAMTokenCredentials(iamToken.Token)
 	} else {
 		creds = ycsdk.InstanceServiceAccount()
 	}
 
 	sdk, err := ycsdk.Build(ctx, ycsdk.Config{
 		Credentials: creds,
-		Endpoint:    apiEndpoint,
-		TLSConfig:   tlsConfig,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return sdk, nil
-}
-func buildSDKForServiceApiEndpoint(ctx context.Context, apiEndpoint string, tlsConfig *tls.Config) (*ycsdk.SDK, error) {
-
-	sdk, err := ycsdk.Build(ctx, ycsdk.Config{
-		Credentials: ycsdk.NoCredentials{},
 		Endpoint:    apiEndpoint,
 		TLSConfig:   tlsConfig,
 	})

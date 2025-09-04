@@ -86,8 +86,8 @@ func adaptInput(store esv1.GenericStore) (*common.SecretsClientInput, error) {
 	}, nil
 }
 
-func newSecretGetter(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (common.SecretGetter, error) {
-	grpcClient, err := client.NewGrpcCertificateManagerClient(ctx, apiEndpoint, authorizedKey, caCertificate)
+func newSecretGetter(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte, iamToken *common.IamToken) (common.SecretGetter, error) {
+	grpcClient, err := client.NewGrpcCertificateManagerClient(ctx, apiEndpoint, authorizedKey, caCertificate, iamToken)
 	if err != nil {
 		return nil, err
 	}

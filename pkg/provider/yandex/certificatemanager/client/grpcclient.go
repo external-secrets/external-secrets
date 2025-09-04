@@ -29,13 +29,14 @@ type grpcCertificateManagerClient struct {
 	certificateContentServiceClient api.CertificateContentServiceClient
 }
 
-func NewGrpcCertificateManagerClient(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (CertificateManagerClient, error) {
+func NewGrpcCertificateManagerClient(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte, iamToken *common.IamToken) (CertificateManagerClient, error) {
 	conn, err := common.NewGrpcConnection(
 		ctx,
 		apiEndpoint,
 		"certificate-manager-data", // taken from https://api.cloud.yandex.net/endpoints
 		authorizedKey,
 		caCertificate,
+		iamToken,
 	)
 	if err != nil {
 		return nil, err
