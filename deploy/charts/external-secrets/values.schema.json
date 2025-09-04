@@ -300,6 +300,9 @@
         "dnsPolicy": {
             "type": "string"
         },
+        "enableHTTP2": {
+            "type": "boolean"
+        },
         "extendedMetricLabels": {
             "type": "boolean"
         },
