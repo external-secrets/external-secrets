@@ -21,7 +21,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/DelineaXPM/tss-sdk-go/v2/server"
+	"github.com/DelineaXPM/tss-sdk-go/v3/server"
 	"github.com/stretchr/testify/assert"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -93,6 +93,21 @@ func createTestSecretFromCode(id int) *server.Secret {
 	return s
 }
 
+func createTestFolderSecret(id int, folderId int) *server.Secret {
+	s := new(server.Secret)
+	s.FolderID = folderId
+	s.ID = id
+	s.Name = "FolderSecretname"
+	s.Fields = make([]server.SecretField, 2)
+	s.Fields[0].ItemValue = "usernamevalue"
+	s.Fields[0].FieldName = "Username"
+	s.Fields[0].Slug = "username"
+	s.Fields[1].FieldName = "Password"
+	s.Fields[1].Slug = "password"
+	s.Fields[1].ItemValue = "passwordvalue"
+	return s
+}
+
 func createPlainTextSecret(id int) *server.Secret {
 	s := new(server.Secret)
 	s.ID = id
@@ -132,6 +147,7 @@ func newTestClient() esv1.SecretsClient {
 				createSecret(6000, "{ \"user\": \"betaTest\", \"password\": \"badPassword\" }"),
 				createNilFieldsSecret(7000),
 				createEmptyFieldsSecret(8000),
+				createTestFolderSecret(9000, 4),
 			},
 		},
 	}
@@ -144,6 +160,7 @@ func TestGetSecretSecretServer(t *testing.T) {
 	jsonStr, _ := json.Marshal(s)
 	jsonStr2, _ := json.Marshal(createTestSecretFromCode(4000))
 	jsonStr3, _ := json.Marshal(createPlainTextSecret(5000))
+	jsonStr4, _ := json.Marshal(reateTestFolderSecret(9000, 4))
 
 	testCases := map[string]struct {
 		ref  esv1.ExternalSecretDataRemoteRef
@@ -261,6 +278,19 @@ func TestGetSecretSecretServer(t *testing.T) {
 			},
 			want: []byte(nil),
 			err:  esv1.NoSecretError{},
+		},
+		"Secret by path: valid path returns secret": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key: "/FolderSecretname",
+			},
+			want: jsonStr4,
+		},
+		"Secret by path: invalid path returns error": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key: "/invalid/secret/path",
+			},
+			want: []byte(nil),
+			err:  errNotFound,
 		},
 	}
 
