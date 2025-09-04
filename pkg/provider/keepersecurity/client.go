@@ -315,9 +315,6 @@ func (c *Client) findSecretByID(id string) (*ksm.Record, error) {
 	if len(records) == 0 {
 		return nil, errors.New(errKeeperSecurityNoSecretsFound)
 	}
-	if len(records) > 1 {
-		return nil, fmt.Errorf(errKeeperSecuritySecretNotUnique, id)
-	}
 
 	return records[0], nil
 }
