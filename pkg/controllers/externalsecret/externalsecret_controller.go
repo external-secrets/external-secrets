@@ -186,15 +186,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 
 	// Handle deletion with finalizer
 	if !externalSecret.GetDeletionTimestamp().IsZero() {
-		if controllerutil.ContainsFinalizer(externalSecret, ExternalSecretFinalizer) {
-			// Cleanup managed secrets based on DeletionPolicy
-			if err := r.cleanupManagedSecrets(ctx, log, externalSecret); err != nil {
-				log.Error(err, "failed to cleanup managed secrets")
-				return ctrl.Result{}, err
-			}
+		// Always attempt cleanup to handle edge case where finalizer might be removed externally
+		if err := r.cleanupManagedSecrets(ctx, log, externalSecret); err != nil {
+			log.Error(err, "failed to cleanup managed secrets")
+			return ctrl.Result{}, err
+		}
 
-			// Remove finalizer
-			controllerutil.RemoveFinalizer(externalSecret, ExternalSecretFinalizer)
+		// Remove finalizer if it exists
+		if updated := controllerutil.RemoveFinalizer(externalSecret, ExternalSecretFinalizer); updated {
 			if err := r.Update(ctx, externalSecret); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -203,8 +202,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	}
 
 	// Add finalizer if it doesn't exist
-	if !controllerutil.ContainsFinalizer(externalSecret, ExternalSecretFinalizer) {
-		controllerutil.AddFinalizer(externalSecret, ExternalSecretFinalizer)
+	if updated := controllerutil.AddFinalizer(externalSecret, ExternalSecretFinalizer); updated {
 		if err := r.Update(ctx, externalSecret); err != nil {
 			return ctrl.Result{}, err
 		}
