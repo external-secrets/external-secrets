@@ -329,7 +329,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	dataMap, err := r.GetProviderSecretData(ctx, externalSecret)
 	if err != nil {
 		r.markAsFailed(msgErrorGetSecretData, err, externalSecret, syncCallsError.With(resourceLabels))
-		return ctrl.Result{}, err
+		return r.getRequeueResult(externalSecret), err
 	}
 
 	// if no data was found we can delete the secret if needed.
