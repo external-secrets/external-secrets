@@ -152,7 +152,7 @@ var rootCmd = &cobra.Command{
 			metricsOpts.CertName = metricsCertName
 			metricsOpts.KeyName = metricsKeyName
 		}
-		
+
 		// Disable HTTP/2 if not explicitly enabled
 		if !enableHTTP2 {
 			metricsOpts.TLSOpts = []func(*tls.Config){disableHTTP2}
