@@ -210,3 +210,10 @@ tests:
     asserts:
       - hasDocuments:
           count: 0
+  - it: should not have enableHTTP2 flag by default
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: "--enable-http2"
