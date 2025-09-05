@@ -107,7 +107,7 @@ require (
 	github.com/keeper-security/secrets-manager-go/core v1.6.4
 	github.com/lestrrat-go/jwx/v2 v2.1.6
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.0
-	github.com/ngrok/ngrok-api-go/v7 v7.4.0
+	github.com/ngrok/ngrok-api-go/v7 v7.6.0
 	github.com/passbolt/go-passbolt v0.7.2
 	github.com/previder/vault-cli v0.1.3
 	github.com/pulumi/esc-sdk/sdk v0.12.2
