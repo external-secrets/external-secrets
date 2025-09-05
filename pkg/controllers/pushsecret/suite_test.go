@@ -98,7 +98,7 @@ var _ = BeforeSuite(func() {
 		Log:             ctrl.Log.WithName("controllers").WithName("PushSecret"),
 		RestConfig:      cfg,
 		RequeueInterval: time.Second,
-	}).SetupWithManager(ctx, k8sManager, controller.Options{
+	}).SetupWithManager(k8sManager, controller.Options{
 		MaxConcurrentReconciles: 1,
 		RateLimiter:             ctrlcommon.BuildRateLimiter(),
 	})

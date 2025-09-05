@@ -67,22 +67,6 @@ spec:
             audiences: [] # minItems 0 of type string
             name: string
             namespace: string
-        workloadIdentityFederation:
-          audience: string
-          awsSecurityCredentials:
-            awsCredentialsSecretRef:
-              name: string
-              namespace: string
-            region: "ap-south-1"
-          credConfig:
-            key: string
-            name: string
-            namespace: string
-          externalTokenEndpoint: string
-          serviceAccountRef:
-            audiences: [] # minItems 0 of type string
-            name: string
-            namespace: string
       projectID: string
     githubAccessTokenSpec:
       appID: string
@@ -267,8 +251,6 @@ spec:
           name: string
           namespace: string
           type: "Secret" # "Secret", "ConfigMap"
-        checkAndSet:
-          required: true
         forwardInconsistent: true
         headers: {}
         namespace: string

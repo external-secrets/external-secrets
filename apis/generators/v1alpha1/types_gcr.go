@@ -17,7 +17,6 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -33,8 +32,6 @@ type GCPSMAuth struct {
 	SecretRef *GCPSMAuthSecretRef `json:"secretRef,omitempty"`
 	// +optional
 	WorkloadIdentity *GCPWorkloadIdentity `json:"workloadIdentity,omitempty"`
-	// +optional
-	WorkloadIdentityFederation *esv1.GCPWorkloadIdentityFederation `json:"workloadIdentityFederation,omitempty"`
 }
 
 type GCPSMAuthSecretRef struct {

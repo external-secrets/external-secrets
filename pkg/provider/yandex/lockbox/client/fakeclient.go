@@ -19,8 +19,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/go-logr/logr"
-
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
@@ -44,20 +42,14 @@ func (c *fakeLockboxClient) GetPayloadEntries(_ context.Context, iamToken, secre
 	return c.fakeLockboxServer.getEntries(iamToken, secretID, versionID)
 }
 
-func (c *fakeLockboxClient) GetExPayload(_ context.Context, iamToken, folderID, name, versionID string) (map[string][]byte, error) {
-	return c.fakeLockboxServer.getExPayload(iamToken, folderID, name, versionID)
-}
-
 // Fakes Yandex Lockbox service backend.
 type FakeLockboxServer struct {
-	secretMap        map[secretKey]secretValue               // secret specific data
-	versionMap       map[versionKey]versionValue             // version specific data
-	tokenMap         map[tokenKey]tokenValue                 // token specific data
-	folderAndNameMap map[folderAndNameKey]folderAndNameValue // folderAndName specific data
+	secretMap  map[secretKey]secretValue   // secret specific data
+	versionMap map[versionKey]versionValue // version specific data
+	tokenMap   map[tokenKey]tokenValue     // token specific data
 
 	tokenExpirationDuration time.Duration
 	clock                   clock.Clock
-	logger                  logr.Logger
 }
 
 type secretKey struct {
@@ -77,15 +69,6 @@ type versionValue struct {
 	entries []*api.Payload_Entry
 }
 
-type folderAndNameKey struct {
-	folderID string
-	name     string
-}
-
-type folderAndNameValue struct {
-	secretID string
-}
-
 type tokenKey struct {
 	token string
 }
@@ -100,24 +83,18 @@ func NewFakeLockboxServer(clock clock.Clock, tokenExpirationDuration time.Durati
 		secretMap:               make(map[secretKey]secretValue),
 		versionMap:              make(map[versionKey]versionValue),
 		tokenMap:                make(map[tokenKey]tokenValue),
-		folderAndNameMap:        make(map[folderAndNameKey]folderAndNameValue),
 		tokenExpirationDuration: tokenExpirationDuration,
 		clock:                   clock,
 	}
 }
 
-func (s *FakeLockboxServer) CreateSecret(authorizedKey *iamkey.Key, folderID, name string, entries ...*api.Payload_Entry) (string, string) {
+func (s *FakeLockboxServer) CreateSecret(authorizedKey *iamkey.Key, entries ...*api.Payload_Entry) (string, string) {
 	secretID := uuid.NewString()
 	versionID := uuid.NewString()
 
 	s.secretMap[secretKey{secretID}] = secretValue{authorizedKey}
 	s.versionMap[versionKey{secretID, ""}] = versionValue{entries} // empty versionID corresponds to the latest version
 	s.versionMap[versionKey{secretID, versionID}] = versionValue{entries}
-
-	if _, exists := s.folderAndNameMap[folderAndNameKey{folderID, name}]; exists {
-		s.logger.Error(nil, "On the fake server, you cannot add two certificates with the same name in the same folder")
-	}
-	s.folderAndNameMap[folderAndNameKey{folderID, name}] = folderAndNameValue{secretID}
 
 	return secretID, versionID
 }
@@ -157,32 +134,4 @@ func (s *FakeLockboxServer) getEntries(iamToken, secretID, versionID string) ([]
 	}
 
 	return s.versionMap[versionKey{secretID, versionID}].entries, nil
-}
-
-func (s *FakeLockboxServer) getExPayload(iamToken, folderID, name, versionID string) (map[string][]byte, error) {
-	if _, ok := s.folderAndNameMap[folderAndNameKey{folderID, name}]; !ok {
-		return nil, errors.New("secret not found")
-	}
-	secretID := s.folderAndNameMap[folderAndNameKey{folderID, name}].secretID
-	if _, ok := s.versionMap[versionKey{secretID, versionID}]; !ok {
-		return nil, errors.New("version not found")
-	}
-
-	if s.tokenMap[tokenKey{iamToken}].expiresAt.Before(s.clock.CurrentTime()) {
-		return nil, errors.New("iam token expired")
-	}
-	if !cmp.Equal(s.tokenMap[tokenKey{iamToken}].authorizedKey, s.secretMap[secretKey{secretID}].expectedAuthorizedKey, cmpopts.IgnoreUnexported(iamkey.Key{})) {
-		return nil, errors.New("permission denied")
-	}
-	entries := s.versionMap[versionKey{secretID, versionID}].entries
-	out := make(map[string][]byte, len(entries))
-	for _, e := range entries {
-		switch e.Value.(type) {
-		case *api.Payload_Entry_TextValue:
-			out[e.Key] = []byte(e.GetTextValue())
-		case *api.Payload_Entry_BinaryValue:
-			out[e.Key] = e.GetBinaryValue()
-		}
-	}
-	return out, nil
 }

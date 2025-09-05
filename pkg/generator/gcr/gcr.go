@@ -69,9 +69,8 @@ func (g *Generator) generate(
 		return nil, nil, fmt.Errorf(errParseSpec, err)
 	}
 	ts, err := tokenSource(ctx, esv1.GCPSMAuth{
-		SecretRef:                  (*esv1.GCPSMAuthSecretRef)(res.Spec.Auth.SecretRef),
-		WorkloadIdentity:           (*esv1.GCPWorkloadIdentity)(res.Spec.Auth.WorkloadIdentity),
-		WorkloadIdentityFederation: res.Spec.Auth.WorkloadIdentityFederation,
+		SecretRef:        (*esv1.GCPSMAuthSecretRef)(res.Spec.Auth.SecretRef),
+		WorkloadIdentity: (*esv1.GCPWorkloadIdentity)(res.Spec.Auth.WorkloadIdentity),
 	}, res.Spec.ProjectID, resolvers.EmptyStoreKind, kube, namespace)
 	if err != nil {
 		return nil, nil, err
