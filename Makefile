@@ -189,24 +189,37 @@ helm.build: helm.generate ## Build helm chart
 	@mv $(OUTPUT_DIR)/chart/external-secrets-$(HELM_VERSION).tgz $(OUTPUT_DIR)/chart/external-secrets.tgz
 	@$(OK) helm package
 
+# install_helm_plugin is for installing the provided plugin, if it doesn't exist
+# $1 - plugin name
+# $2 - plugin version
+# $3 - plugin url
+define install_helm_plugin
+@v=$$(helm plugin list | awk '$$1=="$(1)"{print $$2}'); \
+if [ -z "$$v" ]; then \
+	$(INFO) "Installing $(1) v$(2)"; \
+	helm plugin install --version $(2) $(3); \
+	$(OK) "Installed $(1) v$(2)"; \
+elif [ "$$v" != "$(2)" ]; then \
+	$(INFO) "Found $(1) $$v. Reinstalling v$(2)"; \
+	helm plugin remove $(1); \
+	helm plugin install --version $(2) $(3); \
+	$(OK) "Reinstalled $(1) v$(2)"; \
+else \
+	$(OK) "$(1) already at v$(2)"; \
+fi
+endef
+
 HELM_SCHEMA_NAME := schema
 HELM_SCHEMA_VER  := 2.2.1
 HELM_SCHEMA_URL  := https://github.com/losisin/helm-values-schema-json.git
-
 helm.schema.plugin:
-	@v=$$(helm plugin list | awk '$$1=="$(HELM_SCHEMA_NAME)"{print $$2}'); \
-	if [ -z "$$v" ]; then \
-		$(INFO) "Installing $(HELM_SCHEMA_NAME) v$(HELM_SCHEMA_VER)"; \
-		helm plugin install --version $(HELM_SCHEMA_VER) $(HELM_SCHEMA_URL); \
-		$(OK) "Installed $(HELM_SCHEMA_NAME) v$(HELM_SCHEMA_VER)"; \
-	elif [ "$$v" != "$(HELM_SCHEMA_VER)" ]; then \
-		$(INFO) "Found $(HELM_SCHEMA_NAME) $$v. Reinstalling v$(HELM_SCHEMA_VER)"; \
-		helm plugin remove $(HELM_SCHEMA_NAME); \
-		helm plugin install --version $(HELM_SCHEMA_VER) $(HELM_SCHEMA_URL); \
-		$(OK) "Reinstalled $(HELM_SCHEMA_NAME) v$(HELM_SCHEMA_VER)"; \
-	else \
-		$(OK) "$(HELM_SCHEMA_NAME) already at v$(HELM_SCHEMA_VER)"; \
-	fi
+	$(call install_helm_plugin,$(HELM_SCHEMA_NAME),$(HELM_SCHEMA_VER), $(HELM_SCHEMA_URL))
+
+HELM_UNITTEST_PLUGIN_NAME := unittest
+HELM_UNITTEST_PLUGIN_VER := 1.0.0
+HELM_UNITTEST_PLUGIN_URL := https://github.com/helm-unittest/helm-unittest.git
+helm.unittest.plugin:
+	$(call install_helm_plugin,$(HELM_UNITTEST_PLUGIN_NAME),$(HELM_UNITTEST_PLUGIN_VER), $(HELM_UNITTEST_PLUGIN_URL))
 
 helm.schema.update: helm.schema.plugin
 	@$(INFO) Generating values.schema.json
@@ -217,10 +230,10 @@ helm.generate:
 	./hack/helm.generate.sh $(BUNDLE_DIR) $(HELM_DIR)
 	@$(OK) Finished generating helm chart files
 
-helm.test: helm.generate
+helm.test: helm.unittest.plugin helm.generate
 	@helm unittest deploy/charts/external-secrets/
 
-helm.test.update: helm.generate
+helm.test.update: helm.unittest.plugin helm.generate
 	@helm unittest -u deploy/charts/external-secrets/
 
 helm.update.appversion:

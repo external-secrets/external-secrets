@@ -88,6 +88,9 @@ spec:
           {{- if .Values.extendedMetricLabels }}
           - --enable-extended-metric-labels={{ .Values.extendedMetricLabels }}
           {{- end }}
+          {{- if .Values.enableHTTP2 }}
+          - --enable-http2=true
+          {{- end }}
           {{- if .Values.concurrent }}
           - --concurrent={{ .Values.concurrent }}
           {{- end }}
