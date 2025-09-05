@@ -64,7 +64,6 @@ func (f *fakeAPI) SecretByPath(path string) (*server.Secret, error) {
 	return nil, errNotFound
 }
 
-// createSecret assembles a server.Secret from file test_data.json.
 func createSecret(id int, itemValue string) *server.Secret {
 	s, _ := getJSONData()
 	s.ID = id
