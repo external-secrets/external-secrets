@@ -124,7 +124,7 @@ func (provider *ProviderOnePassword) NewClient(ctx context.Context, store esv1.G
 	if err != nil {
 		return nil, err
 	}
-	provider.client = newRetryClient(connect.NewClientWithUserAgent(config.ConnectHost, token, userAgent))
+	provider.client = connect.NewClientWithUserAgent(config.ConnectHost, token, userAgent)
 	provider.vaults = config.Vaults
 	return provider, nil
 }

@@ -19,7 +19,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
@@ -43,20 +42,14 @@ func (c *fakeCertificateManagerClient) GetCertificateContent(_ context.Context, 
 	return c.fakeCertificateManagerServer.getCertificateContent(iamToken, certificateID, versionID)
 }
 
-func (c *fakeCertificateManagerClient) GetExCertificateContent(_ context.Context, iamToken, folderID, name, versionID string) (*api.GetExCertificateContentResponse, error) {
-	return c.fakeCertificateManagerServer.getExCertificateContent(iamToken, folderID, name, versionID)
-}
-
 // Fakes Yandex Certificate Manager service backend.
 type FakeCertificateManagerServer struct {
-	certificateMap   map[certificateKey]certificateValue     // certificate specific data
-	versionMap       map[versionKey]versionValue             // version specific data
-	tokenMap         map[tokenKey]tokenValue                 // token specific data
-	folderAndNameMap map[folderAndNameKey]folderAndNameValue // folderAndName specific data
+	certificateMap map[certificateKey]certificateValue // certificate specific data
+	versionMap     map[versionKey]versionValue         // version specific data
+	tokenMap       map[tokenKey]tokenValue             // token specific data
 
 	tokenExpirationDuration time.Duration
 	clock                   clock.Clock
-	logger                  logr.Logger
 }
 
 type certificateKey struct {
@@ -85,39 +78,23 @@ type tokenValue struct {
 	expiresAt     time.Time
 }
 
-type folderAndNameKey struct {
-	folderID string
-	name     string
-}
-
-type folderAndNameValue struct {
-	certificateID string
-}
-
 func NewFakeCertificateManagerServer(clock clock.Clock, tokenExpirationDuration time.Duration) *FakeCertificateManagerServer {
 	return &FakeCertificateManagerServer{
 		certificateMap:          make(map[certificateKey]certificateValue),
 		versionMap:              make(map[versionKey]versionValue),
 		tokenMap:                make(map[tokenKey]tokenValue),
-		folderAndNameMap:        make(map[folderAndNameKey]folderAndNameValue),
 		tokenExpirationDuration: tokenExpirationDuration,
 		clock:                   clock,
 	}
 }
 
-func (s *FakeCertificateManagerServer) CreateCertificate(authorizedKey *iamkey.Key, folderID, name string, content *api.GetCertificateContentResponse) (string, string) {
+func (s *FakeCertificateManagerServer) CreateCertificate(authorizedKey *iamkey.Key, content *api.GetCertificateContentResponse) (string, string) {
 	certificateID := uuid.NewString()
 	versionID := uuid.NewString()
 
 	s.certificateMap[certificateKey{certificateID}] = certificateValue{authorizedKey}
 	s.versionMap[versionKey{certificateID, ""}] = versionValue{content} // empty versionID corresponds to the latest version
 	s.versionMap[versionKey{certificateID, versionID}] = versionValue{content}
-
-	if _, exists := s.folderAndNameMap[folderAndNameKey{folderID, name}]; exists {
-		s.logger.Error(nil, "ERROR: On the fake server, you cannot add two certificates with the same name in the same folder.")
-	}
-
-	s.folderAndNameMap[folderAndNameKey{folderID, name}] = folderAndNameValue{certificateID}
 
 	return certificateID, versionID
 }
@@ -157,31 +134,4 @@ func (s *FakeCertificateManagerServer) getCertificateContent(iamToken, certifica
 	}
 
 	return s.versionMap[versionKey{certificateID, versionID}].content, nil
-}
-
-func (s *FakeCertificateManagerServer) getExCertificateContent(iamToken, folderID, name, versionID string) (*api.GetExCertificateContentResponse, error) {
-	if _, ok := s.folderAndNameMap[folderAndNameKey{folderID, name}]; !ok {
-		return nil, errors.New("certificate not found")
-	}
-	certificateID := s.folderAndNameMap[folderAndNameKey{folderID, name}].certificateID
-	if _, ok := s.versionMap[versionKey{certificateID, versionID}]; !ok {
-		return nil, errors.New("version not found")
-	}
-	if _, ok := s.tokenMap[tokenKey{iamToken}]; !ok {
-		return nil, errors.New("unauthenticated")
-	}
-	if s.tokenMap[tokenKey{iamToken}].expiresAt.Before(s.clock.CurrentTime()) {
-		return nil, errors.New("iam token expired")
-	}
-
-	if !cmp.Equal(s.tokenMap[tokenKey{iamToken}].authorizedKey, s.certificateMap[certificateKey{certificateID}].expectedAuthorizedKey, cmpopts.IgnoreUnexported(iamkey.Key{})) {
-		return nil, errors.New("permission denied")
-	}
-	certificateChain := s.versionMap[versionKey{certificateID, versionID}].content.CertificateChain
-	privateKey := s.versionMap[versionKey{certificateID, versionID}].content.PrivateKey
-	return &api.GetExCertificateContentResponse{
-		CertificateId:    certificateID,
-		CertificateChain: certificateChain,
-		PrivateKey:       privateKey,
-	}, nil
 }

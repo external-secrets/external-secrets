@@ -16,6 +16,7 @@ package secretmanager
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"golang.org/x/oauth2"
@@ -33,21 +34,13 @@ func NewTokenSource(ctx context.Context, auth esv1.GCPSMAuth, projectID, storeKi
 	}
 	wi, err := newWorkloadIdentity(ctx, projectID)
 	if err != nil {
-		return nil, fmt.Errorf("unable to initialize workload identity: %w", err)
+		return nil, errors.New("unable to initialize workload identity")
 	}
 	defer func() {
 		_ = wi.Close()
 	}()
 	isClusterKind := storeKind == esv1.ClusterSecretStoreKind
 	ts, err = wi.TokenSource(ctx, auth, isClusterKind, kube, namespace)
-	if ts != nil || err != nil {
-		return ts, err
-	}
-	wif, err := newWorkloadIdentityFederation(kube, auth.WorkloadIdentityFederation, isClusterKind, namespace)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize workload identity federation: %w", err)
-	}
-	ts, err = wif.TokenSource(ctx)
 	if ts != nil || err != nil {
 		return ts, err
 	}

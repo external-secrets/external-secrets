@@ -65,9 +65,6 @@ const (
 	fieldOwnerTemplate    = "externalsecrets.external-secrets.io/%v"
 	fieldOwnerTemplateSha = "externalsecrets.external-secrets.io/sha3/%x"
 
-	// ExternalSecretFinalizer is the finalizer for ExternalSecret resources.
-	ExternalSecretFinalizer = "externalsecrets.external-secrets.io/externalsecret-cleanup"
-
 	// condition messages for "SecretSynced" reason.
 	msgSynced       = "secret synced"
 	msgSyncedRetain = "secret retained due to DeletionPolicy=Retain"
@@ -184,28 +181,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		return ctrl.Result{}, err
 	}
 
-	// Handle deletion with finalizer
+	// skip reconciliation if deletion timestamp is set on external secret
 	if !externalSecret.GetDeletionTimestamp().IsZero() {
-		// Always attempt cleanup to handle edge case where finalizer might be removed externally
-		if err := r.cleanupManagedSecrets(ctx, log, externalSecret); err != nil {
-			log.Error(err, "failed to cleanup managed secrets")
-			return ctrl.Result{}, err
-		}
-
-		// Remove finalizer if it exists
-		if updated := controllerutil.RemoveFinalizer(externalSecret, ExternalSecretFinalizer); updated {
-			if err := r.Update(ctx, externalSecret); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
+		log.V(1).Info("skipping ExternalSecret, it is marked for deletion")
 		return ctrl.Result{}, nil
-	}
-
-	// Add finalizer if it doesn't exist
-	if updated := controllerutil.AddFinalizer(externalSecret, ExternalSecretFinalizer); updated {
-		if err := r.Update(ctx, externalSecret); err != nil {
-			return ctrl.Result{}, err
-		}
 	}
 
 	// if extended metrics is enabled, refine the time series vector
@@ -622,38 +601,6 @@ func (r *Reconciler) markAsFailed(msg string, err error, externalSecret *esv1.Ex
 	conditionSynced := NewExternalSecretCondition(esv1.ExternalSecretReady, v1.ConditionFalse, esv1.ConditionReasonSecretSyncedError, msg)
 	SetExternalSecretCondition(externalSecret, *conditionSynced)
 	counter.Inc()
-}
-
-func (r *Reconciler) cleanupManagedSecrets(ctx context.Context, log logr.Logger, externalSecret *esv1.ExternalSecret) error {
-	// Only delete secrets if DeletionPolicy is Delete
-	if externalSecret.Spec.Target.DeletionPolicy != esv1.DeletionPolicyDelete {
-		log.V(1).Info("skipping secret deletion due to DeletionPolicy", "policy", externalSecret.Spec.Target.DeletionPolicy)
-		return nil
-	}
-
-	secretName := externalSecret.Spec.Target.Name
-	if secretName == "" {
-		secretName = externalSecret.Name
-	}
-
-	var secret v1.Secret
-	err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: externalSecret.Namespace}, &secret)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil
-		}
-		return err
-	}
-
-	// Only delete if we own it
-	if metav1.IsControlledBy(&secret, externalSecret) {
-		if err := r.Delete(ctx, &secret); err != nil && !apierrors.IsNotFound(err) {
-			return err
-		}
-		log.V(1).Info("deleted managed secret", "secret", secretName)
-	}
-
-	return nil
 }
 
 func (r *Reconciler) deleteOrphanedSecrets(ctx context.Context, externalSecret *esv1.ExternalSecret, secretName string) error {

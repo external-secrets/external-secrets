@@ -101,47 +101,24 @@ var webhookCmd = &cobra.Command{
 			ctrl.Log.Error(err, "unable to fetch tls ciphers")
 			os.Exit(1)
 		}
-
-		// Configure TLS options for webhook server
-		var webhookTLSOpts []func(*tls.Config)
-
-		// Add cipher configuration if needed
-		if len(cipherList) > 0 {
-			webhookTLSOpts = append(webhookTLSOpts, func(cfg *tls.Config) {
-				cfg.CipherSuites = cipherList
-			})
+		mgrTLSOptions := func(cfg *tls.Config) {
+			cfg.CipherSuites = cipherList
 		}
-
-		// Add TLS version configuration
-		webhookTLSOpts = append(webhookTLSOpts, func(c *tls.Config) {
-			c.MinVersion = tlsVersion(tlsMinVersion)
-		})
-
-		// Add HTTP/2 disabling if needed
-		if !enableHTTP2 {
-			webhookTLSOpts = append(webhookTLSOpts, disableHTTP2)
-		}
-
-		// Configure metrics server options
-		metricsServerOpts := server.Options{
-			BindAddress: metricsAddr,
-		}
-
-		// Configure TLS options for metrics server
-		var metricsTLSOpts []func(*tls.Config)
-		if !enableHTTP2 {
-			metricsTLSOpts = append(metricsTLSOpts, disableHTTP2)
-		}
-		metricsServerOpts.TLSOpts = metricsTLSOpts
-
 		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-			Scheme:                 scheme,
-			Metrics:                metricsServerOpts,
+			Scheme: scheme,
+			Metrics: server.Options{
+				BindAddress: metricsAddr,
+			},
 			HealthProbeBindAddress: healthzAddr,
 			WebhookServer: webhook.NewServer(webhook.Options{
 				CertDir: certDir,
 				Port:    port,
-				TLSOpts: webhookTLSOpts,
+				TLSOpts: []func(*tls.Config){
+					mgrTLSOptions,
+					func(c *tls.Config) {
+						c.MinVersion = tlsVersion(tlsMinVersion)
+					},
+				},
 			}),
 		})
 		if err != nil {
@@ -257,6 +234,4 @@ func init() {
 		" Full lists of available ciphers can be found at https://pkg.go.dev/crypto/tls#pkg-constants."+
 		" E.g. 'TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256'")
 	webhookCmd.Flags().StringVar(&tlsMinVersion, "tls-min-version", "1.2", "minimum version of TLS supported.")
-	webhookCmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
-		"If set, HTTP/2 will be enabled for the metrics and webhook server")
 }

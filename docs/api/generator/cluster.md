@@ -5,10 +5,8 @@ in the consuming `ExternalSecret`.
 
 ## Limitations
 
-- The generator will continue to create objects in the same namespace as the referencing ExternalSecret (ES) object.
-  This behavior is subject to change in future updates.
-- The objects referenced within the ClusterGenerator must also reside in the same namespace as the ES object that
-  references them. This is due to the inherent, namespace-scoped nature of the embedded generator types.
+With this, the generator will still create objects in the namespace in which the referencing ES lives.
+That has not changed as of now. It will change in future modifications.
 
 ## Example Manifest
 

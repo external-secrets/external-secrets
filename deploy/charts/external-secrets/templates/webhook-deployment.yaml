@@ -68,9 +68,6 @@ spec:
           {{- if .Values.webhook.lookaheadInterval }}
           - --lookahead-interval={{ .Values.webhook.lookaheadInterval }}
           {{- end }}
-          {{- if .Values.enableHTTP2 }}
-          - --enable-http2=true
-          {{- end }}
           {{- range $key, $value := .Values.webhook.extraArgs }}
             {{- if $value }}
           - --{{ $key }}={{ $value }}

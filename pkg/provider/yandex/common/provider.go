@@ -100,19 +100,10 @@ type IamToken struct {
 }
 
 type SecretsClientInput struct {
-	APIEndpoint     string
-	AuthorizedKey   *esmeta.SecretKeySelector
-	CACertificate   *esmeta.SecretKeySelector
-	ResourceKeyType ResourceKeyType
-	FolderID        string
+	APIEndpoint   string
+	AuthorizedKey *esmeta.SecretKeySelector
+	CACertificate *esmeta.SecretKeySelector
 }
-
-type ResourceKeyType int
-
-const (
-	ResourceKeyTypeId   ResourceKeyType = iota
-	ResourceKeyTypeName ResourceKeyType = iota
-)
 
 func (p *YandexCloudProvider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
@@ -170,7 +161,7 @@ func (p *YandexCloudProvider) NewClient(ctx context.Context, store esv1.GenericS
 		return nil, fmt.Errorf("failed to create IAM token: %w", err)
 	}
 
-	return &yandexCloudSecretsClient{secretGetter, nil, iamToken.Token, input.ResourceKeyType, input.FolderID}, nil
+	return &yandexCloudSecretsClient{secretGetter, nil, iamToken.Token}, nil
 }
 
 func (p *YandexCloudProvider) getOrCreateSecretGetter(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.Key, caCertificate []byte) (SecretGetter, error) {
@@ -179,6 +170,7 @@ func (p *YandexCloudProvider) getOrCreateSecretGetter(ctx context.Context, apiEn
 
 	if _, ok := p.secretGetteMap[apiEndpoint]; !ok {
 		p.logger.Info("creating SecretGetter", "apiEndpoint", apiEndpoint)
+
 		secretGetter, err := p.newSecretGetterFunc(ctx, apiEndpoint, authorizedKey, caCertificate)
 		if err != nil {
 			return nil, err
