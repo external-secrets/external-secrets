@@ -105,6 +105,9 @@ processPushSecret: true
 # -- Specifies whether an external secret operator deployment be created.
 createOperator: true
 
+# -- if true, HTTP2 will be enabled for the services created by all controllers, curently metrics and webhook.
+enableHTTP2: false
+
 # -- Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at
 # a time.
 concurrent: 1

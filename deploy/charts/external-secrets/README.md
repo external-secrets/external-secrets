@@ -100,6 +100,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
 | dnsConfig | object | `{}` | Specifies `dnsOptions` to deployment |
 | dnsPolicy | string | `"ClusterFirst"` | Specifies `dnsPolicy` to deployment |
+| enableHTTP2 | bool | `false` | if true, HTTP2 will be enabled for the services created by all controllers, curently metrics and webhook. |
 | extendedMetricLabels | bool | `false` | If true external secrets will use recommended kubernetes annotations as prometheus metric labels. |
 | extraArgs | object | `{}` |  |
 | extraContainers | list | `[]` |  |
