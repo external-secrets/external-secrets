@@ -37,6 +37,12 @@ spec:
         authorizedKeySecretRef:
           name: yc-auth
           key: authorized-key
+
+    # Optionally, to enable fetching secrets by name:
+    #
+    # fetching: # place "fetching:" on the same level as "auth:"
+    #   byName:
+    #     folderId: ***** # ID of the folder to fetch certificates from
 ```
 
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in all `authorizedKeySecretRef` with the namespace where the secret resides.
@@ -76,11 +82,11 @@ spec:
   data:
     - secretKey: tls.crt # the target k8s secret key
       remoteRef:
-        key: ***** # the certificate ID
+        key: ***** # either ID or name of the certificate, depending on fetching policy byID / byName
         property: chain
     - secretKey: tls.key # the target k8s secret key
       remoteRef:
-        key: ***** # the certificate ID
+        key: ***** # either ID or name of the certificate, depending on fetching policy byID / byName
         property: privateKey
 ```
 The following property values are possible:

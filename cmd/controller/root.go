@@ -17,6 +17,7 @@ limitations under the License.
 package controller
 
 import (
+	"crypto/tls"
 	"os"
 	"time"
 
@@ -98,6 +99,7 @@ var (
 	certLookaheadInterval                 time.Duration
 	tlsCiphers                            string
 	tlsMinVersion                         string
+	enableHTTP2                           bool
 )
 
 const (
@@ -143,16 +145,21 @@ var rootCmd = &cobra.Command{
 		}
 		metricsOpts := server.Options{
 			BindAddress: metricsAddr,
-	 	}
-	 	if metricsSecure {
+		}
+		if metricsSecure {
 			metricsOpts.SecureServing = true
 			metricsOpts.CertDir = metricsCertDir
 			metricsOpts.CertName = metricsCertName
 			metricsOpts.KeyName = metricsKeyName
 		}
-	 	mgrOpts := ctrl.Options{
-			Scheme: scheme,
-			Metrics: metricsOpts,
+		
+		// Disable HTTP/2 if not explicitly enabled
+		if !enableHTTP2 {
+			metricsOpts.TLSOpts = []func(*tls.Config){disableHTTP2}
+		}
+		mgrOpts := ctrl.Options{
+			Scheme:                 scheme,
+			Metrics:                metricsOpts,
 			HealthProbeBindAddress: liveAddr,
 			WebhookServer: webhook.NewServer(webhook.Options{
 				Port: 9443,
@@ -191,11 +198,12 @@ var rootCmd = &cobra.Command{
 
 		ssmetrics.SetUpMetrics()
 		if err = (&secretstore.StoreReconciler{
-			Client:          mgr.GetClient(),
-			Log:             ctrl.Log.WithName("controllers").WithName("SecretStore"),
-			Scheme:          mgr.GetScheme(),
-			ControllerClass: controllerClass,
-			RequeueInterval: storeRequeueInterval,
+			Client:            mgr.GetClient(),
+			Log:               ctrl.Log.WithName("controllers").WithName("SecretStore"),
+			Scheme:            mgr.GetScheme(),
+			ControllerClass:   controllerClass,
+			RequeueInterval:   storeRequeueInterval,
+			PushSecretEnabled: enablePushSecretReconciler,
 		}).SetupWithManager(mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
 			RateLimiter:             ctrlcommon.BuildRateLimiter(),
@@ -206,11 +214,12 @@ var rootCmd = &cobra.Command{
 		if enableClusterStoreReconciler {
 			cssmetrics.SetUpMetrics()
 			if err = (&secretstore.ClusterStoreReconciler{
-				Client:          mgr.GetClient(),
-				Log:             ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
-				Scheme:          mgr.GetScheme(),
-				ControllerClass: controllerClass,
-				RequeueInterval: storeRequeueInterval,
+				Client:            mgr.GetClient(),
+				Log:               ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
+				Scheme:            mgr.GetScheme(),
+				ControllerClass:   controllerClass,
+				RequeueInterval:   storeRequeueInterval,
+				PushSecretEnabled: enablePushSecretReconciler,
 			}).SetupWithManager(mgr, controller.Options{
 				MaxConcurrentReconciles: concurrent,
 				RateLimiter:             ctrlcommon.BuildRateLimiter(),
@@ -258,7 +267,7 @@ var rootCmd = &cobra.Command{
 				ControllerClass: controllerClass,
 				RestConfig:      mgr.GetConfig(),
 				RequeueInterval: time.Hour,
-			}).SetupWithManager(mgr, controller.Options{
+			}).SetupWithManager(cmd.Context(), mgr, controller.Options{
 				MaxConcurrentReconciles: concurrent,
 				RateLimiter:             ctrlcommon.BuildRateLimiter(),
 			}); err != nil {
@@ -352,8 +361,15 @@ func init() {
 	rootCmd.Flags().BoolVar(&enableFloodGate, "enable-flood-gate", true, "Enable flood gate. External secret will be reconciled only if the ClusterStore or Store have an healthy or unknown state.")
 	rootCmd.Flags().BoolVar(&enableGeneratorState, "enable-generator-state", true, "Whether the Controller should manage GeneratorState")
 	rootCmd.Flags().BoolVar(&enableExtendedMetricLabels, "enable-extended-metric-labels", false, "Enable recommended kubernetes annotations as labels in metrics.")
+	rootCmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
+		"If set, HTTP/2 will be enabled for the metrics server")
 	fs := feature.Features()
 	for _, f := range fs {
 		rootCmd.Flags().AddFlagSet(f.Flags)
 	}
+}
+
+// disableHTTP2 is a TLS configuration function that disables HTTP/2.
+func disableHTTP2(cfg *tls.Config) {
+	cfg.NextProtos = []string{"http/1.1"}
 }

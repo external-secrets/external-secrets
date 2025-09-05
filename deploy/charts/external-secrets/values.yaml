@@ -86,6 +86,8 @@ openshiftFinalizers: true
 systemAuthDelegator: false
 
 # -- if true, the operator will process cluster external secret. Else, it will ignore them.
+# When enabled, this adds update/patch permissions on namespaces to handle finalizers for proper
+# cleanup during namespace deletion, preventing race conditions with ExternalSecrets.
 processClusterExternalSecret: true
 
 # -- if true, the operator will process cluster push secret. Else, it will ignore them.
@@ -102,6 +104,9 @@ processPushSecret: true
 
 # -- Specifies whether an external secret operator deployment be created.
 createOperator: true
+
+# -- if true, HTTP2 will be enabled for the services created by all controllers, curently metrics and webhook.
+enableHTTP2: false
 
 # -- Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at
 # a time.

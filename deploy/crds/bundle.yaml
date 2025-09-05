@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: clusterexternalsecrets.external-secrets.io
@@ -1496,7 +1496,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: clusterpushsecrets.external-secrets.io
@@ -2018,7 +2018,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: clustersecretstores.external-secrets.io
@@ -3794,6 +3794,119 @@ spec:
                               required:
                                 - serviceAccountRef
                               type: object
+                            workloadIdentityFederation:
+                              description: GCPWorkloadIdentityFederation holds the configurations required for generating federated access tokens.
+                              properties:
+                                audience:
+                                  description: |-
+                                    audience is the Secure Token Service (STS) audience which contains the resource name for the workload identity pool and the provider identifier in that pool.
+                                    If specified, Audience found in the external account credential config will be overridden with the configured value.
+                                    audience must be provided when serviceAccountRef or awsSecurityCredentials is configured.
+                                  type: string
+                                awsSecurityCredentials:
+                                  description: |-
+                                    awsSecurityCredentials is for configuring AWS region and credentials to use for obtaining the access token,
+                                    when using the AWS metadata server is not an option.
+                                  properties:
+                                    awsCredentialsSecretRef:
+                                      description: |-
+                                        awsCredentialsSecretRef is the reference to the secret which holds the AWS credentials.
+                                        Secret should be created with below names for keys
+                                        - aws_access_key_id: Access Key ID, which is the unique identifier for the AWS account or the IAM user.
+                                        - aws_secret_access_key: Secret Access Key, which is used to authenticate requests made to AWS services.
+                                        - aws_session_token: Session Token, is the short-lived token to authenticate requests made to AWS services.
+                                      properties:
+                                        name:
+                                          description: name of the secret.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: namespace in which the secret exists. If empty, secret will looked up in local namespace.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                    region:
+                                      description: region is for configuring the AWS region to be used.
+                                      example: ap-south-1
+                                      maxLength: 50
+                                      minLength: 1
+                                      pattern: ^[a-z0-9-]+$
+                                      type: string
+                                  required:
+                                    - awsCredentialsSecretRef
+                                    - region
+                                  type: object
+                                credConfig:
+                                  description: |-
+                                    credConfig holds the configmap reference containing the GCP external account credential configuration in JSON format and the key name containing the json data.
+                                    For using Kubernetes cluster as the identity provider, use serviceAccountRef instead. Operators mounted serviceaccount token cannot be used as the token source, instead
+                                    serviceAccountRef must be used by providing operators service account details.
+                                  properties:
+                                    key:
+                                      description: key name holding the external account credential config.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: name of the configmap.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: namespace in which the configmap exists. If empty, configmap will looked up in local namespace.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - key
+                                    - name
+                                  type: object
+                                externalTokenEndpoint:
+                                  description: |-
+                                    externalTokenEndpoint is the endpoint explicitly set up to provide tokens, which will be matched against the
+                                    credential_source.url in the provided credConfig. This field is merely to double-check the external token source
+                                    URL is having the expected value.
+                                  type: string
+                                serviceAccountRef:
+                                  description: |-
+                                    serviceAccountRef is the reference to the kubernetes ServiceAccount to be used for obtaining the tokens,
+                                    when Kubernetes is configured as provider in workload identity pool.
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                        then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              type: object
                           type: object
                         location:
                           description: Location optionally defines a location for a secret
@@ -6806,6 +6919,24 @@ spec:
                                   type: string
                               type: object
                           type: object
+                        fetching:
+                          description: FetchingPolicy configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as certificate ID or certificate name
+                          maxProperties: 1
+                          minProperties: 1
+                          properties:
+                            byID:
+                              description: ByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID.
+                              type: object
+                            byName:
+                              description: ByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name.
+                              properties:
+                                folderID:
+                                  description: The folder to fetch secrets from
+                                  type: string
+                              required:
+                                - folderID
+                              type: object
+                          type: object
                       required:
                         - auth
                       type: object
@@ -6875,6 +7006,24 @@ spec:
                                   minLength: 1
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
+                              type: object
+                          type: object
+                        fetching:
+                          description: FetchingPolicy configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID or secret name
+                          maxProperties: 1
+                          minProperties: 1
+                          properties:
+                            byID:
+                              description: ByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID.
+                              type: object
+                            byName:
+                              description: ByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name.
+                              properties:
+                                folderID:
+                                  description: The folder to fetch secrets from
+                                  type: string
+                              required:
+                                - folderID
                               type: object
                           type: object
                       required:
@@ -11113,7 +11262,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: externalsecrets.external-secrets.io
@@ -12366,7 +12515,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: pushsecrets.external-secrets.io
@@ -12846,7 +12995,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: secretstores.external-secrets.io
@@ -14621,6 +14770,119 @@ spec:
                                   type: object
                               required:
                                 - serviceAccountRef
+                              type: object
+                            workloadIdentityFederation:
+                              description: GCPWorkloadIdentityFederation holds the configurations required for generating federated access tokens.
+                              properties:
+                                audience:
+                                  description: |-
+                                    audience is the Secure Token Service (STS) audience which contains the resource name for the workload identity pool and the provider identifier in that pool.
+                                    If specified, Audience found in the external account credential config will be overridden with the configured value.
+                                    audience must be provided when serviceAccountRef or awsSecurityCredentials is configured.
+                                  type: string
+                                awsSecurityCredentials:
+                                  description: |-
+                                    awsSecurityCredentials is for configuring AWS region and credentials to use for obtaining the access token,
+                                    when using the AWS metadata server is not an option.
+                                  properties:
+                                    awsCredentialsSecretRef:
+                                      description: |-
+                                        awsCredentialsSecretRef is the reference to the secret which holds the AWS credentials.
+                                        Secret should be created with below names for keys
+                                        - aws_access_key_id: Access Key ID, which is the unique identifier for the AWS account or the IAM user.
+                                        - aws_secret_access_key: Secret Access Key, which is used to authenticate requests made to AWS services.
+                                        - aws_session_token: Session Token, is the short-lived token to authenticate requests made to AWS services.
+                                      properties:
+                                        name:
+                                          description: name of the secret.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: namespace in which the secret exists. If empty, secret will looked up in local namespace.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                    region:
+                                      description: region is for configuring the AWS region to be used.
+                                      example: ap-south-1
+                                      maxLength: 50
+                                      minLength: 1
+                                      pattern: ^[a-z0-9-]+$
+                                      type: string
+                                  required:
+                                    - awsCredentialsSecretRef
+                                    - region
+                                  type: object
+                                credConfig:
+                                  description: |-
+                                    credConfig holds the configmap reference containing the GCP external account credential configuration in JSON format and the key name containing the json data.
+                                    For using Kubernetes cluster as the identity provider, use serviceAccountRef instead. Operators mounted serviceaccount token cannot be used as the token source, instead
+                                    serviceAccountRef must be used by providing operators service account details.
+                                  properties:
+                                    key:
+                                      description: key name holding the external account credential config.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: name of the configmap.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: namespace in which the configmap exists. If empty, configmap will looked up in local namespace.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - key
+                                    - name
+                                  type: object
+                                externalTokenEndpoint:
+                                  description: |-
+                                    externalTokenEndpoint is the endpoint explicitly set up to provide tokens, which will be matched against the
+                                    credential_source.url in the provided credConfig. This field is merely to double-check the external token source
+                                    URL is having the expected value.
+                                  type: string
+                                serviceAccountRef:
+                                  description: |-
+                                    serviceAccountRef is the reference to the kubernetes ServiceAccount to be used for obtaining the tokens,
+                                    when Kubernetes is configured as provider in workload identity pool.
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                        then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
                               type: object
                           type: object
                         location:
@@ -17634,6 +17896,24 @@ spec:
                                   type: string
                               type: object
                           type: object
+                        fetching:
+                          description: FetchingPolicy configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as certificate ID or certificate name
+                          maxProperties: 1
+                          minProperties: 1
+                          properties:
+                            byID:
+                              description: ByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID.
+                              type: object
+                            byName:
+                              description: ByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name.
+                              properties:
+                                folderID:
+                                  description: The folder to fetch secrets from
+                                  type: string
+                              required:
+                                - folderID
+                              type: object
+                          type: object
                       required:
                         - auth
                       type: object
@@ -17703,6 +17983,24 @@ spec:
                                   minLength: 1
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
+                              type: object
+                          type: object
+                        fetching:
+                          description: FetchingPolicy configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID or secret name
+                          maxProperties: 1
+                          minProperties: 1
+                          properties:
+                            byID:
+                              description: ByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID.
+                              type: object
+                            byName:
+                              description: ByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name.
+                              properties:
+                                folderID:
+                                  description: The folder to fetch secrets from
+                                  type: string
+                              required:
+                                - folderID
                               type: object
                           type: object
                       required:
@@ -21941,7 +22239,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: acraccesstokens.generators.external-secrets.io
@@ -22148,7 +22446,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: clustergenerators.generators.external-secrets.io
@@ -22575,6 +22873,119 @@ spec:
                                 - clusterLocation
                                 - clusterName
                                 - serviceAccountRef
+                              type: object
+                            workloadIdentityFederation:
+                              description: GCPWorkloadIdentityFederation holds the configurations required for generating federated access tokens.
+                              properties:
+                                audience:
+                                  description: |-
+                                    audience is the Secure Token Service (STS) audience which contains the resource name for the workload identity pool and the provider identifier in that pool.
+                                    If specified, Audience found in the external account credential config will be overridden with the configured value.
+                                    audience must be provided when serviceAccountRef or awsSecurityCredentials is configured.
+                                  type: string
+                                awsSecurityCredentials:
+                                  description: |-
+                                    awsSecurityCredentials is for configuring AWS region and credentials to use for obtaining the access token,
+                                    when using the AWS metadata server is not an option.
+                                  properties:
+                                    awsCredentialsSecretRef:
+                                      description: |-
+                                        awsCredentialsSecretRef is the reference to the secret which holds the AWS credentials.
+                                        Secret should be created with below names for keys
+                                        - aws_access_key_id: Access Key ID, which is the unique identifier for the AWS account or the IAM user.
+                                        - aws_secret_access_key: Secret Access Key, which is used to authenticate requests made to AWS services.
+                                        - aws_session_token: Session Token, is the short-lived token to authenticate requests made to AWS services.
+                                      properties:
+                                        name:
+                                          description: name of the secret.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: namespace in which the secret exists. If empty, secret will looked up in local namespace.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                    region:
+                                      description: region is for configuring the AWS region to be used.
+                                      example: ap-south-1
+                                      maxLength: 50
+                                      minLength: 1
+                                      pattern: ^[a-z0-9-]+$
+                                      type: string
+                                  required:
+                                    - awsCredentialsSecretRef
+                                    - region
+                                  type: object
+                                credConfig:
+                                  description: |-
+                                    credConfig holds the configmap reference containing the GCP external account credential configuration in JSON format and the key name containing the json data.
+                                    For using Kubernetes cluster as the identity provider, use serviceAccountRef instead. Operators mounted serviceaccount token cannot be used as the token source, instead
+                                    serviceAccountRef must be used by providing operators service account details.
+                                  properties:
+                                    key:
+                                      description: key name holding the external account credential config.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: name of the configmap.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: namespace in which the configmap exists. If empty, configmap will looked up in local namespace.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - key
+                                    - name
+                                  type: object
+                                externalTokenEndpoint:
+                                  description: |-
+                                    externalTokenEndpoint is the endpoint explicitly set up to provide tokens, which will be matched against the
+                                    credential_source.url in the provided credConfig. This field is merely to double-check the external token source
+                                    URL is having the expected value.
+                                  type: string
+                                serviceAccountRef:
+                                  description: |-
+                                    serviceAccountRef is the reference to the kubernetes ServiceAccount to be used for obtaining the tokens,
+                                    when Kubernetes is configured as provider in workload identity pool.
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                        then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
                               type: object
                           type: object
                         projectID:
@@ -24054,7 +24465,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: ecrauthorizationtokens.generators.external-secrets.io
@@ -24249,7 +24660,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: fakes.generators.external-secrets.io
@@ -24315,7 +24726,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: gcraccesstokens.generators.external-secrets.io
@@ -24430,6 +24841,119 @@ spec:
                         - clusterName
                         - serviceAccountRef
                       type: object
+                    workloadIdentityFederation:
+                      description: GCPWorkloadIdentityFederation holds the configurations required for generating federated access tokens.
+                      properties:
+                        audience:
+                          description: |-
+                            audience is the Secure Token Service (STS) audience which contains the resource name for the workload identity pool and the provider identifier in that pool.
+                            If specified, Audience found in the external account credential config will be overridden with the configured value.
+                            audience must be provided when serviceAccountRef or awsSecurityCredentials is configured.
+                          type: string
+                        awsSecurityCredentials:
+                          description: |-
+                            awsSecurityCredentials is for configuring AWS region and credentials to use for obtaining the access token,
+                            when using the AWS metadata server is not an option.
+                          properties:
+                            awsCredentialsSecretRef:
+                              description: |-
+                                awsCredentialsSecretRef is the reference to the secret which holds the AWS credentials.
+                                Secret should be created with below names for keys
+                                - aws_access_key_id: Access Key ID, which is the unique identifier for the AWS account or the IAM user.
+                                - aws_secret_access_key: Secret Access Key, which is used to authenticate requests made to AWS services.
+                                - aws_session_token: Session Token, is the short-lived token to authenticate requests made to AWS services.
+                              properties:
+                                name:
+                                  description: name of the secret.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: namespace in which the secret exists. If empty, secret will looked up in local namespace.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              required:
+                                - name
+                              type: object
+                            region:
+                              description: region is for configuring the AWS region to be used.
+                              example: ap-south-1
+                              maxLength: 50
+                              minLength: 1
+                              pattern: ^[a-z0-9-]+$
+                              type: string
+                          required:
+                            - awsCredentialsSecretRef
+                            - region
+                          type: object
+                        credConfig:
+                          description: |-
+                            credConfig holds the configmap reference containing the GCP external account credential configuration in JSON format and the key name containing the json data.
+                            For using Kubernetes cluster as the identity provider, use serviceAccountRef instead. Operators mounted serviceaccount token cannot be used as the token source, instead
+                            serviceAccountRef must be used by providing operators service account details.
+                          properties:
+                            key:
+                              description: key name holding the external account credential config.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: name of the configmap.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: namespace in which the configmap exists. If empty, configmap will looked up in local namespace.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          required:
+                            - key
+                            - name
+                          type: object
+                        externalTokenEndpoint:
+                          description: |-
+                            externalTokenEndpoint is the endpoint explicitly set up to provide tokens, which will be matched against the
+                            credential_source.url in the provided credConfig. This field is merely to double-check the external token source
+                            URL is having the expected value.
+                          type: string
+                        serviceAccountRef:
+                          description: |-
+                            serviceAccountRef is the reference to the kubernetes ServiceAccount to be used for obtaining the tokens,
+                            when Kubernetes is configured as provider in workload identity pool.
+                          properties:
+                            audiences:
+                              description: |-
+                                Audience specifies the `aud` claim for the service account token
+                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          required:
+                            - name
+                          type: object
+                      type: object
                   type: object
                 projectID:
                   description: ProjectID defines which project to use to authenticate with
@@ -24448,7 +24972,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: generatorstates.generators.external-secrets.io
@@ -24551,7 +25075,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: githubaccesstokens.generators.external-secrets.io
@@ -24664,7 +25188,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: grafanas.generators.external-secrets.io
@@ -24796,7 +25320,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: mfas.generators.external-secrets.io
@@ -24889,7 +25413,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: passwords.generators.external-secrets.io
@@ -24977,7 +25501,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: quayaccesstokens.generators.external-secrets.io
@@ -25065,7 +25589,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: sshkeys.generators.external-secrets.io
@@ -25135,7 +25659,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: stssessiontokens.generators.external-secrets.io
@@ -25340,7 +25864,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: uuids.generators.external-secrets.io
@@ -25391,7 +25915,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: vaultdynamicsecrets.generators.external-secrets.io
@@ -26257,7 +26781,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: webhooks.generators.external-secrets.io
