@@ -55,6 +55,15 @@ func (f *fakeAPI) Secrets(searchText, _ string) ([]server.Secret, error) {
 	return nil, errNotFound
 }
 
+func (f *fakeAPI) SecretByPath(path string) (*server.Secret, error) {
+	for _, s := range f.secrets {
+		if "/"+s.Name == path {
+			return s, nil
+		}
+	}
+	return nil, errNotFound
+}
+
 // createSecret assembles a server.Secret from file test_data.json.
 func createSecret(id int, itemValue string) *server.Secret {
 	s, _ := getJSONData()
@@ -160,7 +169,7 @@ func TestGetSecretSecretServer(t *testing.T) {
 	jsonStr, _ := json.Marshal(s)
 	jsonStr2, _ := json.Marshal(createTestSecretFromCode(4000))
 	jsonStr3, _ := json.Marshal(createPlainTextSecret(5000))
-	jsonStr4, _ := json.Marshal(reateTestFolderSecret(9000, 4))
+	jsonStr4, _ := json.Marshal(createTestFolderSecret(9000, 4))
 
 	testCases := map[string]struct {
 		ref  esv1.ExternalSecretDataRemoteRef
