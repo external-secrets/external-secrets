@@ -17,6 +17,7 @@ package argocd
 
 import (
 	"os"
+	"path/filepath"
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
@@ -28,7 +29,7 @@ const (
 	helmChartRevision = "0.0.0-e2e"
 )
 
-func installArgo(cfg *addon.Config) {
+func installArgo() {
 	By("installing argocd")
 	addon.InstallGlobalAddon(&addon.HelmChart{
 		Namespace:    "argocd",
@@ -46,16 +47,16 @@ func installArgo(cfg *addon.Config) {
 			},
 		},
 		Args: []string{"--create-namespace"},
-	}, cfg)
+	})
 }
 
-func installESO(cfg *addon.Config) {
+func installESO() {
 	By("installing helm http server")
 	tag := os.Getenv("VERSION")
 	addon.InstallGlobalAddon(&addon.HelmServer{
-		ChartDir:      "/k8s/deploy/charts/external-secrets",
+		ChartDir:      filepath.Join(addon.AssetDir(), "deploy/charts/external-secrets"),
 		ChartRevision: helmChartRevision,
-	}, cfg)
+	})
 
 	By("installing eso through argo app")
 	addon.InstallGlobalAddon(&addon.ArgoCDApplication{
@@ -70,5 +71,5 @@ func installESO(cfg *addon.Config) {
 			"webhook.image.tag=" + tag,
 			"certController.image.tag=" + tag,
 		},
-	}, cfg)
+	})
 }

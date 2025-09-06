@@ -32,8 +32,8 @@ import (
 var _ = SynchronizedBeforeSuite(func() []byte {
 	cfg := &addon.Config{}
 	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
-	installArgo(cfg)
-	installESO(cfg)
+	installArgo()
+	installESO()
 	return nil
 }, func([]byte) {
 	// noop

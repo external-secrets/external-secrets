@@ -15,6 +15,9 @@ limitations under the License.
 package addon
 
 import (
+	"os"
+	"path/filepath"
+
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes"
@@ -22,6 +25,7 @@ import (
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/external-secrets/external-secrets-e2e/framework/log"
+	"github.com/external-secrets/external-secrets-e2e/framework/util"
 )
 
 var globalAddons []Addon
@@ -48,8 +52,10 @@ type Addon interface {
 	Uninstall() error
 }
 
-func InstallGlobalAddon(addon Addon, cfg *Config) {
+func InstallGlobalAddon(addon Addon) {
 	globalAddons = append(globalAddons, addon)
+	cfg := &Config{}
+	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
 
 	ginkgo.By("installing global addon")
 	err := addon.Setup(cfg)
@@ -65,6 +71,42 @@ func UninstallGlobalAddons() {
 		err := addon.Uninstall()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	}
+}
+
+// AssetDir returns the path to the k8s asset directory
+// which holds the helm charts, vault and conjur configuration.
+// It starts at the cwd, and walks its way up to the root.
+// It returns /k8s as a fallback.
+// When running the e2e suite locally, this should return $REPO/e2e/k8s,
+// when ran in CI this returns /k8s because the tests run in a dedicated pod where
+// the assets are copied into the container.
+func AssetDir() string {
+	// Start from current working directory
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+
+	// Traverse up the directory tree looking for "k8s" directory
+	for {
+		k8sPath := filepath.Join(currentDir, "k8s")
+
+		// Check if "k8s" directory exists
+		if info, err := os.Stat(k8sPath); err == nil && info.IsDir() {
+			return k8sPath
+		}
+
+		// Get parent directory
+		parentDir := filepath.Dir(currentDir)
+
+		// If we've reached the root directory, stop searching
+		if parentDir == currentDir {
+			break
+		}
+
+		currentDir = parentDir
+	}
+	return "/k8s"
 }
 
 func PrintLogs() {

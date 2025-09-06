@@ -37,7 +37,7 @@ import (
 // with the provided values.
 func (f *Framework) WaitForSecretValue(namespace, name string, expected *v1.Secret) (*v1.Secret, error) {
 	secret := &v1.Secret{}
-	err := wait.PollImmediate(time.Second*10, time.Minute, func() (bool, error) {
+	err := wait.PollUntilContextTimeout(context.Background(), time.Second*1, time.Minute, true, func(ctx context.Context) (bool, error) {
 		err := f.CRClient.Get(context.Background(), types.NamespacedName{
 			Namespace: namespace,
 			Name:      name,

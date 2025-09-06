@@ -34,8 +34,7 @@ import (
 )
 
 type conjurProvider struct {
-	url       string
-	client    *conjurapi.Client
+	addon     *addon.Conjur
 	framework *framework.Framework
 }
 
@@ -44,11 +43,14 @@ const (
 	jwtK8sHostIDProviderName = "jwt-k8s-hostid-provider"
 )
 
-func newConjurProvider(f *framework.Framework) *conjurProvider {
+func newConjurProvider(f *framework.Framework, conjur *addon.Conjur) *conjurProvider {
 	prov := &conjurProvider{
 		framework: f,
+		addon:     conjur,
 	}
+
 	BeforeEach(prov.BeforeEach)
+
 	return prov
 }
 
@@ -56,31 +58,34 @@ func (s *conjurProvider) CreateSecret(key string, val framework.SecretEntry) {
 	// Generate a policy file for the secret key
 	policy := createVariablePolicy(key, s.framework.Namespace.Name, val.Tags)
 
-	_, err := s.client.LoadPolicy(conjurapi.PolicyModePost, "root", strings.NewReader(policy))
+	_, err := s.addon.ConjurClient.LoadPolicy(conjurapi.PolicyModePost, "root", strings.NewReader(policy))
 	Expect(err).ToNot(HaveOccurred())
 
 	// Add the secret value
-	err = s.client.AddSecret(key, val.Value)
+	err = s.addon.ConjurClient.AddSecret(key, val.Value)
 	Expect(err).ToNot(HaveOccurred())
 }
 
 func (s *conjurProvider) DeleteSecret(key string) {
 	policy := deleteVariablePolicy(key)
-	_, err := s.client.LoadPolicy(conjurapi.PolicyModePatch, "root", strings.NewReader(policy))
+	_, err := s.addon.ConjurClient.LoadPolicy(conjurapi.PolicyModePatch, "root", strings.NewReader(policy))
 
 	Expect(err).ToNot(HaveOccurred())
 }
 
 func (s *conjurProvider) BeforeEach() {
-	ns := s.framework.Namespace.Name
-	c := addon.NewConjur(ns)
-	s.framework.Install(c)
-	s.client = c.ConjurClient
-	s.url = c.ConjurURL
+	// setup test-app-sa policy
+	saName := "system:serviceaccount:" + s.framework.Namespace.Name + ":test-app-sa"
+	policy := createJwtHostPolicy(saName, "eso-tests")
+	_, err := s.addon.ConjurClient.LoadPolicy(conjurapi.PolicyModePost, "root", strings.NewReader(policy))
+	Expect(err).ToNot(HaveOccurred())
 
-	s.CreateApiKeyStore(c, ns)
-	s.CreateJWTK8sStore(c, ns)
-	s.CreateJWTK8sHostIDStore(c, ns)
+	// setup test-app-hostid-sa policy
+	saName = "system:serviceaccount:" + s.framework.Namespace.Name + ":test-app-hostid-sa"
+	policy = createJwtHostPolicy(saName, "eso-tests-hostid")
+
+	_, err = s.addon.ConjurClient.LoadPolicy(conjurapi.PolicyModePost, "root", strings.NewReader(policy))
+	Expect(err).ToNot(HaveOccurred())
 }
 
 func makeStore(name, ns string, c *addon.Conjur) *esv1.SecretStore {
@@ -100,15 +105,15 @@ func makeStore(name, ns string, c *addon.Conjur) *esv1.SecretStore {
 	}
 }
 
-func (s *conjurProvider) CreateApiKeyStore(c *addon.Conjur, ns string) {
+func (s *conjurProvider) CreateApiKeyStore() {
 	By("creating a conjur secret")
 	conjurCreds := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      ns,
-			Namespace: ns,
+			Name:      s.framework.Namespace.Name,
+			Namespace: s.framework.Namespace.Name,
 		},
 		Data: map[string][]byte{
-			"apikey":   []byte(c.AdminApiKey),
+			"apikey":   []byte(s.addon.AdminApiKey),
 			"username": []byte("admin"),
 		},
 	}
@@ -116,16 +121,16 @@ func (s *conjurProvider) CreateApiKeyStore(c *addon.Conjur, ns string) {
 	Expect(err).ToNot(HaveOccurred())
 
 	By("creating an secret store for conjur")
-	secretStore := makeStore(ns, ns, c)
+	secretStore := makeStore(s.framework.Namespace.Name, s.framework.Namespace.Name, s.addon)
 	secretStore.Spec.Provider.Conjur.Auth = esv1.ConjurAuth{
 		APIKey: &esv1.ConjurAPIKey{
 			Account: "default",
 			UserRef: &esmeta.SecretKeySelector{
-				Name: ns,
+				Name: s.framework.Namespace.Name,
 				Key:  "username",
 			},
 			APIKeyRef: &esmeta.SecretKeySelector{
-				Name: ns,
+				Name: s.framework.Namespace.Name,
 				Key:  "apikey",
 			},
 		},
@@ -134,27 +139,19 @@ func (s *conjurProvider) CreateApiKeyStore(c *addon.Conjur, ns string) {
 	Expect(err).ToNot(HaveOccurred())
 }
 
-func (s conjurProvider) CreateJWTK8sStore(c *addon.Conjur, ns string) {
+func (s conjurProvider) CreateJWTK8sStore() {
 	// Create a service account
 	sa := &v1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-app-sa",
-			Namespace: ns,
+			Namespace: s.framework.Namespace.Name,
 		},
 	}
 	err := s.framework.CRClient.Create(context.Background(), sa)
 	Expect(err).ToNot(HaveOccurred())
 
-	// Add the service account to the Conjur policy with permissions to
-	// authenticate with authn-jwt
-	saName := "system:serviceaccount:" + ns + ":test-app-sa"
-	policy := createJwtHostPolicy(saName, "eso-tests")
-
-	_, err = s.client.LoadPolicy(conjurapi.PolicyModePost, "root", strings.NewReader(policy))
-	Expect(err).ToNot(HaveOccurred())
-
 	// Now create a secret store that uses the service account to authenticate
-	secretStore := makeStore(jwtK8sProviderName, ns, c)
+	secretStore := makeStore(jwtK8sProviderName, s.framework.Namespace.Name, s.addon)
 	secretStore.Spec.Provider.Conjur.Auth = esv1.ConjurAuth{
 		Jwt: &esv1.ConjurJWT{
 			Account:   "default",
@@ -162,7 +159,7 @@ func (s conjurProvider) CreateJWTK8sStore(c *addon.Conjur, ns string) {
 			ServiceAccountRef: &esmeta.ServiceAccountSelector{
 				Name: "test-app-sa",
 				Audiences: []string{
-					c.ConjurURL,
+					s.addon.ConjurURL,
 				},
 			},
 		},
@@ -171,27 +168,21 @@ func (s conjurProvider) CreateJWTK8sStore(c *addon.Conjur, ns string) {
 	Expect(err).ToNot(HaveOccurred())
 }
 
-func (s conjurProvider) CreateJWTK8sHostIDStore(c *addon.Conjur, ns string) {
+func (s conjurProvider) CreateJWTK8sHostIDStore() {
 	// Create a service account
 	sa := &v1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-app-hostid-sa",
-			Namespace: ns,
+			Namespace: s.framework.Namespace.Name,
 		},
 	}
 	err := s.framework.CRClient.Create(context.Background(), sa)
 	Expect(err).ToNot(HaveOccurred())
 
-	// Add the service account to the Conjur policy with permissions to
-	// authenticate with authn-jwt
-	saName := "system:serviceaccount:" + ns + ":test-app-hostid-sa"
-	policy := createJwtHostPolicy(saName, "eso-tests-hostid")
-
-	_, err = s.client.LoadPolicy(conjurapi.PolicyModePost, "root", strings.NewReader(policy))
-	Expect(err).ToNot(HaveOccurred())
+	saName := "system:serviceaccount:" + s.framework.Namespace.Name + ":test-app-hostid-sa"
 
 	// Now create a secret store that uses the service account to authenticate
-	secretStore := makeStore(jwtK8sHostIDProviderName, ns, c)
+	secretStore := makeStore(jwtK8sHostIDProviderName, s.framework.Namespace.Name, s.addon)
 	secretStore.Spec.Provider.Conjur.Auth = esv1.ConjurAuth{
 		Jwt: &esv1.ConjurJWT{
 			Account:   "default",
@@ -200,7 +191,7 @@ func (s conjurProvider) CreateJWTK8sHostIDStore(c *addon.Conjur, ns string) {
 			ServiceAccountRef: &esmeta.ServiceAccountSelector{
 				Name: "test-app-hostid-sa",
 				Audiences: []string{
-					c.ConjurURL,
+					s.addon.ConjurURL,
 				},
 			},
 		},

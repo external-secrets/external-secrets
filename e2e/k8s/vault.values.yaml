@@ -12,6 +12,8 @@ server:
     - name: tls-config
       secret:
         secretName: vault-tls-config
+  dataStorage:
+    enabled: false # have ephemeral data
   standalone:
     config: |
       ui = true
