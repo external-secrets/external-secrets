@@ -33,13 +33,19 @@ import (
 
 const (
 	helmChartRevision = "0.0.0-e2e"
+	fluxManifests     = "https://github.com/fluxcd/flux2/releases/download/v0.29.3/install.yaml"
 )
 
 func installFlux() {
 	By("installing flux")
-	fluxVersion := "v0.29.3"
-	url := fmt.Sprintf("https://github.com/fluxcd/flux2/releases/download/%s/install.yaml", fluxVersion)
-	cmd := exec.Command("kubectl", "apply", "-f", url)
+	cmd := exec.Command("kubectl", "apply", "-f", fluxManifests)
+	out, err := cmd.CombinedOutput()
+	Expect(err).ToNot(HaveOccurred(), string(out))
+}
+
+func uninstallFlux() {
+	By("uninstalling flux")
+	cmd := exec.Command("kubectl", "delete", "-f", fluxManifests)
 	out, err := cmd.CombinedOutput()
 	Expect(err).ToNot(HaveOccurred(), string(out))
 }

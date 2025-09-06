@@ -28,6 +28,7 @@ import (
 	fluxsrc "github.com/fluxcd/source-controller/api/v1beta2"
 	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -160,15 +161,18 @@ func (c *FluxHelmRelease) Uninstall() error {
 			Namespace: c.Namespace,
 		},
 	})
-	if err != nil {
+	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
-	return c.config.CRClient.Delete(GinkgoT().Context(), &fluxsrc.HelmRepository{
+	if err := c.config.CRClient.Delete(GinkgoT().Context(), &fluxsrc.HelmRepository{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      c.Name,
 			Namespace: fluxNamespace,
 		},
-	})
+	}); err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+	return nil
 }
 
 func (c *FluxHelmRelease) Logs() error {

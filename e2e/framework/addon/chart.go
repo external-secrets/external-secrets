@@ -104,13 +104,13 @@ func (c *HelmChart) Install() error {
 // Uninstall removes the chart aswell as the repo.
 func (c *HelmChart) Uninstall() error {
 	var sout, serr bytes.Buffer
-	args := []string{"delete", "--namespace", c.Namespace, c.ReleaseName}
+	args := []string{"uninstall", "--namespace", c.Namespace, c.ReleaseName, "--wait"}
 	cmd := exec.Command("helm", args...)
 	cmd.Stdout = &sout
 	cmd.Stderr = &serr
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("unable to delete helm release: %w: %s, %s", err, sout.String(), serr.String())
+		return fmt.Errorf("unable to uninstall helm release: %w: %s, %s", err, sout.String(), serr.String())
 	}
 	return c.removeRepo()
 }
