@@ -72,6 +72,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		Credentials: server.UserCredential{
 			Username: username,
 			Password: password,
+			Domain:   cfg.Domain,
 		},
 		ServerURL: cfg.ServerURL,
 	})
