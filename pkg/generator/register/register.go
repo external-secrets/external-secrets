@@ -18,6 +18,7 @@ package register
 
 import (
 	_ "github.com/external-secrets/external-secrets/pkg/generator/acr"
+	_ "github.com/external-secrets/external-secrets/pkg/generator/cloudsmith"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/ecr"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/fake"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/gcr"
