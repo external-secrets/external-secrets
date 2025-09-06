@@ -2,15 +2,13 @@ package addon
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"net"
 	"net/http"
-	"time"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/external-secrets/external-secrets-e2e/framework/log"
+	. "github.com/onsi/ginkgo/v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/portforward"
@@ -48,13 +46,13 @@ func (pf *PortForward) Start() error {
 	}
 	pf.localPort = localPort
 
-	svc, err := pf.kubeClient.CoreV1().Services(pf.serviceNamespace).Get(context.Background(), pf.serviceName, metav1.GetOptions{})
+	svc, err := pf.kubeClient.CoreV1().Services(pf.serviceNamespace).Get(GinkgoT().Context(), pf.serviceName, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("unable to get service %s: %w", pf.serviceName, err)
 	}
 
 	selector := metav1.LabelSelector{MatchLabels: svc.Spec.Selector}
-	pods, err := pf.kubeClient.CoreV1().Pods(pf.serviceNamespace).List(context.Background(), metav1.ListOptions{
+	pods, err := pf.kubeClient.CoreV1().Pods(pf.serviceNamespace).List(GinkgoT().Context(), metav1.ListOptions{
 		LabelSelector: metav1.FormatLabelSelector(&selector),
 	})
 	if err != nil || len(pods.Items) == 0 {
@@ -80,7 +78,9 @@ func (pf *PortForward) Start() error {
 
 	var fwd *portforward.PortForwarder
 	var stdout, stderr bytes.Buffer
-	fwd, err = portforward.New(dialer, ports, make(chan struct{}), make(chan struct{}), &stdout, &stderr)
+	stopChan := make(chan struct{})
+	readyChan := make(chan struct{})
+	fwd, err = portforward.New(dialer, ports, stopChan, readyChan, &stdout, &stderr)
 	if err != nil {
 		return fmt.Errorf("unable to create port-forward: %w", err)
 	}
@@ -92,16 +92,12 @@ func (pf *PortForward) Start() error {
 		}
 	}()
 
-	// Wait a bit for port-forward to establish
-	time.Sleep(2 * time.Second)
-
+	<-readyChan
 	return nil
 }
 
 func (pf *PortForward) Close() {
-	if pf.fwd != nil {
-		pf.fwd.Close()
-	}
+	pf.fwd.Close()
 }
 
 // findAvailablePort finds an available local port

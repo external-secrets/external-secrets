@@ -15,7 +15,6 @@ limitations under the License.
 package akeyless
 
 import (
-	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -87,14 +86,13 @@ func (a *akeylessProvider) CreateSecret(key string, val framework.SecretEntry) {
 	token, err := a.GetToken()
 	Expect(err).ToNot(HaveOccurred())
 
-	ctx := context.Background()
 	gsvBody := akeyless.CreateSecret{
 		Name:  key,
 		Value: val.Value,
 		Token: &token,
 	}
 
-	_, _, err = a.restAPIClient.CreateSecret(ctx).Body(gsvBody).Execute()
+	_, _, err = a.restAPIClient.CreateSecret(GinkgoT().Context()).Body(gsvBody).Execute()
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -102,13 +100,12 @@ func (a *akeylessProvider) DeleteSecret(key string) {
 	token, err := a.GetToken()
 	Expect(err).ToNot(HaveOccurred())
 
-	ctx := context.Background()
 	gsvBody := akeyless.DeleteItem{
 		Name:  key,
 		Token: &token,
 	}
 
-	_, _, err = a.restAPIClient.DeleteItem(ctx).Body(gsvBody).Execute()
+	_, _, err = a.restAPIClient.DeleteItem(GinkgoT().Context()).Body(gsvBody).Execute()
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -125,7 +122,7 @@ func (a *akeylessProvider) BeforeEach() {
 			"access-type-param": a.accessTypeParam,
 		},
 	}
-	err := a.framework.CRClient.Create(context.Background(), akeylessCreds)
+	err := a.framework.CRClient.Create(GinkgoT().Context(), akeylessCreds)
 	Expect(err).ToNot(HaveOccurred())
 
 	// Creating Akeyless secret store
@@ -157,12 +154,11 @@ func (a *akeylessProvider) BeforeEach() {
 			},
 		},
 	}
-	err = a.framework.CRClient.Create(context.Background(), secretStore)
+	err = a.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
 func (a *akeylessProvider) GetToken() (string, error) {
-	ctx := context.Background()
 	authBody := akeyless.NewAuthWithDefaults()
 	authBody.AccessId = akeyless.PtrString(a.accessID)
 
@@ -186,7 +182,7 @@ func (a *akeylessProvider) GetToken() (string, error) {
 		authBody.CloudId = akeyless.PtrString(cloudID)
 	}
 
-	authOut, _, err := a.restAPIClient.Auth(ctx).Body(*authBody).Execute()
+	authOut, _, err := a.restAPIClient.Auth(GinkgoT().Context()).Body(*authBody).Execute()
 	if errors.As(err, &apiErr) {
 		return "", fmt.Errorf("authentication failed: %v", string(apiErr.Body()))
 	}

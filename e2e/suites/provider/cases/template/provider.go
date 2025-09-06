@@ -15,7 +15,6 @@ limitations under the License.
 package template
 
 import (
-	"context"
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
@@ -82,6 +81,6 @@ func (s *templateProvider) BeforeEach() {
 		},
 	}
 
-	err := s.framework.CRClient.Create(context.Background(), secretStore)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }

@@ -17,10 +17,10 @@ package addon
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"os/exec"
 
+	. "github.com/onsi/ginkgo/v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -151,7 +151,7 @@ func (c *HelmChart) removeRepo() error {
 func (c *HelmChart) Logs() error {
 	kc := c.config.KubeClientSet
 	podList, err := kc.CoreV1().Pods(c.Namespace).List(
-		context.TODO(),
+		GinkgoT().Context(),
 		metav1.ListOptions{LabelSelector: "app.kubernetes.io/instance=" + c.ReleaseName})
 	if err != nil {
 		return err
@@ -166,7 +166,7 @@ func (c *HelmChart) Logs() error {
 					Container: con.Name,
 					Previous:  b,
 					TailLines: &tailLines,
-				}).Do(context.TODO())
+				}).Do(GinkgoT().Context())
 
 				err := resp.Error()
 				if err != nil {

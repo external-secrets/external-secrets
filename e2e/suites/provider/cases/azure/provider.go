@@ -13,7 +13,6 @@ limitations under the License.
 package azure
 
 import (
-	"context"
 	"os"
 	"strings"
 	"sync"
@@ -125,7 +124,7 @@ func newFromWorkloadIdentity(f *framework.Framework) *azureProvider {
 			// exchange the federated token for an access token
 			aadEndpoint := esoazkv.AadEndpointForType(esv1.AzureEnvironmentPublicCloud)
 			kvResource := strings.TrimSuffix(azure.PublicCloud.KeyVaultEndpoint, "/")
-			tokenProvider, err := esoazkv.NewTokenProvider(context.Background(), string(token), clientID, tenantID, aadEndpoint, kvResource)
+			tokenProvider, err := esoazkv.NewTokenProvider(GinkgoT().Context(), string(token), clientID, tenantID, aadEndpoint, kvResource)
 			if err != nil {
 				Fail(err.Error())
 			}
@@ -138,7 +137,7 @@ func newFromWorkloadIdentity(f *framework.Framework) *azureProvider {
 
 func (s *azureProvider) CreateSecret(key string, val framework.SecretEntry) {
 	_, err := s.client.SetSecret(
-		context.Background(),
+		GinkgoT().Context(),
 		s.vaultURL,
 		key,
 		keyvault.SecretSetParameters{
@@ -153,7 +152,7 @@ func (s *azureProvider) CreateSecret(key string, val framework.SecretEntry) {
 
 func (s *azureProvider) DeleteSecret(key string) {
 	_, err := s.client.DeleteSecret(
-		context.Background(),
+		GinkgoT().Context(),
 		s.vaultURL,
 		key)
 	Expect(err).ToNot(HaveOccurred())
@@ -161,7 +160,7 @@ func (s *azureProvider) DeleteSecret(key string) {
 
 func (s *azureProvider) CreateKey(key string) *keyvault.JSONWebKey {
 	out, err := s.client.CreateKey(
-		context.Background(),
+		GinkgoT().Context(),
 		s.vaultURL,
 		key,
 		keyvault.KeyCreateParameters{
@@ -177,13 +176,13 @@ func (s *azureProvider) CreateKey(key string) *keyvault.JSONWebKey {
 }
 
 func (s *azureProvider) DeleteKey(key string) {
-	_, err := s.client.DeleteKey(context.Background(), s.vaultURL, key)
+	_, err := s.client.DeleteKey(GinkgoT().Context(), s.vaultURL, key)
 	Expect(err).ToNot(HaveOccurred())
 }
 
 func (s *azureProvider) CreateCertificate(key string) {
 	_, err := s.client.CreateCertificate(
-		context.Background(),
+		GinkgoT().Context(),
 		s.vaultURL,
 		key,
 		keyvault.CertificateCreateParameters{
@@ -213,7 +212,7 @@ func (s *azureProvider) GetCertificate(key string) []byte {
 	attempts := 60
 	for {
 		out, err := s.client.GetCertificate(
-			context.Background(),
+			GinkgoT().Context(),
 			s.vaultURL,
 			key,
 			"",
@@ -232,7 +231,7 @@ func (s *azureProvider) GetCertificate(key string) []byte {
 }
 
 func (s *azureProvider) DeleteCertificate(key string) {
-	_, err := s.client.DeleteCertificate(context.Background(), s.vaultURL, key)
+	_, err := s.client.DeleteCertificate(GinkgoT().Context(), s.vaultURL, key)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -303,7 +302,7 @@ func (s *azureProvider) CreateSecretStore() {
 			credentialKeyClientSecret: s.clientSecret,
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), azureCreds)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), azureCreds)
 	Expect(err).ToNot(HaveOccurred())
 	secretStore := &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
@@ -316,7 +315,7 @@ func (s *azureProvider) CreateSecretStore() {
 			},
 		},
 	}
-	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -362,7 +361,7 @@ func (s *azureProvider) CreateReferentSecretStore() {
 			credentialKeyClientSecret: s.clientSecret,
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), azureCreds)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), azureCreds)
 	Expect(err).ToNot(HaveOccurred())
 	secretStore := &esv1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
@@ -375,7 +374,7 @@ func (s *azureProvider) CreateReferentSecretStore() {
 			},
 		},
 	}
-	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -424,7 +423,7 @@ func (s *azureProvider) CreateSecretStoreWithWI() {
 			},
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), ClusterSecretStore)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), ClusterSecretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -440,6 +439,6 @@ func (s *azureProvider) CreateReferentSecretStoreWithWI() {
 			},
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), ClusterSecretStore)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), ClusterSecretStore)
 	Expect(err).ToNot(HaveOccurred())
 }

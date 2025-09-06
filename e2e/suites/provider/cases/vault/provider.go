@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	vault "github.com/hashicorp/vault/api"
 
@@ -79,22 +80,22 @@ func newVaultProvider(f *framework.Framework, addon *addon.Vault) *vaultProvider
 func (s *vaultProvider) CreateSecret(key string, val framework.SecretEntry) {
 	req := s.client.NewRequest(http.MethodPost, fmt.Sprintf("/v1/secret/data/%s", key))
 	req.BodyBytes = []byte(fmt.Sprintf(`{"data": %s}`, val.Value))
-	_, err := s.client.RawRequestWithContext(context.Background(), req) //nolint:staticcheck
+	_, err := s.client.RawRequestWithContext(GinkgoT().Context(), req) //nolint:staticcheck
 	Expect(err).ToNot(HaveOccurred())
 
 	req = s.client.NewRequest(http.MethodPost, fmt.Sprintf("/v1/secret_v1/%s", key))
 	req.BodyBytes = []byte(val.Value)
-	_, err = s.client.RawRequestWithContext(context.Background(), req) //nolint:staticcheck
+	_, err = s.client.RawRequestWithContext(GinkgoT().Context(), req) //nolint:staticcheck
 	Expect(err).ToNot(HaveOccurred())
 }
 
 func (s *vaultProvider) DeleteSecret(key string) {
 	req := s.client.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/secret/data/%s", key))
-	_, err := s.client.RawRequestWithContext(context.Background(), req) //nolint:staticcheck
+	_, err := s.client.RawRequestWithContext(GinkgoT().Context(), req) //nolint:staticcheck
 	Expect(err).ToNot(HaveOccurred())
 
 	req = s.client.NewRequest(http.MethodDelete, fmt.Sprintf("/v1/secret_v1/%s", key))
-	_, err = s.client.RawRequestWithContext(context.Background(), req) //nolint:staticcheck
+	_, err = s.client.RawRequestWithContext(GinkgoT().Context(), req) //nolint:staticcheck
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -173,7 +174,7 @@ func (s *vaultProvider) CreateClientTlsCert() {
 			"tls.key": clientKey,
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), vaultClientCert)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), vaultClientCert)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -192,7 +193,7 @@ func (s *vaultProvider) CreateCertStore() {
 			"client_key":  clientKey,
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), vaultCreds)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), vaultCreds)
 	Expect(err).ToNot(HaveOccurred())
 
 	By("creating an secret store for vault")
@@ -209,7 +210,7 @@ func (s *vaultProvider) CreateCertStore() {
 			},
 		},
 	}
-	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -235,9 +236,9 @@ func (s vaultProvider) CreateTokenStore(customizers ...StoreCustomizer) {
 	}
 
 	secretStore.Spec.Provider.Vault.Auth.TokenSecretRef.Name = vaultCreds.Name
-	err := s.framework.CRClient.Create(context.Background(), vaultCreds)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), vaultCreds)
 	Expect(err).ToNot(HaveOccurred())
-	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -266,13 +267,16 @@ func (s vaultProvider) CreateReferentTokenStore(customizers ...StoreCustomizer) 
 	}
 
 	DeferCleanup(func() {
-		s.framework.CRClient.Delete(context.Background(), secretStore)
+		// cannot use ginkgo context nested in DeferCleanup
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+		s.framework.CRClient.Delete(ctx, secretStore)
 	})
 
 	secretStore.Spec.Provider.Vault.Auth.TokenSecretRef.Name = referentSecret.Name
-	_, err := s.framework.KubeClientSet.CoreV1().Secrets(s.framework.Namespace.Name).Create(context.Background(), referentSecret, metav1.CreateOptions{})
+	_, err := s.framework.KubeClientSet.CoreV1().Secrets(s.framework.Namespace.Name).Create(GinkgoT().Context(), referentSecret, metav1.CreateOptions{})
 	Expect(err).ToNot(HaveOccurred())
-	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -287,7 +291,7 @@ func (s vaultProvider) CreateAppRoleStore() {
 			"approle_secret": []byte(s.addon.AppRoleSecret),
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), vaultCreds)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), vaultCreds)
 	Expect(err).ToNot(HaveOccurred())
 
 	By("creating an secret store for vault")
@@ -302,7 +306,7 @@ func (s vaultProvider) CreateAppRoleStore() {
 			},
 		},
 	}
-	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -316,7 +320,7 @@ func (s vaultProvider) CreateV1Store() {
 			"token": []byte(s.addon.RootToken),
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), vaultCreds)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), vaultCreds)
 	Expect(err).ToNot(HaveOccurred())
 	secretStore := makeStore(kvv1ProviderName, s.framework.Namespace.Name, s.addon)
 	secretV1StorePath := "secret_v1"
@@ -328,7 +332,7 @@ func (s vaultProvider) CreateV1Store() {
 			Key:  "token",
 		},
 	}
-	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -342,7 +346,7 @@ func (s vaultProvider) CreateJWTStore() {
 			"jwt": []byte(s.addon.JWTToken),
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), vaultCreds)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), vaultCreds)
 	Expect(err).ToNot(HaveOccurred())
 	secretStore := makeStore(jwtProviderName, s.framework.Namespace.Name, s.addon)
 	secretStore.Spec.Provider.Vault.Auth = &esv1.VaultAuth{
@@ -355,7 +359,7 @@ func (s vaultProvider) CreateJWTStore() {
 			},
 		},
 	}
-	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -375,7 +379,7 @@ func (s vaultProvider) CreateJWTK8sStore() {
 			},
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), secretStore)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -390,7 +394,7 @@ func (s vaultProvider) CreateKubernetesAuthStore() {
 			},
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), secretStore)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 

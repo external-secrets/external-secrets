@@ -15,7 +15,6 @@ limitations under the License.
 package kubernetes
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 
@@ -62,7 +61,7 @@ func (s *Provider) CreateSecret(key string, val framework.SecretEntry) {
 	for k, v := range stringMap {
 		secret.Data[k] = []byte(v)
 	}
-	err = s.framework.CRClient.Create(context.Background(), secret)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), secret)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -78,7 +77,7 @@ func (s *Provider) DeleteSecret(key string) {
 			Namespace: s.framework.Namespace.Name,
 		},
 	}
-	err := s.framework.CRClient.Delete(context.Background(), secret, &client.DeleteOptions{})
+	err := s.framework.CRClient.Delete(GinkgoT().Context(), secret, &client.DeleteOptions{})
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -154,13 +153,13 @@ func makeDefaultStore(suffix, namespace string) (*rbac.Role, *rbac.RoleBinding, 
 func (s *Provider) CreateStore() {
 	rb, role, store := makeDefaultStore("", s.framework.Namespace.Name)
 
-	err := s.framework.CRClient.Create(context.Background(), role)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), role)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = s.framework.CRClient.Create(context.Background(), rb)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), rb)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = s.framework.CRClient.Create(context.Background(), store)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), store)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -176,13 +175,13 @@ func (s *Provider) CreateReferentStore() {
 	}
 	css.Spec.Provider.Kubernetes.Server.CAProvider.Namespace = &s.framework.Namespace.Name
 
-	err := s.framework.CRClient.Create(context.Background(), role)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), role)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = s.framework.CRClient.Create(context.Background(), rb)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), rb)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = s.framework.CRClient.Create(context.Background(), css)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), css)
 	Expect(err).ToNot(HaveOccurred())
 }
 

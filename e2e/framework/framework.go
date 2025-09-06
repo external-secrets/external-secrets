@@ -17,8 +17,8 @@ package framework
 import (
 
 	// nolint
+
 	. "github.com/onsi/ginkgo/v2"
-	"go.uber.org/zap/zapcore"
 
 	// nolint
 	. "github.com/onsi/gomega"
@@ -128,9 +128,10 @@ func Compose(descAppend string, f *Framework, fn func(f *Framework) (string, fun
 // setup logger in controller-runtime to
 // prevent logging unrelated errors.
 func init() {
-	opts := zap.Options{
-		Level: zapcore.DebugLevel,
-	}
-	logger := zap.New(zap.UseFlagOptions(&opts))
-	ctrl.SetLogger(logger)
+	ginkgoLogger := zap.New(
+		zap.WriteTo(GinkgoWriter),
+		zap.UseDevMode(true),
+	)
+
+	ctrl.SetLogger(ginkgoLogger)
 }

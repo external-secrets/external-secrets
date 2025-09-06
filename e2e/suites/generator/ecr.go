@@ -16,7 +16,6 @@ limitations under the License.
 package generator
 
 import (
-	"context"
 	"os"
 
 	//nolint
@@ -39,7 +38,7 @@ var _ = Describe("ecr generator", Label("ecr"), func() {
 	const awsCredsSecretName = "aws-creds"
 
 	injectGenerator := func(tc *testCase) {
-		err := f.CRClient.Create(context.Background(), &v1.Secret{
+		err := f.CRClient.Create(GinkgoT().Context(), &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      awsCredsSecretName,
 				Namespace: f.Namespace.Name,

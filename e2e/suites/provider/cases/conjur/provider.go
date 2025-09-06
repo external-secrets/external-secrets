@@ -14,7 +14,6 @@ limitations under the License.
 package conjur
 
 import (
-	"context"
 	"encoding/base64"
 	"strings"
 
@@ -117,7 +116,7 @@ func (s *conjurProvider) CreateApiKeyStore() {
 			"username": []byte("admin"),
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), conjurCreds)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), conjurCreds)
 	Expect(err).ToNot(HaveOccurred())
 
 	By("creating an secret store for conjur")
@@ -135,7 +134,7 @@ func (s *conjurProvider) CreateApiKeyStore() {
 			},
 		},
 	}
-	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -147,7 +146,7 @@ func (s conjurProvider) CreateJWTK8sStore() {
 			Namespace: s.framework.Namespace.Name,
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), sa)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), sa)
 	Expect(err).ToNot(HaveOccurred())
 
 	// Now create a secret store that uses the service account to authenticate
@@ -164,7 +163,7 @@ func (s conjurProvider) CreateJWTK8sStore() {
 			},
 		},
 	}
-	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -176,7 +175,7 @@ func (s conjurProvider) CreateJWTK8sHostIDStore() {
 			Namespace: s.framework.Namespace.Name,
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), sa)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), sa)
 	Expect(err).ToNot(HaveOccurred())
 
 	saName := "system:serviceaccount:" + s.framework.Namespace.Name + ":test-app-hostid-sa"
@@ -196,6 +195,6 @@ func (s conjurProvider) CreateJWTK8sHostIDStore() {
 			},
 		},
 	}
-	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
