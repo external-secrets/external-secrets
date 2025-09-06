@@ -29,8 +29,6 @@ import (
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	cfg := &addon.Config{}
-	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
 	installFlux()
 	installESO()
 	return nil
@@ -57,6 +55,7 @@ var _ = SynchronizedAfterSuite(func() {
 	if CurrentSpecReport().Failed() {
 		addon.PrintLogs()
 	}
+	uninstallFlux()
 })
 
 func TestE2E(t *testing.T) {
