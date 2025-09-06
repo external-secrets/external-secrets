@@ -1,0 +1,75 @@
+package template
+
+import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"fmt"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func generateRSAPrivateKeyPEM() (string, *rsa.PrivateKey, error) {
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return "", nil, err
+	}
+	privBytes := x509.MarshalPKCS1PrivateKey(priv)
+	privPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: privBytes})
+	return string(privPEM), priv, nil
+}
+
+func TestRsaDecrypt_NoneScheme(t *testing.T) {
+	input := "plaintext"
+	privateKey := "irrelevant"
+	out, err := rsaDecrypt("None", "SHA256", input, privateKey)
+	assert.NoError(t, err)
+	assert.Equal(t, input, out)
+}
+
+func TestRsaDecrypt_InvalidPEM(t *testing.T) {
+	_, err := rsaDecrypt("RSA-OAEP", "SHA256", "data", "not-a-valid-pem")
+	assert.Error(t, err)
+	assert.Equal(t, errDecodePEM, err.Error())
+}
+
+func TestRsaDecrypt_InvalidPrivateKey(t *testing.T) {
+	// Use a valid PEM block but not a private key
+	pemBlock := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: []byte("invalid")})
+	_, err := rsaDecrypt("RSA-OAEP", "SHA256", "data", string(pemBlock))
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, errParsePK)
+}
+
+func TestRsaDecrypt_UnsupportedScheme(t *testing.T) {
+	privateKey, _, _ := generateRSAPrivateKeyPEM()
+	_, err := rsaDecrypt("Unsupported", "SHA256", "data", privateKey)
+	assert.Error(t, err)
+	assert.Equal(t, fmt.Errorf(errSchemeNotSupported, "Unsupported"), err)
+}
+
+func TestRsaDecrypt_RSAOAEP_Success(t *testing.T) {
+	privateKeyPEM, priv, err := generateRSAPrivateKeyPEM()
+	if err != nil {
+		t.Fatalf("failed to generate key: %v", err)
+	}
+	plaintext := []byte("secret-data")
+	ciphertext, err := rsa.EncryptOAEP(getHash("SHA256"), rand.Reader, &priv.PublicKey, plaintext, nil)
+	assert.NoError(t, err)
+	out, err := rsaDecrypt("RSA-OAEP", "SHA256", string(ciphertext), privateKeyPEM)
+	assert.NoError(t, err)
+	assert.Equal(t, string(plaintext), out)
+}
+
+func TestRsaDecrypt_RSAOAEP_DecryptionError(t *testing.T) {
+	privateKeyPEM, _, err := generateRSAPrivateKeyPEM()
+	if err != nil {
+		t.Fatalf("failed to generate key: %v", err)
+	}
+	// Pass random data as ciphertext
+	_, err = rsaDecrypt("RSA-OAEP", "SHA256", "not-encrypted-data", privateKeyPEM)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, errRSADecrypt)
+}
