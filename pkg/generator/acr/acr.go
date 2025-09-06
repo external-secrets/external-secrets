@@ -377,6 +377,10 @@ func audienceForType(t esv1.AzureEnvironmentType) string {
 		return azure.USGovernmentCloud.TokenAudience + suffix
 	case esv1.AzureEnvironmentPublicCloud, "":
 		return azure.PublicCloud.TokenAudience + suffix
+	case esv1.AzureEnvironmentAzureStackCloud:
+		// Azure Stack Cloud requires custom configuration
+		// Return empty string to indicate it's not supported
+		return ""
 	}
 	return azure.PublicCloud.TokenAudience + suffix
 }
