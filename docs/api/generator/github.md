@@ -52,4 +52,3 @@ After installation, you need to get the installation ID to authenticate API requ
 ### Notes
 - Ensure that all sensitive data such as private keys and IDs are securely handled and stored.
 - Adjust the permissions and configurations according to your specific requirements and security policies.
-- Github tokens expire after 60 minutes by default and this is non-configurable, make sure you choose a refreshInterval that is below this number.

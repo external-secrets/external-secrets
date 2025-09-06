@@ -15,12 +15,13 @@ limitations under the License.
 package secretserver
 
 import (
-	"github.com/DelineaXPM/tss-sdk-go/v2/server"
+	"github.com/DelineaXPM/tss-sdk-go/v3/server"
 )
 
 // secretAPI represents the subset of the Secret Server API
-// which is supported by tss-sdk-go/v2.
+// which is supported by tss-sdk-go/v3.
 type secretAPI interface {
 	Secret(id int) (*server.Secret, error)
 	Secrets(searchText, field string) ([]server.Secret, error)
+	SecretByPath(secretPath string) (*server.Secret, error)
 }

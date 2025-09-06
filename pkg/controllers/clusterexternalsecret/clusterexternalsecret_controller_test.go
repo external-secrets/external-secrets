@@ -539,15 +539,8 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 					}
 				}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
 
-				// Retry on conflict since controller may be updating namespace with finalizers
-				Eventually(func() error {
-					var ns v1.Namespace
-					if err := k8sClient.Get(ctx, types.NamespacedName{Name: namespaces[0].Name}, &ns); err != nil {
-						return err
-					}
-					ns.Labels = map[string]string{}
-					return k8sClient.Update(ctx, &ns)
-				}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
+				namespaces[0].Labels = map[string]string{}
+				Expect(k8sClient.Update(ctx, &namespaces[0])).ShouldNot(HaveOccurred())
 			},
 			expectedClusterExternalSecret: func(namespaces []v1.Namespace, created esv1.ClusterExternalSecret) esv1.ClusterExternalSecret {
 				return esv1.ClusterExternalSecret{

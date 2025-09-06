@@ -3,7 +3,7 @@ package secretserver
 import (
 	"encoding/json"
 
-	"github.com/DelineaXPM/tss-sdk-go/v2/server"
+	"github.com/DelineaXPM/tss-sdk-go/v3/server"
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/onsi/gomega"
 )

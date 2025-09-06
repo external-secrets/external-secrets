@@ -10,11 +10,10 @@ cd external-secrets
 
 _Note: many of the `make` commands use [yq](https://github.com/mikefarah/yq), version 4.2X.X or higher._
 
-Our helm chart is tested using `helm-unittest`. You will need it to run tests locally if you modify the helm chart.
+Our helm chart is tested using `helm-unittest`. You will need it to run tests locally if you modify the helm chart. Install it with the following command:
 
-```shell
-make helm.test
-make helm.test.update
+```
+$ helm plugin install https://github.com/helm-unittest/helm-unittest
 ```
 
 ## Building & Testing

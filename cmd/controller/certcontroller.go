@@ -17,7 +17,6 @@ limitations under the License.
 package controller
 
 import (
-	"crypto/tls"
 	"os"
 	"time"
 
@@ -74,19 +73,11 @@ var certcontrollerCmd = &cobra.Command{
 			}
 		}
 
-		// Configure metrics server options
-		metricsServerOpts := server.Options{
-			BindAddress: metricsAddr,
-		}
-
-		// Disable HTTP/2 if not explicitly enabled
-		if !enableHTTP2 {
-			metricsServerOpts.TLSOpts = []func(*tls.Config){disableHTTP2}
-		}
-
 		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-			Scheme:  scheme,
-			Metrics: metricsServerOpts,
+			Scheme: scheme,
+			Metrics: server.Options{
+				BindAddress: metricsAddr,
+			},
 			WebhookServer: webhook.NewServer(webhook.Options{
 				Port: 9443,
 			}),
@@ -201,6 +192,4 @@ func init() {
 	certcontrollerCmd.Flags().StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
 	certcontrollerCmd.Flags().StringVar(&zapTimeEncoding, "zap-time-encoding", "epoch", "Zap time encoding (one of 'epoch', 'millis', 'nano', 'iso8601', 'rfc3339' or 'rfc3339nano')")
 	certcontrollerCmd.Flags().DurationVar(&crdRequeueInterval, "crd-requeue-interval", time.Minute*5, "Time duration between reconciling CRDs for new certs")
-	certcontrollerCmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
-		"If set, HTTP/2 will be enabled for the metrics server")
 }
