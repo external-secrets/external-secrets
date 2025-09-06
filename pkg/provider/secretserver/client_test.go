@@ -132,6 +132,7 @@ func newTestClient() esv1.SecretsClient {
 				createSecret(6000, "{ \"user\": \"betaTest\", \"password\": \"badPassword\" }"),
 				createNilFieldsSecret(7000),
 				createEmptyFieldsSecret(8000),
+				createSecret(9000, "{ \"user\": \"robertOppenheimer\", \"password\": \"badPassword\", \"domain\":\"domain1\", \"server\":\"192.168.1.50\"}"),
 			},
 		},
 	}
@@ -261,6 +262,13 @@ func TestGetSecretSecretServer(t *testing.T) {
 			},
 			want: []byte(nil),
 			err:  esv1.NoSecretError{},
+		},
+		"Secret from code: with domain": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key:      "9000",
+				Property: "domain",
+			},
+			want: []byte(`domain1`),
 		},
 	}
 

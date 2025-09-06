@@ -5769,6 +5769,9 @@ spec:
                         SecretServer configures this store to sync secrets using SecretServer provider
                         https://docs.delinea.com/online-help/secret-server/start.htm
                       properties:
+                        domain:
+                          description: Domain is the secret server domain.
+                          type: string
                         password:
                           description: Password is the secret server account password.
                           properties:
@@ -16746,6 +16749,9 @@ spec:
                         SecretServer configures this store to sync secrets using SecretServer provider
                         https://docs.delinea.com/online-help/secret-server/start.htm
                       properties:
+                        domain:
+                          description: Domain is the secret server domain.
+                          type: string
                         password:
                           description: Password is the secret server account password.
                           properties:

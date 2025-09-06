@@ -398,9 +398,14 @@ Reference the service account from above in the Secret Store:
 ```
 ### Controller's Pod Identity
 
-This is basicially a zero-configuration authentication approach that inherits the credentials from the controller's pod identity
+This is basically a zero-configuration authentication approach that inherits the credentials from the controller's pod identity.
 
-This approach assumes that appropriate IRSA setup is done controller's pod (i.e. IRSA enabled IAM role is created appropriately and controller's service account is annotated appropriately with the annotation "eks.amazonaws.com/role-arn" to enable IRSA)
+This approach supports both [IRSA (IAM Roles for Service Accounts)](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) and [AWS Pod Identity](https://docs.aws.amazon.com/eks/latest/userguide/pod-identities.html):
+
+- **IRSA**: Requires appropriate IRSA setup on the controller's pod (i.e. IRSA enabled IAM role is created and controller's service account is annotated with "eks.amazonaws.com/role-arn")
+- **Pod Identity**: Requires [EKS Pod Identity](https://docs.aws.amazon.com/eks/latest/userguide/pod-identities.html) setup with the controller's service account associated with an IAM role
+
+The provider automatically detects which authentication method is available and uses the appropriate one.
 
 ```yaml
 {% include 'vault-iam-store-controller-pod-identity.yaml' %}

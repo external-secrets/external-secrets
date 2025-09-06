@@ -58,6 +58,11 @@ const (
 	errConvertLabelSelector = "unable to convert labelselector"
 	errGetExistingES        = "could not get existing ExternalSecret"
 	errNamespacesFailed     = "one or more namespaces failed"
+
+	// ClusterExternalSecretFinalizer is the finalizer for ClusterExternalSecret resources.
+	// This finalizer ensures that all ExternalSecrets created by the ClusterExternalSecret
+	// are properly cleaned up before the ClusterExternalSecret is deleted, preventing orphaned resources.
+	ClusterExternalSecretFinalizer = "externalsecrets.external-secrets.io/clusterexternalsecret-cleanup"
 )
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -81,9 +86,33 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	// skip reconciliation if deletion timestamp is set on cluster external secret
+	// Handle deletion with finalizer
+	// When a ClusterExternalSecret is being deleted, we need to ensure all created ExternalSecrets
+	// and namespace finalizers are cleaned up to prevent resource leaks and namespace deletion blocking.
 	if clusterExternalSecret.DeletionTimestamp != nil {
-		log.Info("skipping as it is in deletion")
+		// Always attempt cleanup to handle edge case where finalizer might be removed externally
+		if err := r.cleanupExternalSecrets(ctx, log, &clusterExternalSecret); err != nil {
+			log.Error(err, "failed to cleanup ExternalSecrets")
+			return ctrl.Result{}, err
+		}
+
+		// Remove finalizer from ClusterExternalSecret if it exists
+		if updated := controllerutil.RemoveFinalizer(&clusterExternalSecret, ClusterExternalSecretFinalizer); updated {
+			if err := r.Update(ctx, &clusterExternalSecret); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, nil
+	}
+
+	// Add finalizer if it doesn't exist
+	// This ensures the ClusterExternalSecret cannot be deleted until we've cleaned up all
+	// ExternalSecrets it created and removed our finalizers from namespaces.
+	if updated := controllerutil.AddFinalizer(&clusterExternalSecret, ClusterExternalSecretFinalizer); updated {
+		if err := r.Update(ctx, &clusterExternalSecret); err != nil {
+			return ctrl.Result{}, err
+		}
+		// Return immediately after update to let the change propagate
 		return ctrl.Result{}, nil
 	}
 
@@ -142,6 +171,14 @@ func (r *Reconciler) reconcile(ctx context.Context, log logr.Logger, clusterExte
 	sort.Strings(provisionedNamespaces)
 	clusterExternalSecret.Status.ProvisionedNamespaces = provisionedNamespaces
 
+	// Check if any failures are due to conflicts - if so, requeue immediately
+	for _, err := range failedNamespaces {
+		if apierrors.IsConflict(err) {
+			log.V(1).Info("conflict detected, requeuing immediately")
+			return ctrl.Result{}, fmt.Errorf("conflict detected, will retry: %w", err)
+		}
+	}
+
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
 
@@ -155,6 +192,11 @@ func (r *Reconciler) gatherProvisionedNamespaces(
 ) []string {
 	var provisionedNamespaces []string //nolint:prealloc // we don't know the size
 	for _, namespace := range namespaces {
+		// Skip namespace if it's being deleted
+		if namespace.DeletionTimestamp != nil {
+			log.Info("skipping namespace as it is being deleted", "namespace", namespace.Name)
+			continue
+		}
 		var existingES esv1.ExternalSecret
 		err := r.Get(ctx, types.NamespacedName{
 			Name:      esName,
@@ -172,6 +214,12 @@ func (r *Reconciler) gatherProvisionedNamespaces(
 		}
 
 		if err := r.createOrUpdateExternalSecret(ctx, clusterExternalSecret, namespace, esName, clusterExternalSecret.Spec.ExternalSecretMetadata); err != nil {
+			// If conflict, don't log as error - just add to failed namespaces for retry
+			if apierrors.IsConflict(err) {
+				log.V(1).Info("conflict while updating namespace, will retry", "namespace", namespace.Name)
+				failedNamespaces[namespace.Name] = err
+				continue
+			}
 			log.Error(err, "failed to create or update external secret")
 			failedNamespaces[namespace.Name] = err
 			continue
@@ -204,7 +252,116 @@ func (r *Reconciler) removeOldSecrets(ctx context.Context, log logr.Logger, clus
 	return nil
 }
 
+// cleanupExternalSecrets removes all ExternalSecrets created by this ClusterExternalSecret
+// and removes the namespace finalizers we added. This uses a dual-finalizer strategy:
+// 1. ClusterExternalSecret has a finalizer to ensure cleanup happens
+// 2. Each namespace gets a CES-specific finalizer to prevent deletion race conditions
+// The namespace finalizer is named with the CES name to allow multiple CES resources
+// to provision into the same namespace independently.
+func (r *Reconciler) cleanupExternalSecrets(ctx context.Context, log logr.Logger, clusterExternalSecret *esv1.ClusterExternalSecret) error {
+	esName := r.getExternalSecretName(clusterExternalSecret)
+
+	var err error
+	for _, ns := range clusterExternalSecret.Status.ProvisionedNamespaces {
+		if cleanupErr := r.cleanupNamespaceResources(ctx, log, clusterExternalSecret, ns, esName); cleanupErr != nil {
+			err = errors.Join(err, cleanupErr)
+		}
+	}
+
+	return err
+}
+
+// getExternalSecretName returns the name to use for ExternalSecrets.
+func (r *Reconciler) getExternalSecretName(clusterExternalSecret *esv1.ClusterExternalSecret) string {
+	if clusterExternalSecret.Status.ExternalSecretName != "" {
+		return clusterExternalSecret.Status.ExternalSecretName
+	}
+	return clusterExternalSecret.ObjectMeta.Name
+}
+
+// cleanupNamespaceResources handles cleanup for a single namespace.
+func (r *Reconciler) cleanupNamespaceResources(ctx context.Context, log logr.Logger, clusterExternalSecret *esv1.ClusterExternalSecret, namespaceName, esName string) error {
+	// Get the namespace
+	namespace, err := r.getNamespace(ctx, namespaceName)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			// Namespace already deleted, that's ok
+			return nil
+		}
+		return fmt.Errorf("failed to get namespace %s: %w", namespaceName, err)
+	}
+
+	// Remove namespace finalizer
+	if err := r.removeNamespaceFinalizer(ctx, log, namespace, clusterExternalSecret.Name); err != nil {
+		return err
+	}
+
+	// Delete ExternalSecret
+	if err := r.deleteExternalSecret(ctx, esName, clusterExternalSecret.Name, namespaceName); err != nil {
+		return fmt.Errorf("failed to delete ExternalSecret in namespace %s: %w", namespaceName, err)
+	}
+
+	return nil
+}
+
+// getNamespace fetches a namespace by name.
+func (r *Reconciler) getNamespace(ctx context.Context, name string) (*v1.Namespace, error) {
+	var namespace v1.Namespace
+	err := r.Get(ctx, types.NamespacedName{Name: name}, &namespace)
+	return &namespace, err
+}
+
+// removeNamespaceFinalizer removes the CES-specific finalizer from a namespace.
+func (r *Reconciler) removeNamespaceFinalizer(ctx context.Context, log logr.Logger, namespace *v1.Namespace, cesName string) error {
+	finalizer := r.buildCESFinalizer(cesName)
+
+	if !controllerutil.ContainsFinalizer(namespace, finalizer) {
+		return nil // Finalizer doesn't exist, nothing to do
+	}
+
+	return r.updateNamespaceRemoveFinalizer(ctx, log, namespace.Name, finalizer)
+}
+
+// buildCESFinalizer creates the finalizer name for a CES.
+func (r *Reconciler) buildCESFinalizer(cesName string) string {
+	return "externalsecrets.external-secrets.io/ces-" + cesName
+}
+
+// updateNamespaceRemoveFinalizer removes a finalizer from a namespace with conflict handling.
+func (r *Reconciler) updateNamespaceRemoveFinalizer(ctx context.Context, log logr.Logger, namespaceName, finalizer string) error {
+	// Fetch the latest namespace to avoid conflicts
+	namespace, err := r.getNamespace(ctx, namespaceName)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil // Namespace deleted, that's OK
+		}
+		return fmt.Errorf("failed to get latest namespace %s: %w", namespaceName, err)
+	}
+
+	// Only update if the finalizer was actually removed
+	if updated := controllerutil.RemoveFinalizer(namespace, finalizer); updated {
+		if err := r.Update(ctx, namespace); err != nil {
+			// Ignore NotFound (namespace deleted) and Conflict (will retry)
+			if apierrors.IsNotFound(err) || apierrors.IsConflict(err) {
+				log.V(1).Info("ignoring expected error during finalizer removal",
+					"namespace", namespaceName,
+					"error", err.Error())
+				return nil
+			}
+			return fmt.Errorf("failed to remove finalizer from namespace %s: %w", namespaceName, err)
+		}
+	}
+
+	return nil
+}
+
 func (r *Reconciler) createOrUpdateExternalSecret(ctx context.Context, clusterExternalSecret *esv1.ClusterExternalSecret, namespace v1.Namespace, esName string, esMetadata esv1.ExternalSecretMetadata) error {
+	// Add namespace finalizer first to prevent deletion race conditions
+	if err := r.ensureNamespaceFinalizer(ctx, &namespace, clusterExternalSecret.Name); err != nil {
+		return err
+	}
+
+	// Create or update the ExternalSecret
 	externalSecret := &esv1.ExternalSecret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace.Name,
@@ -235,6 +392,40 @@ func (r *Reconciler) createOrUpdateExternalSecret(ctx context.Context, clusterEx
 
 	if _, err := ctrl.CreateOrUpdate(ctx, r.Client, externalSecret, mutateFunc); err != nil {
 		return fmt.Errorf("could not create or update ExternalSecret: %w", err)
+	}
+
+	return nil
+}
+
+// ensureNamespaceFinalizer adds a CES-specific finalizer to the namespace if it doesn't exist.
+// This prevents the namespace from being deleted while we're managing ExternalSecrets in it.
+func (r *Reconciler) ensureNamespaceFinalizer(ctx context.Context, namespace *v1.Namespace, cesName string) error {
+	finalizer := r.buildCESFinalizer(cesName)
+
+	if controllerutil.ContainsFinalizer(namespace, finalizer) {
+		return nil // Already has finalizer
+	}
+
+	return r.addNamespaceFinalizer(ctx, namespace.Name, finalizer)
+}
+
+// addNamespaceFinalizer adds a finalizer to a namespace with conflict handling.
+func (r *Reconciler) addNamespaceFinalizer(ctx context.Context, namespaceName, finalizer string) error {
+	// Fetch the latest namespace to avoid conflicts
+	namespace, err := r.getNamespace(ctx, namespaceName)
+	if err != nil {
+		return fmt.Errorf("could not get latest namespace: %w", err)
+	}
+
+	// Only update if the finalizer was actually added
+	if updated := controllerutil.AddFinalizer(namespace, finalizer); updated {
+		if err := r.Update(ctx, namespace); err != nil {
+			// If conflict, return error to trigger requeue
+			if apierrors.IsConflict(err) {
+				return err
+			}
+			return fmt.Errorf("could not add namespace finalizer: %w", err)
+		}
 	}
 
 	return nil
