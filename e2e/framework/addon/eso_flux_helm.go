@@ -27,6 +27,7 @@ import (
 	"github.com/fluxcd/pkg/apis/meta"
 	fluxsrc "github.com/fluxcd/source-controller/api/v1beta2"
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -164,6 +165,19 @@ func (c *FluxHelmRelease) Uninstall() error {
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
+
+	Eventually(func() bool {
+		var hr fluxhelm.HelmRelease
+		err = c.config.CRClient.Get(GinkgoT().Context(), types.NamespacedName{
+			Name:      c.Name,
+			Namespace: c.Namespace,
+		}, &hr)
+		if apierrors.IsNotFound(err) {
+			return true
+		}
+		return false
+	}).WithPolling(time.Second).WithTimeout(time.Second * 30).Should(BeTrue())
+
 	if err := c.config.CRClient.Delete(GinkgoT().Context(), &fluxsrc.HelmRepository{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      c.Name,
