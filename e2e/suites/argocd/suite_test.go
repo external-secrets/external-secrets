@@ -17,7 +17,6 @@ limitations under the License.
 package argocd
 
 import (
-	"context"
 	"testing"
 
 	// nolint
@@ -32,8 +31,6 @@ import (
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	cfg := &addon.Config{}
-	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
 	installArgo()
 	installESO()
 	return nil
@@ -44,14 +41,13 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 var _ = SynchronizedAfterSuite(func() {
 	// noop
 }, func() {
-	cfg := &addon.Config{}
-	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
+	_, _, cl := util.NewConfig()
 	By("Deleting any pending generator states")
 	generatorStates := &genv1alpha1.GeneratorStateList{}
-	err := cfg.CRClient.List(context.Background(), generatorStates)
+	err := cl.List(GinkgoT().Context(), generatorStates)
 	Expect(err).ToNot(HaveOccurred())
 	for _, generatorState := range generatorStates.Items {
-		err = cfg.CRClient.Delete(context.Background(), &generatorState)
+		err = cl.Delete(GinkgoT().Context(), &generatorState)
 		Expect(err).ToNot(HaveOccurred())
 	}
 

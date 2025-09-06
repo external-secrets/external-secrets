@@ -26,7 +26,7 @@ import (
 	fluxhelm "github.com/fluxcd/helm-controller/api/v2beta1"
 	"github.com/fluxcd/pkg/apis/meta"
 	fluxsrc "github.com/fluxcd/source-controller/api/v1beta2"
-	"github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -66,7 +66,7 @@ func (c *FluxHelmRelease) Install() error {
 			URL: c.HelmRepo,
 		},
 	}
-	err := c.config.CRClient.Create(context.Background(), app)
+	err := c.config.CRClient.Create(GinkgoT().Context(), app)
 	if err != nil {
 		return err
 	}
@@ -101,15 +101,15 @@ func (c *FluxHelmRelease) Install() error {
 			},
 		},
 	}
-	err = c.config.CRClient.Create(context.Background(), hr)
+	err = c.config.CRClient.Create(GinkgoT().Context(), hr)
 	if err != nil {
 		return err
 	}
 
 	// wait for app to become ready
-	err = wait.PollUntilContextTimeout(context.Background(), time.Second*5, time.Minute*3, true, func(ctx context.Context) (bool, error) {
+	err = wait.PollUntilContextTimeout(GinkgoT().Context(), time.Second*5, time.Minute*3, true, func(ctx context.Context) (bool, error) {
 		var hr fluxhelm.HelmRelease
-		err := c.config.CRClient.Get(context.Background(), types.NamespacedName{
+		err := c.config.CRClient.Get(GinkgoT().Context(), types.NamespacedName{
 			Name:      c.Name,
 			Namespace: c.Namespace,
 		}, &hr)
@@ -117,7 +117,7 @@ func (c *FluxHelmRelease) Install() error {
 			return false, nil
 		}
 		for _, cond := range hr.GetConditions() {
-			ginkgo.GinkgoWriter.Printf("check condition: %s=%s: %s\n", cond.Type, cond.Status, cond.Message)
+			GinkgoWriter.Printf("check condition: %s=%s: %s\n", cond.Type, cond.Status, cond.Message)
 			if cond.Type == meta.ReadyCondition && cond.Status == metav1.ConditionTrue {
 				return true, nil
 			}
@@ -134,7 +134,7 @@ func (c *FluxHelmRelease) Install() error {
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
-	return wait.PollUntilContextTimeout(context.Background(), time.Second, time.Minute*5, true, func(ctx context.Context) (bool, error) {
+	return wait.PollUntilContextTimeout(GinkgoT().Context(), time.Second, time.Minute*5, true, func(ctx context.Context) (bool, error) {
 		const payload = `{"apiVersion": "admission.k8s.io/v1","kind": "AdmissionReview","request": {"uid": "test","kind": {"group": "external-secrets.io","version": "v1","kind": "ExternalSecret"}, "resource": "external-secrets.io/v1.externalsecrets","dryRun": true, "operation": "CREATE", "userInfo":{"username":"test","uid":"test","groups":[],"extra":{}}}}`
 		res, err := client.Post("https://external-secrets-webhook.external-secrets.svc.cluster.local/validate-external-secrets-io-v1-externalsecret", "application/json", bytes.NewBufferString(payload))
 		if err != nil {
@@ -143,7 +143,7 @@ func (c *FluxHelmRelease) Install() error {
 		defer func() {
 			_ = res.Body.Close()
 		}()
-		ginkgo.GinkgoWriter.Printf("webhook res: %d", res.StatusCode)
+		GinkgoWriter.Printf("webhook res: %d", res.StatusCode)
 		return res.StatusCode == http.StatusOK, nil
 	})
 }
@@ -154,7 +154,7 @@ func (c *FluxHelmRelease) Uninstall() error {
 	if err != nil {
 		return err
 	}
-	err = c.config.CRClient.Delete(context.Background(), &fluxhelm.HelmRelease{
+	err = c.config.CRClient.Delete(GinkgoT().Context(), &fluxhelm.HelmRelease{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      c.Name,
 			Namespace: c.Namespace,
@@ -163,7 +163,7 @@ func (c *FluxHelmRelease) Uninstall() error {
 	if err != nil {
 		return err
 	}
-	return c.config.CRClient.Delete(context.Background(), &fluxsrc.HelmRepository{
+	return c.config.CRClient.Delete(GinkgoT().Context(), &fluxsrc.HelmRepository{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      c.Name,
 			Namespace: fluxNamespace,

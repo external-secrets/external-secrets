@@ -17,7 +17,6 @@ limitations under the License.
 package addon
 
 import (
-	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -40,7 +39,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	vault "github.com/hashicorp/vault/api"
-
+	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -114,7 +113,7 @@ func (l *Vault) Install() error {
 			Name: "allow-anon-oidc",
 		},
 	}
-	_, err := controllerutil.CreateOrUpdate(context.Background(), l.chart.config.CRClient, crb, func() error {
+	_, err := controllerutil.CreateOrUpdate(GinkgoT().Context(), l.chart.config.CRClient, crb, func() error {
 		crb.Subjects = []rbacv1.Subject{
 			{
 				APIGroup: "rbac.authorization.k8s.io",
@@ -132,23 +131,19 @@ func (l *Vault) Install() error {
 	if err != nil {
 		return err
 	}
-	err = l.chart.Install()
-	if err != nil {
+	if err = l.chart.Install(); err != nil {
 		return err
 	}
 
-	err = l.patchVaultService()
-	if err != nil {
+	if err = l.patchVaultService(); err != nil {
 		return err
 	}
 
-	err = l.initVault()
-	if err != nil {
+	if err = l.initVault(); err != nil {
 		return err
 	}
 
-	err = l.configureVault()
-	if err != nil {
+	if err = l.configureVault(); err != nil {
 		return err
 	}
 
@@ -160,7 +155,7 @@ func (l *Vault) patchVaultService() error {
 	servicePatch := []byte(`[{"op": "add", "path": "/spec/ports/-", "value": { "name": "https-mtls", "port": 8210, "protocol": "TCP", "targetPort": 8210 }}]`)
 	clientSet := l.chart.config.KubeClientSet
 	_, err := clientSet.CoreV1().Services(l.Namespace).
-		Patch(context.Background(), serviceName, types.JSONPatchType, servicePatch, metav1.PatchOptions{})
+		Patch(GinkgoT().Context(), serviceName, types.JSONPatchType, servicePatch, metav1.PatchOptions{})
 	return err
 }
 
@@ -204,7 +199,7 @@ func (l *Vault) initVault() error {
 		},
 		Data: map[string][]byte{},
 	}
-	_, err = controllerutil.CreateOrUpdate(context.Background(), l.chart.config.CRClient, sec, func() error {
+	_, err = controllerutil.CreateOrUpdate(GinkgoT().Context(), l.chart.config.CRClient, sec, func() error {
 		sec.Data = map[string][]byte{}
 		for _, f := range files {
 			name := f.Name()
@@ -352,7 +347,7 @@ func (l *Vault) Uninstall() error {
 	if err := l.chart.Uninstall(); err != nil {
 		return err
 	}
-	return l.chart.config.KubeClientSet.CoreV1().Namespaces().Delete(context.Background(), l.chart.Namespace, metav1.DeleteOptions{})
+	return l.chart.config.KubeClientSet.CoreV1().Namespaces().Delete(GinkgoT().Context(), l.chart.Namespace, metav1.DeleteOptions{})
 }
 
 func (l *Vault) Setup(cfg *Config) error {

@@ -17,7 +17,6 @@ limitations under the License.
 package flux
 
 import (
-	"context"
 	"testing"
 
 	// nolint
@@ -48,10 +47,10 @@ var _ = SynchronizedAfterSuite(func() {
 	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
 	By("Deleting any pending generator states")
 	generatorStates := &genv1alpha1.GeneratorStateList{}
-	err := cfg.CRClient.List(context.Background(), generatorStates)
+	err := cfg.CRClient.List(GinkgoT().Context(), generatorStates)
 	Expect(err).ToNot(HaveOccurred())
 	for _, generatorState := range generatorStates.Items {
-		err = cfg.CRClient.Delete(context.Background(), &generatorState)
+		err = cfg.CRClient.Delete(GinkgoT().Context(), &generatorState)
 		Expect(err).ToNot(HaveOccurred())
 	}
 

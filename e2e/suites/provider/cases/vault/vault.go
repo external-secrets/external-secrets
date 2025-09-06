@@ -320,9 +320,9 @@ func testInvalidMtlsStore(prov *vaultProvider) func(*framework.TestCase) {
 		tc.ExternalSecret = nil
 		tc.ExpectedSecret = nil
 
-		err := wait.PollUntilContextTimeout(context.Background(), time.Second*10, time.Minute, true, func(context context.Context) (bool, error) {
+		err := wait.PollUntilContextTimeout(GinkgoT().Context(), time.Second*10, time.Minute, true, func(ctx context.Context) (bool, error) {
 			var ss esapi.SecretStore
-			err := tc.Framework.CRClient.Get(context, types.NamespacedName{
+			err := tc.Framework.CRClient.Get(ctx, types.NamespacedName{
 				Namespace: tc.Framework.Namespace.Name,
 				Name:      tc.Framework.Namespace.Name + invalidMtlSuffix,
 			}, &ss)

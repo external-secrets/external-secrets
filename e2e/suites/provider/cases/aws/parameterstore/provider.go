@@ -53,7 +53,7 @@ type Provider struct {
 
 func NewProvider(f *framework.Framework, kid, sak, st, region, saName, saNamespace string) *Provider {
 
-	config, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region), config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(kid, sak, st)))
+	config, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(region), config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(kid, sak, st)))
 
 	if err != nil {
 		Fail(err.Error())
@@ -107,7 +107,7 @@ func (s *Provider) CreateSecret(key string, val framework.SecretEntry) {
 	if len(val.Tags) == 0 {
 		overwrite = true
 	}
-	_, err := s.client.PutParameter(context.Background(), &ssm.PutParameterInput{
+	_, err := s.client.PutParameter(GinkgoT().Context(), &ssm.PutParameterInput{
 		Name:      aws.String(key),
 		Value:     aws.String(val.Value),
 		DataType:  aws.String("text"),
@@ -120,7 +120,7 @@ func (s *Provider) CreateSecret(key string, val framework.SecretEntry) {
 
 // DeleteSecret deletes a secret at the provider.
 func (s *Provider) DeleteSecret(key string) {
-	_, err := s.client.DeleteParameter(context.Background(), &ssm.DeleteParameterInput{
+	_, err := s.client.DeleteParameter(GinkgoT().Context(), &ssm.DeleteParameterInput{
 		Name: aws.String(key),
 	})
 	var nf *ssmtypes.ParameterNotFound
@@ -148,12 +148,12 @@ func (s *Provider) SetupMountedIRSAStore() {
 			},
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), secretStore)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
 func (s *Provider) TeardownMountedIRSAStore() {
-	s.framework.CRClient.Delete(context.Background(), &esv1.ClusterSecretStore{
+	s.framework.CRClient.Delete(GinkgoT().Context(), &esv1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: awscommon.MountedIRSAStoreName(s.framework),
 		},
@@ -169,7 +169,7 @@ func (s *Provider) SetupReferencedIRSAStore() {
 			Name: awscommon.ReferencedIRSAStoreName(s.framework),
 		},
 	}
-	_, err := controllerutil.CreateOrUpdate(context.Background(), s.framework.CRClient, secretStore, func() error {
+	_, err := controllerutil.CreateOrUpdate(GinkgoT().Context(), s.framework.CRClient, secretStore, func() error {
 		secretStore.Spec.Provider = &esv1.SecretStoreProvider{
 			AWS: &esv1.AWSProvider{
 				Service: esv1.AWSServiceParameterStore,
@@ -190,7 +190,7 @@ func (s *Provider) SetupReferencedIRSAStore() {
 }
 
 func (s *Provider) TeardownReferencedIRSAStore() {
-	s.framework.CRClient.Delete(context.Background(), &esv1.ClusterSecretStore{
+	s.framework.CRClient.Delete(GinkgoT().Context(), &esv1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: awscommon.ReferencedIRSAStoreName(s.framework),
 		},

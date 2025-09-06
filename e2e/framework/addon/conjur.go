@@ -17,7 +17,6 @@ limitations under the License.
 package addon
 
 import (
-	"context"
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/base64"
@@ -31,7 +30,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	// nolint
-	ginkgo "github.com/onsi/ginkgo/v2"
+
+	. "github.com/onsi/ginkgo/v2"
 
 	"github.com/cyberark/conjur-api-go/conjurapi"
 	"github.com/cyberark/conjur-api-go/conjurapi/authn"
@@ -57,7 +57,7 @@ func NewConjur() *Conjur {
 
 	rootPem, rootKeyPEM, serverPem, serverKeyPem, err := genCertificates("conjur", "conjur-conjur-conjur-oss")
 	if err != nil {
-		ginkgo.Fail(err.Error())
+		Fail(err.Error())
 	}
 
 	return &Conjur{
@@ -92,7 +92,7 @@ func NewConjur() *Conjur {
 }
 
 func (l *Conjur) Install() error {
-	ginkgo.By("Installing conjur in " + l.Namespace)
+	By("Installing conjur in " + l.Namespace)
 	err := l.chart.Install()
 	if err != nil {
 		return err
@@ -112,7 +112,7 @@ func (l *Conjur) Install() error {
 }
 
 func (l *Conjur) initConjur() error {
-	ginkgo.By("Waiting for conjur pods to be running")
+	By("Waiting for conjur pods to be running")
 	pl, err := util.WaitForPodsRunning(l.chart.config.KubeClientSet, 1, l.Namespace, metav1.ListOptions{
 		LabelSelector: "app=conjur-oss",
 	})
@@ -121,7 +121,7 @@ func (l *Conjur) initConjur() error {
 	}
 	l.PodName = pl.Items[0].Name
 
-	ginkgo.By("Initializing conjur")
+	By("Initializing conjur")
 	// Get the auto generated certificates from the K8s secrets
 	caCertSecret, err := util.GetKubeSecret(l.chart.config.KubeClientSet, l.Namespace, fmt.Sprintf("%s-conjur-ssl-ca-cert", l.chart.ReleaseName))
 	if err != nil {
@@ -181,7 +181,7 @@ func (l *Conjur) initConjur() error {
 }
 
 func (l *Conjur) configureConjur() error {
-	ginkgo.By("configuring conjur")
+	By("configuring conjur")
 	// Construct Conjur policy for authn-jwt. This uses the token-app-property "sub" to
 	// authenticate the host. This means that Conjur will determine which host is authenticating
 	// based on the "sub" claim in the JWT token, which is provided by the Kubernetes service account.
@@ -247,7 +247,7 @@ func (l *Conjur) fetchJWKSandIssuer() (pubKeysJson string, issuer string, err er
 	kc := l.chart.config.KubeClientSet
 
 	// Fetch the openid-configuration
-	res, err := kc.CoreV1().RESTClient().Get().AbsPath("/.well-known/openid-configuration").DoRaw(context.Background())
+	res, err := kc.CoreV1().RESTClient().Get().AbsPath("/.well-known/openid-configuration").DoRaw(GinkgoT().Context())
 	if err != nil {
 		return "", "", fmt.Errorf("unable to fetch openid-configuration: %w", err)
 	}
@@ -256,7 +256,7 @@ func (l *Conjur) fetchJWKSandIssuer() (pubKeysJson string, issuer string, err er
 	issuer = openidConfig["issuer"].(string)
 
 	// Fetch the jwks
-	jwksJson, err := kc.CoreV1().RESTClient().Get().AbsPath("/openid/v1/jwks").DoRaw(context.Background())
+	jwksJson, err := kc.CoreV1().RESTClient().Get().AbsPath("/openid/v1/jwks").DoRaw(GinkgoT().Context())
 	if err != nil {
 		return "", "", fmt.Errorf("unable to fetch jwks: %w", err)
 	}
@@ -312,7 +312,7 @@ func (l *Conjur) Uninstall() error {
 	if err := l.chart.Uninstall(); err != nil {
 		return err
 	}
-	return l.chart.config.KubeClientSet.CoreV1().Namespaces().Delete(context.Background(), l.chart.Namespace, metav1.DeleteOptions{})
+	return l.chart.config.KubeClientSet.CoreV1().Namespaces().Delete(GinkgoT().Context(), l.chart.Namespace, metav1.DeleteOptions{})
 }
 
 func (l *Conjur) Setup(cfg *Config) error {

@@ -33,7 +33,7 @@ const (
 	withSessionTags = "with session tags"
 )
 
-var _ = Describe("[aws] ", Label("aws", "secretsmanager"), func() {
+var _ = Describe("[aws] ", Label("aws", "secretsmanager"), Ordered, func() {
 	f := framework.New("eso-aws-sm")
 	prov := NewFromEnv(f)
 
