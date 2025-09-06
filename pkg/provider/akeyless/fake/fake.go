@@ -17,7 +17,7 @@ package fake
 import (
 	"context"
 
-	akeyless "github.com/akeylesslabs/akeyless-go/v3"
+	akeyless "github.com/akeylesslabs/akeyless-go/v4"
 )
 
 type AkeylessMockClient struct {

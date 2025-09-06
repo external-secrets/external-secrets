@@ -156,7 +156,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | podSecurityContext.enabled | bool | `true` |  |
 | podSpecExtra | object | `{}` | Any extra pod spec on the deployment |
 | priorityClassName | string | `""` | Pod priority class name. |
-| processClusterExternalSecret | bool | `true` | if true, the operator will process cluster external secret. Else, it will ignore them. |
+| processClusterExternalSecret | bool | `true` | if true, the operator will process cluster external secret. Else, it will ignore them. When enabled, this adds update/patch permissions on namespaces to handle finalizers for proper cleanup during namespace deletion, preventing race conditions with ExternalSecrets. |
 | processClusterGenerator | bool | `true` | if true, the operator will process cluster generator. Else, it will ignore them. |
 | processClusterPushSecret | bool | `true` | if true, the operator will process cluster push secret. Else, it will ignore them. |
 | processClusterStore | bool | `true` | if true, the operator will process cluster store. Else, it will ignore them. |

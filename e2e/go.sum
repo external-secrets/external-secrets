@@ -117,8 +117,8 @@ github.com/Masterminds/semver/v3 v3.4.0 h1:Zog+i5UMtVoCU8oKka5P7i9q9HgrJeGzI9SA1
 github.com/Masterminds/semver/v3 v3.4.0/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
 github.com/akeylesslabs/akeyless-go-cloud-id v0.3.5 h1:ly0WKARATneFzwBlTZ2lUyjtLqoOEYqt1vOlf89za/4=
 github.com/akeylesslabs/akeyless-go-cloud-id v0.3.5/go.mod h1:W6DMNwPyIE3jpXDaJOvCKUT/kHPZrpl/BGiIVUILbMk=
-github.com/akeylesslabs/akeyless-go/v3 v3.6.3 h1:fMF8SMDiBL9CufVjLUyF1Z+Z04t5CC3KGOROSjaJ/eA=
-github.com/akeylesslabs/akeyless-go/v3 v3.6.3/go.mod h1:xcSXQWFRzKupIPCFRd9/mFYW0lHnDnWVvMD/pQ0x7sU=
+github.com/akeylesslabs/akeyless-go/v4 v4.0.0 h1:D7MPse5KZKETigJ+efbft/xmN/FDfvd3DRJ2pnSORzg=
+github.com/akeylesslabs/akeyless-go/v4 v4.0.0/go.mod h1:WBMaWCcgX5LWbRaAAY0+uSLc7mjNC/dxuS5+RX+EhJI=
 github.com/aliyun/alibaba-cloud-sdk-go v1.62.271 h1:0QmSDMovuCyUbYp70MZHoTi/GYnHb/wYEIIBqoVsCjs=
 github.com/aliyun/alibaba-cloud-sdk-go v1.62.271/go.mod h1:Api2AkmMgGaSUAhmk76oaFObkoeCPc/bKAqcyplPODs=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
