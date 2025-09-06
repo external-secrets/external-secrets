@@ -71,7 +71,7 @@ require (
 	github.com/DelineaXPM/dsv-sdk-go/v2 v2.2.0
 	github.com/DelineaXPM/tss-sdk-go/v2 v2.0.3
 	github.com/Onboardbase/go-cryptojs-aes-decrypt v0.0.0-20230430095000-27c0d3a9016d
-	github.com/akeylesslabs/akeyless-go/v3 v3.6.3
+	github.com/akeylesslabs/akeyless-go/v4 v4.0.0
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.1.11
 	github.com/alibabacloud-go/kms-20160120/v3 v3.3.1
 	github.com/alibabacloud-go/openapi-util v0.1.1
