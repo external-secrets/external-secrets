@@ -5029,8 +5029,13 @@ You must have <a href="https://kubernetes.io/docs/tasks/configure-pod-container/
 <span class="w">              </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-serviceaccount</span><span class="w"> </span><span class="c1">#Provide service account with IRSA enabled</span>
 </code></pre></div>
 <h3 id="controllers-pod-identity">Controller's Pod Identity</h3>
-<p>This is basicially a zero-configuration authentication approach that inherits the credentials from the controller's pod identity</p>
-<p>This approach assumes that appropriate IRSA setup is done controller's pod (i.e. IRSA enabled IAM role is created appropriately and controller's service account is annotated appropriately with the annotation "eks.amazonaws.com/role-arn" to enable IRSA)</p>
+<p>This is basically a zero-configuration authentication approach that inherits the credentials from the controller's pod identity.</p>
+<p>This approach supports both <a href="https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html">IRSA (IAM Roles for Service Accounts)</a> and <a href="https://docs.aws.amazon.com/eks/latest/userguide/pod-identities.html">AWS Pod Identity</a>:</p>
+<ul>
+<li><strong>IRSA</strong>: Requires appropriate IRSA setup on the controller's pod (i.e. IRSA enabled IAM role is created and controller's service account is annotated with "eks.amazonaws.com/role-arn")</li>
+<li><strong>Pod Identity</strong>: Requires <a href="https://docs.aws.amazon.com/eks/latest/userguide/pod-identities.html">EKS Pod Identity</a> setup with the controller's service account associated with an IAM role</li>
+</ul>
+<p>The provider automatically detects which authentication method is available and uses the appropriate one.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
