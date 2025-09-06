@@ -53,18 +53,18 @@ type Provider struct {
 }
 
 func NewProvider(f *framework.Framework, kid, sak, st, region, saName, saNamespace string) *Provider {
-	config, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(region), config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(kid, sak, st)))
-	if err != nil {
-		Fail(err.Error())
-	}
-	sm := secretsmanager.NewFromConfig(config)
 	prov := &Provider{
 		ServiceAccountName:      saName,
 		ServiceAccountNamespace: saNamespace,
 		region:                  region,
-		client:                  sm,
 		framework:               f,
 	}
+
+	BeforeAll(func() {
+		config, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(region), config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(kid, sak, st)))
+		Expect(err).ToNot(HaveOccurred())
+		prov.client = secretsmanager.NewFromConfig(config)
+	})
 
 	BeforeEach(func() {
 		awscommon.SetupStaticStore(f, awscommon.AccessOpts{KID: kid, SAK: sak, ST: st, Region: region}, esv1.AWSServiceSecretsManager)
