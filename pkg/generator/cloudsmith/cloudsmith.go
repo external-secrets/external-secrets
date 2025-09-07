@@ -23,21 +23,16 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
-	authv1 "k8s.io/api/authentication/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/yaml"
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 type Generator struct {
@@ -98,7 +93,7 @@ func (g *Generator) generate(
 	}
 
 	// Fetch the service account token
-	oidcToken, err := fetchServiceAccountToken(ctx, res.Spec.ServiceAccountRef, namespace)
+	oidcToken, err := utils.FetchServiceAccountToken(ctx, res.Spec.ServiceAccountRef, namespace)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch service account token: %w", err)
 	}
@@ -114,7 +109,7 @@ func (g *Generator) generate(
 		return nil, nil, fmt.Errorf(errExchangeToken, err)
 	}
 
-	exp, err := tokenExpiration(accessToken)
+	exp, err := utils.ExtractJWTExpiration(accessToken)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -196,60 +191,6 @@ func (g *Generator) exchangeTokenWithCloudsmith(ctx context.Context, oidcToken, 
 	return result.Token, nil
 }
 
-func getClaims(tokenString string) (map[string]interface{}, error) {
-	// Split the token into its three parts
-	parts := strings.Split(tokenString, ".")
-	if len(parts) != 3 {
-		return nil, fmt.Errorf("invalid token format")
-	}
-
-	// Decode the payload (the second part of the token)
-	payload, err := b64.RawURLEncoding.DecodeString(parts[1])
-	if err != nil {
-		return nil, fmt.Errorf("error decoding payload: %w", err)
-	}
-
-	var claims map[string]interface{}
-	if err := json.Unmarshal(payload, &claims); err != nil {
-		return nil, fmt.Errorf("error un-marshaling claims: %w", err)
-	}
-	return claims, nil
-}
-
-func tokenExpiration(tokenString string) (string, error) {
-	claims, err := getClaims(tokenString)
-	if err != nil {
-		return "", fmt.Errorf("error getting claims: %w", err)
-	}
-	exp, ok := claims["exp"].(float64)
-	if ok {
-		return strconv.FormatFloat(exp, 'f', -1, 64), nil
-	}
-
-	return "", fmt.Errorf("exp claim not found or wrong type")
-}
-
-func fetchServiceAccountToken(ctx context.Context, saRef esmeta.ServiceAccountSelector, namespace string) (string, error) {
-	cfg, err := ctrlcfg.GetConfig()
-	if err != nil {
-		return "", err
-	}
-	kubeClient, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		return "", fmt.Errorf("failed to create kubernetes client: %w", err)
-	}
-
-	tokenRequest := &authv1.TokenRequest{
-		Spec: authv1.TokenRequestSpec{
-			Audiences: saRef.Audiences,
-		},
-	}
-	tokenResponse, err := kubeClient.CoreV1().ServiceAccounts(namespace).CreateToken(ctx, saRef.Name, tokenRequest, metav1.CreateOptions{})
-	if err != nil {
-		return "", fmt.Errorf("failed to create token: %w", err)
-	}
-	return tokenResponse.Status.Token, nil
-}
 
 func parseSpec(data []byte) (*genv1alpha1.CloudsmithAccessToken, error) {
 	var spec genv1alpha1.CloudsmithAccessToken

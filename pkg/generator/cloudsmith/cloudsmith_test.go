@@ -16,9 +16,11 @@ package cloudsmith
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -26,13 +28,14 @@ import (
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const mockJWTToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiZXhwIjoxNzAwMDAwMDAwfQ.signature"
 
 func TestCloudsmithGenerator_Generate(t *testing.T) {
 	// Test server that mimics Cloudsmith OIDC endpoint
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
@@ -51,14 +54,21 @@ func TestCloudsmithGenerator_Generate(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(response)
 	}))
 	defer server.Close()
 
+	// Extract host from server URL
+	serverURL, err := url.Parse(server.URL)
+	if err != nil {
+		t.Fatalf("Failed to parse server URL: %v", err)
+	}
+
 	// Create test spec
 	spec := &genv1alpha1.CloudsmithAccessToken{
 		Spec: genv1alpha1.CloudsmithAccessTokenSpec{
-			APIHost:     server.URL[8:], // Remove https:// prefix
+			APIHost:     serverURL.Host,
 			OrgSlug:     "test-org",
 			ServiceSlug: "test-service",
 			ServiceAccountRef: esmeta.ServiceAccountSelector{
@@ -77,9 +87,16 @@ func TestCloudsmithGenerator_Generate(t *testing.T) {
 		Raw: specBytes,
 	}
 
-	// Create generator with custom HTTP client
+	// Create generator with custom HTTP client that accepts self-signed certificates
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
 	generator := &Generator{
-		httpClient: server.Client(),
+		httpClient: httpClient,
 	}
 
 	// Note: This test will fail because we don't have a real service account token
@@ -108,7 +125,7 @@ func TestCloudsmithGenerator_Generate(t *testing.T) {
 			oidcToken,
 			"test-org",
 			"test-service",
-			server.URL[8:], // Remove https:// prefix
+			serverURL.Host,
 		)
 
 		if err != nil {
@@ -120,11 +137,11 @@ func TestCloudsmithGenerator_Generate(t *testing.T) {
 		}
 	})
 
-	t.Run("getClaims", func(t *testing.T) {
+	t.Run("ParseJWTClaims", func(t *testing.T) {
 		// Mock JWT token with known payload
 		mockToken := mockJWTToken
 
-		claims, err := getClaims(mockToken)
+		claims, err := utils.ParseJWTClaims(mockToken)
 		if err != nil {
 			t.Fatalf("Failed to get claims: %v", err)
 		}
@@ -137,11 +154,11 @@ func TestCloudsmithGenerator_Generate(t *testing.T) {
 		}
 	})
 
-	t.Run("tokenExpiration", func(t *testing.T) {
+	t.Run("ExtractJWTExpiration", func(t *testing.T) {
 		// Mock JWT token with known exp claim
 		mockToken := mockJWTToken
 
-		exp, err := tokenExpiration(mockToken)
+		exp, err := utils.ExtractJWTExpiration(mockToken)
 		if err != nil {
 			t.Fatalf("Failed to get token expiration: %v", err)
 		}
