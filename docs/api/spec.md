@@ -7971,6 +7971,18 @@ SecretServerProviderRef
 </tr>
 <tr>
 <td>
+<code>domain</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Domain is the secret server domain.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>serverURL</code></br>
 <em>
 string
@@ -10208,6 +10220,8 @@ If no key for the Secret is specified, external-secret will default to &lsquo;tl
 </p>
 <p>
 <p>VaultIamAuth authenticates with Vault using the Vault&rsquo;s AWS IAM authentication method. Refer: <a href="https://developer.hashicorp.com/vault/docs/auth/aws">https://developer.hashicorp.com/vault/docs/auth/aws</a></p>
+<p>When JWTAuth and SecretRef are not specified, the provider will use the controller pod&rsquo;s
+identity to authenticate with AWS. This supports both IRSA and EKS Pod Identity.</p>
 </p>
 <table>
 <thead>

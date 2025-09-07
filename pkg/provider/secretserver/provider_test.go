@@ -168,6 +168,7 @@ func TestNewClient(t *testing.T) {
 	userNameValue := "foo"
 	passwordKey := "password"
 	passwordValue := generateRandomString()
+	domain := "domain1"
 
 	clientSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
@@ -180,6 +181,22 @@ func TestNewClient(t *testing.T) {
 	validProvider := &esv1.SecretServerProvider{
 		Username:  makeSecretRefUsingRef(clientSecret.Name, userNameKey),
 		Password:  makeSecretRefUsingRef(clientSecret.Name, passwordKey),
+		ServerURL: "https://example.com",
+	}
+
+	clientSecretWithDomain := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "with-domain", Namespace: "default"},
+		Data: map[string][]byte{
+			userNameKey: []byte(userNameValue),
+			passwordKey: []byte(passwordValue),
+			domain:      []byte(domain),
+		},
+	}
+
+	validProviderWithDomain := &esv1.SecretServerProvider{
+		Username:  makeSecretRefUsingRef(clientSecretWithDomain.Name, userNameKey),
+		Password:  makeSecretRefUsingRef(clientSecretWithDomain.Name, passwordKey),
+		Domain:    domain,
 		ServerURL: "https://example.com",
 	}
 
@@ -290,6 +307,22 @@ func TestNewClient(t *testing.T) {
 			},
 			kube: clientfake.NewClientBuilder().WithObjects(clientSecret).Build(),
 		},
+		"cluster secret store with domain": {
+			store: &esv1.ClusterSecretStore{
+				TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						SecretServer: &esv1.SecretServerProvider{
+							Username:  makeSecretRefUsingNamespacedRef(clientSecretWithDomain.Namespace, clientSecretWithDomain.Name, userNameKey),
+							Password:  makeSecretRefUsingNamespacedRef(clientSecretWithDomain.Namespace, clientSecretWithDomain.Name, passwordKey),
+							Domain:    validProviderWithDomain.Domain,
+							ServerURL: validProviderWithDomain.ServerURL,
+						},
+					},
+				},
+			},
+			kube: clientfake.NewClientBuilder().WithObjects(clientSecret, clientSecretWithDomain).Build(),
+		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -312,10 +345,14 @@ func TestNewClient(t *testing.T) {
 				assert.True(t, ok)
 				secretServerClient, ok := delineaClient.api.(*server.Server)
 				assert.True(t, ok)
-				assert.Equal(t, server.UserCredential{
+				expectedCredentials := server.UserCredential{
 					Username: userNameValue,
 					Password: passwordValue,
-				}, secretServerClient.Configuration.Credentials)
+				}
+				if name == "cluster secret store with domain" {
+					expectedCredentials.Domain = domain
+				}
+				assert.Equal(t, expectedCredentials, secretServerClient.Configuration.Credentials)
 			} else {
 				assert.Nil(t, sc)
 				tc.errCheck(t, err)
