@@ -17,6 +17,7 @@ import (
 	"fmt"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/keyvault/keyvault"
+	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys"
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
@@ -69,7 +70,17 @@ var _ = Describe("[azure]", Label("azure", "keyvault", "key"), func() {
 	It("should sync keyvault objects with type=key using new SDK", func() {
 		ff(func(tc *framework.TestCase) {
 			secretKey := "azkv-key-new-sdk"
-			keyBytes, _ := json.Marshal(jwk)
+			
+			// Convert old SDK key to new SDK key format
+			// First marshal the old SDK key
+			oldKeyBytes, _ := json.Marshal(jwk)
+			
+			// Unmarshal into the new SDK type
+			var newSDKKey azkeys.JSONWebKey
+			json.Unmarshal(oldKeyBytes, &newSDKKey)
+			
+			// Marshal the new SDK key - this will have the new SDK's field ordering
+			keyBytes, _ := json.Marshal(newSDKKey)
 
 			tc.ExpectedSecret = &v1.Secret{
 				Type: v1.SecretTypeOpaque,
