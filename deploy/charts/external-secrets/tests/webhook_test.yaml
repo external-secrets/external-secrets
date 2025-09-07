@@ -424,3 +424,12 @@ tests:
       - equal:
           path: spec.strategy.rollingUpdate.maxUnavailable
           value: 0
+  - it: should update args with enableHTTP2=true
+    set:
+      enableHTTP2: true
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--enable-http2=true"

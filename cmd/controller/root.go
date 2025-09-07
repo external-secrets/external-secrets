@@ -17,6 +17,7 @@ limitations under the License.
 package controller
 
 import (
+	"crypto/tls"
 	"os"
 	"time"
 
@@ -64,6 +65,10 @@ var (
 	certDir                               string
 	liveAddr                              string
 	metricsAddr                           string
+	metricsSecure                         bool
+	metricsCertDir                        string
+	metricsCertName                       string
+	metricsKeyName                        string
 	healthzAddr                           string
 	controllerClass                       string
 	enableLeaderElection                  bool
@@ -94,6 +99,7 @@ var (
 	certLookaheadInterval                 time.Duration
 	tlsCiphers                            string
 	tlsMinVersion                         string
+	enableHTTP2                           bool
 )
 
 const (
@@ -137,12 +143,23 @@ var rootCmd = &cobra.Command{
 			// dont cache any configmaps
 			clientCacheDisableFor = append(clientCacheDisableFor, &v1.ConfigMap{})
 		}
+		metricsOpts := server.Options{
+			BindAddress: metricsAddr,
+		}
+		if metricsSecure {
+			metricsOpts.SecureServing = true
+			metricsOpts.CertDir = metricsCertDir
+			metricsOpts.CertName = metricsCertName
+			metricsOpts.KeyName = metricsKeyName
+		}
 
+		// Disable HTTP/2 if not explicitly enabled
+		if !enableHTTP2 {
+			metricsOpts.TLSOpts = []func(*tls.Config){disableHTTP2}
+		}
 		mgrOpts := ctrl.Options{
-			Scheme: scheme,
-			Metrics: server.Options{
-				BindAddress: metricsAddr,
-			},
+			Scheme:                 scheme,
+			Metrics:                metricsOpts,
 			HealthProbeBindAddress: liveAddr,
 			WebhookServer: webhook.NewServer(webhook.Options{
 				Port: 9443,
@@ -181,11 +198,12 @@ var rootCmd = &cobra.Command{
 
 		ssmetrics.SetUpMetrics()
 		if err = (&secretstore.StoreReconciler{
-			Client:          mgr.GetClient(),
-			Log:             ctrl.Log.WithName("controllers").WithName("SecretStore"),
-			Scheme:          mgr.GetScheme(),
-			ControllerClass: controllerClass,
-			RequeueInterval: storeRequeueInterval,
+			Client:            mgr.GetClient(),
+			Log:               ctrl.Log.WithName("controllers").WithName("SecretStore"),
+			Scheme:            mgr.GetScheme(),
+			ControllerClass:   controllerClass,
+			RequeueInterval:   storeRequeueInterval,
+			PushSecretEnabled: enablePushSecretReconciler,
 		}).SetupWithManager(mgr, controller.Options{
 			MaxConcurrentReconciles: concurrent,
 			RateLimiter:             ctrlcommon.BuildRateLimiter(),
@@ -196,11 +214,12 @@ var rootCmd = &cobra.Command{
 		if enableClusterStoreReconciler {
 			cssmetrics.SetUpMetrics()
 			if err = (&secretstore.ClusterStoreReconciler{
-				Client:          mgr.GetClient(),
-				Log:             ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
-				Scheme:          mgr.GetScheme(),
-				ControllerClass: controllerClass,
-				RequeueInterval: storeRequeueInterval,
+				Client:            mgr.GetClient(),
+				Log:               ctrl.Log.WithName("controllers").WithName("ClusterSecretStore"),
+				Scheme:            mgr.GetScheme(),
+				ControllerClass:   controllerClass,
+				RequeueInterval:   storeRequeueInterval,
+				PushSecretEnabled: enablePushSecretReconciler,
 			}).SetupWithManager(mgr, controller.Options{
 				MaxConcurrentReconciles: concurrent,
 				RateLimiter:             ctrlcommon.BuildRateLimiter(),
@@ -248,7 +267,7 @@ var rootCmd = &cobra.Command{
 				ControllerClass: controllerClass,
 				RestConfig:      mgr.GetConfig(),
 				RequeueInterval: time.Hour,
-			}).SetupWithManager(mgr, controller.Options{
+			}).SetupWithManager(cmd.Context(), mgr, controller.Options{
 				MaxConcurrentReconciles: concurrent,
 				RateLimiter:             ctrlcommon.BuildRateLimiter(),
 			}); err != nil {
@@ -316,6 +335,10 @@ func Execute() {
 
 func init() {
 	rootCmd.Flags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	rootCmd.Flags().BoolVar(&metricsSecure, "metrics-secure", false, "Enable HTTPS for the metrics endpoint.")
+	rootCmd.Flags().StringVar(&metricsCertDir, "metrics-cert-dir", "", "Directory containing TLS certificate and key for metrics endpoint.")
+	rootCmd.Flags().StringVar(&metricsCertName, "metrics-cert-name", "tls.crt", "TLS certificate filename for metrics endpoint.")
+	rootCmd.Flags().StringVar(&metricsKeyName, "metrics-key-name", "tls.key", "TLS key filename for metrics endpoint.")
 	rootCmd.Flags().StringVar(&controllerClass, "controller-class", "default", "The controller is instantiated with a specific controller name and filters ES based on this property")
 	rootCmd.Flags().BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
@@ -338,8 +361,15 @@ func init() {
 	rootCmd.Flags().BoolVar(&enableFloodGate, "enable-flood-gate", true, "Enable flood gate. External secret will be reconciled only if the ClusterStore or Store have an healthy or unknown state.")
 	rootCmd.Flags().BoolVar(&enableGeneratorState, "enable-generator-state", true, "Whether the Controller should manage GeneratorState")
 	rootCmd.Flags().BoolVar(&enableExtendedMetricLabels, "enable-extended-metric-labels", false, "Enable recommended kubernetes annotations as labels in metrics.")
+	rootCmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
+		"If set, HTTP/2 will be enabled for the metrics server")
 	fs := feature.Features()
 	for _, f := range fs {
 		rootCmd.Flags().AddFlagSet(f.Flags)
 	}
+}
+
+// disableHTTP2 is a TLS configuration function that disables HTTP/2.
+func disableHTTP2(cfg *tls.Config) {
+	cfg.NextProtos = []string{"http/1.1"}
 }

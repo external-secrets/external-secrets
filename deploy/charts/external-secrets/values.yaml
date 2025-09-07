@@ -82,7 +82,12 @@ scopedRBAC: false
 # -- If true the OpenShift finalizer permissions will be added to RBAC
 openshiftFinalizers: true
 
+# -- If true the system:auth-delegator ClusterRole will be added to RBAC
+systemAuthDelegator: false
+
 # -- if true, the operator will process cluster external secret. Else, it will ignore them.
+# When enabled, this adds update/patch permissions on namespaces to handle finalizers for proper
+# cleanup during namespace deletion, preventing race conditions with ExternalSecrets.
 processClusterExternalSecret: true
 
 # -- if true, the operator will process cluster push secret. Else, it will ignore them.
@@ -99,6 +104,9 @@ processPushSecret: true
 
 # -- Specifies whether an external secret operator deployment be created.
 createOperator: true
+
+# -- if true, HTTP2 will be enabled for the services created by all controllers, curently metrics and webhook.
+enableHTTP2: false
 
 # -- Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at
 # a time.
@@ -249,6 +257,15 @@ metrics:
 
   listen:
     port: 8080
+    secure:
+      enabled: false
+      # -- if those are not set or invalid, self-signed certs will be generated
+      # -- TLS cert directory path
+      certDir: /etc/tls
+      # -- TLS cert file path
+      certFile: /etc/tls/tls.crt
+      # -- TLS key file path
+      keyFile: /etc/tls/tls.key
 
   service:
     # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics

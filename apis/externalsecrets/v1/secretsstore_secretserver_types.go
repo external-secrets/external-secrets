@@ -38,6 +38,10 @@ type SecretServerProvider struct {
 	// +required
 	Password *SecretServerProviderRef `json:"password"`
 
+	// Domain is the secret server domain.
+	// +optional
+	Domain string `json:"domain,omitempty"`
+
 	// ServerURL
 	// URL to your secret server installation
 	// +required

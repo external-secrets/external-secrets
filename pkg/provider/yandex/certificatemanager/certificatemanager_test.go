@@ -42,6 +42,7 @@ const (
 	errMissingKey                    = "invalid Yandex Certificate Manager SecretStore resource: missing AuthorizedKey Name"
 	errSecretPayloadPermissionDenied = "unable to request certificate content to get secret: permission denied"
 	errSecretPayloadNotFound         = "unable to request certificate content to get secret: certificate not found"
+	errSecretPayloadVersionNotFound  = "unable to request certificate content to get secret: version not found"
 )
 
 func TestNewClient(t *testing.T) {
@@ -57,7 +58,7 @@ func TestNewClient(t *testing.T) {
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				YandexCertificateManager: &esv1.YandexCertificateManagerProvider{
-					Auth: esv1.YandexCertificateManagerAuth{
+					Auth: esv1.YandexAuth{
 						AuthorizedKey: esmeta.SecretKeySelector{
 							Key:  authorizedKeySecretKey,
 							Name: authorizedKeySecretName,
@@ -80,7 +81,7 @@ func TestNewClient(t *testing.T) {
 
 	const caCertificateSecretName = "caCertificateSecretName"
 	const caCertificateSecretKey = "caCertificateSecretKey"
-	store.Spec.Provider.YandexCertificateManager.CAProvider = &esv1.YandexCertificateManagerCAProvider{
+	store.Spec.Provider.YandexCertificateManager.CAProvider = &esv1.YandexCAProvider{
 		Certificate: esmeta.SecretKeySelector{
 			Key:  caCertificateSecretKey,
 			Name: caCertificateSecretName,
@@ -107,10 +108,12 @@ func TestGetSecretWithoutProperty(t *testing.T) {
 	certificate1 := uuid.NewString()
 	certificate2 := uuid.NewString()
 	privateKey := uuid.NewString()
-	certificateID, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey, &certificatemanager.GetCertificateContentResponse{
-		CertificateChain: []string{certificate1, certificate2},
-		PrivateKey:       privateKey,
-	})
+	certificateID, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey,
+		"folderId", "certificateName",
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{certificate1, certificate2},
+			PrivateKey:       privateKey,
+		})
 
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
@@ -142,10 +145,12 @@ func TestGetSecretWithProperty(t *testing.T) {
 	certificate1 := uuid.NewString()
 	certificate2 := uuid.NewString()
 	privateKey := uuid.NewString()
-	certificateID, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey, &certificatemanager.GetCertificateContentResponse{
-		CertificateChain: []string{certificate1, certificate2},
-		PrivateKey:       privateKey,
-	})
+	certificateID, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey,
+		"folderId", "certificateName",
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{certificate1, certificate2},
+			PrivateKey:       privateKey,
+		})
 
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
@@ -193,10 +198,12 @@ func TestGetSecretByVersionID(t *testing.T) {
 	oldCertificate1 := uuid.NewString()
 	oldCertificate2 := uuid.NewString()
 	oldPrivateKey := uuid.NewString()
-	certificateID, oldVersionID := fakeCertificateManagerServer.CreateCertificate(authorizedKey, &certificatemanager.GetCertificateContentResponse{
-		CertificateChain: []string{oldCertificate1, oldCertificate2},
-		PrivateKey:       oldPrivateKey,
-	})
+	certificateID, oldVersionID := fakeCertificateManagerServer.CreateCertificate(authorizedKey,
+		"folderId", "certificateName",
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{oldCertificate1, oldCertificate2},
+			PrivateKey:       oldPrivateKey,
+		})
 
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
@@ -220,10 +227,11 @@ func TestGetSecretByVersionID(t *testing.T) {
 	newCertificate1 := uuid.NewString()
 	newCertificate2 := uuid.NewString()
 	newPrivateKey := uuid.NewString()
-	newVersionID := fakeCertificateManagerServer.AddVersion(certificateID, &certificatemanager.GetCertificateContentResponse{
-		CertificateChain: []string{newCertificate1, newCertificate2},
-		PrivateKey:       newPrivateKey,
-	})
+	newVersionID := fakeCertificateManagerServer.AddVersion(certificateID,
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{newCertificate1, newCertificate2},
+			PrivateKey:       newPrivateKey,
+		})
 
 	data, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID, Version: oldVersionID})
 	tassert.Nil(t, err)
@@ -250,10 +258,12 @@ func TestGetSecretUnauthorized(t *testing.T) {
 
 	fakeClock := clock.NewFakeClock()
 	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
-	certificateID, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKeyA, &certificatemanager.GetCertificateContentResponse{
-		CertificateChain: []string{uuid.NewString()},
-		PrivateKey:       uuid.NewString(),
-	})
+	certificateID, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKeyA,
+		"folderId", "certificateName",
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{uuid.NewString()},
+			PrivateKey:       uuid.NewString(),
+		})
 
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
@@ -290,12 +300,14 @@ func TestGetSecretNotFound(t *testing.T) {
 	_, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: "no-secret-with-this-id"})
 	tassert.EqualError(t, err, errSecretPayloadNotFound)
 
-	certificateID, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey, &certificatemanager.GetCertificateContentResponse{
-		CertificateChain: []string{uuid.NewString()},
-		PrivateKey:       uuid.NewString(),
-	})
+	certificateID, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey,
+		"folderId", "certificateName",
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{uuid.NewString()},
+			PrivateKey:       uuid.NewString(),
+		})
 	_, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID, Version: "no-version-with-this-id"})
-	tassert.EqualError(t, err, "unable to request certificate content to get secret: version not found")
+	tassert.EqualError(t, err, errSecretPayloadVersionNotFound)
 }
 
 func TestGetSecretWithTwoNamespaces(t *testing.T) {
@@ -309,16 +321,20 @@ func TestGetSecretWithTwoNamespaces(t *testing.T) {
 	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
 	certificate1 := uuid.NewString()
 	privateKey1 := uuid.NewString()
-	certificateID1, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey1, &certificatemanager.GetCertificateContentResponse{
-		CertificateChain: []string{certificate1},
-		PrivateKey:       privateKey1,
-	})
+	certificateID1, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey1,
+		"folderId", "certificateName1",
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{certificate1},
+			PrivateKey:       privateKey1,
+		})
 	certificate2 := uuid.NewString()
 	privateKey2 := uuid.NewString()
-	certificateID2, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey2, &certificatemanager.GetCertificateContentResponse{
-		CertificateChain: []string{certificate2},
-		PrivateKey:       privateKey2,
-	})
+	certificateID2, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey2,
+		"folderId", "certificateName2",
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{certificate2},
+			PrivateKey:       privateKey2,
+		})
 
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
@@ -363,17 +379,21 @@ func TestGetSecretWithTwoApiEndpoints(t *testing.T) {
 	fakeCertificateManagerServer1 := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
 	certificate1 := uuid.NewString()
 	privateKey1 := uuid.NewString()
-	certificateID1, _ := fakeCertificateManagerServer1.CreateCertificate(authorizedKey1, &certificatemanager.GetCertificateContentResponse{
-		CertificateChain: []string{certificate1},
-		PrivateKey:       privateKey1,
-	})
+	certificateID1, _ := fakeCertificateManagerServer1.CreateCertificate(authorizedKey1,
+		"folderId", "certificateName",
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{certificate1},
+			PrivateKey:       privateKey1,
+		})
 	fakeCertificateManagerServer2 := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
 	certificate2 := uuid.NewString()
 	privateKey2 := uuid.NewString()
-	certificateID2, _ := fakeCertificateManagerServer2.CreateCertificate(authorizedKey2, &certificatemanager.GetCertificateContentResponse{
-		CertificateChain: []string{certificate2},
-		PrivateKey:       privateKey2,
-	})
+	certificateID2, _ := fakeCertificateManagerServer2.CreateCertificate(authorizedKey2,
+		"folderId", "certificateName",
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{certificate2},
+			PrivateKey:       privateKey2,
+		})
 
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName1 = "authorizedKeySecretName1"
@@ -423,10 +443,12 @@ func TestGetSecretWithIamTokenExpiration(t *testing.T) {
 	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, tokenExpirationTime)
 	certificate := uuid.NewString()
 	privateKey := uuid.NewString()
-	certificateID, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey, &certificatemanager.GetCertificateContentResponse{
-		CertificateChain: []string{certificate},
-		PrivateKey:       privateKey,
-	})
+	certificateID, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey,
+		"folderId", "certificateName",
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{certificate},
+			PrivateKey:       privateKey,
+		})
 
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
@@ -467,14 +489,18 @@ func TestGetSecretWithIamTokenCleanup(t *testing.T) {
 	fakeClock := clock.NewFakeClock()
 	tokenExpirationDuration := time.Hour
 	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, tokenExpirationDuration)
-	certificateID1, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey1, &certificatemanager.GetCertificateContentResponse{
-		CertificateChain: []string{uuid.NewString()},
-		PrivateKey:       uuid.NewString(),
-	})
-	certificateID2, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey2, &certificatemanager.GetCertificateContentResponse{
-		CertificateChain: []string{uuid.NewString()},
-		PrivateKey:       uuid.NewString(),
-	})
+	certificateID1, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey1,
+		"folderId", "certificateName1",
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{uuid.NewString()},
+			PrivateKey:       uuid.NewString(),
+		})
+	certificateID2, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey2,
+		"folderId", "certificateName2",
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{uuid.NewString()},
+			PrivateKey:       uuid.NewString(),
+		})
 
 	var err error
 
@@ -547,10 +573,12 @@ func TestGetSecretMap(t *testing.T) {
 	certificate1 := uuid.NewString()
 	certificate2 := uuid.NewString()
 	privateKey := uuid.NewString()
-	certificateID, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey, &certificatemanager.GetCertificateContentResponse{
-		CertificateChain: []string{certificate1, certificate2},
-		PrivateKey:       privateKey,
-	})
+	certificateID, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey,
+		"folderId", "certificateName",
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{certificate1, certificate2},
+			PrivateKey:       privateKey,
+		})
 
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
@@ -584,10 +612,12 @@ func TestGetSecretMapByVersionID(t *testing.T) {
 	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
 	oldCertificate := uuid.NewString()
 	oldPrivateKey := uuid.NewString()
-	certificateID, oldVersionID := fakeCertificateManagerServer.CreateCertificate(authorizedKey, &certificatemanager.GetCertificateContentResponse{
-		CertificateChain: []string{oldCertificate},
-		PrivateKey:       oldPrivateKey,
-	})
+	certificateID, oldVersionID := fakeCertificateManagerServer.CreateCertificate(authorizedKey,
+		"folderId", "certificateName",
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{oldCertificate},
+			PrivateKey:       oldPrivateKey,
+		})
 
 	k8sClient := clientfake.NewClientBuilder().Build()
 	const authorizedKeySecretName = "authorizedKeySecretName"
@@ -613,10 +643,11 @@ func TestGetSecretMapByVersionID(t *testing.T) {
 
 	newCertificate := uuid.NewString()
 	newPrivateKey := uuid.NewString()
-	newVersionID := fakeCertificateManagerServer.AddVersion(certificateID, &certificatemanager.GetCertificateContentResponse{
-		CertificateChain: []string{newCertificate},
-		PrivateKey:       newPrivateKey,
-	})
+	newVersionID := fakeCertificateManagerServer.AddVersion(certificateID,
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{newCertificate},
+			PrivateKey:       newPrivateKey,
+		})
 
 	data, err = secretsClient.GetSecretMap(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID, Version: oldVersionID})
 	tassert.Nil(t, err)
@@ -639,6 +670,322 @@ func TestGetSecretMapByVersionID(t *testing.T) {
 		},
 		data,
 	)
+}
+
+func TestGetSecretWithByNameFetchingPolicyWithoutProperty(t *testing.T) {
+	ctx := context.Background()
+	namespace := uuid.NewString()
+	authorizedKey := newFakeAuthorizedKey()
+
+	fakeClock := clock.NewFakeClock()
+	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
+	certificate1 := uuid.NewString()
+	certificate2 := uuid.NewString()
+	privateKey := uuid.NewString()
+	folderID := uuid.NewString()
+	const certificateName = "certificateName"
+	_, _ = fakeCertificateManagerServer.CreateCertificate(authorizedKey,
+		folderID, certificateName,
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{certificate1, certificate2},
+			PrivateKey:       privateKey,
+		})
+
+	k8sClient := clientfake.NewClientBuilder().Build()
+	const authorizedKeySecretName = "authorizedKeySecretName"
+	const authorizedKeySecretKey = "authorizedKeySecretKey"
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
+	tassert.Nil(t, err)
+	store := newYandexCertificateManagerSecretStoreWithFetchByName("", namespace, authorizedKeySecretName, authorizedKeySecretKey, folderID)
+
+	provider := newCertificateManagerProvider(fakeClock, fakeCertificateManagerServer)
+	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
+	tassert.Nil(t, err)
+	data, err := secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateName})
+	tassert.Nil(t, err)
+
+	tassert.Equal(
+		t,
+		strings.TrimSpace(strings.Join([]string{certificate1, certificate2, privateKey}, "\n")),
+		strings.TrimSpace(string(data)),
+	)
+}
+
+func TestGetSecretWithByNameFetchingPolicyWithProperty(t *testing.T) {
+	ctx := context.Background()
+	namespace := uuid.NewString()
+	authorizedKey := newFakeAuthorizedKey()
+
+	fakeClock := clock.NewFakeClock()
+	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
+	certificate1 := uuid.NewString()
+	certificate2 := uuid.NewString()
+	privateKey := uuid.NewString()
+	folderID := uuid.NewString()
+	const certificateName = "certificateName"
+	_, _ = fakeCertificateManagerServer.CreateCertificate(authorizedKey,
+		folderID, certificateName,
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{certificate1, certificate2},
+			PrivateKey:       privateKey,
+		})
+
+	k8sClient := clientfake.NewClientBuilder().Build()
+	const authorizedKeySecretName = "authorizedKeySecretName"
+	const authorizedKeySecretKey = "authorizedKeySecretKey"
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
+	tassert.Nil(t, err)
+	store := newYandexCertificateManagerSecretStoreWithFetchByName("", namespace, authorizedKeySecretName, authorizedKeySecretKey, folderID)
+
+	provider := newCertificateManagerProvider(fakeClock, fakeCertificateManagerServer)
+	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
+	tassert.Nil(t, err)
+
+	chainData, err := secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateName, Property: chainProperty})
+	tassert.Nil(t, err)
+	tassert.Equal(
+		t,
+		strings.TrimSpace(certificate1+"\n"+certificate2),
+		strings.TrimSpace(string(chainData)),
+	)
+
+	privateKeyData, err := secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateName, Property: privateKeyProperty})
+	tassert.Nil(t, err)
+	tassert.Equal(
+		t,
+		strings.TrimSpace(privateKey),
+		strings.TrimSpace(string(privateKeyData)),
+	)
+
+	chainAndPrivateKeyData, err := secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateName, Property: chainAndPrivateKeyProperty})
+	tassert.Nil(t, err)
+	tassert.Equal(
+		t,
+		strings.TrimSpace(strings.Join([]string{certificate1, certificate2, privateKey}, "\n")),
+		strings.TrimSpace(string(chainAndPrivateKeyData)),
+	)
+}
+
+func TestGetSecretWithByNameFetchingPolicyAndVersionID(t *testing.T) {
+	ctx := context.Background()
+	namespace := uuid.NewString()
+	authorizedKey := newFakeAuthorizedKey()
+
+	fakeClock := clock.NewFakeClock()
+	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
+	oldCertificate1 := uuid.NewString()
+	oldCertificate2 := uuid.NewString()
+	oldPrivateKey := uuid.NewString()
+	folderID := uuid.NewString()
+	const certificateName = "certificateName"
+	certificateID, oldVersionID := fakeCertificateManagerServer.CreateCertificate(authorizedKey,
+		folderID, certificateName,
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{oldCertificate1, oldCertificate2},
+			PrivateKey:       oldPrivateKey,
+		})
+
+	k8sClient := clientfake.NewClientBuilder().Build()
+	const authorizedKeySecretName = "authorizedKeySecretName"
+	const authorizedKeySecretKey = "authorizedKeySecretKey"
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
+	tassert.Nil(t, err)
+	store := newYandexCertificateManagerSecretStoreWithFetchByName("", namespace, authorizedKeySecretName, authorizedKeySecretKey, folderID)
+
+	provider := newCertificateManagerProvider(fakeClock, fakeCertificateManagerServer)
+	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
+	tassert.Nil(t, err)
+	data, err := secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateName, Version: oldVersionID})
+	tassert.Nil(t, err)
+
+	tassert.Equal(
+		t,
+		strings.TrimSpace(strings.Join([]string{oldCertificate1, oldCertificate2, oldPrivateKey}, "\n")),
+		strings.TrimSpace(string(data)),
+	)
+
+	newCertificate1 := uuid.NewString()
+	newCertificate2 := uuid.NewString()
+	newPrivateKey := uuid.NewString()
+	newVersionID := fakeCertificateManagerServer.AddVersion(certificateID,
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{newCertificate1, newCertificate2},
+			PrivateKey:       newPrivateKey,
+		})
+
+	data, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateName, Version: oldVersionID})
+	tassert.Nil(t, err)
+	tassert.Equal(
+		t,
+		strings.TrimSpace(strings.Join([]string{oldCertificate1, oldCertificate2, oldPrivateKey}, "\n")),
+		strings.TrimSpace(string(data)),
+	)
+
+	data, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateName, Version: newVersionID})
+	tassert.Nil(t, err)
+	tassert.Equal(
+		t,
+		strings.TrimSpace(strings.Join([]string{newCertificate1, newCertificate2, newPrivateKey}, "\n")),
+		strings.TrimSpace(string(data)),
+	)
+}
+
+func TestGetSecretWithByNameFetchingPolicyUnauthorized(t *testing.T) {
+	ctx := context.Background()
+	namespace := uuid.NewString()
+	authorizedKeyA := newFakeAuthorizedKey()
+	authorizedKeyB := newFakeAuthorizedKey()
+
+	fakeClock := clock.NewFakeClock()
+	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
+	folderID := uuid.NewString()
+	certificateName := "certificateName"
+	_, _ = fakeCertificateManagerServer.CreateCertificate(authorizedKeyA,
+		folderID, certificateName,
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{uuid.NewString()},
+			PrivateKey:       uuid.NewString(),
+		})
+
+	k8sClient := clientfake.NewClientBuilder().Build()
+	const authorizedKeySecretName = "authorizedKeySecretName"
+	const authorizedKeySecretKey = "authorizedKeySecretKey"
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKeyB))
+	tassert.Nil(t, err)
+	store := newYandexCertificateManagerSecretStoreWithFetchByName("", namespace, authorizedKeySecretName, authorizedKeySecretKey, folderID)
+
+	provider := newCertificateManagerProvider(fakeClock, fakeCertificateManagerServer)
+	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
+	tassert.Nil(t, err)
+	_, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateName})
+	tassert.EqualError(t, err, errSecretPayloadPermissionDenied)
+}
+
+func TestGetSecretWithByNameFetchingPolicyNotFound(t *testing.T) {
+	ctx := context.Background()
+	namespace := uuid.NewString()
+	authorizedKey := newFakeAuthorizedKey()
+
+	fakeClock := clock.NewFakeClock()
+	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
+	folderID := uuid.NewString()
+	k8sClient := clientfake.NewClientBuilder().Build()
+	const authorizedKeySecretName = "authorizedKeySecretName"
+	const authorizedKeySecretKey = "authorizedKeySecretKey"
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
+	tassert.Nil(t, err)
+	store := newYandexCertificateManagerSecretStoreWithFetchByName("", namespace, authorizedKeySecretName, authorizedKeySecretKey, folderID)
+
+	provider := newCertificateManagerProvider(fakeClock, fakeCertificateManagerServer)
+	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
+	tassert.Nil(t, err)
+	_, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: "no-secret-with-this-name"})
+	tassert.EqualError(t, err, errSecretPayloadNotFound)
+
+	certificateName := "certificateName"
+	_, _ = fakeCertificateManagerServer.CreateCertificate(authorizedKey,
+		folderID, certificateName,
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{uuid.NewString()},
+			PrivateKey:       uuid.NewString(),
+		})
+	_, err = secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateName, Version: "no-version-with-this-id"})
+	tassert.EqualError(t, err, errSecretPayloadVersionNotFound)
+}
+
+func TestGetSecretWithByNameFetchingPolicyWithoutFolderID(t *testing.T) {
+	ctx := context.Background()
+	namespace := uuid.NewString()
+	authorizedKey := newFakeAuthorizedKey()
+
+	fakeClock := clock.NewFakeClock()
+	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
+	k8sClient := clientfake.NewClientBuilder().Build()
+	const authorizedKeySecretName = "authorizedKeySecretName"
+	const authorizedKeySecretKey = "authorizedKeySecretKey"
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
+	tassert.Nil(t, err)
+	store := newYandexCertificateManagerSecretStoreWithFetchByName("", namespace, authorizedKeySecretName, authorizedKeySecretKey, "")
+	provider := newCertificateManagerProvider(fakeClock, fakeCertificateManagerServer)
+	_, err = provider.NewClient(ctx, store, k8sClient, namespace)
+	tassert.EqualError(t, err, "folderID is required when fetching policy is 'byName'")
+}
+
+func TestGetSecretWithByIDFetchingPolicyWithoutProperty(t *testing.T) {
+	ctx := context.Background()
+	namespace := uuid.NewString()
+	authorizedKey := newFakeAuthorizedKey()
+
+	fakeClock := clock.NewFakeClock()
+	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
+	certificate1 := uuid.NewString()
+	certificate2 := uuid.NewString()
+	privateKey := uuid.NewString()
+	certificateID, _ := fakeCertificateManagerServer.CreateCertificate(authorizedKey,
+		"folderId", "certificateName",
+		&certificatemanager.GetCertificateContentResponse{
+			CertificateChain: []string{certificate1, certificate2},
+			PrivateKey:       privateKey,
+		})
+
+	k8sClient := clientfake.NewClientBuilder().Build()
+	const authorizedKeySecretName = "authorizedKeySecretName"
+	const authorizedKeySecretKey = "authorizedKeySecretKey"
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
+	tassert.Nil(t, err)
+	store := newYandexCertificateManagerSecretStoreWithFetchByID("", namespace, authorizedKeySecretName, authorizedKeySecretKey)
+
+	provider := newCertificateManagerProvider(fakeClock, fakeCertificateManagerServer)
+	secretsClient, err := provider.NewClient(ctx, store, k8sClient, namespace)
+	tassert.Nil(t, err)
+	data, err := secretsClient.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: certificateID})
+	tassert.Nil(t, err)
+
+	tassert.Equal(
+		t,
+		strings.TrimSpace(strings.Join([]string{certificate1, certificate2, privateKey}, "\n")),
+		strings.TrimSpace(string(data)),
+	)
+}
+func TestGetSecretWithInvalidFetchingPolicy(t *testing.T) {
+	ctx := context.Background()
+	namespace := uuid.NewString()
+	authorizedKey := newFakeAuthorizedKey()
+
+	fakeClock := clock.NewFakeClock()
+	fakeCertificateManagerServer := client.NewFakeCertificateManagerServer(fakeClock, time.Hour)
+
+	k8sClient := clientfake.NewClientBuilder().Build()
+	const authorizedKeySecretName = "authorizedKeySecretName"
+	const authorizedKeySecretKey = "authorizedKeySecretKey"
+	err := createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, authorizedKey))
+	tassert.Nil(t, err)
+	store := &esv1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+		},
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				YandexCertificateManager: &esv1.YandexCertificateManagerProvider{
+					APIEndpoint: "",
+					Auth: esv1.YandexAuth{
+						AuthorizedKey: esmeta.SecretKeySelector{
+							Name: authorizedKeySecretName,
+							Key:  authorizedKeySecretKey,
+						},
+					},
+					FetchingPolicy: &esv1.FetchingPolicy{
+						ByID:   nil,
+						ByName: nil,
+					},
+				},
+			},
+		},
+	}
+
+	provider := newCertificateManagerProvider(fakeClock, fakeCertificateManagerServer)
+	_, err = provider.NewClient(ctx, store, k8sClient, namespace)
+	tassert.EqualError(t, err, "invalid Yandex Certificate Manager SecretStore: requires either 'byName' or 'byID' policy")
 }
 
 // helper functions
@@ -667,11 +1014,61 @@ func newYandexCertificateManagerSecretStore(apiEndpoint, namespace, authorizedKe
 			Provider: &esv1.SecretStoreProvider{
 				YandexCertificateManager: &esv1.YandexCertificateManagerProvider{
 					APIEndpoint: apiEndpoint,
-					Auth: esv1.YandexCertificateManagerAuth{
+					Auth: esv1.YandexAuth{
 						AuthorizedKey: esmeta.SecretKeySelector{
 							Name: authorizedKeySecretName,
 							Key:  authorizedKeySecretKey,
 						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func newYandexCertificateManagerSecretStoreWithFetchByName(apiEndpoint, namespace, authorizedKeySecretName, authorizedKeySecretKey, folderID string) esv1.GenericStore {
+	return &esv1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+		},
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				YandexCertificateManager: &esv1.YandexCertificateManagerProvider{
+					APIEndpoint: apiEndpoint,
+					Auth: esv1.YandexAuth{
+						AuthorizedKey: esmeta.SecretKeySelector{
+							Name: authorizedKeySecretName,
+							Key:  authorizedKeySecretKey,
+						},
+					},
+					FetchingPolicy: &esv1.FetchingPolicy{
+						ByName: &esv1.ByName{
+							FolderID: folderID,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func newYandexCertificateManagerSecretStoreWithFetchByID(apiEndpoint, namespace, authorizedKeySecretName, authorizedKeySecretKey string) esv1.GenericStore {
+	return &esv1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+		},
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				YandexCertificateManager: &esv1.YandexCertificateManagerProvider{
+					APIEndpoint: apiEndpoint,
+					Auth: esv1.YandexAuth{
+						AuthorizedKey: esmeta.SecretKeySelector{
+							Name: authorizedKeySecretName,
+							Key:  authorizedKeySecretKey,
+						},
+					},
+					FetchingPolicy: &esv1.FetchingPolicy{
+						ByID: &esv1.ByID{},
 					},
 				},
 			},

@@ -1655,6 +1655,8 @@ should match snapshot of default values:
                                   - value
                                 type: object
                               type: array
+                            validationResult:
+                              type: integer
                           required:
                             - data
                           type: object
@@ -4417,6 +4419,18 @@ should match snapshot of default values:
                                 - name
                                 - type
                               type: object
+                            checkAndSet:
+                              description: |-
+                                CheckAndSet defines the Check-And-Set (CAS) settings for PushSecret operations.
+                                Only applies to Vault KV v2 stores. When enabled, write operations must include
+                                the current version of the secret to prevent unintentional overwrites.
+                              properties:
+                                required:
+                                  description: |-
+                                    Required when true, all write operations must include a check-and-set parameter.
+                                    This helps prevent unintentional overwrites of secrets.
+                                  type: boolean
+                              type: object
                             forwardInconsistent:
                               description: |-
                                 ForwardInconsistent tells Vault to forward read-after-write requests to the Vault
@@ -4717,7 +4731,7 @@ should match snapshot of default values:
                               description: Yandex.Cloud API endpoint (e.g. 'api.cloud.yandex.net:443')
                               type: string
                             auth:
-                              description: Auth defines the information necessary to authenticate against Yandex Certificate Manager
+                              description: Auth defines the information necessary to authenticate against Yandex.Cloud
                               properties:
                                 authorizedKeySecretRef:
                                   description: The authorized key used for authentication
@@ -4776,6 +4790,24 @@ should match snapshot of default values:
                                       minLength: 1
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
+                                  type: object
+                              type: object
+                            fetching:
+                              description: FetchingPolicy configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as certificate ID or certificate name
+                              maxProperties: 1
+                              minProperties: 1
+                              properties:
+                                byID:
+                                  description: ByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID.
+                                  type: object
+                                byName:
+                                  description: ByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name.
+                                  properties:
+                                    folderID:
+                                      description: The folder to fetch secrets from
+                                      type: string
+                                  required:
+                                    - folderID
                                   type: object
                               type: object
                           required:
@@ -4788,7 +4820,7 @@ should match snapshot of default values:
                               description: Yandex.Cloud API endpoint (e.g. 'api.cloud.yandex.net:443')
                               type: string
                             auth:
-                              description: Auth defines the information necessary to authenticate against Yandex Lockbox
+                              description: Auth defines the information necessary to authenticate against Yandex.Cloud
                               properties:
                                 authorizedKeySecretRef:
                                   description: The authorized key used for authentication
@@ -4847,6 +4879,24 @@ should match snapshot of default values:
                                       minLength: 1
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
+                                  type: object
+                              type: object
+                            fetching:
+                              description: FetchingPolicy configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID or secret name
+                              maxProperties: 1
+                              minProperties: 1
+                              properties:
+                                byID:
+                                  description: ByID configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret ID.
+                                  type: object
+                                byName:
+                                  description: ByName configures the provider to interpret the `data.secretKey.remoteRef.key` field in ExternalSecret as secret name.
+                                  properties:
+                                    folderID:
+                                      description: The folder to fetch secrets from
+                                      type: string
+                                  required:
+                                    - folderID
                                   type: object
                               type: object
                           required:

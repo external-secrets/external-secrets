@@ -50,10 +50,6 @@ jobs:
           if [[ -n "$changed" ]]; then
             echo "changed=true" >> $GITHUB_OUTPUT
           fi
-      - name: Install chart unittest
-        run: |
-          helm env
-          helm plugin install https://github.com/helm-unittest/helm-unittest
       - name: Run chart-testing (lint)
         run: ct lint --config=.github/ci/ct.yaml
 
@@ -101,9 +97,15 @@ jobs:
         run: make helm.generate
 
       - name: Import GPG key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --dearmor --output keyring.gpg
-          echo -n "${{ secrets.GPG_PASSPHRASE }}" > passphrase-file.txt
+          gpg --dearmor --output keyring.gpg <(printf '%s' "$GPG_PRIVATE_KEY")
+          chmod 600 keyring.gpg
+
+          printf '%s' "$GPG_PASSPHRASE" > passphrase-file.txt
+          chmod 600 passphrase-file.txt
 
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@cae68fefc6b5f367a0275617c9f83181ba54714f # v1.7.0
@@ -172,7 +174,7 @@ jobs:
 
       - name: Generate provenance attestation and push to OCI registry
         if: steps.push_chart.outputs.push_status == 'pushed'
-        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
         with:
           push-to-registry: true
           subject-name: ${{ steps.push_chart.outputs.registry }}/${{ steps.push_chart.outputs.chart_name }}

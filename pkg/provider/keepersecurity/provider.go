@@ -35,7 +35,6 @@ const (
 	errKeeperSecurityNilSpec                       = "nil spec"
 	errKeeperSecurityNilSpecProvider               = "nil spec.provider"
 	errKeeperSecurityNilSpecProviderKeeperSecurity = "nil spec.provider.keepersecurity"
-	errKeeperSecurityStoreMissingAuth              = "missing: spec.provider.keepersecurity.auth"
 	errKeeperSecurityStoreMissingFolderID          = "missing: spec.provider.keepersecurity.folderID"
 )
 

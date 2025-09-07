@@ -52,7 +52,7 @@ The following table describes the stability level of each provider and who's res
 | [Yandex Lockbox](https://external-secrets.io/latest/provider/yandex-lockbox/)                              | alpha     | [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero) |
 | [GitLab Variables](https://external-secrets.io/latest/provider/gitlab-variables/)                          | alpha     | [@Jabray5](https://github.com/Jabray5)                                                              |
 | Alibaba Cloud KMS                                                                                          | alpha     | **UNMAINTAINED**                                                                                    |
-| [Oracle Vault](https://external-secrets.io/latest/provider/oracle-vault)                                   | alpha     | **UNMAINTAINED**                                                                                    |
+| [Oracle Vault](https://external-secrets.io/latest/provider/oracle-vault)                                   | alpha     | [@anders-swanson](https://github.com/anders-swanson)                                                                                    |
 | [Akeyless](https://external-secrets.io/latest/provider/akeyless)                                           | stable    | [external-secrets](https://github.com/external-secrets)                                             |
 | [1Password](https://external-secrets.io/latest/provider/1password-automation)                              | alpha     | [@SimSpaceCorp](https://github.com/Simspace) [@snarlysodboxer](https://github.com/snarlysodboxer)   |
 | [1Password SDK](https://external-secrets.io/latest/provider/1password-sdk)                                 | alpha     | [@Skarlso](https://github.com/Skarlso)                                                              |
@@ -125,3 +125,7 @@ We provide assistance for deploying/upgrading etc. on a best-effort basis. You c
 - GitHub [Discussions](https://github.com/external-secrets/external-secrets/discussions)
 
 Even though we have active maintainers and people assigned to this project, we kindly ask for patience when asking for support. We will try to get to priority issues as fast as possible, but there may be some delays.
+
+### Helm Charts
+
+The Helm charts provided by this project are offered "as-is" and are primarily focused on providing a good user experience and ease of use. Hardened Helm charts are not a deliverable of this project. We encourage users to review the default chart values and customize them to meet their own security requirements and best practices.

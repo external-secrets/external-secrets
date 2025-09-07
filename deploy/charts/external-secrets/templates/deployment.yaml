@@ -88,6 +88,9 @@ spec:
           {{- if .Values.extendedMetricLabels }}
           - --enable-extended-metric-labels={{ .Values.extendedMetricLabels }}
           {{- end }}
+          {{- if .Values.enableHTTP2 }}
+          - --enable-http2=true
+          {{- end }}
           {{- if .Values.concurrent }}
           - --concurrent={{ .Values.concurrent }}
           {{- end }}
@@ -104,6 +107,12 @@ spec:
           - --zap-time-encoding={{ .Values.log.timeEncoding }}
           {{- if .Values.livenessProbe.enabled }}
           - --live-addr={{ .Values.livenessProbe.address }}:{{ .Values.livenessProbe.httpGet.port }}
+          {{- end }}
+          {{- if .Values.metrics.listen.secure.enabled }}
+          - --metrics-secure=true
+          - --metrics-cert-dir={{ .Values.metrics.listen.secure.certDir }}
+          - --metrics-cert-name={{ .Values.metrics.listen.secure.certFile }}
+          - --metrics-key-name={{ .Values.metrics.listen.secure.keyFile }}
           {{- end }}
           ports:
             - containerPort: {{ .Values.metrics.listen.port }}

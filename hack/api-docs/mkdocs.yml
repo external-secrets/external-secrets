@@ -87,6 +87,7 @@ nav:
           - API specification: api/spec.md
           - Controller Options: api/controller-options.md
           - Metrics: api/metrics.md
+          - Selectable Fields: api/selectable-fields.md
   - Guides:
       - Introduction: guides/introduction.md
       - External Secrets:
