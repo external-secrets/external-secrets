@@ -2776,18 +2776,44 @@ spec:
                             - ManagedIdentity
                             - WorkloadIdentity
                           type: string
+                        customCloudConfig:
+                          description: |-
+                            CustomCloudConfig defines custom Azure Stack Hub or Azure Stack Edge endpoints.
+                            Required when EnvironmentType is AzureStackCloud.
+                            IMPORTANT: This feature REQUIRES UseAzureSDK to be set to true. Custom cloud
+                            configuration is not supported with the legacy go-autorest SDK.
+                          properties:
+                            activeDirectoryEndpoint:
+                              description: |-
+                                ActiveDirectoryEndpoint is the AAD endpoint for authentication
+                                Required when using custom cloud configuration
+                              type: string
+                            keyVaultDNSSuffix:
+                              description: KeyVaultDNSSuffix is the DNS suffix for Key Vault URLs
+                              type: string
+                            keyVaultEndpoint:
+                              description: KeyVaultEndpoint is the Key Vault service endpoint
+                              type: string
+                            resourceManagerEndpoint:
+                              description: ResourceManagerEndpoint is the Azure Resource Manager endpoint
+                              type: string
+                          required:
+                            - activeDirectoryEndpoint
+                          type: object
                         environmentType:
                           default: PublicCloud
                           description: |-
                             EnvironmentType specifies the Azure cloud environment endpoints to use for
                             connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint.
                             The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152
-                            PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
+                            PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud, AzureStackCloud
+                            Use AzureStackCloud when you need to configure custom Azure Stack Hub or Azure Stack Edge endpoints.
                           enum:
                             - PublicCloud
                             - USGovernmentCloud
                             - ChinaCloud
                             - GermanCloud
+                            - AzureStackCloud
                           type: string
                         identityId:
                           description: If multiple Managed Identity is assigned to the pod, you can select the one to be used
@@ -2825,6 +2851,12 @@ spec:
                         tenantId:
                           description: TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type. Optional for WorkloadIdentity.
                           type: string
+                        useAzureSDK:
+                          default: false
+                          description: |-
+                            UseAzureSDK enables the use of the new Azure SDK for Go (azcore-based) instead of the legacy go-autorest SDK.
+                            This is experimental and may have behavioral differences. Defaults to false (legacy SDK).
+                          type: boolean
                         vaultUrl:
                           description: Vault Url from which the secrets to be fetched from.
                           type: string
@@ -13756,18 +13788,44 @@ spec:
                             - ManagedIdentity
                             - WorkloadIdentity
                           type: string
+                        customCloudConfig:
+                          description: |-
+                            CustomCloudConfig defines custom Azure Stack Hub or Azure Stack Edge endpoints.
+                            Required when EnvironmentType is AzureStackCloud.
+                            IMPORTANT: This feature REQUIRES UseAzureSDK to be set to true. Custom cloud
+                            configuration is not supported with the legacy go-autorest SDK.
+                          properties:
+                            activeDirectoryEndpoint:
+                              description: |-
+                                ActiveDirectoryEndpoint is the AAD endpoint for authentication
+                                Required when using custom cloud configuration
+                              type: string
+                            keyVaultDNSSuffix:
+                              description: KeyVaultDNSSuffix is the DNS suffix for Key Vault URLs
+                              type: string
+                            keyVaultEndpoint:
+                              description: KeyVaultEndpoint is the Key Vault service endpoint
+                              type: string
+                            resourceManagerEndpoint:
+                              description: ResourceManagerEndpoint is the Azure Resource Manager endpoint
+                              type: string
+                          required:
+                            - activeDirectoryEndpoint
+                          type: object
                         environmentType:
                           default: PublicCloud
                           description: |-
                             EnvironmentType specifies the Azure cloud environment endpoints to use for
                             connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint.
                             The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152
-                            PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
+                            PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud, AzureStackCloud
+                            Use AzureStackCloud when you need to configure custom Azure Stack Hub or Azure Stack Edge endpoints.
                           enum:
                             - PublicCloud
                             - USGovernmentCloud
                             - ChinaCloud
                             - GermanCloud
+                            - AzureStackCloud
                           type: string
                         identityId:
                           description: If multiple Managed Identity is assigned to the pod, you can select the one to be used
@@ -13805,6 +13863,12 @@ spec:
                         tenantId:
                           description: TenantID configures the Azure Tenant to send requests to. Required for ServicePrincipal auth type. Optional for WorkloadIdentity.
                           type: string
+                        useAzureSDK:
+                          default: false
+                          description: |-
+                            UseAzureSDK enables the use of the new Azure SDK for Go (azcore-based) instead of the legacy go-autorest SDK.
+                            This is experimental and may have behavioral differences. Defaults to false (legacy SDK).
+                          type: boolean
                         vaultUrl:
                           description: Vault Url from which the secrets to be fetched from.
                           type: string
@@ -22417,6 +22481,7 @@ spec:
                     - USGovernmentCloud
                     - ChinaCloud
                     - GermanCloud
+                    - AzureStackCloud
                   type: string
                 registry:
                   description: |-
@@ -22623,6 +22688,7 @@ spec:
                             - USGovernmentCloud
                             - ChinaCloud
                             - GermanCloud
+                            - AzureStackCloud
                           type: string
                         registry:
                           description: |-

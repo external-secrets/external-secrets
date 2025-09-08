@@ -111,7 +111,7 @@ spec:
   data:
     - secretKey: SecretServerValue  # Key in the Kubernetes Secret
       remoteRef:
-        key: "secretFolder/secretname"  # Path format: <Folder>/<SecretName>
+        key: "/secretFolder/secretname"  # Path format: /<Folder>/<SecretName>
         property: ""                    # Optional: use gjson syntax to extract a specific field
 ```
 
