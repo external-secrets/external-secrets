@@ -333,7 +333,7 @@ func (s *azureProvider) CreateSecretStoreNewSDK() {
 			credentialKeyClientSecret: s.clientSecret,
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), azureCreds)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), azureCreds)
 	// Ignore AlreadyExists error since CreateSecretStore() might have already created this secret
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		Expect(err).ToNot(HaveOccurred())
@@ -349,7 +349,7 @@ func (s *azureProvider) CreateSecretStoreNewSDK() {
 			},
 		},
 	}
-	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -392,7 +392,7 @@ func (s *azureProvider) CreateReferentSecretStoreNewSDK() {
 			credentialKeyClientSecret: s.clientSecret,
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), azureCreds)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), azureCreds)
 	Expect(err).ToNot(HaveOccurred())
 	secretStore := &esv1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
@@ -405,7 +405,7 @@ func (s *azureProvider) CreateReferentSecretStoreNewSDK() {
 			},
 		},
 	}
-	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
