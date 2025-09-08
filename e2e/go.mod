@@ -41,6 +41,7 @@ replace (
 require (
 	cloud.google.com/go/secretmanager v1.15.0
 	github.com/Azure/azure-sdk-for-go v68.0.0+incompatible
+	github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys v1.4.0
 	github.com/Azure/go-autorest/autorest v0.11.30
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.13
 	github.com/DelineaXPM/dsv-sdk-go/v2 v2.2.0
@@ -89,7 +90,6 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.11.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azcertificates v1.4.0 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys v1.4.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets v1.4.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/internal v1.2.0 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
