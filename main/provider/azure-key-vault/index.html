@@ -2567,6 +2567,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#azure-stack-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Azure Stack Configuration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#update-secret-store" class="md-nav__link">
     <span class="md-ellipsis">
       Update secret store
@@ -4149,6 +4158,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#azure-stack-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Azure Stack Configuration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#update-secret-store" class="md-nav__link">
     <span class="md-ellipsis">
       Update secret store
@@ -4249,7 +4267,8 @@
 <h3 id="authentication">Authentication</h3>
 <p>We support authentication with Microsoft Entra identities that can be used as Workload Identity or <a href="https://azure.github.io/aad-pod-identity/docs/">AAD Pod Identity</a> as well as with Service Principal credentials.</p>
 <p>Since the <a href="https://azure.github.io/aad-pod-identity/docs/">AAD Pod Identity</a> is deprecated, it is recommended to use the <a href="https://azure.github.io/azure-workload-identity">Workload Identity</a> authentication.</p>
-<p>We support connecting to different cloud flavours azure supports: <code>PublicCloud</code>, <code>USGovernmentCloud</code>, <code>ChinaCloud</code> and <code>GermanCloud</code>. You have to specify the <code>environmentType</code> and point to the correct cloud flavour. This defaults to <code>PublicCloud</code>.</p>
+<p>We support connecting to different cloud flavours azure supports: <code>PublicCloud</code>, <code>USGovernmentCloud</code>, <code>ChinaCloud</code>, <code>GermanCloud</code> and <code>AzureStackCloud</code> (for Azure Stack Hub/Edge). You have to specify the <code>environmentType</code> and point to the correct cloud flavour. This defaults to <code>PublicCloud</code>.</p>
+<p>For Azure Stack Hub or Azure Stack Edge environments, you must also provide custom cloud configuration. See the <a href="#azure-stack-configuration">Azure Stack Configuration</a> section below.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -4380,6 +4399,43 @@ az<span class="w"> </span>keyvault<span class="w"> </span>set-policy<span class=
 <span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">umi-secret</span>
 <span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tenantId</span>
 </code></pre></div>
+<h3 id="azure-stack-configuration">Azure Stack Configuration</h3>
+<p>External Secrets Operator supports Azure Stack Hub and Azure Stack Edge through custom cloud configuration. This feature requires using the new Azure SDK.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">azure-stack-backend</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">azurekv</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">vaultUrl</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://my-vault.vault.local.azurestack.external/&quot;</span>
+<span class="w">      </span><span class="c1"># REQUIRED: Must be set to AzureStackCloud for custom environments</span>
+<span class="w">      </span><span class="nt">environmentType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AzureStackCloud</span>
+<span class="w">      </span><span class="c1"># REQUIRED: Must be true for Azure Stack (legacy SDK doesn&#39;t support custom clouds)</span>
+<span class="w">      </span><span class="nt">useAzureSDK</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">      </span><span class="c1"># REQUIRED: Custom cloud endpoints for your Azure Stack deployment</span>
+<span class="w">      </span><span class="nt">customCloudConfig</span><span class="p">:</span>
+<span class="w">        </span><span class="c1"># Azure Active Directory endpoint for authentication</span>
+<span class="w">        </span><span class="nt">activeDirectoryEndpoint</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://login.microsoftonline.com/&quot;</span>
+<span class="w">        </span><span class="c1"># Optional: Key Vault endpoint if different from vaultUrl domain</span>
+<span class="w">        </span><span class="nt">keyVaultEndpoint</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://vault.local.azurestack.external/&quot;</span>
+<span class="w">        </span><span class="c1"># Optional: Resource Manager endpoint for resource operations</span>
+<span class="w">        </span><span class="nt">resourceManagerEndpoint</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://management.local.azurestack.external/&quot;</span>
+<span class="w">      </span><span class="c1"># ... rest of authentication configuration (Service Principal example)</span>
+<span class="w">      </span><span class="nt">authType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ServicePrincipal</span>
+<span class="w">      </span><span class="nt">tenantId</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;your-tenant-id&quot;</span>
+<span class="w">      </span><span class="nt">authSecretRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">clientId</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">azure-secret</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">client-id</span>
+<span class="w">        </span><span class="nt">clientSecret</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">azure-secret</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">client-secret</span>
+</code></pre></div>
+<p><strong>Important Notes:</strong>
+- <code>useAzureSDK: true</code> is mandatory for Azure Stack environments
+- The <code>customCloudConfig</code> is only valid when <code>environmentType: AzureStackCloud</code>
+- Contact your Azure Stack administrator for the correct endpoint URLs</p>
 <h3 id="update-secret-store">Update secret store</h3>
 <p>Be sure the <code>azurekv</code> provider is listed in the <code>Kind=SecretStore</code></p>
 <p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>

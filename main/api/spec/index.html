@@ -4848,6 +4848,75 @@ is ServicePrincipal.</p>
 </td>
 </tr></tbody>
 </table>
+<h3 id="external-secrets.io/v1.AzureCustomCloudConfig">AzureCustomCloudConfig
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.AzureKVProvider">AzureKVProvider</a>)
+</p>
+<p>
+<p>AzureCustomCloudConfig specifies custom cloud configuration for private Azure environments
+IMPORTANT: Custom cloud configuration is ONLY supported when UseAzureSDK is true.
+The legacy go-autorest SDK does not support custom cloud endpoints.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>activeDirectoryEndpoint</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ActiveDirectoryEndpoint is the AAD endpoint for authentication
+Required when using custom cloud configuration</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>keyVaultEndpoint</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>KeyVaultEndpoint is the Key Vault service endpoint</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>keyVaultDNSSuffix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>KeyVaultDNSSuffix is the DNS suffix for Key Vault URLs</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resourceManagerEndpoint</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ResourceManagerEndpoint is the Azure Resource Manager endpoint</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.AzureEnvironmentType">AzureEnvironmentType
 (<code>string</code> alias)</p></h3>
 <p>
@@ -4858,7 +4927,7 @@ is ServicePrincipal.</p>
 <p>AzureEnvironmentType specifies the Azure cloud environment endpoints to use for
 connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint.
 The following endpoints are available, also see here: <a href="https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152">https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152</a>
-PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud</p>
+PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud, AzureStackCloud</p>
 </p>
 <table>
 <thead>
@@ -4867,7 +4936,9 @@ PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud</p>
 <th>Description</th>
 </tr>
 </thead>
-<tbody><tr><td><p>&#34;ChinaCloud&#34;</p></td>
+<tbody><tr><td><p>&#34;AzureStackCloud&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;ChinaCloud&#34;</p></td>
 <td></td>
 </tr><tr><td><p>&#34;GermanCloud&#34;</p></td>
 <td></td>
@@ -5022,7 +5093,8 @@ AzureEnvironmentType
 <p>EnvironmentType specifies the Azure cloud environment endpoints to use for
 connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint.
 The following endpoints are available, also see here: <a href="https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152">https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152</a>
-PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud</p>
+PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud, AzureStackCloud
+Use AzureStackCloud when you need to configure custom Azure Stack Hub or Azure Stack Edge endpoints.</p>
 </td>
 </tr>
 <tr>
@@ -5064,6 +5136,36 @@ string
 <td>
 <em>(Optional)</em>
 <p>If multiple Managed Identity is assigned to the pod, you can select the one to be used</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>useAzureSDK</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UseAzureSDK enables the use of the new Azure SDK for Go (azcore-based) instead of the legacy go-autorest SDK.
+This is experimental and may have behavioral differences. Defaults to false (legacy SDK).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>customCloudConfig</code></br>
+<em>
+<a href="#external-secrets.io/v1.AzureCustomCloudConfig">
+AzureCustomCloudConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CustomCloudConfig defines custom Azure Stack Hub or Azure Stack Edge endpoints.
+Required when EnvironmentType is AzureStackCloud.
+IMPORTANT: This feature REQUIRES UseAzureSDK to be set to true. Custom cloud
+configuration is not supported with the legacy go-autorest SDK.</p>
 </td>
 </tr>
 </tbody>
