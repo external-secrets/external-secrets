@@ -263,9 +263,9 @@ func newProviderWithStaticCredentials(tenantID, vaultURL, secretName string) *es
 func newProviderWithStaticCredentialsNewSDK(tenantID, vaultURL, secretName string) *esv1.AzureKVProvider {
 	useNewSDK := true
 	return &esv1.AzureKVProvider{
-		TenantID:     &tenantID,
-		VaultURL:     &vaultURL,
-		UseAzureSDK:  &useNewSDK,
+		TenantID:    &tenantID,
+		VaultURL:    &vaultURL,
+		UseAzureSDK: &useNewSDK,
 		AuthSecretRef: &esv1.AzureKVAuth{
 			ClientID: &esmeta.SecretKeySelector{
 				Name: staticSecretName,
@@ -330,7 +330,7 @@ func (s *azureProvider) CreateSecretStoreNewSDK() {
 			credentialKeyClientSecret: s.clientSecret,
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), azureCreds)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), azureCreds)
 	// Ignore AlreadyExists error since CreateSecretStore() might have already created this secret
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		Expect(err).ToNot(HaveOccurred())
@@ -346,7 +346,7 @@ func (s *azureProvider) CreateSecretStoreNewSDK() {
 			},
 		},
 	}
-	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -389,7 +389,7 @@ func (s *azureProvider) CreateReferentSecretStoreNewSDK() {
 			credentialKeyClientSecret: s.clientSecret,
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), azureCreds)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), azureCreds)
 	Expect(err).ToNot(HaveOccurred())
 	secretStore := &esv1.ClusterSecretStore{
 		ObjectMeta: metav1.ObjectMeta{
@@ -398,11 +398,11 @@ func (s *azureProvider) CreateReferentSecretStoreNewSDK() {
 		},
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
-				AzureKV: newProviderWithStaticCredentialsNewSDK(s.tenantID, s.vaultURL, referentSecretName + "-new-sdk"),
+				AzureKV: newProviderWithStaticCredentialsNewSDK(s.tenantID, s.vaultURL, referentSecretName+"-new-sdk"),
 			},
 		},
 	}
-	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
