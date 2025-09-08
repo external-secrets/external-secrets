@@ -224,6 +224,13 @@ func initializeLegacyClient(ctx context.Context, az *Azure) error {
 
 // initializeNewAzureSDK sets up the Azure Key Vault client using the new azcore-based SDK.
 func initializeNewAzureSDK(ctx context.Context, az *Azure) error {
+	// Validate custom cloud configuration for workload identity
+	if az.provider.EnvironmentType == esv1.AzureEnvironmentAzureStackCloud &&
+		az.provider.AuthType != nil && *az.provider.AuthType == esv1.AzureWorkloadIdentity &&
+		az.provider.CustomCloudConfig != nil && az.provider.CustomCloudConfig.Audience == nil {
+		return errors.New("audience is required in CustomCloudConfig when using WorkloadIdentity auth with AzureStackCloud")
+	}
+
 	// Get cloud configuration
 	cloudConfig, err := getCloudConfiguration(az.provider)
 	if err != nil {

@@ -69,6 +69,14 @@ type AzureCustomCloudConfig struct {
 	// ResourceManagerEndpoint is the Azure Resource Manager endpoint
 	// +optional
 	ResourceManagerEndpoint *string `json:"resourceManagerEndpoint,omitempty"`
+
+	// Audience is the audience for authentication
+	// Used for workload identity federated credentials
+	// Must match the audience configured on the federated credential
+	// Required for workload identity auth with custom cloud
+	// Not used for service principal or managed identity auth
+	// +optional
+	Audience *string `json:"audience,omitempty"`
 }
 
 // Configures an store to sync secrets using Azure KV.

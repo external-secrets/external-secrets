@@ -361,12 +361,23 @@ func buildCustomCloudConfiguration(config *esv1.AzureCustomCloudConfig) (cloud.C
 	// Set Active Directory endpoint (required)
 	cloudConfig.ActiveDirectoryAuthorityHost = config.ActiveDirectoryEndpoint
 
-	// Set Resource Manager endpoint if provided
-	if config.ResourceManagerEndpoint != nil {
-		cloudConfig.Services[cloud.ResourceManager] = cloud.ServiceConfiguration{
-			Audience: *config.ResourceManagerEndpoint,
-			Endpoint: *config.ResourceManagerEndpoint,
+	// Set Resource Manager endpoint and/or audience if provided
+	if config.ResourceManagerEndpoint != nil || config.Audience != nil {
+		svc := cloud.ServiceConfiguration{}
+		
+		// Set endpoint if provided
+		if config.ResourceManagerEndpoint != nil {
+			svc.Endpoint = *config.ResourceManagerEndpoint
 		}
+		
+		// Set audience only if explicitly provided
+		// For workload identity, audience must match the federated credential
+		// For service principal auth, audience is not used
+		if config.Audience != nil {
+			svc.Audience = *config.Audience
+		}
+		
+		cloudConfig.Services[cloud.ResourceManager] = svc
 	}
 
 	// Note: Key Vault endpoint and DNS suffix are handled directly by the Key Vault client
