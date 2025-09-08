@@ -3,17 +3,16 @@ package secretserver
 import (
 	"encoding/json"
 
-	"github.com/DelineaXPM/tss-sdk-go/v2/server"
+	"github.com/DelineaXPM/tss-sdk-go/v3/server"
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/onsi/gomega"
 )
 
-
 type secretStoreProvider struct {
-	api *server.Server
-	cfg *config
+	api       *server.Server
+	cfg       *config
 	framework *framework.Framework
-	secretID map[string]int
+	secretID  map[string]int
 }
 
 func (p *secretStoreProvider) init(cfg *config, f *framework.Framework) {
@@ -25,7 +24,7 @@ func (p *secretStoreProvider) init(cfg *config, f *framework.Framework) {
 			Username: cfg.username,
 			Password: cfg.password,
 		},
-		ServerURL:      cfg.serverURL,
+		ServerURL: cfg.serverURL,
 	})
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
@@ -43,10 +42,10 @@ func (p *secretStoreProvider) CreateSecret(key string, val framework.SecretEntry
 
 	s, err := p.api.CreateSecret(server.Secret{
 		SecretTemplateID: 6051, // custom template
-		SiteID: 1,
-		FolderID: 10,
-		Name: key,
-		Fields: fields,
+		SiteID:           1,
+		FolderID:         10,
+		Name:             key,
+		Fields:           fields,
 	})
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	p.secretID[key] = s.ID
