@@ -108,8 +108,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/DelineaXPM/dsv-sdk-go/v2 v2.2.0 h1:62E66sDf+Hs1TChuu3R7d+0U5s7yV84QIOvvnfxtUJM=
 github.com/DelineaXPM/dsv-sdk-go/v2 v2.2.0/go.mod h1:58Pflli0BtqeF0VgluDSSVE5QlIfLOJvat0JSvo/d70=
-github.com/DelineaXPM/tss-sdk-go/v2 v2.0.3 h1:Yk8VZUIer8deRzi1Zx2Di2wEpw138IP09O5eKUYmDRs=
-github.com/DelineaXPM/tss-sdk-go/v2 v2.0.3/go.mod h1:xz6FXP2Do88Vc5Hx7OamZgZC1W45yfmLy4+iDKxlGXo=
+github.com/DelineaXPM/tss-sdk-go/v3 v3.0.0 h1:RXL9/Kd1XsuzBLuIr6am0jDOM1NtXbz7UtL4okBihUY=
+github.com/DelineaXPM/tss-sdk-go/v3 v3.0.0/go.mod h1:VmyoHQ25FhSVHTI3/ptQNOviNEMfCy2ALAf/3E4Eqxg=
 github.com/Masterminds/goutils v1.1.1 h1:5nUrii3FMTL5diU80unEVvNevw1nH4+ZV4DSLVJLSYI=
 github.com/Masterminds/goutils v1.1.1/go.mod h1:8cTjp+g8YejhMuvIA5y2vz3BpJxksy863GQaJW2MFNU=
 github.com/Masterminds/semver/v3 v3.2.0/go.mod h1:qvl/7zhW3nngYb5+80sSMF+FG2BjYrf8m9wsX0PNOMQ=
