@@ -35,6 +35,11 @@ type fakeAPI struct {
 	secrets []*server.Secret
 }
 
+const (
+    usernameSlug = "username"
+    passwordSlug = "password"
+)
+
 func (f *fakeAPI) Secret(id int) (*server.Secret, error) {
 	for _, s := range f.secrets {
 		if s.ID == id {
@@ -94,14 +99,14 @@ func createTestSecretFromCode(id int) *server.Secret {
 	s.Fields = make([]server.SecretField, 2)
 	s.Fields[0].ItemValue = "usernamevalue"
 	s.Fields[0].FieldName = "Username"
-	s.Fields[0].Slug = "username"
+	s.Fields[0].Slug = usernameSlug
 	s.Fields[1].FieldName = "Password"
-	s.Fields[1].Slug = "password"
+	s.Fields[1].Slug = passwordSlug
 	s.Fields[1].ItemValue = "passwordvalue"
 	return s
 }
 
-func createTestFolderSecret(id int, folderId int) *server.Secret {
+func createTestFolderSecret(id, folderId int) *server.Secret {
 	s := new(server.Secret)
 	s.FolderID = folderId
 	s.ID = id
@@ -109,9 +114,9 @@ func createTestFolderSecret(id int, folderId int) *server.Secret {
 	s.Fields = make([]server.SecretField, 2)
 	s.Fields[0].ItemValue = "usernamevalue"
 	s.Fields[0].FieldName = "Username"
-	s.Fields[0].Slug = "username"
+	s.Fields[0].Slug = usernameSlug
 	s.Fields[1].FieldName = "Password"
-	s.Fields[1].Slug = "password"
+	s.Fields[1].Slug = passwordSlug
 	s.Fields[1].ItemValue = "passwordvalue"
 	return s
 }
