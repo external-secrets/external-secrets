@@ -1,3 +1,5 @@
+//go:build tools
+
 /*
 Copyright © 2022 ESO Maintainer Team
 
@@ -13,9 +15,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
-//go:build tools
-// +build tools
 
 package tools
 
