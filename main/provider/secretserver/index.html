@@ -3166,6 +3166,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#support-for-fetching-secrets-by-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      Support for Fetching Secrets by Path
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Support for Fetching Secrets by Path">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Notes:
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#preparing-your-secret" class="md-nav__link">
     <span class="md-ellipsis">
       Preparing your secret
@@ -4031,6 +4064,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#support-for-fetching-secrets-by-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      Support for Fetching Secrets by Path
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Support for Fetching Secrets by Path">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Notes:
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#preparing-your-secret" class="md-nav__link">
     <span class="md-ellipsis">
       Preparing your secret
@@ -4170,6 +4236,43 @@ You can access nested values or arrays using <a href="https://github.com/tidwall
 </code></pre></div>
 <p>In this example, the secret with ID 52622 is retrieved in its entirety and stored under the key SecretServerValue in the Kubernetes Secret.​</p>
 <p>This feature simplifies the integration process for applications that require secrets in specific formats, eliminating the need for custom parsing logic within your applications.</p>
+<h3 id="support-for-fetching-secrets-by-path">Support for Fetching Secrets by Path</h3>
+<p>In addition to retrieving secrets by ID or Name, the Secret Server provider now supports fetching secrets by <strong>path</strong>.<br />
+This allows you to specify a secret’s folder hierarchy and name in the format:</p>
+<blockquote>
+<p>/FolderName/SecretName</p>
+</blockquote>
+<h4 id="example">Example</h4>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-server-external-secret</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">15s</span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-server-store</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretServerValue</span><span class="w">  </span><span class="c1"># Key in the Kubernetes Secret</span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/secretFolder/secretname&quot;</span><span class="w">  </span><span class="c1"># Path format: /&lt;Folder&gt;/&lt;SecretName&gt;</span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                    </span><span class="c1"># Optional: use gjson syntax to extract a specific field</span>
+</code></pre></div>
+<h4 id="notes">Notes:</h4>
+<p>The path must exactly match the folder and secret name in Secret Server.
+If multiple secrets with the same name exist in different folders, the path helps to uniquely identify the correct one.
+You can still use property to extract values from JSON-formatted secrets or omit it to retrieve the entire secret (JSON or non-JSON).
+Updated Referencing Secrets Section</p>
+<p>Secrets may be referenced by:</p>
+<blockquote>
+<p>Secret ID<br />
+Secret Name<br />
+Secret Path (/FolderName/SecretName)<br /></p>
+</blockquote>
+<p>Please note if using the secret name or path,
+the field must not contain spaces or control characters.<br />
+If multiple secrets are found, only the first found secret will be returned.</p>
+<p>Please note: Retrieving a specific version of a secret is not yet supported.</p>
 <h3 id="preparing-your-secret">Preparing your secret</h3>
 <p>You can either retrieve your entire secret or you can use a JSON formatted string
 stored in your secret located at Items[0].ItemValue to retrieve a specific value.<br />
