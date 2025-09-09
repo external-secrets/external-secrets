@@ -66,34 +66,34 @@ const (
 	httpClientTimeout = 30 * time.Second
 )
 
-func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kube client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+func (g *Generator) Generate(ctx context.Context, cloudsmithSpec *apiextensions.JSON, kubeClient client.Client, targetNamespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	return g.generate(
 		ctx,
-		jsonSpec,
-		kube,
-		namespace,
+		cloudsmithSpec,
+		kubeClient,
+		targetNamespace,
 	)
 }
 
-func (g *Generator) Cleanup(_ context.Context, jsonSpec *apiextensions.JSON, state genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
+func (g *Generator) Cleanup(_ context.Context, cloudsmithSpec *apiextensions.JSON, providerState genv1alpha1.GeneratorProviderState, _ client.Client, _ string) error {
 	return nil
 }
 
 func (g *Generator) generate(
 	ctx context.Context,
-	jsonSpec *apiextensions.JSON,
+	cloudsmithSpec *apiextensions.JSON,
 	_ client.Client,
-	namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
-	if jsonSpec == nil {
+	targetNamespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
+	if cloudsmithSpec == nil {
 		return nil, nil, errors.New(errNoSpec)
 	}
-	res, err := parseSpec(jsonSpec.Raw)
+	res, err := parseSpec(cloudsmithSpec.Raw)
 	if err != nil {
 		return nil, nil, fmt.Errorf(errParseSpec, err)
 	}
 
 	// Fetch the service account token
-	oidcToken, err := utils.FetchServiceAccountToken(ctx, res.Spec.ServiceAccountRef, namespace)
+	oidcToken, err := utils.FetchServiceAccountToken(ctx, res.Spec.ServiceAccountRef, targetNamespace)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch service account token: %w", err)
 	}
@@ -192,9 +192,9 @@ func (g *Generator) exchangeTokenWithCloudsmith(ctx context.Context, oidcToken, 
 }
 
 
-func parseSpec(data []byte) (*genv1alpha1.CloudsmithAccessToken, error) {
+func parseSpec(specData []byte) (*genv1alpha1.CloudsmithAccessToken, error) {
 	var spec genv1alpha1.CloudsmithAccessToken
-	err := yaml.Unmarshal(data, &spec)
+	err := yaml.Unmarshal(specData, &spec)
 	return &spec, err
 }
 
