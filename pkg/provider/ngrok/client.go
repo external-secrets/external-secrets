@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/ngrok/ngrok-api-go/v7"
@@ -53,20 +54,25 @@ type PushSecretMetadataSpec struct {
 
 type VaultClient interface {
 	Create(context.Context, *ngrok.VaultCreate) (*ngrok.Vault, error)
+	Get(context.Context, string) (*ngrok.Vault, error)
+	GetSecretsByVault(string, *ngrok.Paging) ngrok.Iter[*ngrok.Secret]
 	List(*ngrok.Paging) ngrok.Iter[*ngrok.Vault]
 }
 
 type SecretsClient interface {
 	Create(context.Context, *ngrok.SecretCreate) (*ngrok.Secret, error)
-	Update(context.Context, *ngrok.SecretUpdate) (*ngrok.Secret, error)
 	Delete(context.Context, string) error
+	Get(context.Context, string) (*ngrok.Secret, error)
 	List(*ngrok.Paging) ngrok.Iter[*ngrok.Secret]
+	Update(context.Context, *ngrok.SecretUpdate) (*ngrok.Secret, error)
 }
 
 type client struct {
 	vaultClient   VaultClient
 	secretsClient SecretsClient
 	vaultName     string
+	vaultID       string
+	vaultIDMu     sync.RWMutex
 }
 
 func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
@@ -74,17 +80,10 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		return errCannotPushNilSecret
 	}
 
-	// First, get the vault by name. If it doesn't exist, create it.
-	vault, err := c.getVaultByName(ctx, c.vaultName)
-	if errors.Is(err, errVaultDoesNotExist) {
-		// Create the vault if it does not exist
-		vault, err = c.vaultClient.Create(ctx, &ngrok.VaultCreate{
-			Name:        c.vaultName,
-			Description: defaultDescription,
-		})
-	}
+	// First, make sure the vault name still matches the ID we have stored. If not, we have to look it up again.
+	err := c.verifyVaultNameStillMatchesID(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to verify vault name still matches ID: %w", err)
 	}
 
 	// Prepare the secret data for pushing
@@ -119,7 +118,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	}
 
 	// Check if the secret already exists in the vault
-	existingSecret, err := c.getSecretByVaultAndName(ctx, *vault, data.GetRemoteKey())
+	existingSecret, err := c.getSecretByVaultIDAndName(ctx, c.getVaultID(), data.GetRemoteKey())
 	if err != nil {
 		if !errors.Is(err, errVaultSecretDoesNotExist) {
 			return fmt.Errorf("failed to get secret: %w", err)
@@ -127,7 +126,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 
 		// If the secret does not exist, create it
 		_, err = c.secretsClient.Create(ctx, &ngrok.SecretCreate{
-			VaultID:     vault.ID,
+			VaultID:     c.getVaultID(),
 			Name:        data.GetRemoteKey(),
 			Value:       string(value),
 			Metadata:    string(metadataJSON),
@@ -147,8 +146,15 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 }
 
 func (c *client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
+	err := c.verifyVaultNameStillMatchesID(ctx)
+	if errors.Is(err, errVaultDoesNotExist) {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+
 	// Implementation for checking if a secret exists in ngrok
-	secret, err := c.getSecretByVaultNameAndSecretName(ctx, c.vaultName, ref.GetRemoteKey())
+	secret, err := c.getSecretByVaultIDAndName(ctx, c.getVaultID(), ref.GetRemoteKey())
 	if errors.Is(err, errVaultDoesNotExist) || errors.Is(err, errVaultSecretDoesNotExist) {
 		return false, nil
 	}
@@ -162,7 +168,14 @@ func (c *client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef)
 
 // DeleteSecret deletes a secret from ngrok by its reference.
 func (c *client) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
-	secret, err := c.getSecretByVaultNameAndSecretName(ctx, c.vaultName, ref.GetRemoteKey())
+	err := c.verifyVaultNameStillMatchesID(ctx)
+	if errors.Is(err, errVaultDoesNotExist) {
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	secret, err := c.getSecretByVaultIDAndName(ctx, c.getVaultID(), ref.GetRemoteKey())
 	if errors.Is(err, errVaultDoesNotExist) || errors.Is(err, errVaultSecretDoesNotExist) {
 		// If the secret or vault do not exist, we can consider it deleted.
 		return nil
@@ -216,6 +229,44 @@ func (c *client) Close(_ context.Context) error {
 	return nil
 }
 
+func (c *client) verifyVaultNameStillMatchesID(ctx context.Context) error {
+	if c.getVaultID() == "" {
+		return c.refreshVaultID(ctx)
+	}
+
+	vault, err := c.vaultClient.Get(ctx, c.getVaultID())
+	if err != nil || vault == nil || vault.Name != c.vaultName {
+		return c.refreshVaultID(ctx)
+	}
+
+	c.setVaultID(vault.ID)
+	return nil
+}
+
+// getVaultID safely retrieves the current vault ID.
+func (c *client) getVaultID() string {
+	c.vaultIDMu.RLock()
+	defer c.vaultIDMu.RUnlock()
+	return c.vaultID
+}
+
+// setVaultID safely sets the vault ID.
+func (c *client) setVaultID(vaultID string) {
+	c.vaultIDMu.Lock()
+	defer c.vaultIDMu.Unlock()
+	c.vaultID = vaultID
+}
+
+func (c *client) refreshVaultID(ctx context.Context) error {
+	v, err := c.getVaultByName(ctx, c.vaultName)
+	if err != nil {
+		return fmt.Errorf("failed to refresh vault ID: %w", err)
+	}
+
+	c.setVaultID(v.ID)
+	return nil
+}
+
 func (c *client) getVaultByName(ctx context.Context, name string) (*ngrok.Vault, error) {
 	iter := c.vaultClient.List(nil)
 	for iter.Next(ctx) {
@@ -232,14 +283,11 @@ func (c *client) getVaultByName(ctx context.Context, name string) (*ngrok.Vault,
 	return nil, errVaultDoesNotExist
 }
 
-func (c *client) getSecretByVaultAndName(ctx context.Context, vault ngrok.Vault, name string) (*ngrok.Secret, error) {
-	iter := c.secretsClient.List(nil)
+// getSecretByVaultIDAndName retrieves a secret by its vault ID and secret name.
+func (c *client) getSecretByVaultIDAndName(ctx context.Context, vaultID, name string) (*ngrok.Secret, error) {
+	iter := c.vaultClient.GetSecretsByVault(vaultID, nil)
 	for iter.Next(ctx) {
 		secret := iter.Item()
-		if secret.Vault.ID != vault.ID {
-			continue
-		}
-
 		if secret.Name == name {
 			return secret, nil
 		}
@@ -250,19 +298,6 @@ func (c *client) getSecretByVaultAndName(ctx context.Context, vault ngrok.Vault,
 	}
 
 	return nil, fmt.Errorf("secret '%s' does not exist: %w", name, errVaultSecretDoesNotExist)
-}
-
-func (c *client) getSecretByVaultNameAndSecretName(ctx context.Context, vaultName, secretName string) (*ngrok.Secret, error) {
-	vault, err := c.getVaultByName(ctx, vaultName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get vault '%s' by name: %w", vaultName, err)
-	}
-
-	if vault == nil {
-		return nil, errVaultDoesNotExist
-	}
-
-	return c.getSecretByVaultAndName(ctx, *vault, secretName)
 }
 
 func parseAndDefaultMetadata(data *v1.JSON) (PushSecretMetadataSpec, error) {

@@ -34,13 +34,26 @@ var (
 	defaultAPIURL = "https://api.ngrok.com"
 	userAgent     = "external-secrets"
 
-	errInvalidStore              = errors.New("invalid store")
-	errInvalidStoreSpec          = errors.New("invalid store spec")
-	errInvalidStoreProv          = errors.New("invalid store provider")
-	errInvalidNgrokProv          = errors.New("invalid ngrok provider")
-	errInvalidAuthAPIKeyRequired = errors.New("ngrok provider auth APIKey is required")
-	errInvalidAPIURL             = errors.New("invalid API URL")
+	errClusterStoreRequiresNamespace = errors.New("cluster store requires namespace")
+	errInvalidStore                  = errors.New("invalid store")
+	errInvalidStoreSpec              = errors.New("invalid store spec")
+	errInvalidStoreProv              = errors.New("invalid store provider")
+	errInvalidNgrokProv              = errors.New("invalid ngrok provider")
+	errInvalidAuthAPIKeyRequired     = errors.New("ngrok provider auth APIKey is required")
+	errInvalidAPIURL                 = errors.New("invalid API URL")
+	errMissingVaultName              = errors.New("ngrok provider vault name is required")
 )
+
+type vaultClientFactory func(cfg *ngrok.ClientConfig) VaultClient
+type secretsClientFactory func(cfg *ngrok.ClientConfig) SecretsClient
+
+var getVaultsClient vaultClientFactory = func(cfg *ngrok.ClientConfig) VaultClient {
+	return vaults.NewClient(cfg)
+}
+
+var getSecretsClient secretsClientFactory = func(cfg *ngrok.ClientConfig) SecretsClient {
+	return secrets.NewClient(cfg)
+}
 
 type Provider struct{}
 
@@ -58,11 +71,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kubeC
 	}
 
 	if store.GetKind() == esv1.ClusterSecretStoreKind && doesConfigDependOnNamespace(cfg) {
-		return nil, errors.New("referent authentication isn't implemented in this provider")
-	}
-
-	if cfg.Auth.APIKey == nil {
-		return nil, errInvalidAuthAPIKeyRequired
+		return nil, errClusterStoreRequiresNamespace
 	}
 
 	apiKey, err := loadAPIKeySecret(ctx, cfg.Auth.APIKey, kubeClient, store.GetKind(), namespace)
@@ -76,13 +85,31 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kubeC
 		ngrok.WithUserAgent(userAgent),
 	)
 
-	vaultClient := vaults.NewClient(clientConfig)
-	secretsClient := secrets.NewClient(clientConfig)
+	vaultClient := getVaultsClient(clientConfig)
+	secretsClient := getSecretsClient(clientConfig)
+
+	var vault *ngrok.Vault
+	vaultIter := vaultClient.List(nil)
+	for vaultIter.Next(ctx) {
+		if vaultIter.Item().Name == cfg.Vault.Name {
+			vault = vaultIter.Item()
+			break
+		}
+	}
+
+	if err := vaultIter.Err(); err != nil {
+		return nil, fmt.Errorf("error listing vaults: %w", err)
+	}
+
+	if vault == nil {
+		return nil, fmt.Errorf("vault %q not found", cfg.Vault.Name)
+	}
 
 	return &client{
 		vaultClient:   vaultClient,
 		secretsClient: secretsClient,
 		vaultName:     cfg.Vault.Name,
+		vaultID:       vault.ID,
 	}, nil
 }
 
@@ -130,6 +157,14 @@ func getConfig(store esv1.GenericStore) (*esv1.NgrokProvider, error) {
 		cfg.APIURL = defaultAPIURL
 	} else if _, err := url.Parse(cfg.APIURL); err != nil {
 		return nil, fmt.Errorf("%q: %w", cfg.APIURL, errInvalidAPIURL)
+	}
+
+	if cfg.Auth.APIKey == nil {
+		return nil, errInvalidAuthAPIKeyRequired
+	}
+
+	if cfg.Vault.Name == "" {
+		return nil, errMissingVaultName
 	}
 
 	return cfg, nil
