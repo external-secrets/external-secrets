@@ -128,8 +128,8 @@ github.com/BurntSushi/toml v1.5.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/DelineaXPM/dsv-sdk-go/v2 v2.2.0 h1:62E66sDf+Hs1TChuu3R7d+0U5s7yV84QIOvvnfxtUJM=
 github.com/DelineaXPM/dsv-sdk-go/v2 v2.2.0/go.mod h1:58Pflli0BtqeF0VgluDSSVE5QlIfLOJvat0JSvo/d70=
-github.com/DelineaXPM/tss-sdk-go/v2 v2.0.3 h1:Yk8VZUIer8deRzi1Zx2Di2wEpw138IP09O5eKUYmDRs=
-github.com/DelineaXPM/tss-sdk-go/v2 v2.0.3/go.mod h1:xz6FXP2Do88Vc5Hx7OamZgZC1W45yfmLy4+iDKxlGXo=
+github.com/DelineaXPM/tss-sdk-go/v3 v3.0.0 h1:RXL9/Kd1XsuzBLuIr6am0jDOM1NtXbz7UtL4okBihUY=
+github.com/DelineaXPM/tss-sdk-go/v3 v3.0.0/go.mod h1:VmyoHQ25FhSVHTI3/ptQNOviNEMfCy2ALAf/3E4Eqxg=
 github.com/HdrHistogram/hdrhistogram-go v1.1.2 h1:5IcZpTvzydCQeHzK4Ef/D5rrSqwxob0t8PQPMybUNFM=
 github.com/HdrHistogram/hdrhistogram-go v1.1.2/go.mod h1:yDgFjdqOqDEKOvasDdhWNXYg9BVp4O+o5f6V/ehm6Oo=
 github.com/IBM/go-sdk-core/v5 v5.21.0 h1:DUnYhvC4SoC8T84rx5omnhY3+xcQg/Whyoa3mDPIMkk=

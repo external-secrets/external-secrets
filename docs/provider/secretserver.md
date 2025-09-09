@@ -90,6 +90,49 @@ In this example, the secret with ID 52622 is retrieved in its entirety and store
 
 This feature simplifies the integration process for applications that require secrets in specific formats, eliminating the need for custom parsing logic within your applications.
 
+### Support for Fetching Secrets by Path
+
+In addition to retrieving secrets by ID or Name, the Secret Server provider now supports fetching secrets by **path**.  
+This allows you to specify a secret’s folder hierarchy and name in the format:
+>/FolderName/SecretName
+
+#### Example
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: secret-server-external-secret
+spec:
+  refreshInterval: 15s
+  secretStoreRef:
+    kind: SecretStore
+    name: secret-server-store
+  data:
+    - secretKey: SecretServerValue  # Key in the Kubernetes Secret
+      remoteRef:
+        key: "/secretFolder/secretname"  # Path format: /<Folder>/<SecretName>
+        property: ""                    # Optional: use gjson syntax to extract a specific field
+```
+
+#### Notes:
+
+The path must exactly match the folder and secret name in Secret Server.
+If multiple secrets with the same name exist in different folders, the path helps to uniquely identify the correct one.
+You can still use property to extract values from JSON-formatted secrets or omit it to retrieve the entire secret (JSON or non-JSON).
+Updated Referencing Secrets Section
+
+Secrets may be referenced by:
+>Secret ID<br />
+Secret Name<br />
+Secret Path (/FolderName/SecretName)<br />
+
+Please note if using the secret name or path,
+the field must not contain spaces or control characters.<br />
+If multiple secrets are found, only the first found secret will be returned.
+
+Please note: Retrieving a specific version of a secret is not yet supported.
+
 ### Preparing your secret
 You can either retrieve your entire secret or you can use a JSON formatted string
 stored in your secret located at Items[0].ItemValue to retrieve a specific value.<br />
