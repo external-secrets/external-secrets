@@ -1,4 +1,6 @@
 /*
+Copyright © 2022 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -36,8 +38,8 @@ type fakeAPI struct {
 }
 
 const (
-    usernameSlug = "username"
-    passwordSlug = "password"
+	usernameSlug = "username"
+	passwordSlug = "password"
 )
 
 func (f *fakeAPI) Secret(id int) (*server.Secret, error) {
