@@ -21,7 +21,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/DelineaXPM/tss-sdk-go/v2/server"
+	"github.com/DelineaXPM/tss-sdk-go/v3/server"
 	"github.com/stretchr/testify/assert"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -34,6 +34,11 @@ var (
 type fakeAPI struct {
 	secrets []*server.Secret
 }
+
+const (
+    usernameSlug = "username"
+    passwordSlug = "password"
+)
 
 func (f *fakeAPI) Secret(id int) (*server.Secret, error) {
 	for _, s := range f.secrets {
@@ -55,7 +60,15 @@ func (f *fakeAPI) Secrets(searchText, _ string) ([]server.Secret, error) {
 	return nil, errNotFound
 }
 
-// createSecret assembles a server.Secret from file test_data.json.
+func (f *fakeAPI) SecretByPath(path string) (*server.Secret, error) {
+	for _, s := range f.secrets {
+		if "/"+s.Name == path {
+			return s, nil
+		}
+	}
+	return nil, errNotFound
+}
+
 func createSecret(id int, itemValue string) *server.Secret {
 	s, _ := getJSONData()
 	s.ID = id
@@ -86,9 +99,24 @@ func createTestSecretFromCode(id int) *server.Secret {
 	s.Fields = make([]server.SecretField, 2)
 	s.Fields[0].ItemValue = "usernamevalue"
 	s.Fields[0].FieldName = "Username"
-	s.Fields[0].Slug = "username"
+	s.Fields[0].Slug = usernameSlug
 	s.Fields[1].FieldName = "Password"
-	s.Fields[1].Slug = "password"
+	s.Fields[1].Slug = passwordSlug
+	s.Fields[1].ItemValue = "passwordvalue"
+	return s
+}
+
+func createTestFolderSecret(id, folderId int) *server.Secret {
+	s := new(server.Secret)
+	s.FolderID = folderId
+	s.ID = id
+	s.Name = "FolderSecretname"
+	s.Fields = make([]server.SecretField, 2)
+	s.Fields[0].ItemValue = "usernamevalue"
+	s.Fields[0].FieldName = "Username"
+	s.Fields[0].Slug = usernameSlug
+	s.Fields[1].FieldName = "Password"
+	s.Fields[1].Slug = passwordSlug
 	s.Fields[1].ItemValue = "passwordvalue"
 	return s
 }
@@ -132,7 +160,7 @@ func newTestClient() esv1.SecretsClient {
 				createSecret(6000, "{ \"user\": \"betaTest\", \"password\": \"badPassword\" }"),
 				createNilFieldsSecret(7000),
 				createEmptyFieldsSecret(8000),
-				createSecret(9000, "{ \"user\": \"robertOppenheimer\", \"password\": \"badPassword\", \"domain\":\"domain1\", \"server\":\"192.168.1.50\"}"),
+				createTestFolderSecret(9000, 4),
 			},
 		},
 	}
@@ -145,6 +173,7 @@ func TestGetSecretSecretServer(t *testing.T) {
 	jsonStr, _ := json.Marshal(s)
 	jsonStr2, _ := json.Marshal(createTestSecretFromCode(4000))
 	jsonStr3, _ := json.Marshal(createPlainTextSecret(5000))
+	jsonStr4, _ := json.Marshal(createTestFolderSecret(9000, 4))
 
 	testCases := map[string]struct {
 		ref  esv1.ExternalSecretDataRemoteRef
@@ -263,12 +292,18 @@ func TestGetSecretSecretServer(t *testing.T) {
 			want: []byte(nil),
 			err:  esv1.NoSecretError{},
 		},
-		"Secret from code: with domain": {
+		"Secret by path: valid path returns secret": {
 			ref: esv1.ExternalSecretDataRemoteRef{
-				Key:      "9000",
-				Property: "domain",
+				Key: "/FolderSecretname",
 			},
-			want: []byte(`domain1`),
+			want: jsonStr4,
+		},
+		"Secret by path: invalid path returns error": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key: "/invalid/secret/path",
+			},
+			want: []byte(nil),
+			err:  errNotFound,
 		},
 	}
 
