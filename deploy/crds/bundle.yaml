@@ -22567,8 +22567,8 @@ spec:
               type: object
             spec:
               properties:
-                apiHost:
-                  description: APIHost configures the Cloudsmith API host. Defaults to api.cloudsmith.io.
+                apiUrl:
+                  description: APIURL configures the Cloudsmith API URL. Defaults to https://api.cloudsmith.io.
                   type: string
                 orgSlug:
                   description: OrgSlug is the organization slug in Cloudsmith
@@ -22818,8 +22818,8 @@ spec:
                       type: object
                     cloudsmithAccessTokenSpec:
                       properties:
-                        apiHost:
-                          description: APIHost configures the Cloudsmith API host. Defaults to api.cloudsmith.io.
+                        apiUrl:
+                          description: APIURL configures the Cloudsmith API URL. Defaults to https://api.cloudsmith.io.
                           type: string
                         orgSlug:
                           description: OrgSlug is the organization slug in Cloudsmith

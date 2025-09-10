@@ -21,13 +21,17 @@ import (
 )
 
 type CloudsmithAccessTokenSpec struct {
-	// APIHost configures the Cloudsmith API host. Defaults to api.cloudsmith.io.
-	APIHost string `json:"apiHost,omitempty"`
+	// APIURL configures the Cloudsmith API URL. Defaults to https://api.cloudsmith.io.
+	// +kubebuilder:validation:Optional
+	APIURL string `json:"apiUrl,omitempty"`
 	// OrgSlug is the organization slug in Cloudsmith
+	// +kubebuilder:validation:Required
 	OrgSlug string `json:"orgSlug"`
 	// ServiceSlug is the service slug in Cloudsmith for OIDC authentication
+	// +kubebuilder:validation:Required
 	ServiceSlug string `json:"serviceSlug"`
 	// Name of the service account you are federating with
+	// +kubebuilder:validation:Required
 	ServiceAccountRef esmeta.ServiceAccountSelector `json:"serviceAccountRef"`
 }
 

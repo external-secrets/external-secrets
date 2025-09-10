@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -41,7 +40,7 @@ func TestCloudsmithGenerator_Generate(t *testing.T) {
 			return
 		}
 
-		var req CloudsmithOIDCRequest
+		var req OIDCRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "Bad request", http.StatusBadRequest)
 			return
@@ -49,7 +48,7 @@ func TestCloudsmithGenerator_Generate(t *testing.T) {
 
 		// Mock response with a JWT-like token (simplified for testing)
 		mockToken := mockJWTToken
-		response := CloudsmithOIDCResponse{
+		response := OIDCResponse{
 			Token: mockToken,
 		}
 
@@ -59,16 +58,10 @@ func TestCloudsmithGenerator_Generate(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// Extract host from server URL
-	serverURL, err := url.Parse(server.URL)
-	if err != nil {
-		t.Fatalf("Failed to parse server URL: %v", err)
-	}
-
 	// Create test spec
 	spec := &genv1alpha1.CloudsmithAccessToken{
 		Spec: genv1alpha1.CloudsmithAccessTokenSpec{
-			APIHost:     serverURL.Host,
+			APIURL:      server.URL,
 			OrgSlug:     "test-org",
 			ServiceSlug: "test-service",
 			ServiceAccountRef: esmeta.ServiceAccountSelector{
@@ -125,7 +118,7 @@ func TestCloudsmithGenerator_Generate(t *testing.T) {
 			oidcToken,
 			"test-org",
 			"test-service",
-			serverURL.Host,
+			server.URL,
 		)
 
 		if err != nil {

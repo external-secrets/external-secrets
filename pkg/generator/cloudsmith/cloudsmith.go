@@ -26,8 +26,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
@@ -39,21 +39,20 @@ type Generator struct {
 	httpClient *http.Client
 }
 
-type CloudsmithOIDCRequest struct {
+type OIDCRequest struct {
 	OIDCToken   string `json:"oidc_token"`
 	ServiceSlug string `json:"service_slug"`
 }
 
-type CloudsmithOIDCResponse struct {
+type OIDCResponse struct {
 	Token string `json:"token"`
 }
 
 const (
-	defaultCloudsmithAPIHost = "api.cloudsmith.io"
+	defaultCloudsmithAPIURL = "https://api.cloudsmith.io"
 
 	errNoSpec            = "no config spec provided"
 	errParseSpec         = "unable to parse spec: %w"
-	errGetToken          = "unable to get authorization token: %w"
 	errExchangeToken     = "unable to exchange OIDC token: %w"
 	errMarshalRequest    = "failed to marshal request payload: %w"
 	errCreateRequest     = "failed to create HTTP request: %w"
@@ -61,7 +60,6 @@ const (
 	errReadResponse      = "failed to read response body: %w"
 	errUnmarshalResponse = "failed to unmarshal response: %w"
 	errTokenNotFound     = "token not found in response"
-	errTokenTypeCast     = "error when typecasting token to string"
 
 	httpClientTimeout = 30 * time.Second
 )
@@ -98,13 +96,12 @@ func (g *Generator) generate(
 		return nil, nil, fmt.Errorf("failed to fetch service account token: %w", err)
 	}
 
-	apiHost := res.Spec.APIHost
-	if apiHost == "" {
-		apiHost = defaultCloudsmithAPIHost
+	apiURL := res.Spec.APIURL
+	if apiURL == "" {
+		apiURL = defaultCloudsmithAPIURL
 	}
-	apiHost = strings.TrimPrefix(apiHost, "https://")
 
-	accessToken, err := g.exchangeTokenWithCloudsmith(ctx, oidcToken, res.Spec.OrgSlug, res.Spec.ServiceSlug, apiHost)
+	accessToken, err := g.exchangeTokenWithCloudsmith(ctx, oidcToken, res.Spec.OrgSlug, res.Spec.ServiceSlug, apiURL)
 	if err != nil {
 		return nil, nil, fmt.Errorf(errExchangeToken, err)
 	}
@@ -115,27 +112,27 @@ func (g *Generator) generate(
 	}
 
 	return map[string][]byte{
-		"auth": []byte(b64.StdEncoding.EncodeToString([]byte("token:" + accessToken))),
+		"auth":   []byte(b64.StdEncoding.EncodeToString([]byte("token:" + accessToken))),
 		"expiry": []byte(exp),
 	}, nil, nil
 }
 
-func (g *Generator) exchangeTokenWithCloudsmith(ctx context.Context, oidcToken, orgSlug, serviceSlug, apiHost string) (string, error) {
-	klog.V(4).InfoS("Starting OIDC token exchange with Cloudsmith")
+func (g *Generator) exchangeTokenWithCloudsmith(ctx context.Context, oidcToken, orgSlug, serviceSlug, apiURL string) (string, error) {
+	log := logr.FromContextOrDiscard(ctx)
+	log.V(4).Info("Starting OIDC token exchange with Cloudsmith")
 
-	requestPayload := CloudsmithOIDCRequest{
+	requestPayload := OIDCRequest{
 		OIDCToken:   oidcToken,
 		ServiceSlug: serviceSlug,
 	}
 
 	jsonPayload, err := json.Marshal(requestPayload)
 	if err != nil {
-		klog.ErrorS(err, "Failed to marshal OIDC request payload")
 		return "", fmt.Errorf(errMarshalRequest, err)
 	}
 
-	url := fmt.Sprintf("https://%s/openid/%s/", apiHost, orgSlug)
-	klog.InfoS("Exchanging OIDC token with Cloudsmith",
+	url := fmt.Sprintf("%s/openid/%s/", strings.TrimSuffix(apiURL, "/"), orgSlug)
+	log.Info("Exchanging OIDC token with Cloudsmith",
 		"url", url,
 		"serviceSlug", serviceSlug,
 		"orgSlug", orgSlug)
@@ -149,7 +146,6 @@ func (g *Generator) exchangeTokenWithCloudsmith(ctx context.Context, oidcToken, 
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonPayload))
 	if err != nil {
-		klog.ErrorS(err, "Failed to create HTTP request")
 		return "", fmt.Errorf(errCreateRequest, err)
 	}
 
@@ -157,7 +153,6 @@ func (g *Generator) exchangeTokenWithCloudsmith(ctx context.Context, oidcToken, 
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		klog.ErrorS(err, "Failed to execute HTTP request")
 		return "", fmt.Errorf("failed to execute HTTP request: %w", err)
 	}
 	defer func() {
@@ -165,32 +160,27 @@ func (g *Generator) exchangeTokenWithCloudsmith(ctx context.Context, oidcToken, 
 	}()
 
 	if resp.StatusCode != http.StatusCreated {
-		klog.ErrorS(nil, "Unexpected HTTP status", "status", resp.Status, "statusCode", resp.StatusCode)
 		return "", fmt.Errorf(errUnexpectedStatus, resp.Status)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		klog.ErrorS(err, "Failed to read response body")
 		return "", fmt.Errorf(errReadResponse, err)
 	}
 
-	var result CloudsmithOIDCResponse
+	var result OIDCResponse
 	err = json.Unmarshal(body, &result)
 	if err != nil {
-		klog.ErrorS(err, "Failed to unmarshal response", "body", string(body))
 		return "", fmt.Errorf(errUnmarshalResponse, err)
 	}
 
 	if result.Token == "" {
-		klog.ErrorS(nil, "Token not found in response", "body", string(body))
 		return "", errors.New(errTokenNotFound)
 	}
 
-	klog.V(4).InfoS("Successfully exchanged OIDC token for Cloudsmith access token")
+	log.V(4).Info("Successfully exchanged OIDC token for Cloudsmith access token")
 	return result.Token, nil
 }
-
 
 func parseSpec(specData []byte) (*genv1alpha1.CloudsmithAccessToken, error) {
 	var spec genv1alpha1.CloudsmithAccessToken
