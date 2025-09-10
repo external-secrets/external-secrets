@@ -93,6 +93,12 @@ spec:
               path: /readyz
             initialDelaySeconds: 20
             periodSeconds: 5
+          startupProbe:
+            httpGet:
+              port: {{ .Values.certController.readinessProbe.port }}
+              path: /readyz
+            initialDelaySeconds: 20
+            periodSeconds: 5
           {{- with .Values.certController.extraEnv }}
           env:
             {{- toYaml . | nindent 12 }}
