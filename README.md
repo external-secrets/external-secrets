@@ -17,7 +17,7 @@ To ensure the long-term health of the project, we are temporarily pausing all of
 
 ✅ Contributions will be available on the main branch.
 
-❌ We will not provide support via GitHub Discussions, Slack, or issue comments.
+❌ We will not provide support via Slack, or issue comments.
 
 ❌ We will not publish any new releases (major, minor, or patch), including 0.19.x and 1.0.x.
 
