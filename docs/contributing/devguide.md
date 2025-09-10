@@ -36,17 +36,16 @@ make lint # OR
 docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.49.0 golangci-lint run
 ```
 
-Check license headers:
-```shell
-make license-check        # Check all Go files
-make license-check-pr     # Check only files added in current PR
-```
-All Go files must include the Apache License 2.0 header. The CI will automatically check this for new files in pull requests.
-
 Build the documentation:
 ```shell
 make docs
 ```
+
+## License Headers
+
+All Go source files must include the Apache License 2.0 header. The CI automatically checks license headers for new files added in pull requests using [Apache SkyWalking Eyes](https://github.com/apache/skywalking-eyes).
+
+If you need to check license headers locally, you can use the SkyWalking Eyes tool directly. The configuration is in `.licenserc.yaml` at the project root.
 
 ## Using Tilt
 
