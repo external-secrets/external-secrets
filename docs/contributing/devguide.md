@@ -41,6 +41,12 @@ Build the documentation:
 make docs
 ```
 
+## License Headers
+
+All Go source files must include the Apache License 2.0 header. The CI automatically checks license headers for new files added in pull requests using [Apache SkyWalking Eyes](https://github.com/apache/skywalking-eyes).
+
+If you need to check license headers locally, you can use the SkyWalking Eyes tool directly. The configuration is in `.licenserc.yaml` at the project root.
+
 ## Using Tilt
 
 [Tilt](https://tilt.dev) can be used to develop external-secrets. Tilt will hot-reload changes to the code and replace

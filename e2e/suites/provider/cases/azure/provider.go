@@ -1,13 +1,16 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+	https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
 limitations under the License.
 */
 package azure
@@ -264,9 +267,9 @@ func newProviderWithStaticCredentials(tenantID, vaultURL, secretName string) *es
 func newProviderWithStaticCredentialsNewSDK(tenantID, vaultURL, secretName string) *esv1.AzureKVProvider {
 	useNewSDK := true
 	return &esv1.AzureKVProvider{
-		TenantID:     &tenantID,
-		VaultURL:     &vaultURL,
-		UseAzureSDK:  &useNewSDK,
+		TenantID:    &tenantID,
+		VaultURL:    &vaultURL,
+		UseAzureSDK: &useNewSDK,
 		AuthSecretRef: &esv1.AzureKVAuth{
 			ClientID: &esmeta.SecretKeySelector{
 				Name: staticSecretName,
@@ -399,7 +402,7 @@ func (s *azureProvider) CreateReferentSecretStoreNewSDK() {
 		},
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
-				AzureKV: newProviderWithStaticCredentialsNewSDK(s.tenantID, s.vaultURL, referentSecretName + "-new-sdk"),
+				AzureKV: newProviderWithStaticCredentialsNewSDK(s.tenantID, s.vaultURL, referentSecretName+"-new-sdk"),
 			},
 		},
 	}

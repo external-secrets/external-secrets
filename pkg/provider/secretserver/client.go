@@ -1,9 +1,11 @@
 /*
+Copyright © 2025 ESO Maintainer Team
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,8 +21,9 @@ import (
 	"encoding/json"
 	"errors"
 	"strconv"
+	"strings"
 
-	"github.com/DelineaXPM/tss-sdk-go/v2/server"
+	"github.com/DelineaXPM/tss-sdk-go/v3/server"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 
@@ -73,7 +76,7 @@ func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 		}
 	}
 
-	// More general case Fields is an array in DelineaXPM/tss-sdk-go/v2/server
+	// More general case Fields is an array in DelineaXPM/tss-sdk-go/v3/server
 	// https://github.com/DelineaXPM/tss-sdk-go/blob/571e5674a8103031ad6f873453db27959ec1ca67/server/secret.go#L23
 	secretMap := make(map[string]string)
 	for index := range secret.Fields {
@@ -145,6 +148,18 @@ func (c *client) getSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteR
 	if ref.Version != "" {
 		return nil, errors.New("specifying a version is not supported")
 	}
+
+	// If the ref.Key looks like a full path (starts with "/"), fetch by path.
+	// Example: "/Folder/Subfolder/SecretName"
+	if strings.HasPrefix(ref.Key, "/") {
+		s, err := c.api.SecretByPath(ref.Key)
+		if err != nil {
+			return nil, err
+		}
+		return s, nil
+	}
+
+	// Otherwise try converting it to an ID
 	id, err := strconv.Atoi(ref.Key)
 	if err != nil {
 		s, err := c.api.Secrets(ref.Key, "Name")
