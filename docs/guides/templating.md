@@ -138,14 +138,14 @@ In case you have a secret that contains a (partial) certificate chain you can ex
 
 ### RSA Decryption Data From Provider
 
-When a provider returns RSA‑encrypted values, you can decrypt them directly in the template using the `getSecretKey` and `rsaDecrypt` functions (engine v2).
+When a provider returns RSA-encrypted values, you can decrypt them directly in the template using the `getSecretKey` and `rsaDecrypt` functions (engine v2).
 
 - `getSecretKey` reads a specific key from a Kubernetes Secret: `getSecretKey "<secret-name>" "<namespace>" "<key>"`. Use it to fetch the RSA private key (PEM) used for decryption.
 - `rsaDecrypt` performs decryption with the private key passed through the pipeline: `<privateKeyPEM | rsaDecrypt "<SCHEME>" "<HASH>" <ciphertext> >`. `SCHEME` and `HASH` are strings (for example, `"RSA-OAEP"` and `"SHA1"`). The third argument must be the ciphertext in binary form.
 
-Base64 handling: providers often return ciphertext as Base64. You can either
-- decode in the template with `b64dec` (e.g., `(.password_encrypted_base64 | b64dec)`), or
-- set `decodingStrategy: Base64` under `spec.data.remoteRef` so the template receives binary data.
+Base64 handling: providers often return ciphertext as Base64. You can either:
+- decode in the template with `b64dec` (for example: `(.password_encrypted_base64 | b64dec)`), or
+- set `decodingStrategy: Base64` on the corresponding `spec.data.remoteRef` so the template receives binary data.
 
 Prerequisites
 - `spec.target.template.engineVersion: v2`.
@@ -158,12 +158,12 @@ Full example:
 {% include 'rsadecrypt-template-v2-external-secret.yaml' %}
 ```
 
-Useful variations (included as comments in the snippet)
+Useful variations (included as comments in the snippet):
 - Base64 decode in the template with `b64dec` or via `decodingStrategy: Base64` on `spec.data`.
-- Use a private key available in the same ExternalSecret (e.g., `{{ .private_key | rsaDecrypt ... }}`).
+- Use a private key available in the same ExternalSecret (for example: `{{ .private_key | rsaDecrypt ... }}`).
 
 Error notes
-- Referencing a missing key in the template fails rendering.
+- Referencing a missing key in the template will fail rendering.
 - If key/algorithm/hash do not match the ciphertext, decryption will fail and reconciliation will retry.
 
 ## Templating with PushSecret
