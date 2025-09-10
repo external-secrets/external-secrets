@@ -17,30 +17,7 @@ header:
       limitations under the License.
       */
 
-  paths-ignore:
-    - 'dist/**'
-    - 'vendor/**'
-    - '**/*.md'
-    - '**/*.txt'
-    - '**/*.yml'
-    - '**/*.yaml'
-    - '**/*.json'
-    - '**/*.proto'
-    - 'LICENSE'
-    - 'NOTICE'
-    - '**/*.sum'
-    - '**/*.mod'
-    - 'Dockerfile*'
-    - '.git/**'
-    - '.github/**'
-    - 'docs/**'
-    - '**/*.png'
-    - '**/*.jpg'
-    - '**/*.svg'
-    - 'hack/api-docs/**'
-    - 'hack/test.crds.generate.sh'
-    - 'hack/crd.generate.sh'
-    - 'hack/helm.generate.sh'
-    - 'hack/boilerplate.go.txt'
+  language:
+    Go: # Only check Go files
 
   comment: on-failure
