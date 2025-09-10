@@ -36,6 +36,13 @@ make lint # OR
 docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.49.0 golangci-lint run
 ```
 
+Check license headers:
+```shell
+make license-check        # Check all Go files
+make license-check-pr     # Check only files added in current PR
+```
+All Go files must include the Apache License 2.0 header. The CI will automatically check this for new files in pull requests.
+
 Build the documentation:
 ```shell
 make docs
