@@ -17,7 +17,7 @@ header:
       limitations under the License.
       */
 
-  language:
-    Go: # Only check Go files
+  paths:
+    - "**/*.go"
 
   comment: on-failure
