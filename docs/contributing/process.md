@@ -144,8 +144,7 @@ Providing support to end users is an important and difficult task.
 We have three different channels through which support questions arise:
 
 1. Kubernetes Slack [#external-secrets](https://kubernetes.slack.com/archives/C017BF84G2Y)
-2. [GitHub Discussions](https://github.com/external-secrets/external-secrets/discussions)
-3. GitHub Issues
+2. [GitHub Issues](https://github.com/external-secrets/external-secrets/issues/new/choose)
 
 We use labels to identify GitHub Issues. Specifically for managing support cases we use the following labels to identify the state a support case is in:
 
