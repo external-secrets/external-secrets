@@ -1,11 +1,11 @@
 /*
-Copyright © 2022 ESO Maintainer Team
+Copyright © 2025 ESO Maintainer Team
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+	https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -73,15 +73,15 @@ var _ = Describe("[azure]", Label("azure", "keyvault", "key"), func() {
 	It("should sync keyvault objects with type=key using new SDK", func() {
 		ff(func(tc *framework.TestCase) {
 			secretKey := "azkv-key-new-sdk"
-			
+
 			// Convert old SDK key to new SDK key format
 			// First marshal the old SDK key
 			oldKeyBytes, _ := json.Marshal(jwk)
-			
+
 			// Unmarshal into the new SDK type
 			var newSDKKey azkeys.JSONWebKey
 			json.Unmarshal(oldKeyBytes, &newSDKKey)
-			
+
 			// Marshal the new SDK key - this will have the new SDK's field ordering
 			keyBytes, _ := json.Marshal(newSDKKey)
 
