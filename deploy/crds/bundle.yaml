@@ -906,7 +906,6 @@ spec:
                                     enum:
                                       - ACRAccessToken
                                       - ClusterGenerator
-                                      - CloudsmithAccessToken
                                       - ECRAuthorizationToken
                                       - Fake
                                       - GCRAccessToken
@@ -1098,7 +1097,6 @@ spec:
                                     enum:
                                       - ACRAccessToken
                                       - ClusterGenerator
-                                      - CloudsmithAccessToken
                                       - ECRAuthorizationToken
                                       - Fake
                                       - GCRAccessToken
@@ -12070,7 +12068,6 @@ spec:
                                 enum:
                                   - ACRAccessToken
                                   - ClusterGenerator
-                                  - CloudsmithAccessToken
                                   - ECRAuthorizationToken
                                   - Fake
                                   - GCRAccessToken
@@ -12262,7 +12259,6 @@ spec:
                                 enum:
                                   - ACRAccessToken
                                   - ClusterGenerator
-                                  - CloudsmithAccessToken
                                   - ECRAuthorizationToken
                                   - Fake
                                   - GCRAccessToken
