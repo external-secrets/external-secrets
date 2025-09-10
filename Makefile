@@ -81,6 +81,16 @@ check-diff: reviewable ## Ensure branch is clean.
 	@test -z "$$(git status --porcelain)" || (echo "$$(git status --porcelain)" && $(FAIL))
 	@$(OK) branch is clean
 
+license-check: ## Check license headers in Go files
+	@$(INFO) checking license headers
+	@./hack/verify-license-header.sh
+	@$(OK) all files have correct license headers
+
+license-check-pr: ## Check license headers in files added to current PR
+	@$(INFO) checking license headers in PR files
+	@./hack/check-pr-license-headers.sh
+	@$(OK) all added files have correct license headers
+
 update-deps:
 	go get -u
 	cd e2e && go get -u
