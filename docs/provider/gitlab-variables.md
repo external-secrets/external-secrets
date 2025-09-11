@@ -28,6 +28,16 @@ In order to sync group variables `inheritFromGroups` must be true or `groupIDs` 
 
 In case you have defined multiple environments in Gitlab, the secret store should be constrained to a specific `environment_scope`.
 
+#### Environment Scope Fallback Behavior
+
+The GitLab provider implements an intelligent fallback mechanism for environment scopes:
+
+1. **Primary lookup**: When you configure a specific `environment` in your SecretStore (example: `environment: "production"`), the provider first tries to find variables with that exact environment scope.
+2. **Automatic fallback**: If no variable is found with the specific environment scope, the provider automatically falls back to variables with "All environments" scope (`*` wildcard).
+3. **Priority order**: Variables with specific environment scopes take precedence over wildcard variables when both exist.
+
+**Example**: If your SecretStore has `environment: "production"` but your GitLab variable is set to "All environments", the variable will still be successfully retrieved through the fallback mechanism.
+
 ```yaml
 {% include 'gitlab-secret-store.yaml' %}
 ```
