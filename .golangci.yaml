@@ -32,6 +32,7 @@ linters:
     - unparam
     - unused
     - whitespace
+    - revive
   settings:
     goconst:
       min-len: 3

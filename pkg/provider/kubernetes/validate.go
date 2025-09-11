@@ -26,8 +26,8 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/constants"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/external-secrets/external-secrets/pkg/metrics"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
@@ -53,7 +53,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		if k8sSpec.Auth.Cert.ClientCert.Key == "" {
 			return nil, errors.New("ClientCert.Key cannot be empty")
 		}
-		if err := utils.ValidateSecretSelector(store, k8sSpec.Auth.Cert.ClientCert); err != nil {
+		if err := esutils.ValidateSecretSelector(store, k8sSpec.Auth.Cert.ClientCert); err != nil {
 			return nil, err
 		}
 	}
@@ -64,12 +64,12 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		if k8sSpec.Auth.Token.BearerToken.Key == "" {
 			return nil, errors.New("BearerToken.Key cannot be empty")
 		}
-		if err := utils.ValidateSecretSelector(store, k8sSpec.Auth.Token.BearerToken); err != nil {
+		if err := esutils.ValidateSecretSelector(store, k8sSpec.Auth.Token.BearerToken); err != nil {
 			return nil, err
 		}
 	}
 	if k8sSpec.Auth != nil && k8sSpec.Auth.ServiceAccount != nil {
-		if err := utils.ValidateReferentServiceAccountSelector(store, *k8sSpec.Auth.ServiceAccount); err != nil {
+		if err := esutils.ValidateReferentServiceAccountSelector(store, *k8sSpec.Auth.ServiceAccount); err != nil {
 			return nil, err
 		}
 	}

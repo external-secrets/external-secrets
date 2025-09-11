@@ -24,7 +24,7 @@ import (
 	"github.com/tidwall/sjson"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
+	"github.com/external-secrets/external-secrets/pkg/esutils/metadata"
 )
 
 type PushSecretMetadataMergePolicy string

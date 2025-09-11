@@ -26,7 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 type client struct {
@@ -124,7 +124,7 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 
 	data := make(map[string][]byte)
 	for k, v := range secretData {
-		data[k], err = utils.GetByteValue(v)
+		data[k], err = esutils.GetByteValue(v)
 		if err != nil {
 			return nil, err
 		}

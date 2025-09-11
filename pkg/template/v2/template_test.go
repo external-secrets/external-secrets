@@ -543,10 +543,10 @@ func TestExecute(t *testing.T) {
 				assert.EqualValues(t, row.expectedData, sec.Data)
 			}
 			if row.expectedLabels != nil {
-				assert.EqualValues(t, row.expectedLabels, sec.ObjectMeta.Labels)
+				assert.EqualValues(t, row.expectedLabels, sec.Labels)
 			}
 			if row.expectedAnnotations != nil {
-				assert.EqualValues(t, row.expectedAnnotations, sec.ObjectMeta.Annotations)
+				assert.EqualValues(t, row.expectedAnnotations, sec.Annotations)
 			}
 		})
 	}

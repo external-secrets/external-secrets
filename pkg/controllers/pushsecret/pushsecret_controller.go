@@ -42,10 +42,10 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/controllers/util"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/pkg/generator/statemanager"
 	"github.com/external-secrets/external-secrets/pkg/provider/util/locks"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 
 	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
 )
@@ -393,7 +393,7 @@ func (r *Reconciler) handlePushSecretDataForStore(ctx context.Context, ps esapi.
 		return out, fmt.Errorf("could not get secrets client for store %v: %w", storeName, err)
 	}
 	for _, data := range ps.Spec.Data {
-		secretData, err := utils.ReverseKeys(data.ConversionStrategy, originalSecretData)
+		secretData, err := esutils.ReverseKeys(data.ConversionStrategy, originalSecretData)
 		if err != nil {
 			return nil, fmt.Errorf(errConvert, err)
 		}

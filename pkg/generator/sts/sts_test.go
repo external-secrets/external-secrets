@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 func TestGenerate(t *testing.T) {
@@ -88,10 +88,10 @@ func TestGenerate(t *testing.T) {
 					t := time.Unix(1234, 0)
 					return &sts.GetSessionTokenOutput{
 						Credentials: &ststypes.Credentials{
-							AccessKeyId:     utils.Ptr("access-key-id"),
-							Expiration:      utils.Ptr(t),
-							SecretAccessKey: utils.Ptr("secret-access-key"),
-							SessionToken:    utils.Ptr("session-token"),
+							AccessKeyId:     esutils.Ptr("access-key-id"),
+							Expiration:      esutils.Ptr(t),
+							SecretAccessKey: esutils.Ptr("secret-access-key"),
+							SessionToken:    esutils.Ptr("session-token"),
 						},
 					}, nil
 				},

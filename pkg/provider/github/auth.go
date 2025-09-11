@@ -21,7 +21,7 @@ import (
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	github "github.com/google/go-github/v56/github"
 
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 )
 
 func (g *Client) AuthWithPrivateKey(ctx context.Context) (*github.Client, error) {

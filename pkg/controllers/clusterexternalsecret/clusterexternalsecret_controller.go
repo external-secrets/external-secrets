@@ -41,7 +41,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 // Reconciler reconciles a ClusterExternalSecret object.
@@ -146,7 +146,7 @@ func (r *Reconciler) reconcile(ctx context.Context, log logr.Logger, clusterExte
 	}
 	selectors = append(selectors, clusterExternalSecret.Spec.NamespaceSelectors...)
 
-	namespaces, err := utils.GetTargetNamespaces(ctx, r.Client, clusterExternalSecret.Spec.Namespaces, selectors)
+	namespaces, err := esutils.GetTargetNamespaces(ctx, r.Client, clusterExternalSecret.Spec.Namespaces, selectors)
 	if err != nil {
 		log.Error(err, "failed to get target Namespaces")
 		failedNamespaces := map[string]error{
@@ -522,7 +522,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, opts controller.Options)
 		Watches(
 			&v1.Namespace{},
 			handler.EnqueueRequestsFromMapFunc(r.findObjectsForNamespace),
-			builder.WithPredicates(utils.NamespacePredicate()),
+			builder.WithPredicates(esutils.NamespacePredicate()),
 		).
 		Complete(r)
 }

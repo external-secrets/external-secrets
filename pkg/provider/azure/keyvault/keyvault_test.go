@@ -34,10 +34,10 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/metadata"
 	"github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault/fake"
 	testingfake "github.com/external-secrets/external-secrets/pkg/provider/testing/fake"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
 )
 
 type secretManagerTestCase struct {
@@ -377,7 +377,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
 		err := sm.DeleteSecret(context.Background(), v.pushData)
-		if !utils.ErrorContains(err, v.expectError) {
+		if !esutils.ErrorContains(err, v.expectError) {
 			if err == nil {
 				t.Errorf("[%d] unexpected error: <nil>, expected: '%s'", k, v.expectError)
 			} else {
@@ -954,7 +954,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			}
 		}
 		err := sm.PushSecret(context.Background(), v.secret, v.pushData)
-		if !utils.ErrorContains(err, v.expectError) {
+		if !esutils.ErrorContains(err, v.expectError) {
 			if err == nil {
 				t.Errorf("[%d] unexpected error: <nil>, expected: '%s'", k, v.expectError)
 			} else {
@@ -964,7 +964,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		if len(v.expectedData) > 0 {
 			sm.baseClient = v.mockClient
 			out, err := sm.GetSecretMap(context.Background(), *v.ref)
-			if !utils.ErrorContains(err, v.expectError) {
+			if !esutils.ErrorContains(err, v.expectError) {
 				t.Errorf(unexpectedError, k, err.Error(), v.expectError)
 			}
 			if err == nil && !reflect.DeepEqual(out, v.expectedData) {
@@ -1340,7 +1340,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
 		out, err := sm.GetSecret(context.Background(), *v.ref)
-		if !utils.ErrorContains(err, v.expectError) {
+		if !esutils.ErrorContains(err, v.expectError) {
 			t.Errorf(unexpectedError, k, err.Error(), v.expectError)
 		}
 		if string(out) != v.expectedSecret {
@@ -1499,7 +1499,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
 		out, err := sm.GetSecretMap(context.Background(), *v.ref)
-		if !utils.ErrorContains(err, v.expectError) {
+		if !esutils.ErrorContains(err, v.expectError) {
 			t.Errorf(unexpectedError, k, err.Error(), v.expectError)
 		}
 		if err == nil && !reflect.DeepEqual(out, v.expectedData) {
@@ -1642,7 +1642,7 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
 		out, err := sm.GetAllSecrets(context.Background(), *v.refFind)
-		if !utils.ErrorContains(err, v.expectError) {
+		if !esutils.ErrorContains(err, v.expectError) {
 			t.Errorf(unexpectedError, k, err.Error(), v.expectError)
 		}
 		if err == nil && !reflect.DeepEqual(out, v.expectedData) {
@@ -1847,7 +1847,7 @@ func TestAzureKeyVaultSecretExists(t *testing.T) {
 		sm.baseClient = tc.mockClient
 		exists, err := sm.SecretExists(context.Background(), tc.pushData)
 
-		if !utils.ErrorContains(err, tc.expectError) {
+		if !esutils.ErrorContains(err, tc.expectError) {
 			if err == nil {
 				t.Errorf("[%d] unexpected error: <nil>, expected: '%s'", k, tc.expectError)
 			} else {

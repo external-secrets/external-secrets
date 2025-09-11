@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	esoClient "github.com/external-secrets/external-secrets/pkg/utils"
+	esoClient "github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 const (

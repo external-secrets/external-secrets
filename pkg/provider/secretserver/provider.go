@@ -23,8 +23,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 )
 
 var (
@@ -102,7 +102,7 @@ func loadConfigSecret(
 
 func validateStoreSecretRef(store esv1.GenericStore, ref *esv1.SecretServerProviderRef) error {
 	if ref.SecretRef != nil {
-		if err := utils.ValidateReferentSecretSelector(store, *ref.SecretRef); err != nil {
+		if err := esutils.ValidateReferentSecretSelector(store, *ref.SecretRef); err != nil {
 			return err
 		}
 	}

@@ -33,7 +33,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -150,7 +150,7 @@ func (r *Reconciler) ReadyCheck(_ *http.Request) error {
 	if err := r.checkCRDs(); err != nil {
 		return err
 	}
-	return utils.CheckEndpointSlicesReady(context.TODO(), r.Client, r.SvcName, r.SvcNamespace)
+	return esutils.CheckEndpointSlicesReady(context.TODO(), r.Client, r.SvcName, r.SvcNamespace)
 }
 
 func (r *Reconciler) checkCRDs() error {

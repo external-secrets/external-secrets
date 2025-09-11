@@ -11,6 +11,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 limitations under the License.
 */
 
+// Package template provides utilities for working with different template engine versions.
 package template
 
 import (
@@ -22,8 +23,10 @@ import (
 	v2 "github.com/external-secrets/external-secrets/pkg/template/v2"
 )
 
+// ExecFunc is the function signature type for executing a template engine.
 type ExecFunc func(tpl, data map[string][]byte, scope esapi.TemplateScope, target esapi.TemplateTarget, secret *corev1.Secret) error
 
+// EngineForVersion returns the appropriate template engine for the given version.
 func EngineForVersion(version esapi.TemplateEngineVersion) (ExecFunc, error) {
 	// We want to leave this for new versions
 	switch version { //nolint:gocritic

@@ -36,8 +36,8 @@ type fakeAPI struct {
 }
 
 const (
-    usernameSlug = "username"
-    passwordSlug = "password"
+	usernameSlug = "username"
+	passwordSlug = "password"
 )
 
 func (f *fakeAPI) Secret(id int) (*server.Secret, error) {

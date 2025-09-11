@@ -25,8 +25,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	dClient "github.com/external-secrets/external-secrets/pkg/provider/doppler/client"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -108,7 +108,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	storeSpec := store.GetSpec()
 	dopplerStoreSpec := storeSpec.Provider.Doppler
 	dopplerTokenSecretRef := dopplerStoreSpec.Auth.SecretRef.DopplerToken
-	if err := utils.ValidateSecretSelector(store, dopplerTokenSecretRef); err != nil {
+	if err := esutils.ValidateSecretSelector(store, dopplerTokenSecretRef); err != nil {
 		return nil, fmt.Errorf(errInvalidStore, err)
 	}
 
