@@ -37,6 +37,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esoClient "github.com/external-secrets/external-secrets/pkg/utils"
+	resolvers "github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 const (
@@ -127,12 +128,13 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	config := store.GetSpec().Provider.Beyondtrust
 	logger := logging.NewLogrLogger(&ESOLogger)
 
-	clientID, clientSecret, apiKey, err := loadCredentialsFromConfig(ctx, config, kube, namespace)
+	storeKind := store.GetKind()
+	clientID, clientSecret, apiKey, err := loadCredentialsFromConfig(ctx, config, kube, namespace, storeKind)
 	if err != nil {
 		return nil, fmt.Errorf("error loading credentials: %w", err)
 	}
 
-	certificate, certificateKey, err := loadCertificateFromConfig(ctx, config, kube, namespace)
+	certificate, certificateKey, err := loadCertificateFromConfig(ctx, config, kube, namespace, storeKind)
 	if err != nil {
 		return nil, fmt.Errorf("error loading certificate: %w", err)
 	}
@@ -198,46 +200,34 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}, nil
 }
 
-func loadCredentialsFromConfig(ctx context.Context, config *esv1.BeyondtrustProvider, kube client.Client, namespace string) (string, string, string, error) {
-	var clientID, clientSecret, apiKey string
-	var err error
-
+func loadCredentialsFromConfig(ctx context.Context, config *esv1.BeyondtrustProvider, kube client.Client, namespace, storeKind string) (string, string, string, error) {
 	if config.Auth.APIKey != nil {
-		apiKey, err = loadConfigSecret(ctx, config.Auth.APIKey, kube, namespace)
-		if err != nil {
-			return "", "", "", fmt.Errorf("error loading apiKey: %w", err)
-		}
-	} else {
-		clientID, err = loadConfigSecret(ctx, config.Auth.ClientID, kube, namespace)
-		if err != nil {
-			return "", "", "", fmt.Errorf("error loading clientID: %w", err)
-		}
-
-		clientSecret, err = loadConfigSecret(ctx, config.Auth.ClientSecret, kube, namespace)
-		if err != nil {
-			return "", "", "", fmt.Errorf("error loading clientSecret: %w", err)
-		}
+		apiKey, err := loadConfigSecret(ctx, config.Auth.APIKey, kube, namespace, storeKind)
+		return "", "", apiKey, err
 	}
-
-	return clientID, clientSecret, apiKey, nil
+	clientID, err := loadConfigSecret(ctx, config.Auth.ClientID, kube, namespace, storeKind)
+	if err != nil {
+		return "", "", "", fmt.Errorf("error loading clientID: %w", err)
+	}
+	clientSecret, err := loadConfigSecret(ctx, config.Auth.ClientSecret, kube, namespace, storeKind)
+	if err != nil {
+		return "", "", "", fmt.Errorf("error loading clientSecret: %w", err)
+	}
+	return clientID, clientSecret, "", nil
 }
 
-func loadCertificateFromConfig(ctx context.Context, config *esv1.BeyondtrustProvider, kube client.Client, namespace string) (string, string, error) {
-	var certificate, certificateKey string
-	var err error
-
-	if config.Auth.Certificate != nil && config.Auth.CertificateKey != nil {
-		certificate, err = loadConfigSecret(ctx, config.Auth.Certificate, kube, namespace)
-		if err != nil {
-			return "", "", fmt.Errorf("error loading Certificate: %w", err)
-		}
-
-		certificateKey, err = loadConfigSecret(ctx, config.Auth.CertificateKey, kube, namespace)
-		if err != nil {
-			return "", "", fmt.Errorf("error loading Certificate Key: %w", err)
-		}
+func loadCertificateFromConfig(ctx context.Context, config *esv1.BeyondtrustProvider, kube client.Client, namespace, storeKind string) (string, string, error) {
+	if config.Auth.Certificate == nil || config.Auth.CertificateKey == nil {
+		return "", "", nil
 	}
-
+	certificate, err := loadConfigSecret(ctx, config.Auth.Certificate, kube, namespace, storeKind)
+	if err != nil {
+		return "", "", fmt.Errorf("error loading Certificate: %w", err)
+	}
+	certificateKey, err := loadConfigSecret(ctx, config.Auth.CertificateKey, kube, namespace, storeKind)
+	if err != nil {
+		return "", "", fmt.Errorf("error loading Certificate Key: %w", err)
+	}
 	return certificate, certificateKey, nil
 }
 
@@ -293,34 +283,18 @@ func getAuthenticator(input AuthenticatorInput) (*auth.AuthenticationObj, error)
 	return auth.Authenticate(parametersObj)
 }
 
-func loadConfigSecret(ctx context.Context, ref *esv1.BeyondTrustProviderSecretRef, kube client.Client, defaultNamespace string) (string, error) {
+func loadConfigSecret(ctx context.Context, ref *esv1.BeyondTrustProviderSecretRef, kube client.Client, defaultNamespace, storeKind string) (string, error) {
 	if ref.SecretRef == nil {
 		return ref.Value, nil
 	}
-
 	if err := validateSecretRef(ref); err != nil {
 		return "", err
 	}
-
-	namespace := defaultNamespace
-	if ref.SecretRef.Namespace != nil {
-		namespace = *ref.SecretRef.Namespace
-	}
-
-	ESOLogger.Info("using k8s secret", "name:", ref.SecretRef.Name, "namespace:", namespace)
-	objKey := client.ObjectKey{Namespace: namespace, Name: ref.SecretRef.Name}
-	secret := v1.Secret{}
-	err := kube.Get(ctx, objKey, &secret)
+	value, err := resolvers.SecretKeyRef(ctx, kube, storeKind, defaultNamespace, ref.SecretRef)
 	if err != nil {
 		return "", err
 	}
-
-	value, ok := secret.Data[ref.SecretRef.Key]
-	if !ok {
-		return "", fmt.Errorf(errNoSuchKeyFmt, ref.SecretRef.Key)
-	}
-
-	return string(value), nil
+	return value, nil
 }
 
 func validateSecretRef(ref *esv1.BeyondTrustProviderSecretRef) error {
