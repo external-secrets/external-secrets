@@ -38,6 +38,8 @@ The GitLab provider implements an intelligent fallback mechanism for environment
 
 **Example**: If your SecretStore has `environment: "production"` but your GitLab variable is set to "All environments", the variable will still be successfully retrieved through the fallback mechanism.
 
+> **Implementation Note**: This fallback behavior is implemented in the [`getVariables` function](https://github.com/external-secrets/external-secrets/blob/636ce0578dda4a623a681066def8998a68b051a6/pkg/provider/gitlab/provider.go#L134-L151) where the provider automatically retries with `EnvironmentScope: "*"` when the initial lookup with the specific environment scope returns a 404 Not Found response.
+
 ```yaml
 {% include 'gitlab-secret-store.yaml' %}
 ```
