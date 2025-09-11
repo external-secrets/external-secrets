@@ -15,7 +15,6 @@ limitations under the License.
 package v1
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -66,13 +65,14 @@ type ExternalSecretMetadata struct {
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
+// ClusterExternalSecretConditionType defines a value type for ClusterExternalSecret conditions.
 type ClusterExternalSecretConditionType string
 
 const ClusterExternalSecretReady ClusterExternalSecretConditionType = "Ready"
 
 type ClusterExternalSecretStatusCondition struct {
-	Type   ClusterExternalSecretConditionType `json:"type"`
-	Status corev1.ConditionStatus             `json:"status"`
+	// ClusterExternalSecretStatusCondition represents a condition in the ClusterExternal-Secret's status.
+	Type ClusterExternalSecretConditionType `json:"type"`
 
 	// +optional
 	Message string `json:"message,omitempty"`
@@ -106,6 +106,7 @@ type ClusterExternalSecretStatus struct {
 	Conditions []ClusterExternalSecretStatusCondition `json:"conditions,omitempty"`
 }
 
+// ClusterExternalSecret is the Schema for the clusterexternalsecrets API.
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:resource:scope=Cluster,categories={external-secrets},shortName=ces
@@ -114,20 +115,16 @@ type ClusterExternalSecretStatus struct {
 // +kubebuilder:printcolumn:name="Store",type=string,JSONPath=`.spec.externalSecretSpec.secretStoreRef.name`
 // +kubebuilder:printcolumn:name="Refresh Interval",type=string,JSONPath=`.spec.refreshTime`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
-// ClusterExternalSecret is the Schema for the clusterexternalsecrets API.
 type ClusterExternalSecret struct {
-	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   ClusterExternalSecretSpec   `json:"spec,omitempty"`
 	Status ClusterExternalSecretStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-
 // ClusterExternalSecretList contains a list of ClusterExternalSecret.
+// +kubebuilder:object:root=true
 type ClusterExternalSecretList struct {
-	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ClusterExternalSecret `json:"items"`
 }

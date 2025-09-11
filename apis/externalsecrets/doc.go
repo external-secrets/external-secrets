@@ -14,4 +14,5 @@ limitations under the License.
 
 // +groupName=external-secrets.io
 
+// Package externalsecrets contains API Schema definitions for the externalsecrets v1 API group.
 package externalsecrets
