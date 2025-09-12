@@ -16,10 +16,10 @@ limitations under the License.
 package common
 
 import (
-	"context"
 	"fmt"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -731,7 +731,7 @@ func DeletionPolicyDelete(f *framework.Framework) (string, func(*framework.TestC
 			prov.DeleteSecret(remoteRefKey2)
 
 			gomega.Eventually(func() bool {
-				_, err := f.KubeClientSet.CoreV1().Secrets(f.Namespace.Name).Get(context.Background(), secret.Name, metav1.GetOptions{})
+				_, err := f.KubeClientSet.CoreV1().Secrets(f.Namespace.Name).Get(GinkgoT().Context(), secret.Name, metav1.GetOptions{})
 				return errors.IsNotFound(err)
 			}, time.Minute*5, time.Second*5).Should(gomega.BeTrue())
 		}

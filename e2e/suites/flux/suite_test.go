@@ -17,7 +17,6 @@ limitations under the License.
 package flux
 
 import (
-	"context"
 	"testing"
 
 	// nolint
@@ -32,10 +31,8 @@ import (
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	cfg := &addon.Config{}
-	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
 	installFlux()
-	installESO(cfg)
+	installESO()
 	return nil
 }, func([]byte) {
 	// noop
@@ -48,10 +45,10 @@ var _ = SynchronizedAfterSuite(func() {
 	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
 	By("Deleting any pending generator states")
 	generatorStates := &genv1alpha1.GeneratorStateList{}
-	err := cfg.CRClient.List(context.Background(), generatorStates)
+	err := cfg.CRClient.List(GinkgoT().Context(), generatorStates)
 	Expect(err).ToNot(HaveOccurred())
 	for _, generatorState := range generatorStates.Items {
-		err = cfg.CRClient.Delete(context.Background(), &generatorState)
+		err = cfg.CRClient.Delete(GinkgoT().Context(), &generatorState)
 		Expect(err).ToNot(HaveOccurred())
 	}
 
@@ -60,6 +57,7 @@ var _ = SynchronizedAfterSuite(func() {
 	if CurrentSpecReport().Failed() {
 		addon.PrintLogs()
 	}
+	uninstallFlux()
 })
 
 func TestE2E(t *testing.T) {

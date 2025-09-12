@@ -17,9 +17,9 @@ limitations under the License.
 package common
 
 import (
-	"context"
 
 	// nolint
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -119,7 +119,7 @@ func SetupSessionTagsStore(f *framework.Framework, access AccessOpts, sessionTag
 			staticySessionToken:   access.ST,
 		},
 	}
-	err := f.CRClient.Create(context.Background(), awsCreds)
+	err := f.CRClient.Create(GinkgoT().Context(), awsCreds)
 	Expect(err).ToNot(HaveOccurred())
 
 	secretStore := &esv1.SecretStore{
@@ -131,7 +131,7 @@ func SetupSessionTagsStore(f *framework.Framework, access AccessOpts, sessionTag
 			Provider: newStaticStoreProvider(serviceType, access.Region, credsName, access.Role, "", sessionTags),
 		},
 	}
-	err = f.CRClient.Create(context.Background(), secretStore)
+	err = f.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -150,7 +150,7 @@ func SetupExternalIDStore(f *framework.Framework, access AccessOpts, externalID 
 			staticySessionToken:   access.ST,
 		},
 	}
-	err := f.CRClient.Create(context.Background(), awsCreds)
+	err := f.CRClient.Create(GinkgoT().Context(), awsCreds)
 	Expect(err).ToNot(HaveOccurred())
 
 	secretStore := &esv1.SecretStore{
@@ -162,7 +162,7 @@ func SetupExternalIDStore(f *framework.Framework, access AccessOpts, externalID 
 			Provider: newStaticStoreProvider(serviceType, access.Region, credsName, access.Role, externalID, sessionTags),
 		},
 	}
-	err = f.CRClient.Create(context.Background(), secretStore)
+	err = f.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -180,7 +180,7 @@ func SetupStaticStore(f *framework.Framework, access AccessOpts, serviceType esv
 			staticySessionToken:   access.ST,
 		},
 	}
-	err := f.CRClient.Create(context.Background(), awsCreds)
+	err := f.CRClient.Create(GinkgoT().Context(), awsCreds)
 	Expect(err).ToNot(HaveOccurred())
 
 	secretStore := &esv1.SecretStore{
@@ -192,7 +192,7 @@ func SetupStaticStore(f *framework.Framework, access AccessOpts, serviceType esv
 			Provider: newStaticStoreProvider(serviceType, access.Region, StaticCredentialsSecretName, "", "", nil),
 		},
 	}
-	err = f.CRClient.Create(context.Background(), secretStore)
+	err = f.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -212,7 +212,7 @@ func CreateReferentStaticStore(f *framework.Framework, access AccessOpts, servic
 			staticySessionToken:   access.ST,
 		},
 	}
-	err := f.CRClient.Create(context.Background(), awsCreds)
+	err := f.CRClient.Create(GinkgoT().Context(), awsCreds)
 	Expect(err).ToNot(HaveOccurred())
 
 	secretStore := &esv1.ClusterSecretStore{
@@ -223,7 +223,7 @@ func CreateReferentStaticStore(f *framework.Framework, access AccessOpts, servic
 			Provider: newStaticStoreProvider(serviceType, access.Region, StaticReferentCredentialsSecretName, "", "", nil),
 		},
 	}
-	err = f.CRClient.Create(context.Background(), secretStore)
+	err = f.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }
 

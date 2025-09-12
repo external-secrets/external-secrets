@@ -17,7 +17,6 @@ limitations under the License.
 package generator
 
 import (
-	"context"
 	"testing"
 
 	// nolint
@@ -35,7 +34,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
 
 	By("installing eso")
-	addon.InstallGlobalAddon(addon.NewESO(addon.WithCRDs()), cfg)
+	addon.InstallGlobalAddon(addon.NewESO(addon.WithCRDs()))
 
 	return nil
 }, func([]byte) {
@@ -49,10 +48,10 @@ var _ = SynchronizedAfterSuite(func() {
 	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
 	By("Deleting any pending generator states")
 	generatorStates := &genv1alpha1.GeneratorStateList{}
-	err := cfg.CRClient.List(context.Background(), generatorStates)
+	err := cfg.CRClient.List(GinkgoT().Context(), generatorStates)
 	Expect(err).ToNot(HaveOccurred())
 	for _, generatorState := range generatorStates.Items {
-		err = cfg.CRClient.Delete(context.Background(), &generatorState)
+		err = cfg.CRClient.Delete(GinkgoT().Context(), &generatorState)
 		Expect(err).ToNot(HaveOccurred())
 	}
 	By("Cleaning up global addons")

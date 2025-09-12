@@ -18,10 +18,10 @@ package addon
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"os/exec"
 
+	. "github.com/onsi/ginkgo/v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -104,13 +104,13 @@ func (c *HelmChart) Install() error {
 // Uninstall removes the chart aswell as the repo.
 func (c *HelmChart) Uninstall() error {
 	var sout, serr bytes.Buffer
-	args := []string{"delete", "--namespace", c.Namespace, c.ReleaseName}
+	args := []string{"uninstall", "--namespace", c.Namespace, c.ReleaseName, "--wait"}
 	cmd := exec.Command("helm", args...)
 	cmd.Stdout = &sout
 	cmd.Stderr = &serr
 	err := cmd.Run()
 	if err != nil {
-		return fmt.Errorf("unable to delete helm release: %w: %s, %s", err, sout.String(), serr.String())
+		return fmt.Errorf("unable to uninstall helm release: %w: %s, %s", err, sout.String(), serr.String())
 	}
 	return c.removeRepo()
 }
@@ -152,7 +152,7 @@ func (c *HelmChart) removeRepo() error {
 func (c *HelmChart) Logs() error {
 	kc := c.config.KubeClientSet
 	podList, err := kc.CoreV1().Pods(c.Namespace).List(
-		context.TODO(),
+		GinkgoT().Context(),
 		metav1.ListOptions{LabelSelector: "app.kubernetes.io/instance=" + c.ReleaseName})
 	if err != nil {
 		return err
@@ -167,7 +167,7 @@ func (c *HelmChart) Logs() error {
 					Container: con.Name,
 					Previous:  b,
 					TailLines: &tailLines,
-				}).Do(context.TODO())
+				}).Do(GinkgoT().Context())
 
 				err := resp.Error()
 				if err != nil {

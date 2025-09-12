@@ -17,26 +17,26 @@ limitations under the License.
 package addon
 
 import (
-	"context"
+	"strings"
 
-	"github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/ginkgo/v2"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func uninstallCRDs(cfg *Config) error {
-	ginkgo.By("Uninstalling eso CRDs")
+	By("Uninstalling eso CRDs")
 	var crdList apiextensionsv1.CustomResourceDefinitionList
-	if err := cfg.CRClient.List(context.Background(), &crdList); err != nil {
+	if err := cfg.CRClient.List(GinkgoT().Context(), &crdList); err != nil {
 		return err
 	}
 
 	for _, crd := range crdList.Items {
-		if crd.Spec.Group != "external-secrets.io" {
+		if !strings.Contains(crd.Spec.Group, "external-secrets.io") {
 			continue
 		}
-		err := cfg.CRClient.Delete(context.Background(), &crd, &client.DeleteOptions{})
+		err := cfg.CRClient.Delete(GinkgoT().Context(), &crd, &client.DeleteOptions{})
 		if err != nil && !apierrors.IsNotFound(err) {
 			return err
 		}

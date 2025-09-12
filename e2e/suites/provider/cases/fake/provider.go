@@ -17,7 +17,6 @@ limitations under the License.
 package fake
 
 import (
-	"context"
 	"encoding/json"
 
 	// nolint
@@ -47,7 +46,7 @@ func NewProvider(f *framework.Framework) *Provider {
 
 func (s *Provider) CreateSecret(key string, val framework.SecretEntry) {
 	var store esv1.SecretStore
-	err := s.framework.CRClient.Get(context.Background(), types.NamespacedName{
+	err := s.framework.CRClient.Get(GinkgoT().Context(), types.NamespacedName{
 		Namespace: s.framework.Namespace.Name,
 		Name:      s.framework.Namespace.Name,
 	}, &store)
@@ -60,7 +59,7 @@ func (s *Provider) CreateSecret(key string, val framework.SecretEntry) {
 		Key:   key,
 		Value: val.Value,
 	})
-	err = s.framework.CRClient.Patch(context.Background(), &store, client.MergeFrom(base))
+	err = s.framework.CRClient.Patch(GinkgoT().Context(), &store, client.MergeFrom(base))
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -70,7 +69,7 @@ func (s *Provider) BeforeEach() {
 
 func (s *Provider) DeleteSecret(key string) {
 	var store esv1.SecretStore
-	err := s.framework.CRClient.Get(context.Background(), types.NamespacedName{
+	err := s.framework.CRClient.Get(GinkgoT().Context(), types.NamespacedName{
 		Namespace: s.framework.Namespace.Name,
 		Name:      s.framework.Namespace.Name,
 	}, &store)
@@ -83,7 +82,7 @@ func (s *Provider) DeleteSecret(key string) {
 		}
 	}
 	store.Spec.Provider.Fake.Data = data
-	err = s.framework.CRClient.Patch(context.Background(), &store, client.MergeFrom(base))
+	err = s.framework.CRClient.Patch(GinkgoT().Context(), &store, client.MergeFrom(base))
 	Expect(err).ToNot(HaveOccurred())
 }
 
@@ -103,6 +102,6 @@ func (s *Provider) CreateStore() {
 			},
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), fakeStore)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), fakeStore)
 	Expect(err).ToNot(HaveOccurred())
 }

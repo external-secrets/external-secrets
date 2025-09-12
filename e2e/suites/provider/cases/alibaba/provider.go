@@ -17,7 +17,6 @@ limitations under the License.
 package alibaba
 
 import (
-	"context"
 	"os"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/kms"
@@ -95,7 +94,7 @@ func (s *alibabaProvider) BeforeEach() {
 			secretName: "value",
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), alibabaCreds)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), alibabaCreds)
 	Expect(err).ToNot(HaveOccurred())
 
 	// Creating Alibaba secret store
@@ -123,6 +122,6 @@ func (s *alibabaProvider) BeforeEach() {
 			},
 		},
 	}
-	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }

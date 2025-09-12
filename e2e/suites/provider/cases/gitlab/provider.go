@@ -17,7 +17,6 @@ limitations under the License.
 package gitlab
 
 import (
-	"context"
 	"os"
 	"strings"
 
@@ -113,7 +112,7 @@ func (s *gitlabProvider) BeforeEach() {
 			"environment": s.environment,
 		},
 	}
-	err := s.framework.CRClient.Create(context.Background(), gitlabCreds)
+	err := s.framework.CRClient.Create(GinkgoT().Context(), gitlabCreds)
 	Expect(err).ToNot(HaveOccurred())
 
 	// Create a secret store - change these values to match YAML
@@ -140,6 +139,6 @@ func (s *gitlabProvider) BeforeEach() {
 		},
 	}
 
-	err = s.framework.CRClient.Create(context.Background(), secretStore)
+	err = s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
 	Expect(err).ToNot(HaveOccurred())
 }

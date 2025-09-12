@@ -17,10 +17,10 @@ limitations under the License.
 package generator
 
 import (
-	"context"
 	"time"
 
 	//nolint
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	// nolint
@@ -65,15 +65,15 @@ func generatorTableFunc(f *framework.Framework, tweaks ...func(*testCase)) {
 		t(tc)
 	}
 
-	err := f.CRClient.Create(context.Background(), tc.Generator)
+	err := f.CRClient.Create(GinkgoT().Context(), tc.Generator)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = f.CRClient.Create(context.Background(), tc.ExternalSecret)
+	err = f.CRClient.Create(GinkgoT().Context(), tc.ExternalSecret)
 	Expect(err).ToNot(HaveOccurred())
 
 	Eventually(func() bool {
 		var es esv1.ExternalSecret
-		err = f.CRClient.Get(context.Background(), types.NamespacedName{
+		err = f.CRClient.Get(GinkgoT().Context(), types.NamespacedName{
 			Namespace: tc.ExternalSecret.Namespace,
 			Name:      tc.ExternalSecret.Name,
 		}, &es)
@@ -89,7 +89,7 @@ func generatorTableFunc(f *framework.Framework, tweaks ...func(*testCase)) {
 	}).WithTimeout(time.Second * 30).Should(BeTrue())
 
 	var secret v1.Secret
-	err = f.CRClient.Get(context.Background(), types.NamespacedName{
+	err = f.CRClient.Get(GinkgoT().Context(), types.NamespacedName{
 		Namespace: tc.ExternalSecret.Namespace,
 		Name:      tc.ExternalSecret.Spec.Target.Name,
 	}, &secret)

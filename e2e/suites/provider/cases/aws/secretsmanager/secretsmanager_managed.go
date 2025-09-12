@@ -30,7 +30,7 @@ import (
 // here we use the global eso instance
 // that uses the service account in the default namespace
 // which was created by terraform.
-var _ = Describe("[awsmanaged] IRSA via referenced service account", Label("aws", "secretsmanager", "managed"), func() {
+var _ = Describe("[awsmanaged] IRSA via referenced service account", Label("aws", "secretsmanager", "managed"), Ordered, func() {
 	f := framework.New("eso-aws-managed")
 	prov := NewFromEnv(f)
 
@@ -58,7 +58,7 @@ var _ = Describe("[awsmanaged] IRSA via referenced service account", Label("aws"
 
 // here we create a central eso instance in the default namespace
 // that mounts the service account which was created by terraform.
-var _ = Describe("[awsmanaged] with mounted IRSA", Label("aws", "secretsmanager", "managed"), func() {
+var _ = Describe("[awsmanaged] with mounted IRSA", Label("aws", "secretsmanager", "managed"), Ordered, func() {
 	f := framework.New("eso-aws-managed")
 	prov := NewFromEnv(f)
 

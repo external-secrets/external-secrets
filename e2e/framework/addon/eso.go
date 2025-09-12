@@ -18,6 +18,7 @@ package addon
 
 import (
 	"os"
+	"path/filepath"
 	"time"
 
 	// nolint
@@ -38,7 +39,7 @@ func NewESO(mutators ...MutationFunc) *ESO {
 		&HelmChart{
 			Namespace:   "default",
 			ReleaseName: "eso",
-			Chart:       "/k8s/deploy/charts/external-secrets",
+			Chart:       filepath.Join(AssetDir(), "deploy/charts/external-secrets"),
 			Vars: []StringTuple{
 				{
 					Key:   "webhook.port",
