@@ -1273,6 +1273,128 @@ configuration is not supported with the legacy go-autorest SDK.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.BarbicanProvider">BarbicanProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>authURL</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>tenantName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>domainName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>username</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanProviderRef">
+BarbicanProviderRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>password</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanProviderRef">
+BarbicanProviderRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.BarbicanProviderRef">BarbicanProviderRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BarbicanProvider">BarbicanProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.BeyondTrustProviderSecretRef">BeyondTrustProviderSecretRef
 </h3>
 <p>
@@ -9269,6 +9391,20 @@ NgrokProvider
 <td>
 <em>(Optional)</em>
 <p>Ngrok configures this store to sync secrets using the ngrok provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>barbican</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanProvider">
+BarbicanProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Barbican configures this store to sync secrets using the OpenStack Barbican provider</p>
 </td>
 </tr>
 </tbody>
