@@ -1,11 +1,8 @@
-# KEP-NNNN: SecretStores and Generators v2 (Out-of-Tree Providers)
+# SecretStores and Generators v2 (Out-of-Tree Providers)
 
 <!-- toc -->
-- [Release Signoff Checklist](#release-signoff-checklist)
 - [Summary](#summary)
-- [Motivation](#motivation)
-  - [Goals](#goals)
-  - [Non-Goals](#non-goals)
+- [Goals](#goals)
 - [Proposal](#proposal)
   - [Overview](#overview)
   - [API Resources](#api-resources)
@@ -18,10 +15,7 @@
   - [Out-of-Tree Providers Maintenance](#out-of-tree-providers-maintenance)
     - [Deployment](#deployment)
     - [Governance](#governance)
-  - [User Stories (Optional)](#user-stories-optional)
-    - [Story 1](#story-1)
-    - [Story 2](#story-2)
-  - [Notes/Constraints/Caveats (Optional)](#notesconstraintscaveats-optional)
+  - [Notes/Constraints/Caveats](#notesconstraintscaveats)
   - [Risks and Mitigations](#risks-and-mitigations)
 - [Design Details](#design-details)
   - [Test Plan](#test-plan)
@@ -31,63 +25,41 @@
     - [e2e tests](#e2e-tests)
   - [Graduation Criteria](#graduation-criteria)
   - [Upgrade / Downgrade Strategy](#upgrade--downgrade-strategy)
-  - [Version Skew Strategy](#version-skew-strategy)
-- [Production Readiness Review Questionnaire](#production-readiness-review-questionnaire)
-  - [Feature Enablement and Rollback](#feature-enablement-and-rollback)
-  - [Rollout, Upgrade and Rollback Planning](#rollout-upgrade-and-rollback-planning)
   - [Monitoring Requirements](#monitoring-requirements)
-  - [Dependencies](#dependencies)
-  - [Scalability](#scalability)
   - [Troubleshooting](#troubleshooting)
-- [Implementation History](#implementation-history)
 - [Drawbacks](#drawbacks)
 - [Alternatives](#alternatives)
-- [Infrastructure Needed (Optional)](#infrastructure-needed-optional)
 <!-- /toc -->
-
-## Release Signoff Checklist
-
 
 ## Summary
 
-This KEP proposes a v2 architecture and API for SecretStores and Generators in External Secrets Operator (ESO). The primary goals are to:
+This proposes a v2 architecture and API for SecretStores and Generators in External Secrets Operator. The primary goals are to:
 
 - Support out-of-tree providers as first-class citizens, allowing independent versioning and distribution.
-- Unify feature sets of SecretStores and Generators (e.g., refresh, gating, generator state) under consistent CRDs and controllers.
+- Unify feature sets of SecretStores and Generators (e.g. refresh, gating) under consistent CRDs and controllers.
 - Make referent authentication modes explicit and easier to use.
 - Allow users to install only the providers they need.
-
-## Motivation
+- reduce the dependency footprint of ESO to improve its security posture
 
 There are several limitations in the current (v1) SecretStore and Generator architectures that hinder flexibility and maintainability:
 
-- Different provider versioning is difficult.
-- Out-of-tree providers are not first-class.
+- Different provider versioning is not possible.
+- Out-of-tree providers are not first-class - they're only supported through the webhook provider.
 - Users cannot easily install/uninstall only the desired providers.
 - Referent authentication modes are implicit and hard to learn/use.
 
-SecretStores and Generators also diverge in core features:
-
-- SecretStores support ClusterSecretStores with referent authentication and cross-namespace generation; Generators do not.
-- Generators support GeneratorState for caching; SecretStores do not.
-- SecretStores are periodically refreshed; Generators are not.
-- Badly configured SecretStores gate jobs; Generators do not.
-
-### Goals
+## Goals
 
 - Implement new CRDs: SecretStore/v2alpha1, ClusterSecretStore/v2alpha1, Generator/v2alpha1, ClusterGenerator/v2alpha1.
 - Enable ESO to run without in-tree providers; users install providers separately.
 - Provide a provider configuration model that connects to out-of-tree providers via gRPC/TLS.
 - Make referent authentication explicit (e.g., authentication scope for cluster-scoped resources).
 - Add unified behaviors: refresh intervals, controller classes, retry settings, and gating policies.
-- Introduce explicit state tracking policy for Generators.
 - Maintain ExternalSecret/PushSecret compatibility via apiVersion on storeRef.
 - Provide a migration path from v1 to v2, including a v1 plugin provider bridge and dedicated builds without v1 code.
-- Deliver at least one test provider (fake) and one functional reference provider (e.g., AWS/GCP/Vault) as out-of-tree projects.
-- Add end-to-end tests and documentation to validate and explain the new model.
-
-### Non-Goals
-
+- Deliver all providers (e.g., AWS/GCP/Vault) as out-of-tree projects.
+- Migrate the existing end-to-end tests into the new out-of-tree structure
+- Provide documentation to validate and explain the new model.
 
 ## Proposal
 
@@ -147,7 +119,7 @@ status: {}
 ```
 
 Notes:
-- `providerRef` is owned and managed by the provider and lives in a separate API group (`provider.secretstore.external-secrets.io`).
+- the resource referenced by `providerRef` is owned and managed by the provider and lives in a separate API group (`provider.secretstore.external-secrets.io`).
 
 #### ClusterSecretStore
 
@@ -183,10 +155,7 @@ spec:
 
 Generators adopt `providerConfig` to delegate generation to out-of-tree providers and gain parity features.
 
-- `refreshInterval` to periodically reconcile.
-- `controller` to support controller classes.
 - `providerConfig` to delegate to an out-of-tree provider.
-- `statePolicy` and `stateSpec` to control GeneratorState creation/patching.
 - `gatingPolicy` to enable/disable floodgating for generators.
 
 ```yaml
@@ -196,19 +165,13 @@ metadata:
   name: my-password
   namespace: default
 spec:
-  refreshInterval: 1m
-  controller: dev
+  gatingPolicy: Enabled
   providerConfig:
     address: http+unix:///path/to/socket.sock
     providerRef:
       name: password-gen
       namespace: default
       kind: Password
-  statePolicy: Track # or Ignore
-  stateSpec:
-    garbageCollectionDeadline: "5m"
-    statePatch: {}
-  gatingPolicy: Enabled
 ---
 apiVersion: provider.generator.external-secrets.io/v2alpha1
 kind: Password
@@ -241,10 +204,6 @@ spec:
       name: password-gen
       namespace: default
       kind: Password
-  statePolicy: Track # or Ignore
-  stateSpec:
-    garbageCollectionDeadline: "5m"
-    statePatch: {}
   gatingPolicy: Enabled
   authenticationNamespace: ProviderReference # or ManifestReference
   conditions:
@@ -261,68 +220,119 @@ To maintain compatibility, `ExternalSecret` and `PushSecret` add `secretStoreRef
 
 Provider and Generator interfaces are updated to pass full specs and enable provider-side processing.
 
-```
-ProviderV2
-----------
-GetSecret(SecretStoreSpec, ExternalSecretDataRemoteRef) ([]byte, error)
-PushSecret(SecretStoreSpec, *corev1.Secret, PushSecretData) error
-DeleteSecret(SecretStoreSpec, PushSecretRemoteRef) error
-SecretExists(SecretStoreSpec, PushSecretRemoteRef) (bool, error)
-GetAllSecrets(SecretStoreSpec, ExternalSecretFind) (map[string][]byte, error)
-Validate(SecretStoreSpec) (admission.Warnings, error)
-Capabilities(SecretStoreSpec) SecretStoreCapabilities
+```go
+type ProviderV2 interface {
+  GetSecret(SecretStoreSpec, ExternalSecretDataRemoteRef) ([]byte, error)
+  PushSecret(SecretStoreSpec, *corev1.Secret, PushSecretData) error
+  DeleteSecret(SecretStoreSpec, PushSecretRemoteRef) error
+  SecretExists(SecretStoreSpec, PushSecretRemoteRef) (bool, error)
+  GetAllSecrets(SecretStoreSpec, ExternalSecretFind) (map[string][]byte, error)
+  Validate(SecretStoreSpec) (admission.Warnings, error)
+  Capabilities(SecretStoreSpec) SecretStoreCapabilities
+}
 
-GeneratorV2
------------
-Generate(GeneratorSpec) (map[string][]byte, GeneratorProviderState, error)
-Cleanup(GeneratorSpec, GeneratorProviderState) error
+type GeneratorV2 interface {
+  Generate(GeneratorSpec) (map[string][]byte, GeneratorProviderState, error)
+  Cleanup(GeneratorSpec, GeneratorProviderState) error
+}
 ```
 
 ### Out-of-Tree Providers Maintenance
 
 #### Deployment
 
-Out-of-tree providers are separate projects with their own repos, images, and Helm charts. Users deploy ESO and the providers they need. ESO connects to providers via a Kubernetes Service indicated by `providerConfig.address`. Co-locating providers as sidecars is discouraged to preserve isolation and scalability.
+Out-of-tree providers are separate projects with their own repos, images, and Helm charts. Users deploy ESO and the providers they need. ESO connects to providers via a Kubernetes Service indicated by `providerConfig.address`. Co-locating providers as sidecars is **discouraged** to preserve isolation and scalability.
 
 #### Governance
 
-- One repo per provider (e.g., `external-secrets-provider-aws`).
+- One repo per "official" eso maintained provider (e.g., `provider-aws`).
 - Promotion lifecycle (experimental → stable).
 - CODEOWNERS and standard PR workflows per provider.
-- Optionally a collective community repo for community-maintained providers.
+- A collective community repo `provider-contrib` for community-maintained providers.
 
-### User Stories (Optional)
-
-#### Story 1
-
-#### Story 2
-
-### Notes/Constraints/Caveats (Optional)
+### Notes/Constraints/Caveats
 
 - Do not implement Unix domain sockets for sidecars; providers should run as independent deployments to ensure horizontal scalability, separate network policies, and stronger isolation.
 - Cluster-scoped resources delegate to namespaced providers; referent authentication is explicit via `authenticationScope`.
-- Generators should not introduce caching policy that stores sensitive data in ESO; state tracking controls metadata/state only.
 
 ### Risks and Mitigations
 
-- Operational overhead: Users manage separate provider deployments → mitigated by dedicated Helm charts and independent versioning per provider.
-- Misconfiguration and noisy retries: Introduce `gatingPolicy`, `retrySettings`, and periodic reconciliation to surface and control failures.
-- Network boundary and TLS management: Use gRPC/TLS with explicit `providerConfig.auth`; document rotation and certificate management practices.
+- Operational overhead: Users manage separate provider deployments 
+    - mitigated by dedicated Helm charts and independent versioning per provider.
+- Maintenance overhead: every provider needs similar infrastructure such as a helm chart, e2e test framework and test cases, a common library to bootstrap the provider's GRPC server, metrics, initialising clients etc.
+    - mitigated by providing one or more `common` repos, e.g. `provider-common` which host the shared code among eso-core and all providers (similar to https://github.com/fluxcd/pkg).
+- TLS management: someone needs to manage the TLS certs/keys: do we push it to the user or do we provide it ourselves?
+    - mitigated by (1) implement certificate management with `cert-controller` and  provide an integration mechanism with cert-manager.
 
 ## Design Details
 
 ### Test Plan
 
+This plan validates core changes in eso-core and out-of-tree providers, including security boundaries and migration flows.
+
 #### Prerequisite testing updates
+- Create a provider conformance test suite (library) that providers run against locally and in CI (covers GetSecret, GetAllSecrets, Push/Delete/Exists when implemented, error semantics, auth, TLS).
+- Add a fake gRPC provider for tests to simulate success, latency, failures, and version skew.
+- CI jobs: 
+  - fast unit/integration on PR
+  - extended e2e and conformance nightly
+  - artifacts for v1 providerless build
 
 #### Unit tests
+- eso-core
+  - Routing by secretStoreRef.apiVersion (v1 vs v2).
+  - Validation of providerConfig and references; gating policy; retry/backoff.
+  - Referent auth: deny cross-namespace access for namespaced SecretStores; respect ClusterSecretStore scope rules.
+  - Metrics emission (.ObserveAPICall or provider-side equivalents) and labels.
+  - Robust error mapping from provider responses to conditions/events.
+- Providers (adapters and common libs)
+  - gRPC client/server option wiring, TLS, timeouts, backoff and cancellation.
+  - Auth resolvers from SecretRefs/ServiceAccounts, including namespace scoping.
+  - Serialization of providerRef and request/response schemas.
+- Generators
+  - providerConfig passthrough, state persistence, and gating.
 
 #### Integration tests
+- envtest-based controller tests installing v2alpha1 CRDs (SecretStore/ClusterSecretStore/Generator/ClusterGenerator).
+- In-process fake provider; verify refresh, target templates, dataFrom, GetAllSecrets, and error propagation.
+- Security boundaries
+  - Namespaced store cannot read Secret from another namespace; Cluster store may when allowed by selector/scope.
+  - Conditions and namespace constraints on ClusterSecretStore resources are enforced.
+- Migration
+  - v1 plugin provider forwards to v2 provider; existing ExternalSecrets continue to sync; switch to v2 stores without data loss.
+- Failure injection: DNS/TLS failures, expired certs, non-retryable vs retryable errors, deadline exceeded.
+- Version skew: eso-core N with provider N-1/N+1 where compatible; reject incompatible versions with clear status.
+- Run with -race; ensure no data races in reconcile paths.
 
 #### e2e tests
+- kind-based suites deploying:
+  - eso-core (v1+plugin / v2-enabled) and all eso maintained out-of-tree providers.
+  - Scenario matrix: namespaced and cluster stores, referent auth modes, gating on/off, refresh and templating.
+  - Scale smoke: O(1000) ExternalSecrets across O(50) namespaces; measure sync latency and resource usage.
+  - Disruption: roll provider Deployment/Service; TLS cert rotation; verify recovery without manual intervention.
+  - Upgrade: v1-only -> mixed (v1 plugin + v2 provider) -> v2-only.
+- Conformance suite executed against each supported provider repo (as optional gate for community providers).
 
 ### Graduation Criteria
 
+Alpha
+- v2alpha1 CRDs published; feature behind a feature gate and disabled by default in stable images.
+- Unit/integration tests implemented; initial e2e with fake/sample provider green on 2 supported Kubernetes versions.
+- Basic metrics and status/conditions wired; documentation draft and examples provided.
+
+Beta
+- Enabled by default (feature gate remains for rollback); docs complete; migration guide published.
+- Provider conformance test suite v1.0 released; at least two providers pass the suite and run e2e in CI.
+- Broad provider support: ≥3 major providers pass conformance and publish compatibility matrix.
+- Security: referent auth boundaries verified by automated tests; fuzz tests for provider API payloads; TLS required by default.
+- Version skew policy documented and tested (eso-core N with provider N-1/N+1 where contract allows).
+- Performance baselines documented; scale e2e passing; no critical open bugs; user feedback from early adopters.
+
+GA
+- Feature gate removed (or defaulted on permanently); CRDs promoted (e.g., v2beta1->v2 or equivalent) without breaking API.
+- Upgrade/downgrade and rollback procedures validated in CI; migration from v1 documented and tooling available.
+- SLOs met (availability and sync latency); telemetry and dashboards documented.
+- No known security gaps in namespace isolation/auth; passing periodic conformance in provider repos.
 
 ### Upgrade / Downgrade Strategy
 
@@ -331,48 +341,36 @@ A phased migration enables safe adoption from v1 to v2:
 1) Early adoption via a v1 plugin provider
 - Introduce a special `plugin` provider within `SecretStore/v1` that forwards requests to v2 out-of-tree providers. This allows testing v2 providers without changing existing v1 resources.
 
-2) Full migration
+2) Dedicated builds
+- Provide ESO builds without in-tree provider code to reduce footprint for fully migrated users.
+
+3) Full migration
 - Define v2 SecretStore and Generator CRDs pointing to out-of-tree provider deployments/CRs.
 - Update `ExternalSecret` manifests to use `secretStoreRef.apiVersion: secretstore.external-secrets.io/v2alpha1` and reference v2 stores.
 - Decommission v1 stores after all `ExternalSecret` resources are migrated.
 
-3) Dedicated builds
-- Provide ESO builds without v1 CRDs and in-tree provider code to reduce footprint for fully migrated users.
-
-### Version Skew Strategy
-
-
-## Production Readiness Review Questionnaire
-
-### Feature Enablement and Rollback
-
-
-### Rollout, Upgrade and Rollback Planning
-
 
 ### Monitoring Requirements
-
-
-### Dependencies
-
-
-### Scalability
-
+- Add GRPC-related metrics to eso-core (client-side) as well as on the provider (server) side
+- Migrate metrics (`.ObserveAPICall()`) to the provider
 
 ### Troubleshooting
-
-
-## Implementation History
-
+A user would have the same troubleshooting flow: 
+- inspect Secret
+- describe ExternalSecret
+- describe SecretStore
+- (new) describe provider-owned resource
+- inspect logs of eso-core
+- (new) inspect logs of provider pods
 
 ## Drawbacks
 
-- Increased operational responsibility for users to deploy and manage provider lifecycles in addition to ESO.
+- Increased operational complexity and responsibility for users to deploy and manage provider lifecycles in addition to ESO.
 - New CRDs introduce a learning curve and require updated documentation.
 - Separate repositories, issue trackers, and release pipelines for each provider increase maintenance overhead.
 - Distributed maintenance across community providers can fragment ownership.
 
 ## Alternatives
 
-
-## Infrastructure Needed (Optional)
+- just provide a GRPC plugin mechanism and move providers out of tree without a v2 SecretStore
+- get rid of the SecretStore alltogether and directly point from a `ExternalSecret` at a `Kind=AWSSecretsManager`.
