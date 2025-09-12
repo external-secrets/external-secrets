@@ -210,6 +210,10 @@ type SecretStoreProvider struct {
 	// CloudruSM configures this store to sync secrets using the Cloud.ru Secret Manager provider
 	// +optional
 	CloudruSM *CloudruSMProvider `json:"cloudrusm,omitempty"`
+
+	// Plugin configures this store to sync secrets using external plugins via HashiCorp go-plugin
+	// +optional
+	Plugin *PluginProvider `json:"plugin,omitempty"`
 }
 
 type CAProviderType string
