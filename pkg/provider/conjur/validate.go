@@ -24,8 +24,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/external-secrets/external-secrets/pkg/provider/conjur/util"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 // ValidateStore validates the store.
@@ -70,10 +70,10 @@ func validateAPIKeyStore(store esv1.GenericStore, auth esv1.ConjurAPIKey) error 
 	if auth.APIKeyRef == nil {
 		return errors.New("missing Auth.Apikey.ApiKeyRef")
 	}
-	if err := utils.ValidateReferentSecretSelector(store, *auth.UserRef); err != nil {
+	if err := esutils.ValidateReferentSecretSelector(store, *auth.UserRef); err != nil {
 		return fmt.Errorf("invalid Auth.Apikey.UserRef: %w", err)
 	}
-	if err := utils.ValidateReferentSecretSelector(store, *auth.APIKeyRef); err != nil {
+	if err := esutils.ValidateReferentSecretSelector(store, *auth.APIKeyRef); err != nil {
 		return fmt.Errorf("invalid Auth.Apikey.ApiKeyRef: %w", err)
 	}
 	return nil
@@ -90,12 +90,12 @@ func validateJWTStore(store esv1.GenericStore, auth esv1.ConjurJWT) error {
 		return errors.New("must specify Auth.Jwt.SecretRef or Auth.Jwt.ServiceAccountRef")
 	}
 	if auth.SecretRef != nil {
-		if err := utils.ValidateReferentSecretSelector(store, *auth.SecretRef); err != nil {
+		if err := esutils.ValidateReferentSecretSelector(store, *auth.SecretRef); err != nil {
 			return fmt.Errorf("invalid Auth.Jwt.SecretRef: %w", err)
 		}
 	}
 	if auth.ServiceAccountRef != nil {
-		if err := utils.ValidateReferentServiceAccountSelector(store, *auth.ServiceAccountRef); err != nil {
+		if err := esutils.ValidateReferentServiceAccountSelector(store, *auth.ServiceAccountRef); err != nil {
 			return fmt.Errorf("invalid Auth.Jwt.ServiceAccountRef: %w", err)
 		}
 	}

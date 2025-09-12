@@ -30,8 +30,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/provider/cloudru/secretmanager/adapter"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+
 )
 
 var (
@@ -136,7 +136,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 		out[s.GetPath()] = secret
 	}
 
-	return utils.ConvertKeys(ref.ConversionStrategy, out)
+	return esutils.ConvertKeys(ref.ConversionStrategy, out)
 }
 
 func (c *Client) accessSecret(ctx context.Context, key, version string) ([]byte, error) {

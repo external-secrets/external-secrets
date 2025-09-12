@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 )
 
 const (

@@ -29,7 +29,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 const (
@@ -63,12 +63,12 @@ func (p *Provider) PushSecret(ctx context.Context, secret *corev1.Secret, data e
 		return errors.New("remote key must be defined")
 	}
 
-	value, err := utils.ExtractSecretData(data, secret)
+	value, err := esutils.ExtractSecretData(data, secret)
 	if err != nil {
 		return fmt.Errorf("failed to extract secret data: %w", err)
 	}
 
-	note, err := utils.FetchValueFromMetadata(NoteMetadataKey, data.GetMetadata(), "")
+	note, err := esutils.FetchValueFromMetadata(NoteMetadataKey, data.GetMetadata(), "")
 	if err != nil {
 		return fmt.Errorf("failed to fetch note from metadata: %w", err)
 	}

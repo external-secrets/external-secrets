@@ -31,9 +31,9 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
 )
 
 var _ esv1.SecretsClient = &client{}
@@ -57,7 +57,7 @@ func (c *client) newConfig(ctx context.Context) (*vault.Config, error) {
 
 	if len(c.store.CABundle) != 0 || c.store.CAProvider != nil {
 		caCertPool := x509.NewCertPool()
-		ca, err := utils.FetchCACertFromSource(ctx, utils.CreateCertOpts{
+		ca, err := esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{
 			CABundle:   c.store.CABundle,
 			CAProvider: c.store.CAProvider,
 			StoreKind:  c.storeKind,
