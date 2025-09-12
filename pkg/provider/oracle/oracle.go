@@ -42,8 +42,8 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/pkg/utils"
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 )
 
 const (
@@ -200,7 +200,7 @@ func (vms *VaultManagementService) GetAllSecrets(ctx context.Context, ref esv1.E
 }
 
 func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	if utils.IsNil(vms.Client) {
+	if esutils.IsNil(vms.Client) {
 		return nil, errors.New(errUninitalizedOracleProvider)
 	}
 
@@ -526,7 +526,7 @@ func (vms *VaultManagementService) ValidateStore(store esv1.GenericStore) (admis
 		return nil, errors.New("privateKey.key cannot be empty")
 	}
 
-	err := utils.ValidateSecretSelector(store, privateKey)
+	err := esutils.ValidateSecretSelector(store, privateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -541,13 +541,13 @@ func (vms *VaultManagementService) ValidateStore(store esv1.GenericStore) (admis
 		return nil, errors.New("fingerprint.key cannot be empty")
 	}
 
-	err = utils.ValidateSecretSelector(store, fingerprint)
+	err = esutils.ValidateSecretSelector(store, fingerprint)
 	if err != nil {
 		return nil, err
 	}
 
 	if oracleSpec.ServiceAccountRef != nil {
-		if err := utils.ValidateReferentServiceAccountSelector(store, *oracleSpec.ServiceAccountRef); err != nil {
+		if err := esutils.ValidateReferentServiceAccountSelector(store, *oracleSpec.ServiceAccountRef); err != nil {
 			return nil, fmt.Errorf("invalid ServiceAccountRef: %w", err)
 		}
 	}
@@ -578,7 +578,7 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(store esv1.Generi
 		return auth.OkeWorkloadIdentityConfigurationProvider()
 	}
 	// Ensure the service account ref is being used appropriately, so arbitrary tokens are not minted by the provider.
-	if err = utils.ValidateServiceAccountSelector(store, *serviceAcccountRef); err != nil {
+	if err = esutils.ValidateServiceAccountSelector(store, *serviceAcccountRef); err != nil {
 		return nil, fmt.Errorf("invalid ServiceAccountRef: %w", err)
 	}
 	cfg, err := ctrlcfg.GetConfig()

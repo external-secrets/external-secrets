@@ -36,8 +36,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/external-secrets/external-secrets/pkg/provider/cloudru/secretmanager/adapter"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 func init() {
@@ -163,12 +163,12 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	}
 
 	ref := csmProvider.Auth.SecretRef
-	err := utils.ValidateReferentSecretSelector(store, ref.AccessKeyID)
+	err := esutils.ValidateReferentSecretSelector(store, ref.AccessKeyID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid spec: auth.secretRef.accessKeyID: %w", err)
 	}
 
-	err = utils.ValidateReferentSecretSelector(store, ref.AccessKeySecret)
+	err = esutils.ValidateReferentSecretSelector(store, ref.AccessKeySecret)
 	if err != nil {
 		return nil, fmt.Errorf("invalid spec: auth.secretRef.accessKeySecret: %w", err)
 	}

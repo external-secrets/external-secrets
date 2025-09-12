@@ -31,8 +31,8 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	fake "github.com/external-secrets/external-secrets/pkg/provider/chef/fake"
-	"github.com/external-secrets/external-secrets/pkg/utils"
 )
 
 const (
@@ -185,7 +185,7 @@ func TestChefGetSecret(t *testing.T) {
 	for k, v := range successCases {
 		sm.databagService = v.mockClient
 		out, err := sm.GetSecret(ctx, *v.ref)
-		if err != nil && !utils.ErrorContains(err, v.expectError) {
+		if err != nil && !esutils.ErrorContains(err, v.expectError) {
 			t.Errorf("[case %d] expected error: %v, got: %v", k, v.expectError, err)
 		} else if v.expectError != "" && err == nil {
 			t.Errorf("[case %d] expected error: %v, got: nil", k, v.expectError)
@@ -238,7 +238,7 @@ func TestChefGetSecretMap(t *testing.T) {
 	for k, v := range successCases {
 		pc.databagService = v.mockClient
 		out, err := pc.GetSecretMap(ctx, *v.ref)
-		if err != nil && !utils.ErrorContains(err, v.expectError) {
+		if err != nil && !esutils.ErrorContains(err, v.expectError) {
 			t.Errorf("[case %d] expected error: %v, got: %v", k, v.expectError, err)
 		} else if v.expectError != "" && err == nil {
 			t.Errorf("[case %d] expected error: %v, got: nil", k, v.expectError)

@@ -21,7 +21,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 
-	"github.com/external-secrets/external-secrets/pkg/utils/metadata"
+	"github.com/external-secrets/external-secrets/pkg/esutils/metadata"
 )
 
 type PushSecretMetadataSpec struct {

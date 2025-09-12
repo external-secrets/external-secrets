@@ -19,7 +19,7 @@ package vault
 import (
 	"context"
 
-	"github.com/external-secrets/external-secrets/pkg/utils/resolvers"
+	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
 )
 
 func setSecretKeyToken(ctx context.Context, v *client) (bool, error) {
