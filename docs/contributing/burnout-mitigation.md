@@ -3,7 +3,7 @@
 ## Overview
 
 This document provides a framework for identifying, preventing, and addressing contributor burnout in the External Secrets Operator (ESO) project. Based on lessons learned from past experiences and successful community outreach efforts, this guide aims to help maintain a sustainable project without the need for release pauses or drastic measures.
-
+It is everyone's responsibility to _identify_ burnout and inform the team at a community meeting. "See it, say it, sorted."
 ## Understanding Burnout
 
 ### What is Contributor Burnout?
@@ -72,7 +72,7 @@ None of these things will guaranteed solutions, however, they might help.
 - Certain areas could be covered by the same maintainer (e.g., specific providers, testing, documentation)
 - Keep release and support roles on a rotation so people don't think they are in a rut
 - Document tribal knowledge to make it accessible to others
-
+- Take over other contributor's work by extending your own ownership area when something goes wrong.
 #### Automate Repetitive Tasks
 
 CI/CD pipelines can help a lot in taking away some of the menial tasks while working on the project.
