@@ -23,6 +23,7 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/provider/alibaba"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/aws"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/azure/keyvault"
+	_ "github.com/external-secrets/external-secrets/pkg/provider/barbican"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/beyondtrust"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/bitwarden"
 	_ "github.com/external-secrets/external-secrets/pkg/provider/chef"
