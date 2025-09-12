@@ -152,3 +152,17 @@ visibility and outreach. There are many channel on which ESO can communicate but
 
 Whatever we do the most important part is visibility _BEFORE_ we get to this point. Before all of this, the most important part is
 monitoring the maintainers health and general well being. Prevention instead of escalation.
+
+
+## Our reaction when things do not go as planned
+
+Contributors will come and go. It is perfectly normal (and even welcomed!) in an open source project.
+When events occur and response do not go as planned, the maintainers team will take decisions and expose them in a community meeting.
+
+Here is our DNA: Contributor's healths come first. We will never compromise humans for software.
+
+The team will try (best effort) to:
+- minimize impact on community
+- be transparent over any potential impact
+
+Maintainers stepping back from the project is perfectly _fine_, the project slowing down is _fine_. this shouldn't be seen as a negative. People need to take care of themselves first before they can take care of the project.
