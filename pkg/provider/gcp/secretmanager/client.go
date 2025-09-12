@@ -226,6 +226,11 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 			Replication: replication,
 		}
 
+		// fix: cannot set Replication at all when using regional Secrets.
+		if c.store.Location == "" {
+			scrt.Replication = replication
+		}
+
 		topics, err := utils.FetchValueFromMetadata(topicsKey, pushSecretData.GetMetadata(), []any{})
 		if err != nil {
 			return fmt.Errorf("failed to fetch topics from metadata: %w", err)
