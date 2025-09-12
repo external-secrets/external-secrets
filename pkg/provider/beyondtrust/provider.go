@@ -290,11 +290,7 @@ func loadConfigSecret(ctx context.Context, ref *esv1.BeyondTrustProviderSecretRe
 	if err := validateSecretRef(ref); err != nil {
 		return "", err
 	}
-	value, err := resolvers.SecretKeyRef(ctx, kube, storeKind, defaultNamespace, ref.SecretRef)
-	if err != nil {
-		return "", err
-	}
-	return value, nil
+	return resolvers.SecretKeyRef(ctx, kube, storeKind, defaultNamespace, ref.SecretRef)
 }
 
 func validateSecretRef(ref *esv1.BeyondTrustProviderSecretRef) error {
