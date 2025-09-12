@@ -40,11 +40,14 @@ import (
 	"unicode"
 
 	"github.com/go-logr/logr"
+	authv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
@@ -858,4 +861,62 @@ func CheckEndpointSlicesReady(ctx context.Context, c client.Client, svcName, svc
 		return errAddressesNotReady
 	}
 	return nil
+}
+
+// ParseJWTClaims extracts claims from a JWT token string.
+func ParseJWTClaims(tokenString string) (map[string]interface{}, error) {
+	// Split the token into its three parts
+	parts := strings.Split(tokenString, ".")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("invalid token format")
+	}
+
+	// Decode the payload (the second part of the token)
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return nil, fmt.Errorf("error decoding payload: %w", err)
+	}
+
+	var claims map[string]interface{}
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return nil, fmt.Errorf("error un-marshaling claims: %w", err)
+	}
+	return claims, nil
+}
+
+// ExtractJWTExpiration extracts the expiration time from a JWT token string.
+func ExtractJWTExpiration(tokenString string) (string, error) {
+	claims, err := ParseJWTClaims(tokenString)
+	if err != nil {
+		return "", fmt.Errorf("error getting claims: %w", err)
+	}
+	exp, ok := claims["exp"].(float64)
+	if ok {
+		return strconv.FormatFloat(exp, 'f', -1, 64), nil
+	}
+
+	return "", fmt.Errorf("exp claim not found or wrong type")
+}
+
+// FetchServiceAccountToken creates a service account token for the specified service account.
+func FetchServiceAccountToken(ctx context.Context, saRef esmeta.ServiceAccountSelector, namespace string) (string, error) {
+	cfg, err := ctrlcfg.GetConfig()
+	if err != nil {
+		return "", err
+	}
+	kubeClient, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return "", fmt.Errorf("failed to create kubernetes client: %w", err)
+	}
+
+	tokenRequest := &authv1.TokenRequest{
+		Spec: authv1.TokenRequestSpec{
+			Audiences: saRef.Audiences,
+		},
+	}
+	tokenResponse, err := kubeClient.CoreV1().ServiceAccounts(namespace).CreateToken(ctx, saRef.Name, tokenRequest, metav1.CreateOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to create token: %w", err)
+	}
+	return tokenResponse.Status.Token, nil
 }

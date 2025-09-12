@@ -1,0 +1,29 @@
+{% raw %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: cloudsmith-credentials
+  namespace: default
+spec:
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: CloudsmithAccessToken
+          name: my-cloudsmith-token
+  refreshInterval: 50m # Refresh before token expires
+  target:
+    name: cloudsmith-credentials
+    template:
+      type: kubernetes.io/dockerconfigjson
+      data:
+        .dockerconfigjson: |
+          {
+            "auths": {
+              "docker.cloudsmith.io": {
+                "auth": "{{ .auth }}"
+              }
+            }
+          }
+
+{% endraw %}
