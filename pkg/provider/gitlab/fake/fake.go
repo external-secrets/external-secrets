@@ -17,6 +17,7 @@ limitations under the License.
 package fake
 
 import (
+	"errors"
 	"net/http"
 
 	gitlab "gitlab.com/gitlab-org/api/client-go"
@@ -88,16 +89,13 @@ func mockGetVariable[V GitVariable](keyExtractor extractKey[V], responses []APIR
 	return func(pid any, key string, options ...gitlab.RequestOptionFunc) (*V, *gitlab.Response, error) {
 		getCount++
 		if getCount > len(responses)-1 {
-			return nil, make404APIResponse(), nil
+			return nil, make404APIResponse(), errors.New("404 Not Found")
 		}
 		var match *V
 		for _, v := range responses[getCount].Output {
 			if keyExtractor(*v) == key {
 				match = v
 			}
-		}
-		if match == nil {
-			return nil, make404APIResponse(), nil
 		}
 		return match, responses[getCount].Response, responses[getCount].Error
 	}
