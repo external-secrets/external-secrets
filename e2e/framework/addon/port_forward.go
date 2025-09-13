@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/external-secrets/external-secrets-e2e/framework/log"
 	. "github.com/onsi/ginkgo/v2"
@@ -86,14 +87,35 @@ func (pf *PortForward) Start() error {
 	}
 	pf.fwd = fwd
 
+	// run ForwardPorts in the background and capture the error (if any)
+	errChan := make(chan error, 1)
 	go func() {
 		if err := fwd.ForwardPorts(); err != nil {
 			log.Logf("port-forward error: %v %s %s", err, stdout.String(), stderr.String())
+			errChan <- err
+			return
 		}
+		// signal normal termination (e.g., Close called later)
+		errChan <- nil
 	}()
 
-	<-readyChan
-	return nil
+	// avoid indefinite wait if forwarder fails before signaling ready
+	ctx := GinkgoT().Context()
+	select {
+	case <-readyChan:
+		return nil
+	case err := <-errChan:
+		if err == nil {
+			return fmt.Errorf("port-forward terminated before readiness without error: %s %s", stdout.String(), stderr.String())
+		}
+		return fmt.Errorf("unable to start port-forward: %w: %s %s", err, stdout.String(), stderr.String())
+	case <-time.After(10 * time.Second):
+		close(stopChan)
+		return fmt.Errorf("timeout waiting for port-forward readiness: %s %s", stdout.String(), stderr.String())
+	case <-ctx.Done():
+		close(stopChan)
+		return fmt.Errorf("context canceled waiting for port-forward readiness: %w", ctx.Err())
+	}
 }
 
 func (pf *PortForward) Close() {
