@@ -84,7 +84,7 @@ var _ = Describe("[conjur]", Label("conjur"), Ordered, func() {
 func useApiKeyAuth(prov *conjurProvider) func(tc *framework.TestCase) {
 	return func(tc *framework.TestCase) {
 		prov.CreateApiKeyStore()
-		tc.ExternalSecret.Spec.SecretStoreRef.Name = tc.Framework.Namespace.Name
+		tc.ExternalSecret.Spec.SecretStoreRef.Name = defaultStoreName
 	}
 }
 

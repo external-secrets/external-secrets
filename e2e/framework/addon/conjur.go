@@ -92,7 +92,6 @@ func NewConjur() *Conjur {
 }
 
 func (l *Conjur) Install() error {
-	By("Installing conjur in " + l.Namespace)
 	err := l.chart.Install()
 	if err != nil {
 		return err
@@ -162,7 +161,7 @@ func (l *Conjur) initConjur() error {
 		return err
 	}
 
-	l.ConjurURL = fmt.Sprintf("https://conjur-%s-conjur-oss.%s.svc.cluster.local", l.Namespace, l.Namespace)
+	l.ConjurURL = fmt.Sprintf("https://conjur-conjur-conjur-oss.%s.svc.cluster.local", l.Namespace)
 	cfg := conjurapi.Config{
 		Account:      "default",
 		ApplianceURL: fmt.Sprintf("https://localhost:%d", l.portForwarder.localPort),
@@ -309,6 +308,10 @@ func (l *Conjur) Logs() error {
 }
 
 func (l *Conjur) Uninstall() error {
+	if l.portForwarder != nil {
+		l.portForwarder.Close()
+		l.portForwarder = nil
+	}
 	if err := l.chart.Uninstall(); err != nil {
 		return err
 	}
