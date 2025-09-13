@@ -136,6 +136,36 @@ In case you have a secret that contains a (partial) certificate chain you can ex
 {% include 'filtercertchain-template-v2-external-secret.yaml' %}
 ```
 
+### RSA Decryption Data From Provider
+
+When a provider returns RSA-encrypted values, you can decrypt them directly in the template using the `getSecretKey` and `rsaDecrypt` functions (engine v2).
+
+- `getSecretKey` reads a specific key from a Kubernetes Secret. Use it to fetch the RSA private key (PEM in plain text, without passphrase) used for decryption. (**Note:** It is recommended to fetch the key from a different Secret to ensure stronger security in the process).
+- `rsaDecrypt` performs decryption with the private key passed through the pipeline: `<privateKeyPEM | rsaDecrypt "<SCHEME>" "<HASH>" <ciphertext> >`. `SCHEME` and `HASH` are strings (for example, `"RSA-OAEP"` and `"SHA1"`). The third argument must be the ciphertext in binary form.
+
+Base64 handling: providers often return ciphertext as Base64. You can either:
+- decode in the template with `b64dec` (for example: `(.password_encrypted_base64 | b64dec)`), or
+- set `decodingStrategy: Base64` on the corresponding `spec.data.remoteRef` so the template receives binary data.
+
+Prerequisites
+- `spec.target.template.engineVersion: v2`.
+- A valid RSA private key in PEM format without passphrase (from another Secret via `getSecretKey`, or from the same ExternalSecret).
+- Ciphertext must match the key pair and the chosen algorithm/hash.
+
+Full example:
+
+```yaml
+{% include 'rsadecrypt-template-v2-external-secret.yaml' %}
+```
+
+Useful variations (included as comments in the example):
+- Base64 decode in the template with `b64dec` or via `decodingStrategy: Base64` on `spec.data`.
+- Use a private key available in the same ExternalSecret (for example: `( .private_key | rsaDecrypt ... )`).
+
+Error notes
+- Referencing a missing key in the template will fail rendering.
+- If key/algorithm/hash do not match the ciphertext, decryption will fail and reconciliation will retry.
+
 ## Templating with PushSecret
 
 `PushSecret` templating is much like `ExternalSecrets` templating. In-fact under the hood, it's using the same data structure.
@@ -174,6 +204,8 @@ In addition to that you can use over 200+ [sprig functions](http://masterminds.g
 | filterCertChain  | Filters PEM block(s) with a specific certificate type (`leaf`, `intermediate` or `root`)  from a certificate chain of PEM blocks (PEM blocks with type `CERTIFICATE`). |
 | jwkPublicKeyPem  | Takes an json-serialized JWK and returns an PEM block of type `PUBLIC KEY` that contains the public key. [See here](https://golang.org/pkg/crypto/x509/#MarshalPKIXPublicKey) for details.                                   |
 | jwkPrivateKeyPem | Takes an json-serialized JWK as `string` and returns an PEM block of type `PRIVATE KEY` that contains the private key in PKCS #8 format. [See here](https://golang.org/pkg/crypto/x509/#MarshalPKCS8PrivateKey) for details. |
+| getSecretKey      | Reads a specific key from a Kubernetes `Secret` and returns it as a string. Typical usage: ``getSecretKey "secret-name" "namespace" "key"``. |
+| rsaDecrypt | Decrypts RSA ciphertext using a PEM private key. Usage: ``<rsaDecrypt "SCHEME" "HASH" ciphertext privateKeyPEM>`` or ``<privateKeyPEM \| rsaDecrypt "SCHEME" "HASH" ciphertext>``. **SCHEME**: supported values are `"None"` and `"RSA-OAEP"`. **HASH**: supported values are `"SHA1"` and `"SHA256"`. **Ciphertext** must be binary — use `b64dec` or `decodingStrategy: Base64` to convert Base64 payloads. |
 | toYaml           | Takes an interface, marshals it to yaml. It returns a string, even on marshal error (empty string).                                                                                                                          |
 | fromYaml         | Function converts a YAML document into a map[string]any.                                                                                                                                                             |
 
