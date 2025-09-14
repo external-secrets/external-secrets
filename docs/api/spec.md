@@ -9209,7 +9209,7 @@ Kubernetes meta/v1.Time
 <td><p>SecretVersionSelectionPolicyLatestOrFail means the provider always uses &ldquo;latest&rdquo;, or fails if that version is disabled/destroyed.</p>
 </td>
 </tr><tr><td><p>&#34;LatestOrFetch&#34;</p></td>
-<td><p>SecretVersionSelectionPolicyLatestOrFetch behaves like SecretVersionSelectionPolicyLatestOrFail but falls back to fetching the latest version if the version is DESTROYED or DISABLED</p>
+<td><p>SecretVersionSelectionPolicyLatestOrFetch behaves like SecretVersionSelectionPolicyLatestOrFail but falls back to fetching the latest version if the version is DESTROYED or DISABLED.</p>
 </td>
 </tr></tbody>
 </table>
