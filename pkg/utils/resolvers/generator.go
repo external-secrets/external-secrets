@@ -291,6 +291,17 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 			},
 			Spec: *gen.Spec.Generator.MFASpec,
 		}, nil
+	case genv1alpha1.GeneratorKindHex:
+		if gen.Spec.Generator.HexSpec == nil {
+			return nil, fmt.Errorf("when kind is %s, HexSpec must be set", gen.Spec.Kind)
+		}
+		return &genv1alpha1.Hex{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.HexKind,
+			},
+			Spec: *gen.Spec.Generator.HexSpec,
+		}, nil
 	default:
 		return nil, fmt.Errorf("unknown kind %s", gen.Spec.Kind)
 	}

@@ -1,0 +1,7 @@
+suite: test Hex generator
+template: tests/crds/hex.yml
+tests:
+  - it: matches Hex correctly
+    asserts:
+      - matchSnapshot:
+          path: tests/__snapshot__

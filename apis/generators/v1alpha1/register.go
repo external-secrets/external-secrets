@@ -54,6 +54,7 @@ var (
 	GrafanaKind               = reflect.TypeOf(Grafana{}).Name()
 	MFAKind                   = reflect.TypeOf(MFA{}).Name()
 	ClusterGeneratorKind      = reflect.TypeOf(ClusterGenerator{}).Name()
+	HexKind                   = reflect.TypeOf(Hex{}).Name()
 )
 
 func init() {
@@ -89,4 +90,5 @@ func init() {
 	SchemeBuilder.Register(&Webhook{}, &WebhookList{})
 	SchemeBuilder.Register(&Grafana{}, &GrafanaList{})
 	SchemeBuilder.Register(&MFA{}, &MFAList{})
+	SchemeBuilder.Register(&Hex{}, &HexList{})
 }

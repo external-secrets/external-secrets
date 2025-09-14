@@ -1,0 +1,7 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Hex
+metadata: {}
+spec:
+  length: 16
+  prefix: string
+  uppercase: false

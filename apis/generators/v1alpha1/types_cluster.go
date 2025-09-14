@@ -29,7 +29,7 @@ type ClusterGeneratorSpec struct {
 }
 
 // GeneratorKind represents a kind of generator.
-// +kubebuilder:validation:Enum=ACRAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana
+// +kubebuilder:validation:Enum=ACRAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;Hex
 type GeneratorKind string
 
 const (
@@ -47,6 +47,7 @@ const (
 	GeneratorKindWebhook               GeneratorKind = "Webhook"
 	GeneratorKindGrafana               GeneratorKind = "Grafana"
 	GeneratorKindMFA                   GeneratorKind = "MFA"
+	GeneratorKindHex                   GeneratorKind = "Hex"
 )
 
 // +kubebuilder:validation:MaxProperties=1
@@ -66,6 +67,7 @@ type GeneratorSpec struct {
 	WebhookSpec               *WebhookSpec               `json:"webhookSpec,omitempty"`
 	GrafanaSpec               *GrafanaSpec               `json:"grafanaSpec,omitempty"`
 	MFASpec                   *MFASpec                   `json:"mfaSpec,omitempty"`
+	HexSpec                   *HexSpec                   `json:"hexSpec,omitempty"`
 }
 
 // ClusterGenerator represents a cluster-wide generator which can be referenced as part of `generatorRef` fields.
