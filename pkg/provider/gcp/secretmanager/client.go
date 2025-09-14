@@ -505,7 +505,12 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 		ref.Version == "" && isErrSecretDestroyedOrDisabled(err) {
 		// if the secret is destroyed or disabled, and we are configured to get the latest enabled secret,
 		// we need to get the latest enabled secret
-		result, err = getLatestEnabledVersion(ctx, c.smClient, name)
+		// Extract the secret name from the version name for ListSecretVersions
+		secretName := fmt.Sprintf(globalSecretPath, c.store.ProjectID, ref.Key)
+		if c.store.Location != "" {
+			secretName = fmt.Sprintf(regionalSecretPath, c.store.ProjectID, c.store.Location, ref.Key)
+		}
+		result, err = getLatestEnabledVersion(ctx, c.smClient, secretName)
 	}
 	if err != nil {
 		metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAccessSecretVersion, err)
