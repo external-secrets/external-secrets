@@ -112,7 +112,6 @@ rules:
     - "webhooks"
     - "grafanas"
     - "mfas"
-    - "hexes"
     verbs:
     - "get"
     - "list"
@@ -246,7 +245,6 @@ rules:
     - "generatorstates"
     - "mfas"
     - "uuids"
-    - "hexes"
     verbs:
       - "get"
       - "watch"
@@ -310,7 +308,6 @@ rules:
     - "generatorstates"
     - "mfas"
     - "uuids"
-    - "hexes"
     verbs:
       - "create"
       - "delete"

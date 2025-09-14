@@ -66,6 +66,5 @@ type GeneratorSpec struct {
 	UUIDSpec                  *UUIDSpec                  `json:"uuidSpec,omitempty"`
 	VaultDynamicSecretSpec    *VaultDynamicSecretSpec    `json:"vaultDynamicSecretSpec,omitempty"`
 	WebhookSpec               *WebhookSpec               `json:"webhookSpec,omitempty"`
-	HexSpec                   *HexSpec                   `json:"hexSpec,omitempty"`
 }
 ```

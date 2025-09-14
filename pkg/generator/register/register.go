@@ -33,5 +33,4 @@ import (
 	_ "github.com/external-secrets/external-secrets/pkg/generator/uuid"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/vault"
 	_ "github.com/external-secrets/external-secrets/pkg/generator/webhook"
-	_ "github.com/external-secrets/external-secrets/pkg/generator/hex"
 )
