@@ -20,6 +20,16 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+type SecretVersionSelectionPolicy string
+
+const (
+	// SecretVersionSelectionPolicyLatestOrFail means the provider always uses "latest", or fails if that version is disabled/destroyed.
+	SecretVersionSelectionPolicyLatestOrFail SecretVersionSelectionPolicy = "LatestOrFail"
+
+	// SecretVersionSelectionPolicyLatestOrFetch behaves like SecretVersionSelectionPolicyLatestOrFail but falls back to fetching the latest version if the version is DESTROYED or DISABLED
+	SecretVersionSelectionPolicyLatestOrFetch SecretVersionSelectionPolicy = "LatestOrFetch"
+)
+
 type GCPSMAuth struct {
 	// +optional
 	SecretRef *GCPSMAuthSecretRef `json:"secretRef,omitempty"`
@@ -64,10 +74,14 @@ type GCPSMProvider struct {
 	// Location optionally defines a location for a secret
 	Location string `json:"location,omitempty"`
 
-	// GetLatestEnabledSecret if true, the latest enabled secret version will be fetched
+	// SecretVersionSelectionPolicy specifies how the provider selects a secret version
+	// when "latest" is disabled or destroyed.
+	// Possible values are:
+	// - LatestOrFail: the provider always uses "latest", or fails if that version is disabled/destroyed.
+	// - LatestOrFetch: the provider falls back to fetching the latest version if the version is DESTROYED or DISABLED
 	// +optional
-	// +default=false
-	GetLatestEnabledSecret bool `json:"getLatestEnabledSecret,omitempty"`
+	// +kubebuilder:default=LatestOrFail
+	SecretVersionSelectionPolicy SecretVersionSelectionPolicy `json:"secretVersionSelectionPolicy,omitempty"`
 }
 
 // GCPWorkloadIdentityFederation holds the configurations required for generating federated access tokens.
