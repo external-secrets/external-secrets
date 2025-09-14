@@ -204,6 +204,9 @@ spec:
                         DataFrom is used to fetch all properties from a specific Provider data
                         If multiple entries are specified, the Secret keys are merged in the specified order
                       items:
+                        description: |-
+                          ExternalSecretDataFromRemoteRef defines the connection between the Kubernetes Secret keys and the Provider data
+                          when using DataFrom to fetch multiple values from a Provider.
                         properties:
                           extract:
                             description: |-
@@ -287,6 +290,7 @@ spec:
                               Used to rewrite secret Keys after getting them from the secret Provider
                               Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
                             items:
+                              description: ExternalSecretRewrite defines how to rewrite secret data values before they are written to the Secret.
                               maxProperties: 1
                               minProperties: 1
                               properties:
@@ -457,8 +461,8 @@ spec:
                         creationPolicy: Owner
                         deletionPolicy: Retain
                       description: |-
-                        ExternalSecretTarget defines the Kubernetes Secret to be created
-                        There can be only one target per ExternalSecret.
+                        ExternalSecretTarget defines the Kubernetes Secret to be created,
+                        there can be only one target per ExternalSecret.
                       properties:
                         creationPolicy:
                           default: Owner
@@ -510,6 +514,7 @@ spec:
                               type: string
                             mergePolicy:
                               default: Replace
+                              description: TemplateMergePolicy defines how the rendered template should be merged with the existing Secret data.
                               enum:
                                 - Replace
                                 - Merge
@@ -532,12 +537,17 @@ spec:
                               type: object
                             templateFrom:
                               items:
+                                description: |-
+                                  TemplateFrom specifies a source for templates.
+                                  Each item in the list can either reference a ConfigMap or a Secret resource.
                                 properties:
                                   configMap:
+                                    description: TemplateRef specifies a reference to either a ConfigMap or a Secret resource.
                                     properties:
                                       items:
                                         description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                         items:
+                                          description: TemplateRefItem specifies a key in the ConfigMap/Secret to use as a template for Secret data.
                                           properties:
                                             key:
                                               description: A key in the ConfigMap/Secret
@@ -547,6 +557,7 @@ spec:
                                               type: string
                                             templateAs:
                                               default: Values
+                                              description: TemplateScope specifies how the template keys should be interpreted.
                                               enum:
                                                 - Values
                                                 - KeysAndValues
@@ -568,10 +579,12 @@ spec:
                                   literal:
                                     type: string
                                   secret:
+                                    description: TemplateRef specifies a reference to either a ConfigMap or a Secret resource.
                                     properties:
                                       items:
                                         description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                         items:
+                                          description: TemplateRefItem specifies a key in the ConfigMap/Secret to use as a template for Secret data.
                                           properties:
                                             key:
                                               description: A key in the ConfigMap/Secret
@@ -581,6 +594,7 @@ spec:
                                               type: string
                                             templateAs:
                                               default: Values
+                                              description: TemplateScope specifies how the template keys should be interpreted.
                                               enum:
                                                 - Values
                                                 - KeysAndValues
@@ -601,6 +615,7 @@ spec:
                                     type: object
                                   target:
                                     default: Data
+                                    description: TemplateTarget specifies where the rendered templates should be applied.
                                     enum:
                                       - Data
                                       - Annotations
@@ -730,7 +745,7 @@ spec:
               properties:
                 conditions:
                   items:
-                    description: ClusterExternalSecretStatusCondition defines the observed state of a ClusterExternalSecret resource
+                    description: ClusterExternalSecretStatusCondition defines the observed state of a ClusterExternalSecret resource.
                     properties:
                       message:
                         type: string
@@ -1846,6 +1861,7 @@ spec:
                           type: string
                         mergePolicy:
                           default: Replace
+                          description: TemplateMergePolicy defines how the rendered template should be merged with the existing Secret data.
                           enum:
                             - Replace
                             - Merge
@@ -1868,12 +1884,17 @@ spec:
                           type: object
                         templateFrom:
                           items:
+                            description: |-
+                              TemplateFrom specifies a source for templates.
+                              Each item in the list can either reference a ConfigMap or a Secret resource.
                             properties:
                               configMap:
+                                description: TemplateRef specifies a reference to either a ConfigMap or a Secret resource.
                                 properties:
                                   items:
                                     description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                     items:
+                                      description: TemplateRefItem specifies a key in the ConfigMap/Secret to use as a template for Secret data.
                                       properties:
                                         key:
                                           description: A key in the ConfigMap/Secret
@@ -1883,6 +1904,7 @@ spec:
                                           type: string
                                         templateAs:
                                           default: Values
+                                          description: TemplateScope specifies how the template keys should be interpreted.
                                           enum:
                                             - Values
                                             - KeysAndValues
@@ -1904,10 +1926,12 @@ spec:
                               literal:
                                 type: string
                               secret:
+                                description: TemplateRef specifies a reference to either a ConfigMap or a Secret resource.
                                 properties:
                                   items:
                                     description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                     items:
+                                      description: TemplateRefItem specifies a key in the ConfigMap/Secret to use as a template for Secret data.
                                       properties:
                                         key:
                                           description: A key in the ConfigMap/Secret
@@ -1917,6 +1941,7 @@ spec:
                                           type: string
                                         templateAs:
                                           default: Values
+                                          description: TemplateScope specifies how the template keys should be interpreted.
                                           enum:
                                             - Values
                                             - KeysAndValues
@@ -1937,6 +1962,7 @@ spec:
                                 type: object
                               target:
                                 default: Data
+                                description: TemplateTarget specifies where the rendered templates should be applied.
                                 enum:
                                   - Data
                                   - Annotations
@@ -3704,6 +3730,7 @@ spec:
                             type: object
                           type: array
                         validationResult:
+                          description: ValidationResult is defined type for the number of validation results.
                           type: integer
                       required:
                         - data
@@ -4178,6 +4205,7 @@ spec:
                           description: Auth configures how the Operator authenticates with the Infisical API
                           properties:
                             awsAuthCredentials:
+                              description: AwsAuthCredentials represents the credentials for AWS authentication.
                               properties:
                                 identityId:
                                   description: |-
@@ -4211,6 +4239,7 @@ spec:
                                 - identityId
                               type: object
                             azureAuthCredentials:
+                              description: AzureAuthCredentials represents the credentials for Azure authentication.
                               properties:
                                 identityId:
                                   description: |-
@@ -4272,6 +4301,7 @@ spec:
                                 - identityId
                               type: object
                             gcpIamAuthCredentials:
+                              description: GcpIamAuthCredentials represents the credentials for GCP IAM authentication.
                               properties:
                                 identityId:
                                   description: |-
@@ -4334,6 +4364,7 @@ spec:
                                 - serviceAccountKeyFilePath
                               type: object
                             gcpIdTokenAuthCredentials:
+                              description: GcpIDTokenAuthCredentials represents the credentials for GCP ID token authentication.
                               properties:
                                 identityId:
                                   description: |-
@@ -4367,6 +4398,7 @@ spec:
                                 - identityId
                               type: object
                             jwtAuthCredentials:
+                              description: JwtAuthCredentials represents the credentials for JWT authentication.
                               properties:
                                 identityId:
                                   description: |-
@@ -4429,6 +4461,7 @@ spec:
                                 - jwt
                               type: object
                             kubernetesAuthCredentials:
+                              description: KubernetesAuthCredentials represents the credentials for Kubernetes authentication.
                               properties:
                                 identityId:
                                   description: |-
@@ -4490,6 +4523,7 @@ spec:
                                 - identityId
                               type: object
                             ldapAuthCredentials:
+                              description: LdapAuthCredentials represents the credentials for LDAP authentication.
                               properties:
                                 identityId:
                                   description: |-
@@ -4581,6 +4615,7 @@ spec:
                                 - ldapUsername
                               type: object
                             ociAuthCredentials:
+                              description: OciAuthCredentials represents the credentials for OCI authentication.
                               properties:
                                 fingerprint:
                                   description: |-
@@ -4787,6 +4822,7 @@ spec:
                                 - userId
                               type: object
                             tokenAuthCredentials:
+                              description: TokenAuthCredentials represents the credentials for access token-based authentication.
                               properties:
                                 accessToken:
                                   description: |-
@@ -4820,6 +4856,7 @@ spec:
                                 - accessToken
                               type: object
                             universalAuthCredentials:
+                              description: UniversalAuthCredentials represents the client credentials for universal authentication.
                               properties:
                                 clientId:
                                   description: |-
@@ -5492,6 +5529,9 @@ spec:
                         - vault
                       type: object
                     passbolt:
+                      description: |-
+                        PassboltProvider provides access to Passbolt secrets manager.
+                        See: https://www.passbolt.com.
                       properties:
                         auth:
                           description: Auth defines the information necessary to authenticate against Passbolt Server
@@ -11335,7 +11375,9 @@ spec:
       name: v1
       schema:
         openAPIV3Schema:
-          description: ExternalSecret is the Schema for the external-secrets API.
+          description: |-
+            ExternalSecret is the Schema for the external-secrets API.
+            It defines how to fetch data from external APIs and make it available as Kubernetes Secrets.
           properties:
             apiVersion:
               description: |-
@@ -11484,6 +11526,9 @@ spec:
                     DataFrom is used to fetch all properties from a specific Provider data
                     If multiple entries are specified, the Secret keys are merged in the specified order
                   items:
+                    description: |-
+                      ExternalSecretDataFromRemoteRef defines the connection between the Kubernetes Secret keys and the Provider data
+                      when using DataFrom to fetch multiple values from a Provider.
                     properties:
                       extract:
                         description: |-
@@ -11567,6 +11612,7 @@ spec:
                           Used to rewrite secret Keys after getting them from the secret Provider
                           Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
                         items:
+                          description: ExternalSecretRewrite defines how to rewrite secret data values before they are written to the Secret.
                           maxProperties: 1
                           minProperties: 1
                           properties:
@@ -11737,8 +11783,8 @@ spec:
                     creationPolicy: Owner
                     deletionPolicy: Retain
                   description: |-
-                    ExternalSecretTarget defines the Kubernetes Secret to be created
-                    There can be only one target per ExternalSecret.
+                    ExternalSecretTarget defines the Kubernetes Secret to be created,
+                    there can be only one target per ExternalSecret.
                   properties:
                     creationPolicy:
                       default: Owner
@@ -11790,6 +11836,7 @@ spec:
                           type: string
                         mergePolicy:
                           default: Replace
+                          description: TemplateMergePolicy defines how the rendered template should be merged with the existing Secret data.
                           enum:
                             - Replace
                             - Merge
@@ -11812,12 +11859,17 @@ spec:
                           type: object
                         templateFrom:
                           items:
+                            description: |-
+                              TemplateFrom specifies a source for templates.
+                              Each item in the list can either reference a ConfigMap or a Secret resource.
                             properties:
                               configMap:
+                                description: TemplateRef specifies a reference to either a ConfigMap or a Secret resource.
                                 properties:
                                   items:
                                     description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                     items:
+                                      description: TemplateRefItem specifies a key in the ConfigMap/Secret to use as a template for Secret data.
                                       properties:
                                         key:
                                           description: A key in the ConfigMap/Secret
@@ -11827,6 +11879,7 @@ spec:
                                           type: string
                                         templateAs:
                                           default: Values
+                                          description: TemplateScope specifies how the template keys should be interpreted.
                                           enum:
                                             - Values
                                             - KeysAndValues
@@ -11848,10 +11901,12 @@ spec:
                               literal:
                                 type: string
                               secret:
+                                description: TemplateRef specifies a reference to either a ConfigMap or a Secret resource.
                                 properties:
                                   items:
                                     description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                     items:
+                                      description: TemplateRefItem specifies a key in the ConfigMap/Secret to use as a template for Secret data.
                                       properties:
                                         key:
                                           description: A key in the ConfigMap/Secret
@@ -11861,6 +11916,7 @@ spec:
                                           type: string
                                         templateAs:
                                           default: Values
+                                          description: TemplateScope specifies how the template keys should be interpreted.
                                           enum:
                                             - Values
                                             - KeysAndValues
@@ -11881,6 +11937,7 @@ spec:
                                 type: object
                               target:
                                 default: Data
+                                description: TemplateTarget specifies where the rendered templates should be applied.
                                 enum:
                                   - Data
                                   - Annotations
@@ -11894,6 +11951,7 @@ spec:
                   type: object
               type: object
             status:
+              description: ExternalSecretStatus defines the observed state of ExternalSecret.
               properties:
                 binding:
                   description: Binding represents a servicebinding.io Provisioned Service reference to the secret
@@ -11911,6 +11969,7 @@ spec:
                   x-kubernetes-map-type: atomic
                 conditions:
                   items:
+                    description: ExternalSecretStatusCondition defines a status condition of an ExternalSecret resource.
                     properties:
                       lastTransitionTime:
                         format: date-time
@@ -11922,6 +11981,7 @@ spec:
                       status:
                         type: string
                       type:
+                        description: ExternalSecretConditionType defines a value type for ExternalSecret conditions.
                         type: string
                     required:
                       - status
@@ -12830,6 +12890,7 @@ spec:
                       type: string
                     mergePolicy:
                       default: Replace
+                      description: TemplateMergePolicy defines how the rendered template should be merged with the existing Secret data.
                       enum:
                         - Replace
                         - Merge
@@ -12852,12 +12913,17 @@ spec:
                       type: object
                     templateFrom:
                       items:
+                        description: |-
+                          TemplateFrom specifies a source for templates.
+                          Each item in the list can either reference a ConfigMap or a Secret resource.
                         properties:
                           configMap:
+                            description: TemplateRef specifies a reference to either a ConfigMap or a Secret resource.
                             properties:
                               items:
                                 description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                 items:
+                                  description: TemplateRefItem specifies a key in the ConfigMap/Secret to use as a template for Secret data.
                                   properties:
                                     key:
                                       description: A key in the ConfigMap/Secret
@@ -12867,6 +12933,7 @@ spec:
                                       type: string
                                     templateAs:
                                       default: Values
+                                      description: TemplateScope specifies how the template keys should be interpreted.
                                       enum:
                                         - Values
                                         - KeysAndValues
@@ -12888,10 +12955,12 @@ spec:
                           literal:
                             type: string
                           secret:
+                            description: TemplateRef specifies a reference to either a ConfigMap or a Secret resource.
                             properties:
                               items:
                                 description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                 items:
+                                  description: TemplateRefItem specifies a key in the ConfigMap/Secret to use as a template for Secret data.
                                   properties:
                                     key:
                                       description: A key in the ConfigMap/Secret
@@ -12901,6 +12970,7 @@ spec:
                                       type: string
                                     templateAs:
                                       default: Values
+                                      description: TemplateScope specifies how the template keys should be interpreted.
                                       enum:
                                         - Values
                                         - KeysAndValues
@@ -12921,6 +12991,7 @@ spec:
                             type: object
                           target:
                             default: Data
+                            description: TemplateTarget specifies where the rendered templates should be applied.
                             enum:
                               - Data
                               - Annotations
@@ -14716,6 +14787,7 @@ spec:
                             type: object
                           type: array
                         validationResult:
+                          description: ValidationResult is defined type for the number of validation results.
                           type: integer
                       required:
                         - data
@@ -15190,6 +15262,7 @@ spec:
                           description: Auth configures how the Operator authenticates with the Infisical API
                           properties:
                             awsAuthCredentials:
+                              description: AwsAuthCredentials represents the credentials for AWS authentication.
                               properties:
                                 identityId:
                                   description: |-
@@ -15223,6 +15296,7 @@ spec:
                                 - identityId
                               type: object
                             azureAuthCredentials:
+                              description: AzureAuthCredentials represents the credentials for Azure authentication.
                               properties:
                                 identityId:
                                   description: |-
@@ -15284,6 +15358,7 @@ spec:
                                 - identityId
                               type: object
                             gcpIamAuthCredentials:
+                              description: GcpIamAuthCredentials represents the credentials for GCP IAM authentication.
                               properties:
                                 identityId:
                                   description: |-
@@ -15346,6 +15421,7 @@ spec:
                                 - serviceAccountKeyFilePath
                               type: object
                             gcpIdTokenAuthCredentials:
+                              description: GcpIDTokenAuthCredentials represents the credentials for GCP ID token authentication.
                               properties:
                                 identityId:
                                   description: |-
@@ -15379,6 +15455,7 @@ spec:
                                 - identityId
                               type: object
                             jwtAuthCredentials:
+                              description: JwtAuthCredentials represents the credentials for JWT authentication.
                               properties:
                                 identityId:
                                   description: |-
@@ -15441,6 +15518,7 @@ spec:
                                 - jwt
                               type: object
                             kubernetesAuthCredentials:
+                              description: KubernetesAuthCredentials represents the credentials for Kubernetes authentication.
                               properties:
                                 identityId:
                                   description: |-
@@ -15502,6 +15580,7 @@ spec:
                                 - identityId
                               type: object
                             ldapAuthCredentials:
+                              description: LdapAuthCredentials represents the credentials for LDAP authentication.
                               properties:
                                 identityId:
                                   description: |-
@@ -15593,6 +15672,7 @@ spec:
                                 - ldapUsername
                               type: object
                             ociAuthCredentials:
+                              description: OciAuthCredentials represents the credentials for OCI authentication.
                               properties:
                                 fingerprint:
                                   description: |-
@@ -15799,6 +15879,7 @@ spec:
                                 - userId
                               type: object
                             tokenAuthCredentials:
+                              description: TokenAuthCredentials represents the credentials for access token-based authentication.
                               properties:
                                 accessToken:
                                   description: |-
@@ -15832,6 +15913,7 @@ spec:
                                 - accessToken
                               type: object
                             universalAuthCredentials:
+                              description: UniversalAuthCredentials represents the client credentials for universal authentication.
                               properties:
                                 clientId:
                                   description: |-
@@ -16504,6 +16586,9 @@ spec:
                         - vault
                       type: object
                     passbolt:
+                      description: |-
+                        PassboltProvider provides access to Passbolt secrets manager.
+                        See: https://www.passbolt.com.
                       properties:
                         auth:
                           description: Auth defines the information necessary to authenticate against Passbolt Server

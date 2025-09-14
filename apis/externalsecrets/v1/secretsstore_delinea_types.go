@@ -18,6 +18,7 @@ package v1
 
 import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 
+// DelineaProviderSecretRef is a secret reference containing either a direct value or a reference to a secret key.
 type DelineaProviderSecretRef struct {
 
 	// Value can be specified directly to set a value without using a secret.
@@ -29,7 +30,8 @@ type DelineaProviderSecretRef struct {
 	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }
 
-// See https://github.com/DelineaXPM/dsv-sdk-go/blob/main/vault/vault.go.
+// DelineaProvider provides access to Delinea secrets vault Server.
+// See: https://github.com/DelineaXPM/dsv-sdk-go/blob/main/vault/vault.go.
 type DelineaProvider struct {
 
 	// ClientID is the non-secret part of the credential.
