@@ -18,6 +18,7 @@ package v1
 
 import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 
+// ConjurProvider provides access to a Conjur provider.
 type ConjurProvider struct {
 	// URL is the endpoint of the Conjur instance.
 	URL string `json:"url"`
@@ -36,6 +37,7 @@ type ConjurProvider struct {
 	Auth ConjurAuth `json:"auth"`
 }
 
+// ConjurAuth is the way to provide authentication credentials to the ConjurProvider.
 type ConjurAuth struct {
 	// Authenticates with Conjur using an API key.
 	// +optional
