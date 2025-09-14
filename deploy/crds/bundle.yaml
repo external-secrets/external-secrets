@@ -3956,15 +3956,20 @@ spec:
                                   type: object
                               type: object
                           type: object
-                        getLatestEnabledSecret:
-                          default: false
-                          description: GetLatestEnabledSecret if true, the latest enabled secret version will be fetched
-                          type: boolean
                         location:
                           description: Location optionally defines a location for a secret
                           type: string
                         projectID:
                           description: ProjectID project where secret is located
+                          type: string
+                        secretVersionSelectionPolicy:
+                          default: LatestOrFail
+                          description: |-
+                            SecretVersionSelectionPolicy specifies how the provider selects a secret version
+                            when "latest" is disabled or destroyed.
+                            Possible values are:
+                            - LatestOrFail: the provider always uses "latest", or fails if that version is disabled/destroyed.
+                            - LatestOrFetch: the provider falls back to fetching the latest version if the version is DESTROYED or DISABLED
                           type: string
                       type: object
                     github:
@@ -15095,15 +15100,20 @@ spec:
                                   type: object
                               type: object
                           type: object
-                        getLatestEnabledSecret:
-                          default: false
-                          description: GetLatestEnabledSecret if true, the latest enabled secret version will be fetched
-                          type: boolean
                         location:
                           description: Location optionally defines a location for a secret
                           type: string
                         projectID:
                           description: ProjectID project where secret is located
+                          type: string
+                        secretVersionSelectionPolicy:
+                          default: LatestOrFail
+                          description: |-
+                            SecretVersionSelectionPolicy specifies how the provider selects a secret version
+                            when "latest" is disabled or destroyed.
+                            Possible values are:
+                            - LatestOrFail: the provider always uses "latest", or fails if that version is disabled/destroyed.
+                            - LatestOrFetch: the provider falls back to fetching the latest version if the version is DESTROYED or DISABLED
                           type: string
                       type: object
                     github:

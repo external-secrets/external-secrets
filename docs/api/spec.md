@@ -5269,14 +5269,20 @@ string
 </tr>
 <tr>
 <td>
-<code>getLatestEnabledSecret</code></br>
+<code>secretVersionSelectionPolicy</code></br>
 <em>
-bool
+<a href="#external-secrets.io/v1.SecretVersionSelectionPolicy">
+SecretVersionSelectionPolicy
+</a>
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>GetLatestEnabledSecret if true, the latest enabled secret version will be fetched</p>
+<p>SecretVersionSelectionPolicy specifies how the provider selects a secret version
+when &ldquo;latest&rdquo; is disabled or destroyed.
+Possible values are:
+- LatestOrFail: the provider always uses &ldquo;latest&rdquo;, or fails if that version is disabled/destroyed.
+- LatestOrFetch: the provider falls back to fetching the latest version if the version is DESTROYED or DISABLED</p>
 </td>
 </tr>
 </tbody>
@@ -9183,6 +9189,29 @@ Kubernetes meta/v1.Time
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1.SecretVersionSelectionPolicy">SecretVersionSelectionPolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.GCPSMProvider">GCPSMProvider</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;LatestOrFail&#34;</p></td>
+<td><p>SecretVersionSelectionPolicyLatestOrFail means the provider always uses &ldquo;latest&rdquo;, or fails if that version is disabled/destroyed.</p>
+</td>
+</tr><tr><td><p>&#34;LatestOrFetch&#34;</p></td>
+<td><p>SecretVersionSelectionPolicyLatestOrFetch behaves like SecretVersionSelectionPolicyLatestOrFail but falls back to fetching the latest version if the version is DESTROYED or DISABLED</p>
+</td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1.SecretsClient">SecretsClient
 </h3>
