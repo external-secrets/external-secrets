@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package esutils provides utility functions for the external-secrets resources.
 package esutils
 
 import (
@@ -52,7 +53,7 @@ import (
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
-
+	"github.com/external-secrets/external-secrets/pkg/template/v2"
 )
 
 const (

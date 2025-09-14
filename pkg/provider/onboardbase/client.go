@@ -31,9 +31,9 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/pkg/esuti
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/external-secrets/external-secrets/pkg/find"
-	onboardbaseClient "github.com/external-secrets/external-secrets/pkg/provider/onboardbase/client"
+	obclient "github.com/external-secrets/external-secrets/pkg/provider/onboardbase/client"
 )
 
 const (
@@ -65,9 +65,9 @@ type Client struct {
 type SecretsClientInterface interface {
 	BaseURL() *url.URL
 	Authenticate() error
-	GetSecret(request onboardbaseClient.SecretRequest) (*onboardbaseClient.SecretResponse, error)
-	DeleteSecret(request onboardbaseClient.SecretRequest) error
-	GetSecrets(request onboardbaseClient.SecretsRequest) (*onboardbaseClient.SecretsResponse, error)
+	GetSecret(request obclient.SecretRequest) (*obclient.SecretResponse, error)
+	DeleteSecret(request obclient.SecretRequest) error
+	GetSecrets(request obclient.SecretsRequest) (*obclient.SecretsResponse, error)
 }
 
 func (c *Client) setAuth(ctx context.Context) error {
@@ -140,7 +140,7 @@ func (c *Client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecr
 }
 
 func (c *Client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	request := onboardbaseClient.SecretRequest{
+	request := obclient.SecretRequest{
 		Project:     c.project,
 		Environment: c.environment,
 		Name:        ref.Key,
@@ -229,7 +229,7 @@ func (c *Client) Close(_ context.Context) error {
 }
 
 func (c *Client) getSecrets(_ context.Context) (map[string][]byte, error) {
-	request := onboardbaseClient.SecretsRequest{
+	request := obclient.SecretsRequest{
 		Project:     c.project,
 		Environment: c.environment,
 	}
@@ -242,7 +242,7 @@ func (c *Client) getSecrets(_ context.Context) (map[string][]byte, error) {
 	return externalSecretsFormat(response.Secrets), nil
 }
 
-func externalSecretsFormat(secrets onboardbaseClient.Secrets) map[string][]byte {
+func externalSecretsFormat(secrets obclient.Secrets) map[string][]byte {
 	converted := make(map[string][]byte, len(secrets))
 	for key, value := range secrets {
 		converted[key] = []byte(value)

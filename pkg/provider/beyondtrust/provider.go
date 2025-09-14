@@ -26,7 +26,7 @@ import (
 
 	auth "github.com/BeyondTrust/go-client-library-passwordsafe/api/authentication"
 	"github.com/BeyondTrust/go-client-library-passwordsafe/api/logging"
-	managed_account "github.com/BeyondTrust/go-client-library-passwordsafe/api/managed_account"
+	managedaccount "github.com/BeyondTrust/go-client-library-passwordsafe/api/managed_account"
 	"github.com/BeyondTrust/go-client-library-passwordsafe/api/secrets"
 	"github.com/BeyondTrust/go-client-library-passwordsafe/api/utils"
 	"github.com/cenkalti/backoff/v4"
@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	esoClient "github.com/external-secrets/external-secrets/pkg/esutils"
+	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 const (
@@ -110,7 +110,7 @@ func (p *Provider) Validate() (esv1.ValidationResult, error) {
 	timeout := 15 * time.Second
 	clientURL := p.apiURL
 
-	if err := esoClient.NetworkValidate(clientURL, timeout); err != nil {
+	if err := esutils.NetworkValidate(clientURL, timeout); err != nil {
 		ESOLogger.Error(err, "Network Validate", "clientURL:", clientURL)
 		return esv1.ValidationResultError, err
 	}
@@ -363,7 +363,7 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemot
 
 	managedFetch := func() (string, error) {
 		ESOLogger.Info("retrieve managed account value", "retrievalPath:", retrievalPath)
-		manageAccountObj, _ := managed_account.NewManagedAccountObj(p.authenticate, &p.log)
+		manageAccountObj, _ := managedaccount.NewManagedAccountObj(p.authenticate, &p.log)
 		return manageAccountObj.GetSecret(retrievalPath, p.separator)
 	}
 	unmanagedFetch := func() (string, error) {

@@ -68,10 +68,13 @@ type ExternalSecretMetadata struct {
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
+// ClusterExternalSecretConditionType defines a value type for ClusterExternalSecret conditions.
 type ClusterExternalSecretConditionType string
 
+// ClusterExternalSecretReady is a ClusterExternalSecretConditionType set when the ClusterExternalSecret is ready.
 const ClusterExternalSecretReady ClusterExternalSecretConditionType = "Ready"
 
+// ClusterExternalSecretStatusCondition defines the observed state of a ClusterExternalSecret resource
 type ClusterExternalSecretStatusCondition struct {
 	Type   ClusterExternalSecretConditionType `json:"type"`
 	Status corev1.ConditionStatus             `json:"status"`

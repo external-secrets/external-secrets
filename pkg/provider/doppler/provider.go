@@ -28,7 +28,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/esutils"
-	dClient "github.com/external-secrets/external-secrets/pkg/provider/doppler/client"
+	dclient "github.com/external-secrets/external-secrets/pkg/provider/doppler/client"
 )
 
 const (
@@ -79,7 +79,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, err
 	}
 
-	doppler, err := dClient.NewDopplerClient(client.dopplerToken)
+	doppler, err := dclient.NewDopplerClient(client.dopplerToken)
 	if err != nil {
 		return nil, fmt.Errorf(errNewClient, err)
 	}

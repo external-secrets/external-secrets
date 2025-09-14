@@ -14,6 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package externalsecrets contains API Schema definitions for the externalsecrets API groups.
+// Currently, we have v1, v1alpha1 and v1beta1 versions.
+
 // +groupName=external-secrets.io
 
 package externalsecrets
