@@ -541,6 +541,7 @@ type GeneratorRef struct {
 	Name string `json:"name"`
 }
 
+// ExternalSecretConditionType defines a value type for ExternalSecret conditions.
 type ExternalSecretConditionType string
 
 const (
@@ -550,7 +551,7 @@ const (
 	ExternalSecretDeleted ExternalSecretConditionType = "Deleted"
 )
 
-// ExternalSecretStatusCondition defines a condition of an ExternalSecret.
+// ExternalSecretStatusCondition defines a status condition of an ExternalSecret resource.
 type ExternalSecretStatusCondition struct {
 	Type   ExternalSecretConditionType `json:"type"`
 	Status corev1.ConditionStatus      `json:"status"`
@@ -606,9 +607,10 @@ type ExternalSecretStatus struct {
 	Binding corev1.LocalObjectReference `json:"binding,omitempty"`
 }
 
+// ExternalSecret is the Schema for the external-secrets API.
+// It defines how to fetch data from external APIs and make it available as Kubernetes Secrets.
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
-// ExternalSecret is the Schema for the external-secrets API.
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:labels="external-secrets.io/component=controller"
 // +kubebuilder:resource:scope=Namespaced,categories={external-secrets},shortName=es
@@ -636,7 +638,9 @@ const (
 	AnnotationForceSync = "external-secrets.io/force-sync"
 
 	// LabelManaged all secrets managed by an ExternalSecret will have this label equal to "true".
-	LabelManaged      = "reconcile.external-secrets.io/managed"
+	LabelManaged = "reconcile.external-secrets.io/managed"
+
+	// LabelManagedValue is the value for the LabelManaged key, always set to "true".
 	LabelManagedValue = "true"
 
 	// LabelOwner points to the owning ExternalSecret resource when CreationPolicy=Owner.
