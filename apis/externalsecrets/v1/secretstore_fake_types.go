@@ -22,6 +22,7 @@ type FakeProvider struct {
 	ValidationResult *ValidationResult  `json:"validationResult,omitempty"`
 }
 
+// FakeProviderData defines a key-value pair with optional version for the fake provider.
 type FakeProviderData struct {
 	Key     string `json:"key"`
 	Value   string `json:"value"`

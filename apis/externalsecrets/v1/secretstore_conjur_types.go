@@ -48,6 +48,8 @@ type ConjurAuth struct {
 	Jwt *ConjurJWT `json:"jwt,omitempty"`
 }
 
+// ConjurAPIKey contains references to a Secret resource that holds
+// the Conjur username and API key.
 type ConjurAPIKey struct {
 	// Account is the Conjur organization account name.
 	Account string `json:"account"`
@@ -61,6 +63,7 @@ type ConjurAPIKey struct {
 	APIKeyRef *esmeta.SecretKeySelector `json:"apiKeyRef"`
 }
 
+// ConjurJWT defines the JWT authentication configuration for Conjur provider.
 type ConjurJWT struct {
 	// Account is the Conjur organization account name.
 	Account string `json:"account"`
