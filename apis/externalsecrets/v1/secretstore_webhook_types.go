@@ -89,9 +89,9 @@ type WebhookCAProviderType string
 
 // These are valid CA provider types for webhook connections.
 const (
-	// WebhookCAProviderTypeSecret indicates that the CA certificate is stored in a Secret resource
+	// WebhookCAProviderTypeSecret indicates that the CA certificate is stored in a Secret resource.
 	WebhookCAProviderTypeSecret WebhookCAProviderType = "Secret"
-	// WebhookCAProviderTypeConfigMap indicates that the CA certificate is stored in a ConfigMap resource
+	// WebhookCAProviderTypeConfigMap indicates that the CA certificate is stored in a ConfigMap resource.
 	WebhookCAProviderTypeConfigMap WebhookCAProviderType = "ConfigMap"
 )
 

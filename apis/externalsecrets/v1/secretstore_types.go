@@ -215,11 +215,11 @@ type SecretStoreProvider struct {
 // CAProviderType defines the type of provider for certificate authority.
 type CAProviderType string
 
-// Supported CA provider types
+// Supported CA provider types.
 const (
-	// CAProviderTypeSecret indicates that the CA certificate is stored in a Secret resource
+	// CAProviderTypeSecret indicates that the CA certificate is stored in a Secret resource.
 	CAProviderTypeSecret CAProviderType = "Secret"
-	// CAProviderTypeConfigMap indicates that the CA certificate is stored in a ConfigMap resource
+	// CAProviderTypeConfigMap indicates that the CA certificate is stored in a ConfigMap resource.
 	CAProviderTypeConfigMap CAProviderType = "ConfigMap"
 )
 
