@@ -26,7 +26,7 @@ const (
 	// SecretVersionSelectionPolicyLatestOrFail means the provider always uses "latest", or fails if that version is disabled/destroyed.
 	SecretVersionSelectionPolicyLatestOrFail SecretVersionSelectionPolicy = "LatestOrFail"
 
-	// SecretVersionSelectionPolicyLatestOrFetch behaves like SecretVersionSelectionPolicyLatestOrFail but falls back to fetching the latest version if the version is DESTROYED or DISABLED
+	// SecretVersionSelectionPolicyLatestOrFetch behaves like SecretVersionSelectionPolicyLatestOrFail but falls back to fetching the latest version if the version is DESTROYED or DISABLED.
 	SecretVersionSelectionPolicyLatestOrFetch SecretVersionSelectionPolicy = "LatestOrFetch"
 )
 
