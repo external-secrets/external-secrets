@@ -62,7 +62,7 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/external-secrets/external-secrets/pkg/esutils/metadata"
 	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
-
+	"github.com/external-secrets/external-secrets/pkg/metrics"
 )
 
 const (

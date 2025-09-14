@@ -32,7 +32,7 @@ import (
 
 	genapi "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/esutils"
-
+	"github.com/external-secrets/external-secrets/pkg/feature"
 )
 
 // Manager takes care of maintaining the state of the generators.

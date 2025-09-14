@@ -30,7 +30,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/esutils"
-
+	"github.com/external-secrets/external-secrets/pkg/find"
 )
 
 var (

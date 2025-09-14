@@ -25,13 +25,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/external-secrets/external-secrets/pkg/find"
 	corev1 "k8s.io/api/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
-	"
+	dclient "github.com/external-secrets/external-secrets/pkg/provider/doppler/client"
 )
 
 const (
@@ -65,9 +66,9 @@ type Client struct {
 type SecretsClientInterface interface {
 	BaseURL() *url.URL
 	Authenticate() error
-	GetSecret(request dClient.SecretRequest) (*dClient.SecretResponse, error)
-	GetSecrets(request dClient.SecretsRequest) (*dClient.SecretsResponse, error)
-	UpdateSecrets(request dClient.UpdateSecretsRequest) error
+	GetSecret(request dclient.SecretRequest) (*dclient.SecretResponse, error)
+	GetSecrets(request dclient.SecretsRequest) (*dclient.SecretsResponse, error)
+	UpdateSecrets(request dclient.UpdateSecretsRequest) error
 }
 
 func (c *Client) setAuth(ctx context.Context) error {
@@ -100,8 +101,8 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 }
 
 func (c *Client) DeleteSecret(_ context.Context, ref esv1.PushSecretRemoteRef) error {
-	request := dClient.UpdateSecretsRequest{
-		ChangeRequests: []dClient.Change{
+	request := dclient.UpdateSecretsRequest{
+		ChangeRequests: []dclient.Change{
 			{
 				Name:         ref.GetRemoteKey(),
 				OriginalName: ref.GetRemoteKey(),
@@ -127,8 +128,8 @@ func (c *Client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bo
 func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	value := secret.Data[data.GetSecretKey()]
 
-	request := dClient.UpdateSecretsRequest{
-		Secrets: dClient.Secrets{
+	request := dclient.UpdateSecretsRequest{
+		Secrets: dclient.Secrets{
 			data.GetRemoteKey(): string(value),
 		},
 		Project: c.project,
@@ -144,7 +145,7 @@ func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.
 }
 
 func (c *Client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	request := dClient.SecretRequest{
+	request := dclient.SecretRequest{
 		Name:    ref.Key,
 		Project: c.project,
 		Config:  c.config,
@@ -219,7 +220,7 @@ func (c *Client) Close(_ context.Context) error {
 }
 
 func (c *Client) getSecrets(_ context.Context) (map[string][]byte, error) {
-	request := dClient.SecretsRequest{
+	request := dclient.SecretsRequest{
 		Project:         c.project,
 		Config:          c.config,
 		NameTransformer: c.nameTransformer,
@@ -240,7 +241,7 @@ func (c *Client) getSecrets(_ context.Context) (map[string][]byte, error) {
 	return externalSecretsFormat(response.Secrets), nil
 }
 
-func externalSecretsFormat(secrets dClient.Secrets) map[string][]byte {
+func externalSecretsFormat(secrets dclient.Secrets) map[string][]byte {
 	converted := make(map[string][]byte, len(secrets))
 	for key, value := range secrets {
 		converted[key] = []byte(value)

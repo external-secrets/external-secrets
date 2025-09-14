@@ -46,7 +46,8 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/util"
 	"github.com/external-secrets/external-secrets/pkg/esutils"
 	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
-	"github.com/external-secrets/external-secrets/pkg/generator/statemanager
+	"github.com/external-secrets/external-secrets/pkg/generator/statemanager"
+	"github.com/external-secrets/external-secrets/pkg/provider/util/locks"
 
 	_ "github.com/external-secrets/external-secrets/pkg/generator/register"
 )

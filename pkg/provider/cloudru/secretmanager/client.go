@@ -24,14 +24,14 @@ import (
 	"strconv"
 	"strings"
 
-	smsV2 "github.com/cloudru-tech/secret-manager-sdk/api/v2"
+	smsv2 "github.com/cloudru-tech/secret-manager-sdk/api/v2"
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/esutils"
-
+	"github.com/external-secrets/external-secrets/pkg/provider/cloudru/secretmanager/adapter"
 )
 
 var (
@@ -42,7 +42,7 @@ var (
 // SecretProvider is an API client for the Cloud.ru Secret Manager.
 type SecretProvider interface {
 	// ListSecrets lists secrets by the given request.
-	ListSecrets(ctx context.Context, req *adapter.ListSecretsRequest) ([]*smsV2.Secret, error)
+	ListSecrets(ctx context.Context, req *adapter.ListSecretsRequest) ([]*smsv2.Secret, error)
 	// AccessSecretVersionByPath gets the secret by the given path.
 	AccessSecretVersionByPath(ctx context.Context, projectID, path string, version *int32) ([]byte, error)
 	// AccessSecretVersion gets the secret by the given request.

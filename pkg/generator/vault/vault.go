@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/external-secrets/external-secrets/pkg/provider/vault/util"
 	vault "github.com/hashicorp/vault/api"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/client-go/kubernetes"
@@ -32,9 +33,7 @@ import (
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/esutils"
-	provider "gith
 	provider "github.com/external-secrets/external-secrets/pkg/provider/vault"
-	"github.com/external-secrets/external-secrets/pkg/esutils"
 )
 
 type Generator struct{}

@@ -730,12 +730,14 @@ spec:
               properties:
                 conditions:
                   items:
+                    description: ClusterExternalSecretStatusCondition defines the observed state of a ClusterExternalSecret resource
                     properties:
                       message:
                         type: string
                       status:
                         type: string
                       type:
+                        description: ClusterExternalSecretConditionType defines a value type for ClusterExternalSecret conditions.
                         type: string
                     required:
                       - status

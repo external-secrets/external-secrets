@@ -33,7 +33,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/pkg/esutils/resolvers"
-
+	"github.com/external-secrets/external-secrets/pkg/provider/yandex/common/clock"
 )
 
 const maxSecretsClientLifetime = 5 * time.Minute // supposed SecretsClient lifetime is quite short
@@ -44,7 +44,7 @@ var _ esv1.Provider = &YandexCloudProvider{}
 // Implementation of v1beta1.Provider.
 type YandexCloudProvider struct {
 	logger              logr.Logger
-	clock               clock2.Clock
+	clock               clock.Clock
 	adaptInputFunc      AdaptInputFunc
 	newSecretGetterFunc NewSecretGetterFunc
 	newIamTokenFunc     NewIamTokenFunc
@@ -63,7 +63,7 @@ type iamTokenKey struct {
 
 func InitYandexCloudProvider(
 	logger logr.Logger,
-	clock clock2.Clock,
+	clock clock.Clock,
 	adaptInputFunc AdaptInputFunc,
 	newSecretGetterFunc NewSecretGetterFunc,
 	newIamTokenFunc NewIamTokenFunc,
