@@ -18,6 +18,9 @@ package password
 
 import (
 	"context"
+	"encoding/base32"
+	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -97,8 +100,20 @@ func (g *Generator) generate(jsonSpec *apiextensions.JSON, passGen generateFunc)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Apply encoding
+	encoding := "raw"
+	if res.Spec.Encoding != nil {
+		encoding = *res.Spec.Encoding
+	}
+
+	encodedPass, err := encodePassword([]byte(pass), encoding)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return map[string][]byte{
-		"password": []byte(pass),
+		"password": encodedPass,
 	}, nil, nil
 }
 
@@ -123,6 +138,25 @@ func generateSafePassword(
 		noUpper,
 		allowRepeat,
 	)
+}
+
+func encodePassword(b []byte, encoding string) ([]byte, error) {
+	var encodedString string
+	switch encoding {
+	case "base64url":
+		encodedString = base64.URLEncoding.EncodeToString(b)
+	case "raw":
+		return b, nil
+	case "base32":
+		encodedString = base32.StdEncoding.EncodeToString(b)
+	case "hex":
+		encodedString = hex.EncodeToString(b)
+	case "base64":
+		encodedString = base64.StdEncoding.EncodeToString(b)
+	default:
+		return b, nil
+	}
+	return []byte(encodedString), nil
 }
 
 func parseSpec(data []byte) (*genv1alpha1.Password, error) {
