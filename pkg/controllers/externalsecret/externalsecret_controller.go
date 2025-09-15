@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package externalsecret implements the controller for managing ExternalSecret resources
 package externalsecret
 
 import (
