@@ -17,12 +17,12 @@ limitations under the License.
 package addon
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
 
+	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -60,7 +60,7 @@ func (s *HelmServer) Setup(config *Config) error {
 		return fmt.Errorf("unable to create helm index: %w %s", err, string(out))
 	}
 
-	_, err = s.config.KubeClientSet.CoreV1().Services("default").Create(context.Background(), &v1.Service{
+	_, err = s.config.KubeClientSet.CoreV1().Services("default").Create(GinkgoT().Context(), &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "e2e-helmserver",
 		},
@@ -95,7 +95,7 @@ func (s *HelmServer) Logs() error {
 }
 
 func (s *HelmServer) Uninstall() error {
-	err := s.config.KubeClientSet.CoreV1().Services("default").Delete(context.Background(), "e2e-helmserver", metav1.DeleteOptions{})
+	err := s.config.KubeClientSet.CoreV1().Services("default").Delete(GinkgoT().Context(), "e2e-helmserver", metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}

@@ -35,7 +35,6 @@ ginkgo_args=(
   "-p"
   "-trace"
   "-r"
-  "-v"
   "-timeout=45m"
 )
 

@@ -23,11 +23,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/utils/ptr"
 	kubeclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 const (
@@ -343,5 +348,68 @@ func TestNewClient(t *testing.T) {
 				assert.Equal(t, err.Error(), tt.expectedErrorText)
 			}
 		})
+	}
+}
+
+func TestLoadConfigSecret_NamespacedStoreCannotCrossNamespace(t *testing.T) {
+	kube := fake.NewClientBuilder().WithObjects(&corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "foo",
+			Name:      "creds",
+		},
+		Data: map[string][]byte{
+			"key": []byte("value"),
+		},
+	}).Build()
+	ref := &esv1.BeyondTrustProviderSecretRef{
+		SecretRef: &esmeta.SecretKeySelector{
+			Namespace: ptr.To("foo"),
+			Name:      "creds",
+			Key:       "key",
+		},
+	}
+
+	// For a namespaced SecretStore, attempting to read from another namespace must fail.
+	_, err := loadConfigSecret(t.Context(), ref, kube, "ns2", esv1.SecretStoreKind)
+	if err == nil {
+		t.Fatalf("expected error when accessing secret across namespaces with SecretStore, got nil")
+	}
+
+	// For a namespaced SecretStore, attempting to read from the right namespace must not fail.
+	val, err := loadConfigSecret(t.Context(), ref, kube, "foo", esv1.SecretStoreKind)
+	if err != nil {
+		t.Fatalf("expected error when accessing secret across namespaces with SecretStore, got nil")
+	}
+	if val != "value" {
+		t.Fatalf("expected value, got %q", val)
+	}
+}
+
+func TestLoadConfigSecret_ClusterStoreCanAccessOtherNamespace(t *testing.T) {
+	kube := fake.NewClientBuilder().WithObjects(&corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "foo",
+			Name:      "creds",
+		},
+		Data: map[string][]byte{
+			"key": []byte("value"),
+		},
+	}).Build()
+
+	ref := &esv1.BeyondTrustProviderSecretRef{
+		SecretRef: &esmeta.SecretKeySelector{
+			Namespace: ptr.To("foo"),
+			Name:      "creds",
+			Key:       "key",
+		},
+	}
+
+	// ClusterSecretStore may access across namespaces when a namespace is provided in the selector.
+	val, err := loadConfigSecret(t.Context(), ref, kube, "unrelated-namespace", esv1.ClusterSecretStoreKind)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if val != "value" {
+		t.Fatalf("expected valueA, got %q", val)
 	}
 }

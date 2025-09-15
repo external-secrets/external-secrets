@@ -88,6 +88,14 @@ Activity: Reviews controller/CRD changes, ensures API consistency and backward c
 Focus: Provider integrations (AWS, Vault, GCP, Azure, CyberArk, etc.).
 Activity: Reviews provider-specific code and conformance to provider guidelines; coordinates breaking changes (for providers that aren't `stable` graded).
 
+### Documentation
+Focus: Update documentation in the project. This could be the following: blog posts, provider documentation, tutorials, examples, enhanced developer guides, etc.
+Activity: Reviews and create documents and descriptions of the project.
+
+### Community
+Focus: Community nurturing. Help with issues, handling community meetings, help fostering the face of external secrets operator, potentially partaking in events and promoting this project.
+Activity: Help on issues, monitor the slack channel, organize community talks and events, promote ESO, create demos, etc.
+
 ---
 
 ## Interim Roles
