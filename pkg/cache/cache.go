@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package cache provides a generic lru cache with versioning support.
 package cache
 
 import (
@@ -26,7 +27,7 @@ import (
 // lookup values using a key and a version.
 // By design, this cache allows access to only a single version of a given key.
 // A version mismatch is considered a cache miss and the key gets evicted if it exists.
-// When a key is evicted a optional cleanup function is called.
+// When a key is evicted an optional cleanup function is called.
 type Cache[T any] struct {
 	lru         *lru.Cache
 	size        int
