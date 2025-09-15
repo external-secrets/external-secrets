@@ -86,6 +86,12 @@ linters:
           - unparam
           - lll
 
+      # Allow dot imports for Ginkgo and Gomega in test files
+      - path: _test\.go
+        text: "dot-imports:"
+        linters:
+          - revive
+
       # Ease some gocritic warnings on test files.
       - path: _test\.go
         text: "(unnamedResult|exitAfterDefer)"

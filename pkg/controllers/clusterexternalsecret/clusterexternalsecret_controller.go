@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package clusterexternalsecret implements a controller for managing ClusterExternalSecret resources,
+// which allow creating ExternalSecrets across multiple namespaces.
 package clusterexternalsecret
 
 import (
@@ -67,6 +69,11 @@ const (
 	ClusterExternalSecretFinalizer = "externalsecrets.external-secrets.io/clusterexternalsecret-cleanup"
 )
 
+// Reconcile is part of the main kubernetes reconciliation loop which aims to
+// move the current state of the cluster closer to the desired state.
+//
+// For more details, check Reconcile and its Result here:
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/reconcile
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("ClusterExternalSecret", req.NamespacedName)
 
