@@ -25,16 +25,17 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func generateRSAPrivateKeyPEM() (string, *rsa.PrivateKey, error) {
+func generateRSAPrivateKeyPEM(t testing.TB) (string, *rsa.PrivateKey) {
+	t.Helper()
+	// Generate a new RSA private key
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return "", nil, err
-	}
+	require.NoError(t, err, "failed to generate RSA key")
 	privBytes := x509.MarshalPKCS1PrivateKey(priv)
 	privPEM := pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: privBytes})
-	return string(privPEM), priv, nil
+	return string(privPEM), priv
 }
 
 func TestRsaDecrypt_NoneScheme(t *testing.T) {
@@ -60,17 +61,14 @@ func TestRsaDecrypt_InvalidPrivateKey(t *testing.T) {
 }
 
 func TestRsaDecrypt_UnsupportedScheme(t *testing.T) {
-	privateKey, _, _ := generateRSAPrivateKeyPEM()
+	privateKey, _ := generateRSAPrivateKeyPEM(t)
 	_, err := rsaDecrypt("Unsupported", "SHA256", "data", privateKey)
 	assert.Error(t, err)
 	assert.Equal(t, fmt.Errorf(errSchemeNotSupported, "Unsupported"), err)
 }
 
 func TestRsaDecrypt_RSAOAEP_Success(t *testing.T) {
-	privateKeyPEM, priv, err := generateRSAPrivateKeyPEM()
-	if err != nil {
-		t.Fatalf("failed to generate key: %v", err)
-	}
+	privateKeyPEM, priv := generateRSAPrivateKeyPEM(t)
 	plaintext := []byte("secret-data")
 	ciphertext, err := rsa.EncryptOAEP(getHash("SHA256"), rand.Reader, &priv.PublicKey, plaintext, nil)
 	assert.NoError(t, err)
@@ -80,12 +78,9 @@ func TestRsaDecrypt_RSAOAEP_Success(t *testing.T) {
 }
 
 func TestRsaDecrypt_RSAOAEP_DecryptionError(t *testing.T) {
-	privateKeyPEM, _, err := generateRSAPrivateKeyPEM()
-	if err != nil {
-		t.Fatalf("failed to generate key: %v", err)
-	}
+	privateKeyPEM, _ := generateRSAPrivateKeyPEM(t)
 	// Pass random data as ciphertext
-	_, err = rsaDecrypt("RSA-OAEP", "SHA256", "not-encrypted-data", privateKeyPEM)
+	_, err := rsaDecrypt("RSA-OAEP", "SHA256", "not-encrypted-data", privateKeyPEM)
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, errRSADecrypt)
 }

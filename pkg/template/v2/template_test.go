@@ -188,11 +188,10 @@ ejJKh20FmJegJhkImmNTokNbQZbYiLAP07Ykx9A8jLg=
 	rsaDecryptDataPKCS1Base64 = `Xd9Jij8+hTqM7ii1nnKbKZy7pHhn3BJwxrENwIlvf0iRysVKn7gmAaD6UV4EpNwYOHvLbo6yLWBme6msVAhIV9KOp22jDe9j837C48rcUiF93Jb7+plabbwTQt4iqi1EKxEfVvKi4tLsLBRhu0v583oQAfCf5aLwF3Vb5bPgGeY=`
 )
 
-func readFile(filePath string) []byte {
+func readFile(t testing.TB, filePath string) []byte {
+	t.Helper()
 	data, err := os.ReadFile(filePath)
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err, "failed to read file: %s", filePath)
 	return data
 }
 
@@ -596,7 +595,7 @@ func TestExecute(t *testing.T) {
 			},
 			data: map[string][]byte{
 				"private_key":      []byte(rsaDecryptPKRSAPKCS1),
-				"data_crypted_bin": readFile("_testdata/rsa_oaep_sha256_pkcs1.bin"),
+				"data_crypted_bin": readFile(t, "_testdata/rsa_oaep_sha256_pkcs1.bin"),
 			},
 			expectedData: map[string][]byte{
 				"data_decrypted": []byte("hellopkcs1sha256"),
