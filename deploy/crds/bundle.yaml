@@ -8834,9 +8834,7 @@ spec:
                           description: APIKey is the API token to access SDKMS Applications.
                           properties:
                             secretRef:
-                              description: |-
-                                FortanixProviderSecretRef defines a reference to a secret containing credentials for the Fortanix provider.
-                                SecretRef is a reference to a secret containing the SDKMS API Key.
+                              description: SecretRef is a reference to a secret containing the SDKMS API Key.
                               properties:
                                 key:
                                   description: |-
@@ -8863,9 +8861,7 @@ spec:
                               type: object
                           type: object
                         apiUrl:
-                          description: |-
-                            FortanixProvider defines configuration for the Fortanix SDKMS provider.
-                            APIURL is the URL of SDKMS API. Defaults to `sdkms.fortanix.com`.
+                          description: APIURL is the URL of SDKMS API. Defaults to `sdkms.fortanix.com`.
                           type: string
                       type: object
                     gcpsm:
@@ -11143,6 +11139,7 @@ spec:
                             Secrets to fill in templates
                             These secrets will be passed to the templating function as key value pairs under the given name
                           items:
+                            description: WebhookSecret defines a secret to be used in webhook templates.
                             properties:
                               name:
                                 description: Name of this secret in templates
@@ -11338,9 +11335,11 @@ spec:
                   description: Used to configure http retries if failed
                   properties:
                     maxRetries:
+                      description: MaxRetries is the maximum number of retry attempts.
                       format: int32
                       type: integer
                     retryInterval:
+                      description: RetryInterval is the interval between retry attempts.
                       type: string
                   type: object
               required:
@@ -11354,6 +11353,7 @@ spec:
                   type: string
                 conditions:
                   items:
+                    description: SecretStoreStatusCondition defines the observed condition of the SecretStore.
                     properties:
                       lastTransitionTime:
                         format: date-time
@@ -11365,6 +11365,7 @@ spec:
                       status:
                         type: string
                       type:
+                        description: SecretStoreConditionType represents the condition type of the SecretStore.
                         type: string
                     required:
                       - status
@@ -19934,9 +19935,7 @@ spec:
                           description: APIKey is the API token to access SDKMS Applications.
                           properties:
                             secretRef:
-                              description: |-
-                                FortanixProviderSecretRef defines a reference to a secret containing credentials for the Fortanix provider.
-                                SecretRef is a reference to a secret containing the SDKMS API Key.
+                              description: SecretRef is a reference to a secret containing the SDKMS API Key.
                               properties:
                                 key:
                                   description: |-
@@ -19963,9 +19962,7 @@ spec:
                               type: object
                           type: object
                         apiUrl:
-                          description: |-
-                            FortanixProvider defines configuration for the Fortanix SDKMS provider.
-                            APIURL is the URL of SDKMS API. Defaults to `sdkms.fortanix.com`.
+                          description: APIURL is the URL of SDKMS API. Defaults to `sdkms.fortanix.com`.
                           type: string
                       type: object
                     gcpsm:
@@ -22243,6 +22240,7 @@ spec:
                             Secrets to fill in templates
                             These secrets will be passed to the templating function as key value pairs under the given name
                           items:
+                            description: WebhookSecret defines a secret to be used in webhook templates.
                             properties:
                               name:
                                 description: Name of this secret in templates
@@ -22438,9 +22436,11 @@ spec:
                   description: Used to configure http retries if failed
                   properties:
                     maxRetries:
+                      description: MaxRetries is the maximum number of retry attempts.
                       format: int32
                       type: integer
                     retryInterval:
+                      description: RetryInterval is the interval between retry attempts.
                       type: string
                   type: object
               required:
@@ -22454,6 +22454,7 @@ spec:
                   type: string
                 conditions:
                   items:
+                    description: SecretStoreStatusCondition defines the observed condition of the SecretStore.
                     properties:
                       lastTransitionTime:
                         format: date-time
@@ -22465,6 +22466,7 @@ spec:
                       status:
                         type: string
                       type:
+                        description: SecretStoreConditionType represents the condition type of the SecretStore.
                         type: string
                     required:
                       - status
@@ -22535,6 +22537,7 @@ spec:
                 see: https://github.com/Azure/acr/blob/main/docs/AAD-OAuth.md#overview
               properties:
                 auth:
+                  description: ACRAuth defines the authentication methods for Azure Container Registry.
                   properties:
                     managedIdentity:
                       description: ManagedIdentity uses Azure Managed Identity to authenticate with Azure.
@@ -22548,8 +22551,8 @@ spec:
                       properties:
                         secretRef:
                           description: |-
-                            Configuration used to authenticate with Azure using static
-                            credentials stored in a Kind=Secret.
+                            AzureACRServicePrincipalAuthSecretRef defines the secret references for Azure Service Principal authentication.
+                            It uses static credentials stored in a Kind=Secret.
                           properties:
                             clientId:
                               description: The Azure clientId of the service principle used for authentication.
@@ -22646,7 +22649,7 @@ spec:
                   default: PublicCloud
                   description: |-
                     EnvironmentType specifies the Azure cloud environment endpoints to use for
-                    connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint.
+                    connecting and authenticating with Azure. By default, it points to the public cloud AAD endpoint.
                     The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152
                     PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
                   enum:
@@ -22729,6 +22732,7 @@ spec:
             metadata:
               type: object
             spec:
+              description: ClusterGeneratorSpec defines the desired state of a ClusterGenerator.
               properties:
                 generator:
                   description: Generator the spec for this generator, must match the kind.
@@ -22742,6 +22746,7 @@ spec:
                         see: https://github.com/Azure/acr/blob/main/docs/AAD-OAuth.md#overview
                       properties:
                         auth:
+                          description: ACRAuth defines the authentication methods for Azure Container Registry.
                           properties:
                             managedIdentity:
                               description: ManagedIdentity uses Azure Managed Identity to authenticate with Azure.
@@ -22755,8 +22760,8 @@ spec:
                               properties:
                                 secretRef:
                                   description: |-
-                                    Configuration used to authenticate with Azure using static
-                                    credentials stored in a Kind=Secret.
+                                    AzureACRServicePrincipalAuthSecretRef defines the secret references for Azure Service Principal authentication.
+                                    It uses static credentials stored in a Kind=Secret.
                                   properties:
                                     clientId:
                                       description: The Azure clientId of the service principle used for authentication.
@@ -22853,7 +22858,7 @@ spec:
                           default: PublicCloud
                           description: |-
                             EnvironmentType specifies the Azure cloud environment endpoints to use for
-                            connecting and authenticating with Azure. By default it points to the public cloud AAD endpoint.
+                            connecting and authenticating with Azure. By default, it points to the public cloud AAD endpoint.
                             The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152
                             PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
                           enum:
@@ -22888,12 +22893,13 @@ spec:
                         - registry
                       type: object
                     ecrAuthorizationTokenSpec:
+                      description: ECRAuthorizationTokenSpec defines the desired state to generate an AWS ECR authorization token.
                       properties:
                         auth:
                           description: Auth defines how to authenticate with AWS
                           properties:
                             jwt:
-                              description: Authenticate against AWS using service account tokens.
+                              description: AWSJWTAuth provides configuration to authenticate against AWS using service account tokens.
                               properties:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
@@ -23045,11 +23051,13 @@ spec:
                           type: object
                       type: object
                     gcrAccessTokenSpec:
+                      description: GCRAccessTokenSpec defines the desired state to generate a Google Container Registry access token.
                       properties:
                         auth:
                           description: Auth defines the means for authenticating with GCP
                           properties:
                             secretRef:
+                              description: GCPSMAuthSecretRef defines the reference to a secret containing Google Cloud Platform credentials.
                               properties:
                                 secretAccessKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
@@ -23079,6 +23087,7 @@ spec:
                                   type: object
                               type: object
                             workloadIdentity:
+                              description: GCPWorkloadIdentity defines the configuration for using GCP Workload Identity authentication.
                               properties:
                                 clusterLocation:
                                   type: string
@@ -23241,6 +23250,7 @@ spec:
                         - projectID
                       type: object
                     githubAccessTokenSpec:
+                      description: GithubAccessTokenSpec defines the desired state to generate a GitHub access token.
                       properties:
                         appID:
                           type: string
@@ -23248,6 +23258,7 @@ spec:
                           description: Auth configures how ESO authenticates with a Github instance.
                           properties:
                             privateKey:
+                              description: GithubSecretRef references a secret containing GitHub credentials.
                               properties:
                                 secretRef:
                                   description: |-
@@ -23298,7 +23309,7 @@ spec:
                             type: string
                           type: array
                         url:
-                          description: URL configures the Github instance URL. Defaults to https://github.com/.
+                          description: URL configures the GitHub instance URL. Defaults to https://github.com/.
                           type: string
                       required:
                         - appID
@@ -23473,6 +23484,7 @@ spec:
                         - noUpper
                       type: object
                     quayAccessTokenSpec:
+                      description: QuayAccessTokenSpec defines the desired state to generate a Quay access token.
                       properties:
                         robotAccount:
                           description: Name of the robot account you are federating with
@@ -23535,12 +23547,13 @@ spec:
                           type: string
                       type: object
                     stsSessionTokenSpec:
+                      description: STSSessionTokenSpec defines the desired state to generate an AWS STS session token.
                       properties:
                         auth:
                           description: Auth defines how to authenticate with AWS
                           properties:
                             jwt:
-                              description: Authenticate against AWS using service account tokens.
+                              description: AWSJWTAuth provides configuration to authenticate against AWS using service account tokens.
                               properties:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
@@ -23691,6 +23704,7 @@ spec:
                       description: UUIDSpec controls the behavior of the uuid generator.
                       type: object
                     vaultDynamicSecretSpec:
+                      description: VaultDynamicSecretSpec defines the desired spec of VaultDynamicSecret.
                       properties:
                         allowEmptyResponse:
                           default: false
@@ -24486,7 +24500,7 @@ spec:
                           default: Data
                           description: |-
                             Result type defines which data is returned from the generator.
-                            By default it is the "data" section of the Vault API response.
+                            By default, it is the "data" section of the Vault API response.
                             When using e.g. /auth/token/create the "data" section is empty but
                             the "auth" section contains the generated token.
                             Please refer to the vault docs regarding the result data structure.
@@ -24643,6 +24657,7 @@ spec:
                             Secrets to fill in templates
                             These secrets will be passed to the templating function as key value pairs under the given name
                           items:
+                            description: WebhookSecret defines a secret reference that will be used in webhook templates.
                             properties:
                               name:
                                 description: Name of this secret in templates
@@ -24730,8 +24745,7 @@ spec:
       schema:
         openAPIV3Schema:
           description: |-
-            ECRAuthorizationTokenSpec uses the GetAuthorizationToken API to retrieve an
-            authorization token.
+            ECRAuthorizationToken uses the GetAuthorizationToken API to retrieve an authorization token.
             The authorization token is valid for 12 hours.
             The authorizationToken returned is a base64 encoded string that can be decoded
             and used in a docker login command to authenticate to a registry.
@@ -24755,12 +24769,13 @@ spec:
             metadata:
               type: object
             spec:
+              description: ECRAuthorizationTokenSpec defines the desired state to generate an AWS ECR authorization token.
               properties:
                 auth:
                   description: Auth defines how to authenticate with AWS
                   properties:
                     jwt:
-                      description: Authenticate against AWS using service account tokens.
+                      description: AWSJWTAuth provides configuration to authenticate against AWS using service account tokens.
                       properties:
                         serviceAccountRef:
                           description: A reference to a ServiceAccount resource.
@@ -25012,11 +25027,13 @@ spec:
             metadata:
               type: object
             spec:
+              description: GCRAccessTokenSpec defines the desired state to generate a Google Container Registry access token.
               properties:
                 auth:
                   description: Auth defines the means for authenticating with GCP
                   properties:
                     secretRef:
+                      description: GCPSMAuthSecretRef defines the reference to a secret containing Google Cloud Platform credentials.
                       properties:
                         secretAccessKeySecretRef:
                           description: The SecretAccessKey is used for authentication
@@ -25046,6 +25063,7 @@ spec:
                           type: object
                       type: object
                     workloadIdentity:
+                      description: GCPWorkloadIdentity defines the configuration for using GCP Workload Identity authentication.
                       properties:
                         clusterLocation:
                           type: string
@@ -25245,6 +25263,7 @@ spec:
       name: v1alpha1
       schema:
         openAPIV3Schema:
+          description: GeneratorState represents the state created and managed by a generator resource.
           properties:
             apiVersion:
               description: |-
@@ -25264,6 +25283,7 @@ spec:
             metadata:
               type: object
             spec:
+              description: GeneratorStateSpec defines the desired state of a generator state resource.
               properties:
                 garbageCollectionDeadline:
                   description: |-
@@ -25290,9 +25310,11 @@ spec:
                 - state
               type: object
             status:
+              description: GeneratorStateStatus defines the observed state of a generator state resource.
               properties:
                 conditions:
                   items:
+                    description: GeneratorStateStatusCondition represents the observed condition of a generator state.
                     properties:
                       lastTransitionTime:
                         format: date-time
@@ -25304,6 +25326,7 @@ spec:
                       status:
                         type: string
                       type:
+                        description: GeneratorStateConditionType represents the type of condition for a generator state.
                         type: string
                     required:
                       - status
@@ -25359,6 +25382,7 @@ spec:
             metadata:
               type: object
             spec:
+              description: GithubAccessTokenSpec defines the desired state to generate a GitHub access token.
               properties:
                 appID:
                   type: string
@@ -25366,6 +25390,7 @@ spec:
                   description: Auth configures how ESO authenticates with a Github instance.
                   properties:
                     privateKey:
+                      description: GithubSecretRef references a secret containing GitHub credentials.
                       properties:
                         secretRef:
                           description: |-
@@ -25416,7 +25441,7 @@ spec:
                     type: string
                   type: array
                 url:
-                  description: URL configures the Github instance URL. Defaults to https://github.com/.
+                  description: URL configures the GitHub instance URL. Defaults to https://github.com/.
                   type: string
               required:
                 - appID
@@ -25452,6 +25477,7 @@ spec:
     - name: v1alpha1
       schema:
         openAPIV3Schema:
+          description: Grafana represents a generator for Grafana service account tokens.
           properties:
             apiVersion:
               description: |-
@@ -25785,6 +25811,7 @@ spec:
             metadata:
               type: object
             spec:
+              description: QuayAccessTokenSpec defines the desired state to generate a Quay access token.
               properties:
                 robotAccount:
                   description: Name of the robot account you are federating with
@@ -25947,12 +25974,13 @@ spec:
             metadata:
               type: object
             spec:
+              description: STSSessionTokenSpec defines the desired state to generate an AWS STS session token.
               properties:
                 auth:
                   description: Auth defines how to authenticate with AWS
                   properties:
                     jwt:
-                      description: Authenticate against AWS using service account tokens.
+                      description: AWSJWTAuth provides configuration to authenticate against AWS using service account tokens.
                       properties:
                         serviceAccountRef:
                           description: A reference to a ServiceAccount resource.
@@ -26179,6 +26207,7 @@ spec:
     - name: v1alpha1
       schema:
         openAPIV3Schema:
+          description: VaultDynamicSecret represents a generator that can create dynamic secrets from HashiCorp Vault.
           properties:
             apiVersion:
               description: |-
@@ -26198,6 +26227,7 @@ spec:
             metadata:
               type: object
             spec:
+              description: VaultDynamicSecretSpec defines the desired spec of VaultDynamicSecret.
               properties:
                 allowEmptyResponse:
                   default: false
@@ -26993,7 +27023,7 @@ spec:
                   default: Data
                   description: |-
                     Result type defines which data is returned from the generator.
-                    By default it is the "data" section of the Vault API response.
+                    By default, it is the "data" section of the Vault API response.
                     When using e.g. /auth/token/create the "data" section is empty but
                     the "auth" section contains the generated token.
                     Please refer to the vault docs regarding the result data structure.
@@ -27202,6 +27232,7 @@ spec:
                     Secrets to fill in templates
                     These secrets will be passed to the templating function as key value pairs under the given name
                   items:
+                    description: WebhookSecret defines a secret reference that will be used in webhook templates.
                     properties:
                       name:
                         description: Name of this secret in templates

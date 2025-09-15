@@ -42,6 +42,7 @@ type RequestParameters struct {
 	TokenCode *string `json:"tokenCode,omitempty"`
 }
 
+// STSSessionTokenSpec defines the desired state to generate an AWS STS session token.
 type STSSessionTokenSpec struct {
 	// Region specifies the region to operate in.
 	Region string `json:"region"`
