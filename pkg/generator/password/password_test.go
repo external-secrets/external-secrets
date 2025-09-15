@@ -17,7 +17,6 @@ limitations under the License.
 package password
 
 import (
-	"encoding/base32"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -121,11 +120,11 @@ func TestGenerate(t *testing.T) {
 				},
 				passGen: func(len int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
 				) (string, error) {
-					return "test", nil
+					return "test_hex", nil
 				},
 			},
 			want: map[string][]byte{
-				"password": []byte(hex.EncodeToString([]byte("test"))),
+				"password": []byte(hex.EncodeToString([]byte("test_hex"))),
 			},
 			wantErr: false,
 		},
@@ -137,11 +136,11 @@ func TestGenerate(t *testing.T) {
 				},
 				passGen: func(len int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
 				) (string, error) {
-					return "test", nil
+					return "test_raw", nil
 				},
 			},
 			want: map[string][]byte{
-				"password": []byte(`test`),
+				"password": []byte(`test_raw`),
 			},
 			wantErr: false,
 		},
@@ -153,11 +152,11 @@ func TestGenerate(t *testing.T) {
 				},
 				passGen: func(len int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
 				) (string, error) {
-					return "test", nil
+					return "test_base64", nil
 				},
 			},
 			want: map[string][]byte{
-				"password": []byte(base64.StdEncoding.EncodeToString([]byte("test"))),
+				"password": []byte(base64.StdEncoding.EncodeToString([]byte("test_base64"))),
 			},
 			wantErr: false,
 		},

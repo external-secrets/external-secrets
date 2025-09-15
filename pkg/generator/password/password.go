@@ -107,10 +107,7 @@ func (g *Generator) generate(jsonSpec *apiextensions.JSON, passGen generateFunc)
 		encoding = *res.Spec.Encoding
 	}
 
-	encodedPass, err := encodePassword([]byte(pass), encoding)
-	if err != nil {
-		return nil, nil, err
-	}
+	encodedPass := encodePassword([]byte(pass), encoding)
 
 	return map[string][]byte{
 		"password": encodedPass,
@@ -140,13 +137,13 @@ func generateSafePassword(
 	)
 }
 
-func encodePassword(b []byte, encoding string) ([]byte, error) {
+func encodePassword(b []byte, encoding string) []byte {
 	var encodedString string
 	switch encoding {
 	case "base64url":
 		encodedString = base64.URLEncoding.EncodeToString(b)
 	case "raw":
-		return b, nil
+		return b
 	case "base32":
 		encodedString = base32.StdEncoding.EncodeToString(b)
 	case "hex":
@@ -154,9 +151,9 @@ func encodePassword(b []byte, encoding string) ([]byte, error) {
 	case "base64":
 		encodedString = base64.StdEncoding.EncodeToString(b)
 	default:
-		return b, nil
+		return b
 	}
-	return []byte(encodedString), nil
+	return []byte(encodedString)
 }
 
 func parseSpec(data []byte) (*genv1alpha1.Password, error) {
