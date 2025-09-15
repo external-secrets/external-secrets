@@ -20,6 +20,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// OraclePrincipalType defines the type of principal used for authentication to Oracle Vault.
 // +kubebuilder:validation:Enum="";UserPrincipal;InstancePrincipal;Workload
 type OraclePrincipalType string
 
@@ -32,8 +33,7 @@ const (
 	WorkloadPrincipal OraclePrincipalType = "Workload"
 )
 
-// Configures an store to sync secrets using a Oracle Vault
-// backend.
+// OracleProvider configures a store to sync secrets using an Oracle Vault backend.
 type OracleProvider struct {
 	// Region is the region where vault is located.
 	Region string `json:"region"`
@@ -68,6 +68,7 @@ type OracleProvider struct {
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }
 
+// OracleAuth defines authentication configuration for the Oracle Vault provider.
 type OracleAuth struct {
 
 	// Tenancy is the tenancy OCID where user is located.
@@ -80,6 +81,7 @@ type OracleAuth struct {
 	SecretRef OracleSecretRef `json:"secretRef"`
 }
 
+// OracleSecretRef defines references to secrets containing Oracle credentials.
 type OracleSecretRef struct {
 	// PrivateKey is the user's API Signing Key in PEM format, used for authentication.
 	PrivateKey esmeta.SecretKeySelector `json:"privatekey"`

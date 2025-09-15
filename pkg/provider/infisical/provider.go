@@ -127,7 +127,7 @@ func performAzureAuthLogin(ctx context.Context, store esv1.GenericStore, infisic
 }
 
 func performGcpIdTokenAuthLogin(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error {
-	gcpIdTokenAuthCredentials := infisicalSpec.Auth.GcpIdTokenAuthCredentials
+	gcpIdTokenAuthCredentials := infisicalSpec.Auth.GcpIDTokenAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, gcpIdTokenAuthCredentials.IdentityID)
 	if err != nil {
 		return fmt.Errorf(errSecretDataFormat, err)
@@ -357,7 +357,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	case infisicalSpec.Auth.AzureAuthCredentials != nil:
 		loginFn = performAzureAuthLogin
 		authMethod = machineIdentityLoginViaAzureAuth
-	case infisicalSpec.Auth.GcpIdTokenAuthCredentials != nil:
+	case infisicalSpec.Auth.GcpIDTokenAuthCredentials != nil:
 		loginFn = performGcpIdTokenAuthLogin
 		authMethod = machineIdentityLoginViaGcpIdTokenAuth
 	case infisicalSpec.Auth.GcpIamAuthCredentials != nil:

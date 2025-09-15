@@ -49,34 +49,42 @@ type GenericStore interface {
 // +kubebuilder:object:generate:false
 var _ GenericStore = &SecretStore{}
 
+// GetObjectMeta returns the ObjectMeta of the SecretStore.
 func (c *SecretStore) GetObjectMeta() *metav1.ObjectMeta {
 	return &c.ObjectMeta
 }
 
+// GetTypeMeta returns the TypeMeta of the SecretStore.
 func (c *SecretStore) GetTypeMeta() *metav1.TypeMeta {
 	return &c.TypeMeta
 }
 
+// GetSpec returns the spec of the SecretStore.
 func (c *SecretStore) GetSpec() *SecretStoreSpec {
 	return &c.Spec
 }
 
+// GetStatus returns the status of the SecretStore.
 func (c *SecretStore) GetStatus() SecretStoreStatus {
 	return c.Status
 }
 
+// SetStatus sets the status of the SecretStore.
 func (c *SecretStore) SetStatus(status SecretStoreStatus) {
 	c.Status = status
 }
 
+// GetNamespacedName returns the namespaced name of the SecretStore.
 func (c *SecretStore) GetNamespacedName() string {
 	return fmt.Sprintf("%s/%s", c.Namespace, c.Name)
 }
 
+// GetKind returns the kind of the SecretStore.
 func (c *SecretStore) GetKind() string {
 	return SecretStoreKind
 }
 
+// Copy returns a deep copy of the SecretStore.
 func (c *SecretStore) Copy() GenericStore {
 	return c.DeepCopy()
 }
@@ -85,34 +93,42 @@ func (c *SecretStore) Copy() GenericStore {
 // +kubebuilder:object:generate:false
 var _ GenericStore = &ClusterSecretStore{}
 
+// GetObjectMeta returns the ObjectMeta of the ClusterSecretStore.
 func (c *ClusterSecretStore) GetObjectMeta() *metav1.ObjectMeta {
 	return &c.ObjectMeta
 }
 
+// GetTypeMeta returns the TypeMeta of the ClusterSecretStore.
 func (c *ClusterSecretStore) GetTypeMeta() *metav1.TypeMeta {
 	return &c.TypeMeta
 }
 
+// GetSpec returns the spec of the ClusterSecretStore.
 func (c *ClusterSecretStore) GetSpec() *SecretStoreSpec {
 	return &c.Spec
 }
 
+// Copy returns a deep copy of the ClusterSecretStore.
 func (c *ClusterSecretStore) Copy() GenericStore {
 	return c.DeepCopy()
 }
 
+// GetStatus returns the status of the ClusterSecretStore.
 func (c *ClusterSecretStore) GetStatus() SecretStoreStatus {
 	return c.Status
 }
 
+// SetStatus sets the status of the ClusterSecretStore.
 func (c *ClusterSecretStore) SetStatus(status SecretStoreStatus) {
 	c.Status = status
 }
 
+// GetNamespacedName returns the namespaced name of the ClusterSecretStore.
 func (c *ClusterSecretStore) GetNamespacedName() string {
 	return fmt.Sprintf("%s/%s", c.Namespace, c.Name)
 }
 
+// GetKind returns the kind of the ClusterSecretStore.
 func (c *ClusterSecretStore) GetKind() string {
 	return ClusterSecretStoreKind
 }

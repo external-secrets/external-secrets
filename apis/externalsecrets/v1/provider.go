@@ -106,7 +106,7 @@ var NoSecretErr = NoSecretError{}
 // desired secret. This is used for deletionPolicy.
 type NoSecretError struct{}
 
-func (*NoSecretError) Error() string {
+func (NoSecretError) Error() string {
 	return "Secret does not exist"
 }
 
@@ -118,6 +118,6 @@ var NotModifiedErr = NotModifiedError{}
 // and it should just return without doing anything.
 type NotModifiedError struct{}
 
-func (*NotModifiedError) Error() string {
+func (NotModifiedError) Error() string {
 	return "not modified"
 }

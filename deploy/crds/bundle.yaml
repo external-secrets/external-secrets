@@ -802,7 +802,7 @@ spec:
       name: v1beta1
       schema:
         openAPIV3Schema:
-          description: ClusterExternalSecret is the Schema for the clusterexternalsecrets API.
+          description: ClusterExternalSecret is the schema for the clusterexternalsecrets API.
           properties:
             apiVersion:
               description: |-
@@ -973,6 +973,7 @@ spec:
                         DataFrom is used to fetch all properties from a specific Provider data
                         If multiple entries are specified, the Secret keys are merged in the specified order
                       items:
+                        description: ExternalSecretDataFromRemoteRef defines a reference to multiple secrets in the provider to be fetched using options.
                         properties:
                           extract:
                             description: |-
@@ -1056,6 +1057,7 @@ spec:
                               Used to rewrite secret Keys after getting them from the secret Provider
                               Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
                             items:
+                              description: ExternalSecretRewrite defines rules on how to rewrite secret keys.
                               maxProperties: 1
                               minProperties: 1
                               properties:
@@ -1253,6 +1255,7 @@ spec:
                               type: string
                             mergePolicy:
                               default: Replace
+                              description: TemplateMergePolicy defines how template values should be merged when generating a secret.
                               enum:
                                 - Replace
                                 - Merge
@@ -1271,12 +1274,15 @@ spec:
                               type: object
                             templateFrom:
                               items:
+                                description: TemplateFrom defines a source for template data.
                                 properties:
                                   configMap:
+                                    description: TemplateRef defines a reference to a template source in a ConfigMap or Secret.
                                     properties:
                                       items:
                                         description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                         items:
+                                          description: TemplateRefItem defines which key in the referenced ConfigMap or Secret to use as a template.
                                           properties:
                                             key:
                                               description: A key in the ConfigMap/Secret
@@ -1286,6 +1292,7 @@ spec:
                                               type: string
                                             templateAs:
                                               default: Values
+                                              description: TemplateScope defines the scope of the template when processing template data.
                                               enum:
                                                 - Values
                                                 - KeysAndValues
@@ -1307,10 +1314,12 @@ spec:
                                   literal:
                                     type: string
                                   secret:
+                                    description: TemplateRef defines a reference to a template source in a ConfigMap or Secret.
                                     properties:
                                       items:
                                         description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                         items:
+                                          description: TemplateRefItem defines which key in the referenced ConfigMap or Secret to use as a template.
                                           properties:
                                             key:
                                               description: A key in the ConfigMap/Secret
@@ -1320,6 +1329,7 @@ spec:
                                               type: string
                                             templateAs:
                                               default: Values
+                                              description: TemplateScope defines the scope of the template when processing template data.
                                               enum:
                                                 - Values
                                                 - KeysAndValues
@@ -1340,6 +1350,7 @@ spec:
                                     type: object
                                   target:
                                     default: Data
+                                    description: TemplateTarget defines the target field where the template result will be stored.
                                     enum:
                                       - Data
                                       - Annotations
@@ -1467,12 +1478,14 @@ spec:
               properties:
                 conditions:
                   items:
+                    description: ClusterExternalSecretStatusCondition indicates the status of the ClusterExternalSecret.
                     properties:
                       message:
                         type: string
                       status:
                         type: string
                       type:
+                        description: ClusterExternalSecretConditionType indicates the condition of the ClusterExternalSecret.
                         type: string
                     required:
                       - status
@@ -1538,6 +1551,7 @@ spec:
       name: v1alpha1
       schema:
         openAPIV3Schema:
+          description: ClusterPushSecret is the Schema for the ClusterPushSecrets API that enables cluster-wide management of pushing Kubernetes secrets to external providers.
           properties:
             apiVersion:
               description: |-
@@ -1557,6 +1571,7 @@ spec:
             metadata:
               type: object
             spec:
+              description: ClusterPushSecretSpec defines the configuration for a ClusterPushSecret resource.
               properties:
                 namespaceSelectors:
                   description: A list of labels to select by to find the Namespaces to create the ExternalSecrets in. The selectors are ORed.
@@ -1634,6 +1649,7 @@ spec:
                     data:
                       description: Secret Data that should be pushed to providers
                       items:
+                        description: PushSecretData defines data to be pushed to the provider and associated metadata.
                         properties:
                           conversionStrategy:
                             default: None
@@ -1685,6 +1701,7 @@ spec:
                       type: string
                     secretStoreRefs:
                       items:
+                        description: PushSecretStoreRef contains a reference on how to sync to a SecretStore.
                         properties:
                           kind:
                             default: SecretStore
@@ -1991,6 +2008,7 @@ spec:
                 - pushSecretSpec
               type: object
             status:
+              description: ClusterPushSecretStatus contains the status information for the ClusterPushSecret resource.
               properties:
                 conditions:
                   items:
@@ -2403,7 +2421,7 @@ spec:
                           description: AlibabaAuth contains a secretRef for credentials.
                           properties:
                             rrsa:
-                              description: Authenticate against Alibaba using RRSA.
+                              description: AlibabaRRSAAuth authenticates against Alibaba using RRSA.
                               properties:
                                 oidcProviderArn:
                                   type: string
@@ -2501,7 +2519,7 @@ spec:
                             see: https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
                           properties:
                             jwt:
-                              description: Authenticate against AWS using service account tokens.
+                              description: AWSJWTAuth stores reference to Authenticate against AWS using service account tokens.
                               properties:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
@@ -2648,7 +2666,7 @@ spec:
                                 The number of days from 7 to 30 that Secrets Manager waits before
                                 permanently deleting the secret. You can't use both this parameter and
                                 ForceDeleteWithoutRecovery in the same call. If you don't use either,
-                                then by default Secrets Manager uses a 30 day recovery window.
+                                then by default Secrets Manager uses a 30-day recovery window.
                                 see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays
                               format: int64
                               type: integer
@@ -2662,6 +2680,9 @@ spec:
                         sessionTags:
                           description: AWS STS assume role session tags
                           items:
+                            description: |-
+                              Tag is a key-value pair that can be attached to an AWS resource.
+                              see: https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html
                             properties:
                               key:
                                 type: string
@@ -3603,6 +3624,7 @@ spec:
                           description: Auth configures how secret-manager authenticates with a Device42 instance.
                           properties:
                             secretRef:
+                              description: Device42SecretRef contains the secret reference for accessing the Device42 instance.
                               properties:
                                 credentials:
                                   description: Username / Password is used for authentication.
@@ -3648,6 +3670,7 @@ spec:
                           description: Auth configures how the Operator authenticates with the Doppler API
                           properties:
                             secretRef:
+                              description: DopplerAuthSecretRef contains the secret reference for accessing the Doppler API.
                               properties:
                                 dopplerToken:
                                   description: |-
@@ -3717,6 +3740,7 @@ spec:
                       properties:
                         data:
                           items:
+                            description: FakeProviderData defines a key-value pair with optional version for the fake provider.
                             properties:
                               key:
                                 type: string
@@ -3779,6 +3803,7 @@ spec:
                           description: Auth defines the information necessary to authenticate against GCP
                           properties:
                             secretRef:
+                              description: GCPSMAuthSecretRef contains the secret references for GCP Secret Manager authentication.
                               properties:
                                 secretAccessKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
@@ -3808,6 +3833,7 @@ spec:
                                   type: object
                               type: object
                             workloadIdentity:
+                              description: GCPWorkloadIdentity defines configuration for workload identity authentication to GCP.
                               properties:
                                 clusterLocation:
                                   description: |-
@@ -4050,6 +4076,7 @@ spec:
                           description: Auth configures how secret-manager authenticates with a GitLab instance.
                           properties:
                             SecretRef:
+                              description: GitlabSecretRef contains the secret reference for GitLab authentication credentials.
                               properties:
                                 accessToken:
                                   description: AccessToken is used for authentication.
@@ -4149,7 +4176,7 @@ spec:
                           minProperties: 1
                           properties:
                             containerAuth:
-                              description: IBM Container-based auth with IAM Trusted Profile.
+                              description: IBMAuthContainerAuth defines container-based authentication with IAM Trusted Profile.
                               properties:
                                 iamEndpoint:
                                   type: string
@@ -4163,6 +4190,7 @@ spec:
                                 - profile
                               type: object
                             secretRef:
+                              description: IBMAuthSecretRef contains the secret reference for IBM Cloud API key authentication.
                               properties:
                                 secretApiKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
@@ -5604,12 +5632,13 @@ spec:
                         - host
                       type: object
                     passworddepot:
-                      description: Configures a store to sync secrets with a Password Depot instance.
+                      description: PasswordDepotProvider configures a store to sync secrets with a Password Depot instance.
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with a Password Depot instance.
                           properties:
                             secretRef:
+                              description: PasswordDepotSecretRef contains the secret reference for Password Depot authentication.
                               properties:
                                 credentials:
                                   description: Username / Password is used for authentication.
@@ -6883,6 +6912,7 @@ spec:
                             Secrets to fill in templates
                             These secrets will be passed to the templating function as key value pairs under the given name
                           items:
+                            description: WebhookSecret defines a secret that will be passed to the webhook request.
                             properties:
                               name:
                                 description: Name of this secret in templates
@@ -7130,6 +7160,7 @@ spec:
                   type: string
                 conditions:
                   items:
+                    description: SecretStoreStatusCondition contains condition information for a SecretStore.
                     properties:
                       lastTransitionTime:
                         format: date-time
@@ -7141,6 +7172,7 @@ spec:
                       status:
                         type: string
                       type:
+                        description: SecretStoreConditionType represents the condition of the SecretStore.
                         type: string
                     required:
                       - status
@@ -7494,7 +7526,7 @@ spec:
                           description: AlibabaAuth contains a secretRef for credentials.
                           properties:
                             rrsa:
-                              description: Authenticate against Alibaba using RRSA.
+                              description: AlibabaRRSAAuth authenticates against Alibaba using RRSA (Resource-oriented RAM-based Service Authentication).
                               properties:
                                 oidcProviderArn:
                                   type: string
@@ -7592,7 +7624,7 @@ spec:
                             see: https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
                           properties:
                             jwt:
-                              description: Authenticate against AWS using service account tokens.
+                              description: AWSJWTAuth authenticates against AWS using service account tokens from the Kubernetes cluster.
                               properties:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
@@ -7753,6 +7785,7 @@ spec:
                         sessionTags:
                           description: AWS STS assume role session tags
                           items:
+                            description: Tag defines a tag key and value for AWS resources.
                             properties:
                               key:
                                 type: string
@@ -8662,6 +8695,7 @@ spec:
                           description: Auth configures how secret-manager authenticates with a Device42 instance.
                           properties:
                             secretRef:
+                              description: Device42SecretRef defines a reference to a secret containing credentials for the Device42 provider.
                               properties:
                                 credentials:
                                   description: Username / Password is used for authentication.
@@ -8707,6 +8741,7 @@ spec:
                           description: Auth configures how the Operator authenticates with the Doppler API
                           properties:
                             secretRef:
+                              description: DopplerAuthSecretRef defines a reference to a secret containing credentials for the Doppler provider.
                               properties:
                                 dopplerToken:
                                   description: |-
@@ -8776,6 +8811,7 @@ spec:
                       properties:
                         data:
                           items:
+                            description: FakeProviderData defines a key-value pair for the fake provider used in testing.
                             properties:
                               key:
                                 type: string
@@ -8798,7 +8834,9 @@ spec:
                           description: APIKey is the API token to access SDKMS Applications.
                           properties:
                             secretRef:
-                              description: SecretRef is a reference to a secret containing the SDKMS API Key.
+                              description: |-
+                                FortanixProviderSecretRef defines a reference to a secret containing credentials for the Fortanix provider.
+                                SecretRef is a reference to a secret containing the SDKMS API Key.
                               properties:
                                 key:
                                   description: |-
@@ -8825,7 +8863,9 @@ spec:
                               type: object
                           type: object
                         apiUrl:
-                          description: APIURL is the URL of SDKMS API. Defaults to `sdkms.fortanix.com`.
+                          description: |-
+                            FortanixProvider defines configuration for the Fortanix SDKMS provider.
+                            APIURL is the URL of SDKMS API. Defaults to `sdkms.fortanix.com`.
                           type: string
                       type: object
                     gcpsm:
@@ -8835,6 +8875,7 @@ spec:
                           description: Auth defines the information necessary to authenticate against GCP
                           properties:
                             secretRef:
+                              description: GCPSMAuthSecretRef defines a reference to a secret containing credentials for the GCP Secret Manager provider.
                               properties:
                                 secretAccessKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
@@ -8864,6 +8905,7 @@ spec:
                                   type: object
                               type: object
                             workloadIdentity:
+                              description: GCPWorkloadIdentity defines configuration for using GCP Workload Identity authentication.
                               properties:
                                 clusterLocation:
                                   description: |-
@@ -8993,6 +9035,7 @@ spec:
                           description: Auth configures how secret-manager authenticates with a GitLab instance.
                           properties:
                             SecretRef:
+                              description: GitlabSecretRef defines a reference to a secret containing credentials for the GitLab provider.
                               properties:
                                 accessToken:
                                   description: AccessToken is used for authentication.
@@ -9092,7 +9135,7 @@ spec:
                           minProperties: 1
                           properties:
                             containerAuth:
-                              description: IBM Container-based auth with IAM Trusted Profile.
+                              description: IBMAuthContainerAuth defines authentication using IBM Container-based auth with IAM Trusted Profile.
                               properties:
                                 iamEndpoint:
                                   type: string
@@ -9106,6 +9149,7 @@ spec:
                                 - profile
                               type: object
                             secretRef:
+                              description: IBMAuthSecretRef defines a reference to a secret containing credentials for the IBM provider.
                               properties:
                                 secretApiKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
@@ -9148,6 +9192,7 @@ spec:
                           description: Auth configures how the Operator authenticates with the Infisical API
                           properties:
                             universalAuthCredentials:
+                              description: UniversalAuthCredentials defines the credentials for Infisical Universal Auth.
                               properties:
                                 clientId:
                                   description: |-
@@ -9764,14 +9809,13 @@ spec:
                         - vault
                       type: object
                     passbolt:
+                      description: PassboltProvider defines configuration for the Passbolt provider.
                       properties:
                         auth:
                           description: Auth defines the information necessary to authenticate against Passbolt Server
                           properties:
                             passwordSecretRef:
-                              description: |-
-                                A reference to a specific 'key' within a Secret resource.
-                                In some instances, `key` is a required field.
+                              description: PasswordSecretRef is a reference to the secret containing the Passbolt password
                               properties:
                                 key:
                                   description: |-
@@ -9797,9 +9841,7 @@ spec:
                                   type: string
                               type: object
                             privateKeySecretRef:
-                              description: |-
-                                A reference to a specific 'key' within a Secret resource.
-                                In some instances, `key` is a required field.
+                              description: PrivateKeySecretRef is a reference to the secret containing the Passbolt private key
                               properties:
                                 key:
                                   description: |-
@@ -9836,12 +9878,13 @@ spec:
                         - host
                       type: object
                     passworddepot:
-                      description: Configures a store to sync secrets with a Password Depot instance.
+                      description: PasswordDepotProvider configures a store to sync secrets with a Password Depot instance.
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with a Password Depot instance.
                           properties:
                             secretRef:
+                              description: PasswordDepotSecretRef defines a reference to a secret containing credentials for the Password Depot provider.
                               properties:
                                 credentials:
                                   description: Username / Password is used for authentication.
@@ -12029,7 +12072,7 @@ spec:
       name: v1beta1
       schema:
         openAPIV3Schema:
-          description: ExternalSecret is the Schema for the external-secrets API.
+          description: ExternalSecret is the schema for the external-secrets API.
           properties:
             apiVersion:
               description: |-
@@ -12177,6 +12220,7 @@ spec:
                     DataFrom is used to fetch all properties from a specific Provider data
                     If multiple entries are specified, the Secret keys are merged in the specified order
                   items:
+                    description: ExternalSecretDataFromRemoteRef defines a reference to multiple secrets in the provider to be fetched using options.
                     properties:
                       extract:
                         description: |-
@@ -12260,6 +12304,7 @@ spec:
                           Used to rewrite secret Keys after getting them from the secret Provider
                           Multiple Rewrite operations can be provided. They are applied in a layered order (first to last)
                         items:
+                          description: ExternalSecretRewrite defines rules on how to rewrite secret keys.
                           maxProperties: 1
                           minProperties: 1
                           properties:
@@ -12457,6 +12502,7 @@ spec:
                           type: string
                         mergePolicy:
                           default: Replace
+                          description: TemplateMergePolicy defines how template values should be merged when generating a secret.
                           enum:
                             - Replace
                             - Merge
@@ -12475,12 +12521,15 @@ spec:
                           type: object
                         templateFrom:
                           items:
+                            description: TemplateFrom defines a source for template data.
                             properties:
                               configMap:
+                                description: TemplateRef defines a reference to a template source in a ConfigMap or Secret.
                                 properties:
                                   items:
                                     description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                     items:
+                                      description: TemplateRefItem defines which key in the referenced ConfigMap or Secret to use as a template.
                                       properties:
                                         key:
                                           description: A key in the ConfigMap/Secret
@@ -12490,6 +12539,7 @@ spec:
                                           type: string
                                         templateAs:
                                           default: Values
+                                          description: TemplateScope defines the scope of the template when processing template data.
                                           enum:
                                             - Values
                                             - KeysAndValues
@@ -12511,10 +12561,12 @@ spec:
                               literal:
                                 type: string
                               secret:
+                                description: TemplateRef defines a reference to a template source in a ConfigMap or Secret.
                                 properties:
                                   items:
                                     description: A list of keys in the ConfigMap/Secret to use as templates for Secret data
                                     items:
+                                      description: TemplateRefItem defines which key in the referenced ConfigMap or Secret to use as a template.
                                       properties:
                                         key:
                                           description: A key in the ConfigMap/Secret
@@ -12524,6 +12576,7 @@ spec:
                                           type: string
                                         templateAs:
                                           default: Values
+                                          description: TemplateScope defines the scope of the template when processing template data.
                                           enum:
                                             - Values
                                             - KeysAndValues
@@ -12544,6 +12597,7 @@ spec:
                                 type: object
                               target:
                                 default: Data
+                                description: TemplateTarget defines the target field where the template result will be stored.
                                 enum:
                                   - Data
                                   - Annotations
@@ -12557,6 +12611,7 @@ spec:
                   type: object
               type: object
             status:
+              description: ExternalSecretStatus defines the observed state of ExternalSecret.
               properties:
                 binding:
                   description: Binding represents a servicebinding.io Provisioned Service reference to the secret
@@ -12574,6 +12629,7 @@ spec:
                   x-kubernetes-map-type: atomic
                 conditions:
                   items:
+                    description: ExternalSecretStatusCondition contains condition information for an ExternalSecret.
                     properties:
                       lastTransitionTime:
                         format: date-time
@@ -12585,6 +12641,7 @@ spec:
                       status:
                         type: string
                       type:
+                        description: ExternalSecretConditionType defines the condition type for an ExternalSecret.
                         type: string
                     required:
                       - status
@@ -12639,6 +12696,7 @@ spec:
       name: v1alpha1
       schema:
         openAPIV3Schema:
+          description: PushSecret is the Schema for the PushSecrets API that enables pushing Kubernetes secrets to external secret providers.
           properties:
             apiVersion:
               description: |-
@@ -12663,6 +12721,7 @@ spec:
                 data:
                   description: Secret Data that should be pushed to providers
                   items:
+                    description: PushSecretData defines data to be pushed to the provider and associated metadata.
                     properties:
                       conversionStrategy:
                         default: None
@@ -12714,6 +12773,7 @@ spec:
                   type: string
                 secretStoreRefs:
                   items:
+                    description: PushSecretStoreRef contains a reference on how to sync to a SecretStore.
                     properties:
                       kind:
                         default: SecretStore
@@ -13047,6 +13107,7 @@ spec:
                 syncedPushSecrets:
                   additionalProperties:
                     additionalProperties:
+                      description: PushSecretData defines data to be pushed to the provider and associated metadata.
                       properties:
                         conversionStrategy:
                           default: None
@@ -13460,7 +13521,7 @@ spec:
                           description: AlibabaAuth contains a secretRef for credentials.
                           properties:
                             rrsa:
-                              description: Authenticate against Alibaba using RRSA.
+                              description: AlibabaRRSAAuth authenticates against Alibaba using RRSA.
                               properties:
                                 oidcProviderArn:
                                   type: string
@@ -13558,7 +13619,7 @@ spec:
                             see: https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
                           properties:
                             jwt:
-                              description: Authenticate against AWS using service account tokens.
+                              description: AWSJWTAuth stores reference to Authenticate against AWS using service account tokens.
                               properties:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
@@ -13705,7 +13766,7 @@ spec:
                                 The number of days from 7 to 30 that Secrets Manager waits before
                                 permanently deleting the secret. You can't use both this parameter and
                                 ForceDeleteWithoutRecovery in the same call. If you don't use either,
-                                then by default Secrets Manager uses a 30 day recovery window.
+                                then by default Secrets Manager uses a 30-day recovery window.
                                 see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays
                               format: int64
                               type: integer
@@ -13719,6 +13780,9 @@ spec:
                         sessionTags:
                           description: AWS STS assume role session tags
                           items:
+                            description: |-
+                              Tag is a key-value pair that can be attached to an AWS resource.
+                              see: https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html
                             properties:
                               key:
                                 type: string
@@ -14660,6 +14724,7 @@ spec:
                           description: Auth configures how secret-manager authenticates with a Device42 instance.
                           properties:
                             secretRef:
+                              description: Device42SecretRef contains the secret reference for accessing the Device42 instance.
                               properties:
                                 credentials:
                                   description: Username / Password is used for authentication.
@@ -14705,6 +14770,7 @@ spec:
                           description: Auth configures how the Operator authenticates with the Doppler API
                           properties:
                             secretRef:
+                              description: DopplerAuthSecretRef contains the secret reference for accessing the Doppler API.
                               properties:
                                 dopplerToken:
                                   description: |-
@@ -14774,6 +14840,7 @@ spec:
                       properties:
                         data:
                           items:
+                            description: FakeProviderData defines a key-value pair with optional version for the fake provider.
                             properties:
                               key:
                                 type: string
@@ -14836,6 +14903,7 @@ spec:
                           description: Auth defines the information necessary to authenticate against GCP
                           properties:
                             secretRef:
+                              description: GCPSMAuthSecretRef contains the secret references for GCP Secret Manager authentication.
                               properties:
                                 secretAccessKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
@@ -14865,6 +14933,7 @@ spec:
                                   type: object
                               type: object
                             workloadIdentity:
+                              description: GCPWorkloadIdentity defines configuration for workload identity authentication to GCP.
                               properties:
                                 clusterLocation:
                                   description: |-
@@ -15107,6 +15176,7 @@ spec:
                           description: Auth configures how secret-manager authenticates with a GitLab instance.
                           properties:
                             SecretRef:
+                              description: GitlabSecretRef contains the secret reference for GitLab authentication credentials.
                               properties:
                                 accessToken:
                                   description: AccessToken is used for authentication.
@@ -15206,7 +15276,7 @@ spec:
                           minProperties: 1
                           properties:
                             containerAuth:
-                              description: IBM Container-based auth with IAM Trusted Profile.
+                              description: IBMAuthContainerAuth defines container-based authentication with IAM Trusted Profile.
                               properties:
                                 iamEndpoint:
                                   type: string
@@ -15220,6 +15290,7 @@ spec:
                                 - profile
                               type: object
                             secretRef:
+                              description: IBMAuthSecretRef contains the secret reference for IBM Cloud API key authentication.
                               properties:
                                 secretApiKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
@@ -16661,12 +16732,13 @@ spec:
                         - host
                       type: object
                     passworddepot:
-                      description: Configures a store to sync secrets with a Password Depot instance.
+                      description: PasswordDepotProvider configures a store to sync secrets with a Password Depot instance.
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with a Password Depot instance.
                           properties:
                             secretRef:
+                              description: PasswordDepotSecretRef contains the secret reference for Password Depot authentication.
                               properties:
                                 credentials:
                                   description: Username / Password is used for authentication.
@@ -17940,6 +18012,7 @@ spec:
                             Secrets to fill in templates
                             These secrets will be passed to the templating function as key value pairs under the given name
                           items:
+                            description: WebhookSecret defines a secret that will be passed to the webhook request.
                             properties:
                               name:
                                 description: Name of this secret in templates
@@ -18187,6 +18260,7 @@ spec:
                   type: string
                 conditions:
                   items:
+                    description: SecretStoreStatusCondition contains condition information for a SecretStore.
                     properties:
                       lastTransitionTime:
                         format: date-time
@@ -18198,6 +18272,7 @@ spec:
                       status:
                         type: string
                       type:
+                        description: SecretStoreConditionType represents the condition of the SecretStore.
                         type: string
                     required:
                       - status
@@ -18551,7 +18626,7 @@ spec:
                           description: AlibabaAuth contains a secretRef for credentials.
                           properties:
                             rrsa:
-                              description: Authenticate against Alibaba using RRSA.
+                              description: AlibabaRRSAAuth authenticates against Alibaba using RRSA (Resource-oriented RAM-based Service Authentication).
                               properties:
                                 oidcProviderArn:
                                   type: string
@@ -18649,7 +18724,7 @@ spec:
                             see: https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#specifying-credentials
                           properties:
                             jwt:
-                              description: Authenticate against AWS using service account tokens.
+                              description: AWSJWTAuth authenticates against AWS using service account tokens from the Kubernetes cluster.
                               properties:
                                 serviceAccountRef:
                                   description: A reference to a ServiceAccount resource.
@@ -18810,6 +18885,7 @@ spec:
                         sessionTags:
                           description: AWS STS assume role session tags
                           items:
+                            description: Tag defines a tag key and value for AWS resources.
                             properties:
                               key:
                                 type: string
@@ -19719,6 +19795,7 @@ spec:
                           description: Auth configures how secret-manager authenticates with a Device42 instance.
                           properties:
                             secretRef:
+                              description: Device42SecretRef defines a reference to a secret containing credentials for the Device42 provider.
                               properties:
                                 credentials:
                                   description: Username / Password is used for authentication.
@@ -19764,6 +19841,7 @@ spec:
                           description: Auth configures how the Operator authenticates with the Doppler API
                           properties:
                             secretRef:
+                              description: DopplerAuthSecretRef defines a reference to a secret containing credentials for the Doppler provider.
                               properties:
                                 dopplerToken:
                                   description: |-
@@ -19833,6 +19911,7 @@ spec:
                       properties:
                         data:
                           items:
+                            description: FakeProviderData defines a key-value pair for the fake provider used in testing.
                             properties:
                               key:
                                 type: string
@@ -19855,7 +19934,9 @@ spec:
                           description: APIKey is the API token to access SDKMS Applications.
                           properties:
                             secretRef:
-                              description: SecretRef is a reference to a secret containing the SDKMS API Key.
+                              description: |-
+                                FortanixProviderSecretRef defines a reference to a secret containing credentials for the Fortanix provider.
+                                SecretRef is a reference to a secret containing the SDKMS API Key.
                               properties:
                                 key:
                                   description: |-
@@ -19882,7 +19963,9 @@ spec:
                               type: object
                           type: object
                         apiUrl:
-                          description: APIURL is the URL of SDKMS API. Defaults to `sdkms.fortanix.com`.
+                          description: |-
+                            FortanixProvider defines configuration for the Fortanix SDKMS provider.
+                            APIURL is the URL of SDKMS API. Defaults to `sdkms.fortanix.com`.
                           type: string
                       type: object
                     gcpsm:
@@ -19892,6 +19975,7 @@ spec:
                           description: Auth defines the information necessary to authenticate against GCP
                           properties:
                             secretRef:
+                              description: GCPSMAuthSecretRef defines a reference to a secret containing credentials for the GCP Secret Manager provider.
                               properties:
                                 secretAccessKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
@@ -19921,6 +20005,7 @@ spec:
                                   type: object
                               type: object
                             workloadIdentity:
+                              description: GCPWorkloadIdentity defines configuration for using GCP Workload Identity authentication.
                               properties:
                                 clusterLocation:
                                   description: |-
@@ -20050,6 +20135,7 @@ spec:
                           description: Auth configures how secret-manager authenticates with a GitLab instance.
                           properties:
                             SecretRef:
+                              description: GitlabSecretRef defines a reference to a secret containing credentials for the GitLab provider.
                               properties:
                                 accessToken:
                                   description: AccessToken is used for authentication.
@@ -20149,7 +20235,7 @@ spec:
                           minProperties: 1
                           properties:
                             containerAuth:
-                              description: IBM Container-based auth with IAM Trusted Profile.
+                              description: IBMAuthContainerAuth defines authentication using IBM Container-based auth with IAM Trusted Profile.
                               properties:
                                 iamEndpoint:
                                   type: string
@@ -20163,6 +20249,7 @@ spec:
                                 - profile
                               type: object
                             secretRef:
+                              description: IBMAuthSecretRef defines a reference to a secret containing credentials for the IBM provider.
                               properties:
                                 secretApiKeySecretRef:
                                   description: The SecretAccessKey is used for authentication
@@ -20205,6 +20292,7 @@ spec:
                           description: Auth configures how the Operator authenticates with the Infisical API
                           properties:
                             universalAuthCredentials:
+                              description: UniversalAuthCredentials defines the credentials for Infisical Universal Auth.
                               properties:
                                 clientId:
                                   description: |-
@@ -20821,14 +20909,13 @@ spec:
                         - vault
                       type: object
                     passbolt:
+                      description: PassboltProvider defines configuration for the Passbolt provider.
                       properties:
                         auth:
                           description: Auth defines the information necessary to authenticate against Passbolt Server
                           properties:
                             passwordSecretRef:
-                              description: |-
-                                A reference to a specific 'key' within a Secret resource.
-                                In some instances, `key` is a required field.
+                              description: PasswordSecretRef is a reference to the secret containing the Passbolt password
                               properties:
                                 key:
                                   description: |-
@@ -20854,9 +20941,7 @@ spec:
                                   type: string
                               type: object
                             privateKeySecretRef:
-                              description: |-
-                                A reference to a specific 'key' within a Secret resource.
-                                In some instances, `key` is a required field.
+                              description: PrivateKeySecretRef is a reference to the secret containing the Passbolt private key
                               properties:
                                 key:
                                   description: |-
@@ -20893,12 +20978,13 @@ spec:
                         - host
                       type: object
                     passworddepot:
-                      description: Configures a store to sync secrets with a Password Depot instance.
+                      description: PasswordDepotProvider configures a store to sync secrets with a Password Depot instance.
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with a Password Depot instance.
                           properties:
                             secretRef:
+                              description: PasswordDepotSecretRef defines a reference to a secret containing credentials for the Password Depot provider.
                               properties:
                                 credentials:
                                   description: Username / Password is used for authentication.
